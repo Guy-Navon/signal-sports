@@ -1,18 +1,46 @@
 # Signal Sports
 
-A personalized sports news feed that surfaces the most relevant content based on your preferences and followed entities.
+Personalized sports news intelligence feed. Surfaces only the stories that matter to a specific user — not a generic sports feed.
 
-## Getting Started
+## Repository structure
+
+```
+signal-sports/
+├── frontend/       React + Vite + Tailwind frontend
+├── backend/        FastAPI Python backend
+├── docs/           Product and architecture documentation
+└── CLAUDE.md       Project context for AI-assisted development
+```
+
+## Frontend
 
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+Tests: `npm run test` | Lint: `npm run lint` | Build: `npm run build`
 
-## Scripts
+See [frontend/README.md](frontend/README.md) for full details.
 
-- `npm run dev` — start the dev server
-- `npm run build` — production build
-- `npm run preview` — preview the production build
+## Backend
+
+```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt   # Windows
+.venv\Scripts\uvicorn app.main:app --reload
+```
+
+Tests: `.venv\Scripts\python -m pytest tests/ -v`
+
+See [backend/README.md](backend/README.md) for full details.
+
+## Docs
+
+- [PRODUCT_UNDERSTANDING.md](docs/PRODUCT_UNDERSTANDING.md) — what Signal Sports is and isn't
+- [IMPLEMENTATION_AUDIT.md](docs/IMPLEMENTATION_AUDIT.md) — current state vs intended product
+- [BACKEND_FOUNDATION.md](docs/BACKEND_FOUNDATION.md) — backend architecture and engine design
+- [CALIBRATION_V0.md](docs/CALIBRATION_V0.md) — calibration flow design
+- [CALIBRATION_APPLY.md](docs/CALIBRATION_APPLY.md) — applying calibration to sandbox profile

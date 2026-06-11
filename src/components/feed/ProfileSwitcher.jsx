@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown, User } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { profileList } from "@/data/userProfiles";
+import { SANDBOX_PROFILE_ID } from "@/engine/draftToProfile";
 
 export default function ProfileSwitcher() {
-  const { activeProfileId, setActiveProfileId, activeProfile } = useApp();
+  const { activeProfileId, setActiveProfileId, activeProfile, profileList } = useApp();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -34,22 +34,30 @@ export default function ProfileSwitcher() {
           <div className="px-3 py-2 border-b border-gray-700">
             <p className="text-xs text-gray-500">החלף פרופיל</p>
           </div>
-          {profileList.map(profile => (
-            <button
-              key={profile.id}
-              onClick={() => { setActiveProfileId(profile.id); setOpen(false); }}
-              className={`w-full text-right px-3 py-2.5 text-sm transition-colors flex items-center gap-2 ${
-                activeProfileId === profile.id
-                  ? "bg-emerald-500/10 text-emerald-300"
-                  : "text-gray-300 hover:bg-gray-700"
-              }`}
-            >
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                activeProfileId === profile.id ? "bg-emerald-400" : "bg-gray-600"
-              }`} />
-              {profile.label}
-            </button>
-          ))}
+          {profileList.map(profile => {
+            const isSandbox = profile.id === SANDBOX_PROFILE_ID;
+            return (
+              <button
+                key={profile.id}
+                onClick={() => { setActiveProfileId(profile.id); setOpen(false); }}
+                className={`w-full text-right px-3 py-2.5 text-sm transition-colors flex items-center gap-2 ${
+                  activeProfileId === profile.id
+                    ? "bg-emerald-500/10 text-emerald-300"
+                    : "text-gray-300 hover:bg-gray-700"
+                }`}
+              >
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  activeProfileId === profile.id ? "bg-emerald-400" : "bg-gray-600"
+                }`} />
+                <span className="flex-1 text-right">{profile.label}</span>
+                {isSandbox && (
+                  <span className="text-[9px] bg-amber-500/20 border border-amber-500/40 text-amber-400 rounded px-1.5 py-0.5">
+                    בדיקה
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

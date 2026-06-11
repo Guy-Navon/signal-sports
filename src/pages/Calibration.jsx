@@ -1,14 +1,23 @@
 import React, { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import {
   Zap, ThumbsUp, Minus, ThumbsDown, EyeOff,
-  ChevronDown, ChevronUp, Target, RotateCcw, Lock
+  ChevronDown, ChevronUp, Target, RotateCcw,
+  CheckCircle, ArrowRight, Trash2
 } from "lucide-react";
 import { calibrationHeadlines } from "@/data/calibrationHeadlines";
+import { mockArticles } from "@/data/mockArticles";
 import {
   inferPreferenceDraftFromCalibration,
   RATING_LABELS_HE,
   RATINGS
 } from "@/engine/calibrationEngine";
+import {
+  convertCalibrationDraftToUserProfile,
+  previewEntityEventRules
+} from "@/engine/draftToProfile";
+import { scoreArticle } from "@/engine/relevanceEngine";
+import { useApp } from "@/context/AppContext";
 
 // ── Rating config ─────────────────────────────────────────────────────────────
 
@@ -127,13 +136,11 @@ function HeadlineCard({ headline, currentRating, onRate }) {
     <div className={`rounded-xl border transition-colors ${
       isRated ? "border-gray-700 bg-gray-900/40" : "border-gray-800 bg-gray-900/60"
     }`}>
-      {/* Card header */}
       <div className="p-4 pb-3">
         <p className="text-sm font-medium text-white leading-snug mb-2.5">
           {headline.title}
         </p>
 
-        {/* Metadata chips */}
         <div className="flex flex-wrap gap-1.5">
           <span className="text-[10px] bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-gray-400">
             {sport}
@@ -151,7 +158,6 @@ function HeadlineCard({ headline, currentRating, onRate }) {
           </span>
         </div>
 
-        {/* Entities */}
         {headline.entities.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">
             {headline.entities.map(e => (
@@ -163,7 +169,6 @@ function HeadlineCard({ headline, currentRating, onRate }) {
         )}
       </div>
 
-      {/* Rating buttons */}
       <div className="border-t border-gray-800 px-3 py-2.5 flex gap-1.5 flex-wrap">
         {RATING_BUTTONS.map(btn => {
           const Icon = btn.icon;
@@ -189,7 +194,22 @@ function HeadlineCard({ headline, currentRating, onRate }) {
   );
 }
 
-function InferenceDraftPanel({ draft, ratedCount }) {
+function DecisionChip({ decision }) {
+  const colors = {
+    push: "text-amber-400",
+    high_feed: "text-emerald-400",
+    feed: "text-blue-400",
+    low_feed: "text-gray-500",
+    hidden: "text-red-500"
+  };
+  return (
+    <span className={`font-medium ${colors[decision] || "text-gray-500"}`}>
+      {DECISION_LABELS_HE[decision] || decision}
+    </span>
+  );
+}
+
+function InferenceDraftPanel({ draft, ratedCount, onApply, sandboxExists, onReset, justApplied, sandboxFeedStats }) {
   const [expanded, setExpanded] = useState(true);
 
   if (ratedCount < 3) {
@@ -230,37 +250,58 @@ function InferenceDraftPanel({ draft, ratedCount }) {
             <div>
               <p className="text-xs text-gray-500 mb-2">נושאים שזוהו</p>
               <div className="space-y-2">
-                {draft.inferredTopics.map(topic => (
-                  <div key={topic.topicKey} className="bg-gray-800/40 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-xs font-medium text-gray-200">{topic.label}</span>
-                      <span className="text-[10px] bg-gray-700 rounded px-1.5 py-0.5 text-gray-400">
-                        עדיפות {topic.priority}
-                      </span>
-                      <span className="text-[10px] bg-gray-700 rounded px-1.5 py-0.5 text-gray-400">
-                        {MODE_LABELS_HE[topic.mode] || topic.mode}
-                      </span>
-                    </div>
-
-                    {/* Event rules */}
-                    {Object.entries(topic.eventRules).length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {Object.entries(topic.eventRules).map(([eventType, decision]) => (
-                          <span key={eventType} className="text-[10px] flex items-center gap-1">
-                            <span className="text-gray-500">{EVENT_TYPE_LABELS_HE[eventType] || eventType}</span>
-                            <span className="text-gray-700">→</span>
-                            <DecisionChip decision={decision} />
-                          </span>
-                        ))}
+                {draft.inferredTopics.map(topic => {
+                  const entityRulesPreview = previewEntityEventRules(topic);
+                  return (
+                    <div key={topic.topicKey} className="bg-gray-800/40 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-xs font-medium text-gray-200">{topic.label}</span>
+                        <span className="text-[10px] bg-gray-700 rounded px-1.5 py-0.5 text-gray-400">
+                          עדיפות {topic.priority}
+                        </span>
+                        <span className="text-[10px] bg-gray-700 rounded px-1.5 py-0.5 text-gray-400">
+                          {MODE_LABELS_HE[topic.mode] || topic.mode}
+                        </span>
                       </div>
-                    )}
 
-                    {/* Reasoning */}
-                    <p className="text-[10px] text-gray-600 mt-1.5">
-                      {topic.reasoning.join(" · ")}
-                    </p>
-                  </div>
-                ))}
+                      {/* Generic event rules */}
+                      {Object.entries(topic.eventRules).length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(topic.eventRules).map(([eventType, decision]) => (
+                            <span key={eventType} className="text-[10px] flex items-center gap-1">
+                              <span className="text-gray-500">{EVENT_TYPE_LABELS_HE[eventType] || eventType}</span>
+                              <span className="text-gray-700">→</span>
+                              <DecisionChip decision={decision} />
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Entity-specific rules for followed_entities_only topics */}
+                      {entityRulesPreview && (
+                        <div className="mt-2 pt-2 border-t border-gray-700/50">
+                          <p className="text-[10px] text-gray-600 mb-1">כללים ספציפיים לישות</p>
+                          {Object.entries(entityRulesPreview).map(([entity, rules]) => (
+                            <div key={entity} className="flex flex-wrap items-center gap-1">
+                              <span className="text-[10px] text-emerald-400/70 font-medium">{entity}:</span>
+                              {Object.entries(rules).map(([eventType, decision]) => (
+                                <span key={eventType} className="text-[10px] flex items-center gap-1">
+                                  <span className="text-gray-500">{EVENT_TYPE_LABELS_HE[eventType] || eventType}</span>
+                                  <span className="text-gray-700">→</span>
+                                  <DecisionChip decision={decision} />
+                                </span>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-gray-600 mt-1.5">
+                        {topic.reasoning.join(" · ")}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -302,38 +343,123 @@ function InferenceDraftPanel({ draft, ratedCount }) {
             </div>
           )}
 
-          {/* Apply draft — disabled for PR 2, future functionality */}
-          <div className="border-t border-gray-800 pt-3">
-            <button
-              disabled
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-gray-700 text-gray-600 text-xs cursor-not-allowed"
-              title="פונקציה עתידית — טרם זמין"
-            >
-              <Lock size={11} />
-              החל עדפות על פרופיל — עתידי
-            </button>
-            <p className="text-[10px] text-gray-700 text-center mt-1">
-              בשלב זה הניתוח הוא תצוגה מקדימה בלבד
+          {/* Apply / Reset actions */}
+          <div className="border-t border-gray-800 pt-3 space-y-2">
+
+            {/* Success state */}
+            {justApplied && (
+              <div className="flex items-center gap-2 p-3 bg-emerald-900/20 border border-emerald-700/40 rounded-lg">
+                <CheckCircle size={14} className="text-emerald-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-emerald-300">
+                    הפרופיל המכויל הופעל. גיא ומעריץ דני לא השתנו.
+                  </p>
+                </div>
+                <Link
+                  to="/"
+                  className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 transition-colors shrink-0"
+                >
+                  עבור לפיד
+                  <ArrowRight size={11} />
+                </Link>
+              </div>
+            )}
+
+            {/* Sandbox feed stats — shown after apply */}
+            {justApplied && sandboxFeedStats && (
+              <div className="bg-gray-900/60 border border-gray-700/50 rounded-lg p-3 space-y-2">
+                <p className="text-[10px] text-gray-500 font-medium">תוצאות בדיקה</p>
+
+                {/* Summary row */}
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  <span className="text-[10px] text-gray-400">
+                    נושאים: <span className="text-white">{sandboxFeedStats.topicCount}</span>
+                  </span>
+                  <span className="text-[10px] text-gray-400">
+                    ישויות: <span className="text-white">{sandboxFeedStats.entityCount}</span>
+                  </span>
+                  <span className="text-[10px] text-gray-400">
+                    מושתקים: <span className="text-white">{sandboxFeedStats.mutedCount}</span>
+                  </span>
+                  <span className={`text-[10px] font-medium ${
+                    sandboxFeedStats.visibleCount === 0
+                      ? "text-red-400"
+                      : sandboxFeedStats.visibleCount >= 10
+                      ? "text-emerald-400"
+                      : "text-amber-400"
+                  }`}>
+                    נראים: {sandboxFeedStats.visibleCount}/{sandboxFeedStats.totalCount}
+                  </span>
+                </div>
+
+                {/* Top visible articles */}
+                {sandboxFeedStats.visibleCount > 0 && (
+                  <div>
+                    <p className="text-[10px] text-gray-600 mb-1">כותרות מובילות</p>
+                    <div className="space-y-1">
+                      {sandboxFeedStats.topVisible.map(a => (
+                        <div key={a.id} className="flex items-start gap-1.5">
+                          <DecisionChip decision={a.decision} />
+                          <span className="text-[10px] text-gray-400 leading-tight">{a.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Hidden reasons when feed is empty */}
+                {sandboxFeedStats.visibleCount === 0 && sandboxFeedStats.topHiddenReasons.length > 0 && (
+                  <div>
+                    <p className="text-[10px] text-red-500 mb-1">⚠️ אפס כתבות נראות — סיבות הסתרה</p>
+                    <div className="space-y-1">
+                      {sandboxFeedStats.topHiddenReasons.map((item, i) => (
+                        <div key={i} className="text-[10px] text-gray-600 leading-tight">
+                          <span className="text-gray-500">{item.title}</span>
+                          {item.reason && (
+                            <span className="text-gray-700"> — {item.reason}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Apply button */}
+            {!justApplied && (
+              <button
+                onClick={onApply}
+                disabled={!hasTopics}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border text-xs transition-all ${
+                  hasTopics
+                    ? "border-emerald-600 bg-emerald-600/10 text-emerald-300 hover:bg-emerald-600/20 hover:border-emerald-500"
+                    : "border-gray-700 text-gray-600 cursor-not-allowed"
+                }`}
+              >
+                <CheckCircle size={12} />
+                החל על פרופיל בדיקה
+              </button>
+            )}
+
+            {/* Reset button — shown when sandbox exists */}
+            {sandboxExists && (
+              <button
+                onClick={onReset}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-gray-700 text-gray-500 text-xs hover:border-gray-600 hover:text-gray-400 transition-colors"
+              >
+                <Trash2 size={11} />
+                אפס פרופיל בדיקה
+              </button>
+            )}
+
+            <p className="text-[10px] text-gray-700 text-center">
+              הפרופיל המכויל הוא פרופיל נפרד — פרופילי גיא ומעריץ דני אינם משתנים
             </p>
           </div>
         </div>
       )}
     </div>
-  );
-}
-
-function DecisionChip({ decision }) {
-  const colors = {
-    push: "text-amber-400",
-    high_feed: "text-emerald-400",
-    feed: "text-blue-400",
-    low_feed: "text-gray-500",
-    hidden: "text-red-500"
-  };
-  return (
-    <span className={`font-medium ${colors[decision] || "text-gray-500"}`}>
-      {DECISION_LABELS_HE[decision] || decision}
-    </span>
   );
 }
 
@@ -347,8 +473,10 @@ const SPORT_FILTERS = [
 ];
 
 export default function Calibration() {
+  const { applySandboxProfile, resetSandboxProfile, sandboxProfile } = useApp();
   const [ratings, setRatings] = useState({});
   const [sportFilter, setSportFilter] = useState("all");
+  const [justApplied, setJustApplied] = useState(false);
 
   const ratedCount = Object.keys(ratings).length;
   const total = calibrationHeadlines.length;
@@ -372,9 +500,52 @@ export default function Calibration() {
       }
       return { ...prev, [id]: rating };
     });
+    // Re-applying is possible after rating changes
+    setJustApplied(false);
   };
 
-  const handleClear = () => setRatings({});
+  const handleClear = () => {
+    setRatings({});
+    setJustApplied(false);
+  };
+
+  const handleApply = () => {
+    const profile = convertCalibrationDraftToUserProfile(draft);
+    applySandboxProfile(profile);
+    setJustApplied(true);
+  };
+
+  const handleReset = () => {
+    resetSandboxProfile();
+    setJustApplied(false);
+  };
+
+  const sandboxFeedStats = useMemo(() => {
+    if (!justApplied) return null;
+    const profile = convertCalibrationDraftToUserProfile(draft);
+    const scored = mockArticles.map(a => {
+      const result = scoreArticle(a, profile);
+      return {
+        id: a.id,
+        title: a.title,
+        decision: result.decision,
+        lastReason: result.reasoning[result.reasoning.length - 1] ?? ""
+      };
+    });
+    const visible = scored.filter(s => s.decision !== "hidden");
+    const hidden = scored.filter(s => s.decision === "hidden");
+    return {
+      topicCount: profile.topics.length,
+      entityCount: profile.followedEntities.length,
+      mutedCount: profile.mutedTopics.length,
+      visibleCount: visible.length,
+      totalCount: scored.length,
+      topVisible: visible.slice(0, 5),
+      topHiddenReasons: visible.length === 0
+        ? hidden.slice(0, 5).map(s => ({ title: s.title, reason: s.lastReason }))
+        : []
+    };
+  }, [justApplied, draft]);
 
   const progressPercent = total > 0 ? Math.round((ratedCount / total) * 100) : 0;
 
@@ -470,7 +641,15 @@ export default function Calibration() {
 
       {/* Inference draft panel */}
       <div className="sticky bottom-4 md:static md:bottom-auto">
-        <InferenceDraftPanel draft={draft} ratedCount={ratedCount} />
+        <InferenceDraftPanel
+          draft={draft}
+          ratedCount={ratedCount}
+          onApply={handleApply}
+          sandboxExists={!!sandboxProfile}
+          onReset={handleReset}
+          justApplied={justApplied}
+          sandboxFeedStats={sandboxFeedStats}
+        />
       </div>
     </div>
   );

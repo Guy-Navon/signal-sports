@@ -11,7 +11,7 @@
  * - Title win for a primary team
  * - Critical injury to a followed player
  * The importance boost NEVER elevates to push automatically — push must be explicitly
- * declared in eventRules or via a specific push-eligible entity override.
+ * declared in eventRules or in topic.entityEventRules for a specific entity + event.
  */
 
 export const DECISION_RANK = {
@@ -30,12 +30,6 @@ export const DECISION_LABELS_HE = {
   push: "דורש תשומת לב"
 };
 
-// Events that are eligible for push via entity-specific rules.
-// Only these can produce a push decision in followed_entities_only mode.
-const PUSH_ELIGIBLE_EVENT_TYPES = [
-  "major_trade", "star_trade", "signing", "major_signing",
-  "injury", "title_win", "major_transfer"
-];
 
 /**
  * Main scoring function.
@@ -205,22 +199,14 @@ function scoreFollowedEntitiesOnly(article, topic, profile, r) {
 
   r.push(`ישות תואמת: ${entityMatch}`);
 
-  // Build entity-specific key variants
-  const entityKey = entityMatch.toLowerCase().replace(/ /g, "_");
-  const entityTradeKey = `${entityKey}_trade`;
-  const entityNewsKey = `${entityKey}_news`;
-
-  // Check entity-specific trade rule (highest priority)
-  if (PUSH_ELIGIBLE_EVENT_TYPES.includes(article.eventType)) {
-    const entityTradeRule = topic.eventRules?.[entityTradeKey];
-    if (entityTradeRule) {
-      r.push(`כלל ספציפי: ${entityTradeKey} → ${DECISION_LABELS_HE[entityTradeRule]}`);
-      return result(entityTradeRule, entityTradeKey, r);
-    }
+  // Entity-specific event rule (entityEventRules takes precedence over generic eventRules)
+  const entityEventRule = getEventDecision(article.eventType, topic.entityEventRules?.[entityMatch]);
+  if (entityEventRule !== null) {
+    r.push(`כלל ספציפי לישות (${entityMatch}): ${article.eventType} → ${DECISION_LABELS_HE[entityEventRule]}`);
+    if (entityEventRule === "hidden") return result("hidden", `entity_event:${article.eventType}`, r);
+    const boosted = applyImportanceBoost(entityEventRule, article.importance, r);
+    return result(boosted, `entity_event:${article.eventType}`, r);
   }
-
-  // Check entity-specific news rule
-  const entityNewsRule = topic.eventRules?.[entityNewsKey];
 
   // Check generic event rule
   const eventDecision = getEventDecision(article.eventType, topic.eventRules);
@@ -231,7 +217,7 @@ function scoreFollowedEntitiesOnly(article, topic, profile, r) {
   }
 
   // Entity news catch-all
-  const catchAll = entityNewsRule || topic.eventRules?.followed_entity_news;
+  const catchAll = topic.eventRules?.followed_entity_news;
   if (catchAll && catchAll !== "hidden") {
     r.push(`ישות תואמת (${entityMatch}) + catch-all → ${DECISION_LABELS_HE[catchAll]}`);
     return result(catchAll, "entity_news_catchall", r);
@@ -247,10 +233,10 @@ function scoreFollowedEntitiesOnly(article, topic, profile, r) {
  * Check entity match for boost context, then apply event rules + importance boost.
  * IMPORTANT: importance boost is capped at high_feed — never auto-escalates to push.
  *
- * Entity-specific event overrides: if a primary topic entity is matched AND there is
- * an entity-specific rule key (e.g., "deni_avdija_trade") for a push-eligible event,
- * that rule takes precedence over the generic event rule. This allows a topic to say
- * "major_trade → high_feed in general, but deni_avdija_trade → push."
+ * Entity-specific event overrides: if an entity matches and topic.entityEventRules
+ * has a rule for that entity + event type, it takes precedence over the generic
+ * eventRules. This allows "major_trade → high_feed in general, but
+ * entityEventRules["Deni Avdija"].major_trade → push."
  */
 function scoreAllMode(article, topic, profile, r) {
   const articleEntities = article.entities || [];
@@ -264,14 +250,14 @@ function scoreAllMode(article, topic, profile, r) {
     r.push(`ישות תואמת: ${entityMatch}`);
   }
 
-  // Entity-specific override for push-eligible events (primary entities only)
-  if (entityMatch && topicEntities.includes(entityMatch) && PUSH_ELIGIBLE_EVENT_TYPES.includes(article.eventType)) {
-    const entityKey = entityMatch.toLowerCase().replace(/ /g, "_");
-    const entitySpecificRule = topic.eventRules?.[`${entityKey}_trade`];
-    if (entitySpecificRule) {
-      r.push(`ישות ראשית (${entityMatch}), כלל ספציפי: ${entityKey}_trade → ${DECISION_LABELS_HE[entitySpecificRule]}`);
-      const boosted = applyImportanceBoost(entitySpecificRule, article.importance, r);
-      return result(boosted, `${entityKey}_trade`, r);
+  // Entity-specific event rule override (entityEventRules takes precedence over generic eventRules)
+  if (entityMatch) {
+    const entityEventRule = getEventDecision(article.eventType, topic.entityEventRules?.[entityMatch]);
+    if (entityEventRule !== null) {
+      r.push(`כלל ספציפי לישות (${entityMatch}): ${article.eventType} → ${DECISION_LABELS_HE[entityEventRule]}`);
+      if (entityEventRule === "hidden") return result("hidden", `entity_event:${article.eventType}`, r);
+      const boosted = applyImportanceBoost(entityEventRule, article.importance, r);
+      return result(boosted, `entity_event:${article.eventType}`, r);
     }
   }
 

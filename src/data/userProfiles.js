@@ -62,11 +62,18 @@ export const userProfiles = {
         mode: "all",
         leagues: ["NBA"],
         entities: ["Deni Avdija"],
+        // Entity-specific overrides: rules here take precedence over generic eventRules
+        // when the named entity appears in the article.
+        entityEventRules: {
+          "Deni Avdija": {
+            major_trade: "push",  // overrides generic major_trade: "high_feed"
+            injury: "push"        // overrides generic injury: "feed"
+          }
+        },
         eventRules: {
           // push — only the most significant events
           star_trade: "push",              // blockbuster NBA star trade
-          deni_avdija_trade: "push",       // any trade involving Deni Avdija — always push for Guy
-          major_trade: "high_feed",        // major trade (non-star, non-Deni) — high_feed, not push
+          major_trade: "high_feed",        // major trade (non-Deni) — high_feed, not push
           title_win: "push",               // NBA champion
           // high_feed
           finals_result: "high_feed",
@@ -255,26 +262,32 @@ export const userProfiles = {
         mode: "followed_entities_only",
         leagues: ["NBA"],
         entities: ["Deni Avdija"],
+        // Entity-specific overrides: take precedence over generic eventRules
+        entityEventRules: {
+          "Deni Avdija": {
+            major_trade: "push",               // Deni trade = immediate push
+            injury: "push",                    // Deni injury = immediate push
+            regular_season_result: "high_feed", // Deni game matters more than generic feed
+            record: "high_feed"
+          }
+        },
         eventRules: {
-          // Deni-specific entity rules
-          deni_avdija_trade: "push",
-          deni_avdija_news: "high_feed",
-          // Generic event rules (apply after entity check)
-          regular_season_result: "feed",     // Deni's game result
+          // Generic fallbacks — only reached when no entityEventRules override matches
+          regular_season_result: "feed",
           match_result: "feed",
           match_summary: "feed",
-          injury: "high_feed",               // if Deni is injured = high_feed
-          major_trade: "push",               // if Deni involved in major trade
-          star_trade: "high_feed",           // if entity-matched (Deni's team trade)
+          injury: "feed",
+          major_trade: "feed",
+          star_trade: "feed",
           finals_result: "feed",
           playoff_result: "feed",
-          record: "high_feed",
+          record: "feed",
           interview: "feed",
           analysis: "feed",
           generic_preview: "hidden",
           schedule: "hidden",
           signing: "hidden",
-          // catch-all for any Deni-related news
+          // catch-all for Deni-related events without a specific rule
           followed_entity_news: "high_feed"
         }
       }

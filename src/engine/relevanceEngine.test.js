@@ -60,13 +60,13 @@ describe("NBA — profile-dependent decisions", () => {
   });
 
   it("Deni Avdija trade is push for Guy", () => {
-    // article_017: Deni Avdija major_trade — entity-specific deni_avdija_trade rule = push
+    // article_017: Deni major_trade — entityEventRules["Deni Avdija"].major_trade = "push"
     const result = scoreArticle(getArticle("article_017"), guy);
     expect(result.decision).toBe("push");
   });
 
   it("Deni Avdija trade is push for Casual Deni Fan", () => {
-    // article_017: Deni is the entity match — deni_avdija_trade rule = push
+    // article_017: Deni entity match — entityEventRules["Deni Avdija"].major_trade = "push"
     const result = scoreArticle(getArticle("article_017"), denieFan);
     expect(result.decision).toBe("push");
   });
@@ -197,5 +197,57 @@ describe("importanceFallback — noise prevention", () => {
     };
     const result = scoreArticle(article, guy);
     expect(result.decision).toBe("hidden");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+// entityEventRules — entity-specific event overrides
+// ─────────────────────────────────────────────────────────────────
+describe("entityEventRules — entity-specific event overrides", () => {
+  it("Deni injury is push for Guy via entityEventRules (not generic injury: feed)", () => {
+    // article_046: injury + Deni entity — entityEventRules["Deni Avdija"].injury = "push"
+    // without entityEventRules, generic NBA injury: "feed" would apply
+    const result = scoreArticle(getArticle("article_046"), guy);
+    expect(result.decision).toBe("push");
+  });
+
+  it("non-Deni NBA major trade is high_feed for Guy (generic rule, not entity override)", () => {
+    // article_048: Miami/Wolves major_trade, no Deni — generic major_trade: "high_feed"
+    const result = scoreArticle(getArticle("article_048"), guy);
+    expect(result.decision).toBe("high_feed");
+  });
+
+  it("Deni career-high performance is high_feed for Casual Deni Fan via entityEventRules", () => {
+    // article_047: Deni 35pts regular_season_result — entityEventRules overrides generic "feed"
+    const result = scoreArticle(getArticle("article_047"), denieFan);
+    expect(result.decision).toBe("high_feed");
+  });
+
+  it("Deni injury is push for Casual Deni Fan via entityEventRules", () => {
+    // article_046: Deni injury — entityEventRules["Deni Avdija"].injury = "push"
+    const result = scoreArticle(getArticle("article_046"), denieFan);
+    expect(result.decision).toBe("push");
+  });
+
+  it("profile data: Guy NBA topic has no legacy deni_avdija_trade key", () => {
+    const nbaTopic = guy.topics.find(t => t.topicId === "nba");
+    expect(nbaTopic.eventRules.deni_avdija_trade).toBeUndefined();
+  });
+
+  it("profile data: Casual Deni Fan NBA topic has no legacy deni_avdija_trade key", () => {
+    const nbaTopic = denieFan.topics.find(t => t.topicId === "nba");
+    expect(nbaTopic.eventRules.deni_avdija_trade).toBeUndefined();
+  });
+
+  it("profile data: Casual Deni Fan NBA topic has no legacy deni_avdija_news key", () => {
+    const nbaTopic = denieFan.topics.find(t => t.topicId === "nba");
+    expect(nbaTopic.eventRules.deni_avdija_news).toBeUndefined();
+  });
+
+  it("profile data: both NBA topics have entityEventRules for Deni Avdija", () => {
+    const guyNba = guy.topics.find(t => t.topicId === "nba");
+    const deniNba = denieFan.topics.find(t => t.topicId === "nba");
+    expect(guyNba.entityEventRules?.["Deni Avdija"]).toBeDefined();
+    expect(deniNba.entityEventRules?.["Deni Avdija"]).toBeDefined();
   });
 });

@@ -495,4 +495,45 @@ This mirrors the existing pattern in `scoreFollowedEntitiesOnly` and is consiste
 
 Files changed:
 - `src/engine/relevanceEngine.js` — entity-specific override block in `scoreAllMode`
+
+### PR 2.6: entityEventRules — explicit per-entity event overrides
+
+**Problem with `deni_avdija_trade` hack:** The prior entity-specific mechanism stored rules like `deni_avdija_trade: "push"` inside the generic `eventRules` object. The engine constructed these keys at runtime using `${entityKey}_trade` and triggered them for ANY event type listed in `PUSH_ELIGIBLE_EVENT_TYPES` (which includes `injury`, `signing`, `major_trade`, `star_trade`, etc.). This meant:
+
+1. The key name `deni_avdija_trade` was misleading — it fired for injuries and signings, not only trades.
+2. Adding a new followed entity would require manually adding a `<entity_key>_trade` key to `eventRules`, polluting the event rules namespace with hidden conventions.
+3. The `PUSH_ELIGIBLE_EVENT_TYPES` gating was a workaround for the absence of a real per-entity, per-event rule model.
+4. Calibration-generated profiles would need to reproduce this naming convention, which would be fragile.
+
+**Solution:** Replaced both hacks with a first-class `entityEventRules` field on topics.
+
+**New data model:**
+```js
+{
+  topicId: "nba",
+  entityEventRules: {
+    "Deni Avdija": {
+      major_trade: "push",   // overrides generic major_trade: "high_feed"
+      injury: "push"         // overrides generic injury: "feed"
+    }
+  },
+  eventRules: {
+    major_trade: "high_feed",  // applies when Deni is NOT the entity match
+    injury: "feed",
+    ...
+  }
+}
+```
+
+**Engine behavior:** In both `scoreAllMode` and `scoreFollowedEntitiesOnly`, if the article has an entity match, the engine checks `topic.entityEventRules[entityMatch][eventType]` before checking the generic `eventRules`. Alias resolution reuses `getEventDecision`, so `star_trade` → `major_trade` alias lookups work consistently for both generic and entity-specific rules. If a rule is found, it is applied with `applyImportanceBoost` and returned immediately.
+
+**Why this matters for calibration:** When `inferPreferenceDraftFromCalibration` eventually applies a generated profile, it can express "Deni Avdija injury → push" as a structured `entityEventRules["Deni Avdija"].injury = "push"` entry rather than relying on a naming convention buried inside `eventRules`. The calibration inference engine can be taught to write `entityEventRules` directly.
+
+**`PUSH_ELIGIBLE_EVENT_TYPES` removed:** This constant was only used to gate the entity-specific `_trade` key lookup. With `entityEventRules` being explicit and covering any event type, the gate is no longer needed. The push decision comes from the rule value itself, not from a list of permitted event types.
+
+Files changed:
+- `src/engine/relevanceEngine.js` — removed `PUSH_ELIGIBLE_EVENT_TYPES`, replaced entity hacks in both scoring functions
+- `src/data/userProfiles.js` — added `entityEventRules` to Guy's NBA topic and Casual Deni Fan's NBA topic; removed `deni_avdija_trade` and `deni_avdija_news` keys
+- `src/engine/relevanceEngine.test.js` — added 9 tests covering entity-specific rule behavior, profile data integrity, and divergence between entity rules and generic fallbacks
+- `src/engine/datasetCoverage.test.js` — updated Deni Fan's article_047 expectation from `feed` to `high_feed` (entityEventRules now upgrades Deni's game result)
 - `src/data/userProfiles.js` — added `deni_avdija_trade: "push"` to Guy's NBA eventRules

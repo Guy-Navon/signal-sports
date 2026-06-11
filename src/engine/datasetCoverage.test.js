@@ -94,15 +94,14 @@ describe("Profile divergence: Guy sees NBA content Casual Deni Fan does not", ()
 });
 
 describe("Profile divergence: Deni-specific content visible to both profiles", () => {
-  it("Deni injury: push for both — entity-specific push rule applies to all push-eligible events", () => {
-    // injury is in PUSH_ELIGIBLE_EVENT_TYPES; entity key "deni_avdija_trade" exists → push
+  it("Deni injury: push for both — entityEventRules[\"Deni Avdija\"].injury = push", () => {
     expect(scoreDecision("article_046", guy)).toBe("push");
     expect(scoreDecision("article_046", deni)).toBe("push");
   });
 
-  it("Deni career-high performance: Guy→high_feed (entity boost), Deni Fan→feed", () => {
+  it("Deni career-high performance: Guy→high_feed (entity boost), Deni Fan→high_feed (entityEventRules)", () => {
     expect(scoreDecision("article_047", guy)).toBe("high_feed");
-    expect(scoreDecision("article_047", deni)).toBe("feed");
+    expect(scoreDecision("article_047", deni)).toBe("high_feed");
   });
 
   it("Deni trade: push for both profiles", () => {

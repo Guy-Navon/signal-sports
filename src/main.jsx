@@ -6,6 +6,7 @@ import { AppProvider } from '@/context/AppContext';
 import AppLayout from '@/components/layout/AppLayout';
 import Feed from '@/pages/Feed';
 import Preferences from '@/pages/Preferences';
+import Calibration from '@/pages/Calibration';
 import Sources from '@/pages/Sources';
 import Results from '@/pages/Results';
 import Debug from '@/pages/Debug';
@@ -22,6 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route element={<AppLayout />}>
               <Route index element={<Feed />} />
               <Route path="preferences" element={<Preferences />} />
+              <Route path="calibration" element={<Calibration />} />
               <Route path="sources" element={<Sources />} />
               <Route path="results" element={<Results />} />
               <Route path="debug" element={<Debug />} />

@@ -39,15 +39,26 @@ const PUSH_ELIGIBLE_EVENT_TYPES = [
 
 /**
  * Main scoring function.
+ * @param {object} article
+ * @param {object} profile
+ * @param {object} [options]
+ * @param {Set<string>} [options.disabledSourceIds] - globally disabled source IDs (from Sources page)
  */
-export function scoreArticle(article, profile) {
+export function scoreArticle(article, profile, options = {}) {
+  const { disabledSourceIds = new Set() } = options;
   const reasoning = [];
   let matchedTopic = null;
   let matchedRule = null;
 
   reasoning.push(`פרופיל: ${profile.displayName}`);
 
-  // ── Step 1: Muted sources ─────────────────────────────────────
+  // ── Step 1a: Globally disabled sources (Sources page toggle) ──
+  if (disabledSourceIds.has(article.source)) {
+    reasoning.push(`מקור כבוי (Sources page): ${article.source}`);
+    return buildResult("hidden", reasoning, null, "disabled_source");
+  }
+
+  // ── Step 1b: Muted sources (user profile preference) ─────────
   if (profile.mutedSources?.includes(article.source)) {
     reasoning.push(`מקור מושתק: ${article.source}`);
     return buildResult("hidden", reasoning, null, "muted_source");
@@ -235,6 +246,11 @@ function scoreFollowedEntitiesOnly(article, topic, profile, r) {
  * Score in "all" mode (default).
  * Check entity match for boost context, then apply event rules + importance boost.
  * IMPORTANT: importance boost is capped at high_feed — never auto-escalates to push.
+ *
+ * Entity-specific event overrides: if a primary topic entity is matched AND there is
+ * an entity-specific rule key (e.g., "deni_avdija_trade") for a push-eligible event,
+ * that rule takes precedence over the generic event rule. This allows a topic to say
+ * "major_trade → high_feed in general, but deni_avdija_trade → push."
  */
 function scoreAllMode(article, topic, profile, r) {
   const articleEntities = article.entities || [];
@@ -246,6 +262,17 @@ function scoreAllMode(article, topic, profile, r) {
 
   if (entityMatch) {
     r.push(`ישות תואמת: ${entityMatch}`);
+  }
+
+  // Entity-specific override for push-eligible events (primary entities only)
+  if (entityMatch && topicEntities.includes(entityMatch) && PUSH_ELIGIBLE_EVENT_TYPES.includes(article.eventType)) {
+    const entityKey = entityMatch.toLowerCase().replace(/ /g, "_");
+    const entitySpecificRule = topic.eventRules?.[`${entityKey}_trade`];
+    if (entitySpecificRule) {
+      r.push(`ישות ראשית (${entityMatch}), כלל ספציפי: ${entityKey}_trade → ${DECISION_LABELS_HE[entitySpecificRule]}`);
+      const boosted = applyImportanceBoost(entitySpecificRule, article.importance, r);
+      return result(boosted, `${entityKey}_trade`, r);
+    }
   }
 
   // Check event-specific rule
@@ -343,6 +370,8 @@ function applyImportanceBoost(decision, importance, reasoning) {
 /**
  * Fallback when no event rule: decide by importance + topic priority.
  * Never reaches push via fallback.
+ * very_low → always hidden (noise prevention).
+ * low + low-priority topic → hidden; low + high-priority topic → low_feed.
  */
 function importanceFallback(importance, topicPriority, reasoning) {
   let decision;
@@ -351,7 +380,8 @@ function importanceFallback(importance, topicPriority, reasoning) {
   else if (importance === "medium" && topicPriority >= 70) decision = "feed";
   else if (importance === "high") decision = "feed";
   else if (importance === "medium") decision = "low_feed";
-  else decision = "low_feed";
+  else if (importance === "low" && topicPriority >= 70) decision = "low_feed";
+  else decision = "hidden"; // very_low, or low with low-priority topic
 
   reasoning.push(`גיבוי לפי חשיבות (${importance}) + עדיפות (${topicPriority}) → ${DECISION_LABELS_HE[decision]}`);
   return decision;
@@ -402,17 +432,17 @@ function result(decision, rule, reasoning) {
 /**
  * Score all articles against a profile.
  */
-export function scoreAllArticles(articles, profile) {
+export function scoreAllArticles(articles, profile, options = {}) {
   return articles.map(article => ({
     ...article,
-    score: scoreArticle(article, profile)
+    score: scoreArticle(article, profile, options)
   }));
 }
 
 /**
  * Score a cluster: best decision among its articles.
  */
-export function scoreCluster(cluster, articles, profile) {
+export function scoreCluster(cluster, articles, profile, options = {}) {
   const clusterArticles = articles.filter(a => cluster.articleIds.includes(a.id));
 
   let bestDecision = "hidden";
@@ -421,7 +451,7 @@ export function scoreCluster(cluster, articles, profile) {
   let bestMatchedRule = null;
 
   for (const article of clusterArticles) {
-    const s = scoreArticle(article, profile);
+    const s = scoreArticle(article, profile, options);
     if (DECISION_RANK[s.decision] > DECISION_RANK[bestDecision]) {
       bestDecision = s.decision;
       bestReasoning = s.reasoning;

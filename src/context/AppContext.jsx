@@ -14,17 +14,24 @@ export function AppProvider({ children }) {
 
   const activeProfile = profiles[activeProfileId];
 
+  // IDs of sources the user has disabled on the Sources page.
+  // Disabled-source articles are scored as hidden (with reason "disabled_source")
+  // so they appear in the debug view but not in the normal feed.
+  const disabledSourceIds = useMemo(() => {
+    return new Set(sources.filter(s => !s.enabled).map(s => s.id));
+  }, [sources]);
+
   // Score all standalone articles (not in a cluster)
   const scoredArticles = useMemo(() => {
-    return scoreAllArticles(mockArticles, activeProfile);
-  }, [activeProfileId, profiles]);
+    return scoreAllArticles(mockArticles, activeProfile, { disabledSourceIds });
+  }, [activeProfileId, profiles, disabledSourceIds]);
 
   // Score all clusters
   const scoredClusters = useMemo(() => {
     return mockClusters.map(cluster =>
-      scoreCluster(cluster, mockArticles, activeProfile)
+      scoreCluster(cluster, mockArticles, activeProfile, { disabledSourceIds })
     );
-  }, [activeProfileId, profiles]);
+  }, [activeProfileId, profiles, disabledSourceIds]);
 
   // Build feed items: clusters + standalone articles (those not in any cluster)
   const clusteredArticleIds = useMemo(() => {
@@ -51,18 +58,19 @@ export function AppProvider({ children }) {
   // Comparison data: score every standalone article against ALL profiles side by side
   const comparisonItems = useMemo(() => {
     const allProfiles = Object.values(profiles);
+    const options = { disabledSourceIds };
     const standaloneArticles = mockArticles.filter(a => !clusteredArticleIds.has(a.id));
     const clusterItems = mockClusters.map(cluster => {
       const profileScores = {};
       allProfiles.forEach(p => {
-        profileScores[p.userId] = scoreCluster(cluster, mockArticles, p).score;
+        profileScores[p.userId] = scoreCluster(cluster, mockArticles, p, options).score;
       });
       return { ...cluster, type: "cluster", profileScores };
     });
     const articleItems = standaloneArticles.map(article => {
       const profileScores = {};
       allProfiles.forEach(p => {
-        profileScores[p.userId] = scoreArticle(article, p);
+        profileScores[p.userId] = scoreArticle(article, p, options);
       });
       return { ...article, type: "article", profileScores };
     });
@@ -72,7 +80,7 @@ export function AppProvider({ children }) {
       const bMax = Math.max(...Object.values(b.profileScores).map(s => DECISION_RANK[s.decision] || 0));
       return bMax - aMax;
     });
-  }, [profiles, clusteredArticleIds]);
+  }, [profiles, clusteredArticleIds, disabledSourceIds]);
 
   // All articles for debug panel (including hidden)
   const debugItems = useMemo(() => {

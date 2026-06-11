@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { Settings, ChevronDown, ChevronUp, User, Tag, Volume2, VolumeX } from "lucide-react";
+import { Settings, ChevronDown, ChevronUp, User, Tag, VolumeX } from "lucide-react";
 import DecisionBadge from "@/components/feed/DecisionBadge";
 
 const MODE_LABELS = {

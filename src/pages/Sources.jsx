@@ -1,6 +1,6 @@
 import React from "react";
 import { useApp } from "@/context/AppContext";
-import { Database, Globe, Radio, Code2, ExternalLink, CheckCircle2, XCircle } from "lucide-react";
+import { Database, Code2, ExternalLink, CheckCircle2, XCircle } from "lucide-react";
 
 const TRUST_LABELS = {
   high: { label: "גבוה", color: "text-emerald-400" },

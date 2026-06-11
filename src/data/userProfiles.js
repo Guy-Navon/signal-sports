@@ -65,7 +65,8 @@ export const userProfiles = {
         eventRules: {
           // push — only the most significant events
           star_trade: "push",              // blockbuster NBA star trade
-          major_trade: "high_feed",        // major trade (non-star) — was push, now high_feed
+          deni_avdija_trade: "push",       // any trade involving Deni Avdija — always push for Guy
+          major_trade: "high_feed",        // major trade (non-star, non-Deni) — high_feed, not push
           title_win: "push",               // NBA champion
           // high_feed
           finals_result: "high_feed",

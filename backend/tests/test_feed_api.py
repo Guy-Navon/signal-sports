@@ -1,0 +1,218 @@
+"""
+Integration tests for the feed, profile, article, and feedback API endpoints.
+Uses FastAPI TestClient with session-scoped fixture from conftest.py.
+"""
+import pytest
+
+
+# ── Health ────────────────────────────────────────────────────────────────────
+
+def test_health(client):
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.json()["status"] == "ok"
+
+
+# ── Profiles ──────────────────────────────────────────────────────────────────
+
+def test_profile_list_returns_both_profiles(client):
+    r = client.get("/api/profiles")
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    assert len(data) >= 2
+    user_ids = {p["user_id"] for p in data}
+    assert "guy" in user_ids
+    assert "casual_deni_fan" in user_ids
+
+
+def test_get_profile_guy(client):
+    r = client.get("/api/profiles/guy")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["user_id"] == "guy"
+    assert len(data["topics"]) > 0
+
+
+def test_get_profile_not_found(client):
+    r = client.get("/api/profiles/nonexistent_user")
+    assert r.status_code == 404
+
+
+# ── Articles ──────────────────────────────────────────────────────────────────
+
+def test_article_list_not_empty(client):
+    r = client.get("/api/articles")
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+
+def test_get_article_by_id(client):
+    r = client.get("/api/articles/article_007")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["id"] == "article_007"
+    assert "Deni Avdija" in data["entities"]
+
+
+def test_get_article_not_found(client):
+    r = client.get("/api/articles/nonexistent_article")
+    assert r.status_code == 404
+
+
+# ── Feed for Guy ──────────────────────────────────────────────────────────────
+
+def test_feed_for_guy_is_not_empty(client):
+    r = client.get("/api/feed/guy")
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) > 0, "Guy's feed must not be empty"
+
+
+def test_feed_for_guy_contains_no_hidden(client):
+    r = client.get("/api/feed/guy")
+    assert r.status_code == 200
+    for item in r.json():
+        assert item["decision"] != "hidden", f"Hidden article leaked into feed: {item['article']['id']}"
+
+
+def test_feed_not_found_for_unknown_user(client):
+    r = client.get("/api/feed/ghost_user")
+    assert r.status_code == 404
+
+
+# ── Debug feed ────────────────────────────────────────────────────────────────
+
+def test_debug_feed_includes_hidden_articles(client):
+    r = client.get("/api/debug/feed/guy")
+    assert r.status_code == 200
+    data = r.json()
+    decisions = {item["decision"] for item in data}
+    assert "hidden" in decisions, "Debug feed must include hidden articles"
+
+
+def test_debug_feed_includes_reasoning(client):
+    r = client.get("/api/debug/feed/guy")
+    assert r.status_code == 200
+    for item in r.json():
+        assert len(item["reasoning"]) > 0, f"Missing reasoning on {item['article']['id']}"
+
+
+def test_debug_feed_has_more_items_than_normal_feed(client):
+    feed = client.get("/api/feed/guy").json()
+    debug = client.get("/api/debug/feed/guy").json()
+    assert len(debug) >= len(feed)
+
+
+# ── Profile divergence ────────────────────────────────────────────────────────
+
+def test_hornets_wizards_visible_for_guy_hidden_for_deni_fan(client):
+    guy_debug = client.get("/api/debug/feed/guy").json()
+    deni_debug = client.get("/api/debug/feed/casual_deni_fan").json()
+
+    guy_hornets = next((i for i in guy_debug if i["article"]["id"] == "article_006"), None)
+    deni_hornets = next((i for i in deni_debug if i["article"]["id"] == "article_006"), None)
+
+    assert guy_hornets is not None
+    assert deni_hornets is not None
+    assert guy_hornets["decision"] != "hidden", f"Guy should see Hornets/Wizards, got hidden"
+    assert deni_hornets["decision"] == "hidden", f"Deni Fan should NOT see Hornets/Wizards, got {deni_hornets['decision']}"
+
+
+def test_deni_trade_is_push_for_both(client):
+    guy_debug = client.get("/api/debug/feed/guy").json()
+    deni_debug = client.get("/api/debug/feed/casual_deni_fan").json()
+
+    guy_trade = next((i for i in guy_debug if i["article"]["id"] == "article_007"), None)
+    deni_trade = next((i for i in deni_debug if i["article"]["id"] == "article_007"), None)
+
+    assert guy_trade is not None and guy_trade["decision"] == "push", \
+        f"Guy: expected push for Deni trade, got {guy_trade['decision'] if guy_trade else 'not found'}"
+    assert deni_trade is not None and deni_trade["decision"] == "push", \
+        f"Deni Fan: expected push for Deni trade, got {deni_trade['decision'] if deni_trade else 'not found'}"
+
+
+def test_maccabi_negotiation_is_push_for_guy(client):
+    r = client.get("/api/debug/feed/guy")
+    data = r.json()
+    item = next((i for i in data if i["article"]["id"] == "article_001"), None)
+    assert item is not None
+    assert item["decision"] == "push"
+
+
+def test_early_round_tennis_is_hidden_for_guy(client):
+    r = client.get("/api/debug/feed/guy")
+    data = r.json()
+    item = next((i for i in data if i["article"]["id"] == "article_012"), None)
+    assert item is not None
+    assert item["decision"] == "hidden"
+
+
+def test_push_not_from_importance_boost_alone(client):
+    # article_010: NBA major_trade, very_high importance, no Deni entity
+    # Expected: high_feed (not push) because importance boost is capped at high_feed
+    r = client.get("/api/debug/feed/guy")
+    data = r.json()
+    item = next((i for i in data if i["article"]["id"] == "article_010"), None)
+    assert item is not None, "article_010 not found in debug feed"
+    assert item["decision"] != "push", (
+        f"Importance boost must never reach push. Got {item['decision']}. "
+        f"Reasoning: {item['reasoning']}"
+    )
+    assert item["decision"] == "high_feed"
+
+
+# ── Feedback ──────────────────────────────────────────────────────────────────
+
+def test_feedback_accepted(client):
+    r = client.post("/api/feedback", json={
+        "user_id": "guy",
+        "article_id": "article_001",
+        "action": "more_like_this",
+    })
+    assert r.status_code == 201
+    data = r.json()
+    assert data["user_id"] == "guy"
+    assert data["article_id"] == "article_001"
+    assert data["action"] == "more_like_this"
+    assert "id" in data
+
+
+def test_feedback_invalid_action(client):
+    r = client.post("/api/feedback", json={
+        "user_id": "guy",
+        "article_id": "article_001",
+        "action": "invalid_action_xyz",
+    })
+    assert r.status_code == 422
+
+
+def test_feedback_unknown_user(client):
+    r = client.post("/api/feedback", json={
+        "user_id": "ghost",
+        "article_id": "article_001",
+        "action": "more_like_this",
+    })
+    assert r.status_code == 404
+
+
+# ── Calibration headlines ─────────────────────────────────────────────────────
+
+def test_calibration_headlines_not_empty(client):
+    r = client.get("/api/calibration/headlines")
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+
+def test_calibration_headlines_have_required_fields(client):
+    r = client.get("/api/calibration/headlines")
+    for h in r.json():
+        assert "id" in h
+        assert "title" in h
+        assert "sport" in h
+        assert "event_type" in h
+        assert "importance" in h

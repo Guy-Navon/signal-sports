@@ -1,0 +1,23 @@
+from typing import Optional, List
+from datetime import datetime
+from pydantic import BaseModel
+
+
+class Article(BaseModel):
+    id: str
+    source: str
+    source_display_name: str
+    url: str
+    title: str
+    original_title: Optional[str] = None
+    translated_title: Optional[str] = None
+    language: str = "he"
+    published_at: datetime
+    sport: str
+    league: Optional[str] = None
+    entities: List[str] = []
+    event_type: str
+    importance: str  # very_low | low | medium | high | very_high
+    confidence: float = 0.85
+    tags: List[str] = []
+    cluster_id: Optional[str] = None

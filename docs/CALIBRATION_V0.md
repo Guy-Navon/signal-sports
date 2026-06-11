@@ -153,6 +153,84 @@ InferenceDraft = {
 }
 ```
 
+## PR 2.5 Demo Data Expansion
+
+### Why more demo data was needed
+
+PR 2 established the calibration inference engine and the rating UI. But the mock article feed (41 articles) and calibration headline dataset (28 headlines) were not wide enough to make profile differences visible or to exercise the calibration scenarios adequately.
+
+The problem had two dimensions:
+
+1. **Calibration headlines** — 28 headlines covered the core scenarios (Maccabi negotiation, Deni trade, tennis titles-only), but lacked coverage of NBA top-team vs low-team games, Deni performance vs injury distinction, EuroLeague weak vs strong signals, and European domestic basketball diversity. Without these, the calibration page could not reliably infer mode differences between a Deni-only fan and a broad NBA follower.
+
+2. **Mock feed articles** — 41 articles were enough to validate the engine, but not enough to see meaningful feed differences when switching between profiles. The feed needed more noise candidates (articles that should be hidden), more Deni-specific content, more European domestic basketball variety, and more tennis edge cases so that the feed differences across profiles are visually obvious.
+
+### Calibration headlines vs mock feed articles
+
+These are different datasets with different purposes:
+
+| `calibrationHeadlines` | `mockArticles` |
+|---|---|
+| Used by the Calibration page during onboarding | Used by the feed, debug panel, and scoring engine |
+| Synthetic headlines a user **rates** | Realistic feed articles a user **reads** |
+| Drive preference inference | Drive feed decisions |
+| Pre-tagged with same metadata format as articles | Scored dynamically by relevance engine |
+| Never shown in the feed | Never shown on the Calibration page |
+
+Both datasets share the same field schema (sport, league, entities, eventType, importance, tags), but serve different roles in the product.
+
+### What was added
+
+**Calibration headlines: 28 → 43 (15 new, cal_029–cal_043)**
+
+| Category | New headlines |
+|---|---|
+| NBA top-team regular season | Warriors vs Bucks (medium importance) |
+| NBA low-interest regular season | Pistons vs Magic (very_low importance) |
+| NBA superstar injury (non-Deni) | Bucks star out, no Deni entity |
+| NBA mid-level signing | Miami Heat non-star signing |
+| NBA superstar trade | Nuggets/Wolves blockbuster |
+| Deni Avdija strong performance | 35-point career-high game |
+| Deni Avdija serious injury | 6 weeks out, surgery |
+| EuroLeague weak rumor | Low-confidence Barcelona rumor |
+| EuroLeague major injury | Real Madrid star out for season |
+| EuroLeague analysis article | Season preview analysis |
+| Maccabi fan/color article | Pre-season atmosphere piece |
+| Israeli basketball small result | Holon vs Herzliya, low importance |
+| ACB regular-season derby | Real Madrid vs Barcelona (not playoff) |
+| Turkish BSL derby | Fenerbahce vs Anadolu Efes |
+| Football generic preview | Champions League pre-round preview |
+
+**Mock articles: 41 → 66 (25 new, article_042–article_066)**
+
+| Category | Articles | Guy's decision | Deni Fan's decision |
+|---|---|---|---|
+| NBA broad-interest (no Deni) | 042–045 | feed / high_feed | hidden |
+| NBA Deni-specific | 046–047 | push / high_feed | push / feed |
+| NBA non-Deni major trade | 048 | high_feed | hidden |
+| NBA noise (schedule, pre-match) | 049–050 | hidden | hidden |
+| Football schedule noise | 051 | hidden | hidden |
+| EuroLeague regular | 052–053 | feed | hidden |
+| EuroLeague major (Final Four, injury) | 054–055 | high_feed / feed | hidden |
+| Maccabi high-priority (signing, playoff) | 056–057 | push / high_feed | hidden |
+| Maccabi low-value (schedule, pre-match) | 058–059 | hidden | hidden |
+| Israeli basketball (playoff, regular) | 060–061 | high_feed / feed | hidden |
+| European domestic major (ACB, BSL) | 062–063 | high_feed / feed | hidden |
+| European domestic noise (LNB, Greek) | 064–065 | low_feed / hidden | hidden |
+| Tennis Grand Slam final | 066 | feed | hidden |
+
+### How this prepares for sandbox profile apply
+
+When the "Apply draft" button is eventually wired up, a calibrated profile will be created with inferred topics and event rules. The expanded mock article dataset makes the effect of that profile clearly visible:
+
+- A user who rates Deni-only articles positively and generic NBA negatively → followed_entities_only mode → the feed shows only 2–3 articles instead of 15+
+- A user who rates Maccabi articles as push-worthy → the feed shows the Maccabi signing and negotiation articles at the top
+- A user who rates tennis titles-only → only `article_027` (Grand Slam winner) and `article_066` (Grand Slam final) surface; early-round and generic tennis disappear
+
+Without the expanded article set, these feed differences would not be visible enough to demonstrate that the calibration is working correctly.
+
+---
+
 ## Future next steps
 
 1. **Apply draft with confirmation UX.** Show the inferred topics side-by-side with the current profile and let the user approve, reject, or tweak each rule before applying.

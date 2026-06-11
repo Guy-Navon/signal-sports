@@ -940,6 +940,569 @@ export const mockArticles = [
     confidence: 0.95,
     tags: ["NBA", "דני אבדיה", "בלייזרס"],
     clusterId: null
+  },
+
+  // ============================================================
+  // NBA — BROAD-INTEREST (NO DENI)
+  // article_042: Guy→feed, Casual Deni Fan→hidden
+  // ============================================================
+  {
+    id: "article_042",
+    source: "sportando",
+    sourceDisplayName: "Sportando",
+    url: "https://sportando.basketball/article/42",
+    title: "גולדן סטייט ווריירס מנצחת את מילווקי באקס 118-112 בסיבוב הרגיל",
+    originalTitle: "Golden State Warriors defeat Milwaukee Bucks 118-112 in regular season",
+    translatedTitle: "גולדן סטייט ווריירס מנצחת את מילווקי באקס 118-112 בסיבוב הרגיל",
+    language: "en",
+    publishedAt: "2026-06-10T03:30:00Z",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Golden State Warriors", "Milwaukee Bucks"],
+    eventType: "regular_season_result",
+    importance: "medium",
+    confidence: 0.95,
+    tags: ["NBA", "גולדן סטייט", "מילווקי", "תוצאה"],
+    clusterId: null
+  },
+
+  // article_043: NBA superstar injury (non-Deni)
+  // Guy→feed, Casual Deni Fan→hidden
+  {
+    id: "article_043",
+    source: "sportando",
+    sourceDisplayName: "Sportando",
+    url: "https://sportando.basketball/article/43",
+    title: "מכה ל-NBA: כוכב מילווקי באקס ייעדר חצי עונה לאחר פציעת ברך",
+    originalTitle: "Blow to NBA: Milwaukee Bucks star out for half a season with knee injury",
+    translatedTitle: "מכה ל-NBA: כוכב מילווקי באקס ייעדר חצי עונה לאחר פציעת ברך",
+    language: "en",
+    publishedAt: "2026-06-09T08:00:00Z",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Milwaukee Bucks"],
+    eventType: "injury",
+    importance: "high",
+    confidence: 0.92,
+    tags: ["NBA", "מילווקי", "פציעה", "כוכב"],
+    clusterId: null
+  },
+
+  // article_044: NBA playoff (non-Deni teams)
+  // Guy→high_feed, Casual Deni Fan→hidden
+  {
+    id: "article_044",
+    source: "sportando",
+    sourceDisplayName: "Sportando",
+    url: "https://sportando.basketball/article/44",
+    title: "סלטיקס עולות לגמר NBA לאחר ניצחון 4-2 בסדרה על מיאמי היט",
+    originalTitle: "Celtics advance to NBA Finals after 4-2 series win over Miami Heat",
+    translatedTitle: "סלטיקס עולות לגמר NBA לאחר ניצחון 4-2 בסדרה על מיאמי היט",
+    language: "en",
+    publishedAt: "2026-06-06T04:00:00Z",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Boston Celtics", "Miami Heat"],
+    eventType: "playoff_result",
+    importance: "high",
+    confidence: 0.99,
+    tags: ["NBA", "פלייאוף", "סלטיקס", "מיאמי"],
+    clusterId: null
+  },
+
+  // article_045: NBA mid-level signing (non-star)
+  // Guy→feed, Casual Deni Fan→hidden
+  {
+    id: "article_045",
+    source: "sportando",
+    sourceDisplayName: "Sportando",
+    url: "https://sportando.basketball/article/45",
+    title: "מיאמי היט חותמת על גארד חינם בן 27 לחיזוק הסגל לעונה הבאה",
+    originalTitle: "Miami Heat sign 27-year-old free agent guard to bolster next season roster",
+    translatedTitle: "מיאמי היט חותמת על גארד חינם בן 27 לחיזוק הסגל לעונה הבאה",
+    language: "en",
+    publishedAt: "2026-06-09T10:00:00Z",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Miami Heat"],
+    eventType: "signing",
+    importance: "low",
+    confidence: 0.88,
+    tags: ["NBA", "מיאמי", "חתימה", "חינמי"],
+    clusterId: null
+  },
+
+  // ============================================================
+  // NBA — DENI-SPECIFIC
+  // article_046: Deni serious injury
+  // Guy→push (entity-specific rule, injury is push-eligible), Casual Deni Fan→push
+  // ============================================================
+  {
+    id: "article_046",
+    source: "sportando",
+    sourceDisplayName: "Sportando",
+    url: "https://sportando.basketball/article/46",
+    title: "פציעה: דני אבדיה ייעדר שישה שבועות לאחר ניתוח בקרסול",
+    originalTitle: "Injury: Deni Avdija to miss six weeks following ankle surgery",
+    translatedTitle: "פציעה: דני אבדיה ייעדר שישה שבועות לאחר ניתוח בקרסול",
+    language: "en",
+    publishedAt: "2026-06-10T06:00:00Z",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Deni Avdija", "Portland Trail Blazers"],
+    eventType: "injury",
+    importance: "high",
+    confidence: 0.96,
+    tags: ["NBA", "דני אבדיה", "פציעה", "ניתוח"],
+    clusterId: null
+  },
+
+  // article_047: Deni career-high performance
+  // Guy→high_feed (entity boost), Casual Deni Fan→feed
+  {
+    id: "article_047",
+    source: "sportando",
+    sourceDisplayName: "Sportando",
+    url: "https://sportando.basketball/article/47",
+    title: "דני אבדיה עם 35 נקודות ו-11 ריבאונד: הופעת קריירה עבור הישראלי",
+    originalTitle: "Deni Avdija drops career-high 35 points and 11 rebounds in Blazers win",
+    translatedTitle: "דני אבדיה עם 35 נקודות ו-11 ריבאונד: הופעת קריירה עבור הישראלי",
+    language: "en",
+    publishedAt: "2026-06-09T05:00:00Z",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Deni Avdija", "Portland Trail Blazers"],
+    eventType: "regular_season_result",
+    importance: "high",
+    confidence: 0.97,
+    tags: ["NBA", "דני אבדיה", "שיא אישי", "בלייזרס"],
+    clusterId: null
+  },
+
+  // ============================================================
+  // NBA — NON-DENI MAJOR TRADE
+  // Guy→high_feed, Casual Deni Fan→hidden
+  // ============================================================
+  {
+    id: "article_048",
+    source: "sportando",
+    sourceDisplayName: "Sportando",
+    url: "https://sportando.basketball/article/48",
+    title: "מהלך NBA: מיאמי היט ומינסוטה מחליפות שחקן מרכזי בעסקת שלושה שחקנים",
+    originalTitle: "NBA move: Miami Heat and Minnesota Timberwolves exchange key player in three-man deal",
+    translatedTitle: "מהלך NBA: מיאמי היט ומינסוטה מחליפות שחקן מרכזי בעסקת שלושה שחקנים",
+    language: "en",
+    publishedAt: "2026-06-08T12:00:00Z",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Miami Heat", "Minnesota Timberwolves"],
+    eventType: "major_trade",
+    importance: "medium",
+    confidence: 0.82,
+    tags: ["NBA", "מיאמי", "מינסוטה", "עסקה"],
+    clusterId: null
+  },
+
+  // ============================================================
+  // NOISE ARTICLES — hidden for Guy and Casual Deni Fan
+  // article_049: NBA schedule listing
+  // ============================================================
+  {
+    id: "article_049",
+    source: "sportando",
+    sourceDisplayName: "Sportando",
+    url: "https://sportando.basketball/article/49",
+    title: "לו״ז NBA הלילה: שמונה משחקים בסיבוב 78 — מדריך הצפייה",
+    originalTitle: "NBA tonight: eight games in round 78 — viewing guide",
+    translatedTitle: "לו״ז NBA הלילה: שמונה משחקים בסיבוב 78 — מדריך הצפייה",
+    language: "en",
+    publishedAt: "2026-06-11T16:00:00Z",
+    sport: "basketball",
+    league: "NBA",
+    entities: [],
+    eventType: "schedule",
+    importance: "very_low",
+    confidence: 0.90,
+    tags: ["NBA", "לוח משחקים", "שידור"],
+    clusterId: null
+  },
+
+  // article_050: NBA pre-match lineup (hidden via importanceFallback very_low)
+  {
+    id: "article_050",
+    source: "sportando",
+    sourceDisplayName: "Sportando",
+    url: "https://sportando.basketball/article/50",
+    title: "לפני המשחק: ההרכב הראשי הצפוי של פניקס סאנז מול שארלוט הורנטס",
+    originalTitle: "Preview: Expected starting lineup of Phoenix Suns vs Charlotte Hornets",
+    translatedTitle: "לפני המשחק: ההרכב הראשי הצפוי של פניקס סאנז מול שארלוט הורנטס",
+    language: "en",
+    publishedAt: "2026-06-11T17:00:00Z",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Phoenix Suns", "Charlotte Hornets"],
+    eventType: "pre_match",
+    importance: "very_low",
+    confidence: 0.88,
+    tags: ["NBA", "הרכב", "סאנז", "הורנטס"],
+    clusterId: null
+  },
+
+  // article_051: Football schedule listing
+  {
+    id: "article_051",
+    source: "sport5",
+    sourceDisplayName: "ספורט 5",
+    url: "https://www.sport5.co.il/articles.aspx?FolderID=1&docID=51",
+    title: "לו״ז המשחקים: כל מפגשי UEFA Champions League השבוע — ערוצים ושעות",
+    originalTitle: null,
+    translatedTitle: null,
+    language: "he",
+    publishedAt: "2026-06-11T10:00:00Z",
+    sport: "football",
+    league: "Champions League",
+    entities: [],
+    eventType: "schedule",
+    importance: "very_low",
+    confidence: 0.95,
+    tags: ["כדורגל", "צ׳מפיונס ליג", "לוח משחקים", "שידור"],
+    clusterId: null
+  },
+
+  // ============================================================
+  // EUROLEAGUE — REGULAR AND MAJOR CONTENT
+  // article_052: Regular season result (non-Maccabi) — Guy→feed
+  // ============================================================
+  {
+    id: "article_052",
+    source: "eurohoops",
+    sourceDisplayName: "Eurohoops",
+    url: "https://www.eurohoops.net/article/52",
+    title: "יורוליג סיבוב 28: ריאל מדריד מנצחת את ברצלונה 87-82 בנסיעה",
+    originalTitle: "EuroLeague round 28: Real Madrid defeats Barcelona 87-82 on the road",
+    translatedTitle: "יורוליג סיבוב 28: ריאל מדריד מנצחת את ברצלונה 87-82 בנסיעה",
+    language: "en",
+    publishedAt: "2026-06-08T22:00:00Z",
+    sport: "basketball",
+    league: "EuroLeague",
+    entities: ["Real Madrid Basketball", "FC Barcelona Basketball"],
+    eventType: "match_result",
+    importance: "medium",
+    confidence: 0.92,
+    tags: ["יורוליג", "ריאל מדריד", "ברצלונה", "תוצאה"],
+    clusterId: null
+  },
+
+  // article_053: EuroLeague player interview — Guy→feed
+  {
+    id: "article_053",
+    source: "eurohoops",
+    sourceDisplayName: "Eurohoops",
+    url: "https://www.eurohoops.net/article/53",
+    title: "ראיון: כוכב פנרבצ׳ה על עתיד קריירתו ועונת EuroLeague הבאה",
+    originalTitle: "Interview: Fenerbahce star on his career future and the next EuroLeague season",
+    translatedTitle: "ראיון: כוכב פנרבצ׳ה על עתיד קריירתו ועונת EuroLeague הבאה",
+    language: "en",
+    publishedAt: "2026-06-07T14:00:00Z",
+    sport: "basketball",
+    league: "EuroLeague",
+    entities: ["Fenerbahce"],
+    eventType: "interview",
+    importance: "medium",
+    confidence: 0.85,
+    tags: ["יורוליג", "פנרבצ׳ה", "ראיון", "כוכב"],
+    clusterId: null
+  },
+
+  // article_054: EuroLeague Final Four — Guy→high_feed
+  {
+    id: "article_054",
+    source: "eurohoops",
+    sourceDisplayName: "Eurohoops",
+    url: "https://www.eurohoops.net/article/54",
+    title: "היסטוריה! פנרבצ׳ה עולה לגמר Final Four יורוליג בניצחון 92-87 על CSKA",
+    originalTitle: "Historic! Fenerbahce reaches EuroLeague Final Four final with 92-87 win over CSKA",
+    translatedTitle: "היסטוריה! פנרבצ׳ה עולה לגמר Final Four יורוליג בניצחון 92-87 על CSKA",
+    language: "en",
+    publishedAt: "2026-06-05T21:30:00Z",
+    sport: "basketball",
+    league: "EuroLeague",
+    entities: ["Fenerbahce", "CSKA Moscow"],
+    eventType: "final_four",
+    importance: "very_high",
+    confidence: 0.99,
+    tags: ["יורוליג", "Final Four", "פנרבצ׳ה", "CSKA"],
+    clusterId: null
+  },
+
+  // article_055: EuroLeague major injury — Guy→feed
+  {
+    id: "article_055",
+    source: "eurohoops",
+    sourceDisplayName: "Eurohoops",
+    url: "https://www.eurohoops.net/article/55",
+    title: "מכה ל-EuroLeague: כוכב אולימפיאקוס ייעדר עד סוף העונה לאחר ניתוח",
+    originalTitle: "EuroLeague blow: Olympiacos star out for remainder of season after surgery",
+    translatedTitle: "מכה ל-EuroLeague: כוכב אולימפיאקוס ייעדר עד סוף העונה לאחר ניתוח",
+    language: "en",
+    publishedAt: "2026-06-06T10:00:00Z",
+    sport: "basketball",
+    league: "EuroLeague",
+    entities: ["Olympiacos"],
+    eventType: "injury",
+    importance: "high",
+    confidence: 0.93,
+    tags: ["יורוליג", "אולימפיאקוס", "פציעה", "ניתוח"],
+    clusterId: null
+  },
+
+  // ============================================================
+  // MACCABI — HIGH PRIORITY
+  // article_056: Official signing — Guy→PUSH
+  // ============================================================
+  {
+    id: "article_056",
+    source: "sport5",
+    sourceDisplayName: "ספורט 5",
+    url: "https://www.sport5.co.il/articles.aspx?FolderID=1&docID=56",
+    title: "רשמי: מכבי ת״א חתמה על חיזוק שני לעונת יורוליג — שחקן מהליגה הספרדית",
+    originalTitle: null,
+    translatedTitle: null,
+    language: "he",
+    publishedAt: "2026-06-11T13:00:00Z",
+    sport: "basketball",
+    league: "EuroLeague",
+    entities: ["Maccabi Tel Aviv Basketball"],
+    eventType: "signing",
+    importance: "high",
+    confidence: 0.97,
+    tags: ["מכבי ת״א", "חתימה", "רכש", "יורוליג"],
+    clusterId: null
+  },
+
+  // article_057: Maccabi playoff win — Guy→high_feed
+  {
+    id: "article_057",
+    source: "one",
+    sourceDisplayName: "ONE",
+    url: "https://www.one.co.il/Article/57",
+    title: "מכבי ת״א מסיימת 3-0 בחצי גמר הליגה הישראלית ועולה לגמר",
+    originalTitle: null,
+    translatedTitle: null,
+    language: "he",
+    publishedAt: "2026-06-04T21:00:00Z",
+    sport: "basketball",
+    league: "Israeli Basketball League",
+    entities: ["Maccabi Tel Aviv Basketball"],
+    eventType: "playoff_result",
+    importance: "high",
+    confidence: 0.98,
+    tags: ["מכבי ת״א", "פלייאוף", "חצי גמר", "ליגה ישראלית"],
+    clusterId: null
+  },
+
+  // ============================================================
+  // MACCABI — LOW-VALUE CONTENT (hidden for everyone)
+  // article_058: Broadcast schedule — Guy→hidden
+  // ============================================================
+  {
+    id: "article_058",
+    source: "sport5",
+    sourceDisplayName: "ספורט 5",
+    url: "https://www.sport5.co.il/articles.aspx?FolderID=1&docID=58",
+    title: "השידור מחר: מכבי ת״א מול מנורה מיקס — ספורט 5 בשעה 20:30",
+    originalTitle: null,
+    translatedTitle: null,
+    language: "he",
+    publishedAt: "2026-06-11T18:00:00Z",
+    sport: "basketball",
+    league: "Israeli Basketball League",
+    entities: ["Maccabi Tel Aviv Basketball"],
+    eventType: "schedule",
+    importance: "very_low",
+    confidence: 0.95,
+    tags: ["מכבי ת״א", "שידור", "לו״ז"],
+    clusterId: null
+  },
+
+  // article_059: Maccabi pre-match lineup — Guy→hidden
+  {
+    id: "article_059",
+    source: "walla",
+    sourceDisplayName: "וואלה ספורט",
+    url: "https://sport.walla.co.il/article/59",
+    title: "לפני הדרבי: ההרכב הצפוי של מכבי ת״א מול הפועל ת״א הערב",
+    originalTitle: null,
+    translatedTitle: null,
+    language: "he",
+    publishedAt: "2026-06-10T09:00:00Z",
+    sport: "basketball",
+    league: "Israeli Basketball League",
+    entities: ["Maccabi Tel Aviv Basketball", "Hapoel Tel Aviv Basketball"],
+    eventType: "pre_match",
+    importance: "very_low",
+    confidence: 0.90,
+    tags: ["מכבי ת״א", "הרכב", "הפועל ת״א", "לפני המשחק"],
+    clusterId: null
+  },
+
+  // ============================================================
+  // ISRAELI BASKETBALL — REGULAR AND PLAYOFF
+  // article_060: Playoff (non-Maccabi) — Guy→high_feed
+  // ============================================================
+  {
+    id: "article_060",
+    source: "ynet",
+    sourceDisplayName: "ינט ספורט",
+    url: "https://www.ynet.co.il/sport/article/60",
+    title: "הפועל ירושלים עולה לגמר הליגה הישראלית עם ניצחון 3-1 בחצי גמר",
+    originalTitle: null,
+    translatedTitle: null,
+    language: "he",
+    publishedAt: "2026-06-07T21:30:00Z",
+    sport: "basketball",
+    league: "Israeli Basketball League",
+    entities: ["Hapoel Jerusalem Basketball"],
+    eventType: "playoff_result",
+    importance: "high",
+    confidence: 0.96,
+    tags: ["כדורסל ישראלי", "הפועל ירושלים", "פלייאוף", "גמר"],
+    clusterId: null
+  },
+
+  // article_061: Israeli basketball regular season (small match) — Guy→feed
+  {
+    id: "article_061",
+    source: "ynet",
+    sourceDisplayName: "ינט ספורט",
+    url: "https://www.ynet.co.il/sport/article/61",
+    title: "בני אילת מנצחת את הפועל חולון 91-88 בסיבוב 23 של הליגה הישראלית",
+    originalTitle: null,
+    translatedTitle: null,
+    language: "he",
+    publishedAt: "2026-06-09T21:30:00Z",
+    sport: "basketball",
+    league: "Israeli Basketball League",
+    entities: ["Bnei Eilat", "Hapoel Holon"],
+    eventType: "regular_season_result",
+    importance: "medium",
+    confidence: 0.88,
+    tags: ["כדורסל ישראלי", "בני אילת", "חולון", "תוצאה"],
+    clusterId: null
+  },
+
+  // ============================================================
+  // EUROPEAN DOMESTIC BASKETBALL — MAJOR GAMES
+  // article_062: ACB title win — Guy→high_feed
+  // ============================================================
+  {
+    id: "article_062",
+    source: "sportando",
+    sourceDisplayName: "Sportando",
+    url: "https://sportando.basketball/article/62",
+    title: "ריאל מדריד כדורסל: אלוף ספרד ACB לאחר ניצחון 94-87 בגמר",
+    originalTitle: "Real Madrid Basketball: ACB Spanish champions after 94-87 final victory",
+    translatedTitle: "ריאל מדריד כדורסל: אלוף ספרד ACB לאחר ניצחון 94-87 בגמר",
+    language: "en",
+    publishedAt: "2026-06-06T22:00:00Z",
+    sport: "basketball",
+    league: "Spanish ACB",
+    entities: ["Real Madrid Basketball"],
+    eventType: "title_win",
+    importance: "high",
+    confidence: 0.98,
+    tags: ["ACB", "ספרד", "ריאל מדריד", "אלוף"],
+    clusterId: null
+  },
+
+  // article_063: Turkish BSL derby — Guy→feed
+  {
+    id: "article_063",
+    source: "eurohoops",
+    sourceDisplayName: "Eurohoops",
+    url: "https://www.eurohoops.net/article/63",
+    title: "דרבי איסטנבול ב-BSL: פנרבצ׳ה מנצחת את אנדולו אפס 94-91 בנסיעה",
+    originalTitle: "Istanbul derby in BSL: Fenerbahce defeats Anadolu Efes 94-91 on the road",
+    translatedTitle: "דרבי איסטנבול ב-BSL: פנרבצ׳ה מנצחת את אנדולו אפס 94-91 בנסיעה",
+    language: "en",
+    publishedAt: "2026-06-08T19:00:00Z",
+    sport: "basketball",
+    league: "Turkish BSL",
+    entities: ["Fenerbahce", "Anadolu Efes"],
+    eventType: "major_match_result",
+    importance: "high",
+    confidence: 0.90,
+    tags: ["BSL", "טורקיה", "דרבי", "פנרבצ׳ה", "אפס"],
+    clusterId: null
+  },
+
+  // ============================================================
+  // EUROPEAN DOMESTIC BASKETBALL — LOW-VALUE NOISE
+  // article_064: LNB generic preview — Guy→low_feed (NBA topic rule), noise
+  // ============================================================
+  {
+    id: "article_064",
+    source: "sportando",
+    sourceDisplayName: "Sportando",
+    url: "https://sportando.basketball/article/64",
+    title: "תצפית LNB: לה מאן מול מונפלייה בסיבוב 26 של הליגה הצרפתית",
+    originalTitle: "LNB preview: Le Mans vs Montpellier in round 26 of the French league",
+    translatedTitle: "תצפית LNB: לה מאן מול מונפלייה בסיבוב 26 של הליגה הצרפתית",
+    language: "en",
+    publishedAt: "2026-06-11T11:00:00Z",
+    sport: "basketball",
+    league: "French LNB",
+    entities: ["Le Mans Sarthe Basket", "Montpellier Herault Basket"],
+    eventType: "generic_preview",
+    importance: "low",
+    confidence: 0.80,
+    tags: ["LNB", "צרפת", "לה מאן", "מונפלייה", "תצפית"],
+    clusterId: null
+  },
+
+  // article_065: Greek league schedule broadcast — Guy→hidden
+  {
+    id: "article_065",
+    source: "eurohoops",
+    sourceDisplayName: "Eurohoops",
+    url: "https://www.eurohoops.net/article/65",
+    title: "לו״ז ליגה יוונית: כל משחקי סיבוב 25 ושידורים זמינים",
+    originalTitle: "Greek basketball league schedule: all round 25 fixtures and available broadcasts",
+    translatedTitle: "לו״ז ליגה יוונית: כל משחקי סיבוב 25 ושידורים זמינים",
+    language: "en",
+    publishedAt: "2026-06-09T09:00:00Z",
+    sport: "basketball",
+    league: "Greek Basket League",
+    entities: [],
+    eventType: "schedule",
+    importance: "very_low",
+    confidence: 0.90,
+    tags: ["ליגה יוונית", "לוח משחקים", "שידור"],
+    clusterId: null
+  },
+
+  // ============================================================
+  // TENNIS — GRAND SLAM FINAL
+  // article_066: Guy→feed, Casual Deni Fan→hidden
+  // ============================================================
+  {
+    id: "article_066",
+    source: "ynet",
+    sourceDisplayName: "ינט ספורט",
+    url: "https://www.ynet.co.il/sport/article/66",
+    title: "ויימבלדון: אלקראז מגיע לגמר לאחר ניצחון מרהיב בחמישה סטים בחצי גמר",
+    originalTitle: null,
+    translatedTitle: null,
+    language: "he",
+    publishedAt: "2026-06-07T16:00:00Z",
+    sport: "tennis",
+    league: "Wimbledon",
+    entities: ["Carlos Alcaraz"],
+    eventType: "grand_slam_final",
+    importance: "high",
+    confidence: 0.99,
+    tags: ["טניס", "ויימבלדון", "אלקראז", "גמר", "חצי גמר"],
+    clusterId: null
   }
 ];
 

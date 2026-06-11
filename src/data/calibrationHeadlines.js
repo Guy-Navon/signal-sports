@@ -299,6 +299,168 @@ export const calibrationHeadlines = [
     eventType: "generic_preview",
     importance: "low",
     tags: ["כדורסל ישראלי", "הפועל ת״א", "תצפית"]
+  },
+
+  // ── NBA — expanded coverage ────────────────────────────────────
+  {
+    id: "cal_029",
+    title: "גולדן סטייט ווריירס מנצחת את מילווקי באקס 118-112 בסיבוב הרגיל",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Golden State Warriors", "Milwaukee Bucks"],
+    eventType: "regular_season_result",
+    importance: "medium",
+    tags: ["NBA", "גולדן סטייט", "מילווקי", "תוצאה"]
+  },
+  {
+    id: "cal_030",
+    title: "פיסטונס מנצחת את אורלנדו מג׳יק 98-91 בסיבוב הרגיל של NBA",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Detroit Pistons", "Orlando Magic"],
+    eventType: "regular_season_result",
+    importance: "very_low",
+    tags: ["NBA", "פיסטונס", "אורלנדו", "תוצאה"]
+  },
+  {
+    id: "cal_031",
+    title: "מכה ל-NBA: כוכב מוביל ייעדר חצי עונה לאחר פציעת ברך קשה",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Milwaukee Bucks"],
+    eventType: "injury",
+    importance: "high",
+    tags: ["NBA", "פציעה", "כוכב", "ברך"]
+  },
+  {
+    id: "cal_032",
+    title: "מיאמי היט חותמת על גארד חינם בן 27 לחיזוק הסגל לעונה הבאה",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Miami Heat"],
+    eventType: "signing",
+    importance: "low",
+    tags: ["NBA", "מיאמי", "חתימה", "חינמי"]
+  },
+  {
+    id: "cal_033",
+    title: "עסקה נוספת ב-NBA: נאגטס ומינסוטה מחליפות כוכבים בעסקת ענק",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Denver Nuggets", "Minnesota Timberwolves"],
+    eventType: "star_trade",
+    importance: "very_high",
+    tags: ["NBA", "נאגטס", "מינסוטה", "טרייד", "כוכב"]
+  },
+  {
+    id: "cal_034",
+    title: "דני אבדיה עם 35 נקודות ו-11 ריבאונד — שיא אישי חדש",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Deni Avdija", "Portland Trail Blazers"],
+    eventType: "regular_season_result",
+    importance: "high",
+    tags: ["NBA", "דני אבדיה", "שיא אישי", "בלייזרס"]
+  },
+  {
+    id: "cal_035",
+    title: "דני אבדיה נפצע קשה — צפוי לפספס שישה שבועות לאחר ניתוח",
+    sport: "basketball",
+    league: "NBA",
+    entities: ["Deni Avdija"],
+    eventType: "injury",
+    importance: "high",
+    tags: ["NBA", "דני אבדיה", "פציעה", "ניתוח"]
+  },
+
+  // ── EuroLeague — expanded coverage ────────────────────────────
+  {
+    id: "cal_036",
+    title: "שמועה: ברצלונה מסתכלת על שחקן לא ידוע מליגה איטלקית — ביטחון נמוך",
+    sport: "basketball",
+    league: "EuroLeague",
+    entities: ["FC Barcelona Basketball"],
+    eventType: "rumor",
+    importance: "low",
+    tags: ["יורוליג", "ברצלונה", "שמועה", "איטליה"]
+  },
+  {
+    id: "cal_037",
+    title: "פציעה קשה ב-EuroLeague: כוכב ריאל מדריד ייעדר עד סוף העונה",
+    sport: "basketball",
+    league: "EuroLeague",
+    entities: ["Real Madrid Basketball"],
+    eventType: "injury",
+    importance: "high",
+    tags: ["יורוליג", "ריאל מדריד", "פציעה"]
+  },
+  {
+    id: "cal_038",
+    title: "ניתוח: 5 הקבוצות שיקבעו את פני EuroLeague בעונה הבאה",
+    sport: "basketball",
+    league: "EuroLeague",
+    entities: ["Fenerbahce", "Olympiacos"],
+    eventType: "analysis",
+    importance: "medium",
+    tags: ["יורוליג", "ניתוח", "פנרבצ׳ה", "אולימפיאקוס"]
+  },
+
+  // ── Maccabi — fan/color article ────────────────────────────────
+  {
+    id: "cal_039",
+    title: "מאחורי הקלעים: אווירת האוהדים של מכבי ת״א לפני עונת יורוליג",
+    sport: "basketball",
+    league: "Israeli Basketball League",
+    entities: ["Maccabi Tel Aviv Basketball"],
+    eventType: "opinion",
+    importance: "low",
+    tags: ["מכבי ת״א", "אוהדים", "אווירה", "יורוליג"]
+  },
+
+  // ── Israeli Basketball — small result ─────────────────────────
+  {
+    id: "cal_040",
+    title: "הפועל חולון מנצחת את בני הרצליה 87-84 בסיבוב 19 של הליגה",
+    sport: "basketball",
+    league: "Israeli Basketball League",
+    entities: ["Hapoel Holon", "Bnei Herzliya"],
+    eventType: "regular_season_result",
+    importance: "low",
+    tags: ["כדורסל ישראלי", "חולון", "הרצליה", "תוצאה"]
+  },
+
+  // ── European Domestic Basketball — expanded ────────────────────
+  {
+    id: "cal_041",
+    title: "קלאסיקו הכדורסל: ריאל מדריד מנצחת את ברצלונה 93-87 בסיבוב הרגיל",
+    sport: "basketball",
+    league: "Spanish ACB",
+    entities: ["Real Madrid Basketball", "FC Barcelona Basketball"],
+    eventType: "major_match_result",
+    importance: "high",
+    tags: ["ACB", "ספרד", "קלאסיקו", "ריאל מדריד", "ברצלונה"]
+  },
+  {
+    id: "cal_042",
+    title: "דרבי איסטנבול ב-BSL: פנרבצ׳ה מכה את אנדולו אפס 94-91",
+    sport: "basketball",
+    league: "Turkish BSL",
+    entities: ["Fenerbahce", "Anadolu Efes"],
+    eventType: "major_match_result",
+    importance: "high",
+    tags: ["BSL", "טורקיה", "דרבי", "פנרבצ׳ה", "אנדולו אפס"]
+  },
+
+  // ── Football — generic preview ─────────────────────────────────
+  {
+    id: "cal_043",
+    title: "תצפית: ניתוח לפני הסיבוב החשוב של צ׳מפיונס ליג הלילה",
+    sport: "football",
+    league: null,
+    entities: [],
+    eventType: "generic_preview",
+    importance: "low",
+    tags: ["כדורגל", "צ׳מפיונס ליג", "תצפית", "ניתוח"]
   }
 ];
 

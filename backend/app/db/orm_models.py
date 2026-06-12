@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Boolean, JSON
+from sqlalchemy import Column, String, Float, Boolean, JSON, Integer
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -76,3 +76,19 @@ class CalibrationHeadlineRow(Base):
     event_type = Column(String, nullable=False)
     importance = Column(String, nullable=False)
     tags = Column(JSON, nullable=False)
+
+
+class IngestionRunRow(Base):
+    __tablename__ = "ingestion_runs"
+
+    id = Column(String, primary_key=True)
+    source_id = Column(String, nullable=False, index=True)
+    # Stored as ISO-8601 strings (same pattern as other datetime fields)
+    started_at = Column(String, nullable=False)
+    finished_at = Column(String, nullable=True)
+    status = Column(String, nullable=False)           # ok | error
+    fetched_count = Column(Integer, nullable=False, default=0)
+    inserted_count = Column(Integer, nullable=False, default=0)
+    skipped_duplicate_count = Column(Integer, nullable=False, default=0)
+    failed_count = Column(Integer, nullable=False, default=0)
+    error_message = Column(String, nullable=True)

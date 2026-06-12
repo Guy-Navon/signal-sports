@@ -17,7 +17,24 @@ const DECISION_RANK = { hidden: 0, low_feed: 1, feed: 2, high_feed: 3, push: 4 }
 
 export default function Feed() {
   const { feedItems, activeProfile } = useApp();
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeFilters, setActiveFilters] = useState(new Set(["all"]));
+
+  function toggleFilter(chipId) {
+    if (chipId === "all") {
+      setActiveFilters(new Set(["all"]));
+      return;
+    }
+    setActiveFilters(prev => {
+      const next = new Set(prev);
+      next.delete("all");
+      if (next.has(chipId)) {
+        next.delete(chipId);
+      } else {
+        next.add(chipId);
+      }
+      return next.size === 0 ? new Set(["all"]) : next;
+    });
+  }
 
   // Only show non-hidden items in the main feed
   const visibleItems = useMemo(() => {
@@ -27,37 +44,35 @@ export default function Feed() {
     });
   }, [feedItems]);
 
+  function itemMatchesFilter(item, filterId) {
+    if (filterId === "push") return item.score?.decision === "push";
+    if (filterId === "high_feed") return item.score?.decision === "high_feed";
+    if (filterId === "maccabi") {
+      const entities = item.entities || [];
+      const tags = item.tags || [];
+      return (
+        entities.some(e => e.toLowerCase().includes("maccabi")) ||
+        tags.some(t => t.includes("מכבי"))
+      );
+    }
+    if (filterId === "basketball") return item.sport === "basketball";
+    if (filterId === "NBA") return item.league === "NBA";
+    if (filterId === "international") {
+      const intlSources = ["sportando", "eurohoops"];
+      return item.type === "cluster"
+        ? item.sources?.some(s => intlSources.includes(s))
+        : intlSources.includes(item.source);
+    }
+    return true;
+  }
+
   // Apply filter chips
   const filteredItems = useMemo(() => {
-    if (activeFilter === "all") return visibleItems;
-
-    return visibleItems.filter(item => {
-      if (activeFilter === "push") return item.score?.decision === "push";
-      if (activeFilter === "high_feed") return item.score?.decision === "high_feed";
-
-      if (activeFilter === "maccabi") {
-        const entities = item.entities || [];
-        const tags = item.tags || [];
-        return (
-          entities.some(e => e.toLowerCase().includes("maccabi")) ||
-          tags.some(t => t.includes("מכבי"))
-        );
-      }
-
-      if (activeFilter === "basketball") return item.sport === "basketball";
-      if (activeFilter === "NBA") return item.league === "NBA";
-
-      if (activeFilter === "international") {
-        const intlSources = ["sportando", "eurohoops"];
-        if (item.type === "cluster") {
-          return item.sources?.some(s => intlSources.includes(s));
-        }
-        return intlSources.includes(item.source);
-      }
-
-      return true;
-    });
-  }, [visibleItems, activeFilter]);
+    if (activeFilters.has("all")) return visibleItems;
+    return visibleItems.filter(item =>
+      [...activeFilters].some(f => itemMatchesFilter(item, f))
+    );
+  }, [visibleItems, activeFilters]);
 
   const pushCount = visibleItems.filter(i => i.score?.decision === "push").length;
   const highCount = visibleItems.filter(i => i.score?.decision === "high_feed").length;
@@ -87,9 +102,9 @@ export default function Feed() {
         {FILTER_CHIPS.map(chip => (
           <button
             key={chip.id}
-            onClick={() => setActiveFilter(chip.id)}
+            onClick={() => toggleFilter(chip.id)}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-              activeFilter === chip.id
+              activeFilters.has(chip.id)
                 ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
                 : "bg-gray-800/80 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300"
             }`}
@@ -120,7 +135,7 @@ export default function Feed() {
           <Rss size={32} className="text-gray-700 mb-3" />
           <p className="text-gray-500 text-sm">אין פריטים תואמים לסינון הנוכחי</p>
           <button
-            onClick={() => setActiveFilter("all")}
+            onClick={() => toggleFilter("all")}
             className="mt-3 text-xs text-emerald-400 hover:text-emerald-300"
           >
             הצג הכל

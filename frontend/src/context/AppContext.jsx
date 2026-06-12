@@ -1,71 +1,123 @@
-import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { userProfiles } from "@/data/userProfiles";
 import { mockArticles, mockClusters } from "@/data/mockArticles";
 import { feedSources } from "@/data/feedSources";
 import { scoreAllArticles, scoreCluster, scoreArticle, DECISION_RANK } from "@/engine/relevanceEngine";
 import { SANDBOX_PROFILE_ID } from "@/engine/draftToProfile";
+import { getProfiles, getFeed, getDebugFeed, submitFeedback, getCalibrationHeadlines } from "@/api/client";
+import {
+  normalizeProfileFromApi,
+  normalizeScoredArticleFromApi,
+  normalizeCalibrationHeadlineFromApi,
+} from "@/api/normalizers";
+
+const DATA_MODE = import.meta.env.VITE_DATA_MODE || "local";
 
 const AppContext = createContext(null);
 
+// Backend feedback actions supported by the API
+const BACKEND_VALID_ACTIONS = new Set([
+  "more_like_this",
+  "not_interested",
+  "never_show",
+  "mute_source",
+  "always_notify",
+]);
+
 export function AppProvider({ children }) {
+  const isBackendMode = DATA_MODE === "backend";
+
+  // ── Local state (used in both modes) ────────────────────────────────────────
   const [activeProfileId, setActiveProfileId] = useState("guy");
   const [profiles, setProfiles] = useState(userProfiles);
   const [sandboxProfile, setSandboxProfile] = useState(null);
   const [sources, setSources] = useState(feedSources);
-  const [feedback, setFeedback] = useState([]); // { id, userId, articleId, action, createdAt }
+  const [feedback, setFeedback] = useState([]);
 
-  // All profiles: Guy + Deni Fan (from state) + sandbox when it exists
+  // ── Backend-only state ───────────────────────────────────────────────────────
+  const [backendProfiles, setBackendProfiles] = useState([]);
+  const [backendFeedItems, setBackendFeedItems] = useState([]);
+  const [backendDebugItems, setBackendDebugItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState(null);
+  // Used to trigger manual refresh without changing activeProfileId
+  const [feedRefreshTick, setFeedRefreshTick] = useState(0);
+
+  // ── Load backend profiles once on mount ─────────────────────────────────────
+  useEffect(() => {
+    if (!isBackendMode) return;
+    getProfiles()
+      .then(raw => setBackendProfiles(raw.map(normalizeProfileFromApi)))
+      .catch(err => setApiError(err.message));
+  }, [isBackendMode]);
+
+  // ── Load feed whenever activeProfileId or refresh tick changes ───────────────
+  useEffect(() => {
+    if (!isBackendMode) return;
+    let cancelled = false;
+    setIsLoading(true);
+    setApiError(null);
+    Promise.all([
+      getFeed(activeProfileId),
+      getDebugFeed(activeProfileId),
+    ])
+      .then(([feedRaw, debugRaw]) => {
+        if (cancelled) return;
+        setBackendFeedItems(feedRaw.map(normalizeScoredArticleFromApi));
+        setBackendDebugItems(debugRaw.map(normalizeScoredArticleFromApi));
+      })
+      .catch(err => {
+        if (cancelled) return;
+        setApiError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [isBackendMode, activeProfileId, feedRefreshTick]);
+
+  // ── Local computed state (only used in local mode) ───────────────────────────
   const allProfiles = useMemo(() => ({
     ...profiles,
     ...(sandboxProfile ? { [SANDBOX_PROFILE_ID]: sandboxProfile } : {})
   }), [profiles, sandboxProfile]);
 
-  // Dynamic profile list for ProfileSwitcher (includes sandbox when present)
   const profileList = useMemo(() => {
     const list = Object.values(profiles).map(p => ({
       id: p.userId,
       label: p.displayName
     }));
     if (sandboxProfile) {
-      list.push({
-        id: sandboxProfile.userId,
-        label: sandboxProfile.displayName
-      });
+      list.push({ id: sandboxProfile.userId, label: sandboxProfile.displayName });
     }
     return list;
   }, [profiles, sandboxProfile]);
 
-  const activeProfile = allProfiles[activeProfileId];
-
-  // IDs of sources the user has disabled on the Sources page.
   const disabledSourceIds = useMemo(() => {
     return new Set(sources.filter(s => !s.enabled).map(s => s.id));
   }, [sources]);
 
-  // Score all standalone articles (not in a cluster)
   const scoredArticles = useMemo(() => {
-    return scoreAllArticles(mockArticles, activeProfile, { disabledSourceIds });
-  }, [activeProfileId, allProfiles, disabledSourceIds]);
+    if (isBackendMode) return [];
+    return scoreAllArticles(mockArticles, allProfiles[activeProfileId], { disabledSourceIds });
+  }, [isBackendMode, activeProfileId, allProfiles, disabledSourceIds]);
 
-  // Score all clusters
   const scoredClusters = useMemo(() => {
+    if (isBackendMode) return [];
     return mockClusters.map(cluster =>
-      scoreCluster(cluster, mockArticles, activeProfile, { disabledSourceIds })
+      scoreCluster(cluster, mockArticles, allProfiles[activeProfileId], { disabledSourceIds })
     );
-  }, [activeProfileId, allProfiles, disabledSourceIds]);
+  }, [isBackendMode, activeProfileId, allProfiles, disabledSourceIds]);
 
-  // Build feed items: clusters + standalone articles (those not in any cluster)
   const clusteredArticleIds = useMemo(() => {
     return new Set(mockClusters.flatMap(c => c.articleIds));
   }, []);
 
-  // Feed items = scored clusters + standalone scored articles
-  const feedItems = useMemo(() => {
+  const localFeedItems = useMemo(() => {
     const clusterItems = scoredClusters.map(c => ({ ...c, type: "cluster" }));
     const standaloneItems = scoredArticles
       .filter(a => !clusteredArticleIds.has(a.id))
       .map(a => ({ ...a, type: "article" }));
-
     return [...clusterItems, ...standaloneItems].sort((a, b) => {
       const rankDiff = DECISION_RANK[b.score?.decision || "hidden"] - DECISION_RANK[a.score?.decision || "hidden"];
       if (rankDiff !== 0) return rankDiff;
@@ -75,7 +127,19 @@ export function AppProvider({ children }) {
     });
   }, [scoredClusters, scoredArticles, clusteredArticleIds]);
 
-  // Comparison data: score every standalone article against ALL profiles side by side
+  const localDebugItems = useMemo(() => {
+    const clusterItems = scoredClusters.map(c => ({
+      ...c, type: "cluster", displayTitle: c.clusterTitle
+    }));
+    const standaloneItems = scoredArticles
+      .filter(a => !clusteredArticleIds.has(a.id))
+      .map(a => ({ ...a, type: "article", displayTitle: a.title }));
+    return [...clusterItems, ...standaloneItems].sort((a, b) => {
+      return DECISION_RANK[b.score?.decision || "hidden"] - DECISION_RANK[a.score?.decision || "hidden"];
+    });
+  }, [scoredClusters, scoredArticles, clusteredArticleIds]);
+
+  // Comparison always uses local engine (cross-profile comparison is local-only)
   const comparisonItems = useMemo(() => {
     const profilesForComparison = Object.values(allProfiles);
     const options = { disabledSourceIds };
@@ -101,85 +165,125 @@ export function AppProvider({ children }) {
     });
   }, [allProfiles, clusteredArticleIds, disabledSourceIds]);
 
-  // All articles for debug panel (including hidden)
-  const debugItems = useMemo(() => {
-    const clusterItems = scoredClusters.map(c => ({
-      ...c,
-      type: "cluster",
-      displayTitle: c.clusterTitle
-    }));
-    const standaloneItems = scoredArticles
-      .filter(a => !clusteredArticleIds.has(a.id))
-      .map(a => ({ ...a, type: "article", displayTitle: a.title }));
+  // ── Resolved values (switch between modes) ───────────────────────────────────
+  const feedItems = isBackendMode ? backendFeedItems : localFeedItems;
+  const debugItems = isBackendMode ? backendDebugItems : localDebugItems;
 
-    return [...clusterItems, ...standaloneItems].sort((a, b) => {
-      return DECISION_RANK[b.score?.decision || "hidden"] - DECISION_RANK[a.score?.decision || "hidden"];
-    });
-  }, [scoredClusters, scoredArticles, clusteredArticleIds]);
+  const backendProfilesMap = useMemo(() => {
+    const map = {};
+    backendProfiles.forEach(p => { map[p.userId] = p; });
+    return map;
+  }, [backendProfiles]);
 
-  // Feedback handler
+  const backendProfileList = useMemo(() => {
+    return backendProfiles.map(p => ({ id: p.userId, label: p.displayName }));
+  }, [backendProfiles]);
+
+  const activeProfile = isBackendMode
+    ? (backendProfilesMap[activeProfileId] ?? null)
+    : (allProfiles[activeProfileId] ?? null);
+
+  const resolvedProfileList = isBackendMode ? backendProfileList : profileList;
+
+  // ── Feedback ────────────────────────────────────────────────────────────────
   const addFeedback = useCallback((articleId, action) => {
+    // Track locally always
     const entry = {
       id: `feedback_${Date.now()}`,
       userId: activeProfileId,
       articleId,
       action,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
     setFeedback(prev => [...prev, entry]);
-  }, [activeProfileId]);
+
+    // In backend mode, POST to API for supported actions
+    if (isBackendMode && BACKEND_VALID_ACTIONS.has(action)) {
+      submitFeedback({
+        user_id: activeProfileId,
+        article_id: articleId,
+        action,
+      }).catch(() => {
+        // Feedback failure is non-fatal; local state already recorded the event
+      });
+    }
+  }, [activeProfileId, isBackendMode]);
 
   const getFeedbackForArticle = useCallback((articleId) => {
     return feedback.filter(f => f.userId === activeProfileId && f.articleId === articleId);
   }, [feedback, activeProfileId]);
 
-  // Source toggle
+  // ── Source toggle ────────────────────────────────────────────────────────────
   const toggleSource = useCallback((sourceId) => {
     setSources(prev => prev.map(s =>
       s.id === sourceId ? { ...s, enabled: !s.enabled } : s
     ));
   }, []);
 
-  // Update profile preferences (for Guy and Deni Fan — muting, etc.)
+  // ── Profile management ───────────────────────────────────────────────────────
   const updateProfile = useCallback((profileId, updatedProfile) => {
     setProfiles(prev => ({ ...prev, [profileId]: updatedProfile }));
   }, []);
 
-  // Apply calibration draft as sandbox profile and switch to it.
-  // Does NOT modify Guy or Casual Deni Fan.
   const applySandboxProfile = useCallback((profile) => {
     setSandboxProfile(profile);
     setActiveProfileId(SANDBOX_PROFILE_ID);
   }, []);
 
-  // Remove sandbox profile. If it was active, switch back to Guy.
   const resetSandboxProfile = useCallback(() => {
     setSandboxProfile(null);
     setActiveProfileId(current => current === SANDBOX_PROFILE_ID ? "guy" : current);
   }, []);
 
+  // ── Manual refresh helpers ───────────────────────────────────────────────────
+  const refreshFeed = useCallback(() => {
+    if (isBackendMode) setFeedRefreshTick(n => n + 1);
+  }, [isBackendMode]);
+
+  const refreshProfiles = useCallback(() => {
+    if (!isBackendMode) return;
+    getProfiles()
+      .then(raw => setBackendProfiles(raw.map(normalizeProfileFromApi)))
+      .catch(err => setApiError(err.message));
+  }, [isBackendMode]);
+
   const value = {
+    // Mode
+    dataMode: DATA_MODE,
+    isBackendMode,
+    isLoading,
+    apiError,
+    refreshFeed,
+    refreshProfiles,
+
+    // Profile
     activeProfileId,
     setActiveProfileId,
     activeProfile,
     profiles,
     allProfiles,
-    profileList,
+    profileList: resolvedProfileList,
     sandboxProfile,
     applySandboxProfile,
     resetSandboxProfile,
     updateProfile,
-    sources,
-    toggleSource,
-    feedback,
-    addFeedback,
-    getFeedbackForArticle,
+
+    // Feed
     feedItems,
     debugItems,
     comparisonItems,
     scoredArticles,
     scoredClusters,
-    clusteredArticleIds
+    clusteredArticleIds,
+
+    // Sources
+    sources,
+    toggleSource,
+
+    // Feedback
+    feedback,
+    addFeedback,
+    getFeedbackForArticle,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

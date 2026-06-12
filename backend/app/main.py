@@ -1,21 +1,36 @@
+import pathlib
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.core.config import settings
-from app.api import routes_health, routes_profiles, routes_articles, routes_feed, routes_feedback, routes_calibration
-from app.db import db
-from app.seed.seed_articles import seed_articles
-from app.seed.seed_profiles import seed_profiles
-from app.seed.seed_sources import seed_sources
-from app.seed.seed_calibration import seed_calibration_headlines
+from app.api import (
+    routes_health,
+    routes_profiles,
+    routes_articles,
+    routes_feed,
+    routes_feedback,
+    routes_calibration,
+)
+
+
+def _ensure_db_dir(database_url: str) -> None:
+    """Create the parent directory of a relative SQLite file path if needed."""
+    if database_url.startswith("sqlite:///./"):
+        db_path = database_url[len("sqlite:///"):]
+        pathlib.Path(db_path).parent.mkdir(parents=True, exist_ok=True)
 
 
 def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(application: FastAPI):
-        seed_profiles(db)
-        seed_articles(db)
-        seed_sources(db)
-        seed_calibration_headlines(db)
+        from app.db.database import init_db, SessionLocal
+        from app.repositories.seed_runner import seed_all_if_empty
+
+        _ensure_db_dir(settings.database_url)
+        init_db()
+
+        with SessionLocal() as session:
+            seed_all_if_empty(session)
+
         yield
 
     application = FastAPI(

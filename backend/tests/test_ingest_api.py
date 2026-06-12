@@ -197,3 +197,54 @@ def test_ingest_runs_schema(client):
         assert "inserted_count" in run
         assert "fetched_count" in run
         assert "skipped_duplicate_count" in run
+
+
+# ── GET /api/ingest/quality ───────────────────────────────────────────────────
+
+def test_quality_endpoint_returns_200(client):
+    r = client.get("/api/ingest/quality")
+    assert r.status_code == 200
+
+
+def test_quality_response_schema(client):
+    r = client.get("/api/ingest/quality")
+    data = r.json()
+    assert "total_rss_articles" in data
+    assert "sport_breakdown" in data
+    assert "league_breakdown" in data
+    assert "event_type_breakdown" in data
+    assert "importance_breakdown" in data
+    assert "low_confidence_count" in data
+    assert "questionable_articles" in data
+    assert isinstance(data["questionable_articles"], list)
+
+
+def test_quality_total_matches_breakdown_sum(client):
+    """Sum of sport_breakdown values must equal total_rss_articles."""
+    # Ingest some articles so there's something to check
+    entries = [
+        _make_entry("Maccabi Tel Aviv signs guard", "https://eurohoops.net/fake/quality-01"),
+        _make_entry("Deni Avdija traded to new NBA team", "https://eurohoops.net/fake/quality-02"),
+    ]
+    with patch("feedparser.parse", return_value=_make_feed(entries)):
+        client.post("/api/ingest/run?source_id=eurohoops")
+
+    r = client.get("/api/ingest/quality")
+    data = r.json()
+    assert sum(data["sport_breakdown"].values()) == data["total_rss_articles"]
+
+
+def test_quality_questionable_article_schema(client):
+    """If there are questionable articles, each must have the expected fields."""
+    r = client.get("/api/ingest/quality")
+    data = r.json()
+    for item in data["questionable_articles"]:
+        assert "id" in item
+        assert "title" in item
+        assert "source" in item
+        assert "sport" in item
+        assert "event_type" in item
+        assert "confidence" in item
+        assert "reasons" in item
+        assert isinstance(item["reasons"], list)
+        assert len(item["reasons"]) > 0

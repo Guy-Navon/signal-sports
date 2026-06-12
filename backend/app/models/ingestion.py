@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 from pydantic import BaseModel
 
 
@@ -7,6 +7,7 @@ class SourceIngestResult(BaseModel):
     source_id: str
     fetched: int
     inserted: int
+    skipped_filtered: int = 0   # items dropped by source-level URL/language filters
     skipped_duplicate: int
     failed: int
     errors: List[str] = []
@@ -36,3 +37,25 @@ class IngestionRunRecord(BaseModel):
     skipped_duplicate_count: int
     failed_count: int
     error_message: Optional[str] = None
+
+
+class QuestionableArticle(BaseModel):
+    id: str
+    title: str
+    source: str
+    sport: str
+    league: Optional[str] = None
+    event_type: str
+    importance: str
+    confidence: float
+    reasons: List[str]
+
+
+class IngestQualityResponse(BaseModel):
+    total_rss_articles: int
+    sport_breakdown: Dict[str, int]
+    league_breakdown: Dict[str, int]
+    event_type_breakdown: Dict[str, int]
+    importance_breakdown: Dict[str, int]
+    low_confidence_count: int
+    questionable_articles: List[QuestionableArticle]

@@ -61,10 +61,14 @@ RSSSourceConfig(
     display_name="Sportando",
     feed_url="https://sportando.basketball/feed/",
     language="en",
+    allowed_languages=("en",),          # optional — blocks non-English URLs
+    blocked_url_patterns=("/tr/", ...),  # optional — explicit path blocklist
 ),
 ```
 
 3. That is all. The adapter, classifier, dedup, and endpoints pick it up automatically.
+
+See `docs/RSS_QUALITY_GUARDRAILS.md` for details on how URL and language filters work.
 
 ---
 
@@ -121,10 +125,10 @@ result = classify(title, source_id="eurohoops", language="en")
 | Field        | How detected |
 |-------------|-------------|
 | `sport`      | Basketball/football/tennis keyword lists; basketball-only sources default to basketball; entity-based inference if sport still unknown |
-| `league`     | Sport-specific keyword lists: NBA team names, EuroLeague, Israeli Basketball League, ACB, BSL, Greek League, LBA, LNB, Wimbledon, Roland Garros, etc. |
+| `league`     | Sport-specific keyword lists ordered: **EuroCup** (before EuroLeague) → NBA → EuroLeague → Israeli Basketball League → ACB → BSL → Greek → LBA → LNB → Wimbledon → Roland Garros → etc. Israeli Basketball League also inferred from Maccabi entity + context keywords (Holon, Eilat, Hapoel Jerusalem, etc.) |
 | `entities`   | Maccabi Tel Aviv Basketball (Hebrew + English keywords); Deni Avdija (Hebrew + English) |
 | `event_type` | Ordered keyword matching: grand_slam_winner → finals_result → signing → negotiation → candidate → injury → major_trade → playoff_result → early_round_result → regular_season_result → schedule → match_result → news |
-| `importance` | Rule table: very_high for titles/finals/grand slam; high for signing/negotiation/injury/trade involving a tracked entity or major league; low for schedule/early rounds |
+| `importance` | Rule table: very_high for titles/finals/grand slam; high for signing/negotiation/injury/trade involving a tracked entity or major league; low for schedule/early rounds; **low for generic news (event_type=news) with no tracked entity** |
 | `confidence` | Additive: 0.40 base + 0.15 for sport + 0.05 for basketball-only source + 0.15 for league + 0.15 for entity + 0.10 for non-news event type; capped at 0.95 |
 
 ### Classifier limitations (known, deferred to PR 8)

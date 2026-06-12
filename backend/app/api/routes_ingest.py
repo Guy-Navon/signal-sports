@@ -28,6 +28,7 @@ def list_ingest_sources():
             type="rss",
             enabled=cfg.enabled,
             feed_url=cfg.feed_url,
+            language=cfg.language,
         )
         for cfg in RSS_SOURCES
     ]

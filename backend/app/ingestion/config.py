@@ -50,6 +50,18 @@ RSS_SOURCES: list[RSSSourceConfig] = [
         language="en",
         allowed_languages=("en",),
     ),
+    # Walla Sport: Hebrew general sports feed (ספורט וואלה).
+    # Feed ID 7 serves the Walla sport section (sports.walla.co.il).
+    # Content is Hebrew-only; no language-path mixing or URL blocking needed.
+    # Covers Israeli basketball (Maccabi, Israeli League, EuroCup), football,
+    # tennis, and international sports including NBA and EuroLeague news.
+    RSSSourceConfig(
+        source_id="walla_sport",
+        display_name="וואלה ספורט",
+        feed_url="https://rss.walla.co.il/feed/7",
+        language="he",
+        allowed_languages=("he",),
+    ),
 ]
 
 

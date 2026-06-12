@@ -130,15 +130,21 @@ To reset to a clean state, stop the server and delete `data/signal_sports.db`.
 
 See `docs/SQLITE_PERSISTENCE.md` for full details.
 
-## Ingestion (PR 7 + PR 7.1)
+## Ingestion (PR 7 + PR 7.1 + PR 8)
 
-Real RSS ingestion is available for English basketball sources (Eurohoops, Sportando).
+Real RSS ingestion is available for two English basketball sources and one Hebrew general sports source.
+
+| source_id     | display_name | language |
+|---------------|-------------|----------|
+| `eurohoops`   | Eurohoops   | en       |
+| `sportando`   | Sportando   | en       |
+| `walla_sport` | וואלה ספורט | he       |
 
 ```bash
 # Trigger ingestion via the API:
 curl -X POST http://127.0.0.1:8000/api/ingest/run
 # Or a single source:
-curl -X POST "http://127.0.0.1:8000/api/ingest/run?source_id=eurohoops"
+curl -X POST "http://127.0.0.1:8000/api/ingest/run?source_id=walla_sport"
 # Check quality of what was ingested:
 curl http://127.0.0.1:8000/api/ingest/quality
 ```
@@ -147,28 +153,36 @@ Articles are classified with a deterministic keyword classifier and deduplicated
 New articles appear in `/api/articles` and flow through the same relevance engine as seed articles.
 
 **Quality guardrails (PR 7.1):** Eurohoops serves content in 10+ languages via URL paths
-(`/tr/`, `/es/`, `/el/`, etc.); non-English paths are blocked. The classifier now correctly
+(`/tr/`, `/es/`, `/el/`, etc.); non-English paths are blocked. The classifier correctly
 distinguishes EuroCup from EuroLeague, infers Israeli Basketball League from Maccabi entity +
 context keywords, and downgrades generic news (no tracked entity, no event keyword) to
 `importance = "low"`.
 
-See `docs/RSS_INGESTION.md` and `docs/RSS_QUALITY_GUARDRAILS.md` for full details.
+**Hebrew source (PR 8):** Walla Sport (`walla_sport`) adds Hebrew RSS. The classifier was
+extended with comprehensive Hebrew keywords for sport detection, entity detection (Maccabi
+Tel Aviv Basketball, Deni Avdija), league detection (Israeli Basketball League, EuroLeague,
+NBA), and event type detection (signing, negotiation, injury). Football Maccabi disambiguation
+prevents Maccabi Haifa (football) articles from being classified as basketball.
+
+See `docs/RSS_INGESTION.md`, `docs/RSS_QUALITY_GUARDRAILS.md`, and `docs/HEBREW_RSS_SOURCE.md`
+for full details.
 
 ## Current limitations
 
-- **Hebrew source RSS.** Walla, Sport5, ONE require scraping adapters — not yet implemented.
-- **No scheduler.** Ingestion is triggered manually via `POST /api/ingest/run`. A scheduler is planned for PR 8.
-- **Classifier is keyword-only.** No LLM, no NLP. Entity detection is limited to Maccabi Tel Aviv and Deni Avdija.
-- **No translation.** `translated_title` is always `None` for RSS articles.
+- **No scheduler.** Ingestion is triggered manually via `POST /api/ingest/run`.
+- **Classifier is keyword-only.** No LLM, no NLP. Entity detection is limited to Maccabi Tel Aviv Basketball and Deni Avdija.
+- **No translation.** `translated_title` is always `None` for RSS articles. Hebrew article titles are stored as-is.
 - **No fuzzy dedup.** Duplicate headlines from different sources are not merged. URL-based dedup only.
 - **Feedback is stored but not applied.** `POST /api/feedback` records events in SQLite; they do not yet mutate profiles.
 - **No authentication.** All profiles are publicly accessible by user_id.
 - **No clustering.** Articles are not grouped; `cluster_id` exists in the model only.
 - **`skipped_filtered` not persisted.** The count of URL/language-filtered items is returned in the live API response but not stored in `ingestion_runs` (would require a DB migration).
+- **Sport5 / ONE have no public RSS.** These sources require category page adapters or scraping — not yet implemented.
 
-## Next step (PR 8)
+## Next steps
 
-- Hebrew source adapter (Walla or ONE if RSS exists)
 - Scheduled ingestion (APScheduler or cron endpoint)
+- Hebrew title translation (`translated_title` via translation API)
 - Fuzzy title dedup / clustering
 - Feedback → profile mutation (`never_show` → hidden event rule)
+- Additional Hebrew sources (Sport5, ONE via category page adapters)

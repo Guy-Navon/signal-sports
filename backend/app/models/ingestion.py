@@ -24,6 +24,7 @@ class IngestSourceInfo(BaseModel):
     type: str = "rss"
     enabled: bool
     feed_url: str
+    language: str = "en"
 
 
 class IngestionRunRecord(BaseModel):

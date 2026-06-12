@@ -99,6 +99,10 @@ Exported functions:
 | `getDebugFeed(userId)` | `GET /api/debug/feed/{userId}` |
 | `submitFeedback(payload)` | `POST /api/feedback` |
 | `getCalibrationHeadlines()` | `GET /api/calibration/headlines` |
+| `getIngestSources()` | `GET /api/ingest/sources` |
+| `runIngestion(sourceId?)` | `POST /api/ingest/run` or `POST /api/ingest/run?source_id=X` |
+| `getIngestRuns(limit?)` | `GET /api/ingest/runs?limit=N` |
+| `getIngestQuality()` | `GET /api/ingest/quality` |
 
 ### Normalizers (`frontend/src/api/normalizers.js`)
 
@@ -148,6 +152,30 @@ mutation yet.
   or "מצב נתונים: מקומי" (gray). Spinning refresh icon while loading.
 - **Error banner**: if backend mode has an API error, a red banner appears below the header
   with the error detail, the expected backend URL, and a "נסה שוב" retry button.
+- **Ingestion panel** on the Sources page: shows RSS ingestion controls in backend mode.
+  In local mode, shows a disabled message with a hint on how to enable backend mode.
+
+### Ingestion panel (`IngestionPanel.jsx`)
+
+Located at `src/components/ingestion/IngestionPanel.jsx`. Rendered at the top of the
+Sources page.
+
+**Backend mode:** Shows:
+1. Source selector buttons (כל המקורות, Eurohoops, Sportando, וואלה ספורט) — populated from
+   `GET /api/ingest/sources`.
+2. "הרץ ייבוא עכשיו" button — calls `POST /api/ingest/run` (or with `?source_id=X`).
+3. Result summary after a run — per-source breakdown of fetched/inserted/skipped/failed.
+4. Success message: "הייבוא הסתיים — נוספו X כתבות חדשות" or "...לא נוספו כתבות חדשות".
+5. Recent runs list (last 5, from `GET /api/ingest/runs`).
+6. "איכות הסיווג" toggle — lazy-loads `GET /api/ingest/quality` and shows sport breakdown,
+   event type breakdown, and top 5 questionable articles.
+
+After a successful run, `onFeedRefresh` is called (wired to `AppContext.refreshFeed()`), so
+the feed and debug view update with newly ingested articles without a full browser reload.
+
+**Local mode:** Shows a disabled card with the text:
+- "ייבוא RSS זמין רק במצב שרת"
+- "מצב מקומי פעיל — כדי לראות RSS אמיתי הפעל VITE_DATA_MODE=backend"
 
 ---
 

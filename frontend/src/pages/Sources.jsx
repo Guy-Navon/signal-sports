@@ -1,6 +1,7 @@
 import React from "react";
 import { useApp } from "@/context/AppContext";
 import { Database, Code2, ExternalLink, CheckCircle2, XCircle } from "lucide-react";
+import IngestionPanel from "@/components/ingestion/IngestionPanel";
 
 const TRUST_LABELS = {
   high: { label: "גבוה", color: "text-emerald-400" },
@@ -21,7 +22,7 @@ const LANG_LABELS = {
 };
 
 export default function Sources() {
-  const { sources, toggleSource } = useApp();
+  const { sources, toggleSource, isBackendMode, refreshFeed } = useApp();
 
   const enabledCount = sources.filter(s => s.enabled).length;
 
@@ -45,6 +46,9 @@ export default function Sources() {
           בגרסאות הבאות, כל מקור יהיה מחובר ל-RSS, Scraper, או API בהתאם.
         </p>
       </div>
+
+      {/* Ingestion panel */}
+      <IngestionPanel isBackendMode={isBackendMode} onFeedRefresh={refreshFeed} />
 
       {/* Sources list */}
       <div className="space-y-2">

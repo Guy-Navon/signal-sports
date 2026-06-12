@@ -176,6 +176,7 @@ export function inferPreferenceDraftFromCalibration(ratings, headlines) {
       label: topicLabel(sport, league),
       sport,
       league,
+      scope: inferScope(sport, league, mode),
       priority,
       mode,
       entities: [...topicEntities],
@@ -280,4 +281,17 @@ function inferPriority(positiveCount, total) {
 function topicLabel(sport, league) {
   const key = `${sport}::${league || "general"}`;
   return TOPIC_LABELS_HE[key] ?? sport;
+}
+
+/**
+ * Infer an appropriate scope for a calibration-generated topic.
+ *
+ * - followed_entities_only mode → entity (entity-focused interest)
+ * - specific league → league
+ * - no league (general sport) → sport
+ */
+function inferScope(sport, league, mode) {
+  if (mode === "followed_entities_only") return "entity";
+  if (league && league !== "general") return "league";
+  return "sport";
 }

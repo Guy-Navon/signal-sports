@@ -92,8 +92,8 @@ def score_article(
     best_rule: Optional[str] = None
     best_topic_reasoning: list[str] = []
 
-    for topic in matching_topics:
-        t_decision, t_rule, t_reasoning = _score_against_topic(article, topic, profile)
+    for topic, match_reason in matching_topics:
+        t_decision, t_rule, t_reasoning = _score_against_topic(article, topic, profile, match_reason)
         if DECISION_RANK[t_decision] > DECISION_RANK[best_decision]:
             best_decision = t_decision
             best_topic_id = topic.topic_id
@@ -112,9 +112,12 @@ def _score_against_topic(
     article: Article,
     topic: TopicPreference,
     profile: UserProfile,
+    match_reason: Optional[str] = None,
 ) -> tuple[str, Optional[str], list[str]]:
     r: list[str] = []
     r.append(f'נושא: "{topic.label}" (עדיפות: {topic.priority}, מצב: {topic.mode})')
+    if match_reason:
+        r.append(match_reason)
 
     if topic.mode == "muted":
         r.append("נושא מושתק → מוסתר")
@@ -318,24 +321,62 @@ def _importance_fallback(importance: str, topic_priority: int, r: list[str]) -> 
     return decision
 
 
+def _does_topic_match_article(article: Article, topic: TopicPreference) -> tuple[bool, Optional[str]]:
+    """
+    Scope-aware topic matching. Returns (matched, match_reason).
+
+    Scope semantics (mirrors frontend doesTopicMatchArticle):
+      "entity"       — match only if article.entities ∩ topic.entities is non-empty.
+      "league"       — match only if article.league ∈ topic.leagues.
+      "league_group" — match only if article.league ∈ topic.leagues (group of related leagues).
+      "sport"        — match only if article.sport == topic.sport.
+      None           — legacy OR matching: sport OR league OR entity.
+    """
+    scope = topic.scope
+
+    if scope is None:
+        # Legacy OR matching for topics without an explicit scope
+        if topic.sport and article.sport == topic.sport:
+            return (True, f"התאמה לפי ספורט: {article.sport}")
+        if topic.leagues and article.league and article.league in topic.leagues:
+            return (True, f"התאמה לפי ליגה: {article.league}")
+        if topic.entities and article.entities:
+            hit = next((e for e in article.entities if e in topic.entities), None)
+            if hit:
+                return (True, f"התאמה לפי ישות: {hit}")
+        return (False, None)
+
+    if scope == "entity":
+        if topic.entities and article.entities:
+            hit = next((e for e in article.entities if e in topic.entities), None)
+            if hit:
+                return (True, f"התאמה לפי ישות (scope: entity): {hit}")
+        return (False, None)
+
+    if scope in ("league", "league_group"):
+        if topic.leagues and article.league and article.league in topic.leagues:
+            return (True, f"התאמה לפי ליגה (scope: {scope}): {article.league}")
+        return (False, None)
+
+    if scope == "sport":
+        if topic.sport and article.sport == topic.sport:
+            return (True, f"התאמה לפי ספורט (scope: sport): {article.sport}")
+        return (False, None)
+
+    return (False, None)
+
+
 def _find_matching_topics(
     article: Article,
     profile: UserProfile,
-) -> list[TopicPreference]:
+) -> list[tuple[TopicPreference, Optional[str]]]:
+    """Return list of (topic, match_reason) sorted by priority descending."""
     matched = []
     for topic in profile.topics:
-        matches = False
-        if topic.sport and article.sport == topic.sport:
-            matches = True
-        if topic.leagues and article.league and article.league in topic.leagues:
-            matches = True
-        if topic.entities and article.entities:
-            if any(e in topic.entities for e in article.entities):
-                matches = True
-        if matches:
-            matched.append(topic)
-    # highest priority first
-    matched.sort(key=lambda t: t.priority, reverse=True)
+        is_match, reason = _does_topic_match_article(article, topic)
+        if is_match:
+            matched.append((topic, reason))
+    matched.sort(key=lambda t: t[0].priority, reverse=True)
     return matched
 
 

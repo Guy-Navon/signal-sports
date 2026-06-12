@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(.venv\\\\Scripts\\\\python -m pytest tests/ -v)",
+      "Read(//c/Users/HOME/.claude/projects/c--Users-HOME-Documents-signal-sports/memory/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\HOME\\.claude\\projects\\c--Users-HOME-Documents-signal-sports\\memory"
+    ]
+  }
+}

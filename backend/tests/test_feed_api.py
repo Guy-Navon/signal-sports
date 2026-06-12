@@ -164,6 +164,39 @@ def test_push_not_from_importance_boost_alone(client):
     assert item["decision"] == "high_feed"
 
 
+def test_non_maccabi_euroleague_transfer_is_high_feed_not_push(client):
+    # article_014: Real Madrid EuroLeague major_transfer, NO Maccabi entity.
+    # Before scope guards, the Maccabi topic matched via sport: "basketball" and the
+    # major_transfer → major_signing alias triggered push. After scope guards,
+    # Maccabi topic (scope: entity) requires entity match, so only the EuroLeague topic
+    # (scope: league) matches → major_transfer → high_feed.
+    r = client.get("/api/debug/feed/guy")
+    data = r.json()
+    item = next((i for i in data if i["article"]["id"] == "article_014"), None)
+    assert item is not None, "article_014 not found in debug feed"
+    assert item["decision"] != "push", (
+        f"Non-Maccabi EuroLeague major transfer must not be push via Maccabi topic. "
+        f"Got {item['decision']}. Reasoning: {item['reasoning']}"
+    )
+    assert item["decision"] == "high_feed", (
+        f"Non-Maccabi EuroLeague major transfer must be high_feed via EuroLeague topic. "
+        f"Got {item['decision']}. Reasoning: {item['reasoning']}"
+    )
+    assert item["matched_topic"] == "euroleague", (
+        f"Must be matched by EuroLeague topic. Got matched_topic={item['matched_topic']}"
+    )
+
+
+def test_maccabi_negotiation_still_push_after_scope_guard(client):
+    # article_001: Maccabi entity present → entity scope matches → push
+    r = client.get("/api/debug/feed/guy")
+    data = r.json()
+    item = next((i for i in data if i["article"]["id"] == "article_001"), None)
+    assert item is not None
+    assert item["decision"] == "push"
+    assert item["matched_topic"] == "maccabi_tel_aviv_basketball"
+
+
 # ── Feedback ──────────────────────────────────────────────────────────────────
 
 def test_feedback_accepted(client):

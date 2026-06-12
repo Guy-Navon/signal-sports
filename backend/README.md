@@ -98,7 +98,14 @@ Topic modes: `all`, `followed_entities_only`, `titles_only`, `high_importance_on
 
 Push discipline: importance boost is hard-capped at `high_feed`. Push requires an explicit `eventRules` or `entityEventRules` declaration.
 
-**Known engine quirk (matches frontend behavior):** Topics match articles via OR logic (sport OR league OR entity). The `maccabi_tel_aviv_basketball` topic has `sport: "basketball"`, so it matches ALL basketball articles. This causes non-Maccabi EuroLeague events to resolve via Maccabi's event rules (e.g., `major_transfer → major_signing alias → push`). This is intentional faithfulness to the frontend; a future PR can add topic scope guards.
+**Topic scope guards (PR 4.1):** Each `TopicPreference` has an optional `scope` field that controls which articles it matches:
+- `entity` — match only if `article.entities ∩ topic.entities` is non-empty (prevents sport-wide over-matching for team/person topics)
+- `league` — match only if `article.league ∈ topic.leagues`
+- `league_group` — same as `league`, for groups of related leagues
+- `sport` — match only if `article.sport == topic.sport` (used with restrictive modes)
+- `None` — legacy OR matching (backward compat for calibration-generated topics)
+
+This ensures the Maccabi topic only fires for Maccabi articles, the NBA topic only fires for NBA articles, and so on — even when multiple basketball topics coexist in the same profile.
 
 ## Seed data
 

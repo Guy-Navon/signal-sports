@@ -10,7 +10,7 @@ export function normalizeArticleFromApi(a) {
   return {
     id: a.id,
     source: a.source,
-    sourceDisplayName: a.source_display_name,
+    sourceDisplayName: a.source_display_name ?? a.source,
     url: a.url,
     title: a.title,
     originalTitle: a.original_title ?? null,

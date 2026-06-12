@@ -170,7 +170,69 @@ which is already in the `Article` model but not yet populated.
 
 ---
 
-## How to Run Ingestion Manually
+## Testing RSS from the UI (PR 8.1)
+
+The Sources page includes a full ingestion control panel when running in backend mode.
+No need to use FastAPI `/docs` or curl to trigger ingestion.
+
+### Steps
+
+1. Start the backend:
+
+```bash
+cd backend
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+2. Create `frontend/.env.local`:
+
+```env
+VITE_DATA_MODE=backend
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+3. Start the frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+4. Open the app (http://localhost:5173 or the port shown) and navigate to **מקורות** (Sources).
+
+5. The **ייבוא כתבות RSS** panel appears at the top. It lists the configured sources
+   (Eurohoops, Sportando, וואלה ספורט) loaded from the API.
+
+6. Select a source or leave "כל המקורות" selected. Click **הרץ ייבוא עכשיו**.
+
+7. The panel shows a loading state, then a per-source result summary:
+   - נמצאו (fetched), נוספו (inserted), דולגו ככפולים (skipped_duplicate), סוננו (skipped_filtered), נכשלו (failed)
+   - Green highlight if any articles were inserted.
+
+8. The feed and debug view refresh automatically after a successful run — new articles
+   appear immediately in the Feed and Debug pages without a browser reload.
+
+9. Run ingestion again on the same source — the panel should show "לא נוספו כתבות חדשות"
+   with inserted=0, skipped_duplicate=N. This confirms deduplication works.
+
+10. Click **איכות הסיווג** at the bottom of the panel to see:
+    - Total RSS articles, low-confidence count, questionable article count
+    - Sport breakdown (basketball, football, unknown)
+    - Event type breakdown
+    - Top 5 questionable articles (those with sport_unknown, low_confidence, or generic_news)
+
+### In local mode
+
+If the app is running in local mode (`VITE_DATA_MODE=local` or no `.env.local`), the
+ingestion panel shows a disabled state with the message:
+- "ייבוא RSS זמין רק במצב שרת"
+- "מצב מקומי פעיל — כדי לראות RSS אמיתי הפעל VITE_DATA_MODE=backend"
+
+Local mode continues to work fully with mock data. No backend is required.
+
+---
+
+## How to Run Ingestion Manually (API)
 
 Start the backend:
 

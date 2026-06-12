@@ -55,3 +55,22 @@ export function submitFeedback(payload) {
 export function getCalibrationHeadlines() {
   return apiFetch("/api/calibration/headlines");
 }
+
+export function getIngestSources() {
+  return apiFetch("/api/ingest/sources");
+}
+
+export function runIngestion(sourceId) {
+  const path = sourceId
+    ? `/api/ingest/run?source_id=${encodeURIComponent(sourceId)}`
+    : "/api/ingest/run";
+  return apiFetch(path, { method: "POST" });
+}
+
+export function getIngestRuns(limit = 5) {
+  return apiFetch(`/api/ingest/runs?limit=${limit}`);
+}
+
+export function getIngestQuality() {
+  return apiFetch("/api/ingest/quality");
+}

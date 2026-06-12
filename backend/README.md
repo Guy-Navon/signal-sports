@@ -8,6 +8,7 @@ FastAPI backend for Signal Sports. Implements the relevance engine, user profile
 - FastAPI 0.100+
 - Pydantic v2
 - SQLAlchemy 2.0 + SQLite (added in PR 6)
+- feedparser 6.0+ for RSS ingestion (added in PR 7)
 - pytest + httpx for tests
 
 ## Setup
@@ -52,13 +53,16 @@ Interactive docs: `http://localhost:8000/docs`
 | GET | `/health` | Service health check |
 | GET | `/api/profiles` | List all user profiles |
 | GET | `/api/profiles/{user_id}` | Get a specific profile |
-| GET | `/api/articles` | List all seeded articles |
+| GET | `/api/articles` | List all articles (seed + ingested) |
 | GET | `/api/articles/{article_id}` | Get a specific article |
 | GET | `/api/feed/{user_id}` | Scored feed (hidden articles excluded, sorted by decision+date) |
 | GET | `/api/debug/feed/{user_id}` | Full scored feed including hidden, with reasoning |
 | POST | `/api/feedback` | Submit a feedback event |
 | GET | `/api/feedback/{user_id}` | List all feedback events for a user |
 | GET | `/api/calibration/headlines` | List calibration headlines |
+| GET | `/api/ingest/sources` | List configured RSS ingest sources |
+| POST | `/api/ingest/run` | Run ingestion (all sources or `?source_id=X` for one) |
+| GET | `/api/ingest/runs` | Recent ingestion run records |
 
 ### Feedback actions
 
@@ -125,16 +129,36 @@ To reset to a clean state, stop the server and delete `data/signal_sports.db`.
 
 See `docs/SQLITE_PERSISTENCE.md` for full details.
 
+## Ingestion (PR 7)
+
+Real RSS ingestion is available for English basketball sources (Eurohoops, Sportando).
+
+```bash
+# Trigger ingestion via the API:
+curl -X POST http://127.0.0.1:8000/api/ingest/run
+# Or a single source:
+curl -X POST "http://127.0.0.1:8000/api/ingest/run?source_id=eurohoops"
+```
+
+Articles are classified with a deterministic keyword classifier and deduplicated by URL.
+New articles appear in `/api/articles` and flow through the same relevance engine as seed articles.
+
+See `docs/RSS_INGESTION.md` for full details.
+
 ## Current limitations
 
-- **No real article ingestion.** Articles are seeded manually. No RSS/scraping adapters yet.
+- **Hebrew source RSS.** Walla, Sport5, ONE require scraping adapters — not yet implemented.
+- **No scheduler.** Ingestion is triggered manually via `POST /api/ingest/run`. A scheduler is planned for PR 8.
+- **Classifier is keyword-only.** No LLM, no NLP. Entity detection is limited to Maccabi Tel Aviv and Deni Avdija.
+- **No translation.** `translated_title` is always `None` for RSS articles.
+- **No fuzzy dedup.** Duplicate headlines from different sources are not merged. URL-based dedup only.
 - **Feedback is stored but not applied.** `POST /api/feedback` records events in SQLite; they do not yet mutate profiles.
 - **No authentication.** All profiles are publicly accessible by user_id.
-- **No clustering.** Articles are not grouped; cluster-related fields exist in the model only.
-- **No translation engine.** `translated_title` / `original_title` fields exist but translation is not performed.
+- **No clustering.** Articles are not grouped; `cluster_id` exists in the model only.
 
-## Next step (PR 7)
+## Next step (PR 8)
 
-Options:
-- **PR 7a: First real source adapter** — Sport5 RSS or Eurohoops scraper. With SQLite in place, new articles survive restarts and deduplication against stored history is possible.
-- **PR 7b: Feedback → profile mutation** — `never_show` feedback creates a `hidden` event rule for that article's event type in the matching topic.
+- Hebrew source adapter (Walla or ONE if RSS exists)
+- Scheduled ingestion (APScheduler or cron endpoint)
+- Fuzzy title dedup / clustering
+- Feedback → profile mutation (`never_show` → hidden event rule)

@@ -9,6 +9,7 @@ from app.api import (
     routes_feed,
     routes_feedback,
     routes_calibration,
+    routes_ingest,
 )
 
 
@@ -46,6 +47,7 @@ def create_app() -> FastAPI:
     application.include_router(routes_feed.router, prefix="/api", tags=["feed"])
     application.include_router(routes_feedback.router, prefix="/api", tags=["feedback"])
     application.include_router(routes_calibration.router, prefix="/api", tags=["calibration"])
+    application.include_router(routes_ingest.router, prefix="/api", tags=["ingest"])
 
     return application
 

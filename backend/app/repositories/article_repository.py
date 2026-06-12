@@ -68,6 +68,11 @@ def get_by_id(session: Session, article_id: str) -> Optional[Article]:
     return _row_to_article(row) if row else None
 
 
+def get_by_url(session: Session, url: str) -> Optional[Article]:
+    row = session.query(ArticleRow).filter_by(url=url).first()
+    return _row_to_article(row) if row else None
+
+
 def count(session: Session) -> int:
     return session.query(ArticleRow).count()
 

@@ -8,6 +8,7 @@ class TopicPreference(BaseModel):
     sport: str
     priority: int  # 0-100
     mode: str  # all | major_only | followed_entities_only | titles_only | high_importance_only | muted
+    scope: Optional[str] = None  # entity | league | league_group | sport | None (legacy OR matching)
     leagues: List[str] = []
     entities: List[str] = []
     event_rules: Dict[str, str] = {}

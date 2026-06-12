@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scoreArticle, DECISION_RANK } from "./relevanceEngine";
+import { scoreArticle, doesTopicMatchArticle, DECISION_RANK } from "./relevanceEngine";
 import { userProfiles } from "../data/userProfiles";
 import { mockArticles } from "../data/mockArticles";
 
@@ -249,5 +249,273 @@ describe("entityEventRules — entity-specific event overrides", () => {
     const deniNba = denieFan.topics.find(t => t.topicId === "nba");
     expect(guyNba.entityEventRules?.["Deni Avdija"]).toBeDefined();
     expect(deniNba.entityEventRules?.["Deni Avdija"]).toBeDefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Topic Scope Guards — doesTopicMatchArticle unit tests
+// ─────────────────────────────────────────────────────────────────
+describe("Topic scope guards — doesTopicMatchArticle()", () => {
+  const maccabiTopic = guy.topics.find(t => t.topicId === "maccabi_tel_aviv_basketball");
+  const nbaTopic = guy.topics.find(t => t.topicId === "nba");
+  const euroleagueTopic = guy.topics.find(t => t.topicId === "euroleague");
+  const europeanDomesticTopic = guy.topics.find(t => t.topicId === "major_european_domestic_basketball");
+  const footballTopic = guy.topics.find(t => t.topicId === "football");
+  const tennisTopic = guy.topics.find(t => t.topicId === "tennis");
+
+  it("profile topics have expected scope values", () => {
+    expect(maccabiTopic.scope).toBe("entity");
+    expect(nbaTopic.scope).toBe("league");
+    expect(euroleagueTopic.scope).toBe("league");
+    expect(europeanDomesticTopic.scope).toBe("league_group");
+    expect(footballTopic.scope).toBe("sport");
+    expect(tennisTopic.scope).toBe("sport");
+  });
+
+  it("entity scope: Maccabi topic matches article with Maccabi entity", () => {
+    const article = {
+      sport: "basketball", league: "EuroLeague",
+      entities: ["Maccabi Tel Aviv Basketball"], eventType: "negotiation", importance: "high"
+    };
+    expect(doesTopicMatchArticle(article, maccabiTopic).matched).toBe(true);
+  });
+
+  it("entity scope: Maccabi topic does NOT match non-Maccabi basketball article (sport alone insufficient)", () => {
+    const article = {
+      sport: "basketball", league: "EuroLeague",
+      entities: ["Real Madrid Basketball"], eventType: "major_transfer", importance: "high"
+    };
+    expect(doesTopicMatchArticle(article, maccabiTopic).matched).toBe(false);
+  });
+
+  it("entity scope: Maccabi topic does NOT match non-Maccabi Spanish ACB article", () => {
+    const article = {
+      sport: "basketball", league: "Spanish ACB",
+      entities: ["Real Madrid Basketball"], eventType: "playoff_result", importance: "high"
+    };
+    expect(doesTopicMatchArticle(article, maccabiTopic).matched).toBe(false);
+  });
+
+  it("league scope: NBA topic matches article with league NBA", () => {
+    const article = {
+      sport: "basketball", league: "NBA",
+      entities: ["Charlotte Hornets", "Washington Wizards"], eventType: "regular_season_result", importance: "low"
+    };
+    expect(doesTopicMatchArticle(article, nbaTopic).matched).toBe(true);
+  });
+
+  it("league scope: NBA topic does NOT match EuroLeague article", () => {
+    const article = {
+      sport: "basketball", league: "EuroLeague",
+      entities: ["Fenerbahce"], eventType: "match_result", importance: "medium"
+    };
+    expect(doesTopicMatchArticle(article, nbaTopic).matched).toBe(false);
+  });
+
+  it("league scope: EuroLeague topic matches EuroLeague article without Maccabi entity", () => {
+    const article = {
+      sport: "basketball", league: "EuroLeague",
+      entities: ["Real Madrid Basketball"], eventType: "major_transfer", importance: "high"
+    };
+    expect(doesTopicMatchArticle(article, euroleagueTopic).matched).toBe(true);
+  });
+
+  it("league_group scope: European domestic topic matches Spanish ACB article", () => {
+    const article = {
+      sport: "basketball", league: "Spanish ACB",
+      entities: ["Real Madrid Basketball"], eventType: "playoff_result", importance: "high"
+    };
+    expect(doesTopicMatchArticle(article, europeanDomesticTopic).matched).toBe(true);
+  });
+
+  it("league_group scope: European domestic topic matches Turkish BSL article", () => {
+    const article = {
+      sport: "basketball", league: "Turkish BSL",
+      entities: ["Fenerbahce"], eventType: "match_result", importance: "medium"
+    };
+    expect(doesTopicMatchArticle(article, europeanDomesticTopic).matched).toBe(true);
+  });
+
+  it("league_group scope: European domestic topic does NOT match NBA article", () => {
+    const article = {
+      sport: "basketball", league: "NBA",
+      entities: ["Charlotte Hornets"], eventType: "regular_season_result", importance: "low"
+    };
+    expect(doesTopicMatchArticle(article, europeanDomesticTopic).matched).toBe(false);
+  });
+
+  it("sport scope: football topic matches any football article", () => {
+    const article = {
+      sport: "football", league: "Israeli Premier League",
+      entities: [], eventType: "regular_season_result", importance: "low"
+    };
+    expect(doesTopicMatchArticle(article, footballTopic).matched).toBe(true);
+  });
+
+  it("sport scope: football topic does NOT match basketball article", () => {
+    const article = {
+      sport: "basketball", league: "NBA",
+      entities: [], eventType: "regular_season_result", importance: "low"
+    };
+    expect(doesTopicMatchArticle(article, footballTopic).matched).toBe(false);
+  });
+
+  it("sport scope: tennis topic matches tennis article regardless of league", () => {
+    const article = {
+      sport: "tennis", league: "Wimbledon",
+      entities: ["Carlos Alcaraz"], eventType: "early_round_result", importance: "low"
+    };
+    expect(doesTopicMatchArticle(article, tennisTopic).matched).toBe(true);
+  });
+
+  it("legacy (no scope): falls back to OR matching — sport match", () => {
+    const legacyTopic = { sport: "basketball", leagues: [], entities: [] }; // no scope field
+    const article = { sport: "basketball", league: "NBA", entities: [] };
+    expect(doesTopicMatchArticle(article, legacyTopic).matched).toBe(true);
+  });
+
+  it("legacy (no scope): falls back to OR matching — league match", () => {
+    const legacyTopic = { sport: "football", leagues: ["EuroLeague"], entities: [] };
+    const article = { sport: "basketball", league: "EuroLeague", entities: [] };
+    expect(doesTopicMatchArticle(article, legacyTopic).matched).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Topic Scope Guards — end-to-end scoring consequences
+// ─────────────────────────────────────────────────────────────────
+describe("Topic scope guards — end-to-end scoring", () => {
+  it("non-Maccabi EuroLeague major transfer is NOT push (Maccabi scope guard blocks it)", () => {
+    const article = {
+      id: "test_nonmaccabi_el_transfer",
+      source: "eurohoops",
+      sport: "basketball",
+      league: "EuroLeague",
+      entities: ["Real Madrid Basketball"],
+      eventType: "major_transfer",
+      importance: "high",
+      confidence: 0.93,
+      tags: [],
+      clusterId: null
+    };
+    const result = scoreArticle(article, guy);
+    expect(result.decision).not.toBe("push");
+    expect(result.decision).toBe("high_feed"); // EuroLeague topic: major_transfer → high_feed
+  });
+
+  it("non-Maccabi EuroLeague major transfer matches EuroLeague topic (not Maccabi topic)", () => {
+    const article = {
+      id: "test_nonmaccabi_el_transfer",
+      source: "eurohoops",
+      sport: "basketball",
+      league: "EuroLeague",
+      entities: ["Real Madrid Basketball"],
+      eventType: "major_transfer",
+      importance: "high",
+      confidence: 0.93,
+      tags: [],
+      clusterId: null
+    };
+    const result = scoreArticle(article, guy);
+    // Must be matched by EuroLeague topic, not maccabi_tel_aviv_basketball
+    expect(result.matchedTopic).toBe("euroleague");
+  });
+
+  it("Maccabi EuroLeague signing is still push (entity scope matches, explicit push rule applies)", () => {
+    // article_056: Maccabi signing in EuroLeague — entities include Maccabi
+    const result = scoreArticle(getArticle("article_056"), guy);
+    expect(result.decision).toBe("push");
+  });
+
+  it("Maccabi EuroLeague negotiation is still push (article_037)", () => {
+    const result = scoreArticle(getArticle("article_037"), guy);
+    expect(result.decision).toBe("push");
+  });
+
+  it("Maccabi injury is still push despite entity-only scope (article_005)", () => {
+    const result = scoreArticle(getArticle("article_005"), guy);
+    expect(result.decision).toBe("push");
+  });
+
+  it("NBA broad topic still shows regular season for Guy (league scope matches)", () => {
+    // article_015: Hornets vs Wizards, NBA league
+    const result = scoreArticle(getArticle("article_015"), guy);
+    expect(result.decision).not.toBe("hidden");
+  });
+
+  it("Casual Deni Fan still hides unrelated NBA articles (followed_entities_only + league scope)", () => {
+    // article_015: Hornets vs Wizards — no Deni entity
+    const result = scoreArticle(getArticle("article_015"), denieFan);
+    expect(result.decision).toBe("hidden");
+  });
+
+  it("non-Maccabi EuroLeague article is hidden for Casual Deni Fan (league not matched by NBA-only profile)", () => {
+    const article = {
+      id: "test_el_fenerbahce",
+      source: "eurohoops",
+      sport: "basketball",
+      league: "EuroLeague",
+      entities: ["Fenerbahce"],
+      eventType: "final_four",
+      importance: "very_high",
+      confidence: 0.99,
+      tags: [],
+      clusterId: null
+    };
+    // Deni Fan only has NBA topic — EuroLeague articles have no matching topic
+    const result = scoreArticle(article, denieFan);
+    expect(result.decision).toBe("hidden");
+  });
+
+  it("Spanish ACB playoff is visible for Guy via league_group scope (article_062)", () => {
+    // article_062 should be the ACB playoff article
+    const result = scoreArticle(getArticle("article_062"), guy);
+    expect(result.decision).not.toBe("hidden");
+  });
+
+  it("Italian LBA generic preview is hidden for Guy (high_importance_only + hidden event rule)", () => {
+    const article = {
+      id: "test_lba_preview",
+      source: "eurohoops",
+      sport: "basketball",
+      league: "Italian LBA",
+      entities: ["Olimpia Milano"],
+      eventType: "generic_preview",
+      importance: "very_low",
+      confidence: 0.75,
+      tags: [],
+      clusterId: null
+    };
+    const result = scoreArticle(article, guy);
+    expect(result.decision).toBe("hidden");
+  });
+
+  it("Turkish BSL derby matches European domestic topic via league_group scope", () => {
+    const article = {
+      id: "test_bsl_derby",
+      source: "eurohoops",
+      sport: "basketball",
+      league: "Turkish BSL",
+      entities: ["Fenerbahce", "Anadolu Efes"],
+      eventType: "match_result",
+      importance: "high"
+    };
+    // high_importance_only mode: importance high → passes filter; match_result is hidden in eventRules
+    // so importance fallback is used: high + priority 65 → feed
+    const result = scoreArticle(article, guy);
+    // Should not be push (no explicit push rule in this topic)
+    expect(result.decision).not.toBe("push");
+    // Should not be hidden — it's a high-importance article in a tracked league
+    expect(result.decision).not.toBe("hidden");
+  });
+
+  it("Tennis Grand Slam winner still high_feed via sport scope (article_027)", () => {
+    const result = scoreArticle(getArticle("article_027"), guy);
+    expect(result.decision).toBe("high_feed");
+  });
+
+  it("Tennis early-round result still hidden via sport scope + titles_only mode (article_028)", () => {
+    const result = scoreArticle(getArticle("article_028"), guy);
+    expect(result.decision).toBe("hidden");
   });
 });

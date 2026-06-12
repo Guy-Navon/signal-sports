@@ -84,8 +84,8 @@ export function scoreArticle(article, profile, options = {}) {
   let bestRule = null;
   let bestTopicReasoning = [];
 
-  for (const topic of matchingTopics) {
-    const { topicDecision, topicRule, topicReasoning } = scoreAgainstTopic(article, topic, profile);
+  for (const { topic, matchReason } of matchingTopics) {
+    const { topicDecision, topicRule, topicReasoning } = scoreAgainstTopic(article, topic, profile, matchReason);
     if (DECISION_RANK[topicDecision] > DECISION_RANK[bestDecision]) {
       bestDecision = topicDecision;
       bestTopicId = topic.topicId;
@@ -102,10 +102,12 @@ export function scoreArticle(article, profile, options = {}) {
 
 /**
  * Score an article against a single topic.
+ * matchReason is the human-readable reason the topic was selected (from doesTopicMatchArticle).
  */
-function scoreAgainstTopic(article, topic, profile) {
+function scoreAgainstTopic(article, topic, profile, matchReason) {
   const r = []; // reasoning for this topic
   r.push(`נושא: "${topic.label}" (עדיפות: ${topic.priority}, מצב: ${topic.mode})`);
+  if (matchReason) r.push(matchReason);
 
   // ── Mode: muted ───────────────────────────────────────────────
   if (topic.mode === "muted") {
@@ -374,29 +376,78 @@ function importanceFallback(importance, topicPriority, reasoning) {
 }
 
 /**
- * Find all topics in profile that match this article (by sport, league, or entity).
+ * Exported for testing. Determine whether a topic matches an article, respecting the topic's scope guard.
+ *
+ * Scope semantics:
+ *   "entity"       — match only if article.entities ∩ topic.entities is non-empty.
+ *                    Prevents sport-wide OR league-wide over-matching for team/person topics.
+ *   "league"       — match only if article.league ∈ topic.leagues.
+ *   "league_group" — match only if article.league ∈ topic.leagues (group of related leagues).
+ *   "sport"        — match only if article.sport === topic.sport.
+ *                    Use with restrictive modes (major_only, titles_only) to avoid broad noise.
+ *   undefined      — legacy OR matching: sport OR league OR entity (backward compat for
+ *                    calibration-generated topics that pre-date scope guards).
+ *
+ * Returns { matched: boolean, reason: string|null }
+ */
+export function doesTopicMatchArticle(article, topic) {
+  const { scope } = topic;
+
+  if (!scope) {
+    // Legacy OR matching for topics without an explicit scope (e.g. calibration-generated)
+    if (topic.sport && article.sport === topic.sport) {
+      return { matched: true, reason: `התאמה לפי ספורט: ${article.sport}` };
+    }
+    if (topic.leagues?.length > 0 && article.league && topic.leagues.includes(article.league)) {
+      return { matched: true, reason: `התאמה לפי ליגה: ${article.league}` };
+    }
+    if (topic.entities?.length > 0 && article.entities?.length > 0) {
+      const hit = article.entities.find(e => topic.entities.includes(e));
+      if (hit) return { matched: true, reason: `התאמה לפי ישות: ${hit}` };
+    }
+    return { matched: false, reason: null };
+  }
+
+  if (scope === "entity") {
+    // Must have an entity intersection — sport and league alone are not enough
+    if (topic.entities?.length > 0 && article.entities?.length > 0) {
+      const hit = article.entities.find(e => topic.entities.includes(e));
+      if (hit) return { matched: true, reason: `התאמה לפי ישות (scope: entity): ${hit}` };
+    }
+    return { matched: false, reason: null };
+  }
+
+  if (scope === "league" || scope === "league_group") {
+    if (topic.leagues?.length > 0 && article.league && topic.leagues.includes(article.league)) {
+      return { matched: true, reason: `התאמה לפי ליגה (scope: ${scope}): ${article.league}` };
+    }
+    return { matched: false, reason: null };
+  }
+
+  if (scope === "sport") {
+    if (topic.sport && article.sport === topic.sport) {
+      return { matched: true, reason: `התאמה לפי ספורט (scope: sport): ${article.sport}` };
+    }
+    return { matched: false, reason: null };
+  }
+
+  return { matched: false, reason: null };
+}
+
+/**
+ * Find all topics in profile that match this article, respecting each topic's scope guard.
+ * Returns array of { topic, matchReason } sorted by priority descending.
  */
 function findMatchingTopics(article, profile) {
   const matched = [];
 
   for (const topic of profile.topics) {
-    let matches = false;
-
-    if (topic.sport && article.sport === topic.sport) matches = true;
-
-    if (topic.leagues?.length > 0 && article.league) {
-      if (topic.leagues.includes(article.league)) matches = true;
-    }
-
-    if (topic.entities?.length > 0 && article.entities?.length > 0) {
-      if (article.entities.find(e => topic.entities.includes(e))) matches = true;
-    }
-
-    if (matches) matched.push(topic);
+    const { matched: isMatch, reason } = doesTopicMatchArticle(article, topic);
+    if (isMatch) matched.push({ topic, matchReason: reason });
   }
 
-  // Sort by priority descending (highest priority topic evaluated first)
-  return matched.sort((a, b) => b.priority - a.priority);
+  // Highest priority topic evaluated first
+  return matched.sort((a, b) => b.topic.priority - a.topic.priority);
 }
 
 function getArticleTopicIds(article) {

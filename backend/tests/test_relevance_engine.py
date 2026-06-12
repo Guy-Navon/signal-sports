@@ -132,14 +132,23 @@ def test_greek_regular_season_is_hidden_for_guy(guy):
 
 # ── EuroLeague ────────────────────────────────────────────────────────────────
 
-def test_euroleague_major_transfer_is_visible_for_guy(guy):
-    # The Maccabi topic matches ALL basketball articles by sport (OR-logic matching).
-    # major_transfer aliases to major_signing, which is "push" in the Maccabi topic.
-    # This means non-Maccabi EuroLeague transfers resolve to "push" — a known engine quirk
-    # that also exists in the frontend. The test verifies visibility, not the exact level.
+def test_euroleague_major_transfer_is_high_feed_for_guy(guy):
+    # article_014: Real Madrid EuroLeague major_transfer — NO Maccabi entity.
+    # With scope guards, the Maccabi topic (scope: entity) does NOT match because
+    # article.entities = ["Real Madrid Basketball"], not a Maccabi entity.
+    # The EuroLeague topic (scope: league) DOES match via league "EuroLeague".
+    # EuroLeague eventRules: major_transfer → high_feed (not push).
     result = score_article(article("article_014"), guy)
-    assert result.decision != "hidden"
-    assert result.decision == "push"  # Maccabi topic catches it via sport + signing alias
+    assert result.decision != "hidden", "EuroLeague transfer must be visible for Guy"
+    assert result.decision == "high_feed", (
+        f"Non-Maccabi EuroLeague transfer must be high_feed via EuroLeague topic, "
+        f"not push via Maccabi topic. Got {result.decision}. "
+        f"Reasoning: {result.reasoning}"
+    )
+    assert result.matched_topic == "euroleague", (
+        f"Must be matched by EuroLeague topic, not maccabi_tel_aviv_basketball. "
+        f"Got matched_topic={result.matched_topic}"
+    )
 
 
 def test_euroleague_content_hidden_for_deni_fan(deni_fan):
@@ -171,3 +180,234 @@ def test_disabled_source_returns_hidden(guy):
     result = score_article(article("article_001"), guy, disabled_source_ids={"sport5"})
     assert result.decision == "hidden"
     assert result.matched_event_rule == "disabled_source"
+
+
+# ── Topic scope guards ─────────────────────────────────────────────────────────
+
+from app.models.article import Article
+from app.services.relevance_engine import _does_topic_match_article
+
+
+def _make_article(**kwargs) -> Article:
+    from datetime import datetime, timezone
+    defaults = dict(
+        id="test_article",
+        source="test",
+        source_display_name="Test",
+        url="https://example.com",
+        title="Test article",
+        language="he",
+        published_at=datetime(2026, 6, 12, tzinfo=timezone.utc),
+        sport="basketball",
+        league=None,
+        entities=[],
+        event_type="match_result",
+        importance="medium",
+        confidence=0.9,
+        tags=[],
+    )
+    defaults.update(kwargs)
+    return Article(**defaults)
+
+
+def test_scope_guard_profiles_have_correct_scopes(guy):
+    topics_by_id = {t.topic_id: t for t in guy.topics}
+    assert topics_by_id["maccabi_tel_aviv_basketball"].scope == "entity"
+    assert topics_by_id["nba"].scope == "league"
+    assert topics_by_id["euroleague"].scope == "league"
+    assert topics_by_id["israeli_basketball"].scope == "league"
+    assert topics_by_id["major_european_domestic_basketball"].scope == "league_group"
+    assert topics_by_id["football"].scope == "sport"
+    assert topics_by_id["tennis"].scope == "sport"
+
+
+def test_entity_scope_maccabi_matches_maccabi_entity(guy):
+    maccabi_topic = next(t for t in guy.topics if t.topic_id == "maccabi_tel_aviv_basketball")
+    art = _make_article(
+        sport="basketball", league="EuroLeague",
+        entities=["Maccabi Tel Aviv Basketball"], event_type="negotiation"
+    )
+    matched, reason = _does_topic_match_article(art, maccabi_topic)
+    assert matched is True
+    assert "entity" in reason.lower() or "ישות" in reason
+
+
+def test_entity_scope_maccabi_does_not_match_real_madrid(guy):
+    maccabi_topic = next(t for t in guy.topics if t.topic_id == "maccabi_tel_aviv_basketball")
+    art = _make_article(
+        sport="basketball", league="EuroLeague",
+        entities=["Real Madrid Basketball"], event_type="major_transfer"
+    )
+    matched, _ = _does_topic_match_article(art, maccabi_topic)
+    assert matched is False, "Entity scope must not match non-Maccabi entity"
+
+
+def test_entity_scope_maccabi_does_not_match_via_sport_alone(guy):
+    maccabi_topic = next(t for t in guy.topics if t.topic_id == "maccabi_tel_aviv_basketball")
+    art = _make_article(
+        sport="basketball", league="Spanish ACB",
+        entities=["FC Barcelona Basketball"], event_type="playoff_result"
+    )
+    matched, _ = _does_topic_match_article(art, maccabi_topic)
+    assert matched is False, "Entity scope must not match via sport alone"
+
+
+def test_league_scope_nba_matches_nba_league(guy):
+    nba_topic = next(t for t in guy.topics if t.topic_id == "nba")
+    art = _make_article(
+        sport="basketball", league="NBA",
+        entities=["Charlotte Hornets", "Washington Wizards"], event_type="regular_season_result"
+    )
+    matched, reason = _does_topic_match_article(art, nba_topic)
+    assert matched is True
+    assert "NBA" in reason
+
+
+def test_league_scope_nba_does_not_match_euroleague(guy):
+    nba_topic = next(t for t in guy.topics if t.topic_id == "nba")
+    art = _make_article(
+        sport="basketball", league="EuroLeague",
+        entities=["Fenerbahce"], event_type="match_result"
+    )
+    matched, _ = _does_topic_match_article(art, nba_topic)
+    assert matched is False
+
+
+def test_league_scope_euroleague_matches_non_maccabi_euroleague(guy):
+    el_topic = next(t for t in guy.topics if t.topic_id == "euroleague")
+    art = _make_article(
+        sport="basketball", league="EuroLeague",
+        entities=["Real Madrid Basketball"], event_type="major_transfer"
+    )
+    matched, reason = _does_topic_match_article(art, el_topic)
+    assert matched is True
+    assert "EuroLeague" in reason
+
+
+def test_league_group_scope_matches_spanish_acb(guy):
+    eu_topic = next(t for t in guy.topics if t.topic_id == "major_european_domestic_basketball")
+    art = _make_article(
+        sport="basketball", league="Spanish ACB",
+        entities=["Real Madrid Basketball"], event_type="playoff_result", importance="high"
+    )
+    matched, _ = _does_topic_match_article(art, eu_topic)
+    assert matched is True
+
+
+def test_league_group_scope_matches_turkish_bsl(guy):
+    eu_topic = next(t for t in guy.topics if t.topic_id == "major_european_domestic_basketball")
+    art = _make_article(
+        sport="basketball", league="Turkish BSL",
+        entities=["Fenerbahce"], event_type="match_result"
+    )
+    matched, _ = _does_topic_match_article(art, eu_topic)
+    assert matched is True
+
+
+def test_league_group_scope_does_not_match_nba(guy):
+    eu_topic = next(t for t in guy.topics if t.topic_id == "major_european_domestic_basketball")
+    art = _make_article(
+        sport="basketball", league="NBA",
+        entities=["Charlotte Hornets"], event_type="regular_season_result"
+    )
+    matched, _ = _does_topic_match_article(art, eu_topic)
+    assert matched is False
+
+
+def test_sport_scope_football_matches_any_football(guy):
+    football_topic = next(t for t in guy.topics if t.topic_id == "football")
+    art = _make_article(
+        sport="football", league="Israeli Premier League",
+        entities=[], event_type="regular_season_result"
+    )
+    matched, _ = _does_topic_match_article(art, football_topic)
+    assert matched is True
+
+
+def test_sport_scope_football_does_not_match_basketball(guy):
+    football_topic = next(t for t in guy.topics if t.topic_id == "football")
+    art = _make_article(
+        sport="basketball", league="NBA",
+        entities=[], event_type="regular_season_result"
+    )
+    matched, _ = _does_topic_match_article(art, football_topic)
+    assert matched is False
+
+
+def test_sport_scope_tennis_matches_regardless_of_league(guy):
+    tennis_topic = next(t for t in guy.topics if t.topic_id == "tennis")
+    art = _make_article(
+        sport="tennis", league="Wimbledon",
+        entities=["Carlos Alcaraz"], event_type="early_round_result"
+    )
+    matched, _ = _does_topic_match_article(art, tennis_topic)
+    assert matched is True
+
+
+def test_non_maccabi_euroleague_transfer_is_high_feed_end_to_end(guy):
+    # Reproduces the article_014 scenario but via _does_topic_match_article directly
+    maccabi_topic = next(t for t in guy.topics if t.topic_id == "maccabi_tel_aviv_basketball")
+    el_topic = next(t for t in guy.topics if t.topic_id == "euroleague")
+    art = _make_article(
+        sport="basketball", league="EuroLeague",
+        entities=["Real Madrid Basketball"], event_type="major_transfer", importance="high"
+    )
+    maccabi_matched, _ = _does_topic_match_article(art, maccabi_topic)
+    el_matched, _ = _does_topic_match_article(art, el_topic)
+    assert maccabi_matched is False, "Maccabi entity scope must not match Real Madrid article"
+    assert el_matched is True, "EuroLeague league scope must match EuroLeague article"
+    # End-to-end: score the article and expect high_feed
+    result = score_article(art, guy)
+    assert result.decision == "high_feed", (
+        f"Non-Maccabi EuroLeague transfer must be high_feed, got {result.decision}. "
+        f"Reasoning: {result.reasoning}"
+    )
+
+
+def test_maccabi_article_still_push_after_scope_guard(guy):
+    # Maccabi entity IS present → entity scope matches → push via negotiation rule
+    result = score_article(article("article_001"), guy)
+    assert result.decision == "push"
+    assert result.matched_topic == "maccabi_tel_aviv_basketball"
+
+
+def test_hornets_wizards_visible_for_guy_via_league_scope(guy):
+    # NBA article matches NBA topic via league scope (not sport scope)
+    result = score_article(article("article_006"), guy)
+    assert result.decision != "hidden"
+    assert result.matched_topic == "nba"
+
+
+def test_hornets_wizards_hidden_for_deni_fan_via_entity_guard(deni_fan):
+    # NBA league scope matches, but followed_entities_only mode requires Deni entity
+    result = score_article(article("article_006"), deni_fan)
+    assert result.decision == "hidden"
+
+
+def test_acb_playoff_visible_via_league_group_scope(guy):
+    # article_015: Spanish ACB playoff — league_group scope matches
+    result = score_article(article("article_015"), guy)
+    assert result.decision != "hidden"
+    assert result.matched_topic == "major_european_domestic_basketball"
+
+
+def test_greek_regular_season_hidden_via_high_importance_only(guy):
+    # article_016: Greek League schedule — league_group matches but high_importance_only
+    # filters very_low importance → hidden
+    result = score_article(article("article_016"), guy)
+    assert result.decision == "hidden"
+
+
+def test_push_not_via_maccabi_topic_for_non_maccabi_article(guy):
+    # Explicit check: a non-Maccabi basketball article must never resolve push via Maccabi topic
+    non_maccabi_article = _make_article(
+        sport="basketball", league="EuroLeague",
+        entities=["Fenerbahce"], event_type="signing", importance="high"
+    )
+    result = score_article(non_maccabi_article, guy)
+    if result.decision == "push":
+        assert result.matched_topic != "maccabi_tel_aviv_basketball", (
+            "Non-Maccabi article must not reach push via maccabi_tel_aviv_basketball topic"
+        )
+    # EuroLeague signing → high_feed (from EuroLeague topic's eventRules: signing = high_feed)
+    assert result.decision == "high_feed"

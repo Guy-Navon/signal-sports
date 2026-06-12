@@ -38,6 +38,7 @@ export function convertCalibrationDraftToUserProfile(draft) {
       topicId,
       label: inferred.label,
       sport: inferred.sport,
+      scope: inferred.scope,  // preserve scope inferred by calibrationEngine
       priority: inferred.priority,
       mode: inferred.mode,
       leagues,

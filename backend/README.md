@@ -7,7 +7,7 @@ FastAPI backend for Signal Sports. Implements the relevance engine, user profile
 - Python 3.11+
 - FastAPI 0.100+
 - Pydantic v2
-- In-memory data store (no database in PR 4)
+- SQLAlchemy 2.0 + SQLite (added in PR 6)
 - pytest + httpx for tests
 
 ## Setup
@@ -57,6 +57,7 @@ Interactive docs: `http://localhost:8000/docs`
 | GET | `/api/feed/{user_id}` | Scored feed (hidden articles excluded, sorted by decision+date) |
 | GET | `/api/debug/feed/{user_id}` | Full scored feed including hidden, with reasoning |
 | POST | `/api/feedback` | Submit a feedback event |
+| GET | `/api/feedback/{user_id}` | List all feedback events for a user |
 | GET | `/api/calibration/headlines` | List calibration headlines |
 
 ### Feedback actions
@@ -68,7 +69,7 @@ Valid `action` values for `POST /api/feedback`:
 - `mute_source`
 - `always_notify`
 
-Feedback is stored in-memory only. It does not mutate profiles in PR 4.
+Feedback is stored in SQLite (PR 6). It does not mutate profiles yet.
 
 ## Data model
 
@@ -116,21 +117,24 @@ Located in `app/seed/`. Loaded on startup via FastAPI lifespan.
 - `seed_sources.py` — 7 news sources (Sport5, ONE, Walla, Israel Hayom, Ynet, Sportando, Eurohoops)
 - `seed_calibration.py` — 16 synthetic calibration headlines
 
+## Data persistence
+
+All data is persisted in SQLite at `backend/data/signal_sports.db` (created automatically on first run). Tables are seeded from `app/seed/` on startup if empty; restarting the server does not wipe data.
+
+To reset to a clean state, stop the server and delete `data/signal_sports.db`.
+
+See `docs/SQLITE_PERSISTENCE.md` for full details.
+
 ## Current limitations
 
-- **In-memory store only.** All data resets on server restart. No SQLite/Postgres yet.
 - **No real article ingestion.** Articles are seeded manually. No RSS/scraping adapters yet.
-- **Feedback is stored but not applied.** `POST /api/feedback` records events; they do not yet mutate profiles.
+- **Feedback is stored but not applied.** `POST /api/feedback` records events in SQLite; they do not yet mutate profiles.
 - **No authentication.** All profiles are publicly accessible by user_id.
 - **No clustering.** Articles are not grouped; cluster-related fields exist in the model only.
 - **No translation engine.** `translated_title` / `original_title` fields exist but translation is not performed.
-- **Frontend not connected.** The frontend still uses its own local-state engine. Integration is PR 5.
 
-## Next step (PR 5)
+## Next step (PR 7)
 
-Connect the frontend to the backend:
-- Replace `AppContext` local scoring with `fetch("/api/feed/{userId")`
-- Replace mock article data with `GET /api/articles`
-- Replace profile data with `GET /api/profiles`
-- Keep the frontend engine as fallback during transition
-- Add a first real source adapter (Sport5 RSS or Eurohoops scraper)
+Options:
+- **PR 7a: First real source adapter** — Sport5 RSS or Eurohoops scraper. With SQLite in place, new articles survive restarts and deduplication against stored history is possible.
+- **PR 7b: Feedback → profile mutation** — `never_show` feedback creates a `hidden` event rule for that article's event type in the matching topic.

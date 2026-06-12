@@ -201,7 +201,7 @@ cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
 ```
 
-Expected: 46 tests pass (unchanged from PR 4).
+Expected: 86 tests pass (68 from PR 4/5 + 18 new SQLite persistence tests from PR 6).
 
 ## Frontend Tests
 
@@ -218,21 +218,20 @@ New test files added in PR 5:
 
 ---
 
-## Recommended PR 6
+## What Changed in PR 6
 
-With PR 5 complete, the frontend and backend are connected. The natural next step is:
+PR 6 replaced the in-memory data store with SQLite persistence (SQLAlchemy 2.0).
 
-**PR 6: First Real Data Source**
+- Articles, profiles, sources, calibration headlines, and feedback events are all stored in `backend/data/signal_sports.db`.
+- Feedback events survive backend restarts.
+- New endpoint: `GET /api/feedback/{user_id}` — returns all feedback events for a user.
+- 18 new persistence tests added; backend test suite is now 86 tests.
 
-Options:
-1. **Sport5 RSS adapter** — RSS feed is publicly available; articles arrive in Hebrew
-   with clean structure. Minimal scraping required.
-2. **Eurohoops / Sportando RSS** — English-language basketball sources; would exercise
-   the `language = "en"` + `translated_title` pipeline.
-3. **SQLite persistence** — articles and profiles survive backend restarts; enables
-   feedback-to-profile mutation in PR 7.
+See `docs/SQLITE_PERSISTENCE.md` for details on the database design, seed-on-empty behavior, test isolation, and reset instructions.
 
-Recommendation: SQLite persistence first (PR 6), then Sport5 RSS (PR 7). Persistence is
-the prerequisite for meaningful feedback accumulation and for tracking article ingestion
-state. Without it, every restart wipes articles and feedback, making the data pipeline
-unreliable.
+## Next Step: PR 7
+
+With SQLite in place, the next options are:
+
+1. **PR 7a: First real source adapter** — Sport5 RSS or Eurohoops scraper. New articles will be stored in SQLite and survive restarts, enabling meaningful deduplication.
+2. **PR 7b: Feedback → profile mutation** — `never_show` feedback creates a `hidden` event rule in the matching topic. Requires in-place profile updates via the repository.

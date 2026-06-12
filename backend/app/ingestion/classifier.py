@@ -5,6 +5,7 @@ No LLM. No external calls. Fully testable as a pure function.
 
 Design notes:
 - Checks title text only (summary ignored for now).
+- Optional url is used for URL-path-based league inference (e.g. EuroCup vs EuroLeague).
 - Hebrew and English keywords live in the same lists; lowercased before matching.
 - Source ID is used to apply basketball-only defaults for Eurohoops/Sportando.
 - Confidence is additive: each matched signal contributes a fixed increment.
@@ -12,7 +13,7 @@ Design notes:
 """
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 
@@ -21,7 +22,7 @@ from typing import Optional
 @dataclass
 class ClassificationResult:
     sport: str                  # basketball | football | tennis | unknown
-    league: Optional[str]       # NBA | EuroLeague | Israeli Basketball League | …
+    league: Optional[str]       # NBA | EuroLeague | EuroCup | Israeli Basketball League | …
     entities: list[str]         # Maccabi Tel Aviv Basketball | Deni Avdija | …
     event_type: str             # signing | negotiation | injury | … | news
     importance: str             # very_low | low | medium | high | very_high
@@ -48,7 +49,7 @@ def _has_word(text: str, word: str) -> bool:
 # ── Sport detection ───────────────────────────────────────────────────────────
 
 _BASKETBALL_KW = (
-    "basketball", "כדורסל", "nba", "euroleague", "יורוליג",
+    "basketball", "כדורסל", "nba", "euroleague", "eurocup", "יורוליג",
     "acb", "bsl", "lba", "lnb",
     "maccabi", "מכבי",          # almost always basketball
 )
@@ -56,7 +57,7 @@ _FOOTBALL_KW = (
     "football", "soccer", "כדורגל", "fifa", "uefa",
     "champions league", "premier league", "la liga",
     "bundesliga", "serie a", "ligue 1",
-    # Israeli football clubs that are unambiguously football
+    # Israeli football clubs — unambiguously football
     'בית"ר', "בית״ר",          # Beitar Jerusalem
     'הפועל ת"א', "הפועל ת״א",  # Hapoel Tel Aviv (football)
     "הפועל תל אביב",
@@ -84,6 +85,10 @@ def _detect_sport(text: str, source_id: str) -> str:
 
 # ── League detection ──────────────────────────────────────────────────────────
 
+# EuroCup must be checked before EuroLeague: some titles mention "Euroleague"
+# while covering EuroCup news, and the URL or title keyword "eurocup" is authoritative.
+_EUROCUP_KW = ("eurocup", "euro cup", "fiba europe cup")
+
 _NBA_DIRECT_KW = ("nba", "אן.בי.איי")
 _NBA_TEAM_KW = (
     "celtics", "heat", "lakers", "warriors", "bulls", "nets", "knicks",
@@ -96,7 +101,25 @@ _NBA_TEAM_KW = (
     "וויזארדס", "הורנטס", "גריזליס",
 )
 _EUROLEAGUE_KW = ("euroleague", "יורוליג")
-_ISRAELI_BBALL_KW = ("ליגת ווינר", "ליגת העל בכדורסל", "ליגה לאומית")
+# Direct textual mentions of the Israeli Basketball League
+_ISRAELI_BBALL_DIRECT_KW = (
+    "ליגת ווינר", "ליגת העל בכדורסל", "ליגה לאומית",
+    "winner league", "ligat winner",
+    "israeli basketball league", "super league basketball",
+)
+# Context keywords that, combined with a Maccabi entity, strongly imply Israeli domestic play.
+_ISRAELI_BBALL_CONTEXT_KW = (
+    "holon", "hapoel holon",
+    "tel aviv derby",
+    "winner league", "ligat winner",
+    "israeli basketball", "israel basketball",
+    "israeli league", "israel league",
+    "hapoel jerusalem",
+    "hapoel tel aviv",
+    "eilat", "bnei herzliya", "rishon lezion", "rishon",
+    "petah tikva", "kiryat motzkin",
+    "binyamina",
+)
 _ACB_KW = ("acb", "liga acb")
 _BSL_KW = ("bsl", "turkish basketball")
 _GREEK_KW = ("greek basket", "greek league", "basket league")
@@ -109,13 +132,18 @@ _US_OPEN_KW = ("us open",)
 _AUSTRALIAN_OPEN_KW = ("australian open",)
 
 
-def _detect_league(text: str, sport: str) -> Optional[str]:
+def _detect_league(text: str, sport: str, url: str = "") -> Optional[str]:
     if sport == "basketball":
+        url_lower = url.lower()
+        # EuroCup: check title AND URL before EuroLeague to avoid misclassification.
+        # e.g. "Euroleague names teams for expanded EuroCup field" → EuroCup, not EuroLeague.
+        if _has(text, *_EUROCUP_KW) or "eurocup" in url_lower or "/eurocup/" in url_lower:
+            return "EuroCup"
         if _has(text, *_NBA_DIRECT_KW) or _has(text, *_NBA_TEAM_KW):
             return "NBA"
         if _has(text, *_EUROLEAGUE_KW):
             return "EuroLeague"
-        if _has(text, *_ISRAELI_BBALL_KW):
+        if _has(text, *_ISRAELI_BBALL_DIRECT_KW):
             return "Israeli Basketball League"
         if _has(text, *_ACB_KW):
             return "Spanish ACB"
@@ -180,19 +208,19 @@ _SIGNING_KW = (
     "חתם", "חתמה", "החתים", "חתימה",
     "signed", "signing",
 )
-_SIGNING_WORD_KW = ("signs", "sign")   # checked via word boundary to avoid "signal"
+_SIGNING_WORD_KW = ("signs", "sign")   # word boundary to avoid "signal"
 
 _NEGOTIATION_KW = (
     'במו"מ', 'מו"מ', "מגעים", "שיחות",
     "negotiations", "negotiation", "in talks", "advanced talks",
 )
-_NEGOTIATION_WORD_KW = ("talks",)      # word boundary
+_NEGOTIATION_WORD_KW = ("talks",)
 
 _CANDIDATE_KW = (
     "מועמד", "בודקת", "על הכוונת", "עוקבת",
     "monitoring", "candidate", "interested in",
 )
-_CANDIDATE_WORD_KW = ("target",)       # word boundary
+_CANDIDATE_WORD_KW = ("target",)
 
 _INJURY_KW = (
     "נפצע", "פציעה", "ייעדר", "פצוע",
@@ -202,7 +230,7 @@ _TRADE_KW = (
     "טרייד", "נסחר",
     "traded", "trade deal",
 )
-_TRADE_WORD_KW = ("trade",)            # word boundary: avoid "trademark"
+_TRADE_WORD_KW = ("trade",)
 
 _FINALS_KW = ("גמר", "finals", "championship", "אליפות")
 _WINNER_SUFFIX_KW = ("אלוף", "אלופה", "champion", "champions", "title", "clinches", "זוכה", "זכה", "זכתה")
@@ -308,6 +336,11 @@ def _assign_importance(
     if event_type in _LOW_EVENTS:
         return "low"
 
+    # Generic news with no tracked entity: downgrade to low.
+    # Reduces noise from generic NBA filler that has no signal keyword.
+    if event_type == "news" and not has_high_entity:
+        return "low"
+
     return "medium"
 
 
@@ -324,7 +357,7 @@ def _assign_confidence(
     if sport != "unknown":
         score += 0.15
     if source_id in _BASKETBALL_ONLY_SOURCES and sport == "basketball":
-        score += 0.05  # source confirms sport
+        score += 0.05  # source context confirms sport
     if league:
         score += 0.15
     if entities:
@@ -355,13 +388,20 @@ def _collect_tags(
 
 # ── Public interface ──────────────────────────────────────────────────────────
 
-def classify(title: str, source_id: str = "", language: str = "en") -> ClassificationResult:
+def classify(
+    title: str,
+    source_id: str = "",
+    language: str = "en",
+    url: str = "",
+) -> ClassificationResult:
     """Classify an article title using deterministic keyword rules.
 
     Args:
         title:     Article title in Hebrew or English.
         source_id: Internal source ID for source-specific defaults.
         language:  "he" or "en".
+        url:       Article URL — used for URL-path-based league inference
+                   (e.g. detecting EuroCup vs EuroLeague from /eurocup/ path).
 
     Returns:
         ClassificationResult with all fields populated.
@@ -377,12 +417,22 @@ def classify(title: str, source_id: str = "", language: str = "en") -> Classific
     if sport == "unknown" and entities:
         sport = "basketball"
 
-    league = _detect_league(text, sport)
+    league = _detect_league(text, sport, url=url)
 
     # Entity-based league inference: Deni Avdija is an NBA player.
     # Titles that mention him without "NBA" (common in Hebrew news) still map to NBA.
     if sport == "basketball" and league is None and "Deni Avdija" in entities:
         league = "NBA"
+
+    # Entity + Israeli context → Israeli Basketball League.
+    # Example: "Maccabi sweeps Holon to set up Tel Aviv derby Finals" → Israeli Basketball League.
+    if (
+        sport == "basketball"
+        and league is None
+        and "Maccabi Tel Aviv Basketball" in entities
+        and _has(text, *_ISRAELI_BBALL_CONTEXT_KW)
+    ):
+        league = "Israeli Basketball League"
 
     event_type = _detect_event_type(text, sport)
     importance = _assign_importance(event_type, entities, league)

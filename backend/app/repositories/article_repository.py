@@ -73,6 +73,12 @@ def get_by_url(session: Session, url: str) -> Optional[Article]:
     return _row_to_article(row) if row else None
 
 
+def get_rss_articles(session: Session) -> List[Article]:
+    """Return all articles ingested via RSS (id prefix 'rss_')."""
+    rows = session.query(ArticleRow).filter(ArticleRow.id.like("rss_%")).all()
+    return [_row_to_article(r) for r in rows]
+
+
 def count(session: Session) -> int:
     return session.query(ArticleRow).count()
 

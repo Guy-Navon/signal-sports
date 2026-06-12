@@ -63,6 +63,7 @@ Interactive docs: `http://localhost:8000/docs`
 | GET | `/api/ingest/sources` | List configured RSS ingest sources |
 | POST | `/api/ingest/run` | Run ingestion (all sources or `?source_id=X` for one) |
 | GET | `/api/ingest/runs` | Recent ingestion run records |
+| GET | `/api/ingest/quality` | Quality summary for all ingested RSS articles (sport/league/event breakdowns, questionable list) |
 
 ### Feedback actions
 
@@ -129,7 +130,7 @@ To reset to a clean state, stop the server and delete `data/signal_sports.db`.
 
 See `docs/SQLITE_PERSISTENCE.md` for full details.
 
-## Ingestion (PR 7)
+## Ingestion (PR 7 + PR 7.1)
 
 Real RSS ingestion is available for English basketball sources (Eurohoops, Sportando).
 
@@ -138,12 +139,20 @@ Real RSS ingestion is available for English basketball sources (Eurohoops, Sport
 curl -X POST http://127.0.0.1:8000/api/ingest/run
 # Or a single source:
 curl -X POST "http://127.0.0.1:8000/api/ingest/run?source_id=eurohoops"
+# Check quality of what was ingested:
+curl http://127.0.0.1:8000/api/ingest/quality
 ```
 
 Articles are classified with a deterministic keyword classifier and deduplicated by URL.
 New articles appear in `/api/articles` and flow through the same relevance engine as seed articles.
 
-See `docs/RSS_INGESTION.md` for full details.
+**Quality guardrails (PR 7.1):** Eurohoops serves content in 10+ languages via URL paths
+(`/tr/`, `/es/`, `/el/`, etc.); non-English paths are blocked. The classifier now correctly
+distinguishes EuroCup from EuroLeague, infers Israeli Basketball League from Maccabi entity +
+context keywords, and downgrades generic news (no tracked entity, no event keyword) to
+`importance = "low"`.
+
+See `docs/RSS_INGESTION.md` and `docs/RSS_QUALITY_GUARDRAILS.md` for full details.
 
 ## Current limitations
 
@@ -155,6 +164,7 @@ See `docs/RSS_INGESTION.md` for full details.
 - **Feedback is stored but not applied.** `POST /api/feedback` records events in SQLite; they do not yet mutate profiles.
 - **No authentication.** All profiles are publicly accessible by user_id.
 - **No clustering.** Articles are not grouped; `cluster_id` exists in the model only.
+- **`skipped_filtered` not persisted.** The count of URL/language-filtered items is returned in the live API response but not stored in `ingestion_runs` (would require a DB migration).
 
 ## Next step (PR 8)
 

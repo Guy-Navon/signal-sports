@@ -32,6 +32,7 @@ class ClassificationResult:
 
 # ── Sources that produce only basketball content ──────────────────────────────
 
+# Hebrew sources are general sports (not basketball-only) — do NOT include walla_sport here.
 _BASKETBALL_ONLY_SOURCES = frozenset({"eurohoops", "sportando"})
 
 
@@ -52,15 +53,30 @@ _BASKETBALL_KW = (
     "basketball", "כדורסל", "nba", "euroleague", "eurocup", "יורוליג",
     "acb", "bsl", "lba", "lnb",
     "maccabi", "מכבי",          # almost always basketball
+    "ווינר סל", "ליגת העל סל",  # Israeli Basketball League explicit markers
+    # Israeli basketball clubs — allow sport inference without "כדורסל" keyword
+    "בני הרצליה",               # Bnei Herzliya basketball
+    # Hebrew NBA team nicknames (not city names — those are too generic)
+    "וויזארדס", "הורנטס", "בלייזרס", "ניקס", "סלטיקס", "לייקרס",
+    "באקס", "סאנס", "נאגטס", "מאברס", "ספרס", "רוקטס", "ראפטורס", "גריזליס",
 )
 _FOOTBALL_KW = (
     "football", "soccer", "כדורגל", "fifa", "uefa",
     "champions league", "premier league", "la liga",
     "bundesliga", "serie a", "ligue 1",
+    "מונדיאל",                  # World Cup in Hebrew
     # Israeli football clubs — unambiguously football
-    'בית"ר', "בית״ר",          # Beitar Jerusalem
-    'הפועל ת"א', "הפועל ת״א",  # Hapoel Tel Aviv (football)
+    'בית"ר', "בית״ר",           # Beitar Jerusalem
+    'הפועל ת"א', "הפועל ת״א",   # Hapoel Tel Aviv (football)
     "הפועל תל אביב",
+    "הפועל באר שבע",            # Hapoel Beer Sheva (football)
+)
+
+# Maccabi clubs that are FOOTBALL — must be checked BEFORE _BASKETBALL_KW
+# because "מכבי" appears in _BASKETBALL_KW and would win the sport check first.
+_FOOTBALL_MACCABI_KW = (
+    "מכבי חיפה",    # Maccabi Haifa (football)
+    "maccabi haifa",
 )
 _TENNIS_KW = (
     "tennis", "טניס", "wimbledon", "וימבלדון",
@@ -68,6 +84,12 @@ _TENNIS_KW = (
     "us open", "australian open",
     "grand slam", "גראנד סלאם",
     "atp", "wta",
+    "אליפות אוסטרליה",              # Australian Open in Hebrew
+    'ארה"ב הפתוחה', 'ארה״ב הפתוחה', # US Open in Hebrew
+    # Top players whose names strongly imply tennis context
+    "אלקאראז", "אלקראס",            # Alcaraz
+    "ג'וקוביץ", "ג׳וקוביץ",         # Djokovic
+    "סינר",                          # Sinner
 )
 
 
@@ -76,6 +98,10 @@ def _detect_sport(text: str, source_id: str) -> str:
         return "basketball"
     if _has(text, *_TENNIS_KW):
         return "tennis"
+    # Football Maccabi clubs (e.g. מכבי חיפה) must be checked before the generic
+    # "מכבי" basketball keyword — otherwise the basketball check wins first.
+    if _has(text, *_FOOTBALL_MACCABI_KW):
+        return "football"
     if _has(text, *_BASKETBALL_KW):
         return "basketball"
     if _has(text, *_FOOTBALL_KW):
@@ -99,26 +125,36 @@ _NBA_TEAM_KW = (
     "סלטיקס", 'הית"', "לייקרס", "בולס", "נטס", "ניקס", "באקס",
     "סאנס", "נאגטס", "מאברס", "ספרס", "רוקטס", "בלייזרס", "ראפטורס",
     "וויזארדס", "הורנטס", "גריזליס",
+    # Additional Hebrew NBA team names (spec PR 8)
+    "וושינגטון",    # Washington Wizards
+    "פורטלנד",      # Portland Trail Blazers
+    "שארלוט",       # Charlotte Hornets
 )
-_EUROLEAGUE_KW = ("euroleague", "יורוליג")
+_EUROLEAGUE_KW = ("euroleague", "יורוליג", "היורוליג")
 # Direct textual mentions of the Israeli Basketball League
 _ISRAELI_BBALL_DIRECT_KW = (
     "ליגת ווינר", "ליגת העל בכדורסל", "ליגה לאומית",
+    "ווינר סל", "ליגת העל סל",
     "winner league", "ligat winner",
     "israeli basketball league", "super league basketball",
 )
 # Context keywords that, combined with a Maccabi entity, strongly imply Israeli domestic play.
 _ISRAELI_BBALL_CONTEXT_KW = (
     "holon", "hapoel holon",
-    "tel aviv derby",
+    "חולון", "הפועל חולון",
+    "tel aviv derby", "דרבי תל אביבי",
     "winner league", "ligat winner",
     "israeli basketball", "israel basketball",
     "israeli league", "israel league",
-    "hapoel jerusalem",
-    "hapoel tel aviv",
-    "eilat", "bnei herzliya", "rishon lezion", "rishon",
+    "hapoel jerusalem", "הפועל ירושלים",
+    "hapoel tel aviv", "הפועל תל אביב",
+    "eilat", "אילת",
+    "bnei herzliya", "בני הרצליה",
+    "rishon lezion", "rishon", "ראשון לציון", "ראשון",
     "petah tikva", "kiryat motzkin",
     "binyamina",
+    "גליל", "נס ציונה",
+    "עירוני רמת גן",
 )
 _ACB_KW = ("acb", "liga acb")
 _BSL_KW = ("bsl", "turkish basketball")
@@ -181,12 +217,19 @@ def _detect_league(text: str, sport: str, url: str = "") -> Optional[str]:
 # ── Entity detection ──────────────────────────────────────────────────────────
 
 _MACCABI_KW = (
-    'מכבי ת"א', "מכבי תל אביב", "מכבי ת״א",
+    'מכבי ת"א', "מכבי תל אביב", 'מכבי ת״א',
     "maccabi tel aviv", "maccabi",
+    # Standalone Hebrew "מכבי" — catches short-form headlines (e.g. "מכבי ניצחה בגמר").
+    # Trade-off: may also match other Maccabi clubs (Netanya, Haifa football) when
+    # sport detection has already resolved to basketball.
+    "מכבי",
 )
 _DENI_KW = (
     "דני אבדיה", "אבדיה",
     "deni avdija", "avdija",
+    # "דני" alone is intentionally NOT included — it's a common Hebrew name
+    # that would cause false positives (e.g. a footballer named Danny).
+    # "אבדיה" (Avdija) is distinctive enough for short-form references.
 )
 
 
@@ -205,35 +248,47 @@ _GRAND_SLAM_KW = ("grand slam", "גראנד סלאם")
 _GRAND_SLAM_WIN_KW = ("winner", "wins", "won", "champion", "זוכה", "זכה", "זכתה")
 
 _SIGNING_KW = (
-    "חתם", "חתמה", "החתים", "חתימה",
+    "חתם", "חתמה", "חתמו", "החתים", "חתימה",
+    "הצטרף", "הצטרפה",       # joined / signed and joined
     "signed", "signing",
 )
 _SIGNING_WORD_KW = ("signs", "sign")   # word boundary to avoid "signal"
 
 _NEGOTIATION_KW = (
-    'במו"מ', 'מו"מ', "מגעים", "שיחות",
+    'במו"מ', 'מו"מ', 'במו״מ', 'מו״מ',
+    "במשא ומתן", "מגעים", "שיחות",
+    "מתקרב", "מתקרבת",      # approaching / close to
+    "סיכם", "סיכמה",         # finalised/agreed (often precedes signing)
+    "על סף חתימה",           # on the verge of signing
     "negotiations", "negotiation", "in talks", "advanced talks",
 )
 _NEGOTIATION_WORD_KW = ("talks",)
 
 _CANDIDATE_KW = (
-    "מועמד", "בודקת", "על הכוונת", "עוקבת",
+    "מועמד", "מועמדת", "בודקת", "בודק",
+    "על הכוונת", "עוקבת", "עוקב",
+    "מעוניינת", "מעוניין",   # interested in
+    "עשוי להגיע", "עשויה להגיע",  # may arrive
     "monitoring", "candidate", "interested in",
 )
 _CANDIDATE_WORD_KW = ("target",)
 
 _INJURY_KW = (
-    "נפצע", "פציעה", "ייעדר", "פצוע",
+    "נפצע", "נפצעה", "פציעה", "ייעדר", "יעדר", "פצוע",
+    "בספק",                  # in doubt (fitness doubt)
+    "קרע",                   # tear (muscle/ligament tear)
+    "חבלה",                  # bruise / contusion
     "injured", "injury", "out for",
 )
 _TRADE_KW = (
-    "טרייד", "נסחר",
+    "טרייד", "נסחר", "נסחרה",
+    "הועבר", "הועברה",       # was transferred
     "traded", "trade deal",
 )
 _TRADE_WORD_KW = ("trade",)
 
 _FINALS_KW = ("גמר", "finals", "championship", "אליפות")
-_WINNER_SUFFIX_KW = ("אלוף", "אלופה", "champion", "champions", "title", "clinches", "זוכה", "זכה", "זכתה")
+_WINNER_SUFFIX_KW = ("אלוף", "אלופה", "champion", "champions", "title", "clinches", "זוכה", "זכה", "זכתה", "זכו")
 
 _PLAYOFF_KW = ("פלייאוף", "playoffs", "playoff")
 
@@ -244,7 +299,7 @@ _EARLY_ROUND_TENNIS_KW = (
 )
 
 _SCHEDULE_KW = (
-    'לו"ז', "לוח משחקים", "שידורים", "לקראת", "תאריכים",
+    'לו"ז', "לוח משחקים", "שידורים", "שידור", "לקראת", "תאריכים",
     "schedule", "preview", "upcoming", "fixture", "fixtures",
 )
 
@@ -266,13 +321,14 @@ def _detect_event_type(text: str, sport: str) -> str:
             return "finals_result"
         return "title_win"
 
+    # Negotiation — checked BEFORE signing because "על סף חתימה" (on the verge of
+    # signing) contains "חתימה" which would otherwise trigger signing detection first.
+    if _has(text, *_NEGOTIATION_KW) or any(_has_word(text, w) for w in _NEGOTIATION_WORD_KW):
+        return "negotiation"
+
     # Signing
     if _has(text, *_SIGNING_KW) or any(_has_word(text, w) for w in _SIGNING_WORD_KW):
         return "signing"
-
-    # Negotiation
-    if _has(text, *_NEGOTIATION_KW) or any(_has_word(text, w) for w in _NEGOTIATION_WORD_KW):
-        return "negotiation"
 
     # Candidate / monitoring
     if _has(text, *_CANDIDATE_KW) or any(_has_word(text, w) for w in _CANDIDATE_WORD_KW):
@@ -416,6 +472,11 @@ def classify(
     # Hebrew headlines) still resolve to the correct sport.
     if sport == "unknown" and entities:
         sport = "basketball"
+
+    # Drop basketball entities if sport resolved to football.
+    # Prevents "מכבי חיפה" (football club) from being tagged as Maccabi Tel Aviv Basketball.
+    if sport == "football":
+        entities = [e for e in entities if e != "Maccabi Tel Aviv Basketball"]
 
     league = _detect_league(text, sport, url=url)
 

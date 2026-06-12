@@ -72,20 +72,31 @@ See `docs/RSS_QUALITY_GUARDRAILS.md` for details on how URL and language filters
 
 ---
 
-## First Configured Sources
+## Configured Sources
 
-| source_id   | display_name | language | feed_url                               |
-|-------------|-------------|----------|----------------------------------------|
-| `eurohoops` | Eurohoops   | en       | https://www.eurohoops.net/feed/        |
-| `sportando` | Sportando   | en       | https://sportando.basketball/feed/     |
+| source_id      | display_name   | language | feed_url                               |
+|----------------|---------------|----------|----------------------------------------|
+| `eurohoops`    | Eurohoops     | en       | https://www.eurohoops.net/feed/        |
+| `sportando`    | Sportando     | en       | https://sportando.basketball/feed/     |
+| `walla_sport`  | וואלה ספורט   | he       | https://rss.walla.co.il/feed/7         |
 
-Both are basketball-only English sources. They were chosen because:
+### English sources (PR 7)
+
+Eurohoops and Sportando are basketball-only English sources. They were chosen because:
 - They produce clean RSS.
 - The content focus matches the product's current interest areas.
 - The classifier can default `sport = "basketball"` for them without any keywords.
 
-Hebrew sources (Walla, Sport5, ONE) require scraping adapters — they do not offer clean
-RSS for all content. These are deferred to PR 8.
+### Hebrew source (PR 8)
+
+Walla Sport (`walla_sport`) is the first Hebrew RSS source. Walla feed ID 7 serves the
+Walla Sport section — confirmed by all items linking to `sports.walla.co.il/item/...`.
+
+Coverage: Israeli basketball (Maccabi, Winner League, EuroCup, EuroLeague), Israeli football,
+international tennis (Grand Slams), NBA, international football events (World Cup, Euros).
+
+See `docs/HEBREW_RSS_SOURCE.md` for the full source selection rationale and verification
+results.
 
 ---
 
@@ -131,16 +142,16 @@ result = classify(title, source_id="eurohoops", language="en")
 | `importance` | Rule table: very_high for titles/finals/grand slam; high for signing/negotiation/injury/trade involving a tracked entity or major league; low for schedule/early rounds; **low for generic news (event_type=news) with no tracked entity** |
 | `confidence` | Additive: 0.40 base + 0.15 for sport + 0.05 for basketball-only source + 0.15 for league + 0.15 for entity + 0.10 for non-news event type; capped at 0.95 |
 
-### Classifier limitations (known, deferred to PR 8)
+### Classifier limitations (known)
 
 - **No NLP or LLM.** Keyword matching only.
-- **Hebrew entity detection is limited** to Maccabi and Deni Avdija.
+- **Hebrew entity detection is limited** to Maccabi Tel Aviv Basketball and Deni Avdija.
 - **No player name extraction** beyond the two above.
 - **No translation.** `translated_title` is always `None`.
 - **No summary analysis.** Only the title is classified.
 - **No team name extraction** for NBA teams from article content — only direct name keyword hits.
-- **Hebrew football club detection** covers only Beitar and Hapoel Tel Aviv explicitly.
 - **Ambiguous keywords** (e.g., "ליגת העל" = both Israeli football and basketball league) are resolved by context keywords in the same title; may misclassify if context is absent.
+- **Generic news articles** (no sport keyword, no entity) are classified as `sport=unknown` — this is intentional precision-over-recall behavior.
 
 ---
 
@@ -153,7 +164,7 @@ URL-based deduplication only. Rules:
 - If the URL already exists, the item is counted as `skipped_duplicate`.
 - Running ingestion twice for the same feed returns `inserted=0, skipped_duplicate=N` on the second run.
 
-**TODO (PR 8):** Fuzzy title dedup — near-duplicate headlines from different sources should
+**TODO:** Fuzzy title dedup — near-duplicate headlines from different sources should
 be grouped into clusters. This requires a similarity algorithm and the `cluster_id` field,
 which is already in the `Article` model but not yet populated.
 
@@ -237,23 +248,23 @@ Existing endpoints are unchanged and continue to work:
 
 **Scraping (Sport5, ONE, Israel Hayom):** These sources don't have clean RSS. Scraping
 requires browser automation or HTML parsing, which introduces fragility and maintenance
-burden. Deferred to PR 8.
+burden. Deferred to a future PR.
 
 **X/Twitter:** Rate-limited API, requires auth, produces short-form content that needs
 different classification. Deferred.
 
 **Scheduler:** Running ingestion on a cron is valuable but adds operational complexity.
 For MVP validation, the manual endpoint (`POST /api/ingest/run`) is enough. A scheduler
-(APScheduler or a cron endpoint) should be added in PR 8 or PR 9 after the classification
-quality is validated with real data.
+(APScheduler or a cron endpoint) should be added after the classification quality is
+validated with real data.
 
 ---
 
-## Next Steps (PR 8)
+## Next Steps
 
-1. Add Hebrew RSS source adapter (if a usable RSS feed exists for ONE or Walla).
-2. Add scheduled ingestion (e.g., every 15 minutes via APScheduler).
-3. Fuzzy title dedup via `difflib.SequenceMatcher` or similar.
-4. Basic `translated_title` generation using a translation API or local model.
-5. Feedback → profile mutation: `never_show` creates a `hidden` event rule for the matched topic.
-6. Cluster seeding: group articles with the same core story into a `cluster_id`.
+1. Add scheduled ingestion (e.g., every 15 minutes via APScheduler).
+2. Fuzzy title dedup via `difflib.SequenceMatcher` or similar.
+3. `translated_title` generation using a translation API or local model.
+4. Feedback → profile mutation: `never_show` creates a `hidden` event rule for the matched topic.
+5. Cluster seeding: group articles with the same core story into a `cluster_id`.
+6. Additional Hebrew sources: Sport5 or ONE via category page adapters if RSS is unavailable.

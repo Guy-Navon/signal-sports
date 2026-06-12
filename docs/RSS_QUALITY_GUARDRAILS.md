@@ -79,6 +79,24 @@ RSSSourceConfig(
 `allowed_languages=("en",)` is set as a conservative default — if Sportando ever adds
 non-English URLs, they will be filtered automatically.
 
+### Walla Sport configuration (PR 8)
+
+Walla Sport publishes Hebrew-only content from `sports.walla.co.il`. No language-path
+mixing and no URL blocking needed.
+
+```python
+RSSSourceConfig(
+    source_id="walla_sport",
+    display_name="וואלה ספורט",
+    feed_url="https://rss.walla.co.il/feed/7",
+    language="he",
+    allowed_languages=("he",),
+)
+```
+
+`allowed_languages=("he",)` is defensive — the feed is Hebrew-only in practice, but the
+filter ensures non-Hebrew items are skipped if the feed configuration ever changes.
+
 ### Language inference from URL
 
 When `allowed_languages` is configured, the service infers article language from the URL path:
@@ -137,7 +155,42 @@ right place for this operational metric.
 
 ## 3. Classifier Improvements
 
-### 3a. EuroCup vs EuroLeague
+### 3a. Hebrew keyword coverage (PR 8)
+
+The classifier was extended with comprehensive Hebrew keyword sets to support the
+`walla_sport` source. Additions:
+
+**Sport detection:**
+- Basketball: "ווינר סל", "ליגת העל סל", "בני הרצליה", Hebrew NBA nicknames (וויזארדס,
+  הורנטס, בלייזרס, ניקס, סלטיקס), "יורוליג"
+- Football: "מונדיאל", "הפועל באר שבע", plus a dedicated `_FOOTBALL_MACCABI_KW` set
+  (`"מכבי חיפה"`) checked **before** basketball keywords to prevent Maccabi Haifa football
+  articles from being classified as basketball
+- Tennis: Hebrew Grand Slam names, Alcaraz, Djokovic, Sinner
+
+**Entity detection:**
+- Maccabi Tel Aviv Basketball: added standalone "מכבי" (with post-filter: if `sport==
+  "football"`, entity is stripped from results)
+- Deni Avdija: "דני אבדיה", "אבדיה" (standalone "דני" not added — too common a name)
+
+**Event type detection — Hebrew additions:**
+
+| Event type | Added keywords |
+|-----------|----------------|
+| signing | "חתמו", "הצטרף", "הצטרפה" |
+| negotiation | 'במו״מ', 'מו״מ', "במשא ומתן", "מתקרב", "מתקרבת", "סיכם", "על סף חתימה" |
+| candidate | "המועמד", "ברשימה" |
+| injury | "נפצע בברך", "נפצע בכתף" |
+
+**Detection ordering fix:** negotiation is now checked **before** signing in
+`_detect_event_type()`. This resolves "על סף חתימה" (on the verge of signing) being
+incorrectly classified as a signing event because "חתימה" appeared in the phrase.
+
+**Israeli Basketball League context keywords (Hebrew):**
+Added "חולון", "הפועל חולון", "הפועל ירושלים", "הפועל תל אביב", "אילת", "בני הרצליה",
+"ראשון לציון", "ראשון", "גליל", "נס ציונה", "עירוני רמת גן", "דרבי תל אביבי".
+
+### 3b. EuroCup vs EuroLeague
 
 EuroCup articles sometimes contain the word "Euroleague" in their title (e.g. "EuroCup teams
 promoted to Euroleague"). Without explicit detection, these would be misclassified as EuroLeague.

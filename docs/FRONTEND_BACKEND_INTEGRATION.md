@@ -104,6 +104,20 @@ Exported functions:
 | `getIngestRuns(limit?)` | `GET /api/ingest/runs?limit=N` |
 | `getIngestQuality()` | `GET /api/ingest/quality` |
 
+### RSS-only article filter
+
+`GET /api/articles`, `GET /api/feed/{userId}`, and `GET /api/debug/feed/{userId}` all return
+only articles whose `id` starts with `rss_` — i.e., articles ingested via the RSS pipeline.
+Seed articles (ids like `article_001`) are stored in the database for testing and single-item
+lookups (`GET /api/articles/{id}`) but do not appear in the feed or article list. This ensures
+the UI shows only real, dynamically fetched content.
+
+The filter lives in `article_repository.get_rss_articles()` which uses a SQL `LIKE 'rss_%'`
+predicate. Backend tests that need feed/scoring coverage use the `rss_seeded` pytest fixture
+(in `tests/conftest.py`) which inserts `rss_`-prefixed copies of the key seed articles.
+
+---
+
 ### Normalizers (`frontend/src/api/normalizers.js`)
 
 The backend returns snake_case field names (Python convention). The frontend UI and engine
@@ -214,7 +228,7 @@ After starting both servers with `VITE_DATA_MODE=backend`:
 - [ ] Feed loads for Guy — Maccabi negotiation articles appear with `push`
 - [ ] Switching to Casual Deni Fan → feed changes (Hornets/Wizards disappears)
 - [ ] Debug tab shows all articles including hidden ones
-- [ ] `article_014` (Real Madrid EuroLeague transfer) shows `matchedTopic = euroleague`, `decision = high_feed` (not `maccabi_tel_aviv_basketball`, not `push`)
+- [ ] Real Madrid EuroLeague transfer article shows `matchedTopic = euroleague`, `decision = high_feed` (not `push`)
 - [ ] Thumbs up / thumbs down sends `POST /api/feedback` (visible in backend logs)
 - [ ] Stopping the backend and reloading shows the red error banner
 - [ ] "נסה שוב" button retries the feed fetch
@@ -229,7 +243,7 @@ cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
 ```
 
-Expected: 86 tests pass (68 from PR 4/5 + 18 new SQLite persistence tests from PR 6).
+Expected: 236 tests pass. Run all tests: `.venv\Scripts\python.exe -m pytest tests/ -q`.
 
 ## Frontend Tests
 

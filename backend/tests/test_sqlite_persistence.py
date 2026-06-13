@@ -70,14 +70,19 @@ def test_seeding_is_idempotent(client):
 
 # ── Articles via API ──────────────────────────────────────────────────────────
 
-def test_articles_api_returns_seeded_articles(client):
-    r = client.get("/api/articles")
+def test_articles_api_returns_rss_articles(rss_seeded):
+    """The /api/articles endpoint returns only rss_-prefixed articles, not raw seed articles."""
+    r = rss_seeded.get("/api/articles")
     assert r.status_code == 200
     data = r.json()
     assert len(data) > 0
     ids = {a["id"] for a in data}
-    assert "article_001" in ids  # Maccabi negotiation
-    assert "article_014" in ids  # Real Madrid EuroLeague
+    # rss_-prefixed copies inserted by the rss_seeded fixture must appear
+    assert "rss_article_001" in ids
+    assert "rss_article_014" in ids
+    # raw seed IDs must NOT appear (filtered out by get_rss_articles)
+    assert "article_001" not in ids
+    assert "article_014" not in ids
 
 
 def test_article_response_shape_stable(client):
@@ -134,20 +139,20 @@ def test_feed_for_guy_not_empty(client):
     assert len(r.json()) > 0
 
 
-def test_maccabi_negotiation_is_push_from_sqlite(client):
-    r = client.get("/api/feed/guy")
+def test_maccabi_negotiation_is_push_from_sqlite(rss_seeded):
+    r = rss_seeded.get("/api/feed/guy")
     feed = r.json()
-    article = next((a for a in feed if a["article"]["id"] == "article_001"), None)
-    assert article is not None, "Maccabi negotiation not in Guy's feed"
+    article = next((a for a in feed if a["article"]["id"] == "rss_article_001"), None)
+    assert article is not None, "rss_article_001 (Maccabi negotiation) not in Guy's feed"
     assert article["decision"] == "push"
 
 
-def test_euroleague_real_madrid_is_high_feed_not_push(client):
-    """article_014 (Real Madrid EuroLeague): high_feed via euroleague topic, not push via maccabi."""
-    r = client.get("/api/debug/feed/guy")
+def test_euroleague_real_madrid_is_high_feed_not_push(rss_seeded):
+    """rss_article_014 (Real Madrid EuroLeague): high_feed via euroleague topic, not push via maccabi."""
+    r = rss_seeded.get("/api/debug/feed/guy")
     debug = r.json()
-    article = next((a for a in debug if a["article"]["id"] == "article_014"), None)
-    assert article is not None, "article_014 not in debug feed"
+    article = next((a for a in debug if a["article"]["id"] == "rss_article_014"), None)
+    assert article is not None, "rss_article_014 not in debug feed"
     assert article["decision"] == "high_feed", f"Expected high_feed, got {article['decision']}"
     assert article["matched_topic"] == "euroleague", (
         f"Expected matched_topic=euroleague, got {article['matched_topic']}"

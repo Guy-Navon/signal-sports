@@ -115,7 +115,7 @@ Each table has a dedicated repository module in `app/repositories/`:
 
 | Repository | Operations |
 |-----------|-----------|
-| `article_repository` | `get_all`, `get_by_id`, `count`, `insert` |
+| `article_repository` | `get_all`, `get_rss_articles`, `get_by_id`, `get_by_url`, `count`, `insert` |
 | `profile_repository` | `get_all`, `get_by_id`, `count`, `insert` |
 | `source_repository` | `get_all`, `get_by_id`, `count`, `insert` |
 | `feedback_repository` | `get_all`, `get_by_user`, `insert` |

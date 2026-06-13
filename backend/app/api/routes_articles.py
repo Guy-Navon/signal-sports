@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.get("/articles", response_model=List[Article])
 def list_articles(session: Session = Depends(get_session)):
-    return article_repository.get_all(session)
+    return article_repository.get_rss_articles(session)
 
 
 @router.get("/articles/{article_id}", response_model=Article)

@@ -164,13 +164,17 @@ The classifier was extended with comprehensive Hebrew keyword sets to support th
 - Basketball: "ווינר סל", "ליגת העל סל", "בני הרצליה", Hebrew NBA nicknames (וויזארדס,
   הורנטס, בלייזרס, ניקס, סלטיקס), "יורוליג"
 - Football: "מונדיאל", "הפועל באר שבע", plus a dedicated `_FOOTBALL_MACCABI_KW` set
-  (`"מכבי חיפה"`) checked **before** basketball keywords to prevent Maccabi Haifa football
-  articles from being classified as basketball
+  checked **before** basketball keywords. PR 8 covered מכבי חיפה. PR 8.2 expanded to:
+  מכבי נתניה, מכבי פתח תקווה, מכבי פ"ת, מכבי יפו, מכבי בני ריינה, מכבי הרצליה,
+  plus English equivalents. Add new football Maccabi clubs here to prevent misclassification.
+- Basketball (PR 8.2): "קטש" / "עודד קטש" added — Oded Kattash (Maccabi TLV head
+  coach) is a strong basketball signal that resolves disambiguated titles (e.g. derby
+  previews naming "הפועל תל אביב") to basketball before the football keyword check.
 - Tennis: Hebrew Grand Slam names, Alcaraz, Djokovic, Sinner
 
 **Entity detection:**
 - Maccabi Tel Aviv Basketball: added standalone "מכבי" (with post-filter: if `sport==
-  "football"`, entity is stripped from results)
+  "football"`, entity is stripped from results); also "קטש" / "עודד קטש" (Kattash, PR 8.2)
 - Deni Avdija: "דני אבדיה", "אבדיה" (standalone "דני" not added — too common a name)
 
 **Event type detection — Hebrew additions:**
@@ -189,6 +193,12 @@ incorrectly classified as a signing event because "חתימה" appeared in the p
 **Israeli Basketball League context keywords (Hebrew):**
 Added "חולון", "הפועל חולון", "הפועל ירושלים", "הפועל תל אביב", "אילת", "בני הרצליה",
 "ראשון לציון", "ראשון", "גליל", "נס ציונה", "עירוני רמת גן", "דרבי תל אביבי".
+
+**Israeli Basketball League direct keywords (Hebrew) — PR 8.2:**
+"הפועל תל אביב" added to `_ISRAELI_BBALL_DIRECT_KW`. When sport is already resolved
+to `"basketball"`, this fires unconditionally (before context inference which required
+a Maccabi entity). Allows articles about Hapoel Tel Aviv basketball without a Maccabi
+entity reference to still resolve league = "Israeli Basketball League".
 
 ### 3b. EuroCup vs EuroLeague
 

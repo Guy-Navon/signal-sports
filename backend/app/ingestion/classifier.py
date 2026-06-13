@@ -47,6 +47,55 @@ def _has_word(text: str, word: str) -> bool:
     return bool(re.search(r"\b" + re.escape(word) + r"\b", text))
 
 
+# ── Hebrew sport disambiguation helpers ──────────────────────────────────────
+# These are thin named wrappers that make the disambiguation logic in _detect_sport
+# and _detect_entities transparent and independently testable.
+
+# Defined ahead of the keyword sets they reference; the sets are declared just below.
+# Python resolves the names at call time, not at function-definition time, so the
+# forward references are safe as long as no one calls these before the sets exist.
+
+def _has_football_maccabi_context(text: str) -> bool:
+    """True if title names an explicit football Maccabi club.
+
+    Must be called BEFORE the generic "מכבי" basketball check so that
+    מכבי נתניה / מכבי חיפה etc. do not trigger basketball classification.
+    """
+    return _has(text, *_FOOTBALL_MACCABI_KW)
+
+
+def _has_kattash_context(text: str) -> bool:
+    """True if title references Oded Kattash — a strong Maccabi TLV basketball signal."""
+    return _has(text, "קטש", "עודד קטש", "kattash", "oded kattash")
+
+
+# Basketball context words that should accompany הפועל תל אביב for basketball inference.
+_HAPOEL_TA_BBALL_CTX = (
+    "כדורסל",
+    "קטש", "עודד קטש", "kattash",
+    "ווינר", "היכל",
+    "מכבי תל אביב", 'מכבי ת"א', "מכבי ת״א",
+    "דרבי",
+    "גמר סל",
+)
+
+# Football context words that accompany הפועל תל אביב for football inference.
+_HAPOEL_TA_FOOTBALL_CTX = (
+    "כדורגל", "שער", "חלוץ", "בלם", "שוער",
+    "ליגת האלופות", "premier league",
+)
+
+
+def _has_hapoel_tel_aviv_basketball_context(text: str) -> bool:
+    """True when הפועל תל אביב appears together with basketball context words."""
+    return _has(text, "הפועל תל אביב") and _has(text, *_HAPOEL_TA_BBALL_CTX)
+
+
+def _has_hapoel_tel_aviv_football_context(text: str) -> bool:
+    """True when הפועל תל אביב appears together with football context words."""
+    return _has(text, "הפועל תל אביב") and _has(text, *_HAPOEL_TA_FOOTBALL_CTX)
+
+
 # ── Sport detection ───────────────────────────────────────────────────────────
 
 _BASKETBALL_KW = (
@@ -56,6 +105,8 @@ _BASKETBALL_KW = (
     "ווינר סל", "ליגת העל סל",  # Israeli Basketball League explicit markers
     # Israeli basketball clubs — allow sport inference without "כדורסל" keyword
     "בני הרצליה",               # Bnei Herzliya basketball
+    # Oded Kattash — Maccabi Tel Aviv head coach; his name alone is a strong basketball signal
+    "קטש", "עודד קטש", "kattash", "oded kattash",
     # Hebrew NBA team nicknames (not city names — those are too generic)
     "וויזארדס", "הורנטס", "בלייזרס", "ניקס", "סלטיקס", "לייקרס",
     "באקס", "סאנס", "נאגטס", "מאברס", "ספרס", "רוקטס", "ראפטורס", "גריזליס",
@@ -74,9 +125,19 @@ _FOOTBALL_KW = (
 
 # Maccabi clubs that are FOOTBALL — must be checked BEFORE _BASKETBALL_KW
 # because "מכבי" appears in _BASKETBALL_KW and would win the sport check first.
+# Add any new football Maccabi club here rather than relying on football context words.
 _FOOTBALL_MACCABI_KW = (
-    "מכבי חיפה",    # Maccabi Haifa (football)
+    "מכבי חיפה",         # Maccabi Haifa (football)
+    "מכבי נתניה",        # Maccabi Netanya (football)
+    "מכבי פתח תקווה",    # Maccabi Petah Tikva (football)
+    'מכבי פ"ת',          # Maccabi Petah Tikva short form
+    "מכבי פ״ת",          # Maccabi Petah Tikva short form (typographic quote)
+    "מכבי יפו",          # Maccabi Jaffa (football)
+    "מכבי בני ריינה",    # Maccabi Bnei Raina (football)
+    "מכבי הרצליה",       # Maccabi Herzliya (football)
     "maccabi haifa",
+    "maccabi netanya",
+    "maccabi petah tikva",
 )
 _TENNIS_KW = (
     "tennis", "טניס", "wimbledon", "וימבלדון",
@@ -98,10 +159,14 @@ def _detect_sport(text: str, source_id: str) -> str:
         return "basketball"
     if _has(text, *_TENNIS_KW):
         return "tennis"
-    # Football Maccabi clubs (e.g. מכבי חיפה) must be checked before the generic
-    # "מכבי" basketball keyword — otherwise the basketball check wins first.
-    if _has(text, *_FOOTBALL_MACCABI_KW):
+    # Football Maccabi clubs (מכבי נתניה, מכבי חיפה, מכבי פתח תקווה…) must be
+    # checked before the generic "מכבי" basketball keyword — otherwise the
+    # basketball check wins first and misclassifies football club articles.
+    if _has_football_maccabi_context(text):
         return "football"
+    # Basketball keywords include "קטש" (Kattash), so titles quoting the Maccabi
+    # TLV coach are classified as basketball before the football check fires on
+    # "הפועל תל אביב" which also appears in those derby/finals previews.
     if _has(text, *_BASKETBALL_KW):
         return "basketball"
     if _has(text, *_FOOTBALL_KW):
@@ -131,12 +196,17 @@ _NBA_TEAM_KW = (
     "שארלוט",       # Charlotte Hornets
 )
 _EUROLEAGUE_KW = ("euroleague", "יורוליג", "היורוליג")
-# Direct textual mentions of the Israeli Basketball League
+# Direct textual mentions of the Israeli Basketball League.
+# "הפועל תל אביב" is included here because, once sport is already resolved to
+# basketball, an article naming Hapoel Tel Aviv must be about their basketball
+# club — which plays in the Israeli Basketball League (or EuroLeague, but that
+# is checked first and wins if the EuroLeague keyword is present).
 _ISRAELI_BBALL_DIRECT_KW = (
     "ליגת ווינר", "ליגת העל בכדורסל", "ליגה לאומית",
     "ווינר סל", "ליגת העל סל",
     "winner league", "ligat winner",
     "israeli basketball league", "super league basketball",
+    "הפועל תל אביב",  # Hapoel Tel Aviv basketball club — Israeli Basketball League
 )
 # Context keywords that, combined with a Maccabi entity, strongly imply Israeli domestic play.
 _ISRAELI_BBALL_CONTEXT_KW = (
@@ -220,9 +290,12 @@ _MACCABI_KW = (
     'מכבי ת"א', "מכבי תל אביב", 'מכבי ת״א',
     "maccabi tel aviv", "maccabi",
     # Standalone Hebrew "מכבי" — catches short-form headlines (e.g. "מכבי ניצחה בגמר").
-    # Trade-off: may also match other Maccabi clubs (Netanya, Haifa football) when
-    # sport detection has already resolved to basketball.
+    # Football Maccabi clubs (Netanya, Haifa, Petah Tikva…) are blocked upstream:
+    # _FOOTBALL_MACCABI_KW fires before basketball sport detection, so sport=football,
+    # and the entity post-filter removes "Maccabi Tel Aviv Basketball" when sport=football.
     "מכבי",
+    # Oded Kattash — Maccabi Tel Aviv head coach; his name implies the club unambiguously.
+    "קטש", "עודד קטש", "kattash", "oded kattash",
 )
 _DENI_KW = (
     "דני אבדיה", "אבדיה",

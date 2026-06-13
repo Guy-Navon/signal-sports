@@ -428,6 +428,196 @@ class TestHebrewClassifierFootball:
         assert r.sport == "football"
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# PR 8.2: Hebrew classifier disambiguation fixes
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestDisambiguationBug1FootballMaccabi:
+    """Bug 1: Maccabi football clubs (Netanya, Petah Tikva…) were classified as
+    basketball because standalone "מכבי" matched _BASKETBALL_KW before football
+    keywords were checked. Fix: explicit football Maccabi club names added to
+    _FOOTBALL_MACCABI_KW, which is evaluated before the basketball keyword set."""
+
+    def test_maccabi_netanya_article_is_football(self):
+        r = classify(
+            "סביב ברגע שמשגע את שם המדינה: הקשר שדחה את מכבי נתניה",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+        assert r.league != "Israeli Basketball League"
+
+    def test_maccabi_haifa_signing_is_football(self):
+        r = classify(
+            "מכבי חיפה החתימה קשר חדש",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+
+    def test_maccabi_petah_tikva_striker_is_football(self):
+        r = classify(
+            "מכבי פתח תקווה צירפה חלוץ זר",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+
+    def test_maccabi_netanya_no_basketball_league(self):
+        r = classify(
+            "מכבי נתניה זכתה בגביע",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+
+    def test_maccabi_haifa_petah_tikva_short_form_is_football(self):
+        r = classify(
+            'מכבי פ"ת ניצחה 2-0',
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+
+
+class TestDisambiguationBug2KattashHapoelTLV:
+    """Bug 2: Oded Kattash quotes about a finals against Hapoel Tel Aviv were
+    classified as football because "הפועל תל אביב" appeared in _FOOTBALL_KW and
+    no basketball keyword was present. Fix: "קטש"/"עודד קטש" added to
+    _BASKETBALL_KW (basketball check precedes football check), and to _MACCABI_KW
+    for entity inference. "הפועל תל אביב" added to _ISRAELI_BBALL_DIRECT_KW so
+    league resolves to Israeli Basketball League when sport=basketball."""
+
+    def test_kattash_finals_quote_is_basketball(self):
+        r = classify(
+            'עודד קטש: "אנחנו לא פייבוריטים בגמר מול הפועל תל אביב"',
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert r.sport != "football"
+
+    def test_kattash_finals_quote_has_maccabi_entity(self):
+        r = classify(
+            'עודד קטש: "אנחנו לא פייבוריטים בגמר מול הפועל תל אביב"',
+            source_id="walla_sport", language="he",
+        )
+        assert "Maccabi Tel Aviv Basketball" in r.entities
+
+    def test_kattash_finals_quote_league_is_israeli_basketball_league(self):
+        r = classify(
+            'עודד קטש: "אנחנו לא פייבוריטים בגמר מול הפועל תל אביב"',
+            source_id="walla_sport", language="he",
+        )
+        assert r.league == "Israeli Basketball League"
+
+    def test_kattash_derby_preview_is_basketball(self):
+        r = classify(
+            "קטש לקראת הדרבי: הפועל תל אביב קבוצה מצוינת",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert r.league == "Israeli Basketball League"
+        assert "Maccabi Tel Aviv Basketball" in r.entities
+
+    def test_hapoel_tel_aviv_basketball_derby_title_is_basketball(self):
+        r = classify(
+            "הפועל תל אביב ניצחה בדרבי הכדורסל",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert r.league == "Israeli Basketball League"
+
+    def test_hapoel_tel_aviv_signing_striker_is_football(self):
+        # "חלוץ" (striker) — unambiguously football; no basketball keywords present
+        r = classify(
+            "הפועל תל אביב החתימה חלוץ חדש",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+
+
+class TestDisambiguationRegression:
+    """Ensure the disambiguation fixes do not weaken clear Maccabi TLV basketball
+    detection that was already working correctly before PR 8.2."""
+
+    def test_maccabi_tel_aviv_explicit_still_basketball(self):
+        r = classify(
+            "מכבי תל אביב במו״מ עם גארד יורוליג",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert "Maccabi Tel Aviv Basketball" in r.entities
+
+    def test_maccabi_short_form_with_basketball_context_still_basketball(self):
+        r = classify(
+            "מכבי ניצחה בגמר ליגת העל בכדורסל",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert "Maccabi Tel Aviv Basketball" in r.entities
+
+    def test_maccabi_haifa_no_basketball_entity(self):
+        r = classify(
+            "מכבי חיפה ניצחה ביפן",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+
+    def test_maccabi_holon_finals_israeli_league_still_works(self):
+        r = classify(
+            "הפועל חולון ניצחה את מכבי תל אביב בגמר",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert r.league == "Israeli Basketball League"
+        assert r.event_type == "finals_result"
+
+    def test_maccabi_euroleague_headline_still_works(self):
+        r = classify(
+            "מכבי תל אביב ניצחה ביורוליג 87-80",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert r.league == "EuroLeague"
+        assert "Maccabi Tel Aviv Basketball" in r.entities
+
+
+class TestDisambiguationFeedScoring:
+    """Feed scoring regression: football Maccabi articles must not reach Guy via
+    the maccabi_tel_aviv_basketball topic; Kattash finals quotes must feed Guy."""
+
+    def test_maccabi_netanya_football_not_feed_for_guy(self, client):
+        url = "https://sports.walla.co.il/item/he-netanya-football-8-2-unique"
+        entries = [_make_entry(
+            "הקשר שדחה את מכבי נתניה — קצר ביומן",
+            url,
+        )]
+        with patch("feedparser.parse", return_value=_make_feed(entries)):
+            client.post("/api/ingest/run?source_id=walla_sport")
+
+        r = client.get("/api/debug/feed/guy")
+        item = next((i for i in r.json() if i["article"]["url"] == url), None)
+        assert item is not None
+        # Football article for Guy — must NOT reach feed via basketball topic
+        assert item["decision"] not in ("feed", "high_feed", "push")
+
+    def test_kattash_finals_quote_feeds_guy(self, client):
+        url = "https://sports.walla.co.il/item/he-kattash-finals-8-2-unique"
+        entries = [_make_entry(
+            'עודד קטש: "אנחנו לא פייבוריטים בגמר מול הפועל תל אביב"',
+            url,
+        )]
+        with patch("feedparser.parse", return_value=_make_feed(entries)):
+            client.post("/api/ingest/run?source_id=walla_sport")
+
+        r = client.get("/api/debug/feed/guy")
+        item = next((i for i in r.json() if i["article"]["url"] == url), None)
+        assert item is not None
+        assert item["decision"] in ("feed", "high_feed", "push")
+
+
 class TestHebrewClassifierEventTypes:
     def test_signing_joined(self):
         r = classify("שחקן הצטרף למכבי תל אביב", source_id="walla_sport", language="he")

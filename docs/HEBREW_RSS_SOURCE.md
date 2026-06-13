@@ -338,8 +338,14 @@ classification shows up in debug with sport=unknown and can be fixed by adding c
 
 ## Known Limitations
 
-1. **Translation is provider-dependent.** Hebrew articles from Walla are stored as-is with
-   `translated_title = None` (no translation needed — they are already Hebrew).
+1. **Hebrew articles are never translated — code-level guarantee (PR 9.4).**
+   Walla articles are stored with `title = <original Hebrew>`, `original_title = None`,
+   `translated_title = None`.  Two independent code paths enforce this:
+   (a) `_normalise()` branches on `detected_lang == "he"` before calling `translate_title`;
+   (b) the backfill loop checks `article.language == "he"` first, before `force` or
+   `include_fake` flags are evaluated.
+   Future Hebrew sources (Sport5, ONE) follow the same path automatically — any source
+   configured with `language="he"` is treated identically to Walla.
    Non-Hebrew articles (Eurohoops/Sportando) are translated when `TRANSLATION_PROVIDER=claude`
    is configured.  See `docs/TITLE_TRANSLATION.md` for full details.
 

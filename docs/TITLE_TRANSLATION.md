@@ -2,7 +2,7 @@
 
 Signal Sports displays a Hebrew title as the primary title for every article,
 regardless of the source language.  This document explains the full translation
-pipeline implemented in PR 9, PR 9.1, PR 9.2, and PR 9.3.
+pipeline implemented in PR 9, PR 9.1, PR 9.2, PR 9.3, and PR 9.4.
 
 ---
 
@@ -37,12 +37,42 @@ sports words is used.
 
 ### 3. Article fields after translation
 
-| Field | Meaning |
-|-------|---------|
-| `title` | Hebrew title (primary display) |
-| `original_title` | Original RSS title |
-| `translated_title` | Same as `title` when translated; `None` when not |
-| `language` | Detected language code (`"en"`, `"it"`, `"el"`, …) |
+| Field | Hebrew article | Non-Hebrew article (translated) | Non-Hebrew article (no provider) |
+|-------|---------------|--------------------------------|----------------------------------|
+| `title` | Original Hebrew RSS title | Hebrew translation | Original RSS title |
+| `original_title` | `None` | Original RSS title | Original RSS title |
+| `translated_title` | `None` | Hebrew translation | `None` |
+| `language` | `"he"` | Detected source language (`"en"`, `"it"`, `"el"`, …) | Detected source language |
+
+### 4. Hebrew translation invariant (PR 9.4)
+
+Hebrew articles are **never** passed to a translation provider.  This is a
+code-level guarantee enforced in two independent places:
+
+**Ingestion (`_normalise` in `ingestion_service.py`):**
+```python
+if detected_lang == "he":
+    title = item.title        # original Hebrew title
+    original_title = None     # no foreign original exists
+    translated_title = None   # no translation performed
+    # translate_title() is never called
+```
+
+**Backfill (`backfill_translations` in `routes_translation.py`):**
+```python
+for article in all_rss:
+    if article.language == "he":
+        skipped_hebrew += 1
+        continue              # before force or include_fake are checked
+```
+
+`force=True` and `include_fake=True` only apply to non-Hebrew articles.
+
+Test coverage (PR 9.4):
+- `test_walla_hebrew_article_never_calls_provider` — `mock_translate.assert_not_called()` for Walla
+- `test_future_hebrew_source_never_calls_provider` — any `language="he"` source (Sport5, ONE) is treated identically
+- `test_hebrew_article_with_mixed_title_is_still_detected_as_hebrew` — titles mixing Hebrew and Latin characters (e.g. "מכבי NBA") are still detected as `"he"`
+- `test_force_does_not_touch_cleanly_stored_hebrew_article` — naturally stored Hebrew article (`original_title=None`) skipped with `force=True`
 
 ---
 

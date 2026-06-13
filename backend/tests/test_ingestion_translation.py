@@ -173,3 +173,68 @@ class TestNormaliseWithTranslation:
 
         # translate_title should be called once per new article
         assert mock_tr.call_count == 1
+
+
+class TestHebrewSourceInvariant:
+    """Enforce that Hebrew articles are never translated, regardless of source or provider state.
+
+    These tests lock down the product rule: Hebrew-language articles are stored
+    as-is (title = original Hebrew, original_title = None, translated_title = None)
+    and translate_title must never be invoked for them.
+    """
+
+    def test_walla_hebrew_article_never_calls_provider(self):
+        item = RawSourceItem(
+            source_id="walla_sport",
+            url="https://sports.walla.co.il/item/456",
+            title="הפועל תל אביב חתמה עם חלוץ חדש",
+            published_at=datetime(2026, 6, 14, tzinfo=timezone.utc),
+        )
+        with patch("app.ingestion.ingestion_service.translate_title") as mock_tr:
+            article = _normalise(item, _hebrew_cfg())
+
+        mock_tr.assert_not_called()
+        assert article.language == "he"
+        assert article.title == "הפועל תל אביב חתמה עם חלוץ חדש"
+        assert article.original_title is None
+        assert article.translated_title is None
+
+    def test_future_hebrew_source_never_calls_provider(self):
+        """Any source configured with language='he' (Sport5, ONE, etc.) is treated like Walla."""
+        sport5_cfg = RSSSourceConfig(
+            source_id="sport5",
+            display_name="ספורט 5",
+            feed_url="https://www.sport5.co.il/rss",
+            language="he",
+        )
+        item = RawSourceItem(
+            source_id="sport5",
+            url="https://www.sport5.co.il/articles/1234",
+            title="מכבי תל אביב פתחה את האימונים",
+            published_at=datetime(2026, 6, 14, tzinfo=timezone.utc),
+        )
+        with patch("app.ingestion.ingestion_service.translate_title") as mock_tr:
+            article = _normalise(item, sport5_cfg)
+
+        mock_tr.assert_not_called()
+        assert article.language == "he"
+        assert article.title == "מכבי תל אביב פתחה את האימונים"
+        assert article.original_title is None
+        assert article.translated_title is None
+
+    def test_hebrew_article_with_mixed_title_is_still_detected_as_hebrew(self):
+        """A title that starts with Hebrew characters is detected as 'he' even if it
+        contains Latin characters (team names, player names, numbers)."""
+        item = RawSourceItem(
+            source_id="walla_sport",
+            url="https://sports.walla.co.il/item/789",
+            title="מכבי תל אביב חתמה עם NBA guard",
+            published_at=datetime(2026, 6, 14, tzinfo=timezone.utc),
+        )
+        with patch("app.ingestion.ingestion_service.translate_title") as mock_tr:
+            article = _normalise(item, _hebrew_cfg())
+
+        mock_tr.assert_not_called()
+        assert article.language == "he"
+        assert article.original_title is None
+        assert article.translated_title is None

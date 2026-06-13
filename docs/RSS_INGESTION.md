@@ -108,10 +108,10 @@ Each `RawSourceItem` is mapped to an `Article` via the classifier:
 |------------------|-------|
 | `id`             | `rss_<sha1_of_url[:20]>` — stable, deterministic |
 | `source`         | source_id from config |
-| `language`       | from config (`en` or `he`) |
-| `original_title` | RSS title for English sources; `None` for Hebrew |
-| `translated_title` | Always `None` (translation deferred) |
-| `title`          | RSS title (always) |
+| `language`       | detected from URL path or title Unicode script; falls back to source config |
+| `original_title` | raw RSS title for non-Hebrew sources; `None` for Hebrew articles |
+| `translated_title` | Hebrew translation if provider is configured; `None` if noop/disabled |
+| `title`          | Hebrew translation when available; raw RSS title otherwise |
 | `sport`          | From classifier |
 | `league`         | From classifier |
 | `entities`       | From classifier |
@@ -326,7 +326,7 @@ validated with real data.
 
 1. Add scheduled ingestion (e.g., every 15 minutes via APScheduler).
 2. Fuzzy title dedup via `difflib.SequenceMatcher` or similar.
-3. `translated_title` generation using a translation API or local model.
+3. `translated_title` generation — see `docs/TITLE_TRANSLATION.md` (implemented in PR 9).
 4. Feedback → profile mutation: `never_show` creates a `hidden` event rule for the matched topic.
 5. Cluster seeding: group articles with the same core story into a `cluster_id`.
 6. Additional Hebrew sources: Sport5 or ONE via category page adapters if RSS is unavailable.

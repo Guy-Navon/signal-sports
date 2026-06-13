@@ -7,7 +7,8 @@ Design:
 - Returns a per-source summary (fetched / inserted / skipped_filtered / skipped_duplicate / failed).
 - skipped_filtered is live response only — not stored in the DB run log to avoid migration.
 - Saves a persisted IngestionRunRecord for every source run.
-- Does NOT perform translation — translated_title remains None for now.
+- Translation: non-Hebrew articles are translated to Hebrew if a provider is configured.
+  When translation is disabled (default), original title is preserved as-is.
 """
 
 import logging
@@ -25,39 +26,10 @@ from app.ingestion.dedup import article_id_from_url, url_already_exists
 from app.models.article import Article
 from app.models.ingestion import IngestionRunRecord, SourceIngestResult
 from app.repositories import article_repository, ingestion_repository
+from app.translation.language_detection import detect_language
+from app.translation.translation_service import translate_title
 
 logger = logging.getLogger(__name__)
-
-
-# ── Language inference ────────────────────────────────────────────────────────
-
-# Known URL path segments → ISO 639-1 language code.
-# Used to infer the content language when a source mixes languages via URL paths.
-_LANG_PATH_MAP: dict[str, str] = {
-    "/en/": "en",
-    "/tr/": "tr",
-    "/es/": "es",
-    "/it/": "it",
-    "/el/": "el",
-    "/de/": "de",
-    "/fr/": "fr",
-    "/ru/": "ru",
-    "/sr/": "sr",
-    "/pl/": "pl",
-    "/cs/": "cs",
-    "/pt/": "pt",
-    "/nl/": "nl",
-    "/he/": "he",
-}
-
-
-def _infer_language_from_url(url: str, default: str) -> str:
-    """Return ISO 639-1 language code inferred from URL path; fall back to default."""
-    url_lower = url.lower()
-    for path, lang in _LANG_PATH_MAP.items():
-        if path in url_lower:
-            return lang
-    return default
 
 
 # ── URL filter ────────────────────────────────────────────────────────────────
@@ -69,7 +41,7 @@ def _should_filter(url: str, cfg: RSSSourceConfig) -> bool:
         if any(pat in url_lower for pat in cfg.blocked_url_patterns):
             return True
     if cfg.allowed_languages:
-        item_lang = _infer_language_from_url(url, cfg.language)
+        item_lang = detect_language(url, "", cfg.language)
         if item_lang not in cfg.allowed_languages:
             return True
     return False
@@ -78,27 +50,40 @@ def _should_filter(url: str, cfg: RSSSourceConfig) -> bool:
 # ── Normalisation ─────────────────────────────────────────────────────────────
 
 def _normalise(item: RawSourceItem, cfg: RSSSourceConfig) -> Article:
-    """Map a raw RSS item to an Article using classification results."""
-    result = classify(item.title, source_id=cfg.source_id, language=cfg.language, url=item.url)
-
+    """Map a raw RSS item to an Article using language detection, translation, and classification."""
     published_at = item.published_at or datetime.now(tz=timezone.utc)
 
-    if cfg.language == "he":
+    # Step 1: detect actual language — may differ from source config
+    # (e.g. Eurohoops Italian-language URL with /it/ path)
+    detected_lang = detect_language(item.url, item.title, cfg.language)
+
+    if detected_lang == "he":
+        # Hebrew articles: title is already Hebrew, no translation needed
+        title = item.title
         original_title = None
         translated_title = None
+        classify_title = item.title
     else:
+        # Non-Hebrew articles: translate to Hebrew, preserve original
         original_title = item.title
-        translated_title = None   # translation deferred
+        hebrew = translate_title(item.title, detected_lang)
+        translated_title = hebrew
+        # Use Hebrew title when available; fall back to original for classification
+        title = hebrew if hebrew else item.title
+        # Classify using Hebrew title so the classifier can use Hebrew keywords too
+        classify_title = title
+
+    result = classify(classify_title, source_id=cfg.source_id, language=detected_lang, url=item.url)
 
     return Article(
         id=article_id_from_url(item.url),
         source=cfg.source_id,
         source_display_name=cfg.display_name,
         url=item.url,
-        title=item.title,
+        title=title,
         original_title=original_title,
         translated_title=translated_title,
-        language=cfg.language,
+        language=detected_lang,
         published_at=published_at,
         sport=result.sport,
         league=result.league,
@@ -146,6 +131,7 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
                 logger.debug("Filtered %s (%s)", item.url, cfg.source_id)
                 continue
 
+            # URL dedup before translation to avoid paying for duplicate articles
             if url_already_exists(session, item.url):
                 skipped_duplicate += 1
                 continue

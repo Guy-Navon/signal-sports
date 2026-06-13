@@ -338,8 +338,10 @@ classification shows up in debug with sport=unknown and can be fixed by adding c
 
 ## Known Limitations
 
-1. **No translation.** Hebrew titles are stored as-is. `translated_title` is always `None`.
-   An English reader cannot understand the articles without a translation step.
+1. **Translation is provider-dependent.** Hebrew articles from Walla are stored as-is with
+   `translated_title = None` (no translation needed — they are already Hebrew).
+   Non-Hebrew articles (Eurohoops/Sportando) are translated when `TRANSLATION_PROVIDER=claude`
+   is configured.  See `docs/TITLE_TRANSLATION.md` for full details.
 
 2. **No fuzzy dedup across sources.** If Walla publishes a story that Eurohoops also covers,
    they are stored as separate articles. URL-based dedup only.
@@ -362,7 +364,7 @@ classification shows up in debug with sport=unknown and can be fixed by adding c
 | Priority | Task |
 |----------|------|
 | High | Scheduled ingestion — run `POST /api/ingest/run` every 15–30 minutes via APScheduler |
-| High | Hebrew title translation — `translated_title` via a translation API or local model |
+| High | Hebrew title translation — implemented in PR 9; see `docs/TITLE_TRANSLATION.md` |
 | Medium | Fuzzy dedup — cluster near-duplicate headlines from multiple sources |
 | Medium | Extended Hebrew entity detection — more Israeli teams, coaches, players |
 | Medium | More Israeli sports sources — Sport5 or ONE via category page adapters |

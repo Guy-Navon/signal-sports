@@ -103,6 +103,7 @@ Exported functions:
 | `runIngestion(sourceId?)` | `POST /api/ingest/run` or `POST /api/ingest/run?source_id=X` |
 | `getIngestRuns(limit?)` | `GET /api/ingest/runs?limit=N` |
 | `getIngestQuality()` | `GET /api/ingest/quality` |
+| `backfillTranslations({ limit?, sourceId?, dryRun? })` | `POST /api/translations/backfill` |
 
 ### RSS-only article filter
 

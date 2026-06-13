@@ -301,6 +301,7 @@ New endpoint for inspecting the classification quality of all ingested RSS artic
 | `sport_unknown` | Classifier could not determine the sport |
 | `low_confidence` | `confidence < 0.5` |
 | `generic_news` | `event_type == "news"` and `entities == []` |
+| `ambiguous_club` | Title names an Israeli club (Maccabi TLV, Hapoel TLV) in full form but contains no sport context words to resolve which sport; see PR 8.3 |
 
 An article can have multiple reasons. The `questionable_articles` list is the primary tool
 for spotting systematic classifier weaknesses.

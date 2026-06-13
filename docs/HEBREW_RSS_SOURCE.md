@@ -274,9 +274,65 @@ the basketball club (Israeli Basketball League). Resolution order:
 - **Unknown football Maccabi clubs.** Any new football Maccabi club not yet in
   `_FOOTBALL_MACCABI_KW` will not be detected. Add new clubs there, not to the
   football context-word approach.
-- **"הפועל תל אביב" without sport context.** A title mentioning only "הפועל תל אביב"
-  with no sport keywords resolves to football (via `_FOOTBALL_KW`). This is the
-  conservative default; basketball requires a positive signal.
+- **"הפועל תל אביב" without sport context (PR 8.3).** A title mentioning only
+  "הפועל תל אביב" with no sport keywords is now tagged `ambiguous_club`
+  and classified as `sport=unknown`. This is the conservative default — false
+  positives (assigning wrong sport) are worse than a missed classification.
+
+---
+
+## Explicit Israeli Club Disambiguation (PR 8.3)
+
+### New entities
+
+PR 8.3 adds two additional entity values:
+
+| Entity | Meaning |
+|--------|---------|
+| `Maccabi Tel Aviv Football` | Maccabi Tel Aviv football club (Israeli Premier League) |
+| `Hapoel Tel Aviv Basketball` | Hapoel Tel Aviv basketball club (Israeli Basketball League) |
+| `Hapoel Tel Aviv Football` | Hapoel Tel Aviv football club (Israeli Premier League) |
+
+### Disambiguation rules
+
+**Maccabi Tel Aviv (full-name form: "מכבי תל אביב", "מכבי ת"א")**
+
+| Context | Sport | Entity |
+|---------|-------|--------|
+| Basketball context (גארד, פורוורד, סנטר, יורוליג, כדורסל…) | basketball | Maccabi Tel Aviv Basketball |
+| Football context (חלוץ, בלם, שוער, ליגת העל, כדורגל…) | football | Maccabi Tel Aviv Football |
+| No sport context | unknown | none; `ambiguous_club` tag |
+
+**Hapoel Tel Aviv (full-name forms: "הפועל תל אביב", "הפועל ת"א")**
+
+| Context | Sport | Entity |
+|---------|-------|--------|
+| Basketball context | basketball | Hapoel Tel Aviv Basketball |
+| Football context | football | Hapoel Tel Aviv Football |
+| No sport context | unknown | none; `ambiguous_club` tag |
+
+**Short form ("מכבי" alone)** — unchanged: still defaults to basketball /
+Maccabi Tel Aviv Basketball. Football Maccabi clubs (Haifa, Netanya…) are blocked
+upstream via `_FOOTBALL_MACCABI_KW`.
+
+**Basketball-only sources (eurohoops, sportando)** — `_BASKETBALL_ONLY_SOURCES`:
+full-name Maccabi TLV always maps to Maccabi Tel Aviv Basketball; never ambiguous.
+
+### `ambiguous_club` tag
+
+When a full-name club phrase is present but no sport context resolves it:
+- `sport = "unknown"`
+- `entities = []` (no entity assigned)
+- `tags` includes `"ambiguous_club"`
+- `confidence ≤ 0.50` (no sport or entity increment)
+
+The quality endpoint (`GET /api/ingest/quality`) surfaces these as `reason: "ambiguous_club"`.
+
+### Principle
+
+False positives (assigning wrong entity or sport) are worse than a miss. A football article
+mis-tagged as Maccabi TLV Basketball would pollute Guy's basketball feed. A missed
+classification shows up in debug with sport=unknown and can be fixed by adding context words.
 
 ---
 

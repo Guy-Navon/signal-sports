@@ -277,9 +277,10 @@ class TestHebrewClassifierMaccabi:
         assert r.event_type == "candidate"
 
     def test_maccabi_euroleague_negotiations(self):
+        # Full-name form with no sport context — ambiguous_club, sport unknown
         r = classify('מכבי ת"א במגעים עם חוזה ב-10 מיליון', source_id="walla_sport", language="he")
-        assert r.sport == "basketball"
-        assert "Maccabi Tel Aviv Basketball" in r.entities
+        assert r.sport == "unknown"
+        assert "ambiguous_club" in r.tags
         assert r.event_type == "negotiation"
 
     def test_hapoel_holon_maccabi_israeli_league(self):
@@ -620,9 +621,10 @@ class TestDisambiguationFeedScoring:
 
 class TestHebrewClassifierEventTypes:
     def test_signing_joined(self):
+        # Full-name form without basketball context — ambiguous_club; event_type still detected
         r = classify("שחקן הצטרף למכבי תל אביב", source_id="walla_sport", language="he")
         assert r.event_type == "signing"
-        assert "Maccabi Tel Aviv Basketball" in r.entities
+        assert "ambiguous_club" in r.tags
 
     def test_negotiation_on_verge(self):
         r = classify("מכבי ת״א על סף חתימה עם גארד ממוערב", source_id="walla_sport", language="he")
@@ -715,3 +717,135 @@ class TestHebrewFeedScoringGuy:
     def test_generic_hebrew_no_entity_is_low_confidence(self):
         r = classify("ספורט: חדשות מהיום", source_id="walla_sport", language="he")
         assert r.confidence < 0.55
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PR 8.3: Explicit Israeli club/entity disambiguation
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestMaccabiTLVDisambiguation:
+    """Maccabi Tel Aviv full-name form requires sport context; without it → ambiguous_club."""
+
+    def test_maccabi_ta_with_guard_is_basketball(self):
+        r = classify('מכבי ת"א החתימה גארד חדש', source_id="walla_sport", language="he")
+        assert r.sport == "basketball"
+        assert "Maccabi Tel Aviv Basketball" in r.entities
+        assert "ambiguous_club" not in r.tags
+
+    def test_maccabi_ta_with_forward_is_basketball(self):
+        r = classify('רשמי: מכבי ת"א החתימה פורוורד', source_id="walla_sport", language="he")
+        assert r.sport == "basketball"
+        assert "Maccabi Tel Aviv Basketball" in r.entities
+        assert "ambiguous_club" not in r.tags
+
+    def test_maccabi_ta_with_euroleague_is_basketball(self):
+        r = classify('מכבי ת"א ניצחה ביורוליג 91-80', source_id="walla_sport", language="he")
+        assert r.sport == "basketball"
+        assert "Maccabi Tel Aviv Basketball" in r.entities
+        assert r.league == "EuroLeague"
+
+    def test_maccabi_ta_no_context_is_ambiguous(self):
+        r = classify('מכבי ת"א חתמה על שחקן חדש', source_id="walla_sport", language="he")
+        assert r.sport == "unknown"
+        assert "ambiguous_club" in r.tags
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+        assert "Maccabi Tel Aviv Football" not in r.entities
+
+    def test_maccabi_tel_aviv_no_context_is_ambiguous(self):
+        r = classify('מכבי תל אביב חתמה על שחקן חדש', source_id="walla_sport", language="he")
+        assert r.sport == "unknown"
+        assert "ambiguous_club" in r.tags
+
+    def test_maccabi_ta_with_football_striker_is_football(self):
+        r = classify('מכבי תל אביב צירפה חלוץ זר', source_id="walla_sport", language="he")
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Football" in r.entities
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+        assert "ambiguous_club" not in r.tags
+
+    def test_maccabi_ta_with_israeli_league_football_is_football(self):
+        r = classify('מכבי תל אביב ניצחה בליגת העל', source_id="walla_sport", language="he")
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Football" in r.entities
+
+    def test_maccabi_short_form_is_still_basketball(self):
+        # Standalone "מכבי" without "תל אביב" still defaults to basketball
+        r = classify("מכבי ניצחה בגמר", source_id="walla_sport", language="he")
+        assert r.sport == "basketball"
+        assert "Maccabi Tel Aviv Basketball" in r.entities
+        assert "ambiguous_club" not in r.tags
+
+    def test_maccabi_ta_ambiguous_confidence_is_low(self):
+        r = classify('מכבי ת"א חתמה על שחקן', source_id="walla_sport", language="he")
+        assert r.confidence < 0.55
+
+
+class TestHapoelTLVDisambiguation:
+    """Hapoel Tel Aviv full-name form requires sport context; without it → ambiguous_club."""
+
+    def test_hapoel_tlv_with_basketball_is_basketball(self):
+        r = classify("הפועל תל אביב ניצחה בדרבי הכדורסל", source_id="walla_sport", language="he")
+        assert r.sport == "basketball"
+        assert "Hapoel Tel Aviv Basketball" in r.entities
+        assert "ambiguous_club" not in r.tags
+
+    def test_hapoel_tlv_with_guard_is_basketball(self):
+        r = classify("הפועל תל אביב גייסה גארד חדש", source_id="walla_sport", language="he")
+        assert r.sport == "basketball"
+        assert "Hapoel Tel Aviv Basketball" in r.entities
+
+    def test_hapoel_tlv_with_striker_is_football(self):
+        r = classify("הפועל תל אביב צירפה חלוץ חדש", source_id="walla_sport", language="he")
+        assert r.sport == "football"
+        assert "Hapoel Tel Aviv Football" in r.entities
+        assert "Hapoel Tel Aviv Basketball" not in r.entities
+        assert "ambiguous_club" not in r.tags
+
+    def test_hapoel_tlv_with_goal_is_football(self):
+        r = classify("הפועל תל אביב הבקיעה שער בדקה ה-90", source_id="walla_sport", language="he")
+        assert r.sport == "football"
+        assert "Hapoel Tel Aviv Football" in r.entities
+
+    def test_hapoel_tlv_no_context_is_ambiguous(self):
+        r = classify("הפועל תל אביב חתמה על שחקן חדש", source_id="walla_sport", language="he")
+        assert r.sport == "unknown"
+        assert "ambiguous_club" in r.tags
+        assert "Hapoel Tel Aviv Basketball" not in r.entities
+        assert "Hapoel Tel Aviv Football" not in r.entities
+
+    def test_hapoel_ta_short_form_no_context_is_ambiguous(self):
+        r = classify('הפועל ת"א חתמה על שחקן', source_id="walla_sport", language="he")
+        assert r.sport == "unknown"
+        assert "ambiguous_club" in r.tags
+
+    def test_hapoel_tlv_basketball_league_inferred(self):
+        r = classify("הפועל תל אביב ניצחה בדרבי הכדורסל", source_id="walla_sport", language="he")
+        assert r.league == "Israeli Basketball League"
+
+    def test_kattash_with_hapoel_tlv_is_basketball(self):
+        # Kattash context resolves sport even when Hapoel TLV phrase is present
+        r = classify('קטש: "הפועל תל אביב קבוצה קשה"', source_id="walla_sport", language="he")
+        assert r.sport == "basketball"
+        assert "Maccabi Tel Aviv Basketball" in r.entities
+
+
+class TestAmbiguousClubQualityReason:
+    """ambiguous_club tag surfaces in the quality endpoint."""
+
+    def test_ambiguous_club_tag_present(self):
+        r = classify('מכבי ת"א חתמה על שחקן חדש', source_id="walla_sport", language="he")
+        assert "ambiguous_club" in r.tags
+
+    def test_unambiguous_basketball_no_ambiguous_tag(self):
+        r = classify('מכבי ת"א החתימה גארד יורוליג', source_id="walla_sport", language="he")
+        assert "ambiguous_club" not in r.tags
+
+    def test_unambiguous_football_no_ambiguous_tag(self):
+        r = classify("מכבי תל אביב צירפה חלוץ זר", source_id="walla_sport", language="he")
+        assert "ambiguous_club" not in r.tags
+
+    def test_basketball_only_source_never_ambiguous(self):
+        # Eurohoops publishes only basketball — full form always means basketball
+        r = classify("Maccabi Tel Aviv season outlook", source_id="eurohoops", language="en")
+        assert "ambiguous_club" not in r.tags
+        assert "Maccabi Tel Aviv Basketball" in r.entities

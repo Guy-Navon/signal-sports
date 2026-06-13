@@ -95,12 +95,21 @@ Roland Garros, Wimbledon) and current top players (Alcaraz, Djokovic, Sinner).
 
 **Standalone "מכבי" trade-off:** Adding "מכבי" as a keyword catches many genuine
 Maccabi Tel Aviv basketball articles that only use the short form. The downside is
-false-positive entity tagging for non-basketball Maccabi clubs. This is mitigated by a
-post-classification filter: if `sport == "football"`, the entity "Maccabi Tel Aviv Basketball"
-is removed from the entity list.
+false-positive entity tagging for non-basketball Maccabi clubs. This is mitigated by two
+mechanisms (PR 8.2):
+1. `_FOOTBALL_MACCABI_KW` is checked before `_BASKETBALL_KW` in `_detect_sport()`. Any
+   title naming an explicit football Maccabi club resolves to `sport=football` before
+   the "מכבי" basketball keyword is even reached.
+2. Post-classification filter: if `sport == "football"`, the entity "Maccabi Tel Aviv
+   Basketball" is stripped from the entity list regardless.
 
 **"דני" not added:** Hebrew "דני" (Danny/Dani) is too common a name to use as a keyword
 without surname context. Only "דני אבדיה" and "אבדיה" are used for Deni Avdija detection.
+
+**Oded Kattash (קטש) added as Maccabi TLV signal (PR 8.2):** "קטש" / "עודד קטש" are
+added to both `_BASKETBALL_KW` (sport detection) and `_MACCABI_KW` (entity detection).
+Kattash is Maccabi Tel Aviv's head coach, so his name in a title is a strong, unambiguous
+signal for Maccabi Tel Aviv Basketball and basketball as the sport.
 
 ### League Detection
 
@@ -110,6 +119,10 @@ without surname context. Only "דני אבדיה" and "אבדיה" are used for 
   team names "חולון", "הפועל חולון", "הפועל ירושלים", "הפועל תל אביב", "אילת",
   "בני הרצליה", "ראשון לציון", "ראשון", "גליל", "נס ציונה", "עירוני רמת גן",
   "דרבי תל אביבי"
+- **PR 8.2:** "הפועל תל אביב" added to `_ISRAELI_BBALL_DIRECT_KW`. When
+  `sport == "basketball"` is already resolved and "הפועל תל אביב" appears in the title,
+  league infers to "Israeli Basketball League" unconditionally (EuroLeague and NBA are
+  checked first and win if their keywords are present).
 
 ### Event Type Detection
 
@@ -204,6 +217,125 @@ Eurohoops or Sportando.
 
 ---
 
+## Hebrew Sports Disambiguation (PR 8.2)
+
+### Why standalone "מכבי" is dangerous
+
+Hebrew headlines often use the short form "מכבי" without specifying which club. In a
+basketball context this almost always means Maccabi Tel Aviv Basketball. However, there
+are many other "Maccabi" clubs in Israeli sports — Maccabi Haifa (football), Maccabi
+Netanya (football), Maccabi Petah Tikva (football), Maccabi Jaffa (football), etc.
+Without disambiguation, a headline like "הקשר שדחה את מכבי נתניה" (The midfielder who
+turned down Maccabi Netanya) would be misclassified as basketball.
+
+### How football Maccabi clubs are blocked
+
+`_FOOTBALL_MACCABI_KW` contains the full names of all known football Maccabi clubs:
+
+- מכבי חיפה (Maccabi Haifa)
+- מכבי נתניה (Maccabi Netanya)
+- מכבי פתח תקווה / מכבי פ"ת (Maccabi Petah Tikva)
+- מכבי יפו (Maccabi Jaffa)
+- מכבי בני ריינה (Maccabi Bnei Raina)
+- מכבי הרצליה (Maccabi Herzliya)
+
+In `_detect_sport()`, `_FOOTBALL_MACCABI_KW` is checked **before** `_BASKETBALL_KW`.
+When a football club name is matched, the function returns `"football"` immediately. The
+generic "מכבי" basketball keyword is never reached. Even if the entity detection then
+adds "Maccabi Tel Aviv Basketball" due to the substring "מכבי", the post-classification
+filter strips it: `if sport == "football": entities = [e for e if e != "Maccabi Tel Aviv Basketball"]`.
+
+### Why קטש (Kattash) is a strong basketball/Maccabi signal
+
+Oded Kattash ("קטש" / "עודד קטש") is Maccabi Tel Aviv's head coach. His name appears
+in Maccabi TLV previews, post-game quotes, and coach-of-the-year coverage. It never
+appears in a football context. Adding it to `_BASKETBALL_KW` ensures the basketball
+check fires before `_FOOTBALL_KW` can fire on "הפועל תל אביב" — which appears in
+Israeli basketball derby titles as Maccabi TLV's frequent finals opponent.
+
+### How "הפועל תל אביב" is disambiguated between football and basketball
+
+"הפועל תל אביב" is ambiguous: it can be the football club (Israeli Premier League) or
+the basketball club (Israeli Basketball League). Resolution order:
+
+1. **Sport detection first.** If basketball keywords (including "קטש", "כדורסל", etc.)
+   appear, `_detect_sport` returns `"basketball"` before `_FOOTBALL_KW` is checked.
+2. **Football keywords as fallback.** If no basketball keyword is present and
+   "הפועל תל אביב" appears, `_FOOTBALL_KW` fires and sport = `"football"`.
+3. **League inference.** When sport is already resolved to `"basketball"`, "הפועל תל
+   אביב" in `_ISRAELI_BBALL_DIRECT_KW` resolves league to `"Israeli Basketball League"`.
+   EuroLeague and NBA keywords are checked first and win if present.
+
+### Remaining disambiguation limitations
+
+- **Unnamed Maccabi clubs.** A headline that uses only "מכבי" without specifying the
+  club (e.g. "המאמן החדש של מכבי" in a football context) may still incorrectly assign
+  the Maccabi Tel Aviv Basketball entity if no football Maccabi club name appears.
+- **Unknown football Maccabi clubs.** Any new football Maccabi club not yet in
+  `_FOOTBALL_MACCABI_KW` will not be detected. Add new clubs there, not to the
+  football context-word approach.
+- **"הפועל תל אביב" without sport context (PR 8.3).** A title mentioning only
+  "הפועל תל אביב" with no sport keywords is now tagged `ambiguous_club`
+  and classified as `sport=unknown`. This is the conservative default — false
+  positives (assigning wrong sport) are worse than a missed classification.
+
+---
+
+## Explicit Israeli Club Disambiguation (PR 8.3)
+
+### New entities
+
+PR 8.3 adds two additional entity values:
+
+| Entity | Meaning |
+|--------|---------|
+| `Maccabi Tel Aviv Football` | Maccabi Tel Aviv football club (Israeli Premier League) |
+| `Hapoel Tel Aviv Basketball` | Hapoel Tel Aviv basketball club (Israeli Basketball League) |
+| `Hapoel Tel Aviv Football` | Hapoel Tel Aviv football club (Israeli Premier League) |
+
+### Disambiguation rules
+
+**Maccabi Tel Aviv (full-name form: "מכבי תל אביב", "מכבי ת"א")**
+
+| Context | Sport | Entity |
+|---------|-------|--------|
+| Basketball context (גארד, פורוורד, סנטר, יורוליג, כדורסל…) | basketball | Maccabi Tel Aviv Basketball |
+| Football context (חלוץ, בלם, שוער, ליגת העל, כדורגל…) | football | Maccabi Tel Aviv Football |
+| No sport context | unknown | none; `ambiguous_club` tag |
+
+**Hapoel Tel Aviv (full-name forms: "הפועל תל אביב", "הפועל ת"א")**
+
+| Context | Sport | Entity |
+|---------|-------|--------|
+| Basketball context | basketball | Hapoel Tel Aviv Basketball |
+| Football context | football | Hapoel Tel Aviv Football |
+| No sport context | unknown | none; `ambiguous_club` tag |
+
+**Short form ("מכבי" alone)** — unchanged: still defaults to basketball /
+Maccabi Tel Aviv Basketball. Football Maccabi clubs (Haifa, Netanya…) are blocked
+upstream via `_FOOTBALL_MACCABI_KW`.
+
+**Basketball-only sources (eurohoops, sportando)** — `_BASKETBALL_ONLY_SOURCES`:
+full-name Maccabi TLV always maps to Maccabi Tel Aviv Basketball; never ambiguous.
+
+### `ambiguous_club` tag
+
+When a full-name club phrase is present but no sport context resolves it:
+- `sport = "unknown"`
+- `entities = []` (no entity assigned)
+- `tags` includes `"ambiguous_club"`
+- `confidence ≤ 0.50` (no sport or entity increment)
+
+The quality endpoint (`GET /api/ingest/quality`) surfaces these as `reason: "ambiguous_club"`.
+
+### Principle
+
+False positives (assigning wrong entity or sport) are worse than a miss. A football article
+mis-tagged as Maccabi TLV Basketball would pollute Guy's basketball feed. A missed
+classification shows up in debug with sport=unknown and can be fixed by adding context words.
+
+---
+
 ## Known Limitations
 
 1. **No translation.** Hebrew titles are stored as-is. `translated_title` is always `None`.
@@ -216,15 +348,10 @@ Eurohoops or Sportando.
    ("the most watched game") contain no sport-specific keywords and are classified as
    `sport=unknown`. This is by design — the classifier prefers precision over recall.
 
-4. **Standalone "מכבי" has false-positive risk.** Non-basketball Maccabi clubs (Maccabi Haifa
-   football, Maccabi Netanya football) may trigger the entity "Maccabi Tel Aviv Basketball"
-   for the standalone keyword. Maccabi Haifa is explicitly mitigated by the
-   `_FOOTBALL_MACCABI_KW` pre-check. Other Maccabi football clubs are a remaining limitation.
+4. **No player name extraction beyond Maccabi/Deni/Kattash.** Walla articles may mention
+   specific Israeli or NBA players; those names are not extracted into `entities`.
 
-5. **No player name extraction beyond Maccabi/Deni.** Walla articles may mention specific
-   Israeli or NBA players; those names are not extracted into `entities`.
-
-6. **Feed content is volatile.** The current Walla feed content at time of PR was
+5. **Feed content is volatile.** The current Walla feed content at time of PR was
    World Cup-heavy. A future run during the Israeli basketball season or EuroLeague finals
    will produce a very different (and more relevant) quality profile.
 

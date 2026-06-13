@@ -47,6 +47,107 @@ def _has_word(text: str, word: str) -> bool:
     return bool(re.search(r"\b" + re.escape(word) + r"\b", text))
 
 
+# ── Hebrew sport disambiguation helpers ──────────────────────────────────────
+# These are thin named wrappers that make the disambiguation logic in _detect_sport
+# and _detect_entities transparent and independently testable.
+
+# Defined ahead of the keyword sets they reference; the sets are declared just below.
+# Python resolves the names at call time, not at function-definition time, so the
+# forward references are safe as long as no one calls these before the sets exist.
+
+def _has_football_maccabi_context(text: str) -> bool:
+    """True if title names an explicit football Maccabi club.
+
+    Must be called BEFORE the generic "מכבי" basketball check so that
+    מכבי נתניה / מכבי חיפה etc. do not trigger basketball classification.
+    """
+    return _has(text, *_FOOTBALL_MACCABI_KW)
+
+
+def _has_kattash_context(text: str) -> bool:
+    """True if title references Oded Kattash — a strong Maccabi TLV basketball signal."""
+    return _has(text, "קטש", "עודד קטש", "kattash", "oded kattash")
+
+
+# Exact phrase forms for Maccabi Tel Aviv and Hapoel Tel Aviv.
+# Titles using ONLY these full forms (without sport context words) are ambiguous
+# and tagged ambiguous_club. Short standalone forms like "מכבי" do not match.
+_MACCABI_TLV_KW = (
+    "מכבי תל אביב",
+    'מכבי ת"א',
+    "מכבי ת״א",
+    "maccabi tel aviv",
+)
+_HAPOEL_TLV_KW = (
+    "הפועל תל אביב",
+    'הפועל ת"א',
+    "הפועל ת״א",
+    "hapoel tel aviv",
+)
+
+# Context words that confirm basketball sport — used to resolve ambiguous club names.
+_BASKETBALL_CTX_KW = (
+    "כדורסל",                                    # basketball explicit
+    "גארד", "פורוורד", "סנטר",                   # Hebrew basketball positions
+    "guard", "forward", "center", "point guard",  # English basketball positions
+    "יורוליג", "היורוליג",                        # EuroLeague in Hebrew
+    "יורוקאפ",                                     # EuroCup in Hebrew
+    "euroleague", "eurocup",                       # English league names
+    "nba",
+    "ווינר סל", "ליגת העל סל", "ליגת ווינר",     # Israeli Basketball League
+    "קטש", "עודד קטש", "kattash",                # Maccabi TLV head coach
+    "הפועל חולון",                               # Hapoel Holon Basketball (unambiguous)
+    "הפועל ירושלים",                             # Hapoel Jerusalem Basketball (unambiguous)
+    "בני הרצליה",                                # Bnei Herzliya Basketball (unambiguous)
+    "גמר סל",                                     # basketball final
+)
+
+# Context words that confirm football sport — used to resolve ambiguous club names.
+_FOOTBALL_CTX_KW = (
+    "כדורגל",                           # football explicit
+    "חלוץ",                              # striker
+    "בלם",                               # stopper/central defender
+    "שוער",                              # goalkeeper
+    "קשר",                               # midfielder
+    "שער",                               # goal (football-specific in sports context)
+    "בלומפילד",                          # Bloomfield Stadium (football only)
+    "ליגת העל",                           # Israeli Premier League (football)
+    "מונדיאל",                           # World Cup
+    "fifa", "uefa",
+    "champions league", "ליגת האלופות",
+    "premier league",
+    "bundesliga", "la liga", "serie a", "ligue 1",
+)
+
+
+def _has_maccabi_tel_aviv_phrase(text: str) -> bool:
+    """True if title contains an explicit full-name Maccabi Tel Aviv form."""
+    return _has(text, *_MACCABI_TLV_KW)
+
+
+def _has_hapoel_tel_aviv_phrase(text: str) -> bool:
+    """True if title contains an explicit full-name Hapoel Tel Aviv form."""
+    return _has(text, *_HAPOEL_TLV_KW)
+
+
+def _has_basketball_context(text: str) -> bool:
+    """True if title contains words that confirm basketball sport."""
+    return _has(text, *_BASKETBALL_CTX_KW)
+
+
+def _has_football_context(text: str) -> bool:
+    """True if title contains words that confirm football sport."""
+    return _has(text, *_FOOTBALL_CTX_KW)
+
+
+def _has_hapoel_tel_aviv_basketball_context(text: str) -> bool:
+    return _has_hapoel_tel_aviv_phrase(text) and _has_basketball_context(text)
+
+
+def _has_hapoel_tel_aviv_football_context(text: str) -> bool:
+    return _has_hapoel_tel_aviv_phrase(text) and _has_football_context(text)
+
+
 # ── Sport detection ───────────────────────────────────────────────────────────
 
 _BASKETBALL_KW = (
@@ -56,6 +157,8 @@ _BASKETBALL_KW = (
     "ווינר סל", "ליגת העל סל",  # Israeli Basketball League explicit markers
     # Israeli basketball clubs — allow sport inference without "כדורסל" keyword
     "בני הרצליה",               # Bnei Herzliya basketball
+    # Oded Kattash — Maccabi Tel Aviv head coach; his name alone is a strong basketball signal
+    "קטש", "עודד קטש", "kattash", "oded kattash",
     # Hebrew NBA team nicknames (not city names — those are too generic)
     "וויזארדס", "הורנטס", "בלייזרס", "ניקס", "סלטיקס", "לייקרס",
     "באקס", "סאנס", "נאגטס", "מאברס", "ספרס", "רוקטס", "ראפטורס", "גריזליס",
@@ -67,16 +170,26 @@ _FOOTBALL_KW = (
     "מונדיאל",                  # World Cup in Hebrew
     # Israeli football clubs — unambiguously football
     'בית"ר', "בית״ר",           # Beitar Jerusalem
-    'הפועל ת"א', "הפועל ת״א",   # Hapoel Tel Aviv (football)
-    "הפועל תל אביב",
     "הפועל באר שבע",            # Hapoel Beer Sheva (football)
+    # Note: הפועל תל אביב forms are NOT here — they are disambiguated explicitly
+    # in _detect_sport because הפועל תל אביב also refers to a basketball club.
 )
 
 # Maccabi clubs that are FOOTBALL — must be checked BEFORE _BASKETBALL_KW
 # because "מכבי" appears in _BASKETBALL_KW and would win the sport check first.
+# Add any new football Maccabi club here rather than relying on football context words.
 _FOOTBALL_MACCABI_KW = (
-    "מכבי חיפה",    # Maccabi Haifa (football)
+    "מכבי חיפה",         # Maccabi Haifa (football)
+    "מכבי נתניה",        # Maccabi Netanya (football)
+    "מכבי פתח תקווה",    # Maccabi Petah Tikva (football)
+    'מכבי פ"ת',          # Maccabi Petah Tikva short form
+    "מכבי פ״ת",          # Maccabi Petah Tikva short form (typographic quote)
+    "מכבי יפו",          # Maccabi Jaffa (football)
+    "מכבי בני ריינה",    # Maccabi Bnei Raina (football)
+    "מכבי הרצליה",       # Maccabi Herzliya (football)
     "maccabi haifa",
+    "maccabi netanya",
+    "maccabi petah tikva",
 )
 _TENNIS_KW = (
     "tennis", "טניס", "wimbledon", "וימבלדון",
@@ -98,10 +211,26 @@ def _detect_sport(text: str, source_id: str) -> str:
         return "basketball"
     if _has(text, *_TENNIS_KW):
         return "tennis"
-    # Football Maccabi clubs (e.g. מכבי חיפה) must be checked before the generic
-    # "מכבי" basketball keyword — otherwise the basketball check wins first.
-    if _has(text, *_FOOTBALL_MACCABI_KW):
+    # Explicit football Maccabi clubs must be checked before the Maccabi TLV
+    # phrase check — מכבי נתניה / מכבי חיפה etc. are definitively football.
+    if _has_football_maccabi_context(text):
         return "football"
+    # Maccabi Tel Aviv (full-name form): requires sport context to resolve.
+    # False positives are worse than misses — only classify when confident.
+    if _has_maccabi_tel_aviv_phrase(text):
+        if _has_basketball_context(text):
+            return "basketball"
+        if _has_football_context(text):
+            return "football"
+        return "unknown"  # ambiguous_club — tagged in classify()
+    # Hapoel Tel Aviv (full-name form): requires sport context to resolve.
+    if _has_hapoel_tel_aviv_phrase(text):
+        if _has_basketball_context(text):
+            return "basketball"
+        if _has_football_context(text):
+            return "football"
+        return "unknown"  # ambiguous_club — tagged in classify()
+    # Generic keyword fallback (handles standalone "מכבי", English sources, etc.)
     if _has(text, *_BASKETBALL_KW):
         return "basketball"
     if _has(text, *_FOOTBALL_KW):
@@ -131,12 +260,17 @@ _NBA_TEAM_KW = (
     "שארלוט",       # Charlotte Hornets
 )
 _EUROLEAGUE_KW = ("euroleague", "יורוליג", "היורוליג")
-# Direct textual mentions of the Israeli Basketball League
+# Direct textual mentions of the Israeli Basketball League.
+# "הפועל תל אביב" is included here because, once sport is already resolved to
+# basketball, an article naming Hapoel Tel Aviv must be about their basketball
+# club — which plays in the Israeli Basketball League (or EuroLeague, but that
+# is checked first and wins if the EuroLeague keyword is present).
 _ISRAELI_BBALL_DIRECT_KW = (
     "ליגת ווינר", "ליגת העל בכדורסל", "ליגה לאומית",
     "ווינר סל", "ליגת העל סל",
     "winner league", "ligat winner",
     "israeli basketball league", "super league basketball",
+    "הפועל תל אביב",  # Hapoel Tel Aviv basketball club — Israeli Basketball League
 )
 # Context keywords that, combined with a Maccabi entity, strongly imply Israeli domestic play.
 _ISRAELI_BBALL_CONTEXT_KW = (
@@ -216,14 +350,6 @@ def _detect_league(text: str, sport: str, url: str = "") -> Optional[str]:
 
 # ── Entity detection ──────────────────────────────────────────────────────────
 
-_MACCABI_KW = (
-    'מכבי ת"א', "מכבי תל אביב", 'מכבי ת״א',
-    "maccabi tel aviv", "maccabi",
-    # Standalone Hebrew "מכבי" — catches short-form headlines (e.g. "מכבי ניצחה בגמר").
-    # Trade-off: may also match other Maccabi clubs (Netanya, Haifa football) when
-    # sport detection has already resolved to basketball.
-    "מכבי",
-)
 _DENI_KW = (
     "דני אבדיה", "אבדיה",
     "deni avdija", "avdija",
@@ -233,12 +359,41 @@ _DENI_KW = (
 )
 
 
-def _detect_entities(text: str) -> list[str]:
+def _detect_entities(text: str, source_id: str = "") -> list[str]:
     entities: list[str] = []
-    if _has(text, *_MACCABI_KW):
+    basketball_only = source_id in _BASKETBALL_ONLY_SOURCES
+
+    # ── Maccabi Tel Aviv ──────────────────────────────────────────────────────
+    if _has_maccabi_tel_aviv_phrase(text):
+        # Full-name form: assign specific entity only when sport context confirms it.
+        # Basketball-only sources (eurohoops, sportando) always mean basketball.
+        if basketball_only or _has_basketball_context(text):
+            entities.append("Maccabi Tel Aviv Basketball")
+        elif _has_football_context(text):
+            entities.append("Maccabi Tel Aviv Football")
+        # else: ambiguous — no entity; classify() adds ambiguous_club tag
+    elif _has(text, "מכבי", "maccabi"):
+        # Short form without "Tel Aviv": assumed basketball.
+        # Football Maccabi clubs (Netanya, Haifa…) are handled upstream by sport
+        # detection; the post-filter in classify() strips this if sport=football.
         entities.append("Maccabi Tel Aviv Basketball")
+
+    # Kattash implies Maccabi TLV Basketball regardless of title form.
+    if _has_kattash_context(text) and "Maccabi Tel Aviv Basketball" not in entities:
+        entities.append("Maccabi Tel Aviv Basketball")
+
+    # ── Hapoel Tel Aviv ──────────────────────────────────────────────────────
+    if _has_hapoel_tel_aviv_phrase(text):
+        if basketball_only or _has_basketball_context(text):
+            entities.append("Hapoel Tel Aviv Basketball")
+        elif _has_football_context(text):
+            entities.append("Hapoel Tel Aviv Football")
+        # else: ambiguous — no entity
+
+    # ── Deni Avdija ──────────────────────────────────────────────────────────
     if _has(text, *_DENI_KW):
         entities.append("Deni Avdija")
+
     return entities
 
 
@@ -465,18 +620,36 @@ def classify(
     text = title.lower()
 
     sport = _detect_sport(text, source_id)
-    entities = _detect_entities(text)
+    entities = _detect_entities(text, source_id)
 
-    # Entity-based sport inference: all currently tracked entities are basketball.
-    # Titles that name a tracked entity without explicit sport keywords (common in
-    # Hebrew headlines) still resolve to the correct sport.
-    if sport == "unknown" and entities:
+    # Detect ambiguous Israeli club titles before sport inference modifies entities.
+    # A title is ambiguous when a full-name club phrase is present but no sport context
+    # allowed entity detection to assign a specific club entity.
+    # Basketball-only sources are never ambiguous — they only cover basketball.
+    _basketball_only_src = source_id in _BASKETBALL_ONLY_SOURCES
+    is_ambiguous_club = not _basketball_only_src and (
+        (
+            _has_maccabi_tel_aviv_phrase(text)
+            and "Maccabi Tel Aviv Basketball" not in entities
+            and "Maccabi Tel Aviv Football" not in entities
+        ) or (
+            _has_hapoel_tel_aviv_phrase(text)
+            and "Hapoel Tel Aviv Basketball" not in entities
+            and "Hapoel Tel Aviv Football" not in entities
+        )
+    )
+
+    # Entity-based sport inference: basketball entities imply basketball sport.
+    # Applies only to unambiguous entities (Kattash, Deni, standalone "מכבי").
+    if sport == "unknown" and entities and not is_ambiguous_club:
         sport = "basketball"
 
-    # Drop basketball entities if sport resolved to football.
-    # Prevents "מכבי חיפה" (football club) from being tagged as Maccabi Tel Aviv Basketball.
+    # Cross-sport entity post-filters — defensive; entity detection should already
+    # agree with sport detection, but these prevent stray entities if they diverge.
     if sport == "football":
-        entities = [e for e in entities if e != "Maccabi Tel Aviv Basketball"]
+        entities = [e for e in entities if e not in ("Maccabi Tel Aviv Basketball", "Hapoel Tel Aviv Basketball")]
+    if sport == "basketball":
+        entities = [e for e in entities if e not in ("Maccabi Tel Aviv Football", "Hapoel Tel Aviv Football")]
 
     league = _detect_league(text, sport, url=url)
 
@@ -499,6 +672,8 @@ def classify(
     importance = _assign_importance(event_type, entities, league)
     confidence = _assign_confidence(sport, league, entities, event_type, source_id)
     tags = _collect_tags(sport, league, entities, event_type)
+    if is_ambiguous_club:
+        tags.append("ambiguous_club")
 
     return ClassificationResult(
         sport=sport,

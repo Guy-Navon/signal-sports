@@ -91,6 +91,8 @@ def get_ingest_quality(session: Session = Depends(get_session)):
             reasons.append("low_confidence")
         if a.event_type == "news" and not a.entities:
             reasons.append("generic_news")
+        if "ambiguous_club" in (a.tags or []):
+            reasons.append("ambiguous_club")
 
         if reasons:
             questionable.append(QuestionableArticle(

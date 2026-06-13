@@ -21,19 +21,18 @@ class TestHebrewMaccabi:
         assert r.confidence >= 0.70
 
     def test_signing(self):
+        # Full-name form without basketball context — ambiguous_club, sport unknown
         r = classify('רשמי: מכבי ת"א חתמה על שחקן חדש', language="he")
-        assert r.sport == "basketball"
-        assert "Maccabi Tel Aviv Basketball" in r.entities
+        assert r.sport == "unknown"
+        assert "ambiguous_club" in r.tags
         assert r.event_type == "signing"
-        assert r.importance == "high"
-        assert r.confidence >= 0.70
 
     def test_injury(self):
+        # Full-name form without basketball context — ambiguous_club, sport unknown
         r = classify("פציעה: שחקן מכבי ת״א ייעדר שלושה שבועות", language="he")
-        assert r.sport == "basketball"
-        assert "Maccabi Tel Aviv Basketball" in r.entities
+        assert r.sport == "unknown"
+        assert "ambiguous_club" in r.tags
         assert r.event_type == "injury"
-        assert r.importance == "high"
 
     def test_candidate(self):
         r = classify('מכבי ת"א בודקת גארד ששיחק ביורוליג', language="he")
@@ -43,11 +42,10 @@ class TestHebrewMaccabi:
         assert r.league == "EuroLeague"
 
     def test_friendly_match_is_low_importance(self):
+        # Full-name form without basketball context — ambiguous_club, sport unknown
         r = classify('מכבי ת"א תשחק משחק ידידות לקראת העונה', language="he")
-        assert r.sport == "basketball"
-        assert "Maccabi Tel Aviv Basketball" in r.entities
-        # friendly matches don't have a specific keyword, falls to match_result or schedule
-        # importance should not be high/very_high
+        assert r.sport == "unknown"
+        assert "ambiguous_club" in r.tags
         assert r.importance not in ("high", "very_high")
 
 

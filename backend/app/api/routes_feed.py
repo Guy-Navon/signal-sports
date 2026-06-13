@@ -15,7 +15,7 @@ def get_feed(user_id: str, session: Session = Depends(get_session)):
     profile = profile_repository.get_by_id(session, user_id)
     if not profile:
         raise HTTPException(status_code=404, detail=f"Profile '{user_id}' not found")
-    articles = article_repository.get_all(session)
+    articles = article_repository.get_rss_articles(session)
     return build_feed(articles, profile, include_hidden=False)
 
 
@@ -24,5 +24,5 @@ def get_debug_feed(user_id: str, session: Session = Depends(get_session)):
     profile = profile_repository.get_by_id(session, user_id)
     if not profile:
         raise HTTPException(status_code=404, detail=f"Profile '{user_id}' not found")
-    articles = article_repository.get_all(session)
+    articles = article_repository.get_rss_articles(session)
     return build_feed(articles, profile, include_hidden=True)

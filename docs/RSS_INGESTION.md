@@ -74,11 +74,12 @@ See `docs/RSS_QUALITY_GUARDRAILS.md` for details on how URL and language filters
 
 ## Configured Sources
 
-| source_id      | display_name   | language | feed_url                               |
-|----------------|---------------|----------|----------------------------------------|
-| `eurohoops`    | Eurohoops     | en       | https://www.eurohoops.net/feed/        |
-| `sportando`    | Sportando     | en       | https://sportando.basketball/feed/     |
-| `walla_sport`  | וואלה ספורט   | he       | https://rss.walla.co.il/feed/7         |
+| source_id             | display_name        | language | feed_url                                    |
+|-----------------------|---------------------|----------|---------------------------------------------|
+| `eurohoops`           | Eurohoops           | en       | https://www.eurohoops.net/feed/             |
+| `sportando`           | Sportando           | en       | https://sportando.basketball/feed/          |
+| `walla_sport`         | וואלה ספורט         | he       | https://rss.walla.co.il/feed/7              |
+| `israel_hayom_sport`  | ישראל היום ספורט    | he       | https://www.israelhayom.co.il/rss.xml       |
 
 ### English sources (PR 7)
 
@@ -87,16 +88,39 @@ Eurohoops and Sportando are basketball-only English sources. They were chosen be
 - The content focus matches the product's current interest areas.
 - The classifier can default `sport = "basketball"` for them without any keywords.
 
-### Hebrew source (PR 8)
+### Hebrew sources (PR 8, PR 10)
 
-Walla Sport (`walla_sport`) is the first Hebrew RSS source. Walla feed ID 7 serves the
+**Walla Sport** (`walla_sport`) is the first Hebrew RSS source. Walla feed ID 7 serves the
 Walla Sport section — confirmed by all items linking to `sports.walla.co.il/item/...`.
 
 Coverage: Israeli basketball (Maccabi, Winner League, EuroCup, EuroLeague), Israeli football,
 international tennis (Grand Slams), NBA, international football events (World Cup, Euros).
 
-See `docs/HEBREW_RSS_SOURCE.md` for the full source selection rationale and verification
-results.
+**Israel Hayom Sport** (`israel_hayom_sport`) is added in PR 10. Israel Hayom publishes a
+general news RSS at `rss.xml` that mixes sport with politics, opinion, and culture. Sport articles
+are identified by `/sport/` in the URL (subpaths: `israeli-basketball`, `world-basketball`,
+`world-soccer`, `other-sports`, `opinions-sport`). The `allowed_url_patterns=("/sport/",)` filter
+retains only sport items; all others are counted as `skipped_filtered`.
+
+See `docs/HEBREW_RSS_SOURCE.md` for full source discovery rationale and the candidates rejected in PR 10.
+
+### Adding a source with URL allowlist filtering (PR 10)
+
+For sources that mix sport and non-sport content, use `allowed_url_patterns` to accept only
+items whose URL matches at least one pattern. Items that do not match are counted as
+`skipped_filtered` and never reach the DB — analogous to `blocked_url_patterns` (blocklist),
+but inverted (allowlist).
+
+```python
+RSSSourceConfig(
+    source_id="israel_hayom_sport",
+    display_name="ישראל היום ספורט",
+    feed_url="https://www.israelhayom.co.il/rss.xml",
+    language="he",
+    allowed_languages=("he",),
+    allowed_url_patterns=("/sport/",),   # only sport-path URLs accepted
+)
+```
 
 ---
 

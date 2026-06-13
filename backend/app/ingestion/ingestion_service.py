@@ -40,6 +40,9 @@ def _should_filter(url: str, cfg: RSSSourceConfig) -> bool:
     if cfg.blocked_url_patterns:
         if any(pat in url_lower for pat in cfg.blocked_url_patterns):
             return True
+    if cfg.allowed_url_patterns:
+        if not any(pat in url_lower for pat in cfg.allowed_url_patterns):
+            return True
     if cfg.allowed_languages:
         item_lang = detect_language(url, "", cfg.language)
         if item_lang not in cfg.allowed_languages:

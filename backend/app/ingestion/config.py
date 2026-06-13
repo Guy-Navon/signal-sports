@@ -21,6 +21,10 @@ class RSSSourceConfig:
     # If non-empty, only these languages are accepted; items whose inferred language
     # does not match are counted as skipped_filtered.
     allowed_languages: tuple[str, ...] = ()
+    # If non-empty, only items whose URL contains at least one of these substrings
+    # are accepted; other items are counted as skipped_filtered.
+    # Use this as a category allowlist when the feed mixes sport and non-sport content.
+    allowed_url_patterns: tuple[str, ...] = ()
 
 
 # ── Configured RSS sources ────────────────────────────────────────────────────
@@ -61,6 +65,20 @@ RSS_SOURCES: list[RSSSourceConfig] = [
         feed_url="https://rss.walla.co.il/feed/7",
         language="he",
         allowed_languages=("he",),
+    ),
+    # Israel Hayom Sport: Hebrew general news site with a sport section.
+    # The main RSS feed (rss.xml) mixes sport and non-sport content (politics,
+    # opinions, culture). Sport articles always contain /sport/ in their URL.
+    # allowed_url_patterns filters out all non-sport articles before dedup/insert.
+    # Covers Israeli basketball (israeli-basketball), Israeli football, world
+    # basketball (NBA/EuroLeague), world football, and other sports.
+    RSSSourceConfig(
+        source_id="israel_hayom_sport",
+        display_name="ישראל היום ספורט",
+        feed_url="https://www.israelhayom.co.il/rss.xml",
+        language="he",
+        allowed_languages=("he",),
+        allowed_url_patterns=("/sport/",),
     ),
 ]
 

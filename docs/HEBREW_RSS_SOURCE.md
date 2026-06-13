@@ -365,6 +365,89 @@ classification shows up in debug with sport=unknown and can be fixed by adding c
 
 ---
 
+## Hebrew RSS Sources Expansion — PR 10
+
+### Source candidates investigated
+
+| Source | Desired source_id | RSS candidates probed | Outcome |
+|--------|------------------|-----------------------|---------|
+| ONE | `one_sport` | `one.co.il/rss`, `/feed/`, `/sport/rss`, `/Sport/RSS`, `/rss.xml`, `/category/sport/feed`, homepage link scan | All return 404. No RSS link tags found on homepage. **Rejected.** |
+| Ynet Sport | `ynet_sport` | `AjaxRSSFeed.aspx?type=1027/1025/1026`, `/sport/rss`, `/sport/feed`, `/sport/?feed=rss2`, sport page link scan | All return 404 or HTML. No RSS link tags on sport page. **Rejected.** |
+| Israel Hayom Sport | `israel_hayom_sport` | `/rss.xml`, `/rss/sport.xml`, `/sport/rss.xml`, `/sport/?feed=rss2`, `/sport/feed/` | `/rss.xml` returns valid RSS (100 items); sport-specific paths return 404 or HTML. **Accepted with URL filter.** |
+| Sport5 | (intentionally excluded) | Not probed | No public RSS known per prior research. **Not attempted.** |
+
+### ONE — rejected
+
+All RSS endpoints return HTTP 404. The ONE homepage contains no RSS or Atom `<link>` tags.
+ONE does not publish a public RSS feed. Category page scraping would be required but is out of
+scope for this PR.
+
+### Ynet Sport — rejected
+
+Ynet's legacy `AjaxRSSFeed.aspx` endpoints (type 1025/1026/1027) all return 404 — these were
+removed at some point. The Ynet sport section (`/sport`) is a JavaScript-rendered SPA with no
+embedded RSS link tags. No sport-specific RSS or Atom endpoint was found. This confirms the
+previous finding from PR 8.
+
+### Israel Hayom Sport — accepted
+
+Israel Hayom (`israelhayom.co.il`) publishes a general news RSS at `/rss.xml`. The feed is
+valid RSS 2.0, Hebrew-language, and consistently available (verified 2026-06-14).
+
+**Feed content profile (sample of 100 items):**
+
+| Category | Count |
+|----------|-------|
+| Sport articles (`/sport/` in URL) | ~21 |
+| Non-sport (news, opinions, culture, etc.) | ~79 |
+
+**Sport URL subpaths observed:**
+- `/sport/israeli-basketball/` — Israeli basketball league (Winner League)
+- `/sport/world-basketball/` — NBA, EuroLeague, international basketball
+- `/sport/world-soccer/` — international football (World Cup, leagues)
+- `/sport/other-sports/` — tennis, Olympics, other sports
+- `/sport/opinions-sport/` — sport opinion pieces
+
+**Why this is acceptable:**
+
+The pattern is the same as Eurohoops: a real source whose RSS includes noise, filtered at the
+ingestion layer. Eurohoops was filtered by language path; Israel Hayom is filtered by category
+path. The resulting ingested set is 100% sport-specific because the URL filter is reliable — all
+IH sport articles link to `/sport/...`.
+
+**Configuration:**
+
+```python
+RSSSourceConfig(
+    source_id="israel_hayom_sport",
+    display_name="ישראל היום ספורט",
+    feed_url="https://www.israelhayom.co.il/rss.xml",
+    language="he",
+    allowed_languages=("he",),
+    allowed_url_patterns=("/sport/",),
+)
+```
+
+**Expected ingestion per run:** ~21 sport articles out of 100 fetched. `skipped_filtered ≈ 79`.
+
+**Known quality risks:**
+
+- The general RSS has only 100 items total. At ~21 sport articles per run, coverage per fetch
+  is limited. APScheduler (when added) should run frequently (every 15–30 min) to catch
+  articles before they age out of the 100-item window.
+- Sport opinion pieces (`/sport/opinions-sport/`) will be ingested. The classifier will mostly
+  classify these as `sport=unknown` (no entity keyword) → `importance=low` → hidden for Guy.
+  This is correct behavior, not a bug.
+- The Israel Hayom style is more opinionated and feature-length than Walla. Titles may be
+  longer and less keyword-rich for the classifier.
+
+### Sport5 — intentionally excluded
+
+Sport5 (`sport5.co.il`) has no known public RSS feed. This was confirmed in PR 8 research and
+is assumed to still be the case. Category page HTML scraping would be required. Deferred.
+
+---
+
 ## Recommended Next Steps
 
 | Priority | Task |
@@ -373,5 +456,5 @@ classification shows up in debug with sport=unknown and can be fixed by adding c
 | High | Hebrew title translation — implemented in PR 9; see `docs/TITLE_TRANSLATION.md` |
 | Medium | Fuzzy dedup — cluster near-duplicate headlines from multiple sources |
 | Medium | Extended Hebrew entity detection — more Israeli teams, coaches, players |
-| Medium | More Israeli sports sources — Sport5 or ONE via category page adapters |
+| Medium | More Israeli sports sources — Sport5 via category page adapter if RSS is unavailable |
 | Low | Feedback → profile mutation — `never_show` creates a hidden event rule |

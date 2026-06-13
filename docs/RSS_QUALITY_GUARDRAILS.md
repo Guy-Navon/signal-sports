@@ -18,24 +18,29 @@ of what enters before any automation is added. Without guardrails:
 
 ## 1. Source-Level URL and Language Filters
 
-### New fields on `RSSSourceConfig`
+### Fields on `RSSSourceConfig`
 
 ```python
 @dataclass(frozen=True)
 class RSSSourceConfig:
     ...
     blocked_url_patterns: tuple[str, ...]  # URL substrings that cause an item to be skipped
+    allowed_url_patterns: tuple[str, ...]  # if non-empty, only URLs matching at least one pattern are accepted
     allowed_languages: tuple[str, ...]     # if non-empty, items not matching are skipped
 ```
 
-Both default to `()` (no filtering) for backward compatibility.
+All default to `()` (no filtering) for backward compatibility.
+
+`allowed_url_patterns` is the inverse of `blocked_url_patterns`: it is an allowlist rather than a
+blocklist. Use it for sources (like Israel Hayom) that publish a general RSS feed — by requiring
+`/sport/` in the URL, non-sport articles are filtered out before they reach the DB.
 
 ### Filter evaluation order
 
 Filters run at the **service level**, after the adapter fetches but before dedup or insert:
 
 ```
-fetch → URL pattern filter → language filter → dedup check → insert
+fetch → blocked_url_patterns → allowed_url_patterns → language filter → dedup check → insert
 ```
 
 This means filtered items never reach the DB and are not counted as duplicates.
@@ -96,6 +101,29 @@ RSSSourceConfig(
 
 `allowed_languages=("he",)` is defensive — the feed is Hebrew-only in practice, but the
 filter ensures non-Hebrew items are skipped if the feed configuration ever changes.
+
+### Israel Hayom Sport configuration (PR 10)
+
+Israel Hayom publishes a single general RSS feed at `/rss.xml` that contains news from all
+categories (sport, politics, opinion, culture, world news). Sport articles always contain
+`/sport/` in the URL path. `allowed_url_patterns=("/sport/",)` acts as a category allowlist
+that turns the general feed into a sport-only feed at the ingestion layer.
+
+A typical fetch of 100 items yields ~21 sport items (`skipped_filtered ≈ 79`).
+
+```python
+RSSSourceConfig(
+    source_id="israel_hayom_sport",
+    display_name="ישראל היום ספורט",
+    feed_url="https://www.israelhayom.co.il/rss.xml",
+    language="he",
+    allowed_languages=("he",),
+    allowed_url_patterns=("/sport/",),
+)
+```
+
+`allowed_url_patterns` is checked after `blocked_url_patterns` and before the language filter.
+Items that do not match are counted as `skipped_filtered` in the live API response.
 
 ### Language inference from URL
 

@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-06-14 — reflects state after PR 9.3 (branch: `feature/translation-quality-polish`).
+Last updated: 2026-06-14 — reflects state after PR 10 (branch: `feature/hebrew-rss-sources-expansion`).
 
 ---
 
@@ -77,7 +77,20 @@ RSS source
 - **What it covers:** Israeli basketball (Maccabi TLV, Winner League, EuroCup, EuroLeague), Israeli football, international tennis (Grand Slams), NBA, World Cup / Euros. Typically 30 items per fetch.
 - **This is the first Hebrew source.** Articles are stored as-is; `original_title = None`; no translation runs.
 - **Known issue:** The broad Walla Sport feed includes a lot of football and generic news. During non-basketball seasons (e.g., FIFA World Cup 2026), the feed is noise-heavy. The classifier correctly downgrades most of this to `hidden` for basketball-focused profiles.
-- **Sport5 / ONE** have no publicly accessible RSS. Category page scraping is deferred.
+
+### Israel Hayom Sport (`israel_hayom_sport`)
+- **Language:** Hebrew (`he`)
+- **Feed URL:** `https://www.israelhayom.co.il/rss.xml` (general RSS filtered by `allowed_url_patterns=("/sport/",)`)
+- **What it covers:** Israeli basketball (israeli-basketball subpath), world basketball (NBA/EuroLeague), world football (World Cup, European football), other sports (tennis, etc.), sport opinion pieces.
+- **Added in PR 10.** Articles stored as Hebrew-native; `original_title = None`; no translation.
+- **Filtering:** The Israel Hayom RSS is a general news feed (100 items, ~21 sport). The `allowed_url_patterns` filter accepts only URLs containing `/sport/`. Non-sport items (politics, opinion, culture) are counted as `skipped_filtered` and never reach the DB.
+- **Sport5 / ONE** have no publicly accessible RSS. ONE and Ynet Sport were probed in PR 10 and confirmed unreachable. Category page scraping is deferred.
+
+### Source infrastructure: `allowed_url_patterns` (PR 10)
+- New field on `RSSSourceConfig`: `allowed_url_patterns: tuple[str, ...] = ()`
+- Analogous to `blocked_url_patterns` (blocklist) but inverted (allowlist)
+- Checked in `_should_filter` after `blocked_url_patterns`, before language filter
+- Enables accepting sport-only articles from general-news RSS feeds via URL category path
 
 ---
 
@@ -98,7 +111,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 
 On startup: tables are created if missing; seed data is inserted only into empty tables (idempotent).
 
-**Test suite:** 409 pytest tests across `backend/tests/`.
+**Test suite:** 471 pytest tests across `backend/tests/`.
 
 **Key API endpoints:**
 
@@ -268,7 +281,7 @@ Then inspect the feed or debug view for real Italian → Hebrew quality. Italian
 - **No auth / multi-user.** User profiles are seeded statically. No login, no registration.
 - **No push notifications.** `push` is a decision level in the engine; no device notification delivery.
 - **No body translation or summaries.** Only titles are translated. Article bodies are not ingested.
-- **Limited source coverage.** Eurohoops, Sportando, Walla Sport only. Sport5 and ONE have no clean public RSS.
+- **Limited source coverage.** Eurohoops, Sportando, Walla Sport, Israel Hayom Sport. Sport5 and ONE have no clean public RSS; Ynet has no sport-specific RSS.
 - **Classifier is keyword-based.** No NLP, no LLM-based classification. Entity extraction is limited to Maccabi TLV, Deni Avdija, Kattash, and three new entity values (Maccabi TLV Football, Hapoel TLV Basketball, Hapoel TLV Football).
 - **Translation quality not yet validated with real API key.** PR 9.3 built the quality guardrails; real-world output quality requires a live Claude API key and a manual review run.
 
@@ -284,7 +297,7 @@ Priority order:
 4. **Feed clustering / fuzzy dedup** — Use `difflib.SequenceMatcher` on titles across sources; populate `cluster_id`. Show one card per story.
 5. **Translation cache / batch translation** — Avoid re-calling the API for articles already translated; the current flow is safe but explicit batching would allow rate-limit-aware processing.
 6. **Feedback → profile mutation** — `never_show` feedback creates a `hidden` event rule for the article's `event_type` in the matched topic. Requires in-place profile update via the repository.
-7. **More Hebrew sources** — Sport5 or ONE via category page adapters if no RSS. Requires an HTML-parsing adapter implementing the `SourceAdapter` interface.
+7. **More Hebrew sources** — Sport5 via category page HTML adapter (no RSS available). ONE and Ynet have no usable RSS and were rejected in PR 10.
 8. **Better entity extraction** — Extend `_MACCABI_KW`, add more Israeli coaches and players, add NBA player names for entity-specific scoring.
 
 ---
@@ -341,7 +354,10 @@ POST http://127.0.0.1:8000/api/ingest/run              # all sources
 POST http://127.0.0.1:8000/api/ingest/run?source_id=eurohoops
 POST http://127.0.0.1:8000/api/ingest/run?source_id=sportando
 POST http://127.0.0.1:8000/api/ingest/run?source_id=walla_sport
+POST http://127.0.0.1:8000/api/ingest/run?source_id=israel_hayom_sport
 ```
+Expected for `israel_hayom_sport`: `fetched=100, inserted≈21, skipped_filtered≈79, failed=0`.
+Second run: `inserted=0, skipped_duplicate≈21`.
 
 ### Manual translation backfill
 ```

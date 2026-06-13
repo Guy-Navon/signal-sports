@@ -5,11 +5,12 @@ All translation calls are mocked — no external API calls.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 from datetime import datetime, timezone
 
 from app.models.article import Article
 from app.models.translation import BackfillResult
+from app.translation.fake_detection import FAKE_PREFIX
 
 
 def _make_article(
@@ -57,7 +58,7 @@ class TestBackfillLogic:
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=True, reclassify=False,
-                session=MagicMock(),
+                include_fake=False, force=False, session=MagicMock(),
             )
 
         assert isinstance(result, BackfillResult)
@@ -81,7 +82,7 @@ class TestBackfillLogic:
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=False,
-                session=MagicMock(),
+                include_fake=False, force=False, session=MagicMock(),
             )
 
         assert result.skipped_already_translated == 1
@@ -99,7 +100,7 @@ class TestBackfillLogic:
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=False,
-                session=MagicMock(),
+                include_fake=False, force=False, session=MagicMock(),
             )
 
         assert result.skipped_hebrew == 2
@@ -120,7 +121,7 @@ class TestBackfillLogic:
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=False,
-                session=MagicMock(),
+                include_fake=False, force=False, session=MagicMock(),
             )
 
         assert result.status == "skipped"
@@ -143,7 +144,7 @@ class TestBackfillLogic:
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=True,
-                session=MagicMock(),
+                include_fake=False, force=False, session=MagicMock(),
             )
 
         assert result.translated == 1
@@ -165,7 +166,7 @@ class TestBackfillLogic:
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=False,
-                session=MagicMock(),
+                include_fake=False, force=False, session=MagicMock(),
             )
 
         assert result.failed == 1
@@ -186,7 +187,7 @@ class TestBackfillLogic:
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=3, source_id=None, dry_run=False, reclassify=False,
-                session=MagicMock(),
+                include_fake=False, force=False, session=MagicMock(),
             )
 
         assert result.candidates == 3
@@ -205,7 +206,7 @@ class TestBackfillLogic:
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=False,
-                session=MagicMock(),
+                include_fake=False, force=False, session=MagicMock(),
             )
 
         assert result.candidates == 0
@@ -232,7 +233,7 @@ class TestBackfillLogic:
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=False,
-                session=MagicMock(),
+                include_fake=False, force=False, session=MagicMock(),
             )
 
         assert result.translated == 1
@@ -244,3 +245,292 @@ class TestBackfillLogic:
         # DB update should store corrected language
         call_kwargs = mock_upd.call_args[1]
         assert call_kwargs["language"] == "it"
+
+
+class TestBackfillIncludeFake:
+
+    def _fake_article(self, article_id, original="Boston Celtics sign guard"):
+        stub = f"{FAKE_PREFIX} {original}"
+        return _make_article(
+            article_id,
+            title=stub,
+            language="en",
+            original_title=original,
+            translated_title=stub,
+        )
+
+    def test_include_fake_false_skips_stub_articles(self):
+        """Default: stub-translated articles are counted as already-translated."""
+        item = self._fake_article("en1")
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[item]), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            result = backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                include_fake=False, force=False, session=MagicMock(),
+            )
+
+        assert result.skipped_already_translated == 1
+        assert result.candidates == 0
+        assert result.translated == 0
+        assert result.retranslated_fake == 0
+
+    def test_include_fake_true_reprocesses_stub_articles(self):
+        """include_fake=True makes stub-translated articles candidates."""
+        item = self._fake_article("en1")
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[item]), \
+             patch("app.api.routes_translation.translate_title",
+                   return_value="בוסטון סלטיקס חתמו") as mock_tr, \
+             patch("app.api.routes_translation.article_repository.update_translation_fields") as mock_upd, \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            result = backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                include_fake=True, force=False, session=MagicMock(),
+            )
+
+        assert result.candidates == 1
+        assert result.translated == 1
+        assert result.retranslated_fake == 1
+        assert result.skipped_already_translated == 0
+
+    def test_include_fake_uses_original_title_as_source(self):
+        """Retranslation uses original_title, not the stub title."""
+        item = self._fake_article("en1", original="Boston Celtics sign guard")
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[item]), \
+             patch("app.api.routes_translation.translate_title",
+                   return_value="בוסטון סלטיקס") as mock_tr, \
+             patch("app.api.routes_translation.article_repository.update_translation_fields"), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                include_fake=True, force=False, session=MagicMock(),
+            )
+
+        mock_tr.assert_called_once()
+        text_arg = mock_tr.call_args[0][0]
+        assert text_arg == "Boston Celtics sign guard"
+        assert FAKE_PREFIX not in text_arg
+
+    def test_include_fake_writes_real_title_to_db(self):
+        """DB update stores real Hebrew translation, not the stub."""
+        item = self._fake_article("en1")
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[item]), \
+             patch("app.api.routes_translation.translate_title",
+                   return_value="בוסטון סלטיקס חתמו על שחקן"), \
+             patch("app.api.routes_translation.article_repository.update_translation_fields") as mock_upd, \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                include_fake=True, force=False, session=MagicMock(),
+            )
+
+        call_kwargs = mock_upd.call_args[1]
+        assert call_kwargs["title"] == "בוסטון סלטיקס חתמו על שחקן"
+        assert call_kwargs["translated_title"] == "בוסטון סלטיקס חתמו על שחקן"
+        assert FAKE_PREFIX not in call_kwargs["title"]
+
+    def test_include_fake_dry_run_does_not_write_db(self):
+        item = self._fake_article("en1")
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[item]), \
+             patch("app.api.routes_translation.translate_title", return_value="בוסטון"), \
+             patch("app.api.routes_translation.article_repository.update_translation_fields") as mock_upd, \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            result = backfill_translations(
+                limit=None, source_id=None, dry_run=True, reclassify=False,
+                include_fake=True, force=False, session=MagicMock(),
+            )
+
+        assert result.translated == 1
+        assert result.retranslated_fake == 1
+        mock_upd.assert_not_called()
+
+    def test_include_fake_disabled_provider_returns_skipped(self):
+        """Provider not ready + include_fake → skipped, not ok."""
+        item = self._fake_article("en1")
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[item]), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": False, "reason": "disabled"}):
+            from app.api.routes_translation import backfill_translations
+            result = backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                include_fake=True, force=False, session=MagicMock(),
+            )
+
+        assert result.status == "skipped"
+        assert result.provider_ready is False
+        assert result.candidates == 1
+        assert result.translated == 0
+
+
+class TestBackfillForce:
+
+    def test_force_retranslates_already_translated_article(self):
+        """force=True re-translates articles that have a real translation."""
+        item = _make_article(
+            "en1", "מכבי תל אביב חתמה",
+            language="en",
+            original_title="Maccabi Tel Aviv sign guard",
+            translated_title="מכבי תל אביב חתמה",
+        )
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[item]), \
+             patch("app.api.routes_translation.translate_title",
+                   return_value="מכבי חתמה על גארד") as mock_tr, \
+             patch("app.api.routes_translation.article_repository.update_translation_fields") as mock_upd, \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            result = backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                include_fake=False, force=True, session=MagicMock(),
+            )
+
+        assert result.candidates == 1
+        assert result.translated == 1
+        assert result.forced_retranslated == 1
+        assert result.retranslated_fake == 0
+        mock_tr.assert_called_once()
+        text_arg = mock_tr.call_args[0][0]
+        assert text_arg == "Maccabi Tel Aviv sign guard"
+
+    def test_force_uses_original_title_as_source(self):
+        item = _make_article(
+            "en1", "מכבי תל אביב",
+            language="en",
+            original_title="Maccabi Tel Aviv news",
+            translated_title="מכבי תל אביב",
+        )
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[item]), \
+             patch("app.api.routes_translation.translate_title", return_value="מכבי") as mock_tr, \
+             patch("app.api.routes_translation.article_repository.update_translation_fields"), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                include_fake=False, force=True, session=MagicMock(),
+            )
+
+        text_arg = mock_tr.call_args[0][0]
+        assert text_arg == "Maccabi Tel Aviv news"
+
+    def test_force_skips_stub_when_original_title_missing(self):
+        """force=True but original_title is None and title is a stub → skip."""
+        stub = f"{FAKE_PREFIX} Some title"
+        item = _make_article(
+            "en1", stub,
+            language="en",
+            original_title=None,
+            translated_title=stub,
+        )
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[item]), \
+             patch("app.api.routes_translation.translate_title") as mock_tr, \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            result = backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                include_fake=False, force=True, session=MagicMock(),
+            )
+
+        mock_tr.assert_not_called()
+        assert result.translated == 0
+        assert result.skipped_provider_not_ready == 1
+
+    def test_force_does_not_touch_hebrew_articles(self):
+        """Hebrew articles are never retranslated even with force=True."""
+        he = _make_article("he1", "מכבי תל אביב", language="he",
+                           original_title="מכבי תל אביב", translated_title="מכבי תל אביב")
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[he]), \
+             patch("app.api.routes_translation.translate_title") as mock_tr, \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            result = backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                include_fake=False, force=True, session=MagicMock(),
+            )
+
+        mock_tr.assert_not_called()
+        assert result.skipped_hebrew == 1
+        assert result.translated == 0
+
+    def test_force_and_include_fake_together(self):
+        """force=True takes priority over include_fake — all non-Hebrew are candidates."""
+        real = _make_article("en1", "מכבי", language="en",
+                             original_title="Maccabi news", translated_title="מכבי")
+        stub = f"{FAKE_PREFIX} Some"
+        fake = _make_article("en2", stub, language="en",
+                             original_title="Some title", translated_title=stub)
+        untranslated = _make_article("en3", "Deni Avdija news", language="en")
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[real, fake, untranslated]), \
+             patch("app.api.routes_translation.translate_title", return_value="כותרת"), \
+             patch("app.api.routes_translation.article_repository.update_translation_fields"), \
+             patch("app.api.routes_translation.article_repository.update_classification_fields"), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            result = backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                include_fake=True, force=True, session=MagicMock(),
+            )
+
+        assert result.candidates == 3
+        assert result.translated == 3
+        assert result.forced_retranslated == 2  # real + fake go through "forced" mode
+        assert result.skipped_already_translated == 0
+
+    def test_reclassify_after_retranslation(self):
+        """reclassify=True still works after retranslation via include_fake."""
+        stub = f"{FAKE_PREFIX} Boston Celtics"
+        item = _make_article("en1", stub, language="en",
+                             original_title="Boston Celtics news", translated_title=stub)
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[item]), \
+             patch("app.api.routes_translation.translate_title", return_value="בוסטון סלטיקס"), \
+             patch("app.api.routes_translation.article_repository.update_translation_fields"), \
+             patch("app.api.routes_translation.article_repository.update_classification_fields") as mock_cl, \
+             patch("app.api.routes_translation.classify") as mock_classify, \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=True,
+                include_fake=True, force=False, session=MagicMock(),
+            )
+
+        mock_classify.assert_called_once()
+        classify_text = mock_classify.call_args[0][0]
+        assert classify_text == "בוסטון סלטיקס"
+        mock_cl.assert_called_once()

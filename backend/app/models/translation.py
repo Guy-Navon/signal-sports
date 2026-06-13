@@ -22,6 +22,8 @@ class BackfillResult(BaseModel):
     checked: int
     candidates: int
     translated: int
+    retranslated_fake: int = 0      # articles re-translated from a fake/stub translation
+    forced_retranslated: int = 0    # articles re-translated via force=true
     skipped_hebrew: int
     skipped_already_translated: int
     skipped_provider_not_ready: int

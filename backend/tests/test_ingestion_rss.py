@@ -131,7 +131,8 @@ class TestNormalisation:
             language="he",
         )
 
-    def test_english_source_sets_original_title(self):
+    @patch("app.ingestion.ingestion_service.translate_title", return_value=None)
+    def test_english_source_sets_original_title(self, _mock_tr):
         item = RawSourceItem(
             source_id="eurohoops",
             url="https://eurohoops.net/1",
@@ -178,7 +179,8 @@ class TestNormalisation:
         after = datetime.now(tz=timezone.utc)
         assert before <= article.published_at <= after
 
-    def test_classification_flows_through(self):
+    @patch("app.ingestion.ingestion_service.translate_title", return_value=None)
+    def test_classification_flows_through(self, _mock_tr):
         item = RawSourceItem(
             source_id="eurohoops",
             url="https://eurohoops.net/article/deni-trade",

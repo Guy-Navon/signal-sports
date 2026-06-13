@@ -103,3 +103,51 @@ class TestDetectLanguage:
             "en",
         )
         assert result == "en"
+
+    def test_sportando_italian_detected_via_keyword_heuristic(self):
+        # Sportando Italian articles have no /it/ in URL — must use keyword heuristic
+        result = detect_language(
+            "https://www.sportando.basketball/paris-basketball-dave-joerger",
+            "Paris Basketball tratta Dave Joerger per la panchina",
+            "en",  # source default — should be overridden
+        )
+        assert result == "it"
+
+    def test_italian_fallback_does_not_trigger_for_english(self):
+        result = detect_language(
+            "https://www.eurohoops.net/article/123",
+            "Deni Avdija signed a new contract",
+            "en",
+        )
+        assert result == "en"
+
+
+class TestDetectItalianFromText:
+    def test_tratta_keyword(self):
+        from app.translation.language_detection import detect_italian_from_text
+        assert detect_italian_from_text("Paris Basketball tratta Dave Joerger") is True
+
+    def test_panchina_keyword(self):
+        from app.translation.language_detection import detect_italian_from_text
+        assert detect_italian_from_text("Allenatore sulla panchina del Real Madrid") is True
+
+    def test_stagione_keyword(self):
+        from app.translation.language_detection import detect_italian_from_text
+        assert detect_italian_from_text("Nuova stagione per la squadra") is True
+
+    def test_english_text_is_not_italian(self):
+        from app.translation.language_detection import detect_italian_from_text
+        assert detect_italian_from_text("Deni Avdija traded to Portland Trail Blazers") is False
+
+    def test_empty_string_is_not_italian(self):
+        from app.translation.language_detection import detect_italian_from_text
+        assert detect_italian_from_text("") is False
+
+    def test_case_insensitive(self):
+        from app.translation.language_detection import detect_italian_from_text
+        assert detect_italian_from_text("TRATTA e ACCORDO") is True
+
+    def test_mixed_italian_english_detected(self):
+        from app.translation.language_detection import detect_italian_from_text
+        # Real Sportando headline pattern: team name in English, verb in Italian
+        assert detect_italian_from_text("Umana Reyer in EuroCup: stagione pluriennale") is True

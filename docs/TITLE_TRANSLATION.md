@@ -1,347 +1,162 @@
-# Title Translation — PR 9
+# Title Translation
 
-## Hebrew-First Display Rule
-
-Signal Sports is an Israeli/Hebrew-first product.
-
-Every article displayed in the Feed or Debug view should have a **Hebrew title as the
-primary (top) title**.  Non-Hebrew source articles should not appear in Italian, Greek,
-Turkish, or English as the main headline.
-
-### For Hebrew articles (Walla Sport)
-
-```
-language       = "he"
-title          = raw RSS title  (Hebrew)
-original_title = None
-translated_title = None
-```
-
-UI shows: Hebrew title only. No source-language metadata line.
-
-### For non-Hebrew articles (Eurohoops, Sportando, …)
-
-```
-language         = detected source language  (en / it / el / tr / …)
-original_title   = raw RSS title
-translated_title = Hebrew translation
-title            = Hebrew translation
-```
-
-UI shows:
-- Main title: Hebrew (`translated_title`)
-- Below it: `שפת מקור: איטלקית · כותרת מקור: Paris Basketball tratta Dave Joerger`
-
-When translation is **disabled** (default, noop provider):
-- `translated_title` remains `None`
-- `title` stays as the original RSS title
-- The original-language metadata line still appears (because `language != "he"` and
-  `original_title` is set)
+Signal Sports displays a Hebrew title as the primary title for every article,
+regardless of the source language.  This document explains the full translation
+pipeline implemented in PR 9 and PR 9.1.
 
 ---
 
-## `title` / `original_title` / `translated_title` Semantics
+## How It Works
 
-| Field             | Hebrew article | Non-Hebrew article (translated) | Non-Hebrew article (no provider) |
-|------------------|---------------|--------------------------------|----------------------------------|
-| `title`          | Hebrew raw    | Hebrew translation             | Raw RSS title                    |
-| `original_title` | `None`        | Raw RSS title                  | Raw RSS title                    |
-| `translated_title` | `None`      | Hebrew translation             | `None`                           |
-| `language`       | `"he"`        | detected language (e.g. `"it"`)| detected language                |
+### 1. Language Detection (at ingestion time)
 
-**`title` is always the display title** — the frontend should prefer `translatedTitle`
-but fall back to `title`.  The normalizer already sets `title = translatedTitle` when
-translation succeeds, so using `translatedTitle || title` gives the correct result in
-all cases.
+`app/translation/language_detection.py` → `detect_language(url, title, default)`
 
----
+Detection priority:
 
-## Language Detection
+| Stage | Method | Examples |
+|-------|--------|---------|
+| 1 | URL path segment | `/it/` → Italian, `/el/` → Greek |
+| 2 | Unicode script of title | Hebrew (U+0590–05FF), Greek, Cyrillic |
+| 3 | Italian keyword heuristic | `tratta`, `panchina`, `stagione`, … |
+| 4 | Source config default | `"en"` for Eurohoops, `"he"` for Sport5 |
 
-File: `backend/app/translation/language_detection.py`
+**Why a keyword heuristic for Italian?**
+Sportando (`sportando.basketball`) publishes Italian-language articles but their
+URLs contain no `/it/` segment.  Latin-script Italian is indistinguishable from
+English by Unicode script alone, so a curated vocabulary of unambiguous Italian
+sports words is used.
 
-Detection runs in three stages, in order:
+### 2. Translation (at ingestion time and via backfill)
 
-### 1. URL path segment
+`app/translation/translation_service.py` → `translate_title(title, source_language)`
 
-Known path segments are checked against the article URL:
+- Hebrew articles → **never translated** (returns `None`)
+- Non-Hebrew articles → passed to the active provider
+- Provider failure → logged, returns `None` (original title kept)
 
-| Path   | Language |
-|--------|---------|
-| `/he/` | `he`    |
-| `/en/` | `en`    |
-| `/it/` | `it`    |
-| `/el/` | `el`    |
-| `/tr/` | `tr`    |
-| `/es/` | `es`    |
-| `/fr/` | `fr`    |
-| `/de/` | `de`    |
-| `/pt/` | `pt`    |
-| `/ru/` | `ru`    |
-| `/sr/` | `sr`    |
-| `/pl/` | `pl`    |
-| `/cs/` | `cs`    |
-| `/nl/` | `nl`    |
+### 3. Article fields after translation
 
-Example: `https://eurohoops.net/it/notizie/123` → `"it"`
-
-### 2. Unicode script of the title
-
-If the URL gives no hint, the first 40 characters of the title are scanned:
-
-| Script   | Language returned |
-|----------|-----------------|
-| Hebrew   | `"he"`          |
-| Greek    | `"el"`          |
-| Cyrillic | `"ru"`          |
-
-Latin-script languages (English, Italian, Spanish, French, Portuguese…) cannot be
-distinguished by script alone — they fall through to stage 3.
-
-### 3. Source config default
-
-If both URL and text give no signal, the source's configured `language` is used.
+| Field | Meaning |
+|-------|---------|
+| `title` | Hebrew title (primary display) |
+| `original_title` | Original RSS title |
+| `translated_title` | Same as `title` when translated; `None` when not |
+| `language` | Detected language code (`"en"`, `"it"`, `"el"`, …) |
 
 ---
 
-## Translation Provider Configuration
+## Translation Providers
 
-File: `backend/app/translation/translation_service.py`
+Configured by the `TRANSLATION_PROVIDER` environment variable in `backend/.env`.
 
-The active provider is selected from environment variables at startup.
+| Value | Behaviour |
+|-------|-----------|
+| `disabled` (default) | No translation; articles show their original title |
+| `fake` | Dev-only stub; known titles → realistic Hebrew, others → `"תרגום בדיקה: <original>"` |
+| `claude` | Uses the Anthropic Claude API (requires `TRANSLATION_API_KEY`) |
 
-```env
-TRANSLATION_PROVIDER=disabled   # or: claude
-TRANSLATION_API_KEY=<key>        # required when provider=claude
-TRANSLATION_MODEL=claude-haiku-4-5-20251001   # optional, defaults to haiku
-```
+### Local Development Without an API Key
 
-### `disabled` (default)
-
-`NoopTranslationProvider` is used.  Translation is skipped.  Ingestion still works.
-Articles are inserted with `translated_title = None` and `title = original RSS title`.
-
-### `claude`
-
-`ClaudeTranslationProvider` is used.  Each non-Hebrew article title is translated via
-the Anthropic Messages API (one call per article).  The model is configurable.
-
-If `TRANSLATION_API_KEY` is not set when `TRANSLATION_PROVIDER=claude` is configured,
-the provider falls back to noop and logs a warning.
-
-### Provider behavior when a single translation fails
-
-- The failure is caught, logged, and does not crash ingestion.
-- `translated_title` remains `None`.
-- `title` stays as the original RSS title.
-- The ingestion run counter shows `failed += 1` for that item.
-
-### Translation prompt
-
-The Claude provider uses a sports-aware system prompt that:
-- Returns only the translated headline (no explanation, no wrapping quotes)
-- Preserves well-known team/player names in common Hebrew sports forms
-- Preserves numbers, scores, years, competition names
-- Does not add facts not present in the original
+Set `TRANSLATION_PROVIDER=fake` in `backend/.env`.
+The fake provider returns realistic Hebrew for a small built-in dictionary of
+sample headlines, and a clearly labeled stub for everything else.
+No API key is required.
 
 ---
 
-## Ingestion Flow (with Translation)
+## Environment Variables
+
+See `backend/.env.example` for the full reference.
 
 ```
-raw RSS item
-↓
-URL + language filter (may skip)
-↓
-URL dedup check (may skip — avoids re-translating duplicates)
-↓
-detect language (URL path → Unicode script → source default)
-↓
-if language != "he":
-    set original_title = raw title
-    translate to Hebrew
-    if translation succeeded:
-        set translated_title = hebrew
-        set title = hebrew
-        classify using hebrew title
-    else:
-        translated_title = None
-        title = raw title
-        classify using raw title
-else:
-    original_title = None
-    translated_title = None
-    title = raw title
-    classify using raw title
-↓
-insert article
+TRANSLATION_PROVIDER=disabled
+TRANSLATION_API_KEY=
+TRANSLATION_MODEL=claude-haiku-4-5-20251001
 ```
 
 ---
 
-## Backfill Existing Articles
+## Backfill Endpoint
 
-API: `POST /api/translations/backfill`
+`POST /api/translations/backfill`
 
-Used to translate articles already stored in SQLite from before a translation provider
-was configured, without deleting the database.
+Translates existing articles in the database that were ingested before the
+translation provider was configured.
 
-### Parameters (query string)
+| Query param | Default | Description |
+|-------------|---------|-------------|
+| `dry_run` | `false` | Preview without writing to DB |
+| `limit` | none | Max articles to process |
+| `source_id` | none | Filter to a single source |
+| `reclassify` | `true` | Re-classify using the Hebrew title after translation |
 
-| Parameter  | Type    | Default | Description |
-|-----------|---------|---------|-------------|
-| `limit`    | int     | —       | Max articles to process |
-| `source_id`| string  | —       | Limit to one source |
-| `dry_run`  | bool    | false   | Preview without writing |
-| `reclassify` | bool  | true    | Re-classify using Hebrew title after translation |
+**When provider is not ready**, the endpoint returns `status: "skipped"` with
+`provider_ready: false` and a `reason` string — it never silently returns `"ok"`.
 
-### Candidate selection
+**Language correction**: the backfill re-detects language from the URL and title
+even for already-stored articles.  This corrects mislabeled articles
+(e.g. Italian Sportando articles stored as `"en"`).
 
-Articles are candidates when:
-- `language != "he"` (not a Hebrew article)
-- `translated_title IS NULL` (not yet translated)
+---
 
-Hebrew articles are skipped. Already-translated articles are skipped.
-Running backfill twice is safe.
+## Status Endpoint
 
-### Response
+`GET /api/translations/status`
+
+Returns the current provider configuration so the UI can show a meaningful
+status badge without attempting a backfill first.
 
 ```json
 {
-  "status": "ok",
-  "checked": 60,
-  "candidates": 24,
-  "translated": 22,
-  "skipped_hebrew": 30,
-  "skipped_already_translated": 4,
-  "failed": 2,
-  "dry_run": false,
-  "errors": [
-    {
-      "article_id": "rss_abc123",
-      "title": "...",
-      "error": "..."
-    }
-  ]
+  "provider": "fake",
+  "configured": true,
+  "can_translate": true,
+  "model": null,
+  "reason": "Dev-only fake provider active — translations are stubs"
 }
 ```
 
-### Frontend
+---
 
-The **תרגום כותרות** section in the Sources ingestion panel (backend mode only):
-- Button: `תרגם כותרות חסרות`
-- Dry-run checkbox: `בדיקה בלבד`
-- Source selector reuses the current source selection in the panel
-- After success, the feed refreshes automatically if articles were translated
+## UI Behaviour
+
+### Feed card
+
+- **Translated article**: Hebrew title shown as primary.  Original-language
+  metadata shown in gray below: `שפת מקור: איטלקית · כותרת מקור: <original>`.
+- **Untranslated article**: Original title shown as primary, with amber
+  `לא תורגם` prefix in the metadata line.
+
+### Ingestion panel — Translation section
+
+- `ProviderStatusBadge` shows the active provider state: green (claude),
+  amber (fake), gray (disabled).
+- When provider is not ready, a warning banner is displayed.
+- Backfill result shows `status: "skipped"` in amber, never false success.
+- Non-zero stat breakdown: `language_corrected`, `skipped_provider_not_ready`, etc.
 
 ---
 
-## UI Behavior
+## dotenv Loading
 
-### FeedCard
+`backend/.env` is loaded in `app/main.py` **before** any other imports using
+`python-dotenv`.  This is critical because `TRANSLATION_PROVIDER` and
+`DATABASE_URL` are read at module import time.
 
-The `displayTitle` is resolved as: `translatedTitle || title`.
+```python
+def _load_dotenv() -> None:
+    env_file = pathlib.Path(__file__).parent.parent / ".env"
+    if not env_file.exists():
+        return
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(env_file, override=False)
+    except ImportError:
+        pass
 
-For non-Hebrew articles, a metadata line appears below the main title:
+_load_dotenv()  # Must be first — before all other imports
 ```
-שפת מקור: איטלקית · כותרת מקור: Paris Basketball tratta Dave Joerger per la panchina
-```
 
-The metadata line uses `dir="auto"` so the original-language text renders correctly.
-
-For Hebrew articles no metadata line appears.
-
-### Language code mapping (UI)
-
-| Code | Hebrew name |
-|------|------------|
-| `en` | אנגלית     |
-| `it` | איטלקית    |
-| `el` | יוונית     |
-| `tr` | טורקית     |
-| `es` | ספרדית     |
-| `fr` | צרפתית     |
-| `de` | גרמנית     |
-| `pt` | פורטוגזית  |
-| `ru` | רוסית      |
-| `he` | עברית      |
-
----
-
-## Tests
-
-### Language detection (`test_language_detection.py`)
-
-- URL path detection for all supported languages
-- Unicode script detection: Hebrew, Greek, Cyrillic
-- Latin-only titles return `None` from text detection
-- `detect_language()` priority: URL → text → default
-
-### Translation service (`test_translation_service.py`)
-
-- `NoopTranslationProvider` always returns `None`
-- Hebrew source is not translated (early return)
-- Provider failure returns `None` and does not raise
-- Inline provider override for tests
-- Provider receives correct title + language
-
-### Ingestion with translation (`test_ingestion_translation.py`)
-
-- Italian URL → `language="it"`, `original_title`, `translated_title`, `title` all correct
-- Hebrew article → translate not called, no metadata fields set
-- Translation failure → `translated_title=None`, `title` = original
-- Greek title detected from Unicode script → provider called with `"el"`
-- URL dedup happens before translation — second run doesn't translate
-
-### Backfill (`test_translation_backfill.py`)
-
-- Dry run does not write to DB but returns accurate counts
-- Already-translated articles are skipped
-- Hebrew articles are skipped
-- Noop provider counts as "skipped"
-- DB update is called with correct fields
-- Error in one article does not abort the batch
-- `limit` parameter is respected
-- Running backfill twice is safe
-
-### Automated tests do not call real translation APIs
-
-All tests use mocked providers.  No `TRANSLATION_API_KEY` is required to run the suite.
-
----
-
-## Known Limitations
-
-1. **Noop by default.** Without `TRANSLATION_PROVIDER=claude` + key, no translation happens.
-   The UI will show original titles for non-Hebrew articles, with the source-language
-   metadata line below.
-
-2. **No batch translation in ingestion.** Each article is translated individually.
-   If ingesting a large feed with many articles, this will issue one API call per article.
-   A batching mechanism can be added later.
-
-3. **Latin script ambiguity.** English, Italian, French, Portuguese, and other Latin-script
-   languages cannot be distinguished by Unicode script alone.  URL path hints catch most
-   cases (Eurohoops `/it/`, `/el/`).  Without a path hint, the source config default
-   (`"en"`) is used — which may label an Italian article as `"en"` if the URL has no
-   language segment.  The translation will still be correct (the model handles it), but
-   the displayed `שפת מקור` line will say "אנגלית" instead of "איטלקית".
-
-4. **No translation for summary/body.** Only the title is translated.  The article
-   body still links to the original source in its original language.
-
-5. **Reclassification after backfill is optional.** If `reclassify=false`, the article's
-   sport/league/entities remain based on the original (non-Hebrew) classification.
-   The Hebrew title may enable better classification — `reclassify=true` (default) enables this.
-
----
-
-## Recommended Next Steps
-
-| Priority | Task |
-|----------|------|
-| High | Configure `TRANSLATION_PROVIDER=claude` + key in a `.env.local` file and run backfill |
-| High | Scheduled ingestion — translate new articles as they arrive |
-| Medium | Batch translation — group multiple titles per API call to reduce latency and cost |
-| Medium | Better Latin-script language detection — integrate `langdetect` or `lingua` for Italian/French/etc. |
-| Low | Translation caching — avoid re-translating identical titles from different sources |
+`override=False` means environment variables already set in the shell take
+priority over `.env` values.

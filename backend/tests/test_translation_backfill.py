@@ -41,17 +41,8 @@ def _make_article(
 
 
 class TestBackfillLogic:
-    """Unit tests that exercise the backfill endpoint logic through the FastAPI test client."""
-
-    def _get_client(self):
-        # Import here to use conftest DB isolation
-        from app.main import create_app
-        from fastapi.testclient import TestClient
-        app = create_app()
-        return TestClient(app)
 
     def test_backfill_dry_run_returns_summary(self):
-        """Dry run must not write to DB but must return accurate candidate count."""
         italian = _make_article("it1", "Paris Basketball tratta Dave Joerger", language="en")
         hebrew = _make_article("he1", "מכבי תל אביב", language="he")
 
@@ -59,22 +50,19 @@ class TestBackfillLogic:
                    return_value=[italian, hebrew]), \
              patch("app.api.routes_translation.translate_title",
                    return_value="פריז באסקטבול") as mock_tr, \
-             patch("app.api.routes_translation.article_repository.update_translation_fields") as mock_upd:
+             patch("app.api.routes_translation.article_repository.update_translation_fields") as mock_upd, \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
 
             from app.api.routes_translation import backfill_translations
-            from unittest.mock import MagicMock
-            mock_session = MagicMock()
-
             result = backfill_translations(
-                limit=None,
-                source_id=None,
-                dry_run=True,
-                reclassify=False,
-                session=mock_session,
+                limit=None, source_id=None, dry_run=True, reclassify=False,
+                session=MagicMock(),
             )
 
         assert isinstance(result, BackfillResult)
         assert result.dry_run is True
+        assert result.provider_ready is True
         assert result.skipped_hebrew == 1
         assert result.candidates == 1
         assert result.translated == 1
@@ -87,7 +75,9 @@ class TestBackfillLogic:
         )
 
         with patch("app.api.routes_translation.article_repository.get_rss_articles",
-                   return_value=[already]):
+                   return_value=[already]), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=False,
@@ -103,7 +93,9 @@ class TestBackfillLogic:
         he2 = _make_article("he2", "כדורסל", language="he")
 
         with patch("app.api.routes_translation.article_repository.get_rss_articles",
-                   return_value=[he1, he2]):
+                   return_value=[he1, he2]), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=False,
@@ -114,22 +106,28 @@ class TestBackfillLogic:
         assert result.candidates == 0
         assert result.translated == 0
 
-    def test_backfill_noop_provider_counts_as_skipped(self):
+    def test_backfill_disabled_provider_returns_skipped_status(self):
+        """When provider is not ready, backfill returns status='skipped', not 'ok'."""
         item = _make_article("en1", "Some English title", language="en")
 
         with patch("app.api.routes_translation.article_repository.get_rss_articles",
                    return_value=[item]), \
-             patch("app.api.routes_translation.translate_title", return_value=None):
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={
+                       "can_translate": False,
+                       "reason": "TRANSLATION_PROVIDER is disabled",
+                   }):
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=False,
                 session=MagicMock(),
             )
 
-        assert result.candidates == 1
+        assert result.status == "skipped"
+        assert result.provider_ready is False
         assert result.translated == 0
-        # When provider returns None (noop), it increments skipped_already_translated
-        assert result.skipped_already_translated >= 1
+        assert result.skipped_provider_not_ready == 1
+        assert "disabled" in (result.reason or "")
 
     def test_backfill_updates_db_for_candidate(self):
         item = _make_article("en1", "Paris Basketball news", language="en")
@@ -139,7 +137,9 @@ class TestBackfillLogic:
              patch("app.api.routes_translation.translate_title",
                    return_value="פריז באסקטבול") as mock_tr, \
              patch("app.api.routes_translation.article_repository.update_translation_fields") as mock_upd, \
-             patch("app.api.routes_translation.article_repository.update_classification_fields"):
+             patch("app.api.routes_translation.article_repository.update_classification_fields"), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=True,
@@ -159,7 +159,9 @@ class TestBackfillLogic:
         with patch("app.api.routes_translation.article_repository.get_rss_articles",
                    return_value=[item]), \
              patch("app.api.routes_translation.translate_title",
-                   side_effect=RuntimeError("API error")):
+                   side_effect=RuntimeError("API error")), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=False,
@@ -178,7 +180,9 @@ class TestBackfillLogic:
                    return_value=items), \
              patch("app.api.routes_translation.translate_title", return_value="כותרת"), \
              patch("app.api.routes_translation.article_repository.update_translation_fields"), \
-             patch("app.api.routes_translation.article_repository.update_classification_fields"):
+             patch("app.api.routes_translation.article_repository.update_classification_fields"), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=3, source_id=None, dry_run=False, reclassify=False,
@@ -189,15 +193,15 @@ class TestBackfillLogic:
         assert result.translated == 3
 
     def test_backfill_running_twice_skips_translated(self):
-        """Second backfill run skips articles already translated in the first run."""
-        # Simulate an article that has already been translated (first run updated it)
         already_done = _make_article(
             "en1", "כותרת עברית", language="en",
             original_title="English title", translated_title="כותרת עברית"
         )
 
         with patch("app.api.routes_translation.article_repository.get_rss_articles",
-                   return_value=[already_done]):
+                   return_value=[already_done]), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
             from app.api.routes_translation import backfill_translations
             result = backfill_translations(
                 limit=None, source_id=None, dry_run=False, reclassify=False,
@@ -207,3 +211,36 @@ class TestBackfillLogic:
         assert result.candidates == 0
         assert result.translated == 0
         assert result.skipped_already_translated == 1
+
+    def test_backfill_corrects_language_for_italian_title(self):
+        """Backfill should detect Italian and correct article.language from 'en' to 'it'."""
+        item = _make_article(
+            "sp1",
+            "Paris Basketball tratta Dave Joerger per la panchina",
+            language="en",  # wrong — should be "it"
+            source="sportando",
+        )
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[item]), \
+             patch("app.api.routes_translation.translate_title",
+                   return_value="פריז באסקטבול") as mock_tr, \
+             patch("app.api.routes_translation.article_repository.update_translation_fields") as mock_upd, \
+             patch("app.api.routes_translation.article_repository.update_classification_fields"), \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            result = backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                session=MagicMock(),
+            )
+
+        assert result.translated == 1
+        assert result.language_corrected == 1
+        # Language passed to translate_title should be "it" (detected), not "en"
+        mock_tr.assert_called_once()
+        lang_arg = mock_tr.call_args[0][1]  # second positional arg
+        assert lang_arg == "it"
+        # DB update should store corrected language
+        call_kwargs = mock_upd.call_args[1]
+        assert call_kwargs["language"] == "it"

@@ -55,10 +55,9 @@ export default function FeedCard({ item }) {
 
   // Show source-language metadata only for non-Hebrew, non-cluster articles
   // that have an original title stored.
-  const showOriginalMeta =
-    !isCluster &&
-    item.language !== "he" &&
-    item.originalTitle;
+  const isNonHebrew = !isCluster && item.language !== "he";
+  const isTranslated = isNonHebrew && Boolean(item.translatedTitle);
+  const showOriginalMeta = isNonHebrew && item.originalTitle;
 
   const additionalSources = isCluster && item.sourceDisplayNames?.length > 1
     ? item.sourceDisplayNames.slice(1)
@@ -120,6 +119,9 @@ export default function FeedCard({ item }) {
         {/* Original-language metadata for non-Hebrew articles */}
         {showOriginalMeta && (
           <p className="text-xs text-gray-600 mt-1 leading-relaxed" dir="auto">
+            {!isTranslated && (
+              <span className="text-amber-600/70 font-medium ml-1">לא תורגם · </span>
+            )}
             <span>שפת מקור: {LANG_NAMES_HE[item.language] ?? "לא ידוע"}</span>
             <span className="mx-1">·</span>
             <span>כותרת מקור: {item.originalTitle}</span>

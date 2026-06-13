@@ -83,3 +83,7 @@ export function backfillTranslations({ limit, sourceId, dryRun = false } = {}) {
   const qs = params.toString();
   return apiFetch(`/api/translations/backfill${qs ? `?${qs}` : ""}`, { method: "POST" });
 }
+
+export function getTranslationStatus() {
+  return apiFetch("/api/translations/status");
+}

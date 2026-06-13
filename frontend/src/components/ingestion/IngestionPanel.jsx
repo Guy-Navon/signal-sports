@@ -139,6 +139,8 @@ const BACKFILL_RESULT_LABELS = [
   { key: "checked",                    label: "נבדקו" },
   { key: "candidates",                 label: "מועמדים לתרגום" },
   { key: "translated",                 label: "תורגמו" },
+  { key: "retranslated_fake",          label: "הוחלפו תרגומי בדיקה" },
+  { key: "forced_retranslated",        label: "תורגמו מחדש בכפייה" },
   { key: "language_corrected",         label: "שפה תוקנה" },
   { key: "skipped_hebrew",             label: "דולגו — עברית" },
   { key: "skipped_already_translated", label: "דולגו — כבר תורגמו" },
@@ -149,7 +151,7 @@ const BACKFILL_RESULT_LABELS = [
 const PROVIDER_STATUS_LABELS = {
   disabled: "תרגום לא פעיל",
   noop:     "תרגום לא פעיל",
-  fake:     "תרגום בדיקה פעיל",
+  fake:     "תרגום בדיקה פעיל — לא תרגום אמיתי",
   claude:   "תרגום פעיל: Claude",
 };
 
@@ -173,13 +175,22 @@ function ProviderStatusBadge({ status }) {
 function TranslationSection({ selectedSource, onFeedRefresh }) {
   const [isRunning, setIsRunning] = useState(false);
   const [dryRun, setDryRun] = useState(false);
+  const [includeFake, setIncludeFake] = useState(false);
+  const [forceRetranslate, setForceRetranslate] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [providerStatus, setProviderStatus] = useState(null);
 
   useEffect(() => {
     getTranslationStatus()
-      .then(setProviderStatus)
+      .then(status => {
+        setProviderStatus(status);
+        // When switching to a real provider, default includeFake to true
+        // so existing stub translations get replaced automatically.
+        if (status?.provider === "claude" && status?.can_translate) {
+          setIncludeFake(true);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -189,7 +200,7 @@ function TranslationSection({ selectedSource, onFeedRefresh }) {
     setResult(null);
     try {
       const sourceId = selectedSource === "all" ? undefined : selectedSource;
-      const res = await backfillTranslations({ sourceId, dryRun });
+      const res = await backfillTranslations({ sourceId, dryRun, includeFake, force: forceRetranslate });
       setResult(res);
       if (!dryRun && res.translated > 0 && onFeedRefresh) {
         onFeedRefresh();
@@ -201,7 +212,21 @@ function TranslationSection({ selectedSource, onFeedRefresh }) {
     }
   };
 
+  const provider = providerStatus?.provider;
   const providerReady = providerStatus?.can_translate ?? true; // optimistic until loaded
+  const isFakeProvider = provider === "fake";
+  const isRealProvider = providerReady && !isFakeProvider;
+
+  const successMessage = () => {
+    if (dryRun) return `בדיקה בלבד — ${result.candidates} מועמדים לתרגום`;
+    if (result.translated === 0) return "לא נמצאו כותרות לתרגום";
+    if (isFakeProvider) return `נוצרו ${result.translated} תרגומי בדיקה`;
+    if (result.retranslated_fake > 0 && result.translated > result.retranslated_fake) {
+      return `תורגמו ${result.translated} כותרות (כולל ${result.retranslated_fake} תרגומי בדיקה שהוחלפו)`;
+    }
+    if (result.retranslated_fake > 0) return `הוחלפו ${result.retranslated_fake} תרגומי בדיקה`;
+    return `תורגמו ${result.translated} כותרות`;
+  };
 
   return (
     <div className="border-t border-gray-800/60 pt-3 space-y-3">
@@ -213,7 +238,7 @@ function TranslationSection({ selectedSource, onFeedRefresh }) {
         <ProviderStatusBadge status={providerStatus} />
       </div>
 
-      {/* Warning when provider is not ready */}
+      {/* Warning when provider is not configured */}
       {providerStatus && !providerReady && (
         <div className="flex items-start gap-2 text-xs text-amber-500/80 bg-amber-900/10 border border-amber-800/30 rounded-lg px-3 py-2">
           <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
@@ -227,7 +252,15 @@ function TranslationSection({ selectedSource, onFeedRefresh }) {
         </div>
       )}
 
-      <div className="flex items-center gap-3">
+      {/* Warning when fake provider is active */}
+      {isFakeProvider && (
+        <div className="flex items-start gap-2 text-xs text-amber-400/80 bg-amber-900/10 border border-amber-800/30 rounded-lg px-3 py-2">
+          <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
+          <span>מצב בדיקה — הכותרות לא יתורגמו באמת. הגדר TRANSLATION_PROVIDER=claude לתרגום אמיתי.</span>
+        </div>
+      )}
+
+      <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={handleBackfill}
           disabled={isRunning}
@@ -257,6 +290,37 @@ function TranslationSection({ selectedSource, onFeedRefresh }) {
         </label>
       </div>
 
+      {/* includeFake option — only useful with a real provider */}
+      {isRealProvider && (
+        <div className="space-y-1.5">
+          <label className="flex items-start gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={includeFake}
+              onChange={e => setIncludeFake(e.target.checked)}
+              className="w-3 h-3 accent-indigo-500 mt-0.5 flex-shrink-0"
+            />
+            <span>
+              תרגם מחדש תרגומי בדיקה
+              <span className="text-gray-600 mr-1">— יחליף כותרות שמתחילות ב״תרגום בדיקה:״</span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={forceRetranslate}
+              onChange={e => setForceRetranslate(e.target.checked)}
+              className="w-3 h-3 accent-indigo-500 mt-0.5 flex-shrink-0"
+            />
+            <span>
+              כפה תרגום מחדש
+              <span className="text-gray-600 mr-1">— יתרגם מחדש את כל הכתבות, גם אם כבר תורגמו</span>
+            </span>
+          </label>
+        </div>
+      )}
+
       {error && (
         <div className="flex items-start gap-2 text-xs text-red-400 bg-red-900/10 border border-red-800/30 rounded-lg px-3 py-2">
           <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
@@ -281,11 +345,7 @@ function TranslationSection({ selectedSource, onFeedRefresh }) {
           {result.status !== "skipped" && (
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <CheckCircle2 size={12} className="text-indigo-400 flex-shrink-0" />
-              {dryRun
-                ? `בדיקה בלבד — ${result.candidates} מועמדים לתרגום`
-                : result.translated > 0
-                  ? `תורגמו ${result.translated} כותרות`
-                  : "לא נמצאו כותרות לתרגום"}
+              {successMessage()}
             </div>
           )}
 
@@ -298,11 +358,15 @@ function TranslationSection({ selectedSource, onFeedRefresh }) {
                     <span className={
                       key === "translated" && result[key] > 0
                         ? "text-indigo-400 font-medium"
-                        : key === "language_corrected" && result[key] > 0
-                          ? "text-blue-400 font-medium"
-                          : key === "failed" && result[key] > 0
-                            ? "text-red-400 font-medium"
-                            : "text-gray-300"
+                        : key === "retranslated_fake" && result[key] > 0
+                          ? "text-indigo-300 font-medium"
+                          : key === "forced_retranslated" && result[key] > 0
+                            ? "text-indigo-300 font-medium"
+                            : key === "language_corrected" && result[key] > 0
+                              ? "text-blue-400 font-medium"
+                              : key === "failed" && result[key] > 0
+                                ? "text-red-400 font-medium"
+                                : "text-gray-300"
                     }>
                       {result[key] ?? 0}
                     </span>

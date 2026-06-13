@@ -19,6 +19,7 @@ from app.models.translation import (
     TranslationStatusResponse,
 )
 from app.repositories import article_repository
+from app.translation.fake_detection import is_fake_translation
 from app.translation.language_detection import detect_language
 from app.translation.translation_service import get_provider_status, translate_title
 
@@ -29,10 +30,7 @@ router = APIRouter()
 
 @router.get("/translations/status", response_model=TranslationStatusResponse)
 def translation_status() -> TranslationStatusResponse:
-    """Return the current translation provider configuration.
-
-    Useful for the UI to show whether translation is active, and if not, why.
-    """
+    """Return the current translation provider configuration."""
     status = get_provider_status()
     return TranslationStatusResponse(**status)
 
@@ -43,24 +41,24 @@ def backfill_translations(
     source_id: Optional[str] = Query(default=None, description="Limit to a specific source"),
     dry_run: bool = Query(default=False, description="Preview without writing to DB"),
     reclassify: bool = Query(default=True, description="Re-classify using translated title after translation"),
+    include_fake: bool = Query(default=False, description="Re-translate fake/stub translations (prefix: תרגום בדיקה:)"),
+    force: bool = Query(default=False, description="Re-translate all non-Hebrew articles, even already-translated ones"),
     session: Session = Depends(get_session),
 ) -> BackfillResult:
     """Translate existing non-Hebrew RSS articles in the database.
 
-    Candidate articles: language != 'he' AND translated_title IS NULL.
+    Default behavior: translate articles where translated_title IS NULL.
 
-    For each candidate:
-      1. Re-detects the true language from URL and title (corrects mislabeled articles).
-      2. If provider can translate: translates and updates title/original_title/translated_title/language.
-      3. Optionally re-classifies using the Hebrew title.
+    include_fake=true: also re-translate articles whose translation is a
+    stub from FakeTranslationProvider (title starts with 'תרגום בדיקה:').
+    The original_title field is used as the source text so no content is lost.
+
+    force=true: re-translate ALL non-Hebrew articles regardless of existing
+    translation.  Uses original_title as source; if original_title is missing
+    and the current title is a stub, the article is skipped to avoid data loss.
 
     Hebrew articles are never touched.
-    Already-translated articles are skipped.
-    Running backfill twice is safe.
-
-    Language correction (step 1) is performed even when the translation provider is
-    disabled — this corrects mislabeled language fields (e.g. Italian Sportando
-    articles stored as 'en') without requiring a real translation API.
+    Running backfill twice in default mode is safe (idempotent).
     """
     provider_status = get_provider_status()
     provider_ready = provider_status["can_translate"]
@@ -69,25 +67,31 @@ def backfill_translations(
 
     skipped_hebrew = 0
     skipped_already_translated = 0
-    skipped_provider_not_ready = 0
-    language_corrected = 0
-    candidates = []
+
+    # Each candidate is (mode, article):
+    #   "normal"  — no translation yet
+    #   "fake"    — has stub translation, being re-translated via include_fake
+    #   "forced"  — being re-translated via force
+    candidates: list[tuple[str, object]] = []
 
     for article in all_rss:
         if article.language == "he":
             skipped_hebrew += 1
             continue
+
         if article.translated_title is not None:
-            skipped_already_translated += 1
-            continue
-        candidates.append(article)
+            if force:
+                candidates.append(("forced", article))
+            elif include_fake and is_fake_translation(article.title, article.translated_title):
+                candidates.append(("fake", article))
+            else:
+                skipped_already_translated += 1
+        else:
+            candidates.append(("normal", article))
 
     if limit:
         candidates = candidates[:limit]
 
-    # If provider cannot translate, return early with a clear explanation.
-    # We still report the candidate count so the UI can show how many articles
-    # would be translated once a provider is configured.
     if not provider_ready:
         return BackfillResult(
             status="skipped",
@@ -95,6 +99,8 @@ def backfill_translations(
             checked=len(all_rss),
             candidates=len(candidates),
             translated=0,
+            retranslated_fake=0,
+            forced_retranslated=0,
             skipped_hebrew=skipped_hebrew,
             skipped_already_translated=skipped_already_translated,
             skipped_provider_not_ready=len(candidates),
@@ -105,23 +111,37 @@ def backfill_translations(
         )
 
     translated_count = 0
+    retranslated_fake_count = 0
+    forced_retranslated_count = 0
     failed_count = 0
+    skipped_provider_not_ready = 0
+    language_corrected = 0
     errors: list[BackfillErrorDetail] = []
 
-    for article in candidates:
+    for mode, article in candidates:
+        source_title: Optional[str] = None
         try:
-            source_title = article.original_title or article.title
-            detected_lang = detect_language(article.url, source_title, article.language)
+            # Prefer original_title as source — it is always the raw RSS title.
+            # Fall back to current title only when original is absent AND the
+            # current title is not a stub (to avoid translating stub prefixes).
+            source_title = article.original_title
+            if source_title is None:
+                if is_fake_translation(article.title, article.translated_title):
+                    logger.warning(
+                        "Skipping %s: original_title missing and title is a stub — cannot recover source",
+                        article.id,
+                    )
+                    skipped_provider_not_ready += 1
+                    continue
+                source_title = article.title
 
-            # Track language correction even if translation is skipped
-            lang_changed = (detected_lang != article.language)
+            detected_lang = detect_language(article.url, source_title, article.language)
+            lang_changed = detected_lang != article.language
 
             hebrew = translate_title(source_title, detected_lang)
 
             if hebrew is None:
-                # Provider active but returned nothing for this article
                 skipped_provider_not_ready += 1
-                # Still correct the language if detection changed it
                 if lang_changed and not dry_run:
                     article_repository.update_translation_fields(
                         session,
@@ -164,9 +184,14 @@ def backfill_translations(
                     language_corrected += 1
 
             translated_count += 1
+            if mode == "fake":
+                retranslated_fake_count += 1
+            elif mode == "forced":
+                forced_retranslated_count += 1
+
             logger.info(
-                "Backfill translated article %s (%s→he): %r → %r",
-                article.id, detected_lang, source_title[:60], hebrew[:60],
+                "Backfill translated article %s (mode=%s, %s→he): %r → %r",
+                article.id, mode, detected_lang, source_title[:60], hebrew[:60],
             )
 
         except Exception as exc:
@@ -174,7 +199,7 @@ def backfill_translations(
             logger.error("Backfill failed for article %s: %s", article.id, exc)
             errors.append(BackfillErrorDetail(
                 article_id=article.id,
-                title=source_title[:120],
+                title=(source_title or article.title)[:120],
                 error=str(exc),
             ))
 
@@ -185,6 +210,8 @@ def backfill_translations(
         checked=len(all_rss),
         candidates=len(candidates),
         translated=translated_count,
+        retranslated_fake=retranslated_fake_count,
+        forced_retranslated=forced_retranslated_count,
         skipped_hebrew=skipped_hebrew,
         skipped_already_translated=skipped_already_translated,
         skipped_provider_not_ready=skipped_provider_not_ready,

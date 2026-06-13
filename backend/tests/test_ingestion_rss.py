@@ -131,7 +131,8 @@ class TestNormalisation:
             language="he",
         )
 
-    def test_english_source_sets_original_title(self):
+    @patch("app.ingestion.ingestion_service.translate_title", return_value=None)
+    def test_english_source_sets_original_title(self, _mock_tr):
         item = RawSourceItem(
             source_id="eurohoops",
             url="https://eurohoops.net/1",

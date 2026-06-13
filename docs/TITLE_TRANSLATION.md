@@ -90,6 +90,8 @@ translation provider was configured.
 | `limit` | none | Max articles to process |
 | `source_id` | none | Filter to a single source |
 | `reclassify` | `true` | Re-classify using the Hebrew title after translation |
+| `include_fake` | `false` | Re-translate fake/stub translations (titles starting with `תרגום בדיקה:`) |
+| `force` | `false` | Re-translate ALL non-Hebrew articles, even already-translated ones |
 
 **When provider is not ready**, the endpoint returns `status: "skipped"` with
 `provider_ready: false` and a `reason` string — it never silently returns `"ok"`.
@@ -97,6 +99,40 @@ translation provider was configured.
 **Language correction**: the backfill re-detects language from the URL and title
 even for already-stored articles.  This corrects mislabeled articles
 (e.g. Italian Sportando articles stored as `"en"`).
+
+### Fake → Real translation flow
+
+1. Run backfill with `TRANSLATION_PROVIDER=fake` to wire up the UI and verify
+   the translation pipeline end-to-end.  Article titles will show `תרגום בדיקה: …`.
+
+2. Configure a real provider in `backend/.env`:
+   ```
+   TRANSLATION_PROVIDER=claude
+   TRANSLATION_API_KEY=sk-ant-…
+   ```
+
+3. Restart the backend.
+
+4. Confirm `GET /api/translations/status` returns `can_translate: true`.
+
+5. Run backfill with `include_fake=true`:
+   ```
+   POST /api/translations/backfill?include_fake=true
+   ```
+   The response reports `retranslated_fake: N` — how many stubs were replaced.
+
+6. Verify the feed: `תרגום בדיקה:` prefixes should be gone, replaced by real Hebrew.
+
+Running again (without `include_fake`) is safe — already-translated articles are skipped.
+
+### `original_title` preservation
+
+`original_title` is always the raw RSS title.  It is written on first translation
+and never overwritten.  When retranslating (via `include_fake` or `force`), the
+backfill uses `original_title` as the source text so no content is lost.
+
+If `original_title` is absent and the current title is a stub, the article is
+skipped with a warning — the source text cannot be recovered.
 
 ---
 

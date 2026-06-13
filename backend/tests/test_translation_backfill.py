@@ -483,6 +483,27 @@ class TestBackfillForce:
         assert result.skipped_hebrew == 1
         assert result.translated == 0
 
+    def test_force_does_not_touch_cleanly_stored_hebrew_article(self):
+        """Hebrew articles stored with original_title=None / translated_title=None
+        (the normal ingestion outcome) are also skipped with force=True."""
+        he = _make_article("he_clean", "הפועל תל אביב", language="he")
+        # original_title and translated_title default to None — natural Hebrew storage
+
+        with patch("app.api.routes_translation.article_repository.get_rss_articles",
+                   return_value=[he]), \
+             patch("app.api.routes_translation.translate_title") as mock_tr, \
+             patch("app.api.routes_translation.get_provider_status",
+                   return_value={"can_translate": True, "reason": None}):
+            from app.api.routes_translation import backfill_translations
+            result = backfill_translations(
+                limit=None, source_id=None, dry_run=False, reclassify=False,
+                include_fake=False, force=True, session=MagicMock(),
+            )
+
+        mock_tr.assert_not_called()
+        assert result.skipped_hebrew == 1
+        assert result.translated == 0
+
     def test_force_and_include_fake_together(self):
         """force=True takes priority over include_fake — all non-Hebrew are candidates."""
         real = _make_article("en1", "מכבי", language="en",

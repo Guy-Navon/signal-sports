@@ -155,6 +155,7 @@ class TestNormalisation:
         assert article.original_title is None
         assert article.translated_title is None
         assert article.language == "he"
+        assert article.title == "מכבי ת״א בודקת שחקן"
 
     def test_stable_id_from_url(self):
         url = "https://eurohoops.net/article/999"

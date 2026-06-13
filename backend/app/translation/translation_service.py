@@ -113,6 +113,16 @@ def get_provider_status() -> dict:
                 "model": model,
                 "reason": "TRANSLATION_API_KEY is missing",
             }
+        try:
+            import anthropic  # noqa: F401
+        except ImportError:
+            return {
+                "provider": "claude",
+                "configured": False,
+                "can_translate": False,
+                "model": model,
+                "reason": "anthropic package is not installed — run: pip install anthropic",
+            }
         return {
             "provider": "claude",
             "configured": True,

@@ -2,7 +2,7 @@
 
 Signal Sports displays a Hebrew title as the primary title for every article,
 regardless of the source language.  This document explains the full translation
-pipeline implemented in PR 9 and PR 9.1.
+pipeline implemented in PR 9, PR 9.1, PR 9.2, and PR 9.3.
 
 ---
 
@@ -196,3 +196,94 @@ _load_dotenv()  # Must be first — before all other imports
 
 `override=False` means environment variables already set in the shell take
 priority over `.env` values.
+
+---
+
+## Translation Quality
+
+### Goal: localization, not literal translation
+
+The Claude provider does not perform word-for-word translation.
+It is instructed to produce a **natural Hebrew sports headline** that an Israeli
+sports editor would publish.  The prompt explicitly says:
+
+> "Your job is not literal translation. Your job is to produce a natural Hebrew
+> sports headline that an Israeli sports editor would publish."
+
+### Sports glossary
+
+A curated glossary is embedded in the system prompt so common basketball and
+transfer terms are rendered correctly rather than literally.
+
+Examples:
+
+| Original term | Preferred Hebrew | Avoided |
+|---|---|---|
+| `accordo` / agreement | `סיכום` or `הסכם` | — |
+| `perimetro` (basketball) | `קו אחורי` / `עמדות החוץ` | `היקף` |
+| `colpo` (transfer) | `מהלך גדול` / `החתמה גדולה` | `מכה` |
+| `panchina` (coaching) | `תפקיד המאמן` | `ספסל` |
+| `sogno` (transfer rumor) | `חולמת על` / `מכוונת ל` | — |
+| `partenza` (roster) | `עזיבה` | — |
+| `ufficiale` | `רשמית` | — |
+| EuroLeague | `יורוליג` | — |
+| EuroCup | `יורוקאפ` | — |
+| NBA Draft | `דראפט ה-NBA` | — |
+
+The glossary also covers team/player transliterations (`ASVEL → אסוול`,
+`Giannis Antetokounmpo → יאניס אנטטוקומפו`, etc.) and instructs the model to
+keep Latin spelling for names it is unsure about rather than inventing a bad
+transliteration.
+
+### Few-shot examples
+
+Five input→output examples are included in the prompt to anchor style:
+
+| Input | Expected Hebrew |
+|---|---|
+| `ASVEL, sul perimetro ad un passo l'accordo con Riley Minix` | `אסוול קרובה לסיכום עם ריילי מיניקס לחיזוק הקו האחורי` |
+| `Boston Celtics, non solo Giannis Antetokounmpo: il sogno è un doppio colpo` | `בוסטון סלטיקס לא מסתפקת ביאניס: החלום הוא מהלך כפול` |
+| `Partizan: ufficiale il nuovo accordo di Tonye Jekiri e la partenza di Duane Washington` | `רשמית: פרטיזן סיכמה עם טוני ג'קירי, דואן וושינגטון עוזב` |
+
+### Quality guardrails (`translation_quality.py`)
+
+After the model returns a result, three checks run before accepting it:
+
+1. **Empty / whitespace** — rejected immediately.
+2. **Identical to original** — means no translation happened; rejected.
+3. **Model explanation prefix** — phrases like `"Here is the translation:"`,
+   `"הנה התרגום:"`, `"Translation:"` indicate the model added commentary
+   instead of returning just the headline; rejected.
+4. **Latin-ratio check** — if more than 60 % of the Unicode letters in the
+   result are Latin script, the model likely returned the original English text;
+   rejected.  Legitimate mixed headlines (Hebrew text + a Latin player name)
+   stay well below this threshold.
+5. **Length check** — if the translated title is more than 3× the length of the
+   original, the model likely added explanation text alongside the headline;
+   rejected.
+
+When a result fails any check the provider returns `None` and logs a warning.
+The article keeps its original title with a `לא תורגם` marker in the feed.
+
+### Running a small force backfill to evaluate quality
+
+```
+POST /api/translations/backfill?source_id=sportando&limit=5&force=true
+```
+
+Inspect the feed or debug view.  Expected:
+
+- Italian Sportando articles should have natural Hebrew headlines.
+- Player and team names should use common Israeli sports forms.
+- No `תרגום בדיקה:` prefix — that prefix only appears with `TRANSLATION_PROVIDER=fake`.
+
+### Known limitations
+
+- Rare player names may be kept in Latin spelling if the model is unsure.
+- Very short headlines (one or two words) may trigger the identical-to-original
+  check if the model returns the same short string.
+- The quality threshold (`_MAX_LATIN_RATIO = 0.6`) is a heuristic; headlines
+  that are genuinely half English may be rejected.  Adjust the constant in
+  `translation_quality.py` if needed.
+- Switching to a stronger model (`TRANSLATION_MODEL=claude-sonnet-4-6`) improves
+  quality for ambiguous Italian/English headlines without any code change.

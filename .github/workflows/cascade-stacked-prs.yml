@@ -1,0 +1,71 @@
+name: Cascade stacked PRs to main
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cascade:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+      - name: Retarget and merge stacked PRs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const mergedBranch = context.payload.pull_request.head.ref;
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+
+            console.log(`PR merged from branch: ${mergedBranch}`);
+
+            // Find open PRs that were targeting the just-merged branch
+            const { data: prs } = await github.rest.pulls.list({
+              ...repo,
+              state: 'open',
+              base: mergedBranch,
+            });
+
+            if (prs.length === 0) {
+              console.log('No stacked PRs to cascade.');
+              return;
+            }
+
+            for (const pr of prs) {
+              console.log(`Retargeting PR #${pr.number} (${pr.title}) from ${mergedBranch} → main`);
+
+              await github.rest.pulls.update({
+                ...repo,
+                pull_number: pr.number,
+                base: 'main',
+              });
+
+              // GitHub needs a moment to recompute mergeability after base change
+              await new Promise(r => setTimeout(r, 5000));
+
+              const { data: updated } = await github.rest.pulls.get({
+                ...repo,
+                pull_number: pr.number,
+              });
+
+              if (updated.mergeable_state === 'clean') {
+                console.log(`Merging PR #${pr.number}`);
+                await github.rest.pulls.merge({
+                  ...repo,
+                  pull_number: pr.number,
+                  merge_method: 'merge',
+                });
+                console.log(`PR #${pr.number} merged.`);
+              } else {
+                console.log(`PR #${pr.number} not clean (state: ${updated.mergeable_state}) — retargeted to main but NOT merged. Needs manual review.`);
+                await github.rest.issues.createComment({
+                  ...repo,
+                  issue_number: pr.number,
+                  body: `⚠️ Base updated to \`main\` after cascade, but merge state is \`${updated.mergeable_state}\`. Please resolve conflicts and merge manually.`,
+                });
+              }
+            }

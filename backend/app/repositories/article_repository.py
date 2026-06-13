@@ -86,3 +86,70 @@ def count(session: Session) -> int:
 def insert(session: Session, article: Article) -> None:
     session.add(_article_to_row(article))
     session.commit()
+
+
+def update_translation_fields(
+    session: Session,
+    article_id: str,
+    *,
+    title: str,
+    original_title: Optional[str],
+    translated_title: Optional[str],
+    language: str,
+) -> None:
+    row = session.get(ArticleRow, article_id)
+    if row is None:
+        return
+    row.title = title
+    row.original_title = original_title
+    row.translated_title = translated_title
+    row.language = language
+    session.commit()
+
+
+def update_classification_fields(
+    session: Session,
+    article_id: str,
+    *,
+    sport: str,
+    league: Optional[str],
+    entities: List[str],
+    event_type: str,
+    importance: str,
+    confidence: float,
+    tags: List[str],
+) -> None:
+    row = session.get(ArticleRow, article_id)
+    if row is None:
+        return
+    row.sport = sport
+    row.league = league
+    row.entities = entities
+    row.event_type = event_type
+    row.importance = importance
+    row.confidence = confidence
+    row.tags = tags
+    session.commit()
+
+
+def get_untranslated_rss_articles(
+    session: Session,
+    *,
+    limit: Optional[int] = None,
+    source_id: Optional[str] = None,
+) -> List[Article]:
+    """Return RSS articles that need translation.
+
+    Candidates: language != 'he' AND translated_title IS NULL.
+    """
+    query = (
+        session.query(ArticleRow)
+        .filter(ArticleRow.id.like("rss_%"))
+        .filter(ArticleRow.language != "he")
+        .filter(ArticleRow.translated_title.is_(None))
+    )
+    if source_id:
+        query = query.filter(ArticleRow.source == source_id)
+    if limit:
+        query = query.limit(limit)
+    return [_row_to_article(r) for r in query.all()]

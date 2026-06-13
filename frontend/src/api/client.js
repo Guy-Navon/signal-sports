@@ -74,3 +74,12 @@ export function getIngestRuns(limit = 5) {
 export function getIngestQuality() {
   return apiFetch("/api/ingest/quality");
 }
+
+export function backfillTranslations({ limit, sourceId, dryRun = false } = {}) {
+  const params = new URLSearchParams();
+  if (limit != null) params.set("limit", String(limit));
+  if (sourceId) params.set("source_id", sourceId);
+  if (dryRun) params.set("dry_run", "true");
+  const qs = params.toString();
+  return apiFetch(`/api/translations/backfill${qs ? `?${qs}` : ""}`, { method: "POST" });
+}

@@ -12,6 +12,19 @@ const CARD_STYLES = {
   low_feed: "border-gray-800 bg-gray-900/60 hover:border-gray-700 opacity-75"
 };
 
+const LANG_NAMES_HE = {
+  en: "אנגלית",
+  it: "איטלקית",
+  el: "יוונית",
+  tr: "טורקית",
+  es: "ספרדית",
+  fr: "צרפתית",
+  de: "גרמנית",
+  pt: "פורטוגזית",
+  ru: "רוסית",
+  he: "עברית",
+};
+
 function formatTime(dateStr) {
   try {
     return formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: he });
@@ -28,15 +41,24 @@ export default function FeedCard({ item }) {
   const decision = item.score?.decision || "feed";
   const isCluster = item.type === "cluster";
 
-  const title = isCluster ? item.clusterTitle : item.title;
-  const originalTitle = isCluster ? null : item.originalTitle;
+  // Hebrew-first: prefer translated title; fall back to raw title
+  const displayTitle = isCluster
+    ? item.clusterTitle
+    : (item.translatedTitle || item.title);
+
   const source = isCluster ? item.sourceDisplayNames?.[0] : item.sourceDisplayName;
   const publishedAt = item.publishedAt || item.firstSeenAt;
   const tags = item.tags || [];
   const url = isCluster ? null : item.url;
-  const isEnglishSource = !isCluster && item.language === "en";
   const articleId = item.id;
   const reasoning = item.score?.reasoning || [];
+
+  // Show source-language metadata only for non-Hebrew, non-cluster articles
+  // that have an original title stored.
+  const showOriginalMeta =
+    !isCluster &&
+    item.language !== "he" &&
+    item.originalTitle;
 
   const additionalSources = isCluster && item.sourceDisplayNames?.length > 1
     ? item.sourceDisplayNames.slice(1)
@@ -49,7 +71,7 @@ export default function FeedCard({ item }) {
 
   const cardBorderClass = CARD_STYLES[decision] || CARD_STYLES.feed;
 
-  // Show only the last 3 reasoning lines for the "why shown" section (most relevant)
+  // Show only the last 4 reasoning lines for the "why shown" section (most relevant)
   const summaryReasoning = reasoning.slice(-4);
 
   return (
@@ -85,20 +107,22 @@ export default function FeedCard({ item }) {
           </div>
         </div>
 
-        {/* Title */}
+        {/* Main title — always Hebrew (or original when translation unavailable) */}
         <h2 className={`font-semibold leading-snug ${
           decision === "push" ? "text-amber-100 text-sm" :
           decision === "high_feed" ? "text-white text-sm" :
           decision === "feed" ? "text-gray-100 text-sm" :
           "text-gray-400 text-sm"
         }`}>
-          {title}
+          {displayTitle}
         </h2>
 
-        {/* Original English title */}
-        {isEnglishSource && originalTitle && (
-          <p className="text-xs text-gray-600 italic mt-1 leading-relaxed" dir="ltr">
-            {originalTitle}
+        {/* Original-language metadata for non-Hebrew articles */}
+        {showOriginalMeta && (
+          <p className="text-xs text-gray-600 mt-1 leading-relaxed" dir="auto">
+            <span>שפת מקור: {LANG_NAMES_HE[item.language] ?? "לא ידוע"}</span>
+            <span className="mx-1">·</span>
+            <span>כותרת מקור: {item.originalTitle}</span>
           </p>
         )}
 

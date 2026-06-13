@@ -17,32 +17,35 @@ import pytest
 
 from app.ingestion.classifier import classify
 from app.ingestion.config import RSSSourceConfig
-from app.ingestion.ingestion_service import _infer_language_from_url, _should_filter
+from app.ingestion.ingestion_service import _should_filter
+from app.translation.language_detection import detect_language
 
 
 # ── Language inference from URL ───────────────────────────────────────────────
 
 class TestInferLanguageFromUrl:
+    """Tests for URL-based language inference (now in language_detection module)."""
+
     def test_english_path_returns_en(self):
-        assert _infer_language_from_url("https://eurohoops.net/en/article", "en") == "en"
+        assert detect_language("https://eurohoops.net/en/article", "", "en") == "en"
 
     def test_turkish_path_returns_tr(self):
-        assert _infer_language_from_url("https://eurohoops.net/tr/haber", "en") == "tr"
+        assert detect_language("https://eurohoops.net/tr/haber", "", "en") == "tr"
 
     def test_spanish_path_returns_es(self):
-        assert _infer_language_from_url("https://eurohoops.net/es/noticia", "en") == "es"
+        assert detect_language("https://eurohoops.net/es/noticia", "", "en") == "es"
 
     def test_greek_path_returns_el(self):
-        assert _infer_language_from_url("https://eurohoops.net/el/arthro", "en") == "el"
+        assert detect_language("https://eurohoops.net/el/arthro", "", "en") == "el"
 
     def test_no_lang_path_returns_default(self):
-        assert _infer_language_from_url("https://eurohoops.net/2026/06/some-article", "en") == "en"
+        assert detect_language("https://eurohoops.net/2026/06/some-article", "", "en") == "en"
 
     def test_default_used_when_no_known_segment(self):
-        assert _infer_language_from_url("https://sportando.basketball/nba/article", "en") == "en"
+        assert detect_language("https://sportando.basketball/nba/article", "", "en") == "en"
 
     def test_case_insensitive(self):
-        assert _infer_language_from_url("https://example.com/TR/article", "en") == "tr"
+        assert detect_language("https://example.com/TR/article", "", "en") == "tr"
 
 
 # ── URL filter logic ──────────────────────────────────────────────────────────

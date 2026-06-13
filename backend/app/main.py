@@ -1,4 +1,29 @@
 import pathlib
+
+
+def _load_dotenv() -> None:
+    """Load backend/.env if it exists.
+
+    Must be called before any module that reads os.environ at import time
+    (e.g. app.core.config).  The function is tolerant of python-dotenv not
+    being installed, though it is listed in requirements.txt.
+
+    override=False means already-set shell env vars take precedence over .env.
+    """
+    env_file = pathlib.Path(__file__).parent.parent / ".env"
+    if not env_file.exists():
+        return
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(env_file, override=False)
+    except ImportError:
+        pass
+
+
+_load_dotenv()
+
+# ── All remaining imports come AFTER dotenv is loaded ─────────────────────────
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

@@ -2,14 +2,22 @@
 Translation service — orchestrates provider selection and per-title translation.
 
 Provider is selected from environment variables at first use and cached.
-Tests can inject a custom provider via set_provider().
+Tests can inject a custom provider via set_provider() / reset_provider().
+
+Supported TRANSLATION_PROVIDER values:
+  disabled (default) — NoopTranslationProvider, no API calls
+  fake               — FakeTranslationProvider, dev-only stub translations
+  claude             — ClaudeTranslationProvider, real Anthropic API
 """
 
 import logging
 import os
 from typing import Optional
 
-from app.translation.providers import TranslationProvider, NoopTranslationProvider
+from app.translation.providers import (
+    TranslationProvider,
+    NoopTranslationProvider,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +26,14 @@ _provider: Optional[TranslationProvider] = None
 
 def _build_provider() -> TranslationProvider:
     name = os.environ.get("TRANSLATION_PROVIDER", "disabled").lower().strip()
+
     if name in ("disabled", "", "noop"):
         return NoopTranslationProvider()
+
+    if name == "fake":
+        from app.translation.providers import FakeTranslationProvider
+        logger.info("Translation provider: Fake (dev-only)")
+        return FakeTranslationProvider()
 
     if name == "claude":
         api_key = os.environ.get("TRANSLATION_API_KEY", "")
@@ -60,6 +74,60 @@ def reset_provider() -> None:
     """Clear the cached provider so it is rebuilt on next use. Intended for tests."""
     global _provider
     _provider = None
+
+
+def get_provider_status() -> dict:
+    """Return a status dict describing the current provider configuration.
+
+    Reads env vars directly (does not use the cached provider) so the status
+    always reflects current configuration, not a potentially stale cached state.
+    """
+    name = os.environ.get("TRANSLATION_PROVIDER", "disabled").lower().strip()
+    model = os.environ.get("TRANSLATION_MODEL", "claude-haiku-4-5-20251001")
+    api_key = os.environ.get("TRANSLATION_API_KEY", "")
+
+    if name in ("disabled", "", "noop"):
+        return {
+            "provider": "disabled",
+            "configured": False,
+            "can_translate": False,
+            "model": None,
+            "reason": "TRANSLATION_PROVIDER is disabled",
+        }
+
+    if name == "fake":
+        return {
+            "provider": "fake",
+            "configured": True,
+            "can_translate": True,
+            "model": None,
+            "reason": "Dev-only fake provider active — translations are stubs",
+        }
+
+    if name == "claude":
+        if not api_key:
+            return {
+                "provider": "claude",
+                "configured": False,
+                "can_translate": False,
+                "model": model,
+                "reason": "TRANSLATION_API_KEY is missing",
+            }
+        return {
+            "provider": "claude",
+            "configured": True,
+            "can_translate": True,
+            "model": model,
+            "reason": None,
+        }
+
+    return {
+        "provider": name,
+        "configured": False,
+        "can_translate": False,
+        "model": None,
+        "reason": f"Unknown TRANSLATION_PROVIDER value: {name!r}",
+    }
 
 
 def translate_title(

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { RefreshCw, Play, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, Languages } from "lucide-react";
-import { getIngestSources, runIngestion, getIngestRuns, getIngestQuality, backfillTranslations } from "@/api/client";
+import { getIngestSources, runIngestion, getIngestRuns, getIngestQuality, backfillTranslations, getTranslationStatus } from "@/api/client";
 
 const RESULT_LABELS = [
   { key: "fetched",           label: "נמצאו" },
@@ -136,19 +136,52 @@ function QualityPanel({ quality }) {
 }
 
 const BACKFILL_RESULT_LABELS = [
-  { key: "checked",                  label: "נבדקו" },
-  { key: "candidates",               label: "מועמדים לתרגום" },
-  { key: "translated",               label: "תורגמו" },
-  { key: "skipped_hebrew",           label: "דולגו — עברית" },
+  { key: "checked",                    label: "נבדקו" },
+  { key: "candidates",                 label: "מועמדים לתרגום" },
+  { key: "translated",                 label: "תורגמו" },
+  { key: "language_corrected",         label: "שפה תוקנה" },
+  { key: "skipped_hebrew",             label: "דולגו — עברית" },
   { key: "skipped_already_translated", label: "דולגו — כבר תורגמו" },
-  { key: "failed",                   label: "נכשלו" },
+  { key: "skipped_provider_not_ready", label: "דולגו — ספק לא מוכן" },
+  { key: "failed",                     label: "נכשלו" },
 ];
+
+const PROVIDER_STATUS_LABELS = {
+  disabled: "תרגום לא פעיל",
+  noop:     "תרגום לא פעיל",
+  fake:     "תרגום בדיקה פעיל",
+  claude:   "תרגום פעיל: Claude",
+};
+
+function ProviderStatusBadge({ status }) {
+  if (!status) return null;
+  const { provider, can_translate, reason } = status;
+  const label = PROVIDER_STATUS_LABELS[provider] ?? `ספק: ${provider}`;
+  const color = can_translate
+    ? provider === "fake"
+      ? "text-amber-400 border-amber-800/40"
+      : "text-emerald-400 border-emerald-800/40"
+    : "text-gray-500 border-gray-800";
+  return (
+    <div className={`flex items-center gap-1.5 text-xs border rounded px-2 py-0.5 ${color}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${can_translate ? (provider === "fake" ? "bg-amber-400" : "bg-emerald-400") : "bg-gray-600"}`} />
+      <span>{label}</span>
+    </div>
+  );
+}
 
 function TranslationSection({ selectedSource, onFeedRefresh }) {
   const [isRunning, setIsRunning] = useState(false);
   const [dryRun, setDryRun] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [providerStatus, setProviderStatus] = useState(null);
+
+  useEffect(() => {
+    getTranslationStatus()
+      .then(setProviderStatus)
+      .catch(() => {});
+  }, []);
 
   const handleBackfill = async () => {
     setIsRunning(true);
@@ -168,12 +201,31 @@ function TranslationSection({ selectedSource, onFeedRefresh }) {
     }
   };
 
+  const providerReady = providerStatus?.can_translate ?? true; // optimistic until loaded
+
   return (
     <div className="border-t border-gray-800/60 pt-3 space-y-3">
-      <h3 className="text-xs font-semibold text-gray-400 flex items-center gap-2">
-        <Languages size={13} className="text-blue-400" />
-        תרגום כותרות
-      </h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-xs font-semibold text-gray-400 flex items-center gap-2">
+          <Languages size={13} className="text-blue-400" />
+          תרגום כותרות
+        </h3>
+        <ProviderStatusBadge status={providerStatus} />
+      </div>
+
+      {/* Warning when provider is not ready */}
+      {providerStatus && !providerReady && (
+        <div className="flex items-start gap-2 text-xs text-amber-500/80 bg-amber-900/10 border border-amber-800/30 rounded-lg px-3 py-2">
+          <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
+          <span>
+            {providerStatus.reason === "TRANSLATION_PROVIDER is disabled"
+              ? "תרגום לא פעיל — הגדר TRANSLATION_PROVIDER=claude ו-TRANSLATION_API_KEY בקובץ backend/.env"
+              : providerStatus.reason === "TRANSLATION_API_KEY is missing"
+                ? "חסר מפתח API — הגדר TRANSLATION_API_KEY בקובץ backend/.env"
+                : providerStatus.reason ?? "ספק תרגום לא מוכן"}
+          </span>
+        </div>
+      )}
 
       <div className="flex items-center gap-3">
         <button
@@ -214,30 +266,48 @@ function TranslationSection({ selectedSource, onFeedRefresh }) {
 
       {result && (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <CheckCircle2 size={12} className="text-indigo-400 flex-shrink-0" />
-            {dryRun
-              ? `בדיקה בלבד — ${result.candidates} מועמדים לתרגום`
-              : result.translated > 0
-                ? `תורגמו ${result.translated} כותרות`
-                : "לא נמצאו כותרות לתרגום"}
-          </div>
+          {/* Skipped / provider not ready */}
+          {result.status === "skipped" && (
+            <div className="flex items-start gap-2 text-xs text-amber-500/80 bg-amber-900/10 border border-amber-800/30 rounded-lg px-3 py-2">
+              <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
+              <span>
+                תרגום לא פעיל — {result.candidates} כותרות ממתינות לתרגום.
+                {result.reason && ` (${result.reason})`}
+              </span>
+            </div>
+          )}
+
+          {/* Success summary */}
+          {result.status !== "skipped" && (
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <CheckCircle2 size={12} className="text-indigo-400 flex-shrink-0" />
+              {dryRun
+                ? `בדיקה בלבד — ${result.candidates} מועמדים לתרגום`
+                : result.translated > 0
+                  ? `תורגמו ${result.translated} כותרות`
+                  : "לא נמצאו כותרות לתרגום"}
+            </div>
+          )}
 
           <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-3">
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
               {BACKFILL_RESULT_LABELS.map(({ key, label }) => (
-                <span key={key} className="flex gap-1">
-                  <span className="text-gray-600">{label}:</span>
-                  <span className={
-                    key === "translated" && result[key] > 0
-                      ? "text-indigo-400 font-medium"
-                      : key === "failed" && result[key] > 0
-                        ? "text-red-400 font-medium"
-                        : "text-gray-300"
-                  }>
-                    {result[key] ?? 0}
+                (result[key] ?? 0) > 0 || key === "checked" ? (
+                  <span key={key} className="flex gap-1">
+                    <span className="text-gray-600">{label}:</span>
+                    <span className={
+                      key === "translated" && result[key] > 0
+                        ? "text-indigo-400 font-medium"
+                        : key === "language_corrected" && result[key] > 0
+                          ? "text-blue-400 font-medium"
+                          : key === "failed" && result[key] > 0
+                            ? "text-red-400 font-medium"
+                            : "text-gray-300"
+                    }>
+                      {result[key] ?? 0}
+                    </span>
                   </span>
-                </span>
+                ) : null
               ))}
             </div>
 

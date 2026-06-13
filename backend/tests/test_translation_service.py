@@ -5,10 +5,19 @@ Translation providers are always mocked — no external API calls.
 """
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
-from app.translation.providers import NoopTranslationProvider, TranslationProvider
-from app.translation.translation_service import translate_title, set_provider, reset_provider
+from app.translation.providers import (
+    NoopTranslationProvider,
+    FakeTranslationProvider,
+    TranslationProvider,
+)
+from app.translation.translation_service import (
+    translate_title,
+    set_provider,
+    reset_provider,
+    get_provider_status,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -86,3 +95,83 @@ class TestTranslateTitle:
         translate_title("Paris Basketball news", "it")
         assert recorded["text"] == "Paris Basketball news"
         assert recorded["lang"] == "it"
+
+
+class TestFakeTranslationProvider:
+    def test_known_title_returns_real_hebrew(self):
+        prov = FakeTranslationProvider()
+        result = prov.translate_title_to_hebrew(
+            "Paris Basketball tratta Dave Joerger per la panchina", "it"
+        )
+        assert result == "פריז באסקטבול מנהלת מגעים עם דייב ייגר לתפקיד המאמן"
+
+    def test_unknown_title_returns_stub_with_original(self):
+        prov = FakeTranslationProvider()
+        result = prov.translate_title_to_hebrew("Unknown title xyz", "en")
+        assert result is not None
+        assert "Unknown title xyz" in result
+        assert result.startswith("תרגום בדיקה:")
+
+    def test_can_translate_is_true(self):
+        prov = FakeTranslationProvider()
+        assert prov.can_translate is True
+
+    def test_known_deni_title(self):
+        prov = FakeTranslationProvider()
+        result = prov.translate_title_to_hebrew(
+            "Deni Avdija traded to Portland Trail Blazers", "en"
+        )
+        assert result is not None
+        assert "אבדיה" in result or "דני" in result
+
+    def test_translate_title_uses_fake_provider_when_set(self):
+        set_provider(FakeTranslationProvider())
+        result = translate_title("Unknown English title", "en")
+        assert result is not None
+        assert "תרגום בדיקה:" in result
+
+
+class TestGetProviderStatus:
+    def test_disabled_provider(self):
+        with patch.dict("os.environ", {"TRANSLATION_PROVIDER": "disabled"}, clear=False):
+            status = get_provider_status()
+        assert status["provider"] == "disabled"
+        assert status["can_translate"] is False
+        assert status["configured"] is False
+
+    def test_empty_env_var_treated_as_disabled(self):
+        with patch.dict("os.environ", {"TRANSLATION_PROVIDER": ""}, clear=False):
+            status = get_provider_status()
+        assert status["can_translate"] is False
+
+    def test_fake_provider_status(self):
+        with patch.dict("os.environ", {"TRANSLATION_PROVIDER": "fake"}, clear=False):
+            status = get_provider_status()
+        assert status["provider"] == "fake"
+        assert status["can_translate"] is True
+        assert status["configured"] is True
+        assert "fake" in (status.get("reason") or "").lower()
+
+    def test_claude_without_api_key(self):
+        env = {"TRANSLATION_PROVIDER": "claude", "TRANSLATION_API_KEY": ""}
+        with patch.dict("os.environ", env, clear=False):
+            status = get_provider_status()
+        assert status["provider"] == "claude"
+        assert status["can_translate"] is False
+        assert status["configured"] is False
+        assert "key" in (status.get("reason") or "").lower() or "missing" in (status.get("reason") or "").lower()
+
+    def test_claude_with_api_key(self):
+        env = {"TRANSLATION_PROVIDER": "claude", "TRANSLATION_API_KEY": "sk-test-key"}
+        with patch.dict("os.environ", env, clear=False):
+            status = get_provider_status()
+        assert status["provider"] == "claude"
+        assert status["can_translate"] is True
+        assert status["configured"] is True
+        assert status["reason"] is None
+
+    def test_unknown_provider_name(self):
+        with patch.dict("os.environ", {"TRANSLATION_PROVIDER": "openai"}, clear=False):
+            status = get_provider_status()
+        assert status["can_translate"] is False
+        assert "openai" in (status.get("reason") or "").lower()

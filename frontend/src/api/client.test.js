@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   getHealth, getFeed, getDebugFeed, getProfiles, submitFeedback, getCalibrationHeadlines,
   getIngestSources, runIngestion, getIngestRuns, getIngestQuality,
+  getClassifyStatus, classifyBackfill, resetRssData,
 } from "./client";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -281,5 +282,168 @@ describe("getIngestQuality", () => {
     vi.stubGlobal("fetch", mockFetchHttpError(503, "Service unavailable"));
 
     await expect(getIngestQuality()).rejects.toThrow("503");
+  });
+});
+
+// ── getClassifyStatus ─────────────────────────────────────────────────────────
+
+describe("getClassifyStatus", () => {
+  it("calls GET /api/classify/status and returns status object", async () => {
+    const payload = {
+      provider: "ollama",
+      can_classify: true,
+      hebrew_broad_sources: ["walla_sport", "israel_hayom_sport"],
+      model: "llama3.2:3b",
+      base_url: "http://localhost:11434",
+      reset_allowed: false,
+    };
+    const mockFetch = mockFetchSuccess(payload);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await getClassifyStatus();
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/api/classify/status");
+    expect(options?.method).toBeUndefined(); // GET
+    expect(result).toEqual(payload);
+  });
+
+  it("includes reset_allowed field in response", async () => {
+    const payload = {
+      provider: "disabled",
+      can_classify: false,
+      hebrew_broad_sources: [],
+      model: null,
+      base_url: null,
+      reset_allowed: true,
+    };
+    vi.stubGlobal("fetch", mockFetchSuccess(payload));
+
+    const result = await getClassifyStatus();
+    expect(result.reset_allowed).toBe(true);
+    expect(result.can_classify).toBe(false);
+  });
+
+  it("throws a descriptive error on network failure", async () => {
+    vi.stubGlobal("fetch", mockFetchNetworkError("Connection refused"));
+
+    await expect(getClassifyStatus()).rejects.toThrow("Cannot reach backend");
+  });
+});
+
+// ── classifyBackfill ──────────────────────────────────────────────────────────
+
+describe("classifyBackfill", () => {
+  const backfillResponse = {
+    provider: "ollama:llama3.2:3b",
+    processed: 18,
+    llm_classified: 12,
+    guardrail_corrections: 3,
+    fallback_count: 2,
+    low_confidence_count: 1,
+    skipped_already_classified: 10,
+    skipped_provider_not_ready: 0,
+    dry_run: false,
+  };
+
+  it("calls POST /api/classify/backfill with no params when called with no args", async () => {
+    const mockFetch = mockFetchSuccess(backfillResponse);
+    vi.stubGlobal("fetch", mockFetch);
+
+    await classifyBackfill();
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/api/classify/backfill");
+    expect(url).not.toContain("?");
+    expect(options.method).toBe("POST");
+  });
+
+  it("adds source_id query param when provided", async () => {
+    const mockFetch = mockFetchSuccess(backfillResponse);
+    vi.stubGlobal("fetch", mockFetch);
+
+    await classifyBackfill({ sourceId: "walla_sport" });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("source_id=walla_sport");
+  });
+
+  it("adds dry_run=true when dryRun is true", async () => {
+    const mockFetch = mockFetchSuccess(backfillResponse);
+    vi.stubGlobal("fetch", mockFetch);
+
+    await classifyBackfill({ dryRun: true });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("dry_run=true");
+  });
+
+  it("adds force=true when force is true", async () => {
+    const mockFetch = mockFetchSuccess(backfillResponse);
+    vi.stubGlobal("fetch", mockFetch);
+
+    await classifyBackfill({ force: true });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("force=true");
+  });
+
+  it("does not include dry_run or force when they are false (default)", async () => {
+    const mockFetch = mockFetchSuccess(backfillResponse);
+    vi.stubGlobal("fetch", mockFetch);
+
+    await classifyBackfill({ sourceId: "walla_sport" });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).not.toContain("dry_run");
+    expect(url).not.toContain("force");
+  });
+
+  it("combines multiple params correctly", async () => {
+    const mockFetch = mockFetchSuccess(backfillResponse);
+    vi.stubGlobal("fetch", mockFetch);
+
+    await classifyBackfill({ sourceId: "walla_sport", dryRun: true, force: true });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("source_id=walla_sport");
+    expect(url).toContain("dry_run=true");
+    expect(url).toContain("force=true");
+  });
+
+  it("throws a descriptive error on HTTP 403 (provider disabled)", async () => {
+    vi.stubGlobal("fetch", mockFetchHttpError(403, "Provider not ready"));
+
+    await expect(classifyBackfill()).rejects.toThrow("403");
+  });
+});
+
+// ── resetRssData ──────────────────────────────────────────────────────────────
+
+describe("resetRssData", () => {
+  it("calls POST /api/dev/reset-rss-data", async () => {
+    const payload = { status: "ok", deleted_articles: 30, deleted_ingestion_runs: 5 };
+    const mockFetch = mockFetchSuccess(payload);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await resetRssData();
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/api/dev/reset-rss-data");
+    expect(options.method).toBe("POST");
+    expect(result).toEqual(payload);
+  });
+
+  it("throws a descriptive error on 403 (ALLOW_DEV_RESET not set)", async () => {
+    vi.stubGlobal("fetch", mockFetchHttpError(403, "Dev reset is disabled. Set ALLOW_DEV_RESET=true"));
+
+    await expect(resetRssData()).rejects.toThrow("403");
+    await expect(resetRssData()).rejects.toThrow("ALLOW_DEV_RESET");
+  });
+
+  it("throws a descriptive error on network failure", async () => {
+    vi.stubGlobal("fetch", mockFetchNetworkError("Connection refused"));
+
+    await expect(resetRssData()).rejects.toThrow("Cannot reach backend");
   });
 });

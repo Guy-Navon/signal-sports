@@ -1,21 +1,21 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-06-14 — reflects state after PR 10 (branch: `feature/hebrew-rss-sources-expansion`).
+Last updated: 2026-06-19 — reflects state after Hebrew MVP narrowing: subtitle-aware deterministic classifier, walla_sport + israel_hayom_sport active only, eurohoops/sportando disabled, translation freeze in frontend (branch: `feature/llm-first-hebrew-classification`).
 
 ---
 
 ## 1. Product in One Paragraph
 
-Signal Sports is a Hebrew-first personalized sports news intelligence feed. It aggregates real sports news from multiple RSS sources, classifies each article (sport, league, entities, event type, importance), filters noise per user preference profile, translates non-Hebrew headlines into natural Hebrew, and surfaces to each user only the articles that are actually worth their attention. The same article can be `push` for one user and `hidden` for another. The product goal is not "show all sports news" but "show only what matters to this specific user."
+Signal Sports is a personalized sports news intelligence feed. The current MVP is Hebrew-only: it ingests Hebrew-native sports news from `walla_sport` and `israel_hayom_sport`, classifies each article (sport, league, entities, event type, importance), and surfaces to each user only the articles that are actually worth their attention. The same article can be `push` for one user and `hidden` for another. Translation of non-Hebrew sources is a post-MVP capability — the backend module is intact but disabled by default. The product goal is not "show all sports news" but "show only what matters to this specific user."
 
 ---
 
 ## 2. Product Principles
 
-- **Hebrew-first UI.** Every article is displayed with a Hebrew title. Non-Hebrew articles are translated before display. Hebrew is the source language for Walla — no translation needed or stored.
+- **Hebrew-first UI.** Every article is displayed with a Hebrew title. For the MVP, all active sources (`walla_sport`, `israel_hayom_sport`) are Hebrew — no translation is needed or used. The translation module is intact in the backend and can be re-enabled post-MVP for English sources.
 - **Personalized relevance, not generic RSS.** The feed is per-user. Identical article sets produce different feeds for different profiles.
 - **False positives are worse than missed classification.** When the classifier is unsure, it assigns `sport=unknown` and the article lands in debug. It does not guess and pollute the feed.
-- **Translate once per article, not per user.** `translated_title` is a stored field in SQLite. Translation runs at ingestion time or via backfill. The UI reads the stored value.
+- **Translation is post-MVP.** `TRANSLATION_PROVIDER=disabled` by default. The `translated_title` DB field, backend translation routes, and the entire `backend/app/translation/` module are intact and ready to be re-enabled, but the frontend no longer shows translation UI or untranslated warnings.
 - **Store original title forever.** `original_title` is written once and never overwritten. Retranslation always uses `original_title` as source so no content is lost.
 - **Use debug/quality views to inspect classifier mistakes.** The debug feed shows all articles including hidden ones with full reasoning. The quality endpoint shows sport breakdowns and questionable articles.
 - **Feed is core; push notifications are later.** Push exists as a decision level in the relevance engine but no device notification system is built.
@@ -27,15 +27,30 @@ Signal Sports is a Hebrew-first personalized sports news intelligence feed. It a
 ```
 RSS source
   → RSSSourceAdapter (feedparser)
-  → URL/language filter (blocked_url_patterns, allowed_languages)
-  → language detection (URL path → Unicode script → Italian heuristic → source default)
-  → translation (TranslationService → ClaudeProvider | FakeProvider | disabled)
-  → deterministic classifier (sport, league, entities, event_type, importance, confidence)
-  → dedup check (URL-based, stable rss_<sha1> ID)
-  → SQLite (articles table)
+      subtitle extracted from RSS <description> (HTML stripped, truncated 500 chars)
+  → URL/language filter (blocked_url_patterns, allowed_url_patterns, allowed_languages)
+  → dedup check (URL-based) — if URL already in DB, skip all downstream work
+  → _normalise() [only for new articles]:
+      language detection (URL path → Unicode script → Italian heuristic → source default)
+      translation (TranslationService → ClaudeProvider | FakeProvider | disabled)
+        — Hebrew articles skip translation entirely; non-Hebrew get translated when provider active
+        — MVP: TRANSLATION_PROVIDER=disabled (default); translation is post-MVP
+      deterministic classifier (title + subtitle) → sport, league, entities, event_type, importance, confidence
+        — always runs; subtitle fills gaps when title is ambiguous or produces sport=unknown
+        — subtitle never overrides an already-resolved sport value from the title
+      [Hebrew broad sources only, when CLASSIFICATION_PROVIDER != disabled]:
+        LLM classifier called with title + subtitle
+          → JSON validation → confidence check (≥ 0.65)
+          → merge with 5 deterministic guardrails → classified_by=llm or llm+rules_guardrail
+          → on failure or low confidence: use deterministic result → classified_by=rules_fallback_*
+  → SQLite insert (articles table)
   → relevance engine (per-user scoring: hidden / low_feed / feed / high_feed / push)
   → Feed/Debug UI (React/Vite, backend mode)
 ```
+
+**MVP active sources:** `walla_sport` and `israel_hayom_sport` only. `eurohoops` and `sportando` are
+disabled by default and treated as post-MVP / experimental. Hebrew articles are displayed using
+their native Hebrew title; translation is not used in the MVP product path.
 
 **Components:**
 
@@ -45,7 +60,9 @@ RSS source
 | Backend | FastAPI (Python 3.13), `backend/app/` |
 | Persistence | SQLite via SQLAlchemy 2.0, `backend/data/signal_sports.db` |
 | RSS ingestion | `feedparser`, `backend/app/ingestion/` |
-| Classifier | Pure deterministic keyword matching, `backend/app/ingestion/classifier.py` |
+| Subtitle extraction | `backend/app/ingestion/subtitle.py` — cleans RSS `<description>` for deterministic + LLM context |
+| Deterministic classifier | Keyword matching + subtitle gap-filling, `backend/app/ingestion/classifier.py` |
+| LLM classification | Gemini + Ollama providers, `backend/app/classification/` |
 | Relevance engine | Python: `backend/app/services/relevance_engine.py`; JS mirror: `src/engine/relevanceEngine.js` |
 | Translation | `backend/app/translation/`, provider configured by `.env` |
 
@@ -102,16 +119,25 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 
 | Table | Content |
 |-------|---------|
-| `articles` | All ingested articles; `entities` and `tags` stored as JSON |
+| `articles` | All ingested articles; `entities` and `tags` stored as JSON; includes 4 LLM classification metadata columns (PR 11) |
 | `profiles` | User profiles; `topics` list stored as JSON |
 | `sources` | RSS source configuration |
 | `feedback_events` | User feedback (persists across restarts) |
 | `calibration_headlines` | 16 synthetic preference calibration headlines |
 | `ingestion_runs` | Log of every RSS ingestion run |
 
-On startup: tables are created if missing; seed data is inserted only into empty tables (idempotent).
+**Four new columns on `articles` (PR 11, soft-migrated via `ALTER TABLE ADD COLUMN`):**
 
-**Test suite:** 471 pytest tests across `backend/tests/`.
+| Column | Type | Meaning |
+|--------|------|---------|
+| `classified_by` | TEXT DEFAULT `'rules'` | `rules`, `llm`, `llm+rules_guardrail`, `rules_fallback_after_llm_failure`, `rules_fallback_low_confidence` |
+| `classification_provider` | TEXT | `rules`, `ollama:llama3.2:3b`, `fake`, etc. |
+| `classification_reason` | TEXT | LLM's one-sentence explanation of the classification |
+| `classification_confidence` | REAL | LLM's self-assessed confidence (0.0–1.0); separate from the deterministic `confidence` field |
+
+On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent).
+
+**Test suite:** 636 pytest tests across `backend/tests/` + 215 frontend tests (Vitest).
 
 **Key API endpoints:**
 
@@ -133,6 +159,8 @@ On startup: tables are created if missing; seed data is inserted only into empty
 | `GET` | `/api/translations/status` | Current translation provider state |
 | `POST` | `/api/translations/backfill` | Translate untranslated articles in DB |
 | `GET` | `/api/calibration/headlines` | Synthetic calibration headlines |
+| `GET` | `/api/classify/status` | Current classification provider state |
+| `POST` | `/api/classify/backfill` | Reclassify existing articles with current LLM provider |
 
 **Feed filter:** `GET /api/feed`, `GET /api/debug/feed`, and `GET /api/articles` return only articles whose `id` starts with `rss_`. Seed articles (e.g. `article_001`) are excluded from the feed but accessible via single-item lookup.
 
@@ -142,13 +170,11 @@ On startup: tables are created if missing; seed data is inserted only into empty
 
 **Data mode badge:** Header pill shows "מצב נתונים: שרת" (blue, backend mode) or "מצב נתונים: מקומי" (gray, local mode).
 
-**Sources page — Ingestion panel:** In backend mode, shows source selector, "הרץ ייבוא עכשיו" button, per-source result breakdown after run, recent runs list (last 5), and "איכות הסיווג" quality toggle. In local mode, shows a disabled card with instructions to enable backend mode.
+**Sources page — Ingestion panel:** In backend mode, shows source selector (MVP active sources: וואלה ספורט, ישראל היום ספורט), "הרץ ייבוא עכשיו" button, per-source result breakdown after run, recent runs list (last 5), and "איכות הסיווג" quality toggle. No translation UI — translation is post-MVP and was removed from the Sources page. In local mode, shows a disabled card with instructions to enable backend mode.
 
-**Translation section in ingestion panel:** `ProviderStatusBadge` (green = claude, amber = fake, gray = disabled). Backfill results show `status: "skipped"` in amber when provider not ready — never false success.
+**Feed card:** Renders the Hebrew-native article title directly. For MVP Hebrew sources, `translatedTitle` is always `null` and the card falls back to `title` (the raw Hebrew RSS title). No original-language metadata block, no untranslated badge, no "לא תורגם" warning. The title fallback logic (`item.translatedTitle || item.title`) is preserved so the card works correctly when English sources are re-enabled post-MVP.
 
-**Feed card:** Translated articles show Hebrew title as primary; original-language metadata in gray below (`שפת מקור: איטלקית · כותרת מקור: <original>`). Untranslated articles show original title with amber `לא תורגם` marker.
-
-**Debug view:** All articles with full scoring reasoning. Comparison tab always uses local engine (cross-profile comparison not wired to backend).
+**Debug view:** All articles with full scoring reasoning. Each article card shows LLM classification metadata (PR 11): `classified_by` as a color-coded badge (grey=rules, blue=llm, yellow=llm+rules_guardrail, red=failure, orange=low-confidence), `classification_provider` inline, `classification_confidence` as a percentage, and `classification_reason` as an italic line. Comparison tab always uses local engine (cross-profile comparison not wired to backend).
 
 **Local mode:** Remains fully functional with mock data. No backend required. The frontend engine (`relevanceEngine.js`) is kept.
 
@@ -188,9 +214,11 @@ Push must be rare. If more than a handful of articles per day reach push, the en
 
 ---
 
-## 8. Hebrew Classifier State
+## 8. Classification State
 
-The classifier (`backend/app/ingestion/classifier.py`) is purely deterministic — keyword matching only, no NLP, no LLM.
+### 8a. Deterministic Classifier (`backend/app/ingestion/classifier.py`)
+
+The deterministic classifier is keyword-matching only — no NLP, no LLM. It always runs first, for all sources. For English basketball-only sources (`eurohoops`, `sportando`), it is the sole classifier. For Hebrew broad sources, its result is used as guardrail input when LLM is enabled.
 
 **What it detects reliably:**
 - Maccabi Tel Aviv Basketball (English + Hebrew forms, including standalone "מכבי")
@@ -203,87 +231,107 @@ The classifier (`backend/app/ingestion/classifier.py`) is purely deterministic �
 - Hapoel Tel Aviv disambiguation: resolved to basketball or football based on sport context; `ambiguous_club` tag when no context
 - Hebrew event types: negotiation before signing (prevents "על סף חתימה" from misfiring as signing)
 - Generic news with no entity → `importance=low` (prevents filler from polluting feed)
+- **PR 11 fix:** `"אלופת"` and `"אלופות"` added to `_WINNER_SUFFIX_KW`. These use regular pe (פ U+05E4) unlike "אלוף" (final pe ף U+05E3) — the Python `in` operator returned `False` for `"אלוף" in "אלופת"`. This fixes "ניו יורק אלופת ה-NBA" → `event_type=title_win`.
+- **PR 11 fix:** `"mvp"` added to `_BASKETBALL_KW`. "MVP" is unambiguously basketball in Israeli sports context.
 
 **Confidence scoring:** 0.40 base + 0.15 (sport) + 0.05 (basketball-only source) + 0.15 (league) + 0.15 (entity) + 0.10 (non-news event type); capped at 0.95.
 
 **`ambiguous_club` behavior:** When a full-name club phrase is present but no sport context resolves it, the article gets `sport=unknown`, `entities=[]`, tag `ambiguous_club`, and shows up as questionable in the quality endpoint.
 
-**Honest limitations:**
-- Standalone "מכבי" is still risky for non-basketball Maccabi clubs not yet in `_FOOTBALL_MACCABI_KW`.
-- Limited player/entity extraction — only Maccabi TLV, Deni Avdija, Kattash.
-- No player name extraction for NBA teams beyond direct name keyword hits.
-- No title summarization or body analysis — title only.
-- Walla broad feed produces many `sport=unknown` articles during football-heavy news cycles (World Cup 2026). This is correct precision-over-recall behavior, not a bug.
+**Known gaps (require LLM):** Multi-sport entities (Olympiacos, Hapoel TLV without context), unfamiliar Hebrew proper nouns (player/coach names not in keyword lists), NBA league context from player name alone (e.g., Brunson → NBA).
+
+### 8b. LLM Classification (`backend/app/classification/`)
+
+LLM classification is an opt-in overlay for Hebrew broad sources only. It does not change feed decision logic — the relevance engine still reads stored metadata deterministically.
+
+**When it runs:** `source_id in {"walla_sport", "israel_hayom_sport"}` AND `CLASSIFICATION_PROVIDER != disabled`.
+
+**Provider options (`CLASSIFICATION_PROVIDER` env var):**
+
+| Provider | Behavior |
+|----------|---------|
+| `disabled` (default) | LLM path skipped entirely; behavior identical to pre-PR 11 |
+| `fake` | Pre-set results for known test headlines; unknown headlines → rules fallback |
+| `gemini` | Google Gemini API via `google-genai` SDK; requires `CLASSIFICATION_API_KEY` (Google AI Studio key). Free tier: 20 requests/day (`gemini-2.5-flash-lite` preview) — not enough for production ingestion. Retries once on 429. |
+| `ollama` | Calls local Ollama instance; no GPU required; recommended model `qwen2.5:3b-instruct` |
+
+**LLM pipeline:**
+1. Deterministic classifier runs first (always)
+2. Subtitle extracted from RSS `<description>` via `subtitle.py` (HTML stripped, entities unescaped, truncated to 500 chars)
+3. LLM called with Hebrew title + optional subtitle (as `Headline: …\nSubtitle: …`) + 6-shot prompt
+4. JSON response validated against strict enum sets (`ALLOWED_SPORTS`, `ALLOWED_LEAGUES`, `ALLOWED_EVENT_TYPES`, `ALLOWED_IMPORTANCES`)
+5. If `confidence < 0.65` → `classified_by = "rules_fallback_low_confidence"`, rules result kept
+6. If confidence ≥ 0.65 → merge with 5 deterministic guardrails:
+   - Guardrail 1: football Maccabi clubs detected → sport = football, LLM overruled
+   - Guardrail 2: LLM sport=unknown → use rules sport
+   - Guardrail 3: LLM league=null → use rules league
+   - Guardrail 4: rules found specific event_type but LLM says "news" → use rules
+   - Guardrail 5: importance never downgraded (rules high → LLM low: keep high)
+7. Entities: rules entities pruned for sport compatibility (basketball club entities removed when final sport ≠ basketball); LLM entities normalized through alias map and appended
+8. Defense-in-depth: relevance engine entity scope matching checks `topic.sport` vs `article.sport` — a football article cannot match a basketball entity topic even if entities contain a stale basketball club name
+
+**Per-run circuit breaker:** The first `httpx.ConnectError` (Ollama not running) opens a circuit for the rest of that ingestion run. Remaining articles use rules immediately (~2s total overhead, not 30 × 2s). Timeouts do not open the circuit. The circuit resets on the next `POST /api/ingest/run`.
+
+**Backfill endpoint:** `POST /api/classify/backfill` reclassifies existing articles. Updates all 11 classification fields (sport, league, entities, event_type, importance, confidence, tags, classified_by, classification_provider, classification_reason, classification_confidence). Use after enabling Ollama on a database with existing articles.
+
+See `docs/LLM_CLASSIFICATION.md` for full architecture details.
 
 ---
 
-## 9. Translation Pipeline State
+## 9. Translation Pipeline State (Post-MVP — Preserved, Not Active)
 
-### Display rule
-Every article in the feed shows a Hebrew title as primary. Non-Hebrew articles are translated; Hebrew articles are stored as-is.
+Translation is not used in the current MVP. All active sources (`walla_sport`, `israel_hayom_sport`) are Hebrew-native — no translation is needed. `TRANSLATION_PROVIDER=disabled` is the default and the correct MVP setting.
 
-### Article fields
+The translation module is preserved intact for post-MVP re-enablement when English sources (eurohoops, sportando) are added back. No translation code was deleted.
 
-| Field | Meaning |
-|-------|---------|
-| `title` | Hebrew title (primary display) |
-| `original_title` | Raw RSS title (written once, never overwritten) |
-| `translated_title` | Same as `title` after translation; `None` if not yet translated |
-| `language` | Detected source language (`en`, `it`, `he`, etc.) |
+### What is preserved
 
-### Providers
+| Component | Status |
+|-----------|--------|
+| `backend/app/translation/` | Intact — ClaudeProvider, FakeProvider, NoopProvider |
+| `backend/app/api/routes_translation.py` | Intact — `/api/translations/status` and `/api/translations/backfill` routes still respond |
+| `articles.original_title`, `articles.translated_title` | DB fields intact |
+| All existing translation tests | Pass unchanged |
 
-| `TRANSLATION_PROVIDER` | Behavior |
-|------------------------|----------|
-| `disabled` (default) | No translation; articles show original title |
-| `fake` | Dev stub — known titles get realistic Hebrew, others get `"תרגום בדיקה: <original>"` |
-| `claude` | Anthropic Claude API (requires `TRANSLATION_API_KEY`) |
+### What was removed (frontend translation freeze)
 
-### dotenv loading
-`backend/.env` is loaded in `app/main.py` **before all other imports** via `python-dotenv`. This is critical because `TRANSLATION_PROVIDER` and `DATABASE_URL` are read at module import time.
+- `TranslationSection` component in `IngestionPanel.jsx` (backfill UI)
+- `ProviderStatusBadge` in `IngestionPanel.jsx`
+- Original-language metadata block in `FeedCard.jsx` ("שפת מקור", "כותרת מקור", "לא תורגם")
+- `backfillTranslations()` and `getTranslationStatus()` exports from `client.js`
 
-### Language detection priority
+### Article title fields
+
+| Field | MVP behavior |
+|-------|-------------|
+| `title` | Raw Hebrew RSS title (same as the original) |
+| `original_title` | `None` for Hebrew-native articles |
+| `translated_title` | `None` — provider is disabled |
+| `language` | `"he"` for all active MVP sources |
+
+### Language detection priority (preserved for post-MVP)
 1. URL path segment (`/it/` → Italian, `/he/` → Hebrew)
 2. Unicode script of title characters
 3. Italian keyword heuristic (for Sportando which has no `/it/` path)
 4. Source config default (`"en"` for Eurohoops, `"he"` for Walla)
 
-### Translation quality (PR 9.3)
-The Claude provider uses a prompt that instructs "natural Hebrew sports headline an Israeli editor would publish" — not literal translation. It includes:
-- **Sports glossary** (basketball + transfer terms: `accordo → סיכום`, `panchina → תפקיד המאמן`, EuroLeague → יורוליג, etc.)
-- **Few-shot examples** (5 Italian → Hebrew pairs) to anchor style
-- **Post-translation quality checks:**
-  1. Empty / whitespace → rejected
-  2. Identical to original → rejected
-  3. Model explanation prefix (`"Here is the translation:"`) → rejected
-  4. Latin-ratio > 60% → rejected (model returned original English)
-  5. Length > 3× original → rejected (model added commentary)
-  When rejected, article keeps original title with `לא תורגם` marker.
-
-### Fake translation detection (PR 9.2)
-`include_fake=true` on the backfill endpoint re-translates articles whose `title` or `translated_title` starts with `"תרגום בדיקה:"`. Uses `original_title` as source; skips if `original_title` is missing.
-
-### Next manual step needed
-After configuring `TRANSLATION_PROVIDER=claude` and `TRANSLATION_API_KEY` in `backend/.env`, run:
-```
-POST /api/translations/backfill?source_id=sportando&limit=5&force=true
-```
-Then inspect the feed or debug view for real Italian → Hebrew quality. Italian Sportando articles should have natural Hebrew headlines. No `תרגום בדיקה:` prefix.
+### Next manual step
+**Not translation** — the next manual step is the LLM classification benchmark with Ollama/Qwen. See Section 11 and the handoff prompt in Section 13. Translation quality verification is a post-MVP concern for when English sources are re-enabled.
 
 ---
 
 ## 10. Current Known Limitations
 
 - **No scheduler.** Ingestion runs only on `POST /api/ingest/run`. APScheduler deferred.
-- **`source_id` filter in translation backfill is accepted but not applied.** The `?source_id=X` query param exists in the endpoint signature but the implementation calls `get_rss_articles(session)` unconditionally and never filters by source. The `limit` param still applies, so `?source_id=sportando&limit=5` will process the first 5 articles from any source, not just Sportando.
 - **No fuzzy dedup / clustering.** Deduplication is URL-only. The same story from Eurohoops and Walla appears as two separate articles. `cluster_id` field exists in the model but is never populated.
 - **No feedback → profile mutation.** Feedback events are stored in SQLite but do not yet modify topic rules or event rules in user profiles.
 - **No auth / multi-user.** User profiles are seeded statically. No login, no registration.
 - **No push notifications.** `push` is a decision level in the engine; no device notification delivery.
 - **No body translation or summaries.** Only titles are translated. Article bodies are not ingested.
-- **Limited source coverage.** Eurohoops, Sportando, Walla Sport, Israel Hayom Sport. Sport5 and ONE have no clean public RSS; Ynet has no sport-specific RSS.
-- **Classifier is keyword-based.** No NLP, no LLM-based classification. Entity extraction is limited to Maccabi TLV, Deni Avdija, Kattash, and three new entity values (Maccabi TLV Football, Hapoel TLV Basketball, Hapoel TLV Football).
-- **Translation quality not yet validated with real API key.** PR 9.3 built the quality guardrails; real-world output quality requires a live Claude API key and a manual review run.
+- **Limited source coverage.** MVP active sources: Walla Sport, Israel Hayom Sport. Eurohoops and Sportando are disabled (post-MVP). Sport5 and ONE have no clean public RSS; Ynet has no sport-specific RSS. If a third Hebrew source is added post-MVP, ONE is the preferred candidate.
+- **LLM classification not yet validated at production scale.** Two providers are implemented: `gemini` (fast, cloud, but only 20 requests/day free tier — exhausted in one ingestion run) and `ollama` (local, uncapped, needs Ollama installed and `qwen2.5:3b-instruct` pulled). Default is `disabled`. Hebrew articles use deterministic classification until a provider is configured.
+- **Entity normalization map is conservative.** Only explicitly listed canonical aliases are mapped. New players, coaches, clubs not yet in `_ENTITY_ALIASES` are silently discarded from `article.entities` even when LLM identifies them correctly. Expand `entity_normalizer.py` to cover new entities.
+- **Translation not active in MVP.** `TRANSLATION_PROVIDER=disabled` is correct for Hebrew-only MVP. Backend module, DB fields, and API routes are preserved for post-MVP re-enablement. Translation quality validation is a post-MVP concern.
 
 ---
 
@@ -291,14 +339,14 @@ Then inspect the feed or debug view for real Italian → Hebrew quality. Italian
 
 Priority order:
 
-1. **Manual translation quality verification** — Configure `TRANSLATION_PROVIDER=claude` + real API key, run `POST /api/translations/backfill?source_id=sportando&limit=5&force=true`, inspect feed quality.
-2. **Fix `source_id` filter in translation backfill** — The parameter is accepted but never used. Filter `all_rss` list by `article.source == source_id` before building candidates.
+1. **LLM classification benchmark** — Install Ollama, pull `qwen2.5:3b-instruct`, set `CLASSIFICATION_PROVIDER=ollama` + `CLASSIFICATION_MODEL=qwen2.5:3b-instruct` + `CLASSIFICATION_TIMEOUT_SECONDS=30`, re-ingest Walla + Israel Hayom, compare `sport=unknown` count and Guy's feed visibility before/after. Run `POST /api/classify/backfill?source_id=walla_sport` on existing articles. If quality is poor, try `qwen3:4b`.
+2. **Expand entity normalization map** — Add recognized Israeli basketball players, coaches, EuroLeague club names to `backend/app/classification/entity_normalizer.py` after LLM benchmark reveals which entities are being identified but discarded.
 3. **Scheduled ingestion via APScheduler** — Poll `POST /api/ingest/run` every 15–30 minutes. Add to `app/main.py` lifespan.
 4. **Feed clustering / fuzzy dedup** — Use `difflib.SequenceMatcher` on titles across sources; populate `cluster_id`. Show one card per story.
-5. **Translation cache / batch translation** — Avoid re-calling the API for articles already translated; the current flow is safe but explicit batching would allow rate-limit-aware processing.
-6. **Feedback → profile mutation** — `never_show` feedback creates a `hidden` event rule for the article's `event_type` in the matched topic. Requires in-place profile update via the repository.
-7. **More Hebrew sources** — Sport5 via category page HTML adapter (no RSS available). ONE and Ynet have no usable RSS and were rejected in PR 10.
-8. **Better entity extraction** — Extend `_MACCABI_KW`, add more Israeli coaches and players, add NBA player names for entity-specific scoring.
+5. **Feedback → profile mutation** — `never_show` feedback creates a `hidden` event rule for the article's `event_type` in the matched topic. Requires in-place profile update via the repository.
+6. **More Hebrew sources** — ONE Sport via category page HTML adapter is the preferred next source (traditional HTML, no SPA). Sport5 has no clean RSS. Ynet is harder (SPA).
+7. **Better relevance for LLM-classified articles** — Some LLM-classified articles land in Guy's feed as `feed` when they deserve `high_feed` or `push`. The relevance engine's topic rules may need tuning once LLM entity extraction surfaces more entities (e.g., New York Knicks → Knicks entity → entity_event_rules fires).
+8. **Re-enable English sources + translation** (post-MVP) — Set `eurohoops.enabled=True` in `config.py`, configure `TRANSLATION_PROVIDER=claude` + API key, run translation backfill, verify Italian → Hebrew quality.
 
 ---
 
@@ -317,9 +365,19 @@ DATABASE_URL=sqlite:///./data/signal_sports.db
 TRANSLATION_PROVIDER=disabled
 TRANSLATION_API_KEY=
 TRANSLATION_MODEL=claude-haiku-4-5-20251001
+CLASSIFICATION_PROVIDER=disabled
+CLASSIFICATION_MODEL=qwen2.5:3b-instruct
+CLASSIFICATION_API_KEY=
+CLASSIFICATION_OLLAMA_BASE_URL=http://localhost:11434
+CLASSIFICATION_TIMEOUT_SECONDS=30
+ALLOW_DEV_RESET=false
 ```
 Set `TRANSLATION_PROVIDER=fake` for dev testing without an API key.
 Set `TRANSLATION_PROVIDER=claude` with a real `TRANSLATION_API_KEY` for production-quality translation.
+Set `CLASSIFICATION_PROVIDER=ollama` after running `ollama pull qwen2.5:3b-instruct` to enable LLM classification for Hebrew broad sources.
+Set `CLASSIFICATION_PROVIDER=gemini` with a `CLASSIFICATION_API_KEY` (Google AI Studio key) for cloud-based LLM classification. Note: free tier is 20 requests/day for `gemini-2.5-flash-lite` — not suitable for production ingestion at scale.
+Set `CLASSIFICATION_PROVIDER=fake` to test the LLM classification path in dev without Ollama installed.
+Set `ALLOW_DEV_RESET=true` only for local QA sessions (enables `POST /api/dev/reset-rss-data`). Never enable in production.
 
 ### Frontend in backend mode
 Create `frontend/.env.local`:
@@ -345,19 +403,38 @@ No `.env.local` needed. Uses mock data and frontend engine.
 ```bash
 cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
-# 409 tests — all should pass
+# 636 tests — all should pass (no test requires Ollama running or a real API key)
+# Note: test_reset_returns_403_when_disabled requires ALLOW_DEV_RESET unset or =false in .env
 ```
 
 ### Manual RSS ingestion
 ```
-POST http://127.0.0.1:8000/api/ingest/run              # all sources
-POST http://127.0.0.1:8000/api/ingest/run?source_id=eurohoops
-POST http://127.0.0.1:8000/api/ingest/run?source_id=sportando
-POST http://127.0.0.1:8000/api/ingest/run?source_id=walla_sport
-POST http://127.0.0.1:8000/api/ingest/run?source_id=israel_hayom_sport
+POST http://127.0.0.1:8000/api/ingest/run                                        # MVP active sources only
+POST http://127.0.0.1:8000/api/ingest/run?source_id=walla_sport                  # Hebrew — active
+POST http://127.0.0.1:8000/api/ingest/run?source_id=israel_hayom_sport           # Hebrew — active
+# POST http://127.0.0.1:8000/api/ingest/run?source_id=eurohoops                  # disabled — set enabled=True in config.py to re-enable
+# POST http://127.0.0.1:8000/api/ingest/run?source_id=sportando                  # disabled — set enabled=True in config.py to re-enable
 ```
+`POST /api/ingest/run` (no source_id) only runs sources with `enabled=True` in `config.py`.
+For MVP this means `walla_sport` + `israel_hayom_sport` only.
+
 Expected for `israel_hayom_sport`: `fetched=100, inserted≈21, skipped_filtered≈79, failed=0`.
 Second run: `inserted=0, skipped_duplicate≈21`.
+
+### Manual classification backfill (LLM)
+```
+# Check current classification provider state
+GET http://127.0.0.1:8000/api/classify/status
+
+# Reclassify Walla articles not yet classified by LLM (requires CLASSIFICATION_PROVIDER=ollama)
+POST http://127.0.0.1:8000/api/classify/backfill?source_id=walla_sport
+
+# Dry run preview (see which articles would be reclassified)
+POST http://127.0.0.1:8000/api/classify/backfill?source_id=walla_sport&dry_run=true
+
+# Force reclassify ALL Walla articles regardless of classified_by value
+POST http://127.0.0.1:8000/api/classify/backfill?source_id=walla_sport&force=true
+```
 
 ### Manual translation backfill
 ```
@@ -399,9 +476,25 @@ Copy-paste this into a new conversation:
 - אל תניח הנחות לגבי מצב הקוד — אם לא ברור, שאל לפני שאתה ממשיך.
 - אל תשנה קוד בלי שביקשתי.
 
-המשימה הבאה (אלא אם אני אגיד אחרת): אימות איכות התרגום אחרי PR 9.3.
-שלב ראשון: להגדיר `TRANSLATION_PROVIDER=claude` עם מפתח API אמיתי ב-`backend/.env`,
-להריץ `POST /api/translations/backfill?source_id=sportando&limit=5&force=true`,
-ולבדוק את איכות התרגום בפיד.
+המשימה הבאה (אלא אם אני אגיד אחרת): בנצ'מארק של סיווג LLM עם Ollama + Qwen.
+
+שלבים:
+1. להתקין Ollama (אם לא מותקן) ולהריץ `ollama pull qwen2.5:3b-instruct`
+2. להגדיר ב-`backend/.env`:
+   ```
+   CLASSIFICATION_PROVIDER=ollama
+   CLASSIFICATION_MODEL=qwen2.5:3b-instruct
+   CLASSIFICATION_TIMEOUT_SECONDS=30
+   ```
+3. למחוק את ה-DB: `del backend\data\signal_sports.db`
+4. להריץ ייבוא: `POST /api/ingest/run?source_id=walla_sport` ו-`POST /api/ingest/run?source_id=israel_hayom_sport`
+5. לבדוק את `GET /api/ingest/quality` — כמה `sport=unknown` נשארו?
+6. לפתוח את ה-Debug view עבור Guy — אילו כתבות עכשיו נראות שלא היו נראות קודם?
+7. לבדוק שלא יש false positives (כתבות כדורגל שסווגו כסל)
+8. אם האיכות לא מספיקה — לנסות `qwen3:4b` כחלופה
+
+הקשר: ניסינו Gemini בתחילה אבל גירסת ה-preview (`gemini-2.5-flash-lite`) מוגבלת ל-20 בקשות ביום בחינמית — לא מספיק לאפילו ריצת ייבוא אחת של 28 כתבות. עברנו ל-Ollama+Qwen שלא מוגבל.
+
+תיעוד: `docs/LLM_CLASSIFICATION.md` מכיל את כל הפרטים הטכניים של מודול הסיווג.
 
 ---

@@ -350,6 +350,11 @@ def _does_topic_match_article(article: Article, topic: TopicPreference) -> tuple
         if topic.entities and article.entities:
             hit = next((e for e in article.entities if e in topic.entities), None)
             if hit:
+                # Sport compatibility guard: a basketball entity topic must not match a
+                # football/tennis article even if entities overlap due to classification error.
+                # "unknown" sport passes through — the article may simply be unclassified.
+                if topic.sport and article.sport != "unknown" and article.sport != topic.sport:
+                    return (False, None)
                 return (True, f"התאמה לפי ישות (scope: entity): {hit}")
         return (False, None)
 

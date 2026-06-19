@@ -5,6 +5,23 @@ import { Bug, ChevronDown, ChevronUp, Search, GitCompare } from "lucide-react";
 
 const DECISION_RANK = { hidden: 0, low_feed: 1, feed: 2, high_feed: 3, push: 4 };
 
+const CLASSIFIED_BY_STYLES = {
+  "rules":                              "bg-gray-800/80 text-gray-400 border-gray-700/40",
+  "llm":                                "bg-blue-950/60 text-blue-300 border-blue-700/40",
+  "llm+rules_guardrail":                "bg-yellow-950/60 text-yellow-300 border-yellow-700/40",
+  "rules_fallback_after_llm_failure":   "bg-red-950/60 text-red-300 border-red-700/40",
+  "rules_fallback_low_confidence":      "bg-orange-950/60 text-orange-300 border-orange-700/40",
+};
+
+function ClassifiedByBadge({ value }) {
+  const style = CLASSIFIED_BY_STYLES[value] || "bg-gray-800/80 text-gray-400 border-gray-700/40";
+  return (
+    <span className={`text-[10px] border rounded px-1.5 py-0.5 font-mono ${style}`}>
+      {value}
+    </span>
+  );
+}
+
 function DebugRow({ item }) {
   const [expanded, setExpanded] = useState(false);
   const decision = item.score?.decision || "hidden";
@@ -66,6 +83,31 @@ function DebugRow({ item }) {
               </div>
             ))}
           </div>
+
+          {/* LLM Classification metadata */}
+          {item.classifiedBy && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-gray-600 font-medium uppercase tracking-wide">סיווג LLM</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <ClassifiedByBadge value={item.classifiedBy} />
+                {item.classificationProvider && item.classificationProvider !== "rules" && (
+                  <span className="text-[10px] text-gray-500 bg-gray-800/60 border border-gray-700/40 rounded px-1.5 py-0.5">
+                    {item.classificationProvider}
+                  </span>
+                )}
+                {item.classificationConfidence != null && (
+                  <span className="text-[10px] text-gray-500">
+                    ביטחון LLM: {Math.round(item.classificationConfidence * 100)}%
+                  </span>
+                )}
+              </div>
+              {item.classificationReason && (
+                <p className="text-[11px] text-gray-500 italic leading-snug">
+                  {item.classificationReason}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Reasoning chain */}
           <div>

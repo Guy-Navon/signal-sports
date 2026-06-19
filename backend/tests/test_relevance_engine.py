@@ -411,3 +411,68 @@ def test_push_not_via_maccabi_topic_for_non_maccabi_article(guy):
         )
     # EuroLeague signing → high_feed (from EuroLeague topic's eventRules: signing = high_feed)
     assert result.decision == "high_feed"
+
+
+# ── Sport compatibility guard (entity scope defense-in-depth) ─────────────────
+
+def test_football_article_with_basketball_entity_does_not_match_maccabi_topic(guy):
+    """A football article must never be promoted via maccabi_tel_aviv_basketball topic,
+    even if 'Maccabi Tel Aviv Basketball' appears in entities due to a classification error."""
+    football_article = _make_article(
+        sport="football",
+        league="Israeli Premier League",
+        entities=["Maccabi Tel Aviv Basketball"],  # stale entity — the bug scenario
+        event_type="match_result",
+        importance="medium",
+    )
+    result = score_article(football_article, guy)
+    assert result.matched_topic != "maccabi_tel_aviv_basketball", (
+        "Football article must not match maccabi_tel_aviv_basketball entity topic"
+    )
+    # Football article should be hidden or low_feed for Guy (football major_only mode)
+    assert result.decision in ("hidden", "low_feed")
+
+
+def test_football_article_with_hapoel_tlv_entity_does_not_match_via_entity_scope(guy):
+    """Hapoel TLV Basketball entity in a football article must not trigger entity scope match."""
+    football_article = _make_article(
+        sport="football",
+        league="Israeli Premier League",
+        entities=["Hapoel Tel Aviv Basketball"],
+        event_type="match_result",
+        importance="medium",
+    )
+    result = score_article(football_article, guy)
+    # No basketball entity topic should match for a football article
+    assert result.matched_topic not in (
+        "maccabi_tel_aviv_basketball",
+        "hapoel_tel_aviv_basketball",
+    )
+
+
+def test_basketball_article_with_maccabi_entity_still_matches(guy):
+    """sport=basketball articles with Maccabi entity still match the entity topic — no regression."""
+    basketball_article = _make_article(
+        sport="basketball",
+        league="EuroLeague",
+        entities=["Maccabi Tel Aviv Basketball"],
+        event_type="signing",
+        importance="high",
+    )
+    result = score_article(basketball_article, guy)
+    assert result.matched_topic == "maccabi_tel_aviv_basketball"
+    assert result.decision in ("high_feed", "push")
+
+
+def test_unknown_sport_article_with_basketball_entity_still_matches(guy):
+    """An article with sport=unknown but a Maccabi entity should still match the entity topic.
+    'unknown' passes through the sport guard — the article may simply be unclassified."""
+    unknown_sport_article = _make_article(
+        sport="unknown",
+        league=None,
+        entities=["Maccabi Tel Aviv Basketball"],
+        event_type="news",
+        importance="medium",
+    )
+    result = score_article(unknown_sport_article, guy)
+    assert result.matched_topic == "maccabi_tel_aviv_basketball"

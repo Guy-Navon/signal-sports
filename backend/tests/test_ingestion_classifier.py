@@ -175,3 +175,298 @@ class TestConfidence:
         r = classify("Deni Avdija traded to new NBA team", source_id="eurohoops", language="en")
         r2 = classify("some basketball game happened")
         assert r.confidence > r2.confidence
+
+
+class TestHebrewRegressions:
+    """
+    Real Hebrew headlines that were/are misclassified by the deterministic classifier.
+    Tests document the state after PR 11 deterministic fixes.
+    Articles still requiring LLM are documented as known gaps.
+    """
+
+    def test_ny_knicks_champion_title_win(self):
+        """אלופת fix: 'אלופת ה-NBA' now resolves to title_win (was: news/title)."""
+        r = classify(
+            "ערב היסטורי לברונסון ולניקס: ניו יורק אלופת ה-NBA!",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert r.league == "NBA"
+        assert r.event_type == "title_win"
+        assert r.importance == "very_high"
+
+    def test_brunson_mvp_sport_now_basketball(self):
+        """mvp fix: sport now basketball (was: unknown). League still None — requires LLM."""
+        r = classify(
+            "ג'יילן ברונסון ה-MVP של סדרת הגמר: \"בכל פעם, פשוט לקחנו את זה\"",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"        # fixed from unknown
+        assert r.event_type == "finals_result"
+        assert r.importance == "very_high"
+        assert r.league is None               # still None; LLM needed (Brunson → Knicks → NBA)
+
+    def test_hapoel_tlv_harper_still_ambiguous_without_llm(self):
+        """Multi-sport entity: still unknown without LLM. Documents known gap."""
+        r = classify(
+            "סיכום בהפועל תל אביב? בירושלים לא שחררו את ג'ארד הארפר",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "unknown"
+        assert "ambiguous_club" in r.tags
+
+    def test_olympiacos_still_unknown_without_llm(self):
+        """Multi-sport entity with no context keywords. Documents known gap."""
+        r = classify(
+            "אולימפיאקוס נקצה, ינאקופולוס עצבני אחרי הסערה הגדולה ביוון",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "unknown"
+        assert r.league is None
+
+
+# ── Subtitle gap-filling ──────────────────────────────────────────────────────
+
+class TestSubtitleSportGap:
+    """Subtitle fills sport=unknown when title is ambiguous or lacks sport keywords."""
+
+    def test_subtitle_resolves_sport_basketball(self):
+        """Title alone: sport=unknown. Subtitle has 'כדורסל' → sport=basketball."""
+        r = classify(
+            "גרנדיוזי: המהלך שכולם דיברו עליו קורה",
+            subtitle="כדורסל: מכבי תל אביב חתמה על שחקן חדש",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+
+    def test_subtitle_resolves_sport_via_context_keyword(self):
+        """'הפועל ירושלים' in subtitle (in _BASKETBALL_CTX_KW) → sport=basketball."""
+        r = classify(
+            "ערב מרגש לאוהדים",
+            subtitle="הפועל ירושלים מנצחת בגמר האליפות",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+
+    def test_subtitle_resolves_sport_tennis(self):
+        """Title has no sport. Subtitle with 'טניס' → sport=tennis."""
+        r = classify(
+            "ניצחון מרהיב בגמר",
+            subtitle="טניס: אלקאראז זוכה בגראנד סלאם",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "tennis"
+
+    def test_subtitle_does_not_override_title_sport(self):
+        """Title already resolved sport=football. Subtitle basketball context is ignored."""
+        r_no_sub = classify(
+            "הפועל באר שבע ניצחה את מכבי חיפה 2-0 בליגת העל",
+            source_id="walla_sport", language="he",
+        )
+        r_with_sub = classify(
+            "הפועל באר שבע ניצחה את מכבי חיפה 2-0 בליגת העל",
+            subtitle="כדורסל: מכבי ירושלים זוכה ביורוליג",
+            source_id="walla_sport", language="he",
+        )
+        assert r_no_sub.sport == "football"
+        assert r_with_sub.sport == "football"  # subtitle basketball context not applied
+
+    def test_subtitle_does_not_override_title_basketball(self):
+        """Title resolved sport=basketball. Football subtitle context is ignored."""
+        r = classify(
+            "מכבי תל אביב ניצחה ביורוליג",
+            subtitle="כדורגל: הפועל תל אביב נוצחת בליגת העל",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+
+    def test_subtitle_without_title_sport_still_unknown_when_subtitle_also_ambiguous(self):
+        """Neither title nor subtitle has clear sport → still unknown."""
+        r = classify(
+            "מה קורה עם הקבוצה?",
+            subtitle="הכוכב הוא אחד הטובים בעולם",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "unknown"
+
+
+class TestSubtitleFootballMaccabiGuardrail:
+    """Football Maccabi clubs in subtitle must not trigger basketball classification."""
+
+    def test_maccabi_haifa_in_subtitle_is_football(self):
+        """Subtitle names מכבי חיפה (football) → sport=football, no basketball entity."""
+        r = classify(
+            "תוצאת הלילה",
+            subtitle="מכבי חיפה ניצחה את הפועל תל אביב 2-0 בליגת העל",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+
+    def test_maccabi_netanya_subtitle_is_football(self):
+        """מכבי נתניה in subtitle → football, not basketball."""
+        r = classify(
+            "משחק חשוב בליגה",
+            subtitle="מכבי נתניה הפסידה לבית\"ר ירושלים",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+
+    def test_title_basketball_subtitle_football_maccabi_no_override(self):
+        """Title already resolves basketball. Subtitle with football Maccabi club
+        must NOT change sport — subtitle cannot override resolved sport."""
+        r = classify(
+            "מכבי תל אביב הגיעה לגמר יורוליג",
+            subtitle="בכדורגל: מכבי חיפה ניצחה הלילה",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+
+
+class TestSubtitleAmbiguousClubResolution:
+    """Ambiguous club titles (מכבי ת"א without context) resolved via subtitle."""
+
+    def test_ambiguous_maccabi_resolved_basketball_via_subtitle(self):
+        """Title has full מכבי ת"א (ambiguous). Subtitle has כדורסל → basketball entity."""
+        r = classify(
+            'מכבי ת"א חתמה על שחקן חדש',
+            subtitle="הגארד הצטרף לקבוצה הכדורסל לעונה הבאה ביורוליג",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert "Maccabi Tel Aviv Basketball" in r.entities
+        assert "ambiguous_club" not in r.tags  # resolved
+
+    def test_ambiguous_hapoel_tlv_resolved_basketball_via_subtitle(self):
+        """הפועל ת"א (ambiguous). Subtitle with כדורסל → basketball entity assigned."""
+        r = classify(
+            'הפועל ת"א במו"מ עם שחקן',
+            subtitle="כדורסל: הפועל תל אביב מחפשת חיזוק לתפקיד הגארד",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert "Hapoel Tel Aviv Basketball" in r.entities
+        assert "ambiguous_club" not in r.tags
+
+    def test_ambiguous_maccabi_still_ambiguous_when_subtitle_also_vague(self):
+        """Subtitle doesn't provide sport context → still ambiguous_club, sport=unknown."""
+        r = classify(
+            'מכבי ת"א חתמה על שחקן חדש',
+            subtitle="המהלך הוכרז הלילה בהצהרה רשמית",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "unknown"
+        assert "ambiguous_club" in r.tags
+
+
+class TestSubtitleEntityGap:
+    """Subtitle adds entities when title produced none."""
+
+    def test_subtitle_adds_deni_entity(self):
+        """Title has no entity. Subtitle names 'אבדיה' → Deni Avdija entity added."""
+        r = classify(
+            "עסקת הספורט של השנה",
+            subtitle="דני אבדיה נסחר לקבוצה חדשה ב-NBA",
+            source_id="walla_sport", language="he",
+        )
+        assert "Deni Avdija" in r.entities
+        assert r.league == "NBA"
+
+    def test_subtitle_does_not_add_basketball_entity_to_football_article(self):
+        """Title resolved football. Subtitle names מכבי (basketball) → entity filtered out."""
+        r = classify(
+            "הפועל באר שבע ניצחה בכדורגל",
+            subtitle="מכבי ניצחה גם היא בכדורסל",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+
+
+class TestSubtitleLeagueAndEventTypeGap:
+    """Subtitle fills league and event_type when title is vague."""
+
+    def test_subtitle_adds_league_euroleague(self):
+        """Title has sport=basketball but no league. Subtitle has 'יורוליג' → EuroLeague."""
+        r = classify(
+            "ניצחון מרשים אמש",
+            subtitle="מכבי תל אביב ניצחה ביורוליג 82-75",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert r.league == "EuroLeague"
+
+    def test_subtitle_adds_israeli_basketball_league_context(self):
+        """Subtitle with חולון → Israeli Basketball League inferred."""
+        r = classify(
+            "מכבי ניצחה הלילה",
+            subtitle="הפועל חולון נוצחת בגמר ווינר סל",
+            source_id="walla_sport", language="he",
+        )
+        assert r.sport == "basketball"
+        assert r.league == "Israeli Basketball League"
+
+    def test_subtitle_refines_event_type_from_news_to_injury(self):
+        """Title is vague (news event_type). Subtitle has 'פציעה' → injury."""
+        r = classify(
+            "עדכון על שחקן ה-NBA",
+            subtitle="הכוכב נפצע ויעדר ארבעה שבועות",
+            source_id="walla_sport", language="he",
+        )
+        assert r.event_type == "injury"
+
+    def test_subtitle_refines_event_type_from_news_to_negotiation(self):
+        """Title is vague. Subtitle has מו\"מ → negotiation."""
+        r = classify(
+            "חדשות ממכבי תל אביב",
+            subtitle='מכבי ת"א במו"מ עם גארד מהיורוליג',
+            source_id="walla_sport", language="he",
+        )
+        assert r.event_type == "negotiation"
+
+    def test_title_event_type_not_overridden_by_subtitle(self):
+        """Title already detected signing. Subtitle with 'פציעה' must not change it."""
+        r_no_sub = classify(
+            'מכבי ת"א חתמה על שחקן כדורסל חדש',
+            source_id="walla_sport", language="he",
+        )
+        r_with_sub = classify(
+            'מכבי ת"א חתמה על שחקן כדורסל חדש',
+            subtitle="השחקן נפצע בסיזון הקודם",
+            source_id="walla_sport", language="he",
+        )
+        assert r_no_sub.event_type == "signing"
+        assert r_with_sub.event_type == "signing"  # subtitle "פציעה" must not override
+
+
+class TestSubtitleNoRegression:
+    """classify() without subtitle must behave identically to previous version."""
+
+    def test_no_subtitle_maccabi_negotiation_unchanged(self):
+        r = classify('דיווח: מכבי ת"א במו"מ עם גארד יורוליג', language="he")
+        assert r.sport == "basketball"
+        assert r.event_type == "negotiation"
+        assert r.league == "EuroLeague"
+
+    def test_no_subtitle_deni_trade_unchanged(self):
+        r = classify("דני אבדיה נסחר לקבוצה חדשה ב-NBA", language="he")
+        assert r.sport == "basketball"
+        assert "Deni Avdija" in r.entities
+        assert r.league == "NBA"
+        assert r.event_type == "major_trade"
+
+    def test_no_subtitle_football_maccabi_haifa_unchanged(self):
+        r = classify("מכבי חיפה ניצחה 2-0", language="he")
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+
+    def test_no_subtitle_ambiguous_club_unchanged(self):
+        r = classify('מכבי ת"א חתמה על שחקן חדש', language="he")
+        assert r.sport == "unknown"
+        assert "ambiguous_club" in r.tags
+
+    def test_no_subtitle_eurohoops_basketball_only_unchanged(self):
+        r = classify("Maccabi Tel Aviv wins EuroLeague game", source_id="eurohoops", language="en")
+        assert r.sport == "basketball"
+        assert "Maccabi Tel Aviv Basketball" in r.entities

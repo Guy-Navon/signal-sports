@@ -6,6 +6,7 @@ from typing import Optional
 import feedparser
 
 from app.ingestion.adapters.base import RawSourceItem, SourceAdapter
+from app.ingestion.subtitle import extract_subtitle
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ class RSSSourceAdapter(SourceAdapter):
                     url=url,
                     title=title,
                     published_at=self._parse_date(entry),
-                    summary=getattr(entry, "summary", None),
+                    summary=extract_subtitle(entry),
                 )
             )
 

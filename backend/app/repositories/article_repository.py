@@ -31,6 +31,10 @@ def _row_to_article(row: ArticleRow) -> Article:
         confidence=row.confidence,
         tags=row.tags or [],
         cluster_id=row.cluster_id,
+        classified_by=row.classified_by or "rules",
+        classification_provider=row.classification_provider,
+        classification_reason=row.classification_reason,
+        classification_confidence=row.classification_confidence,
     )
 
 
@@ -53,6 +57,10 @@ def _article_to_row(article: Article) -> ArticleRow:
         confidence=article.confidence,
         tags=list(article.tags),
         cluster_id=article.cluster_id,
+        classified_by=article.classified_by,
+        classification_provider=article.classification_provider,
+        classification_reason=article.classification_reason,
+        classification_confidence=article.classification_confidence,
     )
 
 
@@ -130,6 +138,68 @@ def update_classification_fields(
     row.confidence = confidence
     row.tags = tags
     session.commit()
+
+
+def update_full_classification(
+    session: Session,
+    article_id: str,
+    *,
+    sport: str,
+    league: Optional[str],
+    entities: List[str],
+    event_type: str,
+    importance: str,
+    confidence: float,
+    tags: List[str],
+    classified_by: str,
+    classification_provider: Optional[str],
+    classification_reason: Optional[str],
+    classification_confidence: Optional[float],
+) -> None:
+    """Update all classification fields including LLM metadata. Used by backfill."""
+    row = session.get(ArticleRow, article_id)
+    if row is None:
+        return
+    row.sport = sport
+    row.league = league
+    row.entities = entities
+    row.event_type = event_type
+    row.importance = importance
+    row.confidence = confidence
+    row.tags = tags
+    row.classified_by = classified_by
+    row.classification_provider = classification_provider
+    row.classification_reason = classification_reason
+    row.classification_confidence = classification_confidence
+    session.commit()
+
+
+def get_articles_for_classification_backfill(
+    session: Session,
+    *,
+    source_ids: List[str],
+    force: bool = False,
+    limit: Optional[int] = None,
+) -> List[Article]:
+    """Return RSS articles from the given sources that are eligible for LLM reclassification.
+
+    When force=False: only returns articles where classified_by is NOT already 'llm'
+    or 'llm+rules_guardrail' (i.e., articles not yet successfully classified by LLM).
+    When force=True: returns all articles from the given sources regardless of classified_by.
+    """
+    _already_llm = {"llm", "llm+rules_guardrail"}
+    query = (
+        session.query(ArticleRow)
+        .filter(ArticleRow.id.like("rss_%"))
+        .filter(ArticleRow.source.in_(source_ids))
+    )
+    if not force:
+        query = query.filter(
+            ~ArticleRow.classified_by.in_(list(_already_llm))
+        )
+    if limit:
+        query = query.limit(limit)
+    return [_row_to_article(r) for r in query.all()]
 
 
 def get_untranslated_rss_articles(

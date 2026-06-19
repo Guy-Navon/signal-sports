@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from app.db.orm_models import Base
 
@@ -14,9 +14,27 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
+def _apply_migrations(eng) -> None:
+    """Add new nullable columns to existing tables without recreating them."""
+    migrations = [
+        ("articles", "classified_by",            "TEXT DEFAULT 'rules'"),
+        ("articles", "classification_provider",   "TEXT"),
+        ("articles", "classification_reason",     "TEXT"),
+        ("articles", "classification_confidence", "REAL"),
+    ]
+    with eng.connect() as conn:
+        for table, col, col_type in migrations:
+            try:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists — safe to ignore
+
+
 def init_db() -> None:
-    """Create all tables if they do not exist. Safe to call multiple times."""
+    """Create all tables if they do not exist, then apply soft migrations."""
     Base.metadata.create_all(bind=engine)
+    _apply_migrations(engine)
 
 
 def get_session():

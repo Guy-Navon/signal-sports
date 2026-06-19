@@ -1,5 +1,12 @@
 # Title Translation
 
+> **Post-MVP note:** Translation is not active in the current Hebrew MVP. All active sources
+> (`walla_sport`, `israel_hayom_sport`) are Hebrew-native — no translation is needed or used.
+> `TRANSLATION_PROVIDER=disabled` is the correct MVP default. The backend pipeline described in
+> this document is fully preserved and can be re-enabled when English sources (eurohoops, sportando)
+> are added post-MVP. The translation UI (ProviderStatusBadge, backfill panel, "לא תורגם" card
+> marker) was removed from the frontend in the Hebrew MVP freeze and must be restored at that point.
+
 Signal Sports displays a Hebrew title as the primary title for every article,
 regardless of the source language.  This document explains the full translation
 pipeline implemented in PR 9, PR 9.1, PR 9.2, PR 9.3, and PR 9.4.
@@ -185,7 +192,11 @@ status badge without attempting a backfill first.
 
 ---
 
-## UI Behaviour
+## Post-MVP UI Behaviour to Restore
+
+> The following UI was removed during the Hebrew MVP frontend freeze. The backend fields and
+> logic it depends on are fully intact. This section documents what must be restored when
+> English sources are re-enabled post-MVP.
 
 ### Feed card
 

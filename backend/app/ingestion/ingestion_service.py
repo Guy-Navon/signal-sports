@@ -18,9 +18,12 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.classification.merge import merge_with_guardrails
+from app.classification.service import get_llm_provider
+from app.classification.validation import LLM_MIN_CONFIDENCE
 from app.ingestion.adapters.base import RawSourceItem
 from app.ingestion.adapters.rss_adapter import RSSSourceAdapter
-from app.ingestion.classifier import classify
+from app.ingestion.classifier import classify, _has_football_maccabi_context
 from app.ingestion.config import RSS_SOURCES, RSSSourceConfig, get_source_config, get_enabled_sources
 from app.ingestion.dedup import article_id_from_url, url_already_exists
 from app.models.article import Article
@@ -30,6 +33,13 @@ from app.translation.language_detection import detect_language
 from app.translation.translation_service import translate_title
 
 logger = logging.getLogger(__name__)
+
+# Module-level provider singleton — loaded from env vars at import time
+_LLM_PROVIDER = get_llm_provider()
+
+# Sources that route through LLM when the provider is active.
+# English basket-only sources (eurohoops, sportando) always use deterministic path.
+_HEBREW_BROAD_SOURCES = frozenset({"walla_sport", "israel_hayom_sport"})
 
 
 # ── URL filter ────────────────────────────────────────────────────────────────
@@ -52,31 +62,71 @@ def _should_filter(url: str, cfg: RSSSourceConfig) -> bool:
 
 # ── Normalisation ─────────────────────────────────────────────────────────────
 
-def _normalise(item: RawSourceItem, cfg: RSSSourceConfig) -> Article:
-    """Map a raw RSS item to an Article using language detection, translation, and classification."""
+def _normalise(
+    item: RawSourceItem,
+    cfg: RSSSourceConfig,
+    llm_available: bool = True,
+) -> Article:
+    """Map a raw RSS item to an Article using language detection, translation, and classification.
+
+    llm_available=False skips the LLM path for this article (used when the
+    per-run circuit breaker has fired due to an Ollama connection error).
+    """
     published_at = item.published_at or datetime.now(tz=timezone.utc)
 
-    # Step 1: detect actual language — may differ from source config
-    # (e.g. Eurohoops Italian-language URL with /it/ path)
     detected_lang = detect_language(item.url, item.title, cfg.language)
 
     if detected_lang == "he":
-        # Hebrew articles: title is already Hebrew, no translation needed
         title = item.title
         original_title = None
         translated_title = None
         classify_title = item.title
     else:
-        # Non-Hebrew articles: translate to Hebrew, preserve original
         original_title = item.title
         hebrew = translate_title(item.title, detected_lang)
         translated_title = hebrew
-        # Use Hebrew title when available; fall back to original for classification
         title = hebrew if hebrew else item.title
-        # Classify using Hebrew title so the classifier can use Hebrew keywords too
         classify_title = title
 
-    result = classify(classify_title, source_id=cfg.source_id, language=detected_lang, url=item.url)
+    # Always run deterministic classifier — used as guardrail source and fallback.
+    # Subtitle (item.summary) is passed as additional gap-filling context; title
+    # remains the primary signal inside classify().
+    subtitle = item.summary  # None if unavailable; already cleaned by rss_adapter
+    rules_result = classify(classify_title, source_id=cfg.source_id,
+                            language=detected_lang, url=item.url, subtitle=subtitle)
+
+    classified_by = "rules"
+    classification_provider: Optional[str] = None
+    classification_reason: Optional[str] = None
+    classification_confidence: Optional[float] = None
+    final_result = rules_result
+
+    # LLM path: Hebrew broad sources only, when provider is active and circuit not open.
+    # subtitle is already assigned above; reused here as extra context for the LLM prompt.
+    if (
+        cfg.source_id in _HEBREW_BROAD_SOURCES
+        and _LLM_PROVIDER.can_classify
+        and llm_available
+    ):
+        llm_raw = _LLM_PROVIDER.classify_title(classify_title, detected_lang, subtitle=subtitle)
+
+        if llm_raw is None:
+            classified_by = "rules_fallback_after_llm_failure"
+            classification_provider = _LLM_PROVIDER.provider_id
+        elif llm_raw.confidence < LLM_MIN_CONFIDENCE:
+            classified_by = "rules_fallback_low_confidence"
+            classification_provider = _LLM_PROVIDER.provider_id
+            classification_confidence = llm_raw.confidence
+            classification_reason = llm_raw.reason
+        else:
+            football_maccabi = _has_football_maccabi_context(classify_title.lower())
+            final_result, classified_by = merge_with_guardrails(
+                llm_raw, rules_result, classify_title.lower(),
+                football_maccabi_detected=football_maccabi,
+            )
+            classification_provider = _LLM_PROVIDER.provider_id
+            classification_confidence = llm_raw.confidence
+            classification_reason = llm_raw.reason
 
     return Article(
         id=article_id_from_url(item.url),
@@ -88,13 +138,17 @@ def _normalise(item: RawSourceItem, cfg: RSSSourceConfig) -> Article:
         translated_title=translated_title,
         language=detected_lang,
         published_at=published_at,
-        sport=result.sport,
-        league=result.league,
-        entities=result.entities,
-        event_type=result.event_type,
-        importance=result.importance,
-        confidence=result.confidence,
-        tags=result.tags,
+        sport=final_result.sport,
+        league=final_result.league,
+        entities=final_result.entities,
+        event_type=final_result.event_type,
+        importance=final_result.importance,
+        confidence=final_result.confidence,
+        tags=final_result.tags,
+        classified_by=classified_by,
+        classification_provider=classification_provider,
+        classification_reason=classification_reason,
+        classification_confidence=classification_confidence,
     )
 
 
@@ -125,6 +179,8 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
         logger.error(msg)
         errors.append(msg)
 
+    llm_circuit_open = False  # reset per run; fires on Ollama ConnectError only
+
     for item in items:
         try:
             # Source-level URL and language filters — applied before dedup so filtered
@@ -139,7 +195,21 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
                 skipped_duplicate += 1
                 continue
 
-            article = _normalise(item, cfg)
+            article = _normalise(item, cfg, llm_available=not llm_circuit_open)
+
+            # Open the circuit for the rest of this run if Ollama refused connection.
+            # Timeouts and parse errors do NOT open the circuit (model may recover).
+            if (
+                not llm_circuit_open
+                and article.classified_by == "rules_fallback_after_llm_failure"
+                and _LLM_PROVIDER.last_failure_was_connect_error
+            ):
+                llm_circuit_open = True
+                logger.warning(
+                    "Ollama connection refused for %s — disabling LLM for rest of this run",
+                    cfg.source_id,
+                )
+
             article_repository.insert(session, article)
             inserted += 1
         except Exception as exc:

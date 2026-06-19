@@ -1,22 +1,27 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Rss, Settings, Sliders, Database, BarChart2, Bug, RefreshCw } from "lucide-react";
+import { Rss, Settings, Sliders, Database, BarChart2, Bug, RefreshCw, FlaskConical } from "lucide-react";
 import ProfileSwitcher from "@/components/feed/ProfileSwitcher";
 import { Outlet } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 
-const navItems = [
+const BASE_NAV_ITEMS = [
   { path: "/", label: "פיד אישי", icon: Rss },
   { path: "/preferences", label: "העדפות", icon: Settings },
   { path: "/calibration", label: "כיוונון", icon: Sliders },
   { path: "/sources", label: "מקורות", icon: Database },
   { path: "/results", label: "תוצאות", icon: BarChart2 },
-  { path: "/debug", label: "דיבאג", icon: Bug }
+  { path: "/debug", label: "דיבאג", icon: Bug },
 ];
+
+const QA_NAV_ITEM = { path: "/llm-qa", label: "QA LLM", icon: FlaskConical, backendOnly: true };
 
 export default function AppLayout() {
   const location = useLocation();
   const { isBackendMode, isLoading, apiError, refreshFeed } = useApp();
+  const navItems = isBackendMode
+    ? [...BASE_NAV_ITEMS, QA_NAV_ITEM]
+    : BASE_NAV_ITEMS;
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col" dir="rtl">

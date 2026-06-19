@@ -30,6 +30,12 @@ class RSSSourceConfig:
 # ── Configured RSS sources ────────────────────────────────────────────────────
 
 RSS_SOURCES: list[RSSSourceConfig] = [
+    # ── Post-MVP / experimental sources (disabled by default) ─────────────────
+    #
+    # Eurohoops and Sportando are English-language basketball sources.
+    # They work well but are out of scope for the Hebrew-only MVP.
+    # Set enabled=True here to re-activate them for testing or post-MVP work.
+
     # Eurohoops: basketball-only English source.
     # Their feed includes multilingual paths (/tr/, /es/, /el/, etc.).
     # We block all non-English paths so we only store English articles.
@@ -38,6 +44,7 @@ RSS_SOURCES: list[RSSSourceConfig] = [
         display_name="Eurohoops",
         feed_url="https://www.eurohoops.net/feed/",
         language="en",
+        enabled=False,  # post-MVP: English source; disabled for Hebrew MVP
         allowed_languages=("en",),
         blocked_url_patterns=(
             "/tr/", "/es/", "/it/", "/el/", "/de/",
@@ -52,8 +59,12 @@ RSS_SOURCES: list[RSSSourceConfig] = [
         display_name="Sportando",
         feed_url="https://sportando.basketball/feed/",
         language="en",
+        enabled=False,  # post-MVP: English/Italian source; disabled for Hebrew MVP
         allowed_languages=("en",),
     ),
+
+    # ── Active MVP sources ────────────────────────────────────────────────────
+
     # Walla Sport: Hebrew general sports feed (ספורט וואלה).
     # Feed ID 7 serves the Walla sport section (sports.walla.co.il).
     # Content is Hebrew-only; no language-path mixing or URL blocking needed.

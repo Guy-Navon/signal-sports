@@ -25,6 +25,10 @@ export function normalizeArticleFromApi(a) {
     confidence: a.confidence ?? 0.85,
     tags: a.tags ?? [],
     clusterId: a.cluster_id ?? null,
+    classifiedBy: a.classified_by ?? "rules",
+    classificationProvider: a.classification_provider ?? null,
+    classificationReason: a.classification_reason ?? null,
+    classificationConfidence: a.classification_confidence ?? null,
   };
 }
 

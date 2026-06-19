@@ -10,6 +10,7 @@ import Calibration from '@/pages/Calibration';
 import Sources from '@/pages/Sources';
 import Results from '@/pages/Results';
 import Debug from '@/pages/Debug';
+import LlmQa from '@/pages/LlmQa';
 import PageNotFound from '@/lib/PageNotFound';
 import { queryClientInstance } from '@/lib/query-client';
 import './index.css';
@@ -27,6 +28,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="sources" element={<Sources />} />
               <Route path="results" element={<Results />} />
               <Route path="debug" element={<Debug />} />
+              <Route path="llm-qa" element={<LlmQa />} />
             </Route>
             <Route path="*" element={<PageNotFound />} />
           </Routes>

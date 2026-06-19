@@ -1,0 +1,454 @@
+# LLM Classification — PR 11
+
+## Why LLM Classification?
+
+The deterministic keyword classifier has a structural ceiling. It works well for:
+- Known entity names already in keyword lists (Maccabi TLV, Deni Avdija, Kattash)
+- Known league names present verbatim in titles
+- Clear event-type keywords in any language
+
+It fails for:
+- Unfamiliar Hebrew proper nouns (player names, coach names not yet in the keyword list)
+- Multi-sport entities where sport cannot be inferred from keywords alone (Olympiacos, Hapoel TLV without adjacent context)
+- Entity-to-league inference (knowing that Jalen Brunson plays for the Knicks in the NBA)
+
+Adding more keywords does not solve this structurally — it requires a new transfer window entry every season. The keyword dictionary would need manual updates per player, per signing, per roster change.
+
+LLM classification solves this with general language understanding. It can read:
+> "ג'ארד הארפר לא שוחרר מהפועל ירושלים" (Jared Harper not released from Hapoel Jerusalem)
+
+and infer `sport=basketball`, `league=Israeli Basketball League` because it knows:
+- "הפועל ירושלים" is a basketball club in the Israeli league (not football)
+- "ג'ארד הארפר" is a basketball player (contract negotiation context)
+
+without any of these names being in a keyword list.
+
+---
+
+## Architecture
+
+```
+backend/app/classification/
+    __init__.py
+    llm_result.py         — LLMClassificationResult dataclass
+    validation.py         — JSON parsing + enum validation
+    prompt.py             — system prompt and message builder
+    providers.py          — DisabledLLMProvider, FakeLLMProvider, GeminiLLMProvider, OllamaProvider
+    service.py            — get_llm_provider() singleton factory
+    merge.py              — merge_with_guardrails()
+    entity_normalizer.py  — canonical entity alias map
+
+backend/app/ingestion/
+    subtitle.py           — extract_subtitle() + clean_subtitle() for RSS summary context
+```
+
+The LLM module is completely separate from `backend/app/ingestion/`. The ingestion service imports from it, but the classifier module (`classifier.py`) knows nothing about LLM. This maintains the separation between:
+
+1. Deterministic classification (always runs, all sources)
+2. LLM classification (optional, Hebrew broad sources only)
+3. Relevance engine (reads stored metadata, no classification)
+
+---
+
+## Provider Pattern
+
+`CLASSIFICATION_PROVIDER` env var follows the same pattern as `TRANSLATION_PROVIDER`.
+
+| Value | Class | Behavior |
+|-------|-------|---------|
+| `disabled` (default) | `DisabledLLMProvider` | `can_classify=False`; LLM path skipped entirely |
+| `fake` | `FakeLLMProvider` | Pre-set results for known test headlines; unknown → None → rules fallback |
+| `gemini` | `GeminiLLMProvider` | Google Gemini API via `google-genai` SDK; requires `CLASSIFICATION_API_KEY` |
+| `ollama` | `OllamaProvider` | HTTP call to local Ollama; `format:json`, `temperature:0`, `num_predict:500` |
+
+The provider is instantiated once at module import time in `ingestion_service.py`:
+```python
+_LLM_PROVIDER = get_llm_provider()
+```
+
+This is identical to how `_TRANSLATION_SERVICE` is initialized in the translation module.
+
+### OllamaProvider (recommended for local/free use)
+
+Recommended model: `qwen2.5:3b-instruct` (pull with `ollama pull qwen2.5:3b-instruct`).
+
+- Endpoint: `POST {CLASSIFICATION_OLLAMA_BASE_URL}/api/chat`
+- `format: "json"` forces Ollama to output valid JSON (Ollama-native feature)
+- `temperature: 0` for deterministic output
+- `num_predict: 500` caps output tokens (classification JSON is small)
+- Connect timeout: 2s (fail fast if Ollama not running)
+- Read timeout: `CLASSIFICATION_TIMEOUT_SECONDS` (default 30s for Qwen on CPU)
+- On `ConnectError`: sets `self.last_failure_was_connect_error = True`, returns `None`
+- On timeout / HTTP error / parse failure: sets `self.last_failure_was_connect_error = False`, returns `None`
+
+### GeminiLLMProvider
+
+Calls the Google Gemini API via the `google-genai` SDK (`google-genai>=1.0.0` in `requirements.txt`).
+
+- Requires `CLASSIFICATION_API_KEY` — a Google AI Studio key (free tier available at aistudio.google.com)
+- Default model: `gemini-2.5-flash-lite`
+- **Important: uses `CLASSIFICATION_API_KEY`, NOT `TRANSLATION_API_KEY`** — the translation key is Anthropic-specific
+- On 429 / `RESOURCE_EXHAUSTED`: parses `retryDelay` from the error body and sleeps once before a single retry
+- On any other error: logs warning, returns `None` → rules fallback
+- **Free-tier limitation:** `gemini-2.5-flash-lite` (preview) is capped at 20 requests/day on the free tier — not enough for production-scale ingestion. Use Ollama for uncapped local classification.
+- No circuit breaker needed: cloud API failures are transient and do not indicate "server not running"
+
+### FakeLLMProvider
+
+Returns pre-set `LLMClassificationResult` for the 4 original regression headlines:
+- "ג'יילן ברונסון ה-MVP של סדרת הגמר..." → basketball, NBA, finals_result, confidence=0.92
+- "ערב היסטורי לברונסון ולניקס: ניו יורק אלופת ה-NBA!" → basketball, NBA, title_win, confidence=0.95
+- "סיכום בהפועל תל אביב? בירושלים לא שחררו את ג'ארד הארפר" → basketball, Israeli Basketball League, negotiation, confidence=0.87
+- "אולימפיאקוס נקצה, ינאקופולוס עצבני..." → basketball, Greek Basket League, news, confidence=0.72
+
+Unknown headlines return `None` (causes rules fallback — same behavior as Ollama failure).
+
+---
+
+## Subtitle Context (`subtitle.py` + `rss_adapter.py`)
+
+Hebrew sports headlines are often ambiguous in isolation — `"מכבי משחקת ביורוליג"` could refer to multiple sports depending on which Maccabi entity is involved and what "יורוליג" resolves to from context. The RSS `<description>` or `<summary>` element often contains a sentence or two that clarifies.
+
+**`extract_subtitle(entry) → Optional[str]`** in `backend/app/ingestion/subtitle.py`:
+- Priority order: `summary` → `description` → `subtitle` attr → `content[0].value`
+- Calls `clean_subtitle()`: strips HTML tags, unescapes HTML entities (`&amp;`, `&nbsp;`, etc.), collapses whitespace, truncates to 500 characters
+- Returns `None` if nothing is found or the text is empty after cleaning
+
+**How it reaches the deterministic classifier:**
+1. `rss_adapter.py` calls `extract_subtitle(entry)` and stores the result in `RawSourceItem.summary`
+2. `ingestion_service.py` reads `item.summary` as `subtitle` and passes it to `classify(title, ..., subtitle=subtitle)`
+3. Inside `classify()`, `sub_text = subtitle.lower()` is used as a gap-filler only:
+   - Fills `sport=unknown` when title provides no sport context
+   - Adds missing entity names when title produced empty entities
+   - Fills missing league from subtitle keywords
+   - Refines `event_type="news"` to a more specific type when subtitle has better signal
+   - **Never overrides an already-resolved sport value from the title**
+   - Football Maccabi disambiguation guardrail (`_FOOTBALL_MACCABI_KW`) applies equally to subtitle text — subtitle cannot produce basketball entities for football Maccabi clubs
+
+**How it reaches the LLM:**
+1. The same `subtitle` variable from step 1 above is passed to `_LLM_PROVIDER.classify_title(title, lang, subtitle=subtitle)`
+2. `prompt.py` `build_user_message(title, subtitle=None)` formats it as:
+   ```
+   Headline: <title>
+   Subtitle: <subtitle>
+   ```
+   When `subtitle` is `None` or empty, only `Headline: <title>` is sent — identical to the pre-subtitle behavior.
+
+**No DB storage.** Subtitle is used only during ingestion to improve classification. It is not stored in the `articles` table and not shown in the UI.
+
+---
+
+## Prompt Design (`prompt.py`)
+
+The system prompt:
+1. Instructs the model to return ONLY a JSON object — no explanation, no text
+2. Defines the exact JSON schema with all allowed values
+3. Provides 6 few-shot Hebrew examples anchoring:
+   - Maccabi TLV signing (basketball)
+   - World Cup final (football)
+   - Wimbledon winner (tennis)
+   - Brunson MVP / Knicks champion (NBA context from proper nouns)
+   - Hapoel TLV football (sport disambiguation from "ליגת העל" = Israeli Premier League)
+   - Olympiacos / Giannakopoulos controversy (Greek basketball — cross-club figures)
+
+**Critical note on the Giannakopoulos example:** Dimitris Giannakopoulos (ינאקופולוס) is the owner of **Panathinaikos** basketball, not Olympiacos. He frequently appears in Greek basketball controversy coverage alongside Olympiacos because they are fierce rivals. The example presents him correctly as a Panathinaikos-associated figure in Greek basketball context, not as an Olympiacos figure.
+
+### Allowed values
+
+```
+sport: basketball | football | tennis | unknown
+league: NBA | EuroLeague | EuroCup | Israeli Basketball League |
+        Spanish ACB | Turkish BSL | Greek Basket League | Italian LBA | French LNB |
+        Wimbledon | Roland Garros | US Open | Australian Open |
+        Israeli Premier League | null
+event_type: signing | negotiation | candidate | injury | major_trade |
+            match_result | regular_season_result | finals_result | title_win |
+            grand_slam_winner | playoff_result | schedule | news
+importance: very_high | high | medium | low
+```
+
+Invalid values from the LLM are converted to safe defaults in `validation.py` — never raises, never crashes ingestion.
+
+---
+
+## JSON Validation (`validation.py`)
+
+`parse_and_validate_llm_json(raw_content)` handles two failure modes:
+
+1. **Preamble before JSON**: some model configurations output text before the JSON object despite `format:json`. Regex fallback extracts `{...}` from raw output.
+2. **Invalid enum values**: sport=`"volleyball"` → `"unknown"`, league=`"SuperLeague"` → `None`. All enum fields have safe defaults.
+
+`LLM_MIN_CONFIDENCE = 0.65`: if the LLM's `confidence` field is below this, the result is valid JSON but the ingestion service falls back to rules (`classified_by="rules_fallback_low_confidence"`). The reason and confidence are stored for debugging.
+
+---
+
+## Merge Strategy (`merge.py`)
+
+The LLM result is primary. Guardrails correct known LLM failure modes.
+
+```
+merge_with_guardrails(llm_result, rules_result, title_lower) → (ClassificationResult, classified_by)
+```
+
+**Guardrail 1 — Football Maccabi clubs:**
+If `rules._football_maccabi_detected` and LLM says `sport != "football"` → force `sport=football`. The deterministic classifier has high precision for football Maccabi clubs (explicit keyword list per club). LLM might see "מכבי" and guess basketball.
+
+**Guardrail 2 — LLM sport=unknown:**
+If LLM returns `sport="unknown"` but rules resolved a sport → use rules sport. The LLM's uncertainty is not more informative than the deterministic detection here.
+
+**Guardrail 3 — LLM league=null:**
+If LLM returns `league=null` but rules found a league → use rules league. Rules league detection (especially for basketball-only sources) is reliable.
+
+**Guardrail 4 — Rules event_type wins over LLM "news":**
+If rules detected a specific event type (signing, injury, negotiation, etc.) but LLM returns "news" → use rules event_type. Keyword-based event detection is reliable for explicitly marked events.
+
+**Guardrail 5 — Importance never downgraded:**
+If LLM `importance` rank is lower than rules `importance` rank → keep rules importance. Prevents LLM from downgrading a finals result or title win.
+
+**Entity merge with sport-compatibility pruning:**
+Rules entities are pruned for sport compatibility *before* being used as the merge base. If the final sport is not `basketball`, any basketball club entities (`Maccabi Tel Aviv Basketball`, `Hapoel Tel Aviv Basketball`, `Hapoel Jerusalem Basketball`) are removed from the rules entity list. This prevents a stale basketball entity — added by the deterministic classifier from an ambiguous "מכבי" mention before sport was resolved — from surviving into a football article and triggering a false basketball topic match in the relevance engine.
+
+After pruning, recognized LLM entities are appended (via `normalize_llm_entities`, which independently blocks basketball clubs when sport ≠ basketball). A `list + seen-set` pattern guarantees deterministic order.
+
+**`classified_by` values:**
+- `"llm"` — LLM primary, no guardrails fired
+- `"llm+rules_guardrail"` — LLM primary, at least one guardrail corrected a field
+- `"rules_fallback_after_llm_failure"` — LLM attempted, HTTP/timeout/invalid JSON/ConnectError
+- `"rules_fallback_low_confidence"` — LLM ran, `confidence < LLM_MIN_CONFIDENCE`
+- `"rules"` — LLM not attempted (English source, or `CLASSIFICATION_PROVIDER=disabled`)
+
+---
+
+## Sport-Entity Compatibility Guard (defense-in-depth)
+
+The merge pruning above is the primary fix. As a second line of defense, `_does_topic_match_article()` in the relevance engine checks sport compatibility before returning a match for `scope="entity"` topics:
+
+```python
+if topic.sport and article.sport != "unknown" and article.sport != topic.sport:
+    return (False, None)   # sport-incompatible — skip this topic
+```
+
+A football article with `entities=["Maccabi Tel Aviv Basketball"]` will not match the `maccabi_tel_aviv_basketball` topic (which has `sport="basketball"`, `scope="entity"`), even if entities somehow contain the basketball entity after a classification failure.
+
+`sport="unknown"` passes through the guard — an unclassified article with a Maccabi basketball entity should still be visible in Guy's feed.
+
+---
+
+## Entity Normalization (`entity_normalizer.py`)
+
+LLM outputs free-text entity strings. The relevance engine requires exact canonical names for entity-scope topic matching and entity event rules. Example: `"Maccabi TLV"`, `"מכבי"`, `"Maccabi Tel Aviv"` must all resolve to `"Maccabi Tel Aviv Basketball"`.
+
+The alias map is conservative and explicit. Only listed aliases are normalized. Unknown entities (coach names, club names not yet in the map) are silently discarded from `article.entities`. They remain visible in `classification_reason` for inspection.
+
+**Current canonical entities:**
+
+| Canonical name | Sample aliases |
+|---------------|----------------|
+| `"Maccabi Tel Aviv Basketball"` | `"מכבי"`, `"מכבי תל אביב"`, `"maccabi tel aviv"`, `"maccabi tlv"` |
+| `"Deni Avdija"` | `"דני אבדיה"`, `"אבדיה"`, `"avdija"`, `"deni avdija"` |
+| `"Hapoel Tel Aviv Basketball"` | `"הפועל תל אביב"`, `"הפועל ת\"א"`, `"hapoel tel aviv"` |
+| `"Hapoel Jerusalem Basketball"` | `"הפועל ירושלים"`, `"hapoel jerusalem"` |
+| `"New York Knicks"` | `"ניקס"`, `"ניו יורק ניקס"`, `"new york knicks"`, `"knicks"` |
+
+**Sport-context guard:** Basketball club entities (`Maccabi Tel Aviv Basketball`, `Hapoel Tel Aviv Basketball`, `Hapoel Jerusalem Basketball`) are blocked when `sport != "basketball"`. This prevents a football article about Hapoel TLV from adding `"Hapoel Tel Aviv Basketball"` to entities just because the club name appears.
+
+**Extending the map:** Add new entries to `_ENTITY_ALIASES` in `entity_normalizer.py`. No other files need to change. If the new entity is a basketball club (multi-sport entity), add its canonical name to `_BASKETBALL_CLUB_ENTITIES` frozenset.
+
+---
+
+## Per-Run Connection Circuit Breaker
+
+Problem: if Ollama is not running, every article in the ingestion run waits 2 seconds for a connection timeout before falling back to rules. For a 30-article Walla fetch, that is 60 seconds of wasted waiting.
+
+Solution: `_run_source()` in `ingestion_service.py` maintains a `llm_circuit_open` boolean per run:
+
+```python
+llm_circuit_open = False  # reset at start of each run
+
+for item in items:
+    article = _normalise(item, cfg, llm_available=not llm_circuit_open)
+    if (
+        article.classified_by == "rules_fallback_after_llm_failure"
+        and _LLM_PROVIDER.last_failure_was_connect_error
+    ):
+        llm_circuit_open = True  # Ollama not running; skip for rest of this run
+```
+
+When `llm_circuit_open=True`, `_normalise()` skips the LLM entirely — the article gets `classified_by="rules"` (not `"rules_fallback_*"`, since LLM was not attempted).
+
+**Scope:** per-run only. The provider singleton is not permanently modified. The next `POST /api/ingest/run` resets the flag and tries Ollama again.
+
+**Timeouts do not open the circuit.** If Ollama is running but the model is slow, a timeout on article 1 does not prevent LLM from being tried on article 2 — the model may respond faster on subsequent calls.
+
+---
+
+## DB Schema
+
+Four new columns on the `articles` table (soft-migrated via `ALTER TABLE ADD COLUMN`):
+
+```sql
+ALTER TABLE articles ADD COLUMN classified_by TEXT DEFAULT 'rules';
+ALTER TABLE articles ADD COLUMN classification_provider TEXT;
+ALTER TABLE articles ADD COLUMN classification_reason TEXT;
+ALTER TABLE articles ADD COLUMN classification_confidence REAL;
+```
+
+Safe on all existing databases: `ALTER TABLE ADD COLUMN` is idempotent in SQLite when wrapped in a try/except (column already exists → exception caught, ignored). Existing rows receive `classified_by='rules'`, NULLs for the other three.
+
+The `classification_confidence` column (LLM's self-assessed confidence) is intentionally separate from the existing `confidence` column (deterministic additive score). Merging them would break the quality endpoint's `low_confidence_count` logic.
+
+---
+
+## Backfill Endpoint
+
+```
+POST /api/classify/backfill
+```
+
+| Parameter | Default | Meaning |
+|-----------|---------|---------|
+| `source_id` | (all) | Only reclassify articles from this source |
+| `limit` | (all) | Max articles to process |
+| `dry_run` | `false` | Preview without writing to DB |
+| `force` | `false` | If false, skip articles already classified by LLM |
+
+**When `force=false`:** skips articles with `classified_by` in `{"llm", "llm+rules_guardrail"}`. Processes only articles that were classified by rules or that previously failed LLM classification.
+
+**Updates all 11 classification fields** per article: `sport`, `league`, `entities`, `event_type`, `importance`, `confidence`, `tags`, `classified_by`, `classification_provider`, `classification_reason`, `classification_confidence`. Updating only metadata fields while leaving `sport=unknown` in place would be meaningless.
+
+**`source_id` filter applied at DB query level** (not post-filter in Python) — a lesson from the translation backfill where the parameter was accepted but not applied to the SQLAlchemy query.
+
+Response shape:
+```json
+{
+  "provider": "ollama:llama3.2:3b",
+  "processed": 18,
+  "llm_classified": 12,
+  "guardrail_corrections": 3,
+  "fallback_count": 2,
+  "low_confidence_count": 1,
+  "skipped_already_classified": 10,
+  "skipped_provider_not_ready": 0,
+  "dry_run": false
+}
+```
+
+---
+
+## Environment Variables
+
+```
+# Provider selection
+CLASSIFICATION_PROVIDER=disabled          # disabled | fake | gemini | ollama
+
+# Model (default per provider shown below):
+#   ollama:  qwen2.5:3b-instruct
+#   gemini:  gemini-2.5-flash-lite
+CLASSIFICATION_MODEL=qwen2.5:3b-instruct
+
+# Required only when CLASSIFICATION_PROVIDER=gemini
+# Must be a Google AI Studio key — NOT the Anthropic translation key
+CLASSIFICATION_API_KEY=
+
+# Ollama settings (only used when CLASSIFICATION_PROVIDER=ollama)
+CLASSIFICATION_OLLAMA_BASE_URL=http://localhost:11434
+CLASSIFICATION_TIMEOUT_SECONDS=30         # per-article read timeout; connect is always 2s
+```
+
+All vars are read at module import time (same pattern as `TRANSLATION_PROVIDER`). Changing them requires a backend restart.
+
+---
+
+## Performance Expectations
+
+| Scenario | Per-article overhead | 30-article Walla fetch |
+|----------|---------------------|----------------------|
+| `CLASSIFICATION_PROVIDER=disabled` | 0ms | No change |
+| `CLASSIFICATION_PROVIDER=gemini` | ~0.5–2s | ~15–60s (API latency) |
+| `CLASSIFICATION_PROVIDER=gemini`, 429 rate limit | adds retry delay (parsed from error, max 65s) | depends on quota |
+| `CLASSIFICATION_PROVIDER=ollama`, Ollama not running | ~2s (first article), 0ms rest | ~2s total |
+| `CLASSIFICATION_PROVIDER=ollama`, model cold | ~3–8s | 3–8s + remaining warm |
+| `CLASSIFICATION_PROVIDER=ollama`, model warm (`qwen2.5:3b-instruct`, CPU) | ~1–5s | ~30–150s |
+| Timeout hit | `CLASSIFICATION_TIMEOUT_SECONDS` | 1× timeout, rest at rules |
+
+**Note on Gemini free tier:** `gemini-2.5-flash-lite` is capped at 20 requests/day on the free tier. One 30-article Walla fetch exhausts the daily quota. The retry-on-429 logic handles per-minute limits (10/minute) but cannot overcome the daily cap. For production-scale use with no API cost, use `CLASSIFICATION_PROVIDER=ollama`.
+
+Feed read time is unchanged — the relevance engine reads stored metadata. No LLM call happens at feed read time.
+
+---
+
+## Test Coverage
+
+All tests use `FakeLLMProvider`, mocked `httpx`, or mocked `google.genai`. No test requires Ollama or a real API key.
+
+**`backend/tests/test_llm_classification.py`** (added in PR 11, extended with subtitle/Gemini/Ollama tests):
+- `TestValidation` (10 tests) — JSON parsing, enum validation, regex fallback, all leagues accepted
+- `TestFakeProvider` (6 tests) — 4 regression headlines, disabled provider, unknown headline
+- `TestEntityNormalizer` (12 tests) — all aliases, sport-context blocking, deduplication, deterministic order
+- `TestMergeWithGuardrails` (20 tests) — all 5 guardrails, entity merging, ordering, no-guardrail case, sport-compatibility entity pruning (5 new)
+- `TestBackfill` (4 integration tests) — updates core fields, source_id filter at query level, dry_run, force=false skips already-classified
+- `TestGeminiLLMProvider` (13 tests) — provider id, retry-on-429 (delay parsing, success, double-failure), exception fallback, subtitle in contents, no-subtitle behavior
+- `TestServiceFactory` (6 tests) — all four provider variants created correctly from env vars
+- `TestSubtitleInPrompt` (6 tests) — `build_user_message()` with/without subtitle, None same as absent, empty string omitted
+- `TestOllamaProvider` (9 tests) — subtitle pass-through, no-subtitle sends headline only, connect error flag, timeout does not set flag, flag reset on success, system prompt sent
+
+**`backend/tests/test_subtitle.py`** (new):
+- `TestCleanSubtitle` (11 tests) — strips HTML, unescapes entities, collapses whitespace, truncates, empty/whitespace/HTML-only returns None
+- `TestExtractSubtitle` (12 tests) — priority order, fallbacks, HTML cleaning, truncation, non-dict content item
+
+**`backend/tests/test_ingestion_classifier.py`** — `TestHebrewRegressions` class (added in PR 11):
+- `test_ny_knicks_champion_title_win` — אלופת fix: "ניו יורק אלופת ה-NBA" → `title_win`
+- `test_brunson_mvp_sport_now_basketball` — mvp fix: `sport=basketball` even without LLM
+- `test_hapoel_tlv_harper_still_ambiguous_without_llm` — documents known gap
+- `test_olympiacos_still_unknown_without_llm` — documents known gap
+
+**Mocking Gemini in tests:** The `google-genai` package requires both `google` and `google.genai` in `sys.modules`. Tests inject both:
+```python
+mock_genai = MagicMock()
+mock_google = MagicMock()
+mock_google.genai = mock_genai
+monkeypatch.setitem(sys.modules, "google", mock_google)
+monkeypatch.setitem(sys.modules, "google.genai", mock_genai)
+monkeypatch.setitem(sys.modules, "google.genai.types", mock_genai.types)
+```
+Mocking only `google.genai` is insufficient — `import google.genai as genai` inside `GeminiLLMProvider.__init__` triggers `ModuleNotFoundError: No module named 'google'` at test time.
+
+---
+
+## Benchmark Plan
+
+After setting up Ollama with Qwen:
+
+```bash
+ollama pull qwen2.5:3b-instruct
+```
+
+In `backend/.env`:
+```
+CLASSIFICATION_PROVIDER=ollama
+CLASSIFICATION_MODEL=qwen2.5:3b-instruct
+CLASSIFICATION_TIMEOUT_SECONDS=30
+```
+
+Restart backend, then:
+```
+del backend\data\signal_sports.db
+POST /api/ingest/run?source_id=walla_sport
+POST /api/ingest/run?source_id=israel_hayom_sport
+GET /api/ingest/quality
+GET /api/debug/feed/guy
+```
+
+Compare against baseline (`CLASSIFICATION_PROVIDER=disabled`):
+
+| Metric | Baseline | Ollama/Qwen target |
+|--------|---------|--------------|
+| `sport=unknown` count | X | -30% to -60% |
+| Guy hidden articles | H | Reduced |
+| Football false positives | 0 | Must stay 0 or near-0 |
+| LLM fallback count | 0 | <10% of processed |
+| 30-article ingestion time | ~2s | ~30–150s |
+
+If `qwen2.5:3b-instruct` produces too many JSON parse errors or poor sport classification, try `qwen3:4b` as a fallback (`ollama pull qwen3:4b`, then change `CLASSIFICATION_MODEL`).
+
+Inspect each article in the debug view where `classified_by` contains "llm". For any article that seems wrong, check `classification_reason` — it explains the LLM's reasoning. If a systematic error appears (e.g., LLM confusing a football Maccabi club for basketball), verify that the guardrail fires correctly or extend `_FOOTBALL_MACCABI_KW`.

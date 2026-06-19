@@ -23,7 +23,7 @@ backend/app/ingestion/
     rss_adapter.py        — RSSSourceAdapter (uses feedparser)
   classifier.py           — Deterministic keyword classifier
   dedup.py                — URL-based deduplication + stable ID generation
-  ingestion_service.py    — Orchestration: fetch → classify → dedup → insert
+  ingestion_service.py    — Orchestration: fetch → filter → dedup → normalise/classify → insert
 ```
 
 ### Base adapter
@@ -74,29 +74,63 @@ See `docs/RSS_QUALITY_GUARDRAILS.md` for details on how URL and language filters
 
 ## Configured Sources
 
-| source_id      | display_name   | language | feed_url                               |
-|----------------|---------------|----------|----------------------------------------|
-| `eurohoops`    | Eurohoops     | en       | https://www.eurohoops.net/feed/        |
-| `sportando`    | Sportando     | en       | https://sportando.basketball/feed/     |
-| `walla_sport`  | וואלה ספורט   | he       | https://rss.walla.co.il/feed/7         |
+| source_id             | display_name        | language | MVP | feed_url                                    |
+|-----------------------|---------------------|----------|-----|---------------------------------------------|
+| `walla_sport`         | וואלה ספורט         | he       | ✓ active | https://rss.walla.co.il/feed/7         |
+| `israel_hayom_sport`  | ישראל היום ספורט    | he       | ✓ active | https://www.israelhayom.co.il/rss.xml  |
+| `eurohoops`           | Eurohoops           | en       | disabled (post-MVP) | https://www.eurohoops.net/feed/ |
+| `sportando`           | Sportando           | en       | disabled (post-MVP) | https://sportando.basketball/feed/ |
 
-### English sources (PR 7)
+**MVP active sources:** `walla_sport` and `israel_hayom_sport` only. `eurohoops` and `sportando` have
+`enabled=False` in `config.py` and are not fetched by default. They remain in the codebase for easy
+re-enabling post-MVP.
+
+**ONE Sport and Ynet Sport** were investigated in PR 10 and rejected for MVP:
+- ONE Sport: no public RSS (all endpoints 404)
+- Ynet Sport: SPA frontend with no RSS links (harder to scrape)
+
+If a third Hebrew source is added post-MVP, ONE is the preferred candidate (traditional HTML, less brittle than a SPA).
+
+### English sources (PR 7, post-MVP)
 
 Eurohoops and Sportando are basketball-only English sources. They were chosen because:
 - They produce clean RSS.
 - The content focus matches the product's current interest areas.
 - The classifier can default `sport = "basketball"` for them without any keywords.
 
-### Hebrew source (PR 8)
+### Hebrew sources (PR 8, PR 10)
 
-Walla Sport (`walla_sport`) is the first Hebrew RSS source. Walla feed ID 7 serves the
+**Walla Sport** (`walla_sport`) is the first Hebrew RSS source. Walla feed ID 7 serves the
 Walla Sport section — confirmed by all items linking to `sports.walla.co.il/item/...`.
 
 Coverage: Israeli basketball (Maccabi, Winner League, EuroCup, EuroLeague), Israeli football,
 international tennis (Grand Slams), NBA, international football events (World Cup, Euros).
 
-See `docs/HEBREW_RSS_SOURCE.md` for the full source selection rationale and verification
-results.
+**Israel Hayom Sport** (`israel_hayom_sport`) is added in PR 10. Israel Hayom publishes a
+general news RSS at `rss.xml` that mixes sport with politics, opinion, and culture. Sport articles
+are identified by `/sport/` in the URL (subpaths: `israeli-basketball`, `world-basketball`,
+`world-soccer`, `other-sports`, `opinions-sport`). The `allowed_url_patterns=("/sport/",)` filter
+retains only sport items; all others are counted as `skipped_filtered`.
+
+See `docs/HEBREW_RSS_SOURCE.md` for full source discovery rationale and the candidates rejected in PR 10.
+
+### Adding a source with URL allowlist filtering (PR 10)
+
+For sources that mix sport and non-sport content, use `allowed_url_patterns` to accept only
+items whose URL matches at least one pattern. Items that do not match are counted as
+`skipped_filtered` and never reach the DB — analogous to `blocked_url_patterns` (blocklist),
+but inverted (allowlist).
+
+```python
+RSSSourceConfig(
+    source_id="israel_hayom_sport",
+    display_name="ישראל היום ספורט",
+    feed_url="https://www.israelhayom.co.il/rss.xml",
+    language="he",
+    allowed_languages=("he",),
+    allowed_url_patterns=("/sport/",),   # only sport-path URLs accepted
+)
+```
 
 ---
 
@@ -112,46 +146,51 @@ Each `RawSourceItem` is mapped to an `Article` via the classifier:
 | `original_title` | raw RSS title for non-Hebrew sources; `None` for Hebrew articles |
 | `translated_title` | Hebrew translation if provider is configured; `None` if noop/disabled |
 | `title`          | Hebrew translation when available; raw RSS title otherwise |
-| `sport`          | From classifier |
-| `league`         | From classifier |
-| `entities`       | From classifier |
-| `event_type`     | From classifier |
-| `importance`     | From classifier |
-| `confidence`     | From classifier |
+| `sport`          | From classifier (deterministic) or LLM + guardrails (Hebrew broad sources, PR 11) |
+| `league`         | From classifier or LLM |
+| `entities`       | From classifier or LLM (canonical entity names only) |
+| `event_type`     | From classifier or LLM |
+| `importance`     | From classifier or LLM (never downgraded by LLM) |
+| `confidence`     | From classifier (deterministic confidence score) |
 | `tags`           | From classifier |
+| `classified_by`  | `rules`, `llm`, `llm+rules_guardrail`, `rules_fallback_after_llm_failure`, `rules_fallback_low_confidence` (PR 11) |
+| `classification_provider` | Which provider classified this article: `rules`, `ollama:llama3.2:3b`, `fake` (PR 11) |
+| `classification_reason` | LLM's one-sentence explanation of the classification (PR 11) |
+| `classification_confidence` | LLM's self-assessed confidence 0.0–1.0; separate from deterministic `confidence` (PR 11) |
 | `published_at`   | From RSS entry; falls back to `datetime.now(UTC)` |
 
 ---
 
 ## Classification
 
+Classification runs in two stages: deterministic first (always), then optionally LLM for Hebrew broad sources.
+
+### Deterministic classifier
+
 `backend/app/ingestion/classifier.py` is a pure deterministic function.
 
 ```python
-result = classify(title, source_id="eurohoops", language="en")
+result = classify(title, source_id="walla_sport", language="he", subtitle=subtitle)
 ```
 
-### What it detects
+`subtitle` is optional (`None` when the RSS entry has no `<description>`). It is used as a gap-filler only — title is always the primary signal. Subtitle fills `sport=unknown`, empty entities, missing league, and generic `event_type="news"` when the title context is insufficient. Subtitle never overrides an already-resolved sport value from the title. Football Maccabi disambiguation (the `_FOOTBALL_MACCABI_KW` blocklist) applies equally to subtitle text.
 
 | Field        | How detected |
 |-------------|-------------|
-| `sport`      | Basketball/football/tennis keyword lists; basketball-only sources default to basketball; entity-based inference if sport still unknown |
+| `sport`      | Basketball/football/tennis keyword lists; basketball-only sources default to basketball; entity-based inference if sport still unknown; subtitle fills `sport=unknown` when title is ambiguous |
 | `league`     | Sport-specific keyword lists ordered: **EuroCup** (before EuroLeague) → NBA → EuroLeague → Israeli Basketball League → ACB → BSL → Greek → LBA → LNB → Wimbledon → Roland Garros → etc. Israeli Basketball League also inferred from Maccabi entity + context keywords (Holon, Eilat, Hapoel Jerusalem, etc.) |
 | `entities`   | Maccabi Tel Aviv Basketball (Hebrew + English keywords); Deni Avdija (Hebrew + English) |
 | `event_type` | Ordered keyword matching: grand_slam_winner → finals_result → signing → negotiation → candidate → injury → major_trade → playoff_result → early_round_result → regular_season_result → schedule → match_result → news |
 | `importance` | Rule table: very_high for titles/finals/grand slam; high for signing/negotiation/injury/trade involving a tracked entity or major league; low for schedule/early rounds; **low for generic news (event_type=news) with no tracked entity** |
 | `confidence` | Additive: 0.40 base + 0.15 for sport + 0.05 for basketball-only source + 0.15 for league + 0.15 for entity + 0.10 for non-news event type; capped at 0.95 |
 
-### Classifier limitations (known)
+### LLM classifier (Hebrew broad sources, PR 11)
 
-- **No NLP or LLM.** Keyword matching only.
-- **Hebrew entity detection is limited** to Maccabi Tel Aviv Basketball and Deni Avdija.
-- **No player name extraction** beyond the two above.
-- **No translation.** `translated_title` is always `None`.
-- **No summary analysis.** Only the title is classified.
-- **No team name extraction** for NBA teams from article content — only direct name keyword hits.
-- **Ambiguous keywords** (e.g., "ליגת העל" = both Israeli football and basketball league) are resolved by context keywords in the same title; may misclassify if context is absent.
-- **Generic news articles** (no sport keyword, no entity) are classified as `sport=unknown` — this is intentional precision-over-recall behavior.
+When `CLASSIFICATION_PROVIDER=ollama` (or `fake`), Hebrew broad source articles go through a second classification pass using a local LLM. The LLM result is merged with the deterministic result using 5 guardrails. The final article fields reflect the merged decision.
+
+For English basketball-only sources (`eurohoops`, `sportando`), the deterministic classifier is the only path — LLM is never called.
+
+See `docs/LLM_CLASSIFICATION.md` for full details.
 
 ---
 
@@ -200,8 +239,8 @@ npm run dev
 
 4. Open the app (http://localhost:5173 or the port shown) and navigate to **מקורות** (Sources).
 
-5. The **ייבוא כתבות RSS** panel appears at the top. It lists the configured sources
-   (Eurohoops, Sportando, וואלה ספורט) loaded from the API.
+5. The **ייבוא כתבות RSS** panel appears at the top. It lists the enabled MVP sources
+   (וואלה ספורט, ישראל היום ספורט) loaded from the API.
 
 6. Select a source or leave "כל המקורות" selected. Click **הרץ ייבוא עכשיו**.
 
@@ -248,9 +287,16 @@ Run all configured sources:
 POST /api/ingest/run
 ```
 
-Run a single source:
+Run a single MVP source:
 ```
-POST /api/ingest/run?source_id=eurohoops
+POST /api/ingest/run?source_id=walla_sport
+POST /api/ingest/run?source_id=israel_hayom_sport
+```
+
+Run a disabled source (must first set `enabled=True` in `config.py`):
+```
+# POST /api/ingest/run?source_id=eurohoops   — disabled by default (post-MVP)
+# POST /api/ingest/run?source_id=sportando   — disabled by default (post-MVP)
 ```
 
 Check what ran:
@@ -308,9 +354,11 @@ Existing endpoints are unchanged and continue to work:
 
 ## Why No Scraping / X / Scheduler Yet
 
-**Scraping (Sport5, ONE, Israel Hayom):** These sources don't have clean RSS. Scraping
-requires browser automation or HTML parsing, which introduces fragility and maintenance
-burden. Deferred to a future PR.
+**Additional Hebrew sources (Sport5, ONE, Ynet):** These sources don't have clean RSS.
+Israel Hayom is already active via its general RSS + `/sport/` allowlist. Sport5, ONE, and
+Ynet require scraping or category-page parsing, which introduces fragility and maintenance
+burden. Deferred to a future PR. ONE is the preferred next candidate (traditional HTML;
+less brittle than Ynet's SPA).
 
 **X/Twitter:** Rate-limited API, requires auth, produces short-form content that needs
 different classification. Deferred.
@@ -324,9 +372,10 @@ validated with real data.
 
 ## Next Steps
 
-1. Add scheduled ingestion (e.g., every 15 minutes via APScheduler).
-2. Fuzzy title dedup via `difflib.SequenceMatcher` or similar.
-3. `translated_title` generation — see `docs/TITLE_TRANSLATION.md` (implemented in PR 9).
-4. Feedback → profile mutation: `never_show` creates a `hidden` event rule for the matched topic.
-5. Cluster seeding: group articles with the same core story into a `cluster_id`.
-6. Additional Hebrew sources: Sport5 or ONE via category page adapters if RSS is unavailable.
+1. Validate LLM classification quality — run `POST /api/classify/backfill?source_id=walla_sport` with Ollama enabled, inspect debug view for Guy.
+2. Expand entity normalization map in `entity_normalizer.py` after LLM benchmark shows which entities are recognized but not canonicalized.
+3. Add scheduled ingestion (e.g., every 15 minutes via APScheduler).
+4. Fuzzy title dedup via `difflib.SequenceMatcher` or similar.
+5. Feedback → profile mutation: `never_show` creates a `hidden` event rule for the matched topic.
+6. Cluster seeding: group articles with the same core story into a `cluster_id`.
+7. Additional Hebrew sources: Sport5 or ONE via category page adapters if RSS is unavailable.

@@ -12,19 +12,6 @@ const CARD_STYLES = {
   low_feed: "border-gray-800 bg-gray-900/60 hover:border-gray-700 opacity-75"
 };
 
-const LANG_NAMES_HE = {
-  en: "אנגלית",
-  it: "איטלקית",
-  el: "יוונית",
-  tr: "טורקית",
-  es: "ספרדית",
-  fr: "צרפתית",
-  de: "גרמנית",
-  pt: "פורטוגזית",
-  ru: "רוסית",
-  he: "עברית",
-};
-
 function formatTime(dateStr) {
   try {
     return formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: he });
@@ -52,12 +39,6 @@ export default function FeedCard({ item }) {
   const url = isCluster ? null : item.url;
   const articleId = item.id;
   const reasoning = item.score?.reasoning || [];
-
-  // Show source-language metadata only for non-Hebrew, non-cluster articles
-  // that have an original title stored.
-  const isNonHebrew = !isCluster && item.language !== "he";
-  const isTranslated = isNonHebrew && Boolean(item.translatedTitle);
-  const showOriginalMeta = isNonHebrew && item.originalTitle;
 
   const additionalSources = isCluster && item.sourceDisplayNames?.length > 1
     ? item.sourceDisplayNames.slice(1)
@@ -115,18 +96,6 @@ export default function FeedCard({ item }) {
         }`}>
           {displayTitle}
         </h2>
-
-        {/* Original-language metadata for non-Hebrew articles */}
-        {showOriginalMeta && (
-          <p className="text-xs text-gray-600 mt-1 leading-relaxed" dir="auto">
-            {!isTranslated && (
-              <span className="text-amber-600/70 font-medium ml-1">לא תורגם · </span>
-            )}
-            <span>שפת מקור: {LANG_NAMES_HE[item.language] ?? "לא ידוע"}</span>
-            <span className="mx-1">·</span>
-            <span>כותרת מקור: {item.originalTitle}</span>
-          </p>
-        )}
 
         {/* Cluster additional sources */}
         {isCluster && item.sources?.length > 1 && (

@@ -18,24 +18,29 @@ of what enters before any automation is added. Without guardrails:
 
 ## 1. Source-Level URL and Language Filters
 
-### New fields on `RSSSourceConfig`
+### Fields on `RSSSourceConfig`
 
 ```python
 @dataclass(frozen=True)
 class RSSSourceConfig:
     ...
     blocked_url_patterns: tuple[str, ...]  # URL substrings that cause an item to be skipped
+    allowed_url_patterns: tuple[str, ...]  # if non-empty, only URLs matching at least one pattern are accepted
     allowed_languages: tuple[str, ...]     # if non-empty, items not matching are skipped
 ```
 
-Both default to `()` (no filtering) for backward compatibility.
+All default to `()` (no filtering) for backward compatibility.
+
+`allowed_url_patterns` is the inverse of `blocked_url_patterns`: it is an allowlist rather than a
+blocklist. Use it for sources (like Israel Hayom) that publish a general RSS feed — by requiring
+`/sport/` in the URL, non-sport articles are filtered out before they reach the DB.
 
 ### Filter evaluation order
 
 Filters run at the **service level**, after the adapter fetches but before dedup or insert:
 
 ```
-fetch → URL pattern filter → language filter → dedup check → insert
+fetch → blocked_url_patterns → allowed_url_patterns → language filter → dedup check → insert
 ```
 
 This means filtered items never reach the DB and are not counted as duplicates.
@@ -96,6 +101,29 @@ RSSSourceConfig(
 
 `allowed_languages=("he",)` is defensive — the feed is Hebrew-only in practice, but the
 filter ensures non-Hebrew items are skipped if the feed configuration ever changes.
+
+### Israel Hayom Sport configuration (PR 10)
+
+Israel Hayom publishes a single general RSS feed at `/rss.xml` that contains news from all
+categories (sport, politics, opinion, culture, world news). Sport articles always contain
+`/sport/` in the URL path. `allowed_url_patterns=("/sport/",)` acts as a category allowlist
+that turns the general feed into a sport-only feed at the ingestion layer.
+
+A typical fetch of 100 items yields ~21 sport items (`skipped_filtered ≈ 79`).
+
+```python
+RSSSourceConfig(
+    source_id="israel_hayom_sport",
+    display_name="ישראל היום ספורט",
+    feed_url="https://www.israelhayom.co.il/rss.xml",
+    language="he",
+    allowed_languages=("he",),
+    allowed_url_patterns=("/sport/",),
+)
+```
+
+`allowed_url_patterns` is checked after `blocked_url_patterns` and before the language filter.
+Items that do not match are counted as `skipped_filtered` in the live API response.
 
 ### Language inference from URL
 
@@ -337,11 +365,112 @@ pattern to address.
 
 ---
 
+---
+
+## 6. Classifier Improvements (PR 11)
+
+### 6a. Unicode pe bug fix — "אלופת"
+
+The keyword `"אלוף"` (champion, masculine) uses **final pe** (ף, U+05E3). The word `"אלופת"` (champion, construct-state feminine: "champion of the NBA") uses **regular pe** (פ, U+05E4). These are different Unicode code points. Python's `in` operator returned `False` for `"אלוף" in "אלופת"`, causing "ניו יורק אלופת ה-NBA" to be classified as generic news instead of `title_win`.
+
+Fix: `"אלופת"` and `"אלופות"` (plural feminine) added explicitly to `_WINNER_SUFFIX_KW` with comments explaining the encoding reason.
+
+This fix applies with `CLASSIFICATION_PROVIDER=disabled` — no LLM required.
+
+### 6b. MVP keyword
+
+`"mvp"` added to `_BASKETBALL_KW`. In Israeli sports coverage, "MVP" appears only in basketball context. This allows titles like "ברונסון ה-MVP של סדרת הגמר" to resolve `sport=basketball` from the deterministic classifier, even when no league name appears.
+
+### 6c. Known gaps that still require LLM
+
+These patterns are deliberately NOT fixed with deterministic keywords (risky guessing):
+
+| Pattern | Example | Gap |
+|---------|---------|-----|
+| Unfamiliar Hebrew proper nouns | "ג'ארד הארפר" (Jared Harper) | Player not in any keyword list |
+| Multi-sport entities without context | "הפועל תל אביב" + "סיכום" | "סיכום" means agreement in both football and basketball; no context to resolve |
+| Cross-club proper nouns | "ינאקופולוס" (Giannakopoulos, Panathinaikos owner) appearing in Olympiacos controversy | Person name not in any keyword list; club context not adjacent |
+
+All three are handled correctly by the LLM provider when enabled.
+
+---
+
+## 7. LLM Classification (PR 11)
+
+LLM classification is an optional overlay for Hebrew broad sources that addresses structural limitations of keyword matching: unfamiliar proper nouns, multi-sport entity disambiguation, and entity-to-league inference.
+
+### Architecture
+
+```
+backend/app/classification/
+    __init__.py
+    llm_result.py         — LLMClassificationResult dataclass
+    validation.py         — JSON parsing + enum validation; LLM_MIN_CONFIDENCE = 0.65
+    prompt.py             — 6-shot Hebrew classification prompt
+    providers.py          — DisabledLLMProvider, FakeLLMProvider, OllamaProvider
+    service.py            — get_llm_provider() singleton factory
+    merge.py              — merge_with_guardrails() — LLM primary, 5 deterministic guardrails
+    entity_normalizer.py  — canonical alias map; normalize_llm_entities()
+```
+
+### Provider selection (`CLASSIFICATION_PROVIDER`)
+
+| Value | Behavior |
+|-------|---------|
+| `disabled` | No LLM; deterministic only (default) |
+| `fake` | Pre-set results for 4 known regression headlines; unknown → rules fallback |
+| `ollama` | Local Ollama; no GPU required; any model pulled with `ollama pull` |
+
+### Guardrails (merge.py)
+
+The LLM result is primary. Guardrails correct known failure modes only:
+
+| # | Guardrail | Condition | Action |
+|---|-----------|-----------|--------|
+| 1 | Football Maccabi clubs | Rules detected `מכבי חיפה` / `מכבי נתניה` / etc. | `sport=football`, LLM overruled |
+| 2 | LLM sport=unknown | Rules has a known sport | Use rules sport |
+| 3 | LLM league=null | Rules found a league | Use rules league |
+| 4 | Rules event_type not "news" | LLM says "news" | Use rules event_type |
+| 5 | Importance never downgraded | LLM importance < rules importance | Keep rules importance |
+
+### Entity normalization
+
+LLM outputs free-text entity strings inconsistently. The relevance engine requires exact canonical names for entity-scope topic matching. The normalization map (`entity_normalizer.py`) is conservative — only explicitly listed aliases are accepted. Unknown entities are silently discarded from `article.entities` but remain visible in `classification_reason`.
+
+Current canonical entities:
+- `"Maccabi Tel Aviv Basketball"` — Hebrew + English aliases
+- `"Deni Avdija"` — Hebrew + English aliases
+- `"Hapoel Tel Aviv Basketball"` — Hebrew + English; blocked when `sport != "basketball"`
+- `"Hapoel Jerusalem Basketball"` — Hebrew + English; blocked when `sport != "basketball"`
+- `"New York Knicks"` — Hebrew "ניקס" + English aliases
+
+### Per-run connection circuit breaker
+
+The first `httpx.ConnectError` (Ollama not running) opens a per-run circuit. Remaining articles in the same ingestion run use deterministic rules immediately. Total overhead when Ollama is not running: ~2s (one failed connect attempt), not 30 × 2s. Timeouts do NOT open the circuit — the LLM is attempted on the next article.
+
+### Confidence threshold
+
+`LLM_MIN_CONFIDENCE = 0.65`. If the LLM's self-assessed confidence is below this, the deterministic result is kept and `classified_by = "rules_fallback_low_confidence"`. The LLM's reason and confidence are still stored for inspection.
+
+### Debug view
+
+Each article in the debug view now shows:
+- `classified_by` badge (grey, blue, yellow, red, orange per value)
+- `classification_provider` label (e.g., "ollama:llama3.2:3b")
+- `classification_confidence` as a percentage
+- `classification_reason` as an italic line
+
+### Backfill endpoint
+
+`POST /api/classify/backfill` reclassifies existing articles. Updates all 11 classification fields. `source_id` filter applied at DB query level (not post-filter in Python). Use `force=true` to reclassify articles already labeled `classified_by=llm`.
+
+---
+
 ## Next Steps
 
-- **Automate ingestion** — APScheduler polling every 15–30 minutes (PR 8).
-- **Hebrew source adapter** — If ONE or Walla Sport have usable RSS feeds.
+- **LLM benchmark** — Validate classification quality with Ollama on real Walla + Israel Hayom articles. Compare `sport=unknown` count before and after.
+- **Expand entity normalization map** — Add EuroLeague club names, Israeli basketball coaches, key NBA players after benchmark reveals which entities LLM identifies but are not yet canonical.
+- **Automate ingestion** — APScheduler polling every 15–30 minutes.
 - **Extended entity detection** — Detect more players and teams from Hebrew and English text.
-- **Translation** — `translated_title` for Hebrew articles via a translation API.
 - **Fuzzy dedup** — Group near-duplicate headlines from different sources via
   `difflib.SequenceMatcher` + `cluster_id`.

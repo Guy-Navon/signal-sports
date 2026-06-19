@@ -27,6 +27,11 @@ class ArticleRow(Base):
     confidence = Column(Float, nullable=False, default=0.85)
     tags = Column(JSON, nullable=False)
     cluster_id = Column(String, nullable=True)
+    # LLM classification metadata — added via soft migration; nullable for existing rows
+    classified_by = Column(String, nullable=True, default="rules")
+    classification_provider = Column(String, nullable=True)
+    classification_reason = Column(String, nullable=True)
+    classification_confidence = Column(Float, nullable=True)
 
 
 class ProfileRow(Base):

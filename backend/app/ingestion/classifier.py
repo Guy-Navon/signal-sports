@@ -4,7 +4,9 @@ Deterministic keyword-based article classifier.
 No LLM. No external calls. Fully testable as a pure function.
 
 Design notes:
-- Checks title text only (summary ignored for now).
+- Primary signal is the article title. Optional subtitle fills gaps when title is
+  ambiguous or produces sport=unknown / no entities / generic event_type="news".
+- Subtitle never overrides an already-resolved sport value from the title.
 - Optional url is used for URL-path-based league inference (e.g. EuroCup vs EuroLeague).
 - Hebrew and English keywords live in the same lists; lowercased before matching.
 - Source ID is used to apply basketball-only defaults for Eurohoops/Sportando.
@@ -162,6 +164,7 @@ _BASKETBALL_KW = (
     # Hebrew NBA team nicknames (not city names — those are too generic)
     "וויזארדס", "הורנטס", "בלייזרס", "ניקס", "סלטיקס", "לייקרס",
     "באקס", "סאנס", "נאגטס", "מאברס", "ספרס", "רוקטס", "ראפטורס", "גריזליס",
+    "mvp",  # unambiguously basketball in Israeli sports context
 )
 _FOOTBALL_KW = (
     "football", "soccer", "כדורגל", "fifa", "uefa",
@@ -443,7 +446,12 @@ _TRADE_KW = (
 _TRADE_WORD_KW = ("trade",)
 
 _FINALS_KW = ("גמר", "finals", "championship", "אליפות")
-_WINNER_SUFFIX_KW = ("אלוף", "אלופה", "champion", "champions", "title", "clinches", "זוכה", "זכה", "זכתה", "זכו")
+_WINNER_SUFFIX_KW = (
+    "אלוף", "אלופה",
+    "אלופת",   # construct state feminine: "אלופת ה-NBA" — ף (U+05E3) ≠ פ (U+05E4)
+    "אלופות",  # plural feminine: "אלופות הליגה"
+    "champion", "champions", "title", "clinches", "זוכה", "זכה", "זכתה", "זכו",
+)
 
 _PLAYOFF_KW = ("פלייאוף", "playoffs", "playoff")
 
@@ -604,6 +612,7 @@ def classify(
     source_id: str = "",
     language: str = "en",
     url: str = "",
+    subtitle: str | None = None,
 ) -> ClassificationResult:
     """Classify an article title using deterministic keyword rules.
 
@@ -613,11 +622,17 @@ def classify(
         language:  "he" or "en".
         url:       Article URL — used for URL-path-based league inference
                    (e.g. detecting EuroCup vs EuroLeague from /eurocup/ path).
+        subtitle:  Optional subtitle/description text. Title is always the primary
+                   signal. Subtitle may fill sport=unknown, add missing entities,
+                   improve league detection, or refine event_type="news" when the
+                   title context is insufficient. Subtitle never overrides an
+                   already-resolved sport value from the title.
 
     Returns:
         ClassificationResult with all fields populated.
     """
     text = title.lower()
+    sub_text = subtitle.lower() if subtitle else ""
 
     sport = _detect_sport(text, source_id)
     entities = _detect_entities(text, source_id)
@@ -651,7 +666,67 @@ def classify(
     if sport == "basketball":
         entities = [e for e in entities if e not in ("Maccabi Tel Aviv Football", "Hapoel Tel Aviv Football")]
 
+    # ── Subtitle gap-filling ───────────────────────────────────────────────────
+    # Title is always the primary signal. Subtitle fills gaps only:
+    #   sport=unknown → try subtitle for sport detection
+    #   entities=[]  → try subtitle for entity detection
+    # Subtitle cannot change an already-resolved sport value.
+    # Football Maccabi clubs must still be checked first (same priority as in title).
+    if sub_text:
+        # Sport gap: subtitle fills sport only when title produced unknown.
+        if sport == "unknown":
+            if _has_football_maccabi_context(sub_text):
+                sport = "football"
+            else:
+                sub_sport = _detect_sport(sub_text, source_id)
+                if sub_sport != "unknown":
+                    sport = sub_sport
+                elif _has_basketball_context(sub_text):
+                    # Catch basketball context keywords not covered by _detect_sport
+                    # (e.g. "הפועל ירושלים", position names like "גארד").
+                    sport = "basketball"
+                elif _has_football_context(sub_text):
+                    sport = "football"
+
+            # When subtitle resolved sport for an ambiguous-club title, assign entity.
+            if sport != "unknown" and is_ambiguous_club:
+                if _has_maccabi_tel_aviv_phrase(text):
+                    if sport == "basketball":
+                        entities.append("Maccabi Tel Aviv Basketball")
+                    elif sport == "football":
+                        entities.append("Maccabi Tel Aviv Football")
+                if _has_hapoel_tel_aviv_phrase(text):
+                    if sport == "basketball":
+                        entities.append("Hapoel Tel Aviv Basketball")
+                    elif sport == "football":
+                        entities.append("Hapoel Tel Aviv Football")
+                if entities:
+                    is_ambiguous_club = False  # ambiguity resolved via subtitle
+
+            # Re-apply entity-based sport inference and cross-sport post-filters
+            # after subtitle may have modified sport or entities.
+            if sport == "unknown" and entities and not is_ambiguous_club:
+                sport = "basketball"
+            if sport == "football":
+                entities = [e for e in entities if e not in ("Maccabi Tel Aviv Basketball", "Hapoel Tel Aviv Basketball")]
+            if sport == "basketball":
+                entities = [e for e in entities if e not in ("Maccabi Tel Aviv Football", "Hapoel Tel Aviv Football")]
+
+        # Entity gap: subtitle adds entities when title produced none.
+        if not entities:
+            sub_entities = _detect_entities(sub_text, source_id)
+            # Apply cross-sport post-filters to subtitle entities.
+            if sport == "football":
+                sub_entities = [e for e in sub_entities if "Basketball" not in e]
+            elif sport == "basketball":
+                sub_entities = [e for e in sub_entities if "Football" not in e]
+            entities = sub_entities
+
     league = _detect_league(text, sport, url=url)
+
+    # League gap from subtitle: when title produced no league, try subtitle.
+    if league is None and sub_text:
+        league = _detect_league(sub_text, sport)
 
     # Entity-based league inference: Deni Avdija is an NBA player.
     # Titles that mention him without "NBA" (common in Hebrew news) still map to NBA.
@@ -664,11 +739,18 @@ def classify(
         sport == "basketball"
         and league is None
         and "Maccabi Tel Aviv Basketball" in entities
-        and _has(text, *_ISRAELI_BBALL_CONTEXT_KW)
+        and (_has(text, *_ISRAELI_BBALL_CONTEXT_KW) or _has(sub_text, *_ISRAELI_BBALL_CONTEXT_KW))
     ):
         league = "Israeli Basketball League"
 
     event_type = _detect_event_type(text, sport)
+
+    # Event type gap: subtitle refines generic "news" to a more specific event type.
+    if event_type == "news" and sub_text:
+        sub_event_type = _detect_event_type(sub_text, sport)
+        if sub_event_type != "news":
+            event_type = sub_event_type
+
     importance = _assign_importance(event_type, entities, league)
     confidence = _assign_confidence(sport, league, entities, event_type, source_id)
     tags = _collect_tags(sport, league, entities, event_type)

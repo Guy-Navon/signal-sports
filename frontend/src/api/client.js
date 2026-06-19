@@ -75,17 +75,20 @@ export function getIngestQuality() {
   return apiFetch("/api/ingest/quality");
 }
 
-export function backfillTranslations({ limit, sourceId, dryRun = false, includeFake = false, force = false } = {}) {
-  const params = new URLSearchParams();
-  if (limit != null) params.set("limit", String(limit));
-  if (sourceId) params.set("source_id", sourceId);
-  if (dryRun) params.set("dry_run", "true");
-  if (includeFake) params.set("include_fake", "true");
-  if (force) params.set("force", "true");
-  const qs = params.toString();
-  return apiFetch(`/api/translations/backfill${qs ? `?${qs}` : ""}`, { method: "POST" });
+export function getClassifyStatus() {
+  return apiFetch("/api/classify/status");
 }
 
-export function getTranslationStatus() {
-  return apiFetch("/api/translations/status");
+export function classifyBackfill({ sourceId, limit, dryRun = false, force = false } = {}) {
+  const params = new URLSearchParams();
+  if (sourceId) params.set("source_id", sourceId);
+  if (limit != null) params.set("limit", String(limit));
+  if (dryRun) params.set("dry_run", "true");
+  if (force) params.set("force", "true");
+  const qs = params.toString();
+  return apiFetch(`/api/classify/backfill${qs ? `?${qs}` : ""}`, { method: "POST" });
+}
+
+export function resetRssData() {
+  return apiFetch("/api/dev/reset-rss-data", { method: "POST" });
 }

@@ -414,7 +414,7 @@ No `.env.local` needed. Uses mock data and frontend engine.
 ```bash
 cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
-# 683 tests — all should pass (no test requires Ollama running or a real API key)
+# 688 tests — all should pass (no test requires Ollama running or a real API key)
 # Note: test_reset_returns_403_when_disabled requires ALLOW_DEV_RESET unset or =false in .env
 ```
 

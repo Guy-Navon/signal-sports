@@ -468,7 +468,7 @@ All timing numbers above are now observable via the `SourceIngestResult` fields 
 
 All tests use `FakeLLMProvider`, mocked `httpx`, or mocked `google.genai`. No test requires Ollama or a real API key.
 
-**Total: 683 tests (as of post-QA fixes)**
+**Total: 688 tests (as of post-QA fixes + subtitle display feature)**
 
 **`backend/tests/test_llm_classification.py`** (added in PR 11, extended with subtitle/Gemini/Ollama/guardrail tests):
 - `TestValidation` (10 tests) — JSON parsing, enum validation, regex fallback, all leagues accepted

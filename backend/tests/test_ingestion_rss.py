@@ -139,7 +139,7 @@ class TestNormalisation:
             title="Deni Avdija injured",
             published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
         )
-        article = _normalise(item, self._english_cfg())
+        article, _ = _normalise(item, self._english_cfg())
         assert article.original_title == "Deni Avdija injured"
         assert article.translated_title is None
         assert article.language == "en"
@@ -151,7 +151,7 @@ class TestNormalisation:
             title="מכבי ת״א בודקת שחקן",
             published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
         )
-        article = _normalise(item, self._hebrew_cfg())
+        article, _ = _normalise(item, self._hebrew_cfg())
         assert article.original_title is None
         assert article.translated_title is None
         assert article.language == "he"
@@ -165,7 +165,7 @@ class TestNormalisation:
             title="Some article",
             published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
         )
-        article = _normalise(item, self._english_cfg())
+        article, _ = _normalise(item, self._english_cfg())
         assert article.id == article_id_from_url(url)
 
     def test_missing_published_at_uses_now(self):
@@ -176,7 +176,7 @@ class TestNormalisation:
             published_at=None,
         )
         before = datetime.now(tz=timezone.utc)
-        article = _normalise(item, self._english_cfg())
+        article, _ = _normalise(item, self._english_cfg())
         after = datetime.now(tz=timezone.utc)
         assert before <= article.published_at <= after
 
@@ -188,7 +188,7 @@ class TestNormalisation:
             title="Deni Avdija traded to new NBA team",
             published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
         )
-        article = _normalise(item, self._english_cfg())
+        article, _ = _normalise(item, self._english_cfg())
         assert article.sport == "basketball"
         assert article.league == "NBA"
         assert "Deni Avdija" in article.entities

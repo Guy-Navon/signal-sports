@@ -11,6 +11,16 @@ class SourceIngestResult(BaseModel):
     skipped_duplicate: int
     failed: int
     errors: List[str] = []
+    # Timing fields (live response only — not persisted to DB)
+    fetch_ms: Optional[float] = None
+    total_ms: Optional[float] = None
+    llm_attempts: int = 0
+    llm_successes: int = 0
+    llm_fallback_connect_error: int = 0
+    llm_fallback_timeout_or_parse: int = 0
+    llm_fallback_low_confidence: int = 0
+    llm_avg_ms: Optional[float] = None
+    llm_p95_ms: Optional[float] = None
 
 
 class IngestRunResponse(BaseModel):

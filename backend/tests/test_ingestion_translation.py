@@ -57,7 +57,7 @@ class TestNormaliseWithTranslation:
             "app.ingestion.ingestion_service.translate_title",
             return_value=MOCK_HEBREW_TRANSLATION,
         ):
-            article = _normalise(item, _italian_cfg())
+            article, _ = _normalise(item, _italian_cfg())
 
         assert article.language == "it"
         assert article.original_title == MOCK_ITALIAN_TITLE
@@ -74,7 +74,7 @@ class TestNormaliseWithTranslation:
         with patch(
             "app.ingestion.ingestion_service.translate_title"
         ) as mock_translate:
-            article = _normalise(item, _hebrew_cfg())
+            article, _ = _normalise(item, _hebrew_cfg())
 
         mock_translate.assert_not_called()
         assert article.language == "he"
@@ -93,7 +93,7 @@ class TestNormaliseWithTranslation:
             "app.ingestion.ingestion_service.translate_title",
             return_value=None,  # provider disabled or failed
         ):
-            article = _normalise(item, _english_cfg())
+            article, _ = _normalise(item, _english_cfg())
 
         assert article.original_title == "Deni Avdija traded to Portland"
         assert article.translated_title is None
@@ -111,7 +111,7 @@ class TestNormaliseWithTranslation:
             "app.ingestion.ingestion_service.translate_title",
             return_value="מכבי תל אביב חתמה על גארד חדש",
         ):
-            article = _normalise(item, _english_cfg())
+            article, _ = _normalise(item, _english_cfg())
 
         assert article.language == "en"
         assert article.original_title == "Maccabi Tel Aviv signs a new guard"
@@ -129,7 +129,7 @@ class TestNormaliseWithTranslation:
             "app.ingestion.ingestion_service.translate_title",
             return_value="פנאתינייקוס פותחת את ה-OAKA",
         ) as mock_translate:
-            article = _normalise(item, _english_cfg())
+            article, _ = _normalise(item, _english_cfg())
 
         assert article.language == "el"
         assert article.original_title == "Παναθηναϊκός: Ανοίγει το ΟΑΚΑ για τον 5ο τελικό"
@@ -191,7 +191,7 @@ class TestHebrewSourceInvariant:
             published_at=datetime(2026, 6, 14, tzinfo=timezone.utc),
         )
         with patch("app.ingestion.ingestion_service.translate_title") as mock_tr:
-            article = _normalise(item, _hebrew_cfg())
+            article, _ = _normalise(item, _hebrew_cfg())
 
         mock_tr.assert_not_called()
         assert article.language == "he"
@@ -214,7 +214,7 @@ class TestHebrewSourceInvariant:
             published_at=datetime(2026, 6, 14, tzinfo=timezone.utc),
         )
         with patch("app.ingestion.ingestion_service.translate_title") as mock_tr:
-            article = _normalise(item, sport5_cfg)
+            article, _ = _normalise(item, sport5_cfg)
 
         mock_tr.assert_not_called()
         assert article.language == "he"
@@ -232,7 +232,7 @@ class TestHebrewSourceInvariant:
             published_at=datetime(2026, 6, 14, tzinfo=timezone.utc),
         )
         with patch("app.ingestion.ingestion_service.translate_title") as mock_tr:
-            article = _normalise(item, _hebrew_cfg())
+            article, _ = _normalise(item, _hebrew_cfg())
 
         mock_tr.assert_not_called()
         assert article.language == "he"

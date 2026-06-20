@@ -470,3 +470,117 @@ class TestSubtitleNoRegression:
         r = classify("Maccabi Tel Aviv wins EuroLeague game", source_id="eurohoops", language="en")
         assert r.sport == "basketball"
         assert "Maccabi Tel Aviv Basketball" in r.entities
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# title_win hardening — false positives and true positives
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestTitleWinHardening:
+    """Verify title_win is not triggered by loose Hebrew win-verbs in non-championship context."""
+
+    def _classify(self, title: str) -> object:
+        return classify(title, source_id="walla_sport", language="he")
+
+    # ── False positives that must NOT trigger title_win ───────────────────────
+
+    def test_no_title_win_for_zache_levi_kartet(self):
+        """'זכה לביקורת' = received criticism — not a title win."""
+        r = self._classify("השחקן זכה לביקורת קשה אחרי המשחק")
+        assert r.event_type != "title_win", f"Got event_type={r.event_type!r}"
+
+    def test_no_title_win_for_zache_lemachaot(self):
+        """'זכה למחמאות' = received praise — not a title win."""
+        r = self._classify("המאמן זכה למחמאות רבות מהתקשורת")
+        assert r.event_type != "title_win"
+
+    def test_no_title_win_for_zachu_barega(self):
+        """'זכו ברגע' = caught/received a moment — not a title win."""
+        r = self._classify('"התפרקו, אני שחקן נבחרת": צפו ברגע המביך במחנה של ספרד')
+        assert r.event_type != "title_win"
+
+    def test_no_title_win_for_tzipyu_barega(self):
+        """'צפו ברגע' = watch the moment — not a title win."""
+        r = self._classify("צפו ברגע המביך: שחקן הכדורגל נפל על המגרש")
+        assert r.event_type != "title_win"
+
+    def test_no_title_win_for_zacha_leteguva(self):
+        """'זכתה לתגובה' = received a response — not a title win."""
+        r = self._classify("ההחלטה זכתה לתגובה חריפה מהאגודה")
+        assert r.event_type != "title_win"
+
+    def test_no_title_win_for_zachu_letiyud(self):
+        """'זכו לתיעוד' = were documented/captured — not a title win."""
+        r = self._classify("הרגעים זכו לתיעוד נרחב ברשתות החברתיות")
+        assert r.event_type != "title_win"
+
+    # ── True positives that MUST still trigger title_win ─────────────────────
+
+    def test_title_win_with_alufat_regression(self):
+        """'אלופת ה-NBA' — unambiguous championship word; must stay title_win."""
+        r = self._classify("ניו יורק אלופת ה-NBA!")
+        assert r.event_type == "title_win"
+        assert r.importance == "very_high"
+
+    def test_title_win_with_aluf(self):
+        """'אלוף' — unambiguous championship word."""
+        r = self._classify("מכבי תל אביב אלוף ישראל בכדורסל")
+        assert r.event_type == "title_win"
+
+    def test_title_win_with_compound_gabia(self):
+        """'זכה בגביע' — win-verb + cup context = title_win."""
+        r = self._classify("מכבי תל אביב זכה בגביע הכדורסל")
+        assert r.event_type == "title_win"
+
+    def test_title_win_with_compound_betavar(self):
+        """'זכה בתואר' — win-verb + title/award context = title_win."""
+        r = self._classify("השחקן זכה בתואר המצטיין")
+        assert r.event_type == "title_win"
+
+    def test_title_win_with_hanifa_gabia(self):
+        """'הניפה גביע' — lifted the trophy = title_win."""
+        r = self._classify("מכבי תל אביב הניפה את הגביע בסיום המשחק")
+        assert r.event_type == "title_win"
+
+    def test_title_win_english_champions(self):
+        """English 'champions' — unambiguous championship word."""
+        r = classify("Boston Celtics are NBA champions", source_id="eurohoops", language="en")
+        assert r.event_type == "title_win"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Source URL sport hint — integration with classify()
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestSourceSportHintInClassifier:
+    """source_sport_hint parameter flows through classify() → _detect_sport()."""
+
+    def test_basketball_hint_overrides_ambiguous_maccabi(self):
+        """Israel Hayom basketball URL: Maccabi TLV title without context → basketball via hint."""
+        r = classify(
+            "אירוע חמור: מכבי תל אביב מנעה מעיתונאים גישה לחדר ההלבשה",
+            source_id="israel_hayom_sport", language="he",
+            url="https://www.israelhayom.co.il/sport/israeli-basketball/article/20752364",
+            source_sport_hint="basketball",
+        )
+        assert r.sport == "basketball"
+
+    def test_football_hint_overrides_unknown(self):
+        """Israel Hayom football URL: generic title → football via hint."""
+        r = classify(
+            "מפתיע: ניצחון דרמטי במשחק הערב",
+            source_id="israel_hayom_sport", language="he",
+            url="https://www.israelhayom.co.il/sport/world-soccer/article/20752578",
+            source_sport_hint="football",
+        )
+        assert r.sport == "football"
+
+    def test_none_hint_falls_back_to_keyword_detection(self):
+        """No hint: sport detected normally from title keywords."""
+        r = classify(
+            "מכבי תל אביב ניצחה בגמר ליגת היורוליג",
+            source_id="israel_hayom_sport", language="he",
+            url="https://www.israelhayom.co.il/sport/world-basketball/article/123",
+            source_sport_hint=None,
+        )
+        assert r.sport == "basketball"

@@ -448,13 +448,74 @@ is assumed to still be the case. Category page HTML scraping would be required. 
 
 ---
 
+## Israel Hayom URL Category Hints (Post-QA Fix)
+
+### The problem
+
+The Israel Hayom RSS URL embeds a sport category in its path, e.g.:
+
+```
+https://www.israelhayom.co.il/sport/israeli-basketball/article/20752364
+https://www.israelhayom.co.il/sport/world-basketball/article/20751915
+https://www.israelhayom.co.il/sport/world-soccer/article/20752578
+```
+
+This category is highly reliable — it is set editorially by Israel Hayom's CMS. Before the
+post-QA fix, this information was used only for the `/sport/` filter that keeps sport articles
+in and removes general news. The deeper category (`/israeli-basketball/`, `/world-soccer/`,
+etc.) was not extracted or used for sport detection, even though it directly tells the
+classifier what sport the article covers.
+
+QA exposed that Israel Hayom articles were sometimes misclassified when the title alone
+was ambiguous — e.g., a basketball article with a Hebrew proper noun the classifier didn't
+know, or an LLM that saw a Maccabi reference and guessed football.
+
+### The fix — `backend/app/classification/source_hints.py`
+
+New module `extract_source_sport_hint(source_id, url)`:
+
+| URL path segment | Hint returned |
+|------------------|--------------|
+| `/sport/israeli-basketball/` | `"basketball"` |
+| `/sport/world-basketball/` | `"basketball"` |
+| `/sport/world-soccer/` | `"football"` |
+| `/sport/other-sports/` | `None` — too broad; not overriding |
+| `/sport/opinions-sport/` | `None` — opinion articles could be any sport |
+| Any non-Israel-Hayom source | `None` — source-specific, not generic |
+
+URL matching is case-insensitive.
+
+### How the hint flows through the pipeline
+
+1. `_normalise()` calls `extract_source_sport_hint(cfg.source_id, item.url)` once, before both the deterministic and LLM classification steps.
+2. The hint is passed to `classify()` → `_detect_sport()`, where it is the **first check** — if a hint is present, `_detect_sport()` returns it immediately without any keyword matching.
+3. The same hint is passed to `merge_with_guardrails()` → **Guardrail 7** — if the hint disagrees with the LLM sport output, the hint overrides the LLM. A `sport=basketball` URL category overrides an LLM that returned `sport=football`, for example.
+
+### Why the conservative approach for `other-sports` and `opinions-sport`
+
+- `/sport/other-sports/` contains tennis, Olympics, motorsport, and boxing — returning any single
+  sport hint would be wrong for most articles in this category.
+- `/sport/opinions-sport/` contains opinion columns that reference whichever sport the
+  columnist is discussing that week. Forcing a sport from this category path would be guessing.
+
+Both categories correctly fall through to normal keyword detection and, when enabled, LLM classification.
+
+### Extending to other sources
+
+To add URL category hints for a future source (e.g., Sport5 if it ever publishes RSS):
+1. Add a new `if source_id == "<source_id>":` block in `source_hints.py`.
+2. Map the URL category paths to `"basketball"`, `"football"`, or `None`.
+3. No other files need to change — the hint flows through existing parameters.
+
+---
+
 ## Recommended Next Steps
 
 | Priority | Task |
 |----------|------|
+| High | LLM classification benchmark — install Ollama, pull qwen2.5:3b-instruct, run ingestion, check timing fields in response |
 | High | Scheduled ingestion — run `POST /api/ingest/run` every 15–30 minutes via APScheduler |
-| High | Hebrew title translation — implemented in PR 9; see `docs/TITLE_TRANSLATION.md` |
 | Medium | Fuzzy dedup — cluster near-duplicate headlines from multiple sources |
 | Medium | Extended Hebrew entity detection — more Israeli teams, coaches, players |
-| Medium | More Israeli sports sources — Sport5 via category page adapter if RSS is unavailable |
+| Medium | More Israeli sports sources — ONE via category page adapter (no public RSS exists) |
 | Low | Feedback → profile mutation — `never_show` creates a hidden event rule |

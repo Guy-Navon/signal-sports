@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { RefreshCw, Play, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { getIngestSources, runIngestion, getIngestRuns, getIngestQuality } from "@/api/client";
+import { normalizeIngestResultFromApi, formatMs, formatDuration } from "@/api/normalizers";
 
 const RESULT_LABELS = [
-  { key: "fetched",           label: "נמצאו" },
-  { key: "inserted",          label: "נוספו" },
-  { key: "skipped_duplicate", label: "דולגו ככפולים" },
-  { key: "skipped_filtered",  label: "סוננו" },
-  { key: "failed",            label: "נכשלו" },
+  { key: "fetched",          label: "נמצאו" },
+  { key: "inserted",         label: "נוספו" },
+  { key: "skippedDuplicate", label: "דולגו ככפולים" },
+  { key: "skippedFiltered",  label: "סוננו" },
+  { key: "failed",           label: "נכשלו" },
 ];
 
 function formatRunTime(isoStr) {
@@ -19,6 +20,69 @@ function formatRunTime(isoStr) {
   }
 }
 
+function SourceTimingRow({ result }) {
+  const hasTiming = result.fetchMs != null || result.totalMs != null;
+  if (!hasTiming) return null;
+
+  const llmActive = result.llmAttempts > 0;
+  const totalFallbacks =
+    (result.llmFallbackConnectError ?? 0) +
+    (result.llmFallbackTimeoutOrParse ?? 0) +
+    (result.llmFallbackLowConfidence ?? 0);
+
+  return (
+    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs mt-2 pt-1.5 border-t border-gray-800/50">
+      <span className="text-gray-600 font-medium">ביצועים:</span>
+      {result.fetchMs != null && (
+        <span className="text-gray-600">
+          שליפה <span className="text-gray-400">{formatMs(result.fetchMs)}</span>
+        </span>
+      )}
+      {result.totalMs != null && (
+        <span className="text-gray-600">
+          סה״כ <span className="text-gray-400">{formatDuration(result.totalMs)}</span>
+        </span>
+      )}
+      {llmActive ? (
+        <>
+          <span className="text-gray-600">
+            LLM{" "}
+            <span className="text-gray-400">
+              {result.llmSuccesses}/{result.llmAttempts}
+            </span>
+          </span>
+          {result.llmAvgMs != null && (
+            <span className="text-gray-600">
+              ממוצע <span className="text-gray-400">{formatMs(result.llmAvgMs)}</span>
+            </span>
+          )}
+          {result.llmP95Ms != null && (
+            <span className="text-gray-600">
+              P95 <span className="text-gray-400">{formatMs(result.llmP95Ms)}</span>
+            </span>
+          )}
+          {totalFallbacks === 0 ? (
+            <span className="text-gray-600">
+              נפילות <span className="text-gray-400">0</span>
+            </span>
+          ) : (
+            <span className="text-amber-500/80">
+              נפילות:{" "}
+              {result.llmFallbackConnectError > 0 && `חיבור ${result.llmFallbackConnectError}`}
+              {result.llmFallbackConnectError > 0 && result.llmFallbackTimeoutOrParse > 0 && " · "}
+              {result.llmFallbackTimeoutOrParse > 0 && `timeout/parse ${result.llmFallbackTimeoutOrParse}`}
+              {(result.llmFallbackConnectError > 0 || result.llmFallbackTimeoutOrParse > 0) && result.llmFallbackLowConfidence > 0 && " · "}
+              {result.llmFallbackLowConfidence > 0 && `confidence ${result.llmFallbackLowConfidence}`}
+            </span>
+          )}
+        </>
+      ) : (
+        <span className="text-gray-600">LLM לא הופעל</span>
+      )}
+    </div>
+  );
+}
+
 function SourceResultCard({ result }) {
   const hasNew = result.inserted > 0;
   return (
@@ -27,7 +91,7 @@ function SourceResultCard({ result }) {
         ? "border-emerald-800/40 bg-emerald-900/10"
         : "border-gray-800 bg-gray-900/30"
     }`}>
-      <div className="text-xs font-medium text-gray-300 mb-2">{result.source_id}</div>
+      <div className="text-xs font-medium text-gray-300 mb-2">{result.sourceId}</div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
         {RESULT_LABELS.map(({ key, label }) => (
           <span key={key} className="flex gap-1">
@@ -44,6 +108,7 @@ function SourceResultCard({ result }) {
           </span>
         ))}
       </div>
+      <SourceTimingRow result={result} />
     </div>
   );
 }
@@ -169,7 +234,11 @@ export default function IngestionPanel({ isBackendMode, onFeedRefresh }) {
     setError(null);
     try {
       const sourceId = selectedSource === "all" ? undefined : selectedSource;
-      const result = await runIngestion(sourceId);
+      const raw = await runIngestion(sourceId);
+      const result = {
+        ...raw,
+        sources: (raw.sources ?? []).map(normalizeIngestResultFromApi),
+      };
       setLastResult(result);
       const runs = await getIngestRuns(5);
       setRecentRuns(runs);

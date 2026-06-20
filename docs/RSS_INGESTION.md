@@ -319,7 +319,40 @@ Run again and confirm duplicates are skipped — `inserted` should be 0, `skippe
 
 ---
 
-## Ingestion Run Log
+## Ingestion Run Response (`SourceIngestResult`)
+
+The `POST /api/ingest/run` response contains a `sources` array. Each element is a `SourceIngestResult` with:
+
+**Counts (also persisted in `ingestion_runs` DB table):**
+
+| Field | Notes |
+|-------|-------|
+| `source_id` | |
+| `fetched` | Items returned by RSS adapter |
+| `inserted` | New articles added to DB |
+| `skipped_duplicate` | URL already in DB |
+| `skipped_filtered` | Blocked by URL/language filter (live response only — not in DB) |
+| `failed` | Per-item errors |
+
+**Timing fields (live response only — not persisted):**
+
+| Field | Notes |
+|-------|-------|
+| `fetch_ms` | RSS adapter fetch time |
+| `total_ms` | Full source run wall time |
+| `llm_attempts` | Total LLM calls (including failures) |
+| `llm_successes` | Calls resulting in `llm` or `llm+rules_guardrail` |
+| `llm_fallback_connect_error` | Ollama refused connection |
+| `llm_fallback_timeout_or_parse` | Timeout, HTTP error, or JSON parse failure |
+| `llm_fallback_low_confidence` | LLM responded but `confidence < 0.65` |
+| `llm_avg_ms` | Average LLM call latency across all attempts |
+| `llm_p95_ms` | p95 LLM call latency |
+
+The **Sources page** displays these timing fields immediately after clicking "הרץ ייבוא עכשיו" — no need to open logs or DevTools. Under each source result card a `ביצועים:` row shows: fetch time, total time, LLM success ratio, avg/p95 latency, and fallback counts. If LLM is disabled (`llm_attempts === 0`), the row shows `LLM לא הופעל` instead. Non-zero fallbacks are highlighted in amber.
+
+A detailed INFO log line is also emitted to the backend logger at the end of each source run.
+
+## Ingestion Run Log (persisted)
 
 Every ingestion attempt is persisted in the `ingestion_runs` SQLite table.
 
@@ -336,7 +369,7 @@ Every ingestion attempt is persisted in the `ingestion_runs` SQLite table.
 | `failed_count` | int | per-item errors |
 | `error_message` | string | first error if any |
 
-Readable via `GET /api/ingest/runs` (most recent first, default limit 50).
+Readable via `GET /api/ingest/runs` (most recent first, default limit 50). Note: timing fields are **not** in this table — they exist only in the live `POST /api/ingest/run` response.
 
 ---
 

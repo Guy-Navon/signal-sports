@@ -4,6 +4,9 @@ import {
   normalizeProfileFromApi,
   normalizeScoredArticleFromApi,
   normalizeCalibrationHeadlineFromApi,
+  normalizeIngestResultFromApi,
+  formatMs,
+  formatDuration,
 } from "./normalizers";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -201,6 +204,168 @@ describe("normalizeProfileFromApi", () => {
     expect(result.followedEntities).toEqual([]);
     expect(result.topics).toEqual([]);
     expect(result.language).toBe("he");
+  });
+});
+
+// ── Ingest result normalizer ──────────────────────────────────────────────────
+
+const RAW_INGEST_RESULT_LLM_ACTIVE = {
+  source_id: "walla_sport",
+  fetched: 30,
+  inserted: 10,
+  skipped_duplicate: 5,
+  skipped_filtered: 15,
+  failed: 0,
+  errors: [],
+  fetch_ms: 420.5,
+  total_ms: 104300.0,
+  llm_attempts: 10,
+  llm_successes: 9,
+  llm_fallback_connect_error: 0,
+  llm_fallback_timeout_or_parse: 1,
+  llm_fallback_low_confidence: 0,
+  llm_avg_ms: 2900.0,
+  llm_p95_ms: 5800.0,
+};
+
+const RAW_INGEST_RESULT_LLM_DISABLED = {
+  source_id: "israel_hayom_sport",
+  fetched: 100,
+  inserted: 21,
+  skipped_duplicate: 0,
+  skipped_filtered: 79,
+  failed: 0,
+  errors: [],
+  fetch_ms: 310.0,
+  total_ms: 1440.0,
+  llm_attempts: 0,
+  llm_successes: 0,
+  llm_fallback_connect_error: 0,
+  llm_fallback_timeout_or_parse: 0,
+  llm_fallback_low_confidence: 0,
+  llm_avg_ms: null,
+  llm_p95_ms: null,
+};
+
+describe("normalizeIngestResultFromApi", () => {
+  it("maps snake_case fields to camelCase", () => {
+    const r = normalizeIngestResultFromApi(RAW_INGEST_RESULT_LLM_ACTIVE);
+    expect(r.sourceId).toBe("walla_sport");
+    expect(r.skippedDuplicate).toBe(5);
+    expect(r.skippedFiltered).toBe(15);
+    expect(r.fetchMs).toBe(420.5);
+    expect(r.totalMs).toBe(104300.0);
+    expect(r.llmAttempts).toBe(10);
+    expect(r.llmSuccesses).toBe(9);
+    expect(r.llmFallbackConnectError).toBe(0);
+    expect(r.llmFallbackTimeoutOrParse).toBe(1);
+    expect(r.llmFallbackLowConfidence).toBe(0);
+    expect(r.llmAvgMs).toBe(2900.0);
+    expect(r.llmP95Ms).toBe(5800.0);
+  });
+
+  it("preserves direct-mapped fields", () => {
+    const r = normalizeIngestResultFromApi(RAW_INGEST_RESULT_LLM_ACTIVE);
+    expect(r.fetched).toBe(30);
+    expect(r.inserted).toBe(10);
+    expect(r.failed).toBe(0);
+    expect(r.errors).toEqual([]);
+  });
+
+  it("sets llmAttempts=0 when LLM is disabled — used by UI to show 'LLM לא הופעל'", () => {
+    const r = normalizeIngestResultFromApi(RAW_INGEST_RESULT_LLM_DISABLED);
+    expect(r.llmAttempts).toBe(0);
+    expect(r.llmAvgMs).toBeNull();
+    expect(r.llmP95Ms).toBeNull();
+  });
+
+  it("defaults all missing timing fields to 0 or null", () => {
+    const r = normalizeIngestResultFromApi({
+      source_id: "x", fetched: 0, inserted: 0,
+    });
+    expect(r.fetchMs).toBeNull();
+    expect(r.totalMs).toBeNull();
+    expect(r.llmAttempts).toBe(0);
+    expect(r.llmSuccesses).toBe(0);
+    expect(r.llmFallbackConnectError).toBe(0);
+    expect(r.llmFallbackTimeoutOrParse).toBe(0);
+    expect(r.llmFallbackLowConfidence).toBe(0);
+    expect(r.llmAvgMs).toBeNull();
+    expect(r.llmP95Ms).toBeNull();
+    expect(r.errors).toEqual([]);
+  });
+
+  it("sets llmFallbackConnectError from raw field when non-zero", () => {
+    const r = normalizeIngestResultFromApi({
+      ...RAW_INGEST_RESULT_LLM_ACTIVE,
+      llm_fallback_connect_error: 3,
+    });
+    expect(r.llmFallbackConnectError).toBe(3);
+  });
+});
+
+// ── formatMs ──────────────────────────────────────────────────────────────────
+
+describe("formatMs", () => {
+  it("returns '—' for null", () => {
+    expect(formatMs(null)).toBe("—");
+  });
+
+  it("returns '—' for undefined", () => {
+    expect(formatMs(undefined)).toBe("—");
+  });
+
+  it("formats values under 1000ms as integers with 'ms' suffix", () => {
+    expect(formatMs(0)).toBe("0ms");
+    expect(formatMs(420)).toBe("420ms");
+    expect(formatMs(999)).toBe("999ms");
+  });
+
+  it("rounds sub-ms values to integers", () => {
+    expect(formatMs(420.7)).toBe("421ms");
+    expect(formatMs(420.3)).toBe("420ms");
+  });
+
+  it("formats values >= 1000ms as decimal seconds", () => {
+    expect(formatMs(1000)).toBe("1.0s");
+    expect(formatMs(2900)).toBe("2.9s");
+    expect(formatMs(5800)).toBe("5.8s");
+    expect(formatMs(10000)).toBe("10.0s");
+  });
+
+  it("formats exactly 1000ms as '1.0s'", () => {
+    expect(formatMs(1000)).toBe("1.0s");
+  });
+});
+
+// ── formatDuration ────────────────────────────────────────────────────────────
+
+describe("formatDuration", () => {
+  it("returns '—' for null", () => {
+    expect(formatDuration(null)).toBe("—");
+  });
+
+  it("returns '—' for undefined", () => {
+    expect(formatDuration(undefined)).toBe("—");
+  });
+
+  it("formats values < 60 000ms as decimal seconds", () => {
+    expect(formatDuration(1440)).toBe("1.4s");
+    expect(formatDuration(12300)).toBe("12.3s");
+    expect(formatDuration(59999)).toBe("60.0s");
+  });
+
+  it("formats values >= 60 000ms as minutes:seconds", () => {
+    expect(formatDuration(60000)).toBe("1:00");
+    expect(formatDuration(104300)).toBe("1:44");
+    expect(formatDuration(125000)).toBe("2:05");
+    expect(formatDuration(3600000)).toBe("60:00");
+  });
+
+  it("zero-pads seconds below 10", () => {
+    expect(formatDuration(60000 + 5000)).toBe("1:05");
+    expect(formatDuration(60000 + 9000)).toBe("1:09");
+    expect(formatDuration(60000 + 10000)).toBe("1:10");
   });
 });
 

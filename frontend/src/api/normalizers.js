@@ -86,6 +86,58 @@ export function normalizeScoredArticleFromApi(sa) {
   };
 }
 
+// ── Ingestion result normalizer ───────────────────────────────────────────────
+
+export function normalizeIngestResultFromApi(r) {
+  return {
+    sourceId: r.source_id,
+    fetched: r.fetched ?? 0,
+    inserted: r.inserted ?? 0,
+    skippedDuplicate: r.skipped_duplicate ?? 0,
+    skippedFiltered: r.skipped_filtered ?? 0,
+    failed: r.failed ?? 0,
+    errors: r.errors ?? [],
+    // Timing fields (null when not measured — e.g., source not found or fetch error)
+    fetchMs: r.fetch_ms ?? null,
+    totalMs: r.total_ms ?? null,
+    llmAttempts: r.llm_attempts ?? 0,
+    llmSuccesses: r.llm_successes ?? 0,
+    llmFallbackConnectError: r.llm_fallback_connect_error ?? 0,
+    llmFallbackTimeoutOrParse: r.llm_fallback_timeout_or_parse ?? 0,
+    llmFallbackLowConfidence: r.llm_fallback_low_confidence ?? 0,
+    llmAvgMs: r.llm_avg_ms ?? null,
+    llmP95Ms: r.llm_p95_ms ?? null,
+  };
+}
+
+// ── Timing format helpers ─────────────────────────────────────────────────────
+
+/**
+ * Format a duration in ms as "420ms" (< 1000ms) or "2.9s" (>= 1000ms).
+ * Returns "—" for null/undefined.
+ */
+export function formatMs(ms) {
+  if (ms == null) return "—";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+/**
+ * Format a total run duration in ms.
+ * >= 60 000ms → "1:44" (minutes:seconds)
+ * < 60 000ms  → "12.3s"
+ * Returns "—" for null/undefined.
+ */
+export function formatDuration(ms) {
+  if (ms == null) return "—";
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.floor((ms % 60000) / 1000);
+  return `${mins}:${String(secs).padStart(2, "0")}`;
+}
+
+// ── Calibration headline normalizer ──────────────────────────────────────────
+
 export function normalizeCalibrationHeadlineFromApi(h) {
   return {
     id: h.id,

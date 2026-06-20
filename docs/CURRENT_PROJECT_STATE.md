@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-06-19 — reflects state after Hebrew MVP narrowing: subtitle-aware deterministic classifier, walla_sport + israel_hayom_sport active only, eurohoops/sportando disabled, translation freeze in frontend (branch: `feature/llm-first-hebrew-classification`).
+Last updated: 2026-06-20 — reflects state after Hebrew MVP QA fixes: ingestion timing instrumentation, league-sport compatibility guardrail, Israel Hayom URL category hints, title_win hardening. Branch: `main` (PR 11 + post-QA fixes merged).
 
 ---
 
@@ -38,11 +38,13 @@ RSS source
       deterministic classifier (title + subtitle) → sport, league, entities, event_type, importance, confidence
         — always runs; subtitle fills gaps when title is ambiguous or produces sport=unknown
         — subtitle never overrides an already-resolved sport value from the title
+      source URL category hint extracted (extract_source_sport_hint — Israel Hayom only)
       [Hebrew broad sources only, when CLASSIFICATION_PROVIDER != disabled]:
-        LLM classifier called with title + subtitle
+        LLM classifier called with title + subtitle [timing measured including failures]
           → JSON validation → confidence check (≥ 0.65)
-          → merge with 5 deterministic guardrails → classified_by=llm or llm+rules_guardrail
+          → merge with 7 deterministic guardrails → classified_by=llm or llm+rules_guardrail
           → on failure or low confidence: use deterministic result → classified_by=rules_fallback_*
+      normalize_league_sport_compatibility() — universal post-merge safety net (both paths)
   → SQLite insert (articles table)
   → relevance engine (per-user scoring: hidden / low_feed / feed / high_feed / push)
   → Feed/Debug UI (React/Vite, backend mode)
@@ -63,6 +65,7 @@ their native Hebrew title; translation is not used in the MVP product path.
 | Subtitle extraction | `backend/app/ingestion/subtitle.py` — cleans RSS `<description>` for deterministic + LLM context |
 | Deterministic classifier | Keyword matching + subtitle gap-filling, `backend/app/ingestion/classifier.py` |
 | LLM classification | Gemini + Ollama providers, `backend/app/classification/` |
+| Source URL hints | `backend/app/classification/source_hints.py` — Israel Hayom URL category → sport hint |
 | Relevance engine | Python: `backend/app/services/relevance_engine.py`; JS mirror: `src/engine/relevanceEngine.js` |
 | Translation | `backend/app/translation/`, provider configured by `.env` |
 
@@ -231,8 +234,11 @@ The deterministic classifier is keyword-matching only — no NLP, no LLM. It alw
 - Hapoel Tel Aviv disambiguation: resolved to basketball or football based on sport context; `ambiguous_club` tag when no context
 - Hebrew event types: negotiation before signing (prevents "על סף חתימה" from misfiring as signing)
 - Generic news with no entity → `importance=low` (prevents filler from polluting feed)
-- **PR 11 fix:** `"אלופת"` and `"אלופות"` added to `_WINNER_SUFFIX_KW`. These use regular pe (פ U+05E4) unlike "אלוף" (final pe ף U+05E3) — the Python `in` operator returned `False` for `"אלוף" in "אלופת"`. This fixes "ניו יורק אלופת ה-NBA" → `event_type=title_win`.
+- **PR 11 fix:** `"אלופת"` and `"אלופות"` added to unambiguous championship keywords. These use regular pe (פ U+05E4) unlike "אלוף" (final pe ף U+05E3) — the Python `in` operator returned `False` for `"אלוף" in "אלופת"`. This fixes "ניו יורק אלופת ה-NBA" → `event_type=title_win`.
 - **PR 11 fix:** `"mvp"` added to `_BASKETBALL_KW`. "MVP" is unambiguously basketball in Israeli sports context.
+- **Post-QA fix:** `title_win` hardened — Hebrew win verbs "זכה/זכתה/זכו/זוכה" no longer trigger `title_win` standalone. Now require: unambiguous championship word (`אלוף`, `אלופת`, `הניפה/הניף`, `champion`, etc.) OR compound `win-verb + championship-context` (`זכה + בגביע/בתואר/באליפות`). Fixes false positives: "זכה לביקורת", "זכו ברגע המביך", "צפו ברגע".
+- **Post-QA fix:** `_GRAND_SLAM_KW` expanded to include specific tournament names (roland garros, רולאן גארוס, wimbledon, וימבלדון, us open, australian open). "אלקאראז זוכה ברולאן גארוס" now correctly fires `grand_slam_winner`.
+- **Post-QA fix:** `source_sport_hint` parameter added — pre-computed URL category hint flows through `classify()` → `_detect_sport()` as the first check before all keyword logic.
 
 **Confidence scoring:** 0.40 base + 0.15 (sport) + 0.05 (basketball-only source) + 0.15 (league) + 0.15 (entity) + 0.10 (non-news event type); capped at 0.95.
 
@@ -261,14 +267,18 @@ LLM classification is an opt-in overlay for Hebrew broad sources only. It does n
 3. LLM called with Hebrew title + optional subtitle (as `Headline: …\nSubtitle: …`) + 6-shot prompt
 4. JSON response validated against strict enum sets (`ALLOWED_SPORTS`, `ALLOWED_LEAGUES`, `ALLOWED_EVENT_TYPES`, `ALLOWED_IMPORTANCES`)
 5. If `confidence < 0.65` → `classified_by = "rules_fallback_low_confidence"`, rules result kept
-6. If confidence ≥ 0.65 → merge with 5 deterministic guardrails:
+6. If confidence ≥ 0.65 → merge with 7 deterministic guardrails:
    - Guardrail 1: football Maccabi clubs detected → sport = football, LLM overruled
    - Guardrail 2: LLM sport=unknown → use rules sport
    - Guardrail 3: LLM league=null → use rules league
    - Guardrail 4: rules found specific event_type but LLM says "news" → use rules
+   - Guardrail 4b: LLM title_win with no championship evidence in title → reject; use rules event_type
    - Guardrail 5: importance never downgraded (rules high → LLM low: keep high)
+   - Guardrail 6: league-sport incompatibility (EuroLeague + football → basketball; etc.) — fires before entity pruning
+   - Guardrail 7: source URL category hint overrides LLM sport (Israel Hayom only)
 7. Entities: rules entities pruned for sport compatibility (basketball club entities removed when final sport ≠ basketball); LLM entities normalized through alias map and appended
-8. Defense-in-depth: relevance engine entity scope matching checks `topic.sport` vs `article.sport` — a football article cannot match a basketball entity topic even if entities contain a stale basketball club name
+8. Defense-in-depth (all paths): `normalize_league_sport_compatibility()` called for both rules-only and LLM-merge paths — no Article can be stored with an impossible sport/league combination
+9. Defense-in-depth (relevance engine): entity scope matching checks `topic.sport` vs `article.sport` — a football article cannot match a basketball entity topic even if entities contain a stale basketball club name
 
 **Per-run circuit breaker:** The first `httpx.ConnectError` (Ollama not running) opens a circuit for the rest of that ingestion run. Remaining articles use rules immediately (~2s total overhead, not 30 × 2s). Timeouts do not open the circuit. The circuit resets on the next `POST /api/ingest/run`.
 
@@ -329,7 +339,7 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 - **No push notifications.** `push` is a decision level in the engine; no device notification delivery.
 - **No body translation or summaries.** Only titles are translated. Article bodies are not ingested.
 - **Limited source coverage.** MVP active sources: Walla Sport, Israel Hayom Sport. Eurohoops and Sportando are disabled (post-MVP). Sport5 and ONE have no clean public RSS; Ynet has no sport-specific RSS. If a third Hebrew source is added post-MVP, ONE is the preferred candidate.
-- **LLM classification not yet validated at production scale.** Two providers are implemented: `gemini` (fast, cloud, but only 20 requests/day free tier — exhausted in one ingestion run) and `ollama` (local, uncapped, needs Ollama installed and `qwen2.5:3b-instruct` pulled). Default is `disabled`. Hebrew articles use deterministic classification until a provider is configured.
+- **LLM classification not yet benchmarked at production scale.** Two providers are implemented: `gemini` (fast, cloud, but only 20 requests/day free tier — exhausted in one ingestion run) and `ollama` (local, uncapped, needs Ollama installed and `qwen2.5:3b-instruct` pulled). Default is `disabled`. Hebrew articles use deterministic classification until a provider is configured. Timing is now instrumented — `fetch_ms`, `llm_avg_ms`, `llm_p95_ms`, and fallback counts appear in `POST /api/ingest/run` responses.
 - **Entity normalization map is conservative.** Only explicitly listed canonical aliases are mapped. New players, coaches, clubs not yet in `_ENTITY_ALIASES` are silently discarded from `article.entities` even when LLM identifies them correctly. Expand `entity_normalizer.py` to cover new entities.
 - **Translation not active in MVP.** `TRANSLATION_PROVIDER=disabled` is correct for Hebrew-only MVP. Backend module, DB fields, and API routes are preserved for post-MVP re-enablement. Translation quality validation is a post-MVP concern.
 
@@ -339,7 +349,7 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 
 Priority order:
 
-1. **LLM classification benchmark** — Install Ollama, pull `qwen2.5:3b-instruct`, set `CLASSIFICATION_PROVIDER=ollama` + `CLASSIFICATION_MODEL=qwen2.5:3b-instruct` + `CLASSIFICATION_TIMEOUT_SECONDS=30`, re-ingest Walla + Israel Hayom, compare `sport=unknown` count and Guy's feed visibility before/after. Run `POST /api/classify/backfill?source_id=walla_sport` on existing articles. If quality is poor, try `qwen3:4b`.
+1. **LLM classification benchmark** — Install Ollama, pull `qwen2.5:3b-instruct`, set `CLASSIFICATION_PROVIDER=ollama` + `CLASSIFICATION_MODEL=qwen2.5:3b-instruct` + `CLASSIFICATION_TIMEOUT_SECONDS=30`, re-ingest Walla + Israel Hayom, compare `sport=unknown` count and Guy's feed visibility before/after. Check `fetch_ms`, `llm_avg_ms`, and `llm_fallback_*` counts in the ingest response for performance baseline. Run `POST /api/classify/backfill?source_id=walla_sport` on existing articles. If quality is poor, try `qwen3:4b`.
 2. **Expand entity normalization map** — Add recognized Israeli basketball players, coaches, EuroLeague club names to `backend/app/classification/entity_normalizer.py` after LLM benchmark reveals which entities are being identified but discarded.
 3. **Scheduled ingestion via APScheduler** — Poll `POST /api/ingest/run` every 15–30 minutes. Add to `app/main.py` lifespan.
 4. **Feed clustering / fuzzy dedup** — Use `difflib.SequenceMatcher` on titles across sources; populate `cluster_id`. Show one card per story.
@@ -403,7 +413,7 @@ No `.env.local` needed. Uses mock data and frontend engine.
 ```bash
 cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
-# 636 tests — all should pass (no test requires Ollama running or a real API key)
+# 683 tests — all should pass (no test requires Ollama running or a real API key)
 # Note: test_reset_returns_403_when_disabled requires ALLOW_DEV_RESET unset or =false in .env
 ```
 
@@ -495,6 +505,11 @@ Copy-paste this into a new conversation:
 
 הקשר: ניסינו Gemini בתחילה אבל גירסת ה-preview (`gemini-2.5-flash-lite`) מוגבלת ל-20 בקשות ביום בחינמית — לא מספיק לאפילו ריצת ייבוא אחת של 28 כתבות. עברנו ל-Ollama+Qwen שלא מוגבל.
 
-תיעוד: `docs/LLM_CLASSIFICATION.md` מכיל את כל הפרטים הטכניים של מודול הסיווג.
+אחרי ריצת ה-benchmark, בדוק גם בתגובת ה-API (`SourceIngestResult`):
+- `fetch_ms` — זמן שליפת ה-RSS
+- `llm_avg_ms`, `llm_p95_ms` — זמן ממוצע ו-p95 לקריאת LLM
+- `llm_successes`, `llm_fallback_*` — כמה הצליחו מול כמה נפלו
+
+תיעוד: `docs/LLM_CLASSIFICATION.md` מכיל את כל הפרטים הטכניים של מודול הסיווג ו-7 ה-guardrails (כולל 4b, 6, 7 שנוספו ב-QA fixes).
 
 ---

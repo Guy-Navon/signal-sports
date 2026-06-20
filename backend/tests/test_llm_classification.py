@@ -423,6 +423,205 @@ class TestMergeWithGuardrails:
         # Tags are recomputed from the pruned entity list
         assert "maccabi" not in merged.tags or merged.tags.count("maccabi") == 0
 
+    # ── Guardrail 4b: LLM title_win without championship evidence ─────────────
+
+    def test_guardrail_4b_title_win_no_evidence_rejected(self):
+        """LLM title_win for a fluff article with no championship keyword → fallback to rules."""
+        rules = make_rules_result(event_type="news")
+        llm = make_llm_result(sport="football", event_type="title_win", importance="very_high",
+                               confidence=0.85)
+        title = '"התפרקו, אני שחקן נבחרת": צפו ברגע המביך במחנה של ספרד'
+        merged, by = merge_with_guardrails(llm, rules, title.lower())
+        assert merged.event_type != "title_win"
+        assert by == "llm+rules_guardrail"
+
+    def test_guardrail_4b_title_win_with_alufat_kept(self):
+        """LLM title_win where title contains 'אלופת' → championship evidence present → kept."""
+        rules = make_rules_result(event_type="news")
+        llm = make_llm_result(sport="basketball", league="NBA", event_type="title_win",
+                               importance="very_high", confidence=0.95)
+        title = "ניו יורק אלופת ה-NBA!"
+        merged, _ = merge_with_guardrails(llm, rules, title.lower())
+        assert merged.event_type == "title_win"
+
+    def test_guardrail_4b_title_win_with_gabia_kept(self):
+        """LLM title_win where title contains 'גביע' → championship evidence present → kept."""
+        rules = make_rules_result(event_type="news")
+        llm = make_llm_result(sport="basketball", event_type="title_win",
+                               importance="very_high", confidence=0.90)
+        title = "מכבי תל אביב זכה בגביע"
+        merged, _ = merge_with_guardrails(llm, rules, title.lower())
+        assert merged.event_type == "title_win"
+
+    def test_guardrail_4b_champion_in_title_kept(self):
+        """LLM title_win with English 'champion' → evidence present → kept."""
+        rules = make_rules_result(event_type="news")
+        llm = make_llm_result(sport="basketball", league="NBA", event_type="title_win",
+                               confidence=0.90)
+        title = "Boston Celtics are NBA champions"
+        merged, _ = merge_with_guardrails(llm, rules, title.lower())
+        assert merged.event_type == "title_win"
+
+    # ── Guardrail 6: League-sport compatibility ───────────────────────────────
+
+    def test_guardrail_6_spanish_acb_forces_basketball(self):
+        """LLM returns sport=football + league=Spanish ACB → impossible → sport corrected."""
+        rules = make_rules_result(sport="basketball", league="Spanish ACB")
+        llm = make_llm_result(sport="football", league="Spanish ACB", confidence=0.80)
+        merged, by = merge_with_guardrails(llm, rules, "...")
+        assert merged.sport == "basketball"
+        assert merged.league == "Spanish ACB"
+        assert by == "llm+rules_guardrail"
+
+    def test_guardrail_6_euroleague_forces_basketball(self):
+        """LLM returns sport=football + league=EuroLeague → sport corrected to basketball."""
+        rules = make_rules_result(sport="basketball", league="EuroLeague")
+        llm = make_llm_result(sport="football", league="EuroLeague", confidence=0.78)
+        merged, by = merge_with_guardrails(llm, rules, "יורוליג")
+        assert merged.sport == "basketball"
+        assert by == "llm+rules_guardrail"
+
+    def test_guardrail_6_nba_forces_basketball(self):
+        """LLM returns sport=football + league=NBA → sport corrected to basketball."""
+        rules = make_rules_result(sport="basketball", league="NBA")
+        llm = make_llm_result(sport="football", league="NBA", confidence=0.75)
+        merged, by = merge_with_guardrails(llm, rules, "...")
+        assert merged.sport == "basketball"
+
+    def test_guardrail_6_israeli_premier_league_forces_football(self):
+        """LLM returns sport=basketball + league=Israeli Premier League → sport corrected."""
+        rules = make_rules_result(sport="football", league="Israeli Premier League")
+        llm = make_llm_result(sport="basketball", league="Israeli Premier League", confidence=0.80)
+        merged, by = merge_with_guardrails(llm, rules, "...")
+        assert merged.sport == "football"
+        assert by == "llm+rules_guardrail"
+
+    def test_guardrail_6_null_league_no_sport_override(self):
+        """Null league does not force any sport change."""
+        rules = make_rules_result(sport="unknown", league=None)
+        llm = make_llm_result(sport="football", league=None, confidence=0.80)
+        merged, _ = merge_with_guardrails(llm, rules, "...")
+        assert merged.sport == "football"
+
+    def test_guardrail_6_entity_pruning_runs_after_sport_correction(self):
+        """After Guardrail 6 corrects sport to basketball, basketball entities are kept."""
+        rules = make_rules_result(
+            sport="basketball", league="EuroLeague",
+            entities=["Maccabi Tel Aviv Basketball"],
+        )
+        llm = make_llm_result(sport="football", league="EuroLeague", confidence=0.78,
+                               entities=["Real Madrid"])
+        merged, _ = merge_with_guardrails(llm, rules, "יורוליג")
+        assert merged.sport == "basketball"
+        assert "Maccabi Tel Aviv Basketball" in merged.entities
+
+    # ── Guardrail 7: Source URL category hint ─────────────────────────────────
+
+    def test_guardrail_7_basketball_hint_overrides_llm_football(self):
+        """source_sport_hint=basketball overrides LLM sport=football."""
+        rules = make_rules_result(sport="unknown")
+        llm = make_llm_result(sport="football", confidence=0.80)
+        merged, by = merge_with_guardrails(llm, rules, "...",
+                                            source_sport_hint="basketball")
+        assert merged.sport == "basketball"
+        assert by == "llm+rules_guardrail"
+
+    def test_guardrail_7_football_hint_overrides_llm_basketball(self):
+        """source_sport_hint=football overrides LLM sport=basketball."""
+        rules = make_rules_result(sport="unknown")
+        llm = make_llm_result(sport="basketball", league="Israeli Basketball League",
+                               confidence=0.80)
+        merged, by = merge_with_guardrails(llm, rules, "...",
+                                            source_sport_hint="football")
+        assert merged.sport == "football"
+        assert by == "llm+rules_guardrail"
+
+    def test_guardrail_7_none_hint_does_not_override(self):
+        """source_sport_hint=None leaves LLM sport unchanged."""
+        rules = make_rules_result(sport="unknown")
+        llm = make_llm_result(sport="football", confidence=0.85)
+        merged, _ = merge_with_guardrails(llm, rules, "...", source_sport_hint=None)
+        assert merged.sport == "football"
+
+    def test_guardrail_7_matching_hint_does_not_set_guardrail_fired(self):
+        """When hint agrees with LLM sport, guardrail is not fired unnecessarily."""
+        rules = make_rules_result(sport="unknown")
+        llm = make_llm_result(sport="basketball", confidence=0.85)
+        merged, by = merge_with_guardrails(llm, rules, "...",
+                                            source_sport_hint="basketball")
+        assert merged.sport == "basketball"
+        assert by == "llm"  # no guardrail fired
+
+
+# ── normalize_league_sport_compatibility() — rules-only path ──────────────────
+
+class TestNormalizeLeagueSportCompat:
+    """normalize_league_sport_compatibility() catches impossible combos on the rules-only path."""
+
+    from app.classification.merge import normalize_league_sport_compatibility
+
+    def _result(self, sport, league="EuroLeague", **kw):
+        return ClassificationResult(
+            sport=sport, league=league,
+            entities=kw.get("entities", []),
+            event_type=kw.get("event_type", "news"),
+            importance=kw.get("importance", "medium"),
+            confidence=kw.get("confidence", 0.60),
+            tags=kw.get("tags", []),
+        )
+
+    def test_football_plus_euroleague_corrected(self):
+        from app.classification.merge import normalize_league_sport_compatibility
+        r = normalize_league_sport_compatibility(self._result("football", "EuroLeague"))
+        assert r.sport == "basketball"
+        assert r.league == "EuroLeague"
+
+    def test_football_plus_nba_corrected(self):
+        from app.classification.merge import normalize_league_sport_compatibility
+        r = normalize_league_sport_compatibility(self._result("football", "NBA"))
+        assert r.sport == "basketball"
+
+    def test_football_plus_spanish_acb_corrected(self):
+        from app.classification.merge import normalize_league_sport_compatibility
+        r = normalize_league_sport_compatibility(self._result("football", "Spanish ACB"))
+        assert r.sport == "basketball"
+
+    def test_basketball_plus_israeli_premier_corrected(self):
+        from app.classification.merge import normalize_league_sport_compatibility
+        r = normalize_league_sport_compatibility(
+            self._result("basketball", "Israeli Premier League")
+        )
+        assert r.sport == "football"
+
+    def test_null_league_no_override(self):
+        from app.classification.merge import normalize_league_sport_compatibility
+        r = normalize_league_sport_compatibility(self._result("football", league=None))
+        assert r.sport == "football"
+
+    def test_valid_combination_unchanged(self):
+        from app.classification.merge import normalize_league_sport_compatibility
+        r = normalize_league_sport_compatibility(self._result("basketball", "EuroLeague"))
+        assert r.sport == "basketball"
+        assert r.league == "EuroLeague"
+
+    def test_all_basketball_leagues_force_sport(self):
+        from app.classification.merge import normalize_league_sport_compatibility, _BASKETBALL_LEAGUES
+        for league in _BASKETBALL_LEAGUES:
+            r = normalize_league_sport_compatibility(self._result("football", league))
+            assert r.sport == "basketball", f"Expected basketball for league {league!r}"
+
+    def test_returns_new_instance_on_correction(self):
+        from app.classification.merge import normalize_league_sport_compatibility
+        original = self._result("football", "EuroLeague")
+        corrected = normalize_league_sport_compatibility(original)
+        assert corrected is not original
+        assert original.sport == "football"  # original unchanged
+
+    def test_returns_same_instance_when_no_correction(self):
+        from app.classification.merge import normalize_league_sport_compatibility
+        r = self._result("basketball", "EuroLeague")
+        assert normalize_league_sport_compatibility(r) is r
+
 
 # ── Backfill endpoint ─────────────────────────────────────────────────────────
 

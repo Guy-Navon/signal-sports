@@ -209,7 +209,10 @@ _TENNIS_KW = (
 )
 
 
-def _detect_sport(text: str, source_id: str) -> str:
+def _detect_sport(text: str, source_id: str, source_sport_hint: str | None = None) -> str:
+    # Source URL category hint (e.g. Israel Hayom /sport/israeli-basketball/) — highest priority.
+    if source_sport_hint:
+        return source_sport_hint
     if source_id in _BASKETBALL_ONLY_SOURCES:
         return "basketball"
     if _has(text, *_TENNIS_KW):
@@ -402,7 +405,14 @@ def _detect_entities(text: str, source_id: str = "") -> list[str]:
 
 # ── Event type detection ──────────────────────────────────────────────────────
 
-_GRAND_SLAM_KW = ("grand slam", "גראנד סלאם")
+_GRAND_SLAM_KW = (
+    "grand slam", "גראנד סלאם",
+    # Specific Grand Slam names: a win at any of these is grand_slam_winner
+    "roland garros", "רולאן גארוס", "french open",
+    "wimbledon", "וימבלדון",
+    "us open",
+    "australian open", "אליפות אוסטרליה",
+)
 _GRAND_SLAM_WIN_KW = ("winner", "wins", "won", "champion", "זוכה", "זכה", "זכתה")
 
 _SIGNING_KW = (
@@ -446,11 +456,25 @@ _TRADE_KW = (
 _TRADE_WORD_KW = ("trade",)
 
 _FINALS_KW = ("גמר", "finals", "championship", "אליפות")
-_WINNER_SUFFIX_KW = (
+
+# title_win detection — split into two sets to avoid false positives.
+# Unambiguous championship words: any of these alone is sufficient for title_win.
+_TITLE_WIN_UNAMBIGUOUS_KW = (
     "אלוף", "אלופה",
     "אלופת",   # construct state feminine: "אלופת ה-NBA" — ף (U+05E3) ≠ פ (U+05E4)
     "אלופות",  # plural feminine: "אלופות הליגה"
-    "champion", "champions", "title", "clinches", "זוכה", "זכה", "זכתה", "זכו",
+    "הניפה", "הניף",  # lifted/raised a trophy
+    "champion", "champions", "title", "trophy", "clinches", "clinched",
+)
+# Hebrew "won" verbs — too broad alone ("זכה לביקורת", "זכו ברגע").
+# Only trigger title_win when paired with an explicit championship context word.
+_WIN_VERB_HE = ("זוכה", "זכה", "זכתה", "זכו")
+# Championship context required when only win-verbs are present.
+# Intentionally excludes "גמר" — a final ≠ a title win.
+_WIN_CHAMPIONSHIP_CTX_KW = (
+    "בגביע", "הגביע", "גביע",
+    "בתואר", "תואר",
+    "באליפות",
 )
 
 _PLAYOFF_KW = ("פלייאוף", "playoffs", "playoff")
@@ -479,9 +503,11 @@ def _detect_event_type(text: str, sport: str) -> str:
         return "grand_slam_winner"
 
     # Finals / championship result
-    if _has(text, *_FINALS_KW) or _has(text, *_WINNER_SUFFIX_KW):
-        if _has(text, *_FINALS_KW):
-            return "finals_result"
+    if _has(text, *_FINALS_KW):
+        return "finals_result"
+    if _has(text, *_TITLE_WIN_UNAMBIGUOUS_KW):
+        return "title_win"
+    if _has(text, *_WIN_VERB_HE) and _has(text, *_WIN_CHAMPIONSHIP_CTX_KW):
         return "title_win"
 
     # Negotiation — checked BEFORE signing because "על סף חתימה" (on the verge of
@@ -613,20 +639,24 @@ def classify(
     language: str = "en",
     url: str = "",
     subtitle: str | None = None,
+    source_sport_hint: str | None = None,
 ) -> ClassificationResult:
     """Classify an article title using deterministic keyword rules.
 
     Args:
-        title:     Article title in Hebrew or English.
-        source_id: Internal source ID for source-specific defaults.
-        language:  "he" or "en".
-        url:       Article URL — used for URL-path-based league inference
-                   (e.g. detecting EuroCup vs EuroLeague from /eurocup/ path).
-        subtitle:  Optional subtitle/description text. Title is always the primary
-                   signal. Subtitle may fill sport=unknown, add missing entities,
-                   improve league detection, or refine event_type="news" when the
-                   title context is insufficient. Subtitle never overrides an
-                   already-resolved sport value from the title.
+        title:             Article title in Hebrew or English.
+        source_id:         Internal source ID for source-specific defaults.
+        language:          "he" or "en".
+        url:               Article URL — used for URL-path-based league inference
+                           (e.g. detecting EuroCup vs EuroLeague from /eurocup/ path).
+        subtitle:          Optional subtitle/description text. Title is always the primary
+                           signal. Subtitle may fill sport=unknown, add missing entities,
+                           improve league detection, or refine event_type="news" when the
+                           title context is insufficient. Subtitle never overrides an
+                           already-resolved sport value from the title.
+        source_sport_hint: Pre-computed sport hint from the article URL for sources with
+                           reliable category URL schemes (e.g. Israel Hayom). When set,
+                           overrides keyword-based sport detection in the deterministic path.
 
     Returns:
         ClassificationResult with all fields populated.
@@ -634,7 +664,7 @@ def classify(
     text = title.lower()
     sub_text = subtitle.lower() if subtitle else ""
 
-    sport = _detect_sport(text, source_id)
+    sport = _detect_sport(text, source_id, source_sport_hint=source_sport_hint)
     entities = _detect_entities(text, source_id)
 
     # Detect ambiguous Israeli club titles before sport inference modifies entities.

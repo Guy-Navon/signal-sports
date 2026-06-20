@@ -64,6 +64,10 @@ Interactive docs: `http://localhost:8000/docs`
 | POST | `/api/ingest/run` | Run ingestion (all sources or `?source_id=X` for one) |
 | GET | `/api/ingest/runs` | Recent ingestion run records |
 | GET | `/api/ingest/quality` | Quality summary for all ingested RSS articles (sport/league/event breakdowns, questionable list) |
+| GET | `/api/classify/status` | Current LLM classification provider state |
+| POST | `/api/classify/backfill` | Reclassify existing articles with LLM (`source_id`, `limit`, `dry_run`, `force`) |
+| GET | `/api/translations/status` | Translation provider state (preserved, disabled by default) |
+| POST | `/api/translations/backfill` | Translate untranslated article titles (disabled by default) |
 
 ### Feedback actions
 
@@ -130,15 +134,16 @@ To reset to a clean state, stop the server and delete `data/signal_sports.db`.
 
 See `docs/SQLITE_PERSISTENCE.md` for full details.
 
-## Ingestion (PR 7 + PR 7.1 + PR 8)
+## Ingestion (PR 7 + PR 7.1 + PR 8 + PR 10 + PR 11 + post-QA fixes)
 
-Real RSS ingestion is available for two English basketball sources and one Hebrew general sports source.
+Two Hebrew sources are active by default. English sources are disabled (post-MVP).
 
-| source_id     | display_name | language |
-|---------------|-------------|----------|
-| `eurohoops`   | Eurohoops   | en       |
-| `sportando`   | Sportando   | en       |
-| `walla_sport` | וואלה ספורט | he       |
+| source_id           | display_name       | language | status    |
+|---------------------|--------------------|----------|-----------|
+| `walla_sport`       | וואלה ספורט        | he       | active    |
+| `israel_hayom_sport`| ישראל היום ספורט   | he       | active    |
+| `eurohoops`         | Eurohoops          | en       | disabled  |
+| `sportando`         | Sportando          | en       | disabled  |
 
 ```bash
 # Trigger ingestion via the API:
@@ -149,29 +154,33 @@ curl -X POST "http://127.0.0.1:8000/api/ingest/run?source_id=walla_sport"
 curl http://127.0.0.1:8000/api/ingest/quality
 ```
 
-Articles are classified with a deterministic keyword classifier and deduplicated by URL.
-New articles appear in `/api/articles` and flow through the same relevance engine as seed articles.
+The `POST /api/ingest/run` response includes per-source timing fields: `fetch_ms`, `total_ms`,
+`llm_avg_ms`, `llm_p95_ms`, `llm_attempts`, `llm_successes`, `llm_fallback_connect_error`,
+`llm_fallback_timeout_or_parse`, `llm_fallback_low_confidence`.
 
-**Quality guardrails (PR 7.1):** Eurohoops serves content in 10+ languages via URL paths
-(`/tr/`, `/es/`, `/el/`, etc.); non-English paths are blocked. The classifier correctly
-distinguishes EuroCup from EuroLeague, infers Israeli Basketball League from Maccabi entity +
-context keywords, and downgrades generic news (no tracked entity, no event keyword) to
-`importance = "low"`.
+**Classification pipeline:**
 
-**Hebrew source (PR 8):** Walla Sport (`walla_sport`) adds Hebrew RSS. The classifier was
-extended with comprehensive Hebrew keywords for sport detection, entity detection (Maccabi
-Tel Aviv Basketball, Deni Avdija), league detection (Israeli Basketball League, EuroLeague,
-NBA), and event type detection (signing, negotiation, injury). Football Maccabi disambiguation
-prevents Maccabi Haifa (football) articles from being classified as basketball.
+1. **Deterministic keyword classifier** — always runs for all sources. Detects sport, league, entities, event type from title + subtitle (RSS `<description>` HTML-stripped, truncated to 500 chars).
+2. **Source URL category hints** (`source_hints.py`) — Israel Hayom URLs like `/sport/israeli-basketball/` are pre-classified as basketball before the deterministic step even runs.
+3. **LLM classification** (Hebrew broad sources only, when `CLASSIFICATION_PROVIDER != disabled`) — Gemini or Ollama provider adds entity-to-league inference and proper noun resolution. 7 guardrails merge LLM with deterministic result.
+4. **`normalize_league_sport_compatibility()`** — universal safety net called for all paths; no article can be stored with an impossible sport/league combination (e.g., `sport=football, league=EuroLeague`).
 
-See `docs/RSS_INGESTION.md`, `docs/RSS_QUALITY_GUARDRAILS.md`, and `docs/HEBREW_RSS_SOURCE.md`
-for full details.
+**Quality guardrails:** Language + URL filtering; EuroCup vs EuroLeague disambiguation; Israeli Basketball League context inference; generic news importance downgrade; title_win hardening (loose Hebrew win verbs require championship context); LLM title_win evidence check; league-sport compatibility check.
+
+See `docs/RSS_INGESTION.md`, `docs/RSS_QUALITY_GUARDRAILS.md`, `docs/HEBREW_RSS_SOURCE.md`, and `docs/LLM_CLASSIFICATION.md` for full details.
+
+### Classification endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/classify/status` | Current provider, model, ready state |
+| POST | `/api/classify/backfill` | Reclassify existing articles (`source_id`, `limit`, `dry_run`, `force`) |
 
 ## Current limitations
 
 - **No scheduler.** Ingestion is triggered manually via `POST /api/ingest/run`.
-- **Classifier is keyword-only.** No LLM, no NLP. Entity detection is limited to Maccabi Tel Aviv Basketball and Deni Avdija.
-- **No translation.** `translated_title` is always `None` for RSS articles. Hebrew article titles are stored as-is.
+- **LLM classification not benchmarked at scale.** The deterministic classifier runs by default (`CLASSIFICATION_PROVIDER=disabled`). LLM is opt-in; quality must be validated with Ollama + Qwen before relying on it. Timing fields are now instrumented in the `POST /api/ingest/run` response.
+- **No translation.** `translated_title` is always `None` for Hebrew RSS articles. The translation module is intact but disabled by default (`TRANSLATION_PROVIDER=disabled`). Post-MVP.
 - **No fuzzy dedup.** Duplicate headlines from different sources are not merged. URL-based dedup only.
 - **Feedback is stored but not applied.** `POST /api/feedback` records events in SQLite; they do not yet mutate profiles.
 - **No authentication.** All profiles are publicly accessible by user_id.
@@ -181,8 +190,9 @@ for full details.
 
 ## Next steps
 
-- Scheduled ingestion (APScheduler or cron endpoint)
-- Hebrew title translation (`translated_title` via translation API)
-- Fuzzy title dedup / clustering
-- Feedback → profile mutation (`never_show` → hidden event rule)
-- Additional Hebrew sources (Sport5, ONE via category page adapters)
+1. LLM classification benchmark — Ollama + `qwen2.5:3b-instruct`; check `llm_avg_ms`, `llm_p95_ms`, and `sport=unknown` count
+2. Expand entity normalization map (`entity_normalizer.py`) based on benchmark findings
+3. Scheduled ingestion (APScheduler or cron endpoint)
+4. Fuzzy title dedup / clustering
+5. Feedback → profile mutation (`never_show` → hidden event rule)
+6. Additional Hebrew sources (ONE via category page adapter — preferred; no public RSS)

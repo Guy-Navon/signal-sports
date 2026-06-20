@@ -1,0 +1,47 @@
+"""Tests for source-specific URL sport hint extraction (source_hints.py)."""
+
+import pytest
+from app.classification.source_hints import extract_source_sport_hint
+
+IH = "israel_hayom_sport"
+_BASE = "https://www.israelhayom.co.il"
+
+
+class TestExtractSourceSportHint:
+    """extract_source_sport_hint() returns sport or None based on URL category path."""
+
+    def test_israeli_basketball_path_returns_basketball(self):
+        url = f"{_BASE}/sport/israeli-basketball/article/20752364"
+        assert extract_source_sport_hint(IH, url) == "basketball"
+
+    def test_world_basketball_path_returns_basketball(self):
+        url = f"{_BASE}/sport/world-basketball/article/20751915"
+        assert extract_source_sport_hint(IH, url) == "basketball"
+
+    def test_world_soccer_path_returns_football(self):
+        url = f"{_BASE}/sport/world-soccer/article/20752578"
+        assert extract_source_sport_hint(IH, url) == "football"
+
+    def test_other_sports_path_returns_none(self):
+        url = f"{_BASE}/sport/other-sports/article/20750001"
+        assert extract_source_sport_hint(IH, url) is None
+
+    def test_opinions_sport_path_returns_none(self):
+        url = f"{_BASE}/sport/opinions-sport/article/20750002"
+        assert extract_source_sport_hint(IH, url) is None
+
+    def test_url_matching_is_case_insensitive(self):
+        url = f"{_BASE}/sport/Israeli-Basketball/article/123"
+        assert extract_source_sport_hint(IH, url) == "basketball"
+
+    def test_non_israel_hayom_source_always_returns_none(self):
+        url = f"{_BASE}/sport/israeli-basketball/article/123"
+        assert extract_source_sport_hint("walla_sport", url) is None
+
+    def test_eurohoops_source_returns_none(self):
+        url = "https://www.eurohoops.net/sport/basketball/article/1"
+        assert extract_source_sport_hint("eurohoops", url) is None
+
+    def test_unknown_source_returns_none(self):
+        url = f"{_BASE}/sport/world-basketball/article/999"
+        assert extract_source_sport_hint("unknown_source", url) is None

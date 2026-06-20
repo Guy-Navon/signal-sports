@@ -12,13 +12,16 @@ Design:
 """
 
 import logging
+import math
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.classification.merge import merge_with_guardrails
+from app.classification.merge import merge_with_guardrails, normalize_league_sport_compatibility
+from app.classification.source_hints import extract_source_sport_hint
 from app.classification.service import get_llm_provider
 from app.classification.validation import LLM_MIN_CONFIDENCE
 from app.ingestion.adapters.base import RawSourceItem
@@ -66,9 +69,11 @@ def _normalise(
     item: RawSourceItem,
     cfg: RSSSourceConfig,
     llm_available: bool = True,
-) -> Article:
+) -> tuple[Article, Optional[float]]:
     """Map a raw RSS item to an Article using language detection, translation, and classification.
 
+    Returns (article, llm_ms) where llm_ms is the LLM call duration in milliseconds if an LLM
+    attempt was made (including failed attempts), or None if LLM was not invoked.
     llm_available=False skips the LLM path for this article (used when the
     per-run circuit breaker has fired due to an Ollama connection error).
     """
@@ -92,8 +97,12 @@ def _normalise(
     # Subtitle (item.summary) is passed as additional gap-filling context; title
     # remains the primary signal inside classify().
     subtitle = item.summary  # None if unavailable; already cleaned by rss_adapter
+    # Source URL category hint: authoritative for sources with structured URL categories
+    # (e.g. Israel Hayom /sport/israeli-basketball/). None for all other sources.
+    source_sport_hint = extract_source_sport_hint(cfg.source_id, item.url)
     rules_result = classify(classify_title, source_id=cfg.source_id,
-                            language=detected_lang, url=item.url, subtitle=subtitle)
+                            language=detected_lang, url=item.url, subtitle=subtitle,
+                            source_sport_hint=source_sport_hint)
 
     classified_by = "rules"
     classification_provider: Optional[str] = None
@@ -103,12 +112,15 @@ def _normalise(
 
     # LLM path: Hebrew broad sources only, when provider is active and circuit not open.
     # subtitle is already assigned above; reused here as extra context for the LLM prompt.
+    llm_ms: Optional[float] = None
     if (
         cfg.source_id in _HEBREW_BROAD_SOURCES
         and _LLM_PROVIDER.can_classify
         and llm_available
     ):
+        _t0 = time.perf_counter()
         llm_raw = _LLM_PROVIDER.classify_title(classify_title, detected_lang, subtitle=subtitle)
+        llm_ms = (time.perf_counter() - _t0) * 1000
 
         if llm_raw is None:
             classified_by = "rules_fallback_after_llm_failure"
@@ -123,12 +135,17 @@ def _normalise(
             final_result, classified_by = merge_with_guardrails(
                 llm_raw, rules_result, classify_title.lower(),
                 football_maccabi_detected=football_maccabi,
+                source_sport_hint=source_sport_hint,
             )
             classification_provider = _LLM_PROVIDER.provider_id
             classification_confidence = llm_raw.confidence
             classification_reason = llm_raw.reason
 
-    return Article(
+    # Final league-sport compatibility normalisation — applies to both rules-only and LLM-merge
+    # paths so no Article can be persisted with an impossible sport/league combination.
+    final_result = normalize_league_sport_compatibility(final_result)
+
+    article = Article(
         id=article_id_from_url(item.url),
         source=cfg.source_id,
         source_display_name=cfg.display_name,
@@ -150,11 +167,13 @@ def _normalise(
         classification_reason=classification_reason,
         classification_confidence=classification_confidence,
     )
+    return article, llm_ms
 
 
 # ── Per-source run ────────────────────────────────────────────────────────────
 
 def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
+    _run_t0 = time.perf_counter()
     started_at = datetime.now(tz=timezone.utc)
     adapter = RSSSourceAdapter(
         source_id=cfg.source_id,
@@ -170,9 +189,21 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
     failed = 0
     errors: list[str] = []
 
+    # Timing accumulators — local only; computed stats go into SourceIngestResult.
+    _fetch_ms: Optional[float] = None
+    _llm_latencies: list[float] = []           # ms per LLM attempt (success or failure)
+    _llm_title_samples: list[tuple[str, float]] = []  # (title_snippet, ms) for slowest logging
+    llm_attempts = 0
+    llm_successes = 0
+    llm_fallback_connect_error = 0
+    llm_fallback_timeout_or_parse = 0
+    llm_fallback_low_confidence = 0
+
     items: list[RawSourceItem] = []
     try:
+        _fetch_t0 = time.perf_counter()
         items = adapter.fetch()
+        _fetch_ms = (time.perf_counter() - _fetch_t0) * 1000
         fetched = len(items)
     except Exception as exc:
         msg = f"Fetch error for {cfg.source_id}: {exc}"
@@ -195,7 +226,25 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
                 skipped_duplicate += 1
                 continue
 
-            article = _normalise(item, cfg, llm_available=not llm_circuit_open)
+            article, llm_ms = _normalise(item, cfg, llm_available=not llm_circuit_open)
+
+            # Accumulate LLM timing and counters.
+            if llm_ms is not None:
+                _llm_latencies.append(llm_ms)
+                _llm_title_samples.append((item.title[:50], llm_ms))
+                cb = article.classified_by
+                if cb in ("llm", "llm+rules_guardrail"):
+                    llm_attempts += 1
+                    llm_successes += 1
+                elif cb == "rules_fallback_after_llm_failure":
+                    llm_attempts += 1
+                    if _LLM_PROVIDER.last_failure_was_connect_error:
+                        llm_fallback_connect_error += 1
+                    else:
+                        llm_fallback_timeout_or_parse += 1
+                elif cb == "rules_fallback_low_confidence":
+                    llm_attempts += 1
+                    llm_fallback_low_confidence += 1
 
             # Open the circuit for the rest of this run if Ollama refused connection.
             # Timeouts and parse errors do NOT open the circuit (model may recover).
@@ -219,7 +268,39 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
             failed += 1
 
     finished_at = datetime.now(tz=timezone.utc)
+    total_ms = (time.perf_counter() - _run_t0) * 1000
     status = "error" if errors and inserted == 0 else "ok"
+
+    # Compute LLM latency stats from local accumulators.
+    llm_avg_ms: Optional[float] = None
+    llm_p95_ms: Optional[float] = None
+    if _llm_latencies:
+        llm_avg_ms = round(sum(_llm_latencies) / len(_llm_latencies), 1)
+        sorted_lat = sorted(_llm_latencies)
+        p95_idx = min(len(sorted_lat) - 1, math.ceil(0.95 * len(sorted_lat)) - 1)
+        llm_p95_ms = round(sorted_lat[p95_idx], 1)
+        slowest = sorted(_llm_title_samples, key=lambda x: x[1], reverse=True)[:5]
+        slowest_str = ", ".join(f'"{t}"({ms:.0f}ms)' for t, ms in slowest)
+    else:
+        slowest_str = "n/a"
+
+    logger.info(
+        "Timing [%s]: fetch=%.0fms total=%.0fms | "
+        "LLM: attempts=%d successes=%d avg=%s p95=%s | "
+        "Fallbacks: connect_error=%d timeout/parse=%d low_conf=%d | "
+        "Slowest: [%s]",
+        cfg.source_id,
+        _fetch_ms or 0,
+        total_ms,
+        llm_attempts,
+        llm_successes,
+        f"{llm_avg_ms:.0f}ms" if llm_avg_ms is not None else "n/a",
+        f"{llm_p95_ms:.0f}ms" if llm_p95_ms is not None else "n/a",
+        llm_fallback_connect_error,
+        llm_fallback_timeout_or_parse,
+        llm_fallback_low_confidence,
+        slowest_str,
+    )
 
     # skipped_filtered is intentionally NOT stored in the run log — the DB schema
     # does not have that column and adding it would require a migration.  It is
@@ -246,6 +327,15 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
         skipped_duplicate=skipped_duplicate,
         failed=failed,
         errors=errors,
+        fetch_ms=round(_fetch_ms, 1) if _fetch_ms is not None else None,
+        total_ms=round(total_ms, 1),
+        llm_attempts=llm_attempts,
+        llm_successes=llm_successes,
+        llm_fallback_connect_error=llm_fallback_connect_error,
+        llm_fallback_timeout_or_parse=llm_fallback_timeout_or_parse,
+        llm_fallback_low_confidence=llm_fallback_low_confidence,
+        llm_avg_ms=llm_avg_ms,
+        llm_p95_ms=llm_p95_ms,
     )
 
 

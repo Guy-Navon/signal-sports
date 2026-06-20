@@ -51,6 +51,11 @@ function SourceTimingRow({ result }) {
               {result.llmSuccesses}/{result.llmAttempts}
             </span>
           </span>
+          {(result.llmSkipped ?? 0) > 0 && (
+            <span className="text-gray-600">
+              דולגו <span className="text-gray-400">{result.llmSkipped}</span>
+            </span>
+          )}
           {result.llmAvgMs != null && (
             <span className="text-gray-600">
               ממוצע <span className="text-gray-400">{formatMs(result.llmAvgMs)}</span>

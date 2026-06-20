@@ -20,6 +20,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.classification.gating import LLMGateDecision, should_call_llm_for_article
 from app.classification.merge import merge_with_guardrails, normalize_league_sport_compatibility
 from app.classification.source_hints import extract_source_sport_hint
 from app.classification.service import get_llm_provider
@@ -69,11 +70,14 @@ def _normalise(
     item: RawSourceItem,
     cfg: RSSSourceConfig,
     llm_available: bool = True,
-) -> tuple[Article, Optional[float]]:
+) -> tuple[Article, Optional[float], Optional[LLMGateDecision]]:
     """Map a raw RSS item to an Article using language detection, translation, and classification.
 
-    Returns (article, llm_ms) where llm_ms is the LLM call duration in milliseconds if an LLM
-    attempt was made (including failed attempts), or None if LLM was not invoked.
+    Returns (article, llm_ms, gate) where:
+    - llm_ms is the LLM call duration in milliseconds if an LLM attempt was made
+      (including failed attempts), or None if LLM was not invoked.
+    - gate is the LLMGateDecision for eligible articles (Hebrew broad source + provider
+      active + circuit not open), or None for non-eligible articles.
     llm_available=False skips the LLM path for this article (used when the
     per-run circuit breaker has fired due to an Ollama connection error).
     """
@@ -113,33 +117,52 @@ def _normalise(
     # LLM path: Hebrew broad sources only, when provider is active and circuit not open.
     # subtitle is already assigned above; reused here as extra context for the LLM prompt.
     llm_ms: Optional[float] = None
+    gate: Optional[LLMGateDecision] = None
+
     if (
         cfg.source_id in _HEBREW_BROAD_SOURCES
         and _LLM_PROVIDER.can_classify
         and llm_available
     ):
-        _t0 = time.perf_counter()
-        llm_raw = _LLM_PROVIDER.classify_title(classify_title, detected_lang, subtitle=subtitle)
-        llm_ms = (time.perf_counter() - _t0) * 1000
+        gate = should_call_llm_for_article(
+            source_id=cfg.source_id,
+            title=classify_title,
+            subtitle=subtitle,
+            rules_result=rules_result,
+            source_sport_hint=source_sport_hint,
+        )
 
-        if llm_raw is None:
-            classified_by = "rules_fallback_after_llm_failure"
-            classification_provider = _LLM_PROVIDER.provider_id
-        elif llm_raw.confidence < LLM_MIN_CONFIDENCE:
-            classified_by = "rules_fallback_low_confidence"
-            classification_provider = _LLM_PROVIDER.provider_id
-            classification_confidence = llm_raw.confidence
-            classification_reason = llm_raw.reason
-        else:
-            football_maccabi = _has_football_maccabi_context(classify_title.lower())
-            final_result, classified_by = merge_with_guardrails(
-                llm_raw, rules_result, classify_title.lower(),
-                football_maccabi_detected=football_maccabi,
-                source_sport_hint=source_sport_hint,
+        if not gate.should_call_llm:
+            logger.debug(
+                "LLM gated-skip [%s] reason=%s title=%r sport=%s league=%s "
+                "event_type=%s conf=%.2f",
+                cfg.source_id, gate.reason, classify_title[:60],
+                rules_result.sport, rules_result.league,
+                rules_result.event_type, rules_result.confidence,
             )
-            classification_provider = _LLM_PROVIDER.provider_id
-            classification_confidence = llm_raw.confidence
-            classification_reason = llm_raw.reason
+        else:
+            _t0 = time.perf_counter()
+            llm_raw = _LLM_PROVIDER.classify_title(classify_title, detected_lang, subtitle=subtitle)
+            llm_ms = (time.perf_counter() - _t0) * 1000
+
+            if llm_raw is None:
+                classified_by = "rules_fallback_after_llm_failure"
+                classification_provider = _LLM_PROVIDER.provider_id
+            elif llm_raw.confidence < LLM_MIN_CONFIDENCE:
+                classified_by = "rules_fallback_low_confidence"
+                classification_provider = _LLM_PROVIDER.provider_id
+                classification_confidence = llm_raw.confidence
+                classification_reason = llm_raw.reason
+            else:
+                football_maccabi = _has_football_maccabi_context(classify_title.lower())
+                final_result, classified_by = merge_with_guardrails(
+                    llm_raw, rules_result, classify_title.lower(),
+                    football_maccabi_detected=football_maccabi,
+                    source_sport_hint=source_sport_hint,
+                )
+                classification_provider = _LLM_PROVIDER.provider_id
+                classification_confidence = llm_raw.confidence
+                classification_reason = llm_raw.reason
 
     # Final league-sport compatibility normalisation — applies to both rules-only and LLM-merge
     # paths so no Article can be persisted with an impossible sport/league combination.
@@ -168,7 +191,7 @@ def _normalise(
         classification_reason=classification_reason,
         classification_confidence=classification_confidence,
     )
-    return article, llm_ms
+    return article, llm_ms, gate
 
 
 # ── Per-source run ────────────────────────────────────────────────────────────
@@ -199,6 +222,10 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
     llm_fallback_connect_error = 0
     llm_fallback_timeout_or_parse = 0
     llm_fallback_low_confidence = 0
+    # Gating accumulators — eligible articles skipped/called by the gate.
+    llm_skipped = 0
+    llm_skip_reasons: dict[str, int] = {}
+    llm_call_reasons: dict[str, int] = {}
 
     items: list[RawSourceItem] = []
     try:
@@ -227,7 +254,7 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
                 skipped_duplicate += 1
                 continue
 
-            article, llm_ms = _normalise(item, cfg, llm_available=not llm_circuit_open)
+            article, llm_ms, gate = _normalise(item, cfg, llm_available=not llm_circuit_open)
 
             # Accumulate LLM timing and counters.
             if llm_ms is not None:
@@ -246,6 +273,16 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
                 elif cb == "rules_fallback_low_confidence":
                     llm_attempts += 1
                     llm_fallback_low_confidence += 1
+
+            # Accumulate gating counters — only for eligible articles (gate is not None).
+            # Non-eligible articles (non-Hebrew-broad source, provider disabled, circuit open)
+            # never set gate, so they never appear in llm_skipped.
+            if gate is not None:
+                if gate.should_call_llm:
+                    llm_call_reasons[gate.reason] = llm_call_reasons.get(gate.reason, 0) + 1
+                else:
+                    llm_skipped += 1
+                    llm_skip_reasons[gate.reason] = llm_skip_reasons.get(gate.reason, 0) + 1
 
             # Open the circuit for the rest of this run if Ollama refused connection.
             # Timeouts and parse errors do NOT open the circuit (model may recover).
@@ -289,6 +326,7 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
         "Timing [%s]: fetch=%.0fms total=%.0fms | "
         "LLM: attempts=%d successes=%d avg=%s p95=%s | "
         "Fallbacks: connect_error=%d timeout/parse=%d low_conf=%d | "
+        "Gating: skipped=%d skip_reasons=%s call_reasons=%s | "
         "Slowest: [%s]",
         cfg.source_id,
         _fetch_ms or 0,
@@ -300,6 +338,9 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
         llm_fallback_connect_error,
         llm_fallback_timeout_or_parse,
         llm_fallback_low_confidence,
+        llm_skipped,
+        llm_skip_reasons or "{}",
+        llm_call_reasons or "{}",
         slowest_str,
     )
 
@@ -337,6 +378,9 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
         llm_fallback_low_confidence=llm_fallback_low_confidence,
         llm_avg_ms=llm_avg_ms,
         llm_p95_ms=llm_p95_ms,
+        llm_skipped=llm_skipped,
+        llm_skip_reasons=llm_skip_reasons,
+        llm_call_reasons=llm_call_reasons,
     )
 
 

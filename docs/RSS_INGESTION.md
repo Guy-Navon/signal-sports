@@ -187,11 +187,20 @@ result = classify(title, source_id="walla_sport", language="he", subtitle=subtit
 
 ### LLM classifier (Hebrew broad sources, PR 11)
 
-When `CLASSIFICATION_PROVIDER=ollama` (or `fake`), Hebrew broad source articles go through a second classification pass using a local LLM. The LLM result is merged with the deterministic result using 5 guardrails. The final article fields reflect the merged decision.
+When `CLASSIFICATION_PROVIDER=ollama` (or `fake`), Hebrew broad source articles go through a second classification pass using a local LLM. The LLM result is merged with the deterministic result using guardrails. The final article fields reflect the merged decision.
 
 For English basketball-only sources (`eurohoops`, `sportando`), the deterministic classifier is the only path — LLM is never called.
 
-See `docs/LLM_CLASSIFICATION.md` for full details.
+### Selective LLM gating (PR 12)
+
+Before calling the LLM, `should_call_llm_for_article()` in `gating.py` evaluates the deterministic result and decides whether the LLM call is worth making. Articles are skipped when the rules already produced a strong result (clear league, strong source URL hint with context, high-confidence sport+league). LLM is always called for `sport=unknown`, `ambiguous_club`, or low-confidence results.
+
+- `CLASSIFICATION_LLM_GATING=enabled` (default): gating active
+- `CLASSIFICATION_LLM_GATING=disabled`: always call LLM; reproduces pre-gating behavior
+
+Gating metrics are returned in the live `POST /api/ingest/run` response as `llm_skipped`, `llm_skip_reasons`, and `llm_call_reasons`. These are not persisted to the DB.
+
+See `docs/LLM_CLASSIFICATION.md` for full gating design details.
 
 ---
 

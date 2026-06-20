@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Dict, List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SourceIngestResult(BaseModel):
@@ -10,7 +10,7 @@ class SourceIngestResult(BaseModel):
     skipped_filtered: int = 0   # items dropped by source-level URL/language filters
     skipped_duplicate: int
     failed: int
-    errors: List[str] = []
+    errors: List[str] = Field(default_factory=list)
     # Timing fields (live response only — not persisted to DB)
     fetch_ms: Optional[float] = None
     total_ms: Optional[float] = None
@@ -21,6 +21,12 @@ class SourceIngestResult(BaseModel):
     llm_fallback_low_confidence: int = 0
     llm_avg_ms: Optional[float] = None
     llm_p95_ms: Optional[float] = None
+    # Gating fields: how many eligible articles were skipped by the gate and why.
+    # "Eligible" means Hebrew broad source + provider active + circuit not open.
+    # These are live response only — not persisted to DB.
+    llm_skipped: int = 0
+    llm_skip_reasons: Dict[str, int] = Field(default_factory=dict)
+    llm_call_reasons: Dict[str, int] = Field(default_factory=dict)
 
 
 class IngestRunResponse(BaseModel):

@@ -195,7 +195,7 @@ class TestHebrewNormalisation:
             title="מכבי תל אביב הביסה בגמר",
             published_at=datetime(2026, 6, 13, tzinfo=timezone.utc),
         )
-        article, _ = _normalise(item, _walla_cfg())
+        article, _, _ = _normalise(item, _walla_cfg())
         assert article.language == "he"
 
     def test_original_title_is_none(self):
@@ -205,7 +205,7 @@ class TestHebrewNormalisation:
             title="דני אבדיה נפצע",
             published_at=datetime(2026, 6, 13, tzinfo=timezone.utc),
         )
-        article, _ = _normalise(item, _walla_cfg())
+        article, _, _ = _normalise(item, _walla_cfg())
         assert article.original_title is None
         assert article.translated_title is None
 
@@ -217,7 +217,7 @@ class TestHebrewNormalisation:
             title=hebrew,
             published_at=datetime(2026, 6, 13, tzinfo=timezone.utc),
         )
-        article, _ = _normalise(item, _walla_cfg())
+        article, _, _ = _normalise(item, _walla_cfg())
         assert article.title == hebrew
 
     def test_source_id_is_walla_sport(self):
@@ -227,7 +227,7 @@ class TestHebrewNormalisation:
             title="כדורסל: מכבי חתמה",
             published_at=datetime(2026, 6, 13, tzinfo=timezone.utc),
         )
-        article, _ = _normalise(item, _walla_cfg())
+        article, _, _ = _normalise(item, _walla_cfg())
         assert article.source == "walla_sport"
 
 

@@ -38,6 +38,7 @@ backend/app/classification/
     merge.py              — merge_with_guardrails() + normalize_league_sport_compatibility()
     entity_normalizer.py  — canonical entity alias map
     source_hints.py       — extract_source_sport_hint() — Israel Hayom URL category → sport hint
+    gating.py             — should_call_llm_for_article() — per-article LLM call gate
 
 backend/app/ingestion/
     subtitle.py           — extract_subtitle() + clean_subtitle() for RSS summary context
@@ -229,7 +230,7 @@ After pruning, recognized LLM entities are appended (via `normalize_llm_entities
 - `"llm+rules_guardrail"` — LLM primary, at least one guardrail corrected a field
 - `"rules_fallback_after_llm_failure"` — LLM attempted, HTTP/timeout/invalid JSON/ConnectError
 - `"rules_fallback_low_confidence"` — LLM ran, `confidence < LLM_MIN_CONFIDENCE`
-- `"rules"` — LLM not attempted (English source, or `CLASSIFICATION_PROVIDER=disabled`)
+- `"rules"` — LLM not attempted: either non-eligible source/provider, or gating decided deterministic result is strong enough
 
 ---
 
@@ -409,9 +410,86 @@ CLASSIFICATION_API_KEY=
 # Ollama settings (only used when CLASSIFICATION_PROVIDER=ollama)
 CLASSIFICATION_OLLAMA_BASE_URL=http://localhost:11434
 CLASSIFICATION_TIMEOUT_SECONDS=30         # per-article read timeout; connect is always 2s
+
+# Selective LLM gating (see section below)
+CLASSIFICATION_LLM_GATING=enabled         # enabled | disabled
 ```
 
 All vars are read at module import time (same pattern as `TRANSLATION_PROVIDER`). Changing them requires a backend restart.
+
+---
+
+## Selective LLM Gating (`gating.py`)
+
+The LLM is Ollama/Qwen's primary bottleneck (~12s per call). The gating module decides, per eligible article, whether calling the LLM is likely to add value over the deterministic result. Articles from non-Hebrew-broad sources, or when the provider is disabled, are never considered eligible and bypass gating entirely.
+
+**Definition:** `llm_skipped` = article was eligible (Hebrew broad source + provider active + circuit not open) but the gate decided the deterministic result was already strong enough. `llm_attempts` = LLM was actually called.
+
+### `should_call_llm_for_article()` API
+
+```python
+def should_call_llm_for_article(
+    *,
+    source_id: str,
+    title: str,
+    subtitle: Optional[str],
+    rules_result: ClassificationResult,
+    source_sport_hint: Optional[str],
+) -> LLMGateDecision:
+```
+
+Returns `LLMGateDecision(should_call_llm: bool, reason: str)`.
+
+Pure function — no I/O, no side effects. Fully unit-testable without mocking.
+
+### Evaluation order
+
+**Force-call conditions (checked first — override all skip conditions):**
+
+| Reason | Condition |
+|--------|-----------|
+| `sport_unknown` | `rules_result.sport == "unknown"` |
+| `ambiguous_club` | `"ambiguous_club"` in `rules_result.tags` |
+| `low_rules_confidence` | `rules_result.confidence < 0.55` |
+
+**Skip conditions (checked if no force-call triggered):**
+
+| Reason | Condition |
+|--------|-----------|
+| `clear_league_in_title` | Clear league keyword in title/subtitle AND `rules_result.league is not None` AND `confidence >= 0.65` |
+| `strong_source_sport_hint` | Hint matches sport AND `confidence >= 0.65` AND at least one of: league resolved, entities non-empty, event_type ≠ news |
+| `strong_deterministic_result` | Sport + league resolved AND `confidence >= 0.80` |
+| `known_entity_compatible` | Entities non-empty AND sport known AND event_type ≠ news AND `confidence >= 0.75` |
+
+**Call conditions (default if no skip triggered):**
+
+| Reason | Condition |
+|--------|-----------|
+| `source_hint_only_missing_context` | Hint matches sport but league/entities/event all generic |
+| `hebrew_broad_source_unclear` | Nothing else matched — LLM likely to improve classification |
+
+**`CLASSIFICATION_LLM_GATING=disabled`:** skips all gating logic and always returns `(True, "gating_disabled")`. Use this to reproduce pre-gating behavior for benchmarking.
+
+### Why `strong_source_sport_hint` requires extra context
+
+Israel Hayom `/sport/israeli-basketball/` confirms sport=basketball, but not:
+- Whether the article is about Israeli Basketball League, NBA, or EuroLeague
+- Which entities are involved
+- What happened (signing? injury? match result?)
+
+So `source_hint_only_missing_context` deliberately calls LLM when the hint matches sport but the deterministic result has no league, no entities, and event_type=news.
+
+### Why `clear_league_in_title` requires a resolved league
+
+A keyword like "NBA" in the title is a strong signal, but the gating additionally requires `rules_result.league is not None` — the deterministic classifier must have resolved the same league. This prevents edge cases where an English article contains "NBA" in a non-league-match context (e.g., "ביקורת על NBA 2K25") from being falsely skipped.
+
+### Performance target
+
+- ≥40% reduction in LLM calls on Walla + Israel Hayom
+- Walla: target ~8–15 LLM calls instead of ~30
+- Israel Hayom: target ~5–12 LLM calls instead of ~32
+- No regression in `sport=unknown` count
+- No football→basketball false positives
 
 ---
 
@@ -429,18 +507,22 @@ llm_fallback_timeout_or_parse: int     # timeout, HTTP error, or JSON parse fail
 llm_fallback_low_confidence: int       # LLM responded but confidence < 0.65
 llm_avg_ms: Optional[float]            # average LLM call duration (ms) across all attempts
 llm_p95_ms: Optional[float]            # p95 LLM call duration (ms) across all attempts
+# Gating fields (only populated for Hebrew broad sources with an active provider):
+llm_skipped: int                       # eligible articles bypassed by gate (not provider-disabled)
+llm_skip_reasons: dict[str, int]       # reason → count for gated-skip decisions
+llm_call_reasons: dict[str, int]       # reason → count for gated-call decisions
 ```
 
 **What is measured:** LLM latency is measured around the raw provider call, including failed attempts. A `ConnectError` that takes 2 seconds is recorded. A timeout at 30 seconds is recorded. This means `llm_avg_ms` and `llm_p95_ms` reflect realistic end-to-end overhead, not only successful classifications.
 
 **Log line (INFO level, emitted at end of each source run):**
 ```
-Timing [israel_hayom_sport]: fetch=420ms total=18.3s | LLM: attempts=21 successes=18 avg=710ms p95=1420ms | Fallbacks: connect_error=0 timeout/parse=1 low_conf=2 | Slowest: ["מכבי..."(1820ms), "דיווח..."(1550ms)]
+Timing [israel_hayom_sport]: fetch=420ms total=18.3s | LLM: attempts=12 successes=10 avg=710ms p95=1420ms | Fallbacks: connect_error=0 timeout/parse=1 low_conf=1 | Gating: skipped=9 skip_reasons={'clear_league_in_title': 5, 'strong_source_sport_hint': 4} call_reasons={'sport_unknown': 7, 'hebrew_broad_source_unclear': 5} | Slowest: ["מכבי..."(1820ms), "דיווח..."(1550ms)]
 ```
 
-The top 5 slowest articles (by LLM latency) are logger-only — not included in the API response.
+A DEBUG-level line is also emitted for each individual gated-skip, showing the article title, skip reason, and the deterministic sport/league/event_type/confidence values that triggered it. The top 5 slowest articles (by LLM latency) are INFO logger-only — not included in the API response.
 
-**Sources UI:** The Sources page (`IngestionPanel.jsx`) reads the `SourceIngestResult` timing fields from the `POST /api/ingest/run` response and displays them immediately after a manual ingestion run — no need to open logs or DevTools. The timing row shows fetch time, total time, LLM success ratio, avg/p95 latency, and fallback breakdown. When `llm_attempts === 0` (provider disabled), the row shows `LLM לא הופעל`.
+**Sources UI:** The Sources page (`IngestionPanel.jsx`) reads the `SourceIngestResult` timing fields from the `POST /api/ingest/run` response and displays them immediately after a manual ingestion run. The timing row shows fetch time, total time, LLM success ratio, skipped count (`דולגו N`), avg/p95 latency, and fallback breakdown. When `llm_attempts === 0` (provider disabled), the row shows `LLM לא הופעל`. The `דולגו` count is hidden when zero to avoid noise for non-gated runs.
 
 ---
 

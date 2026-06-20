@@ -279,28 +279,28 @@ class TestIsraelHayomHebrewInvariant:
 
     def test_language_is_he(self):
         with patch("app.ingestion.ingestion_service.translate_title"):
-            article, _ = _normalise(self._basketball_item(), _ih_cfg())
+            article, _, _ = _normalise(self._basketball_item(), _ih_cfg())
         assert article.language == "he"
 
     def test_title_equals_original_hebrew_rss_title(self):
         hebrew_title = "מכבי תל אביב ניצחה בגמר ליגת העל בכדורסל"
         with patch("app.ingestion.ingestion_service.translate_title"):
-            article, _ = _normalise(self._basketball_item(), _ih_cfg())
+            article, _, _ = _normalise(self._basketball_item(), _ih_cfg())
         assert article.title == hebrew_title
 
     def test_original_title_is_none(self):
         with patch("app.ingestion.ingestion_service.translate_title"):
-            article, _ = _normalise(self._basketball_item(), _ih_cfg())
+            article, _, _ = _normalise(self._basketball_item(), _ih_cfg())
         assert article.original_title is None
 
     def test_translated_title_is_none(self):
         with patch("app.ingestion.ingestion_service.translate_title"):
-            article, _ = _normalise(self._basketball_item(), _ih_cfg())
+            article, _, _ = _normalise(self._basketball_item(), _ih_cfg())
         assert article.translated_title is None
 
     def test_source_is_israel_hayom_sport(self):
         with patch("app.ingestion.ingestion_service.translate_title"):
-            article, _ = _normalise(self._basketball_item(), _ih_cfg())
+            article, _, _ = _normalise(self._basketball_item(), _ih_cfg())
         assert article.source == "israel_hayom_sport"
 
 

@@ -108,6 +108,10 @@ export function normalizeIngestResultFromApi(r) {
     llmFallbackLowConfidence: r.llm_fallback_low_confidence ?? 0,
     llmAvgMs: r.llm_avg_ms ?? null,
     llmP95Ms: r.llm_p95_ms ?? null,
+    // Gating fields: eligible articles skipped by gate and why (live response only).
+    llmSkipped: r.llm_skipped ?? 0,
+    llmSkipReasons: r.llm_skip_reasons ?? {},
+    llmCallReasons: r.llm_call_reasons ?? {},
   };
 }
 

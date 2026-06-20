@@ -322,6 +322,25 @@ describe("normalizeIngestResultFromApi", () => {
     });
     expect(r.llmFallbackConnectError).toBe(3);
   });
+
+  it("maps llm_skipped and reason dicts from API response", () => {
+    const r = normalizeIngestResultFromApi({
+      ...RAW_INGEST_RESULT_LLM_ACTIVE,
+      llm_skipped: 12,
+      llm_skip_reasons: { clear_league_in_title: 8, strong_source_sport_hint: 4 },
+      llm_call_reasons: { sport_unknown: 5, ambiguous_club: 3 },
+    });
+    expect(r.llmSkipped).toBe(12);
+    expect(r.llmSkipReasons).toEqual({ clear_league_in_title: 8, strong_source_sport_hint: 4 });
+    expect(r.llmCallReasons).toEqual({ sport_unknown: 5, ambiguous_club: 3 });
+  });
+
+  it("defaults llmSkipped to 0 when absent — old API responses remain backward-compatible", () => {
+    const r = normalizeIngestResultFromApi({ source_id: "x", fetched: 0, inserted: 0 });
+    expect(r.llmSkipped).toBe(0);
+    expect(r.llmSkipReasons).toEqual({});
+    expect(r.llmCallReasons).toEqual({});
+  });
 });
 
 // ── formatMs ──────────────────────────────────────────────────────────────────

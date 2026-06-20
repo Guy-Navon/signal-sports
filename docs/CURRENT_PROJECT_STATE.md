@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-06-20 — reflects state after subtitle display feature: RSS subtitle stored on Article, shown in Feed and Debug cards. Branch: `feature/display-article-subtitles`.
+Last updated: 2026-06-20 — reflects state after selective LLM gating (PR 12): per-article gate skips LLM when deterministic result is already strong, reducing LLM calls by ≥40%. Branch: `feature/selective-llm-gating`.
 
 ---
 
@@ -40,7 +40,10 @@ RSS source
         — subtitle never overrides an already-resolved sport value from the title
       source URL category hint extracted (extract_source_sport_hint — Israel Hayom only)
       [Hebrew broad sources only, when CLASSIFICATION_PROVIDER != disabled]:
-        LLM classifier called with title + subtitle [timing measured including failures]
+        should_call_llm_for_article() gate evaluated against rules result
+          → sport=unknown / ambiguous_club / conf<0.55 → force call LLM
+          → clear league / strong hint+context / high confidence → skip LLM
+          → LLM classifier called with title + subtitle [timing measured including failures]
           → JSON validation → confidence check (≥ 0.65)
           → merge with 7 deterministic guardrails → classified_by=llm or llm+rules_guardrail
           → on failure or low confidence: use deterministic result → classified_by=rules_fallback_*
@@ -65,6 +68,7 @@ their native Hebrew title; translation is not used in the MVP product path.
 | Subtitle extraction | `backend/app/ingestion/subtitle.py` — cleans RSS `<description>` for deterministic + LLM context |
 | Deterministic classifier | Keyword matching + subtitle gap-filling, `backend/app/ingestion/classifier.py` |
 | LLM classification | Gemini + Ollama providers, `backend/app/classification/` |
+| LLM gating | `backend/app/classification/gating.py` — per-article decision on whether to call LLM |
 | Source URL hints | `backend/app/classification/source_hints.py` — Israel Hayom URL category → sport hint |
 | Relevance engine | Python: `backend/app/services/relevance_engine.py`; JS mirror: `src/engine/relevanceEngine.js` |
 | Translation | `backend/app/translation/`, provider configured by `.env` |
@@ -141,7 +145,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 
 On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent).
 
-**Test suite:** 688 pytest tests across `backend/tests/` + 234 frontend tests (Vitest).
+**Test suite:** 688+ pytest tests across `backend/tests/` (+ new `test_llm_gating.py` for gating) + 234+ frontend tests (Vitest).
 
 **Key API endpoints:**
 
@@ -350,7 +354,8 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 
 Priority order:
 
-1. **LLM classification benchmark** — Install Ollama, pull `qwen2.5:3b-instruct`, set `CLASSIFICATION_PROVIDER=ollama` + `CLASSIFICATION_MODEL=qwen2.5:3b-instruct` + `CLASSIFICATION_TIMEOUT_SECONDS=30`, re-ingest Walla + Israel Hayom, compare `sport=unknown` count and Guy's feed visibility before/after. Check `fetch_ms`, `llm_avg_ms`, and `llm_fallback_*` counts in the ingest response for performance baseline. Run `POST /api/classify/backfill?source_id=walla_sport` on existing articles. If quality is poor, try `qwen3:4b`.
+1. **LLM gating benchmark (PR 12)** — Run ingestion with `CLASSIFICATION_LLM_GATING=disabled` first (baseline), then with `enabled`. Compare `llm_attempts`, `llm_skipped`, `total_ms`, and `sport=unknown` counts from the quality endpoint. Target ≥40% LLM call reduction with no regression. Do not merge PR 12 until benchmark results are reviewed.
+2. **LLM classification benchmark** — Install Ollama, pull `qwen2.5:3b-instruct`, set `CLASSIFICATION_PROVIDER=ollama` + `CLASSIFICATION_MODEL=qwen2.5:3b-instruct` + `CLASSIFICATION_TIMEOUT_SECONDS=30`, re-ingest Walla + Israel Hayom, compare `sport=unknown` count and Guy's feed visibility before/after. Check `fetch_ms`, `llm_avg_ms`, and `llm_fallback_*` counts in the ingest response for performance baseline. Run `POST /api/classify/backfill?source_id=walla_sport` on existing articles. If quality is poor, try `qwen3:4b`.
 2. **Expand entity normalization map** — Add recognized Israeli basketball players, coaches, EuroLeague club names to `backend/app/classification/entity_normalizer.py` after LLM benchmark reveals which entities are being identified but discarded.
 3. **Scheduled ingestion via APScheduler** — Poll `POST /api/ingest/run` every 15–30 minutes. Add to `app/main.py` lifespan.
 4. **Feed clustering / fuzzy dedup** — Use `difflib.SequenceMatcher` on titles across sources; populate `cluster_id`. Show one card per story.
@@ -381,6 +386,7 @@ CLASSIFICATION_MODEL=qwen2.5:3b-instruct
 CLASSIFICATION_API_KEY=
 CLASSIFICATION_OLLAMA_BASE_URL=http://localhost:11434
 CLASSIFICATION_TIMEOUT_SECONDS=30
+CLASSIFICATION_LLM_GATING=enabled
 ALLOW_DEV_RESET=false
 ```
 Set `TRANSLATION_PROVIDER=fake` for dev testing without an API key.

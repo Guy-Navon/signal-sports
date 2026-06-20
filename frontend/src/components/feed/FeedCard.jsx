@@ -97,6 +97,13 @@ export default function FeedCard({ item }) {
           {displayTitle}
         </h2>
 
+        {/* Subtitle — RSS description providing context behind the headline */}
+        {item.subtitle && (
+          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-snug">
+            {item.subtitle}
+          </p>
+        )}
+
         {/* Cluster additional sources */}
         {isCluster && item.sources?.length > 1 && (
           <div className="flex items-center gap-1.5 mt-1.5">

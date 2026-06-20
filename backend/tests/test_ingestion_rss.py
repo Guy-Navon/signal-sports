@@ -194,6 +194,30 @@ class TestNormalisation:
         assert "Deni Avdija" in article.entities
         assert article.event_type == "major_trade"
 
+    def test_subtitle_stored_from_raw_item_summary(self):
+        """_normalise() must copy item.summary to article.subtitle."""
+        item = RawSourceItem(
+            source_id="eurohoops",
+            url="https://eurohoops.net/article/subtitle-test",
+            title="Maccabi Tel Aviv signs guard",
+            published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+            summary="The club completed a deal with a EuroLeague point guard.",
+        )
+        article, _ = _normalise(item, self._english_cfg())
+        assert article.subtitle == "The club completed a deal with a EuroLeague point guard."
+
+    def test_subtitle_is_none_when_item_has_no_summary(self):
+        """_normalise() must set article.subtitle=None when item.summary is None."""
+        item = RawSourceItem(
+            source_id="eurohoops",
+            url="https://eurohoops.net/article/no-subtitle",
+            title="Maccabi Tel Aviv news",
+            published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+            summary=None,
+        )
+        article, _ = _normalise(item, self._english_cfg())
+        assert article.subtitle is None
+
 
 # ── Dedup ─────────────────────────────────────────────────────────────────────
 

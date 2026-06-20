@@ -162,6 +162,7 @@ def _normalise(
         importance=final_result.importance,
         confidence=final_result.confidence,
         tags=final_result.tags,
+        subtitle=subtitle,
         classified_by=classified_by,
         classification_provider=classification_provider,
         classification_reason=classification_reason,

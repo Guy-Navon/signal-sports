@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-06-20 — reflects state after Hebrew MVP QA fixes: ingestion timing instrumentation, league-sport compatibility guardrail, Israel Hayom URL category hints, title_win hardening. Branch: `main` (PR 11 + post-QA fixes merged).
+Last updated: 2026-06-20 — reflects state after subtitle display feature: RSS subtitle stored on Article, shown in Feed and Debug cards. Branch: `feature/display-article-subtitles`.
 
 ---
 
@@ -122,25 +122,26 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 
 | Table | Content |
 |-------|---------|
-| `articles` | All ingested articles; `entities` and `tags` stored as JSON; includes 4 LLM classification metadata columns (PR 11) |
+| `articles` | All ingested articles; `entities` and `tags` stored as JSON; includes `subtitle` column and 4 LLM classification metadata columns (PR 11) |
 | `profiles` | User profiles; `topics` list stored as JSON |
 | `sources` | RSS source configuration |
 | `feedback_events` | User feedback (persists across restarts) |
 | `calibration_headlines` | 16 synthetic preference calibration headlines |
 | `ingestion_runs` | Log of every RSS ingestion run |
 
-**Four new columns on `articles` (PR 11, soft-migrated via `ALTER TABLE ADD COLUMN`):**
+**Five soft-migrated columns on `articles` (via `ALTER TABLE ADD COLUMN`, idempotent):**
 
 | Column | Type | Meaning |
 |--------|------|---------|
-| `classified_by` | TEXT DEFAULT `'rules'` | `rules`, `llm`, `llm+rules_guardrail`, `rules_fallback_after_llm_failure`, `rules_fallback_low_confidence` |
-| `classification_provider` | TEXT | `rules`, `ollama:llama3.2:3b`, `fake`, etc. |
-| `classification_reason` | TEXT | LLM's one-sentence explanation of the classification |
-| `classification_confidence` | REAL | LLM's self-assessed confidence (0.0–1.0); separate from the deterministic `confidence` field |
+| `subtitle` | TEXT | Cleaned RSS `<description>` text (HTML stripped, ≤500 chars); `null` for old articles and entries with no description |
+| `classified_by` | TEXT DEFAULT `'rules'` | `rules`, `llm`, `llm+rules_guardrail`, `rules_fallback_after_llm_failure`, `rules_fallback_low_confidence` (PR 11) |
+| `classification_provider` | TEXT | `rules`, `ollama:llama3.2:3b`, `fake`, etc. (PR 11) |
+| `classification_reason` | TEXT | LLM's one-sentence explanation of the classification (PR 11) |
+| `classification_confidence` | REAL | LLM's self-assessed confidence (0.0–1.0); separate from the deterministic `confidence` field (PR 11) |
 
 On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent).
 
-**Test suite:** 636 pytest tests across `backend/tests/` + 215 frontend tests (Vitest).
+**Test suite:** 688 pytest tests across `backend/tests/` + 234 frontend tests (Vitest).
 
 **Key API endpoints:**
 
@@ -175,9 +176,9 @@ On startup: tables are created if missing; soft migrations add new columns to ex
 
 **Sources page — Ingestion panel:** In backend mode, shows source selector (MVP active sources: וואלה ספורט, ישראל היום ספורט), "הרץ ייבוא עכשיו" button, per-source result breakdown after run, recent runs list (last 5), and "איכות הסיווג" quality toggle. No translation UI — translation is post-MVP and was removed from the Sources page. In local mode, shows a disabled card with instructions to enable backend mode.
 
-**Feed card:** Renders the Hebrew-native article title directly. For MVP Hebrew sources, `translatedTitle` is always `null` and the card falls back to `title` (the raw Hebrew RSS title). No original-language metadata block, no untranslated badge, no "לא תורגם" warning. The title fallback logic (`item.translatedTitle || item.title`) is preserved so the card works correctly when English sources are re-enabled post-MVP.
+**Feed card:** Renders the Hebrew-native article title directly. For MVP Hebrew sources, `translatedTitle` is always `null` and the card falls back to `title` (the raw Hebrew RSS title). When available, the RSS subtitle (cleaned `<description>` text) is displayed under the title in a muted secondary style, clamped to 2 lines — this helps disambiguate clickbait or ambiguous Hebrew headlines. No original-language metadata block, no untranslated badge, no "לא תורגם" warning. Subtitle is not a translation. The title fallback logic (`item.translatedTitle || item.title`) is preserved so the card works correctly when English sources are re-enabled post-MVP.
 
-**Debug view:** All articles with full scoring reasoning. Each article card shows LLM classification metadata (PR 11): `classified_by` as a color-coded badge (grey=rules, blue=llm, yellow=llm+rules_guardrail, red=failure, orange=low-confidence), `classification_provider` inline, `classification_confidence` as a percentage, and `classification_reason` as an italic line. Comparison tab always uses local engine (cross-profile comparison not wired to backend).
+**Debug view:** All articles with full scoring reasoning. Each article card shows the subtitle (when available) directly under the title, clamped to 3 lines, to provide classification context during QA. Also shows LLM classification metadata (PR 11): `classified_by` as a color-coded badge (grey=rules, blue=llm, yellow=llm+rules_guardrail, red=failure, orange=low-confidence), `classification_provider` inline, `classification_confidence` as a percentage, and `classification_reason` as an italic line. Comparison tab always uses local engine (cross-profile comparison not wired to backend).
 
 **Local mode:** Remains fully functional with mock data. No backend required. The frontend engine (`relevanceEngine.js`) is kept.
 

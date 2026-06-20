@@ -135,7 +135,7 @@ Hebrew sports headlines are often ambiguous in isolation — `"מכבי משחק
    ```
    When `subtitle` is `None` or empty, only `Headline: <title>` is sent — identical to the pre-subtitle behavior.
 
-**No DB storage.** Subtitle is used only during ingestion to improve classification. It is not stored in the `articles` table and not shown in the UI.
+**DB storage and UI display.** Subtitle is stored in the `articles` table as the `subtitle` column (nullable TEXT, added via soft migration). It is displayed in the Feed and Debug views under the article title when available. Subtitle is not a translation — it is the original RSS `<description>` text and is displayed as-is. Old articles already in the DB retain `subtitle=null`; only newly ingested articles have subtitle populated.
 
 ---
 

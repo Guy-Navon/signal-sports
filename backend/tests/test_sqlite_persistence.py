@@ -101,6 +101,94 @@ def test_article_response_shape_stable(client):
     assert a["importance"] == "high"
     assert isinstance(a["tags"], list)
     assert isinstance(a["confidence"], float)
+    # subtitle field must be present in the response (null for seed articles)
+    assert "subtitle" in a
+
+
+def test_article_with_subtitle_persists_and_returns_subtitle(client):
+    """Article created with subtitle is stored and returned via API."""
+    from app.db.database import SessionLocal
+    from app.repositories.article_repository import insert, get_by_id
+    from app.models.article import Article
+    from datetime import datetime, timezone
+
+    article = Article(
+        id="rss_subtitle_test_001",
+        source="eurohoops",
+        source_display_name="Eurohoops",
+        url="https://eurohoops.net/subtitle-test/001",
+        title="Maccabi Tel Aviv signs EuroLeague guard",
+        language="en",
+        published_at=datetime(2026, 6, 20, tzinfo=timezone.utc),
+        sport="basketball",
+        event_type="signing",
+        importance="high",
+        subtitle="The Israeli club closed a deal with a veteran EuroLeague point guard.",
+    )
+    with SessionLocal() as session:
+        insert(session, article)
+
+    r = client.get("/api/articles/rss_subtitle_test_001")
+    assert r.status_code == 200
+    a = r.json()
+    assert a["subtitle"] == "The Israeli club closed a deal with a veteran EuroLeague point guard."
+
+
+def test_article_without_subtitle_returns_null_subtitle(client):
+    """Article created without subtitle returns subtitle=null from API."""
+    from app.db.database import SessionLocal
+    from app.repositories.article_repository import insert
+    from app.models.article import Article
+    from datetime import datetime, timezone
+
+    article = Article(
+        id="rss_subtitle_test_002",
+        source="eurohoops",
+        source_display_name="Eurohoops",
+        url="https://eurohoops.net/subtitle-test/002",
+        title="Deni Avdija news",
+        language="en",
+        published_at=datetime(2026, 6, 20, tzinfo=timezone.utc),
+        sport="basketball",
+        event_type="news",
+        importance="medium",
+        subtitle=None,
+    )
+    with SessionLocal() as session:
+        insert(session, article)
+
+    r = client.get("/api/articles/rss_subtitle_test_002")
+    assert r.status_code == 200
+    a = r.json()
+    assert a["subtitle"] is None
+
+
+def test_repository_maps_subtitle_from_row(client):
+    """_row_to_article() must map subtitle from DB row to Article model."""
+    from app.db.database import SessionLocal
+    from app.repositories.article_repository import insert, get_by_id
+    from app.models.article import Article
+    from datetime import datetime, timezone
+
+    article = Article(
+        id="rss_subtitle_test_003",
+        source="walla_sport",
+        source_display_name="וואלה ספורט",
+        url="https://sport.walla.co.il/subtitle-test/003",
+        title="מכבי תל אביב בדרך לאלוף",
+        language="he",
+        published_at=datetime(2026, 6, 20, tzinfo=timezone.utc),
+        sport="basketball",
+        event_type="match_result",
+        importance="high",
+        subtitle="מכבי תל אביב ניצחה את הפועל ירושלים בגמר ליגת Winner.",
+    )
+    with SessionLocal() as session:
+        insert(session, article)
+        retrieved = get_by_id(session, "rss_subtitle_test_003")
+
+    assert retrieved is not None
+    assert retrieved.subtitle == "מכבי תל אביב ניצחה את הפועל ירושלים בגמר ליגת Winner."
 
 
 # ── Profiles via API ──────────────────────────────────────────────────────────

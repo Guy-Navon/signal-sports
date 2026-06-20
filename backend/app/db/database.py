@@ -17,6 +17,7 @@ SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 def _apply_migrations(eng) -> None:
     """Add new nullable columns to existing tables without recreating them."""
     migrations = [
+        ("articles", "subtitle",                  "TEXT"),
         ("articles", "classified_by",            "TEXT DEFAULT 'rules'"),
         ("articles", "classification_provider",   "TEXT"),
         ("articles", "classification_reason",     "TEXT"),

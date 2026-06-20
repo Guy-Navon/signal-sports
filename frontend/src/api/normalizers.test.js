@@ -122,6 +122,26 @@ describe("normalizeArticleFromApi", () => {
     expect(result.clusterId).toBeNull();
     expect(result.confidence).toBe(0.85);
   });
+
+  it("preserves subtitle when present", () => {
+    const withSubtitle = {
+      ...RAW_ARTICLE,
+      subtitle: "The club closed a deal with a EuroLeague guard.",
+    };
+    const result = normalizeArticleFromApi(withSubtitle);
+    expect(result.subtitle).toBe("The club closed a deal with a EuroLeague guard.");
+  });
+
+  it("returns null subtitle when API returns null", () => {
+    const withNull = { ...RAW_ARTICLE, subtitle: null };
+    const result = normalizeArticleFromApi(withNull);
+    expect(result.subtitle).toBeNull();
+  });
+
+  it("returns null subtitle when subtitle field is absent", () => {
+    const result = normalizeArticleFromApi(RAW_ARTICLE);
+    expect(result.subtitle).toBeNull();
+  });
 });
 
 // ── Scored article normalizer ─────────────────────────────────────────────────

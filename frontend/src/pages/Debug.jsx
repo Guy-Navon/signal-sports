@@ -55,6 +55,11 @@ function DebugRow({ item }) {
             )}
           </div>
           <p className="text-sm text-gray-200 font-medium leading-snug truncate">{title}</p>
+          {item.subtitle && (
+            <p className="text-xs text-gray-500 mt-0.5 line-clamp-3 leading-snug">
+              {item.subtitle}
+            </p>
+          )}
           <p className="text-xs text-gray-600 mt-0.5">{source} · {item.sport} · {item.league || "—"}</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">

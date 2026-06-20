@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Boolean, JSON, Integer
+from sqlalchemy import Column, String, Text, Float, Boolean, JSON, Integer
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -27,6 +27,8 @@ class ArticleRow(Base):
     confidence = Column(Float, nullable=False, default=0.85)
     tags = Column(JSON, nullable=False)
     cluster_id = Column(String, nullable=True)
+    # Subtitle/description from RSS feed — added via soft migration; nullable for existing rows
+    subtitle = Column(Text, nullable=True)
     # LLM classification metadata — added via soft migration; nullable for existing rows
     classified_by = Column(String, nullable=True, default="rules")
     classification_provider = Column(String, nullable=True)

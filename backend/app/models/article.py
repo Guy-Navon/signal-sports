@@ -21,6 +21,7 @@ class Article(BaseModel):
     confidence: float = 0.85
     tags: List[str] = []
     cluster_id: Optional[str] = None
+    subtitle: Optional[str] = None
     # LLM classification metadata
     classified_by: str = "rules"
     classification_provider: Optional[str] = None

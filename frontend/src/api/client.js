@@ -92,3 +92,7 @@ export function classifyBackfill({ sourceId, limit, dryRun = false, force = fals
 export function resetRssData() {
   return apiFetch("/api/dev/reset-rss-data", { method: "POST" });
 }
+
+export function runLlmGatingBenchmark() {
+  return apiFetch("/api/dev/benchmark/llm-gating", { method: "POST" });
+}

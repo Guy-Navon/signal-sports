@@ -2,6 +2,7 @@ import React from "react";
 import { useApp } from "@/context/AppContext";
 import { Database, Code2, ExternalLink, CheckCircle2, XCircle } from "lucide-react";
 import IngestionPanel from "@/components/ingestion/IngestionPanel";
+import GatingBenchmarkPanel from "@/components/ingestion/GatingBenchmarkPanel";
 
 const TRUST_LABELS = {
   high: { label: "גבוה", color: "text-emerald-400" },
@@ -49,6 +50,9 @@ export default function Sources() {
 
       {/* Ingestion panel */}
       <IngestionPanel isBackendMode={isBackendMode} onFeedRefresh={refreshFeed} />
+
+      {/* Dev-only LLM gating benchmark */}
+      <GatingBenchmarkPanel isBackendMode={isBackendMode} />
 
       {/* Sources list */}
       <div className="space-y-2">

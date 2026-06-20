@@ -1,4 +1,4 @@
-# RSS Ingestion — PR 7
+﻿# RSS Ingestion — PR 7
 
 ## Why RSS Comes After SQLite
 
@@ -197,6 +197,12 @@ Before calling the LLM, `should_call_llm_for_article()` in `gating.py` evaluates
 
 - `CLASSIFICATION_LLM_GATING=enabled` (default): gating active
 - `CLASSIFICATION_LLM_GATING=disabled`: always call LLM; reproduces pre-gating behavior
+
+`run_ingestion()`, `_run_source()`, and `_normalise()` all accept `llm_gating_enabled_override: Optional[bool] = None`. When not None, overrides the env-level flag for that call only — the module-level `_GATING_ENABLED` is never mutated. Used by the benchmark endpoint to run both phases in one backend process.
+
+### Dev/QA benchmark endpoint (`POST /api/dev/benchmark/llm-gating`)
+
+Runs a two-phase benchmark: baseline (gating disabled via override) then gated (gating enabled via override). Resets RSS data between phases. Returns per-source stats for both phases plus a comparison with PASS/FAIL status. Requires `ALLOW_DEV_RESET=true` and an active provider. Results are not persisted. Accessible from the Sources page "בנצ'מרק LLM Gating" panel in backend mode.
 
 Gating metrics are returned in the live `POST /api/ingest/run` response as `llm_skipped`, `llm_skip_reasons`, and `llm_call_reasons`. These are not persisted to the DB.
 

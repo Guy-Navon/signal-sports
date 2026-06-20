@@ -54,6 +54,7 @@ def should_call_llm_for_article(
     subtitle: Optional[str],
     rules_result: ClassificationResult,
     source_sport_hint: Optional[str],
+    gating_enabled_override: Optional[bool] = None,
 ) -> LLMGateDecision:
     """Return whether to call the LLM for this article, with an explainable reason.
 
@@ -62,8 +63,13 @@ def should_call_llm_for_article(
 
     Skip reasons mean: "eligible, but deterministic result is strong enough."
     Call reasons mean: "eligible, and LLM is likely to add value."
+
+    gating_enabled_override: if not None, overrides the env-level _GATING_ENABLED.
+    Used by the benchmark endpoint to run baseline (False) and gated (True) in one
+    backend process without requiring a restart between runs.
     """
-    if not _GATING_ENABLED:
+    gating_active = _GATING_ENABLED if gating_enabled_override is None else gating_enabled_override
+    if not gating_active:
         return LLMGateDecision(should_call_llm=True, reason="gating_disabled")
 
     sport = rules_result.sport

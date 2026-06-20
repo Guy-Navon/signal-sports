@@ -70,6 +70,7 @@ def _normalise(
     item: RawSourceItem,
     cfg: RSSSourceConfig,
     llm_available: bool = True,
+    llm_gating_enabled_override: Optional[bool] = None,
 ) -> tuple[Article, Optional[float], Optional[LLMGateDecision]]:
     """Map a raw RSS item to an Article using language detection, translation, and classification.
 
@@ -130,6 +131,7 @@ def _normalise(
             subtitle=subtitle,
             rules_result=rules_result,
             source_sport_hint=source_sport_hint,
+            gating_enabled_override=llm_gating_enabled_override,
         )
 
         if not gate.should_call_llm:
@@ -196,7 +198,11 @@ def _normalise(
 
 # ── Per-source run ────────────────────────────────────────────────────────────
 
-def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
+def _run_source(
+    session: Session,
+    cfg: RSSSourceConfig,
+    llm_gating_enabled_override: Optional[bool] = None,
+) -> SourceIngestResult:
     _run_t0 = time.perf_counter()
     started_at = datetime.now(tz=timezone.utc)
     adapter = RSSSourceAdapter(
@@ -254,7 +260,11 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
                 skipped_duplicate += 1
                 continue
 
-            article, llm_ms, gate = _normalise(item, cfg, llm_available=not llm_circuit_open)
+            article, llm_ms, gate = _normalise(
+                item, cfg,
+                llm_available=not llm_circuit_open,
+                llm_gating_enabled_override=llm_gating_enabled_override,
+            )
 
             # Accumulate LLM timing and counters.
             if llm_ms is not None:
@@ -389,6 +399,7 @@ def _run_source(session: Session, cfg: RSSSourceConfig) -> SourceIngestResult:
 def run_ingestion(
     session: Session,
     source_id: Optional[str] = None,
+    llm_gating_enabled_override: Optional[bool] = None,
 ) -> list[SourceIngestResult]:
     """Fetch, filter, classify, deduplicate, and insert articles from RSS sources.
 
@@ -419,7 +430,7 @@ def run_ingestion(
 
     results: list[SourceIngestResult] = []
     for cfg in configs:
-        result = _run_source(session, cfg)
+        result = _run_source(session, cfg, llm_gating_enabled_override=llm_gating_enabled_override)
         results.append(result)
         logger.info(
             "Ingest %s: fetched=%d filtered=%d inserted=%d skipped=%d failed=%d",

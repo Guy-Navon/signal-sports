@@ -435,12 +435,15 @@ def should_call_llm_for_article(
     subtitle: Optional[str],
     rules_result: ClassificationResult,
     source_sport_hint: Optional[str],
+    gating_enabled_override: Optional[bool] = None,   # run-level override for benchmark
 ) -> LLMGateDecision:
 ```
 
 Returns `LLMGateDecision(should_call_llm: bool, reason: str)`.
 
 Pure function — no I/O, no side effects. Fully unit-testable without mocking.
+
+**`gating_enabled_override`:** If not `None`, overrides `CLASSIFICATION_LLM_GATING` for this call. Used by the benchmark endpoint (`POST /api/dev/benchmark/llm-gating`) to run baseline (override=False) and gated (override=True) in the same backend process without a restart. Normal ingestion always passes `None` (uses env default).
 
 ### Evaluation order
 
@@ -594,6 +597,33 @@ monkeypatch.setitem(sys.modules, "google.genai", mock_genai)
 monkeypatch.setitem(sys.modules, "google.genai.types", mock_genai.types)
 ```
 Mocking only `google.genai` is insufficient — `import google.genai as genai` inside `GeminiLLMProvider.__init__` triggers `ModuleNotFoundError: No module named 'google'` at test time.
+
+---
+
+## LLM Gating Benchmark UI
+
+A one-click benchmark is available on the Sources page (backend mode only).
+
+**Setup:** `ALLOW_DEV_RESET=true` + `CLASSIFICATION_PROVIDER=ollama` in `.env`, restart backend.
+
+**Run:** Click "הרץ בנצ׳מרק מלא" in the "בנצ׳מרק LLM Gating" panel.
+
+**What it does:**
+1. Resets RSS data
+2. Runs ingestion for `walla_sport` and `israel_hayom_sport` with `gating_enabled_override=False` (baseline)
+3. Queries `sport=unknown` counts per source
+4. Resets RSS data again
+5. Runs ingestion with `gating_enabled_override=True` (gated)
+6. Queries `sport=unknown` counts again
+7. Returns structured JSON with baseline, gated, and comparison data
+
+The run-level override (`gating_enabled_override`) is threaded through `run_ingestion()` → `_run_source()` → `_normalise()` → `should_call_llm_for_article()`. Normal ingestion (via `POST /api/ingest/run`) passes `None` and uses the env default. The module-level `_GATING_ENABLED` flag is never mutated.
+
+**Endpoint:** `POST /api/dev/benchmark/llm-gating` — guarded by `ALLOW_DEV_RESET=true`, returns 422 when provider cannot classify. Results are not persisted.
+
+**Acceptance targets** (comparison rows show PASS/FAIL):
+- `skip_rate >= 0.40` — at least 40% of eligible articles should be gated
+- `sport_unknown_delta <= 0` — no regression in unclassified article count
 
 ---
 

@@ -163,3 +163,12 @@ const DECISION_LABELS_HE = {
   high_feed: "חשוב",
   push: "דורש תשומת לב",
 };
+
+/**
+ * Format a ratio (0.0–1.0) as a percentage string: 0.5667 -> "56.7%"
+ * Returns "—" for null/undefined.
+ */
+export function formatPercent(ratio) {
+  if (ratio == null) return "—";
+  return `${(ratio * 100).toFixed(1)}%`;
+}

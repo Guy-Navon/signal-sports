@@ -27,7 +27,13 @@ from app.classification.service import get_llm_provider
 from app.classification.validation import LLM_MIN_CONFIDENCE
 from app.ingestion.adapters.base import RawSourceItem
 from app.ingestion.adapters.rss_adapter import RSSSourceAdapter
-from app.ingestion.classifier import classify, _has_football_maccabi_context
+from app.ingestion.classifier import (
+    classify,
+    _has_football_maccabi_context,
+    has_maccabi_tel_aviv_phrase,
+    compute_importance,
+    enrich_maccabi_entity_after_sport_resolve,
+)
 from app.ingestion.config import RSS_SOURCES, RSSSourceConfig, get_source_config, get_enabled_sources
 from app.ingestion.dedup import article_id_from_url, url_already_exists
 from app.models.article import Article
@@ -169,6 +175,23 @@ def _normalise(
     # Final league-sport compatibility normalisation — applies to both rules-only and LLM-merge
     # paths so no Article can be persisted with an impossible sport/league combination.
     final_result = normalize_league_sport_compatibility(final_result)
+
+    # Post-merge Maccabi entity injection:
+    # classify() cannot assign the Maccabi Tel Aviv Basketball entity when the title has the
+    # full-name club form but no sport context (ambiguous_club). If LLM resolved sport to
+    # basketball, we inject the entity now so the article reaches Guy's Maccabi topic.
+    title_lower = classify_title.lower()
+    enriched_entities = enrich_maccabi_entity_after_sport_resolve(
+        final_result.entities, title_lower, final_result.sport
+    )
+    if enriched_entities is not final_result.entities:
+        final_result.entities = enriched_entities
+        final_result.tags = [t for t in final_result.tags if t != "ambiguous_club"]
+        if "Maccabi Tel Aviv Basketball" not in final_result.tags:
+            final_result.tags = [*final_result.tags, "Maccabi Tel Aviv Basketball"]
+        final_result.importance = compute_importance(
+            final_result.event_type, final_result.entities, final_result.league
+        )
 
     article = Article(
         id=article_id_from_url(item.url),

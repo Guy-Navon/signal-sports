@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-06-20 — reflects state after LLM gating benchmark UI (PR 12 addendum): run-level gating override + `POST /api/dev/benchmark/llm-gating` + Sources page benchmark panel. Branch: `feature/selective-llm-gating`.
+Last updated: 2026-06-27 — reflects state after feed-quality fixes discovered during LLM gating benchmark QA (on branch `feature/selective-llm-gating`): IBL team classification, Maccabi entity injection after LLM resolve, EuroCup in EuroLeague topic, Guy football mode → titles_only, 41 regression tests added (788 total).
 
 ---
 
@@ -180,7 +180,7 @@ On startup: tables are created if missing; soft migrations add new columns to ex
 
 **Sources page — Ingestion panel:** In backend mode, shows source selector (MVP active sources: וואלה ספורט, ישראל היום ספורט), "הרץ ייבוא עכשיו" button, per-source result breakdown after run, recent runs list (last 5), and "איכות הסיווג" quality toggle. No translation UI — translation is post-MVP and was removed from the Sources page. In local mode, shows a disabled card with instructions to enable backend mode.
 
-**Sources page — LLM Gating Benchmark panel** (dev/QA only): In backend mode, shows "בנצ׳מרק LLM Gating" section with "הרץ בנצ׳מרק מלא" button. Runs a two-phase benchmark (baseline then gated) and displays a structured report: per-source baseline stats, gated stats, and a comparison row per source showing skip rate, LLM calls saved, time saved, sport_unknown delta, and PASS/FAIL status. Requires  and . Results are not persisted. Panel hidden in local mode.
+**Sources page — LLM Gating Benchmark panel** (dev/QA only): In backend mode, shows "בנצ׳מרק LLM Gating" section with "הרץ בנצ׳מרק מלא" button. Runs a two-phase benchmark (baseline then gated) and displays a structured report: per-source baseline stats, gated stats, and a comparison row per source showing skip rate, LLM calls saved, time saved, sport_unknown delta, and PASS/FAIL status. Requires ALLOW_DEV_RESET=true and CLASSIFICATION_PROVIDER=ollama. Results are not persisted. Panel hidden in local mode.
 
 **Feed card:** Renders the Hebrew-native article title directly. For MVP Hebrew sources, `translatedTitle` is always `null` and the card falls back to `title` (the raw Hebrew RSS title). When available, the RSS subtitle (cleaned `<description>` text) is displayed under the title in a muted secondary style, clamped to 2 lines — this helps disambiguate clickbait or ambiguous Hebrew headlines. No original-language metadata block, no untranslated badge, no "לא תורגם" warning. Subtitle is not a translation. The title fallback logic (`item.translatedTitle || item.title`) is preserved so the card works correctly when English sources are re-enabled post-MVP.
 
@@ -422,7 +422,7 @@ No `.env.local` needed. Uses mock data and frontend engine.
 ```bash
 cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
-# 747 tests — all should pass (no test requires Ollama running or a real API key)
+# 788 tests — all should pass (no test requires Ollama running or a real API key)
 # Note: test_reset_returns_403_when_disabled requires ALLOW_DEV_RESET unset or =false in .env
 ```
 

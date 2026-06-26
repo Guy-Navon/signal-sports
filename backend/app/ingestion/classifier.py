@@ -102,6 +102,14 @@ _BASKETBALL_CTX_KW = (
     "הפועל ירושלים",                             # Hapoel Jerusalem Basketball (unambiguous)
     "בני הרצליה",                                # Bnei Herzliya Basketball (unambiguous)
     "גמר סל",                                     # basketball final
+    # Additional IBL clubs for disambiguation of Maccabi/Hapoel TLV articles
+    "הפועל אילת",       # Hapoel Eilat Basketball (IBL)
+    "גלבוע", "גלבוע עליון", "גלבוע גליל",  # Galil Gilboa Basketball (IBL)
+    "עמק יזרעאל",       # Emek Yizrael Basketball (IBL)
+    # Basketball stats and positions for disambiguation
+    "רכז",              # point guard (Hebrew position name)
+    "ריבאונדים",         # rebounds (basketball statistic)
+    "חולון",            # Holon — short form of Hapoel Holon Basketball
 )
 
 # Context words that confirm football sport — used to resolve ambiguous club names.
@@ -153,7 +161,7 @@ def _has_hapoel_tel_aviv_football_context(text: str) -> bool:
 # ── Sport detection ───────────────────────────────────────────────────────────
 
 _BASKETBALL_KW = (
-    "basketball", "כדורסל", "nba", "euroleague", "eurocup", "יורוליג",
+    "basketball", "כדורסל", "nba", "euroleague", "eurocup", "יורוליג", "יורוקאפ",
     "acb", "bsl", "lba", "lnb",
     "maccabi", "מכבי",          # almost always basketball
     "ווינר סל", "ליגת העל סל",  # Israeli Basketball League explicit markers
@@ -165,6 +173,12 @@ _BASKETBALL_KW = (
     "וויזארדס", "הורנטס", "בלייזרס", "ניקס", "סלטיקס", "לייקרס",
     "באקס", "סאנס", "נאגטס", "מאברס", "ספרס", "רוקטס", "ראפטורס", "גריזליס",
     "mvp",  # unambiguously basketball in Israeli sports context
+    # Israeli Basketball League clubs — direct sport detection without "כדורסל" keyword
+    "גלבוע", "גלבוע גליל", "גלבוע עליון",  # Galil Gilboa Basketball (IBL)
+    "עמק יזרעאל",  # Emek Yizrael Basketball (IBL)
+    "הפועל אילת",  # Hapoel Eilat Basketball (IBL)
+    # NBA star names (Hebrew) — unambiguous basketball signal
+    "לברון", "לברון ג'יימס",  # LeBron James
 )
 _FOOTBALL_KW = (
     "football", "soccer", "כדורגל", "fifa", "uefa",
@@ -176,6 +190,9 @@ _FOOTBALL_KW = (
     "הפועל באר שבע",            # Hapoel Beer Sheva (football)
     # Note: הפועל תל אביב forms are NOT here — they are disambiguated explicitly
     # in _detect_sport because הפועל תל אביב also refers to a basketball club.
+    # Football-specific positions — direct sport detection when no club name present
+    "חלוץ",    # striker (football position, also already in _FOOTBALL_CTX_KW)
+    "שוער",    # goalkeeper
 )
 
 # Maccabi clubs that are FOOTBALL — must be checked BEFORE _BASKETBALL_KW
@@ -248,7 +265,7 @@ def _detect_sport(text: str, source_id: str, source_sport_hint: str | None = Non
 
 # EuroCup must be checked before EuroLeague: some titles mention "Euroleague"
 # while covering EuroCup news, and the URL or title keyword "eurocup" is authoritative.
-_EUROCUP_KW = ("eurocup", "euro cup", "fiba europe cup")
+_EUROCUP_KW = ("eurocup", "euro cup", "fiba europe cup", "יורוקאפ")
 
 _NBA_DIRECT_KW = ("nba", "אן.בי.איי")
 _NBA_TEAM_KW = (
@@ -264,6 +281,8 @@ _NBA_TEAM_KW = (
     "וושינגטון",    # Washington Wizards
     "פורטלנד",      # Portland Trail Blazers
     "שארלוט",       # Charlotte Hornets
+    # NBA star names (Hebrew) — infer NBA when no team name in title
+    "לברון", "לברון ג'יימס",  # LeBron James
 )
 _EUROLEAGUE_KW = ("euroleague", "יורוליג", "היורוליג")
 # Direct textual mentions of the Israeli Basketball League.
@@ -276,7 +295,14 @@ _ISRAELI_BBALL_DIRECT_KW = (
     "ווינר סל", "ליגת העל סל",
     "winner league", "ligat winner",
     "israeli basketball league", "super league basketball",
-    "הפועל תל אביב",  # Hapoel Tel Aviv basketball club — Israeli Basketball League
+    "הפועל תל אביב",   # Hapoel Tel Aviv basketball club — Israeli Basketball League
+    # IBL clubs — when seen in basketball-resolved context, implies Israeli Basketball League
+    "בני הרצליה",      # Bnei Herzliya Basketball
+    "הפועל חולון",     # Hapoel Holon Basketball
+    "הפועל ירושלים",   # Hapoel Jerusalem Basketball
+    "הפועל אילת",      # Hapoel Eilat Basketball
+    "גלבוע גליל", "גלבוע עליון",  # Galil Gilboa Basketball
+    "עמק יזרעאל",      # Emek Yizrael Basketball
 )
 # Context keywords that, combined with a Maccabi entity, strongly imply Israeli domestic play.
 _ISRAELI_BBALL_CONTEXT_KW = (
@@ -419,6 +445,9 @@ _SIGNING_KW = (
     "חתם", "חתמה", "חתמו", "החתים", "חתימה",
     "הצטרף", "הצטרפה",       # joined / signed and joined
     "signed", "signing",
+    "לעונה נוספת",   # for another season — contract extension
+    "מונה למאמן",    # appointed as head coach
+    "מינוי",         # appointment / designation
 )
 _SIGNING_WORD_KW = ("signs", "sign")   # word boundary to avoid "signal"
 
@@ -438,6 +467,7 @@ _CANDIDATE_KW = (
     "מעוניינת", "מעוניין",   # interested in
     "עשוי להגיע", "עשויה להגיע",  # may arrive
     "monitoring", "candidate", "interested in",
+    "המטרות הבאות", "המטרה הבאה",  # the next targets / the next target
 )
 _CANDIDATE_WORD_KW = ("target",)
 
@@ -485,6 +515,8 @@ _EARLY_ROUND_TENNIS_KW = (
     "round of 16", "round of 32",
 )
 
+_DEATH_ACCIDENT_KW = ("נהרג", "נפטר", "תאונה קטלנית")
+
 _SCHEDULE_KW = (
     'לו"ז', "לוח משחקים", "שידורים", "שידור", "לקראת", "תאריכים",
     "schedule", "preview", "upcoming", "fixture", "fixtures",
@@ -498,6 +530,11 @@ _REGULAR_SEASON_KW = ("ליגה הרגילה", "regular season")
 
 
 def _detect_event_type(text: str, sport: str) -> str:
+    # Death/accident guard: prevent "נהרג"/"נפטר" articles from triggering title_win
+    # via incidental championship words (e.g. "נהרג אלוף הגביע" → "news", not "title_win").
+    if _has(text, *_DEATH_ACCIDENT_KW):
+        return "news"
+
     # Grand slam winner: needs BOTH the tournament context AND a win signal
     if sport == "tennis" and _has(text, *_GRAND_SLAM_KW) and _has(text, *_GRAND_SLAM_WIN_KW):
         return "grand_slam_winner"
@@ -796,3 +833,46 @@ def classify(
         confidence=confidence,
         tags=tags,
     )
+
+
+# ── Public helpers for post-classification enrichment ─────────────────────────
+
+def has_maccabi_tel_aviv_phrase(text: str) -> bool:
+    """True if text contains a full-name Maccabi Tel Aviv form.
+
+    Public wrapper — use in ingestion_service after LLM merge to check whether
+    entity injection is applicable.
+    """
+    return _has_maccabi_tel_aviv_phrase(text)
+
+
+def compute_importance(event_type: str, entities: list[str], league: Optional[str]) -> str:
+    """Public wrapper for _assign_importance.
+
+    Use when entities change after initial classification (e.g., post-LLM entity injection).
+    """
+    return _assign_importance(event_type, entities, league)
+
+
+def enrich_maccabi_entity_after_sport_resolve(
+    entities: list[str],
+    title_lower: str,
+    sport: str,
+) -> list[str]:
+    """Inject Maccabi Tel Aviv Basketball entity if sport was resolved to basketball post-classify.
+
+    Called in ingestion_service after LLM merge. classify() leaves entities empty for
+    ambiguous_club titles where no subtitle provided basketball context; the LLM resolves
+    sport=basketball but entities remain empty. This function corrects that gap.
+
+    Returns a new list if enriched; returns the same object if no change (identity check safe).
+    """
+    if (
+        sport != "basketball"
+        or "Maccabi Tel Aviv Basketball" in entities
+        or "Maccabi Tel Aviv Football" in entities
+        or _has_football_maccabi_context(title_lower)
+        or not _has_maccabi_tel_aviv_phrase(title_lower)
+    ):
+        return entities
+    return [*entities, "Maccabi Tel Aviv Basketball"]

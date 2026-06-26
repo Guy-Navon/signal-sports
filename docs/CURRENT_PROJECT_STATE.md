@@ -145,7 +145,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 
 On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent).
 
-**Test suite:** 688+ pytest tests across `backend/tests/` (+ new `test_llm_gating.py` for gating) + 234+ frontend tests (Vitest).
+**Test suite:** 788 pytest tests across `backend/tests/` + 234+ frontend tests (Vitest).
 
 **Key API endpoints:**
 
@@ -210,7 +210,7 @@ Push must be rare. If more than a handful of articles per day reach push, the en
 - EuroLeague: `league` scope — high priority, non-Maccabi transfers → `high_feed` not `push`
 - Israeli Basketball League: `league` scope — high priority
 - European domestic basketball (ACB, BSL, Greek, LBA, LNB): `league_group` scope — moderate priority
-- Football: `sport` scope, mode `major_only` — most football is `hidden`
+- Football: `sport` scope, mode `titles_only`, empty event rules — all football is `hidden` for Guy (prevents major_importance_fallback leakage)
 - Tennis: `sport` scope, mode `titles_only` — only Grand Slam winners/finals visible
 
 **Demo profile: Casual Deni Fan**

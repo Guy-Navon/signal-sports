@@ -587,9 +587,104 @@ LLM returned `title_win` for a fluff/embarrassment article. Guardrail 4b rejects
 
 ---
 
+## 9. Quality Fixes from LLM Gating Benchmark QA (2026-06-27)
+
+Manual QA of the LLM gating benchmark exposed 15 feed-quality regressions. All fixes are in `classifier.py`, `ingestion_service.py`, and `seed_profiles.py`.
+
+### 9a. Israeli Basketball League (IBL) — direct sport detection
+
+**Problem:** Israeli domestic basketball clubs (`גלבוע עליון`, `הפועל אילת`, `עמק יזרעאל`, `בני הרצליה`) were not in `_BASKETBALL_KW`, so titles containing only these names (no EuroLeague/Winner League keywords) returned `sport=unknown` or fell through to football.
+
+**Fix:** Added all IBL club names to:
+- `_BASKETBALL_KW` — triggers direct basketball sport detection
+- `_ISRAELI_BBALL_DIRECT_KW` — triggers `league="Israeli Basketball League"` when sport is basketball
+
+IBL clubs added: `גלבוע`, `גלבוע עליון`, `גלבוע גליל`, `הפועל אילת`, `עמק יזרעאל`, `בני הרצליה`, `הפועל חולון` (short form "חולון"), `הפועל ירושלים`.
+
+Also added IBL clubs to `_BASKETBALL_CTX_KW` so they can disambiguate mixed-entity titles (e.g. Maccabi TLV vs. Maccabi Haifa) toward basketball.
+
+### 9b. NBA — Hebrew star name detection
+
+**Problem:** "לברון ג'יימס" (LeBron James) was not in any basketball keyword list, so a Hebrew LeBron article returned `sport=unknown`.
+
+**Fix:** Added `"לברון"` and `"לברון ג'יימס"` to:
+- `_BASKETBALL_KW` — direct basketball sport detection
+- `_NBA_TEAM_KW` — triggers `league="NBA"`
+
+### 9c. EuroCup — Hebrew keyword
+
+**Problem:** `"יורוקאפ"` (Hebrew for EuroCup) was in `_BASKETBALL_CTX_KW` (disambiguation only) but not in `_BASKETBALL_KW` or `_EUROCUP_KW`. A title like "שידורי יורוקאפ השבוע" returned `sport=unknown, league=None`.
+
+**Fix:** Added `"יורוקאפ"` to both `_BASKETBALL_KW` and `_EUROCUP_KW`.
+
+### 9d. New signing and candidate keywords
+
+**Signing:** Added `"לעונה נוספת"` (contract extension), `"מונה למאמן"` (appointed as head coach), `"מינוי"` (appointment) to `_SIGNING_KW`. These patterns previously fell through to `event_type="news"`.
+
+**Candidate:** Added `"המטרות הבאות"`, `"המטרה הבאה"` (next targets) to `_CANDIDATE_KW`.
+
+### 9e. Death/accident guard
+
+**Problem:** Articles containing `"נהרג"` (killed) or `"נפטר"` (passed away) with adjacent positive context verbs could trigger `title_win` classification.
+
+**Fix:** Added `_DEATH_ACCIDENT_KW = ("נהרג", "נפטר", "תאונה קטלנית")` guard at the top of `_detect_event_type()`. If a death/accident keyword is present, `event_type` falls through to `"news"` immediately, regardless of other keyword matches.
+
+### 9f. Post-merge Maccabi entity injection
+
+**Problem:** When a title contains a full-name "מכבי תל אביב" form but has no sport context keywords (no "כדורסל", no "יורוליג", no Kattash, etc.), the deterministic classifier sets `tags=["ambiguous_club"]` and `entities=[]` — it cannot assign the Maccabi Tel Aviv Basketball entity without knowing which sport. The LLM resolves `sport=basketball`, but the merge step does not retroactively add the entity, so `entities` remains empty after the LLM call. An empty-entity article misses Guy's `maccabi_tel_aviv_basketball` topic (scope=entity match requires the entity in `article.entities`).
+
+**Fix:** New public helper `enrich_maccabi_entity_after_sport_resolve(entities, title_lower, sport)` in `classifier.py`. Called in `ingestion_service.py` immediately after `normalize_league_sport_compatibility()`:
+
+```python
+enriched_entities = enrich_maccabi_entity_after_sport_resolve(
+    final_result.entities, title_lower, final_result.sport
+)
+if enriched_entities is not final_result.entities:
+    final_result.entities = enriched_entities
+    final_result.tags = [t for t in final_result.tags if t != "ambiguous_club"]
+    final_result.importance = compute_importance(
+        final_result.event_type, final_result.entities, final_result.league
+    )
+```
+
+The function injects `"Maccabi Tel Aviv Basketball"` only when:
+- `sport == "basketball"` (LLM resolved it)
+- `"Maccabi Tel Aviv Basketball"` not already present
+- No football Maccabi form detected (safety guard)
+- Full-name "מכבי תל אביב" phrase present in title
+
+Importance is recalculated because adding a tracked entity changes the score (e.g. `event_type="news"` + no entity → `low`; with entity → `medium`, which changes Guy's decision from `low_feed` to `feed`).
+
+### 9g. Guy profile — football topic change
+
+**Problem:** Guy's football topic used `mode="major_only"`, which has a `major_importance_fallback` that shows articles with `importance=high` even when no event rule matches. High-importance football articles (World Cup, major transfers) were leaking into Guy's feed.
+
+**Fix:** Changed to `mode="titles_only"` with `event_rules={}`. `titles_only` with an empty rules dict means all football is hidden for Guy. No football article can reach Guy's feed through the relevance engine regardless of importance.
+
+### 9h. Guy profile — EuroLeague topic now includes EuroCup
+
+**Problem:** Guy's `euroleague` topic had `leagues=["EuroLeague"]` and `"schedule": "hidden"`. EuroCup articles were visible (basketball + no league mismatch) but got routed to other low-priority topics instead. EuroCup schedule/broadcast articles were also getting too much priority.
+
+**Fix:**
+- `leagues=["EuroLeague", "EuroCup"]` — EuroCup articles now match this topic (priority 95) instead of falling to lower topics
+- `"schedule": "low_feed"` — EuroCup/EuroLeague schedule articles are visible but deprioritized
+
+### 9i. Regression test coverage
+
+41 new tests in `backend/tests/test_quality_regressions.py` cover all 15 manual QA cases:
+- `TestIBLClassifier` (9 tests): IBL clubs → sport=basketball + league=Israeli Basketball League
+- `TestNBAKeywordFixes` (3 tests): LeBron Hebrew → basketball + NBA
+- `TestEventTypeKeywordFixes` (5 tests): new signing/candidate/death-guard keywords
+- `TestEuroCupClassifier` (2 tests): "יורוקאפ" → basketball + EuroCup
+- `TestMaccabiEntityEnrichment` (8 tests): `enrich_maccabi_entity_after_sport_resolve` + `compute_importance`
+- `TestGuyPositiveCasesQA` (8 tests): cases 1,3,4,5,6,7,8,9 — must be visible for Guy
+- `TestGuyNegativeCasesQA` (6 tests): cases 10–15 — must be hidden for Guy
+
+---
+
 ## Next Steps
 
-- **LLM classification benchmark** — With timing now instrumented, run Ollama/Qwen on a fresh DB and read `fetch_ms`, `llm_avg_ms`, `llm_p95_ms`, and fallback counts from the `POST /api/ingest/run` response. Compare `sport=unknown` count before/after.
+- **Re-run LLM gating benchmark** — Quality fixes on branch `feature/selective-llm-gating` are now in place. Re-run the benchmark from the Sources page to measure skip rate and quality after fixes.
 - **Expand entity normalization map** — Add EuroLeague club names, Israeli basketball coaches, key NBA players after benchmark reveals which entities LLM identifies but are not yet canonical.
 - **Automate ingestion** — APScheduler polling every 15–30 minutes.
 - **Extended entity detection** — Detect more players and teams from Hebrew and English text.

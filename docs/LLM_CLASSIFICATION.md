@@ -251,6 +251,36 @@ Guardrail 6 inside `merge_with_guardrails()` is redundant with this call for the
 
 ---
 
+## Post-Merge Maccabi Entity Injection
+
+After `normalize_league_sport_compatibility()`, `ingestion_service.py` calls a second enrichment step before constructing the `Article`:
+
+```python
+enriched_entities = enrich_maccabi_entity_after_sport_resolve(
+    final_result.entities, title_lower, final_result.sport
+)
+if enriched_entities is not final_result.entities:
+    final_result.entities = enriched_entities
+    final_result.tags = [t for t in final_result.tags if t != "ambiguous_club"]
+    final_result.importance = compute_importance(
+        final_result.event_type, final_result.entities, final_result.league
+    )
+```
+
+**Why this is needed:** When a Hebrew title uses the full club form "מכבי תל אביב" with no sport context keywords, `classify()` sets `tags=["ambiguous_club"]` and `entities=[]` — it cannot resolve which sport without more context. The LLM resolves `sport=basketball`, but the merge step (`merge_with_guardrails()`) does not retroactively add entities — it only merges the LLM's own entity output. Since the LLM was given a bare title and may not output a canonical entity string, `entities` often remains empty after the merge.
+
+**Why empty entities matter:** The `maccabi_tel_aviv_basketball` topic in Guy's profile uses `scope="entity"`, meaning the relevance engine only matches when `"Maccabi Tel Aviv Basketball"` is in `article.entities`. An article with empty entities misses this topic entirely and falls to lower-priority topics, producing the wrong decision.
+
+**Guard conditions in `enrich_maccabi_entity_after_sport_resolve()`:**
+- Only injects when `sport == "basketball"` (LLM must have resolved it)
+- Does not inject when `"Maccabi Tel Aviv Basketball"` or `"Maccabi Tel Aviv Football"` already present
+- Does not inject when `_has_football_maccabi_context()` detects a football Maccabi club
+- Does not inject when the full-name "מכבי תל אביב" phrase is absent from the title
+
+**Importance recalculation:** Adding a tracked entity can change the importance score (`event_type="news"` + no entity → `low`; same with entity → `medium`), which in turn affects the relevance decision. `compute_importance()` is called after entity injection to keep importance consistent.
+
+---
+
 ## Source URL Category Hints (`source_hints.py`)
 
 `extract_source_sport_hint(source_id: str, url: str) → Optional[Literal["basketball", "football"]]`

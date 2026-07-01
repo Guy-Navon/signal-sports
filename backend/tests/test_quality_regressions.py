@@ -445,3 +445,80 @@ class TestGuyNegativeCasesQA:
             importance=r.importance,
         )
         assert _guy_decision(article, guy_profile) == "hidden"
+
+
+# ── PR 13: new event-type keywords + league-order safety ──────────────────────
+
+
+class TestPR13EventKeywords:
+    """New contract-extension/coach-appointment keywords + excluded risky phrases."""
+
+    def test_contract_extension_noun_is_signing(self):
+        r = classify("הארכת חוזה לגארד של הפועל חולון", source_id="walla_sport", language="he")
+        assert r.event_type == "signing"
+
+    def test_extended_contract_masculine_is_signing(self):
+        r = classify("הרכז האריך חוזה במכבי תל אביב", source_id="walla_sport", language="he")
+        assert r.event_type == "signing"
+
+    def test_extended_contract_feminine_is_signing(self):
+        r = classify("בני הרצליה האריכה חוזה עם הסנטר", source_id="walla_sport", language="he")
+        assert r.event_type == "signing"
+
+    def test_new_contract_is_signing(self):
+        r = classify("חוזה חדש לפורוורד בהפועל ירושלים", source_id="walla_sport", language="he")
+        assert r.event_type == "signing"
+
+    def test_coach_appointed_feminine_is_signing(self):
+        r = classify("מונתה למאמנת הקבוצה בליגת העל סל", source_id="walla_sport", language="he")
+        assert r.event_type == "signing"
+
+    # Excluded phrases — must NOT fire signing (false-positive guards)
+
+    def test_bare_released_not_signing(self):
+        r = classify("השחקן שוחרר מבית החולים לאחר הפציעה", source_id="walla_sport", language="he")
+        assert r.event_type != "signing"
+
+    def test_bare_left_not_signing(self):
+        r = classify("הגארד עזב את האימון באמצע", source_id="walla_sport", language="he")
+        assert r.event_type != "signing"
+
+    def test_new_coach_presentation_not_signing(self):
+        r = classify("המאמן החדש דיבר עם האוהדים ביציע", source_id="walla_sport", language="he")
+        assert r.event_type != "signing"
+
+    def test_broadcast_schedule_stays_low_priority(self):
+        r = classify("שידורי יורוקאפ השבוע: לוח משחקים מלא", source_id="walla_sport", language="he")
+        assert r.event_type == "schedule"
+        assert r.importance == "low"
+
+    def test_no_title_win_regression_from_new_keywords(self):
+        r = classify("זכה למחמאות אחרי הארכת חוזה", source_id="walla_sport", language="he")
+        assert r.event_type != "title_win"
+
+
+class TestPR13LeagueOrderSafety:
+    """Lock the load-bearing detection orderings (no code change — regression net)."""
+
+    def test_eurocup_checked_before_euroleague(self):
+        r = classify("יורוליג מציגה את מפעל היורוקאפ המורחב", source_id="walla_sport", language="he")
+        assert r.league == "EuroCup"
+
+    def test_football_maccabi_beats_basketball_keyword(self):
+        r = classify("מכבי חיפה חתמה על חלוץ", source_id="walla_sport", language="he")
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
+
+    def test_ibl_club_maps_to_israeli_league(self):
+        r = classify("הפועל חולון ניצחה את בני הרצליה", source_id="walla_sport", language="he")
+        assert r.sport == "basketball"
+        assert r.league == "Israeli Basketball League"
+
+    def test_nba_hebrew_team_maps_to_nba(self):
+        r = classify("הלייקרס ניצחו את הסלטיקס", source_id="walla_sport", language="he")
+        assert r.sport == "basketball"
+
+    def test_football_article_never_gets_basketball_entity(self):
+        r = classify("מכבי נתניה בניצחון בליגת העל", source_id="walla_sport", language="he")
+        assert r.sport == "football"
+        assert all("Basketball" not in e for e in r.entities)

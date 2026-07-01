@@ -548,3 +548,33 @@ class TestCounterAccumulation:
             assert isinstance(src.get("llm_skip_reasons", {}), dict)
             assert isinstance(src.get("llm_call_reasons", {}), dict)
             assert isinstance(src.get("llm_skipped", 0), int)
+
+
+# ── PR 13 gating audit ────────────────────────────────────────────────────────
+# The entity-alias expansion in entity_normalizer.py must NOT change gate
+# decisions: gating consumes rules_result from classify(), and the normalizer
+# only affects LLM-output entity mapping after the gate.
+
+class TestGatingAuditPR13:
+    def test_force_call_reasons_preserved(self):
+        assert gate(rules=make_rules(sport="unknown")).reason == "sport_unknown"
+        assert gate(
+            rules=make_rules(sport="unknown", tags=["ambiguous_club"])
+        ).reason == "ambiguous_club"
+        assert gate(
+            rules=make_rules(sport="basketball", confidence=0.50)
+        ).reason == "low_rules_confidence"
+
+    def test_newly_aliased_club_title_same_gate_decision(self):
+        """A title naming Olympiacos (now a canonical LLM entity) still gates
+        on the deterministic result alone — alias expansion is invisible here."""
+        rules = make_rules(sport="unknown", confidence=0.40)
+        d = gate(title="אולימפיאקוס במשא ומתן עם גארד", rules=rules)
+        assert d.should_call_llm is True
+        assert d.reason == "sport_unknown"
+
+    def test_strong_deterministic_still_skips_with_new_club_in_title(self):
+        rules = make_rules(sport="basketball", league="EuroLeague", confidence=0.85)
+        d = gate(title="ריאל מדריד ניצחה ביורוליג", rules=rules)
+        assert d.should_call_llm is False
+        assert d.reason in ("clear_league_in_title", "strong_deterministic_result")

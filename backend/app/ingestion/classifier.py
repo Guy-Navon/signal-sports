@@ -447,7 +447,21 @@ _SIGNING_KW = (
     "signed", "signing",
     "לעונה נוספת",   # for another season — contract extension
     "מונה למאמן",    # appointed as head coach
+    # Feminine forms — "למאמנת" uses regular nun (נ U+05E0) while "למאמן" ends
+    # with final nun (ן U+05DF), so the masculine keyword is NOT a substring of
+    # the feminine form (same Unicode issue as the אלוף/אלופת fix in PR 11).
+    "מונתה למאמן",   # appointed (feminine subject) as head coach — PR 13
+    "מונתה למאמנת",  # appointed (feminine subject) as head coach (feminine) — PR 13
+    "מונה למאמנת",   # appointed as head coach (feminine role) — PR 13
     "מינוי",         # appointment / designation
+    "הארכת חוזה",    # contract extension (noun form) — PR 13
+    "האריך חוזה",    # extended contract (masculine) — PR 13
+    "האריכה חוזה",   # extended contract (feminine) — PR 13
+    "חוזה חדש",      # new contract — PR 13
+    # Intentionally NOT included (false-positive risk — PR 13):
+    #   "שוחרר" alone — collides with hospital-release in injury coverage
+    #   "עזב" alone — generic departure wording, often opinion/recap pieces
+    #   "מאמן חדש" alone — presentation/opinion pieces, not a signing event
 )
 _SIGNING_WORD_KW = ("signs", "sign")   # word boundary to avoid "signal"
 
@@ -861,9 +875,8 @@ def enrich_maccabi_entity_after_sport_resolve(
 ) -> list[str]:
     """Inject Maccabi Tel Aviv Basketball entity if sport was resolved to basketball post-classify.
 
-    Called in ingestion_service after LLM merge. classify() leaves entities empty for
-    ambiguous_club titles where no subtitle provided basketball context; the LLM resolves
-    sport=basketball but entities remain empty. This function corrects that gap.
+    Deprecated in PR 13 — kept as a Maccabi-only wrapper around
+    enrich_basketball_entities_after_sport_resolve() for backward compatibility.
 
     Returns a new list if enriched; returns the same object if no change (identity check safe).
     """
@@ -876,3 +889,61 @@ def enrich_maccabi_entity_after_sport_resolve(
     ):
         return entities
     return [*entities, "Maccabi Tel Aviv Basketball"]
+
+
+# Basketball club entities injectable post-merge when the LLM resolved
+# sport=basketball for a title that names the club but had no sport context
+# keywords (the ambiguous_club gap). Phrases are exact full-name club forms.
+_BASKETBALL_ENRICHMENT_PHRASES: dict[str, tuple[str, ...]] = {
+    "Maccabi Tel Aviv Basketball": _MACCABI_TLV_KW,
+    "Hapoel Tel Aviv Basketball": _HAPOEL_TLV_KW,
+    "Hapoel Jerusalem Basketball": ("הפועל ירושלים", "hapoel jerusalem"),
+    "Hapoel Holon": ("הפועל חולון", "hapoel holon"),
+    "Bnei Herzliya": ("בני הרצליה", "bnei herzliya"),
+}
+
+
+def enrich_basketball_entities_after_sport_resolve(
+    entities: list[str],
+    title_lower: str,
+    sport: str,
+) -> tuple[list[str], list[str]]:
+    """Inject basketball club entities after the final sport is resolved to basketball.
+
+    Generalizes the Maccabi-only enrichment (PR 13). classify() leaves entities empty
+    for ambiguous_club titles with no sport context; the LLM resolves sport=basketball
+    but the merge does not retroactively add entities. This corrects that gap for all
+    clubs in _BASKETBALL_ENRICHMENT_PHRASES.
+
+    Guards:
+    - only when sport == "basketball" (never football, never unknown)
+    - never when a football Maccabi club is named in the title
+    - for non-Maccabi clubs, additionally never when generic football context is present
+      (extra-conservative second layer; the Maccabi path keeps its original semantics)
+    - entity must not already be present
+
+    Returns (entities, injected). When nothing is injected, `entities` is the
+    same object that was passed in (identity check safe) and `injected` is [].
+    """
+    if sport != "basketball" or _has_football_maccabi_context(title_lower):
+        return entities, []
+
+    injected: list[str] = []
+    for canonical, phrases in _BASKETBALL_ENRICHMENT_PHRASES.items():
+        if canonical in entities or canonical in injected:
+            continue
+        if not _has(title_lower, *phrases):
+            continue
+        if canonical == "Maccabi Tel Aviv Basketball":
+            # Preserve original Maccabi-only exclusion exactly.
+            if "Maccabi Tel Aviv Football" in entities:
+                continue
+        else:
+            # Non-Maccabi clubs: skip when generic football context is present.
+            if _has_football_context(title_lower):
+                continue
+        injected.append(canonical)
+
+    if not injected:
+        return entities, []
+    return [*entities, *injected], injected

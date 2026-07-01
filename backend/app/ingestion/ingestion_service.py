@@ -26,13 +26,13 @@ from app.classification.source_hints import extract_source_sport_hint
 from app.classification.service import get_llm_provider
 from app.classification.validation import LLM_MIN_CONFIDENCE
 from app.ingestion.adapters.base import RawSourceItem
-from app.ingestion.adapters.rss_adapter import RSSSourceAdapter
+from app.ingestion.adapters.factory import build_adapter
 from app.ingestion.classifier import (
     classify,
     _has_football_maccabi_context,
     has_maccabi_tel_aviv_phrase,
     compute_importance,
-    enrich_maccabi_entity_after_sport_resolve,
+    enrich_basketball_entities_after_sport_resolve,
 )
 from app.ingestion.config import RSS_SOURCES, RSSSourceConfig, get_source_config, get_enabled_sources
 from app.ingestion.dedup import article_id_from_url, url_already_exists
@@ -49,7 +49,8 @@ _LLM_PROVIDER = get_llm_provider()
 
 # Sources that route through LLM when the provider is active.
 # English basket-only sources (eurohoops, sportando) always use deterministic path.
-_HEBREW_BROAD_SOURCES = frozenset({"walla_sport", "israel_hayom_sport"})
+# sport5_sport (Hebrew scraping pilot, PR 13) is gated like the other Hebrew sources.
+_HEBREW_BROAD_SOURCES = frozenset({"walla_sport", "israel_hayom_sport", "sport5_sport"})
 
 
 # ── URL filter ────────────────────────────────────────────────────────────────
@@ -103,6 +104,9 @@ def _normalise(
         translated_title = hebrew
         title = hebrew if hebrew else item.title
         classify_title = title
+
+    # Lowercased once; reused by the football-Maccabi check, merge, and enrichment below.
+    title_lower = classify_title.lower()
 
     # Always run deterministic classifier — used as guardrail source and fallback.
     # Subtitle (item.summary) is passed as additional gap-filling context; title
@@ -162,9 +166,9 @@ def _normalise(
                 classification_confidence = llm_raw.confidence
                 classification_reason = llm_raw.reason
             else:
-                football_maccabi = _has_football_maccabi_context(classify_title.lower())
+                football_maccabi = _has_football_maccabi_context(title_lower)
                 final_result, classified_by = merge_with_guardrails(
-                    llm_raw, rules_result, classify_title.lower(),
+                    llm_raw, rules_result, title_lower,
                     football_maccabi_detected=football_maccabi,
                     source_sport_hint=source_sport_hint,
                 )
@@ -176,19 +180,20 @@ def _normalise(
     # paths so no Article can be persisted with an impossible sport/league combination.
     final_result = normalize_league_sport_compatibility(final_result)
 
-    # Post-merge Maccabi entity injection:
-    # classify() cannot assign the Maccabi Tel Aviv Basketball entity when the title has the
-    # full-name club form but no sport context (ambiguous_club). If LLM resolved sport to
-    # basketball, we inject the entity now so the article reaches Guy's Maccabi topic.
-    title_lower = classify_title.lower()
-    enriched_entities = enrich_maccabi_entity_after_sport_resolve(
+    # Post-merge basketball entity injection:
+    # classify() cannot assign a club entity when the title has the full-name club form
+    # but no sport context (ambiguous_club). If the LLM resolved sport to basketball,
+    # we inject the entity now so the article reaches entity-scope topics (e.g. Guy's
+    # Maccabi topic). Generalized in PR 13 to all clubs in _BASKETBALL_ENRICHMENT_PHRASES.
+    enriched_entities, injected = enrich_basketball_entities_after_sport_resolve(
         final_result.entities, title_lower, final_result.sport
     )
-    if enriched_entities is not final_result.entities:
+    if injected:
         final_result.entities = enriched_entities
         final_result.tags = [t for t in final_result.tags if t != "ambiguous_club"]
-        if "Maccabi Tel Aviv Basketball" not in final_result.tags:
-            final_result.tags = [*final_result.tags, "Maccabi Tel Aviv Basketball"]
+        for name in injected:
+            if name not in final_result.tags:
+                final_result.tags = [*final_result.tags, name]
         final_result.importance = compute_importance(
             final_result.event_type, final_result.entities, final_result.league
         )
@@ -228,12 +233,7 @@ def _run_source(
 ) -> SourceIngestResult:
     _run_t0 = time.perf_counter()
     started_at = datetime.now(tz=timezone.utc)
-    adapter = RSSSourceAdapter(
-        source_id=cfg.source_id,
-        feed_url=cfg.feed_url,
-        source_display_name=cfg.display_name,
-        language=cfg.language,
-    )
+    adapter = build_adapter(cfg)
 
     fetched = 0
     inserted = 0

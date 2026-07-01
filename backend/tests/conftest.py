@@ -9,6 +9,15 @@ from fastapi.testclient import TestClient
 _tmp_dir = tempfile.mkdtemp(prefix="signal_sports_test_")
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_dir}/test.db"
 
+# Force a hermetic test environment regardless of the developer's backend/.env
+# (main._load_dotenv uses override=False, so values set here win).
+# - CLASSIFICATION_PROVIDER=disabled: no test may depend on Ollama/Gemini being
+#   configured; tests that exercise the LLM path monkeypatch a fake provider.
+# - INGESTION_SCHEDULER_ENABLED=false: the scheduler must never start inside the
+#   session-scoped TestClient lifespan (PR 13).
+os.environ["CLASSIFICATION_PROVIDER"] = "disabled"
+os.environ["INGESTION_SCHEDULER_ENABLED"] = "false"
+
 
 @pytest.fixture(scope="session")
 def client():

@@ -287,15 +287,17 @@ if enriched_entities is not final_result.entities:
 
 Defined in `backend/app/classification/source_hints.py`. Returns a sport string when the source's URL category structure is reliable enough to override LLM output, or `None` for all other cases.
 
-**Current mappings (Israel Hayom only):**
+**Current mappings:**
 
-| URL path | Hint |
-|----------|------|
-| `/sport/israeli-basketball/` | `"basketball"` |
-| `/sport/world-basketball/` | `"basketball"` |
-| `/sport/world-soccer/` | `"football"` |
-| `/sport/other-sports/` | `None` (too broad) |
-| `/sport/opinions-sport/` | `None` (could be any sport) |
+| Source | URL pattern | Hint |
+|--------|-------------|------|
+| Israel Hayom | `/sport/israeli-basketball/` | `"basketball"` |
+| Israel Hayom | `/sport/world-basketball/` | `"basketball"` |
+| Israel Hayom | `/sport/world-soccer/` | `"football"` |
+| Israel Hayom | `/sport/other-sports/` | `None` (too broad) |
+| Israel Hayom | `/sport/opinions-sport/` | `None` (could be any sport) |
+| Sport5 (PR 13) | `FolderID=274` in article URL query (basketball news folder) | `"basketball"` |
+| Sport5 (PR 13) | any other FolderID | `None` (conservative — classifier/LLM decide) |
 
 The hint flows through both the deterministic classifier and the LLM merge:
 1. `extract_source_sport_hint(cfg.source_id, item.url)` is called once in `_normalise()`
@@ -327,17 +329,19 @@ LLM outputs free-text entity strings. The relevance engine requires exact canoni
 
 The alias map is conservative and explicit. Only listed aliases are normalized. Unknown entities (coach names, club names not yet in the map) are silently discarded from `article.entities`. They remain visible in `classification_reason` for inspection.
 
-**Current canonical entities:**
+**Current canonical entities (25 as of PR 13):**
 
-| Canonical name | Sample aliases |
-|---------------|----------------|
-| `"Maccabi Tel Aviv Basketball"` | `"מכבי"`, `"מכבי תל אביב"`, `"maccabi tel aviv"`, `"maccabi tlv"` |
-| `"Deni Avdija"` | `"דני אבדיה"`, `"אבדיה"`, `"avdija"`, `"deni avdija"` |
-| `"Hapoel Tel Aviv Basketball"` | `"הפועל תל אביב"`, `"הפועל ת\"א"`, `"hapoel tel aviv"` |
-| `"Hapoel Jerusalem Basketball"` | `"הפועל ירושלים"`, `"hapoel jerusalem"` |
-| `"New York Knicks"` | `"ניקס"`, `"ניו יורק ניקס"`, `"new york knicks"`, `"knicks"` |
+| Group | Canonical names |
+|-------|-----------------|
+| Original 5 | `Maccabi Tel Aviv Basketball`, `Deni Avdija`, `Hapoel Tel Aviv Basketball`, `Hapoel Jerusalem Basketball`, `New York Knicks` |
+| Israeli basketball (PR 13) | `Hapoel Holon`, `Bnei Herzliya`, `Hapoel Eilat`, `Hapoel Galil Gilboa`, `Ironi Ramat Gan`, `Ironi Ness Ziona` |
+| EuroLeague/EuroCup (PR 13) | `Olympiacos Basketball`, `Panathinaikos Basketball`, `Real Madrid Basketball`, `FC Barcelona Basketball`, `Fenerbahce Basketball`, `Anadolu Efes`, `Partizan Belgrade`, `Crvena Zvezda`, `AS Monaco Basketball`, `Virtus Bologna` |
+| NBA (PR 13) | `Los Angeles Lakers`, `Boston Celtics`, `Portland Trail Blazers`, `Washington Wizards`, `Cleveland Cavaliers`, `LeBron James`, `Jalen Brunson` |
 
-**Sport-context guard:** Basketball club entities (`Maccabi Tel Aviv Basketball`, `Hapoel Tel Aviv Basketball`, `Hapoel Jerusalem Basketball`) are blocked when `sport != "basketball"`. This prevents a football article about Hapoel TLV from adding `"Hapoel Tel Aviv Basketball"` to entities just because the club name appears.
+Each entity has Hebrew + English aliases (e.g. `"אולימפיאקוס"` → `Olympiacos Basketball`,
+`"לייקרס"` → `Los Angeles Lakers`). Full alias table: `docs/RSS_QUALITY_GUARDRAILS.md` §10a.
+
+**Sport-context guard:** All multi-sport club entities (the three Israeli originals + Ness Ziona + the nine multi-sport European clubs) are in `_BASKETBALL_CLUB_ENTITIES` and blocked when `sport != "basketball"`. This is critical for the PR 13 additions: Hebrew `"ריאל מדריד"`/`"ברצלונה"`/`"מונאקו"` usually refer to football — the alias maps to the basketball canonical name, and the guard drops it unless the final merged sport is basketball. NBA teams/players and basketball-only Israeli clubs are unguarded.
 
 **Extending the map:** Add new entries to `_ENTITY_ALIASES` in `entity_normalizer.py`. No other files need to change. If the new entity is a basketball club (multi-sport entity), add its canonical name to `_BASKETBALL_CLUB_ENTITIES` frozenset.
 
@@ -451,7 +455,7 @@ All vars are read at module import time (same pattern as `TRANSLATION_PROVIDER`)
 
 ## Selective LLM Gating (`gating.py`)
 
-The LLM is Ollama/Qwen's primary bottleneck (~12s per call). The gating module decides, per eligible article, whether calling the LLM is likely to add value over the deterministic result. Articles from non-Hebrew-broad sources, or when the provider is disabled, are never considered eligible and bypass gating entirely.
+The LLM is Ollama/Qwen's primary bottleneck (~12s per call). The gating module decides, per eligible article, whether calling the LLM is likely to add value over the deterministic result. Articles from non-Hebrew-broad sources, or when the provider is disabled, are never considered eligible and bypass gating entirely. The Hebrew broad-source set is `{walla_sport, israel_hayom_sport, sport5_sport}` (Sport5 pilot added in PR 13). **Gating conditions and thresholds are unchanged in PR 13** — the entity-alias expansion does not affect gate decisions (gating reads the deterministic `rules_result`, which the normalizer does not touch; locked by `TestGatingAuditPR13`).
 
 **Definition:** `llm_skipped` = article was eligible (Hebrew broad source + provider active + circuit not open) but the gate decided the deterministic result was already strong enough. `llm_attempts` = LLM was actually called.
 
@@ -583,7 +587,7 @@ All timing numbers above are now observable via the `SourceIngestResult` fields 
 
 All tests use `FakeLLMProvider`, mocked `httpx`, or mocked `google.genai`. No test requires Ollama or a real API key.
 
-**Total: 788 tests** (as of quality-fix pass on branch `feature/selective-llm-gating`)
+**Total: 1050 tests** (as of PR 13 on branch `feature/selective-llm-gating`). The suite is hermetic — `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and `INGESTION_SCHEDULER_ENABLED=false` regardless of `backend/.env`.
 
 **`backend/tests/test_llm_classification.py`** (added in PR 11, extended with subtitle/Gemini/Ollama/guardrail tests):
 - `TestValidation` (10 tests) — JSON parsing, enum validation, regex fallback, all leagues accepted

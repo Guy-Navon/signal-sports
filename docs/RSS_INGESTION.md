@@ -17,14 +17,25 @@ survives restarts, and can be deduplicated against previously fetched content.
 
 ```
 backend/app/ingestion/
-  config.py               — RSS source configuration list
+  config.py               — Source configuration list (RSS + html_scrape)
+  scheduler.py            — Scheduled ingestion loop + process-level ingestion lock (PR 13)
   adapters/
     base.py               — RawSourceItem dataclass + SourceAdapter interface
+    factory.py            — build_adapter(cfg) — maps source_type to an adapter (PR 13)
     rss_adapter.py        — RSSSourceAdapter (uses feedparser)
+    sport5_adapter.py     — Sport5ScrapeAdapter — category-page HTML scraping pilot (PR 13)
   classifier.py           — Deterministic keyword classifier
   dedup.py                — URL-based deduplication + stable ID generation
   ingestion_service.py    — Orchestration: fetch → filter → dedup → normalise/classify → insert
 ```
+
+### Source types (PR 13)
+
+`RSSSourceConfig` has a `source_type` field: `"rss"` (default) or `"html_scrape"`.
+The ingestion service constructs adapters only through `build_adapter(cfg)` in
+`adapters/factory.py`, so new source types plug in without touching `_run_source()`.
+Everything downstream of `fetch()` (filters, dedup, classification, persistence)
+operates on `RawSourceItem` and is identical for both source types.
 
 ### Base adapter
 
@@ -50,6 +61,30 @@ class SourceAdapter:
 - Parses `published_parsed` or `updated_parsed` to a UTC `datetime`.
 - Falls back to `datetime.now(UTC)` when no date is available.
 
+### Sport5 scraping adapter (PR 13 pilot)
+
+`Sport5ScrapeAdapter` fetches Sport5 category pages (static server-rendered HTML)
+with `httpx` and parses article cards with BeautifulSoup (stdlib `html.parser`
+backend — no lxml). Sport5 has **no public RSS** (confirmed in PR 8 + PR 10 research),
+which is why this source is scraping-based and not RSS.
+
+- Article anchors are identified by URL shape (`articles.aspx` + `docID=` query),
+  not CSS class names — cosmetic markup changes don't break parsing.
+- Titles come from anchor text; anchors with text shorter than 15 characters
+  (nav links, "read more") are skipped, as are anchors without an article URL.
+- Relative hrefs are resolved against the source base URL (`urljoin`).
+- Duplicate anchors to the same article within one page are deduplicated in-fetch;
+  cross-run dedup uses the standard URL-based mechanism.
+- `published_at` is `None` → the ingestion service falls back to ingest time.
+  This is a documented pilot limitation.
+- Any network or parse failure is logged and skipped; `fetch()` never raises.
+  A Sport5 outage cannot crash an ingestion run.
+
+**Fragility note:** scraping depends on Sport5's markup and URL scheme. If the
+site changes, the adapter degrades to fetching 0 items (visible in source health
+as `never_run`/`stale`) rather than erroring. Tests use a static HTML fixture
+(`backend/tests/fixtures/sport5_category.html`) — no test calls the live site.
+
 ### Adding a new RSS source
 
 1. Open `backend/app/ingestion/config.py`.
@@ -74,16 +109,25 @@ See `docs/RSS_QUALITY_GUARDRAILS.md` for details on how URL and language filters
 
 ## Configured Sources
 
-| source_id             | display_name        | language | MVP | feed_url                                    |
-|-----------------------|---------------------|----------|-----|---------------------------------------------|
-| `walla_sport`         | וואלה ספורט         | he       | ✓ active | https://rss.walla.co.il/feed/7         |
-| `israel_hayom_sport`  | ישראל היום ספורט    | he       | ✓ active | https://www.israelhayom.co.il/rss.xml  |
-| `eurohoops`           | Eurohoops           | en       | disabled (post-MVP) | https://www.eurohoops.net/feed/ |
-| `sportando`           | Sportando           | en       | disabled (post-MVP) | https://sportando.basketball/feed/ |
+| source_id             | display_name        | language | type | MVP | feed_url / pages                            |
+|-----------------------|---------------------|----------|------|-----|---------------------------------------------|
+| `walla_sport`         | וואלה ספורט         | he       | rss  | ✓ active | https://rss.walla.co.il/feed/7         |
+| `israel_hayom_sport`  | ישראל היום ספורט    | he       | rss  | ✓ active | https://www.israelhayom.co.il/rss.xml  |
+| `sport5_sport`        | ערוץ הספורט         | he       | html_scrape | pilot, disabled | https://www.sport5.co.il/liga.aspx?FolderID=273 (basketball category) |
+| `eurohoops`           | Eurohoops           | en       | rss  | disabled (post-MVP) | https://www.eurohoops.net/feed/ |
+| `sportando`           | Sportando           | en       | rss  | disabled (post-MVP) | https://sportando.basketball/feed/ |
 
 **MVP active sources:** `walla_sport` and `israel_hayom_sport` only. `eurohoops` and `sportando` have
 `enabled=False` in `config.py` and are not fetched by default. They remain in the codebase for easy
 re-enabling post-MVP.
+
+**Sport5 pilot (PR 13):** `sport5_sport` is a Hebrew **scraping pilot** — `source_type="html_scrape"`,
+`is_pilot=True`, **disabled by default**. Rationale for disabled-by-default: scraping is structurally
+fragile (Sport5 can change markup without notice), and the ingestion scheduler would otherwise hit
+the scraper every interval before scrape quality has been validated. To run it manually:
+`POST /api/ingest/run?source_id=sport5_sport` (single-source runs work even for disabled sources).
+To include it in scheduled/all-source runs, set `enabled=True` on the `sport5_sport` entry in
+`config.py`. To disable again, set `enabled=False` — no other change needed.
 
 **ONE Sport and Ynet Sport** were investigated in PR 10 and rejected for MVP:
 - ONE Sport: no public RSS (all endpoints 404)
@@ -401,30 +445,94 @@ Existing endpoints are unchanged and continue to work:
 
 ---
 
-## Why No Scraping / X / Scheduler Yet
+## Scheduled Ingestion + Ingestion Lock (PR 13)
 
-**Additional Hebrew sources (Sport5, ONE, Ynet):** These sources don't have clean RSS.
-Israel Hayom is already active via its general RSS + `/sport/` allowlist. Sport5, ONE, and
-Ynet require scraping or category-page parsing, which introduces fragility and maintenance
-burden. Deferred to a future PR. ONE is the preferred next candidate (traditional HTML;
-less brittle than Ynet's SPA).
+### Scheduler
+
+`backend/app/ingestion/scheduler.py` runs ingestion automatically on an interval.
+Implementation: a plain `asyncio.Task` started in the FastAPI lifespan; the blocking
+sync ingestion runs in a worker thread (`anyio.to_thread.run_sync`) so the event loop
+is never blocked. No APScheduler — no new dependency.
+
+Env vars (read at startup):
+
+```
+INGESTION_SCHEDULER_ENABLED=false            # disabled by default
+INGESTION_SCHEDULER_INTERVAL_MINUTES=15
+INGESTION_SCHEDULER_INITIAL_DELAY_SECONDS=30
+```
+
+- **Disabled by default.** When `INGESTION_SCHEDULER_ENABLED != true`, `start_scheduler()`
+  returns `None` and the app behaves exactly as before PR 13.
+- When enabled, the loop ingests all **enabled** sources (`get_enabled_sources()`)
+  every interval through the internal ingestion service — never via HTTP.
+- **Deployment note:** the scheduler and its lock are process-local. In a future
+  multi-replica deployment only one backend worker should run the scheduler, or a
+  distributed lock / external scheduler is required.
+
+### Process-level ingestion lock
+
+`scheduler_state.lock` (a `threading.Lock`) is shared by all three ingestion triggers:
+
+1. The scheduled loop — a busy tick records `last_status="skipped"` and waits for the next interval.
+2. `POST /api/ingest/run` (manual) — returns **409** when another run is active.
+3. `POST /api/ingest/scheduler/run-now` — returns **409** when another run is active.
+
+409 body (identical shape everywhere):
+
+```json
+{"detail": {"error": "ingestion_already_running",
+            "message": "ייבוא פעיל כרגע",
+            "active_run": {"trigger": "scheduled", "started_at": "..."}}}
+```
+
+### New endpoints
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `GET`  | `/api/ingest/scheduler/status` | enabled, running, interval_minutes, next_run_at, last_started_at, last_finished_at, last_status (`ok`\|`error`\|`skipped`\|`never_run`), last_error, active_run, last_result_summary |
+| `POST` | `/api/ingest/scheduler/run-now` | Run ingestion immediately through the same internal path + lock; 409 when busy |
+| `GET`  | `/api/ingest/source-health` | Per source: enabled, source_type, is_pilot, last run counts/status/error, consecutive_failures, freshness |
+
+**Freshness rules** (`/api/ingest/source-health`, evaluated in order): `disabled` (source
+disabled) → `never_run` (no run history) → `error` (latest run failed) → `stale` (latest
+run older than 2× scheduler interval) → `healthy`. Computed on request from the
+`ingestion_runs` table — no new tables or columns.
+
+### Enabling locally
+
+Add to `backend/.env` and restart the backend:
+
+```
+INGESTION_SCHEDULER_ENABLED=true
+INGESTION_SCHEDULER_INTERVAL_MINUTES=15
+```
+
+Then verify from the Sources page ("סטטוס ייבוא אוטומטי" section) or via
+`GET /api/ingest/scheduler/status` — `next_run_at` is populated and `last_status`
+transitions from `never_run` to `ok` after the first tick.
+
+---
+
+## Why No Additional Scraping / X Yet
+
+**Additional Hebrew sources (ONE, Ynet):** No clean RSS. Israel Hayom is active via its
+general RSS + `/sport/` allowlist; **Sport5 is now a category-page scraping pilot (PR 13,
+disabled by default)** — see the Sport5 adapter section above. ONE remains the preferred
+next scraping candidate (traditional HTML; less brittle than Ynet's SPA).
 
 **X/Twitter:** Rate-limited API, requires auth, produces short-form content that needs
 different classification. Deferred.
-
-**Scheduler:** Running ingestion on a cron is valuable but adds operational complexity.
-For MVP validation, the manual endpoint (`POST /api/ingest/run`) is enough. A scheduler
-(APScheduler or a cron endpoint) should be added after the classification quality is
-validated with real data.
 
 ---
 
 ## Next Steps
 
 1. Validate LLM classification quality — run `POST /api/classify/backfill?source_id=walla_sport` with Ollama enabled, inspect debug view for Guy.
-2. Expand entity normalization map in `entity_normalizer.py` after LLM benchmark shows which entities are recognized but not canonicalized.
-3. Add scheduled ingestion (e.g., every 15 minutes via APScheduler).
-4. Fuzzy title dedup via `difflib.SequenceMatcher` or similar.
-5. Feedback → profile mutation: `never_show` creates a `hidden` event rule for the matched topic.
-6. Cluster seeding: group articles with the same core story into a `cluster_id`.
-7. Additional Hebrew sources: Sport5 or ONE via category page adapters if RSS is unavailable.
+2. ~~Expand entity normalization map~~ — done in PR 13 (25 canonical entities; see `docs/RSS_QUALITY_GUARDRAILS.md`).
+3. ~~Add scheduled ingestion~~ — done in PR 13 (asyncio loop in lifespan, disabled by default; see the scheduler section above).
+4. Validate the Sport5 scraping pilot against the live site, then consider `enabled=True`.
+5. Fuzzy title dedup via `difflib.SequenceMatcher` or similar.
+6. Feedback → profile mutation: `never_show` creates a `hidden` event rule for the matched topic.
+7. Cluster seeding: group articles with the same core story into a `cluster_id`.
+8. Additional Hebrew sources: ONE via a category page adapter (no public RSS exists).

@@ -103,7 +103,27 @@ Exported functions:
 | `runIngestion(sourceId?)` | `POST /api/ingest/run` or `POST /api/ingest/run?source_id=X` |
 | `getIngestRuns(limit?)` | `GET /api/ingest/runs?limit=N` |
 | `getIngestQuality()` | `GET /api/ingest/quality` |
+| `getSchedulerStatus()` (PR 13) | `GET /api/ingest/scheduler/status` |
+| `runSchedulerNow()` (PR 13) | `POST /api/ingest/scheduler/run-now` (409 when a run is active) |
+| `getSourceHealth()` (PR 13) | `GET /api/ingest/source-health` |
 | `backfillTranslations({ limit?, sourceId?, dryRun? })` | `POST /api/translations/backfill` |
+
+`isIngestionBusyError(err)` (PR 13, `client.js`) detects the shared-ingestion-lock 409
+(`ingestion_already_running`) so the UI can show "ייבוא פעיל כרגע" instead of a raw error.
+Note: `POST /api/ingest/run` can also return 409 since PR 13 — manual, scheduled, and
+run-now ingestion share one process-level lock.
+
+### Scheduler status panel (PR 13, `SchedulerStatusPanel.jsx`)
+
+Rendered on the Sources page in backend mode only (hidden in local mode; the existing
+IngestionPanel already explains how to enable backend mode). Shows the "סטטוס ייבוא אוטומטי"
+section: scheduler enabled/interval/next-run/last-run/last-error from
+`GET /api/ingest/scheduler/status`, a "הרץ עכשיו" button (disabled with "ייבוא פעיל כרגע"
+while a run is active or after a 409), and per-source health cards from
+`GET /api/ingest/source-health` — freshness badge (תקין / מיושן / לא רץ עדיין / כבוי / שגיאה),
+RSS/Scraping type label, and a "פיילוט" badge for `is_pilot` sources (Sport5).
+Normalizers: `normalizeSchedulerStatusFromApi`, `normalizeSourceHealthFromApi`,
+`freshnessBadge`, `sourceTypeLabel` in `normalizers.js`.
 
 ### RSS-only article filter
 

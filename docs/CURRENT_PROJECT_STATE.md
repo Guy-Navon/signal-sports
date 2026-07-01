@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-06-27 — reflects state after feed-quality fixes discovered during LLM gating benchmark QA (on branch `feature/selective-llm-gating`): IBL team classification, Maccabi entity injection after LLM resolve, EuroCup in EuroLeague topic, Guy football mode → titles_only, 41 regression tests added (788 total).
+Last updated: 2026-07-02 — reflects state after PR 13 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, and the Sources page scheduler/health UI. Test suites: 1050 backend + 283 frontend.
 
 ---
 
@@ -54,8 +54,16 @@ RSS source
 ```
 
 **MVP active sources:** `walla_sport` and `israel_hayom_sport` only. `eurohoops` and `sportando` are
-disabled by default and treated as post-MVP / experimental. Hebrew articles are displayed using
-their native Hebrew title; translation is not used in the MVP product path.
+disabled by default and treated as post-MVP / experimental. `sport5_sport` (ערוץ הספורט) is a Hebrew
+**HTML-scraping pilot** added in PR 13 — `source_type="html_scrape"`, `is_pilot=True`, disabled by
+default; run it manually with `POST /api/ingest/run?source_id=sport5_sport`. Hebrew articles are
+displayed using their native Hebrew title; translation is not used in the MVP product path.
+
+**Ingestion triggers (PR 13):** manual `POST /api/ingest/run`, `POST /api/ingest/scheduler/run-now`,
+and an optional scheduled loop (`INGESTION_SCHEDULER_ENABLED=true`, default **false** — when false
+the app behaves exactly as before). All three share one process-level ingestion lock; concurrent
+attempts get a structured 409 (`ingestion_already_running`). The scheduler is process-local — a
+future multi-replica deployment needs a single scheduler worker or a distributed lock.
 
 **Components:**
 
@@ -108,7 +116,14 @@ their native Hebrew title; translation is not used in the MVP product path.
 - **What it covers:** Israeli basketball (israeli-basketball subpath), world basketball (NBA/EuroLeague), world football (World Cup, European football), other sports (tennis, etc.), sport opinion pieces.
 - **Added in PR 10.** Articles stored as Hebrew-native; `original_title = None`; no translation.
 - **Filtering:** The Israel Hayom RSS is a general news feed (100 items, ~21 sport). The `allowed_url_patterns` filter accepts only URLs containing `/sport/`. Non-sport items (politics, opinion, culture) are counted as `skipped_filtered` and never reach the DB.
-- **Sport5 / ONE** have no publicly accessible RSS. ONE and Ynet Sport were probed in PR 10 and confirmed unreachable. Category page scraping is deferred.
+
+### Sport5 / ערוץ הספורט (`sport5_sport`) — scraping pilot (PR 13)
+- **Language:** Hebrew (`he`); no translation, same as Walla.
+- **Type:** `html_scrape` — Sport5 has **no public RSS** (confirmed PR 8/PR 10). The adapter scrapes the basketball category page (`https://www.sport5.co.il/liga.aspx?FolderID=273`, static server-rendered HTML, ~12 articles/fetch) with httpx + BeautifulSoup.
+- **Status:** pilot, **disabled by default** (`enabled=False`, `is_pilot=True`). Run manually with `POST /api/ingest/run?source_id=sport5_sport`; enable in `config.py` to include in scheduled runs.
+- **Classification:** included in the Hebrew broad-source set (gated LLM path); article URLs with `FolderID=274` get a `basketball` source hint.
+- **Known limitations:** `published_at` not parsed (falls back to ingest time); scraping is fragile to site redesigns — failures degrade to 0 items and surface in source health, never crash ingestion.
+- **ONE / Ynet** still have no accessible RSS; ONE remains the preferred next scraping candidate.
 
 ### Source infrastructure: `allowed_url_patterns` (PR 10)
 - New field on `RSSSourceConfig`: `allowed_url_patterns: tuple[str, ...] = ()`
@@ -145,17 +160,23 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 
 On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent).
 
-**Test suite:** 788 pytest tests across `backend/tests/` + 234+ frontend tests (Vitest).
+**Test suite:** 1050 pytest tests across `backend/tests/` + 283 frontend tests (Vitest).
+The test environment is hermetic: `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and
+`INGESTION_SCHEDULER_ENABLED=false` regardless of the developer's `backend/.env`, so no test
+requires Ollama, a real API key, or live Sport5.
 
 **Key API endpoints:**
 
 | Method | Endpoint | Notes |
 |--------|----------|-------|
 | `GET` | `/health` | Health check |
-| `GET` | `/api/ingest/sources` | List configured RSS sources |
-| `POST` | `/api/ingest/run` | Run ingestion (all or `?source_id=X`) |
+| `GET` | `/api/ingest/sources` | List configured sources (incl. `type` rss/html_scrape + `is_pilot`) |
+| `POST` | `/api/ingest/run` | Run ingestion (all or `?source_id=X`); 409 if a run is active (PR 13) |
 | `GET` | `/api/ingest/runs` | Recent ingestion run log |
 | `GET` | `/api/ingest/quality` | Classification quality report |
+| `GET` | `/api/ingest/scheduler/status` | Scheduler + lock state: enabled, running, next_run_at, last run, active_run (PR 13) |
+| `POST` | `/api/ingest/scheduler/run-now` | Immediate ingestion via internal service path + shared lock; 409 when busy (PR 13) |
+| `GET` | `/api/ingest/source-health` | Per-source freshness (healthy/stale/never_run/disabled/error), last counts, consecutive failures (PR 13) |
 | `GET` | `/api/feed/{user_id}` | Scored feed (RSS articles only, hidden excluded) |
 | `GET` | `/api/debug/feed/{user_id}` | All articles scored with full reasoning |
 | `GET` | `/api/articles` | All RSS articles in DB |
@@ -179,6 +200,8 @@ On startup: tables are created if missing; soft migrations add new columns to ex
 **Data mode badge:** Header pill shows "מצב נתונים: שרת" (blue, backend mode) or "מצב נתונים: מקומי" (gray, local mode).
 
 **Sources page — Ingestion panel:** In backend mode, shows source selector (MVP active sources: וואלה ספורט, ישראל היום ספורט), "הרץ ייבוא עכשיו" button, per-source result breakdown after run, recent runs list (last 5), and "איכות הסיווג" quality toggle. No translation UI — translation is post-MVP and was removed from the Sources page. In local mode, shows a disabled card with instructions to enable backend mode.
+
+**Sources page — "סטטוס ייבוא אוטומטי" panel (PR 13):** In backend mode, shows scheduler enabled/disabled + interval, next run time, last run time + status (הצליח/שגיאה/דולג/טרם רץ), last error, a "הרץ עכשיו" button (disabled with "ייבוא פעיל כרגע" while a run is active or a 409 was received), and per-source health cards: freshness badge (תקין/מיושן/לא רץ עדיין/כבוי/שגיאה), RSS/Scraping type label, "פיילוט" badge for Sport5, last run counts, consecutive failures, and last error. Hidden entirely in local mode. The manual ingestion panel is unchanged.
 
 **Sources page — LLM Gating Benchmark panel** (dev/QA only): In backend mode, shows "בנצ׳מרק LLM Gating" section with "הרץ בנצ׳מרק מלא" button. Runs a two-phase benchmark (baseline then gated) and displays a structured report: per-source baseline stats, gated stats, and a comparison row per source showing skip rate, LLM calls saved, time saved, sport_unknown delta, and PASS/FAIL status. Requires ALLOW_DEV_RESET=true and CLASSIFICATION_PROVIDER=ollama. Results are not persisted. Panel hidden in local mode.
 
@@ -257,7 +280,7 @@ The deterministic classifier is keyword-matching only — no NLP, no LLM. It alw
 
 LLM classification is an opt-in overlay for Hebrew broad sources only. It does not change feed decision logic — the relevance engine still reads stored metadata deterministically.
 
-**When it runs:** `source_id in {"walla_sport", "israel_hayom_sport"}` AND `CLASSIFICATION_PROVIDER != disabled`.
+**When it runs:** `source_id in {"walla_sport", "israel_hayom_sport", "sport5_sport"}` AND `CLASSIFICATION_PROVIDER != disabled`. (Sport5 pilot added to the set in PR 13; gating logic unchanged.)
 
 **Provider options (`CLASSIFICATION_PROVIDER` env var):**
 
@@ -339,15 +362,15 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 
 ## 10. Current Known Limitations
 
-- **No scheduler.** Ingestion runs only on `POST /api/ingest/run`. APScheduler deferred.
+- **Scheduler is opt-in and process-local (PR 13).** `INGESTION_SCHEDULER_ENABLED=false` by default — ingestion then runs only on `POST /api/ingest/run` / `run-now`. When enabled, an asyncio loop in the FastAPI lifespan ingests enabled sources every `INGESTION_SCHEDULER_INTERVAL_MINUTES`. Multi-replica deployments need a single scheduler worker or a distributed lock.
 - **No fuzzy dedup / clustering.** Deduplication is URL-only. The same story from Eurohoops and Walla appears as two separate articles. `cluster_id` field exists in the model but is never populated.
 - **No feedback → profile mutation.** Feedback events are stored in SQLite but do not yet modify topic rules or event rules in user profiles.
 - **No auth / multi-user.** User profiles are seeded statically. No login, no registration.
 - **No push notifications.** `push` is a decision level in the engine; no device notification delivery.
 - **No body translation or summaries.** Only titles are translated. Article bodies are not ingested.
-- **Limited source coverage.** MVP active sources: Walla Sport, Israel Hayom Sport. Eurohoops and Sportando are disabled (post-MVP). Sport5 and ONE have no clean public RSS; Ynet has no sport-specific RSS. If a third Hebrew source is added post-MVP, ONE is the preferred candidate.
+- **Limited source coverage.** MVP active sources: Walla Sport, Israel Hayom Sport. Eurohoops and Sportando are disabled (post-MVP). Sport5 is a scraping pilot (PR 13, disabled by default — no public RSS exists). ONE has no clean public RSS; Ynet has no sport-specific RSS. ONE is the preferred next scraping candidate.
 - **LLM classification not yet benchmarked at production scale.** Two providers are implemented: `gemini` (fast, cloud, but only 20 requests/day free tier — exhausted in one ingestion run) and `ollama` (local, uncapped, needs Ollama installed and `qwen2.5:3b-instruct` pulled). Default is `disabled`. Hebrew articles use deterministic classification until a provider is configured. Timing is now instrumented — `fetch_ms`, `llm_avg_ms`, `llm_p95_ms`, and fallback counts appear in `POST /api/ingest/run` responses.
-- **Entity normalization map is conservative.** Only explicitly listed canonical aliases are mapped. New players, coaches, clubs not yet in `_ENTITY_ALIASES` are silently discarded from `article.entities` even when LLM identifies them correctly. Expand `entity_normalizer.py` to cover new entities.
+- **Entity normalization map is conservative (expanded in PR 13).** 25 canonical entities (Israeli basketball clubs, EuroLeague/EuroCup clubs, NBA teams/players) with Hebrew + English aliases; multi-sport European clubs are sport-guarded. Entities not in `_ENTITY_ALIASES` are still silently discarded from `article.entities` even when the LLM identifies them correctly.
 - **Translation not active in MVP.** `TRANSLATION_PROVIDER=disabled` is correct for Hebrew-only MVP. Backend module, DB fields, and API routes are preserved for post-MVP re-enablement. Translation quality validation is a post-MVP concern.
 
 ---
@@ -358,9 +381,10 @@ Priority order:
 
 1. **LLM gating benchmark (PR 12)** — Run ingestion with `CLASSIFICATION_LLM_GATING=disabled` first (baseline), then with `enabled`. Compare `llm_attempts`, `llm_skipped`, `total_ms`, and `sport=unknown` counts from the quality endpoint. Target ≥40% LLM call reduction with no regression. Do not merge PR 12 until benchmark results are reviewed.
 2. **LLM classification benchmark** — Install Ollama, pull `qwen2.5:3b-instruct`, set `CLASSIFICATION_PROVIDER=ollama` + `CLASSIFICATION_MODEL=qwen2.5:3b-instruct` + `CLASSIFICATION_TIMEOUT_SECONDS=30`, re-ingest Walla + Israel Hayom, compare `sport=unknown` count and Guy's feed visibility before/after. Check `fetch_ms`, `llm_avg_ms`, and `llm_fallback_*` counts in the ingest response for performance baseline. Run `POST /api/classify/backfill?source_id=walla_sport` on existing articles. If quality is poor, try `qwen3:4b`.
-2. **Expand entity normalization map** — Add recognized Israeli basketball players, coaches, EuroLeague club names to `backend/app/classification/entity_normalizer.py` after LLM benchmark reveals which entities are being identified but discarded.
-3. **Scheduled ingestion via APScheduler** — Poll `POST /api/ingest/run` every 15–30 minutes. Add to `app/main.py` lifespan.
-4. **Feed clustering / fuzzy dedup** — Use `difflib.SequenceMatcher` on titles across sources; populate `cluster_id`. Show one card per story.
+2. ~~Expand entity normalization map~~ — **done in PR 13** (25 canonical entities; see `docs/RSS_QUALITY_GUARDRAILS.md` §10a). Player/coach names still missing from the *deterministic* keyword lists remain open.
+3. ~~Scheduled ingestion~~ — **done in PR 13** (asyncio loop in lifespan, `INGESTION_SCHEDULER_ENABLED`, disabled by default).
+4. **Validate Sport5 pilot** — Run `POST /api/ingest/run?source_id=sport5_sport` against the live site, review classification quality in the debug view, then consider `enabled=True`.
+5. **Feed clustering / fuzzy dedup** — Use `difflib.SequenceMatcher` on titles across sources; populate `cluster_id`. Show one card per story.
 5. **Feedback → profile mutation** — `never_show` feedback creates a `hidden` event rule for the article's `event_type` in the matched topic. Requires in-place profile update via the repository.
 6. **More Hebrew sources** — ONE Sport via category page HTML adapter is the preferred next source (traditional HTML, no SPA). Sport5 has no clean RSS. Ynet is harder (SPA).
 7. **Better relevance for LLM-classified articles** — Some LLM-classified articles land in Guy's feed as `feed` when they deserve `high_feed` or `push`. The relevance engine's topic rules may need tuning once LLM entity extraction surfaces more entities (e.g., New York Knicks → Knicks entity → entity_event_rules fires).
@@ -390,6 +414,9 @@ CLASSIFICATION_OLLAMA_BASE_URL=http://localhost:11434
 CLASSIFICATION_TIMEOUT_SECONDS=30
 CLASSIFICATION_LLM_GATING=enabled
 ALLOW_DEV_RESET=false
+INGESTION_SCHEDULER_ENABLED=false
+INGESTION_SCHEDULER_INTERVAL_MINUTES=15
+INGESTION_SCHEDULER_INITIAL_DELAY_SECONDS=30
 ```
 Set `TRANSLATION_PROVIDER=fake` for dev testing without an API key.
 Set `TRANSLATION_PROVIDER=claude` with a real `TRANSLATION_API_KEY` for production-quality translation.
@@ -397,6 +424,7 @@ Set `CLASSIFICATION_PROVIDER=ollama` after running `ollama pull qwen2.5:3b-instr
 Set `CLASSIFICATION_PROVIDER=gemini` with a `CLASSIFICATION_API_KEY` (Google AI Studio key) for cloud-based LLM classification. Note: free tier is 20 requests/day for `gemini-2.5-flash-lite` — not suitable for production ingestion at scale.
 Set `CLASSIFICATION_PROVIDER=fake` to test the LLM classification path in dev without Ollama installed.
 Set `ALLOW_DEV_RESET=true` only for local QA sessions (enables `POST /api/dev/reset-rss-data`). Never enable in production.
+Set `INGESTION_SCHEDULER_ENABLED=true` to run ingestion automatically every `INGESTION_SCHEDULER_INTERVAL_MINUTES` (default 15). Disabled by default — the app then behaves exactly as before PR 13. Verify from the Sources page ("סטטוס ייבוא אוטומטי") or `GET /api/ingest/scheduler/status`.
 
 ### Frontend in backend mode
 Create `frontend/.env.local`:
@@ -422,7 +450,8 @@ No `.env.local` needed. Uses mock data and frontend engine.
 ```bash
 cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
-# 788 tests — all should pass (no test requires Ollama running or a real API key)
+# 1050 tests — all should pass (no test requires Ollama, a real API key, or live Sport5;
+# conftest forces CLASSIFICATION_PROVIDER=disabled + INGESTION_SCHEDULER_ENABLED=false)
 # Note: test_reset_returns_403_when_disabled requires ALLOW_DEV_RESET unset or =false in .env
 ```
 
@@ -431,11 +460,17 @@ cd backend
 POST http://127.0.0.1:8000/api/ingest/run                                        # MVP active sources only
 POST http://127.0.0.1:8000/api/ingest/run?source_id=walla_sport                  # Hebrew — active
 POST http://127.0.0.1:8000/api/ingest/run?source_id=israel_hayom_sport           # Hebrew — active
+POST http://127.0.0.1:8000/api/ingest/run?source_id=sport5_sport                 # Hebrew — scraping pilot, disabled by default (manual run works)
 # POST http://127.0.0.1:8000/api/ingest/run?source_id=eurohoops                  # disabled — set enabled=True in config.py to re-enable
 # POST http://127.0.0.1:8000/api/ingest/run?source_id=sportando                  # disabled — set enabled=True in config.py to re-enable
+
+POST http://127.0.0.1:8000/api/ingest/scheduler/run-now                          # same as scheduled run (enabled sources), shared lock
+GET  http://127.0.0.1:8000/api/ingest/scheduler/status                           # scheduler + lock state
+GET  http://127.0.0.1:8000/api/ingest/source-health                              # per-source freshness/health
 ```
 `POST /api/ingest/run` (no source_id) only runs sources with `enabled=True` in `config.py`.
-For MVP this means `walla_sport` + `israel_hayom_sport` only.
+For MVP this means `walla_sport` + `israel_hayom_sport` only. All ingestion triggers share
+one process-level lock — a second concurrent call returns 409 `ingestion_already_running`.
 
 Expected for `israel_hayom_sport`: `fetched=100, inserted≈21, skipped_filtered≈79, failed=0`.
 Second run: `inserted=0, skipped_duplicate≈21`.

@@ -441,10 +441,35 @@ RSSSourceConfig(
 - The Israel Hayom style is more opinionated and feature-length than Walla. Titles may be
   longer and less keyword-rich for the classifier.
 
-### Sport5 — intentionally excluded
+### Sport5 — scraping pilot (PR 13)
 
-Sport5 (`sport5.co.il`) has no known public RSS feed. This was confirmed in PR 8 research and
-is assumed to still be the case. Category page HTML scraping would be required. Deferred.
+Sport5 (`sport5.co.il`) has no public RSS feed (confirmed in PR 8 and PR 10 research).
+In PR 13 it was added as a **category-page HTML scraping pilot** — `source_id=sport5_sport`,
+display name ערוץ הספורט, `source_type="html_scrape"`, `is_pilot=True`, **disabled by default**.
+
+**Why scraping works here:** the Sport5 site is server-rendered static HTML (verified live
+2026-07-01). Article links follow a stable URL scheme
+(`/articles.aspx?FolderID=<category>&docID=<id>`) with Hebrew titles in the anchor text.
+The pilot scrapes the basketball category page only
+(`https://www.sport5.co.il/liga.aspx?FolderID=273`, ~12 articles per fetch).
+
+**Classification:** Sport5 is Hebrew-native — no translation, same as Walla. It is included
+in the Hebrew broad-source set, so it flows through the same gating → LLM → guardrails
+pipeline. `source_hints.py` maps article URLs with `FolderID=274` (the basketball news
+folder observed on the category page) to a `basketball` sport hint; all other FolderIDs
+conservatively return no hint.
+
+**Fragility / maintenance risks:** scraping depends on Sport5's markup and URL scheme.
+If the site changes, the adapter degrades to fetching 0 items (never crashes ingestion) and
+the source-health endpoint surfaces it as `stale`/`never_run`. Anchors are selected by URL
+shape, not CSS class names, to reduce breakage from cosmetic redesigns. `published_at` is
+not parsed in the pilot — scraped items carry ingest-time timestamps.
+
+**How to run / disable:** run manually with `POST /api/ingest/run?source_id=sport5_sport`
+(works while disabled). Enable for scheduled/all-source runs by setting `enabled=True` on
+the `sport5_sport` entry in `backend/app/ingestion/config.py`; set `enabled=False` to
+disable again. Tests use a static fixture (`backend/tests/fixtures/sport5_category.html`)
+— no test calls the live site. See `docs/RSS_INGESTION.md` for the adapter architecture.
 
 ---
 
@@ -502,10 +527,13 @@ Both categories correctly fall through to normal keyword detection and, when ena
 
 ### Extending to other sources
 
-To add URL category hints for a future source (e.g., Sport5 if it ever publishes RSS):
+To add URL category hints for a future source:
 1. Add a new `if source_id == "<source_id>":` block in `source_hints.py`.
 2. Map the URL category paths to `"basketball"`, `"football"`, or `None`.
 3. No other files need to change — the hint flows through existing parameters.
+
+PR 13 applied this pattern to the Sport5 scraping pilot: article URLs containing
+`FolderID=274` (basketball news folder) → `"basketball"`; all other Sport5 URLs → `None`.
 
 ---
 
@@ -514,8 +542,9 @@ To add URL category hints for a future source (e.g., Sport5 if it ever publishes
 | Priority | Task |
 |----------|------|
 | High | LLM classification benchmark — install Ollama, pull qwen2.5:3b-instruct, run ingestion, check timing fields in response |
-| High | Scheduled ingestion — run `POST /api/ingest/run` every 15–30 minutes via APScheduler |
+| ~~High~~ done (PR 13) | Scheduled ingestion — asyncio loop in the FastAPI lifespan, disabled by default (`INGESTION_SCHEDULER_ENABLED`) |
+| High | Validate the Sport5 scraping pilot against the live site; enable if quality holds |
 | Medium | Fuzzy dedup — cluster near-duplicate headlines from multiple sources |
-| Medium | Extended Hebrew entity detection — more Israeli teams, coaches, players |
+| ~~Medium~~ partly done (PR 13) | Extended Hebrew entity detection — 25 canonical entities in the normalizer; classifier keyword detection for more players/coaches still open |
 | Medium | More Israeli sports sources — ONE via category page adapter (no public RSS exists) |
 | Low | Feedback → profile mutation — `never_show` creates a hidden event rule |

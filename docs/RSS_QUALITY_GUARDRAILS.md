@@ -682,11 +682,63 @@ Importance is recalculated because adding a tracked entity changes the score (e.
 
 ---
 
+## 10. PR 13 — Classification Quality Expansion
+
+### 10a. Entity normalization map expanded (5 → 25 canonical entities)
+
+`entity_normalizer.py` now covers (Hebrew + English aliases each):
+
+| Group | Canonical entities | Sport-guarded? |
+|-------|-------------------|----------------|
+| Israeli basketball | Hapoel Holon, Bnei Herzliya, Hapoel Eilat, Hapoel Galil Gilboa, Ironi Ramat Gan, Ironi Ness Ziona | Ness Ziona **guarded** (Sektzia Ness Ziona = football); others unguarded (basketball-only) |
+| EuroLeague/EuroCup | Olympiacos Basketball, Panathinaikos Basketball, Real Madrid Basketball, FC Barcelona Basketball, Fenerbahce Basketball, Anadolu Efes, Partizan Belgrade, Crvena Zvezda, AS Monaco Basketball, Virtus Bologna | **All guarded except Virtus Bologna** — multi-sport clubs whose bare Hebrew name (ריאל מדריד, ברצלונה, מונאקו…) usually means football |
+| NBA | Los Angeles Lakers, Boston Celtics, Portland Trail Blazers, Washington Wizards, Cleveland Cavaliers, LeBron James, Jalen Brunson | Unguarded (single-sport, Knicks precedent) |
+
+"Sport-guarded" = in `_BASKETBALL_CLUB_ENTITIES`: the entity is dropped by
+`normalize_llm_entities()` / `prune_sport_incompatible_entities()` unless the final
+merged sport is basketball. The guard mechanism itself is unchanged — only data grew.
+
+Deliberately risky aliases handled: bare Hebrew `"אפס"` (Efes) is **not** an alias — it
+means "zero"; only `"אנאדולו אפס"` / `"efes"` are accepted. `"נס ציונה"` is an alias but
+the canonical entity is sport-guarded. Unknown LLM entities are still silently discarded.
+
+### 10b. Generalized post-merge basketball entity enrichment
+
+`enrich_basketball_entities_after_sport_resolve()` in `classifier.py` generalizes the
+Maccabi-only injection (section 9f) to a data-driven table
+(`_BASKETBALL_ENRICHMENT_PHRASES`): Maccabi Tel Aviv Basketball, Hapoel Tel Aviv
+Basketball, Hapoel Jerusalem Basketball, Hapoel Holon, Bnei Herzliya.
+
+Guards per entity: `sport == "basketball"` only (never football/unknown); club phrase
+present in title; entity not already present; no football-Maccabi context; **and, for
+non-Maccabi entities only, no generic football context** (extra-conservative layer).
+The Maccabi path is semantically identical to the previous implementation (verified by
+back-compat tests); `enrich_maccabi_entity_after_sport_resolve` remains as a wrapper.
+
+### 10c. New event-type keywords (signing) + explicit exclusions
+
+Added to `_SIGNING_KW`: `"הארכת חוזה"`, `"האריך חוזה"`, `"האריכה חוזה"`, `"חוזה חדש"`,
+feminine coach-appointment forms `"מונתה למאמן"` / `"מונתה למאמנת"` / `"מונה למאמנת"`
+(the masculine `"מונה למאמן"` ends with final nun ן and is not a substring of the
+feminine forms — same Unicode issue as the אלוף/אלופת fix).
+
+**Explicitly excluded** (false-positive risk, documented in code comments + negative
+tests): bare `"שוחרר"` (hospital-release collision), bare `"עזב"`, `"מאמן חדש"` alone.
+No new Hebrew win-verbs — the title_win hardening (section 8d) is untouched.
+
+### 10d. Load-bearing orderings locked by regression tests
+
+EuroCup-before-EuroLeague, football-Maccabi-before-basketball, negotiation-before-signing,
+and the IBL/NBA keyword mappings are unchanged and now pinned by
+`TestPR13LeagueOrderSafety` in `test_quality_regressions.py`.
+
+---
+
 ## Next Steps
 
 - **Re-run LLM gating benchmark** — Quality fixes on branch `feature/selective-llm-gating` are now in place. Re-run the benchmark from the Sources page to measure skip rate and quality after fixes.
-- **Expand entity normalization map** — Add EuroLeague club names, Israeli basketball coaches, key NBA players after benchmark reveals which entities LLM identifies but are not yet canonical.
-- **Automate ingestion** — APScheduler polling every 15–30 minutes.
-- **Extended entity detection** — Detect more players and teams from Hebrew and English text.
+- ~~Expand entity normalization map~~ — done in PR 13 (section 10a).
+- ~~Automate ingestion~~ — done in PR 13 (scheduler, disabled by default; see `docs/RSS_INGESTION.md`).
+- **Extended entity detection** — Detect more players and teams from Hebrew and English text in the deterministic classifier (the normalizer only canonicalizes LLM output).
 - **Fuzzy dedup** — Group near-duplicate headlines from different sources via
   `difflib.SequenceMatcher` + `cluster_id`.

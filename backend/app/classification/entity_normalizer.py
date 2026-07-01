@@ -49,6 +49,164 @@ _ENTITY_ALIASES: dict[str, list[str]] = {
         "knicks",
         "ny knicks",
     ],
+    # ── Israeli Basketball League clubs (PR 13) ──────────────────────────────
+    "Hapoel Holon": [
+        "הפועל חולון",
+        "hapoel holon",
+    ],
+    "Bnei Herzliya": [
+        "בני הרצליה",
+        "bnei herzliya",
+        "bney herzliya",
+    ],
+    "Hapoel Eilat": [
+        "הפועל אילת",
+        "hapoel eilat",
+    ],
+    "Hapoel Galil Gilboa": [
+        "הפועל גלבוע גליל",
+        "גלבוע גליל",
+        "גליל גלבוע",
+        "גלבוע עליון",
+        "hapoel gilboa galil",
+        "gilboa galil",
+        "hapoel galil gilboa",
+    ],
+    "Ironi Ramat Gan": [
+        "עירוני רמת גן",
+        "ironi ramat gan",
+    ],
+    # Ness Ziona is sport-guarded: Sektzia Ness Ziona is a football club.
+    "Ironi Ness Ziona": [
+        "עירוני נס ציונה",
+        "נס ציונה",
+        "ironi ness ziona",
+        "ness ziona",
+    ],
+    # ── EuroLeague / EuroCup clubs (PR 13) ───────────────────────────────────
+    # All multi-sport European clubs are sport-guarded (they have football
+    # sections; the bare Hebrew name usually refers to football).
+    "Olympiacos Basketball": [
+        "אולימפיאקוס",
+        "olympiacos",
+        "olympiacos basketball",
+        "olympiacos bc",
+        "olympiacos piraeus",
+    ],
+    "Panathinaikos Basketball": [
+        "פנאתינייקוס",
+        "פנאתינאיקוס",
+        "panathinaikos",
+        "panathinaikos basketball",
+        "panathinaikos bc",
+    ],
+    "Real Madrid Basketball": [
+        "ריאל מדריד",
+        "real madrid",
+        "real madrid basketball",
+        "real madrid baloncesto",
+    ],
+    "FC Barcelona Basketball": [
+        "ברצלונה",
+        "barcelona",
+        "fc barcelona",
+        "barca",
+        "barça",
+        "barcelona basketball",
+        "fc barcelona basketball",
+    ],
+    "Fenerbahce Basketball": [
+        "פנרבחצ'ה",
+        "פנרבחצה",
+        "fenerbahce",
+        "fenerbahce beko",
+        "fenerbahce basketball",
+    ],
+    # Bare Hebrew "אפס" (Efes) intentionally NOT an alias — it means "zero".
+    "Anadolu Efes": [
+        "אנאדולו אפס",
+        "אנדולו אפס",
+        "anadolu efes",
+        "efes",
+    ],
+    "Partizan Belgrade": [
+        "פרטיזן",
+        "פרטיזן בלגרד",
+        "partizan",
+        "partizan belgrade",
+    ],
+    "Crvena Zvezda": [
+        "הכוכב האדום",
+        "צרוונה זבזדה",
+        "crvena zvezda",
+        "red star",
+        "red star belgrade",
+    ],
+    "AS Monaco Basketball": [
+        "מונאקו",
+        "מונקו",
+        "monaco",
+        "as monaco",
+        "as monaco basketball",
+    ],
+    "Virtus Bologna": [
+        "וירטוס בולוניה",
+        "וירטוס",
+        "virtus bologna",
+        "virtus",
+    ],
+    # ── NBA teams and players (PR 13) ────────────────────────────────────────
+    # NBA teams and players are single-sport in Israeli coverage — unguarded,
+    # matching the New York Knicks precedent.
+    "Los Angeles Lakers": [
+        "לייקרס",
+        "לוס אנג'לס לייקרס",
+        "lakers",
+        "los angeles lakers",
+        "la lakers",
+    ],
+    "Boston Celtics": [
+        "סלטיקס",
+        "בוסטון סלטיקס",
+        "celtics",
+        "boston celtics",
+    ],
+    "Portland Trail Blazers": [
+        "בלייזרס",
+        "פורטלנד",
+        "פורטלנד בלייזרס",
+        "trail blazers",
+        "portland trail blazers",
+        "blazers",
+    ],
+    "Washington Wizards": [
+        "וויזארדס",
+        "ויזארדס",
+        "וושינגטון וויזארדס",
+        "wizards",
+        "washington wizards",
+    ],
+    "Cleveland Cavaliers": [
+        "קאבלירס",
+        "קאבס",
+        "קליבלנד",
+        "קליבלנד קאבלירס",
+        "cavaliers",
+        "cavs",
+        "cleveland cavaliers",
+    ],
+    "LeBron James": [
+        "לברון",
+        "לברון ג'יימס",
+        "lebron",
+        "lebron james",
+    ],
+    "Jalen Brunson": [
+        "ג'יילן ברונסון",
+        "ברונסון",
+        "jalen brunson",
+        "brunson",
+    ],
 }
 
 # Reverse lookup: lowercase alias → canonical name
@@ -64,6 +222,19 @@ _BASKETBALL_CLUB_ENTITIES = frozenset({
     "Maccabi Tel Aviv Basketball",
     "Hapoel Tel Aviv Basketball",
     "Hapoel Jerusalem Basketball",
+    # Sektzia Ness Ziona is an Israeli football club — "נס ציונה" alone is ambiguous.
+    "Ironi Ness Ziona",
+    # Multi-sport European clubs: their bare Hebrew names ("ריאל מדריד",
+    # "ברצלונה", "מונאקו"...) usually refer to the football section.
+    "Olympiacos Basketball",
+    "Panathinaikos Basketball",
+    "Real Madrid Basketball",
+    "FC Barcelona Basketball",
+    "Fenerbahce Basketball",
+    "Anadolu Efes",
+    "Partizan Belgrade",
+    "Crvena Zvezda",
+    "AS Monaco Basketball",
 })
 
 

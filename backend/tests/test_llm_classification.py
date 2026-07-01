@@ -339,7 +339,16 @@ class TestMergeWithGuardrails:
                                entities=["ניקס", "Jalen Brunson"], confidence=0.90)
         merged, _ = merge_with_guardrails(llm, rules, "...")
         assert "New York Knicks" in merged.entities
-        assert "Jalen Brunson" not in merged.entities  # not in canonical map
+        # Jalen Brunson became canonical in PR 13
+        assert "Jalen Brunson" in merged.entities
+
+    def test_unknown_entity_still_discarded(self):
+        """Entities absent from the canonical map are silently dropped."""
+        rules = make_rules_result(sport="basketball", entities=[])
+        llm = make_llm_result(sport="basketball", league="NBA",
+                               entities=["ניקס", "Some Unknown Rookie"], confidence=0.90)
+        merged, _ = merge_with_guardrails(llm, rules, "...")
+        assert merged.entities == ["New York Knicks"]
 
     def test_entity_order_is_deterministic(self):
         """Rules entities come first, then LLM-recognized additions, in stable order."""

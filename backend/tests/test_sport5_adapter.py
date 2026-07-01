@@ -104,7 +104,55 @@ class TestFixtureParsing:
         for item in self._fetch():
             assert item.source_id == "sport5_sport"
             assert item.published_at is None
-            assert item.summary is None
+
+
+# ── Card subtitle extraction ──────────────────────────────────────────────────
+
+class TestSubtitleExtraction:
+    def _fetch(self):
+        with patch(HTTPX_GET, return_value=mock_response(FIXTURE_HTML)):
+            return make_adapter().fetch()
+
+    def _item(self, doc_id):
+        return next(i for i in self._fetch() if f"docID={doc_id}" in i.url)
+
+    def test_card_subtitle_extracted(self):
+        item = self._item(550765)
+        assert item.summary == "הגארד הישראלי ממשיך לרכז עניין רב"
+
+    def test_second_card_subtitle_extracted(self):
+        item = self._item(550736)
+        assert item.summary == "הסנטר האמריקאי צפוי לעבור לקבוצה אירופית בקיץ הקרוב"
+
+    def test_timestamp_span_not_used_as_subtitle(self):
+        # Card 1 has a "01.07.26 - 21:40" span before the subtitle paragraph.
+        item = self._item(550765)
+        assert "01.07.26" not in (item.summary or "")
+
+    def test_card_without_subtitle_returns_none(self):
+        # Card 2 has only the headline anchor — and must NOT steal the
+        # subtitle of a neighbouring card via a shared ancestor container.
+        item = self._item(550760)
+        assert item.summary is None
+
+    def test_kicker_inside_anchor_not_used_as_subtitle(self):
+        # Card 6's <span class="kicker"> lives inside the headline anchor.
+        item = self._item(550553)
+        assert item.summary is None
+
+    def test_subtitle_flows_into_article(self, client):
+        from app.db.database import SessionLocal
+        from app.repositories.article_repository import get_by_id
+        from app.ingestion.dedup import article_id_from_url
+
+        with patch(HTTPX_GET, return_value=mock_response(FIXTURE_HTML)):
+            client.post("/api/ingest/run?source_id=sport5_sport")
+
+        url = "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=550765"
+        with SessionLocal() as session:
+            article = get_by_id(session, article_id_from_url(url))
+        assert article is not None
+        assert article.subtitle == "הגארד הישראלי ממשיך לרכז עניין רב"
 
 
 # ── Failure handling ──────────────────────────────────────────────────────────

@@ -72,6 +72,13 @@ which is why this source is scraping-based and not RSS.
   not CSS class names — cosmetic markup changes don't break parsing.
 - Titles come from anchor text; anchors with text shorter than 15 characters
   (nav links, "read more") are skipped, as are anchors without an article URL.
+- **Card subtitles are extracted** (PR 13.2): the descriptive paragraph inside the
+  article card (next to the headline anchor) becomes `RawSourceItem.summary`, cleaned
+  and truncated via the shared `clean_subtitle()` — so Sport5 subtitles flow into
+  `article.subtitle`, the Feed/Debug UI, and the classifier/LLM context exactly like
+  RSS `<description>` text. Timestamps/bylines are skipped; the extractor never
+  crosses into a neighbouring card (containers spanning other article anchors stop
+  the search); `None` when the card has no subtitle.
 - Relative hrefs are resolved against the source base URL (`urljoin`).
 - Duplicate anchors to the same article within one page are deduplicated in-fetch;
   cross-run dedup uses the standard URL-based mechanism.

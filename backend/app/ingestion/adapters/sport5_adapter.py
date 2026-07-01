@@ -17,6 +17,7 @@ article cards. It is intentionally conservative:
 """
 
 import logging
+import re
 from typing import Optional
 from urllib.parse import urljoin
 
@@ -24,6 +25,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from app.ingestion.adapters.base import RawSourceItem, SourceAdapter
+from app.ingestion.subtitle import clean_subtitle
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,12 @@ _ARTICLE_URL_MARKERS = ("articles.aspx", "docid=")
 
 # Titles shorter than this are navigation labels / "read more" links, not headlines.
 _MIN_TITLE_LENGTH = 15
+
+# Subtitle candidates shorter than this are bylines/labels, not real subtitles.
+_MIN_SUBTITLE_LENGTH = 10
+
+# Card text that is a timestamp/byline, not a subtitle (e.g. "01.07.26 - 21:40").
+_TIMESTAMP_RE = re.compile(r"^\d{1,2}\.\d{1,2}\.\d{2,4}")
 
 _FETCH_TIMEOUT_SECONDS = 10.0
 _USER_AGENT = "SignalSports/0.1 (+https://github.com/signal-sports; ingestion pilot)"
@@ -114,8 +122,48 @@ class Sport5ScrapeAdapter(SourceAdapter):
                     url=url,
                     title=title,
                     published_at=None,  # ingestion falls back to now(UTC)
-                    summary=None,
+                    summary=self._extract_card_subtitle(anchor, title),
                 )
             )
 
         return items
+
+    @staticmethod
+    def _extract_card_subtitle(anchor, title: str) -> Optional[str]:
+        """Best-effort subtitle from the article card surrounding the anchor.
+
+        Sport5 category cards usually place a descriptive paragraph right under
+        the headline anchor. Walk up to two ancestor containers and take the
+        first paragraph-like text that is not the title itself, not a
+        timestamp/byline, and long enough to be a real subtitle. Returns None
+        when nothing qualifies — subtitle is optional, same as RSS entries
+        without a <description>.
+        """
+        own_href = anchor["href"].strip()
+        container = anchor.parent
+        for _ in range(2):
+            if container is None:
+                return None
+            # Stop climbing once the container spans other articles (a card
+            # list, not this card) — otherwise we'd steal a neighbour's subtitle.
+            hrefs = {
+                a["href"].strip()
+                for a in container.find_all("a", href=True)
+                if _is_article_href(a["href"])
+            }
+            if hrefs - {own_href}:
+                return None
+            for candidate in container.find_all(["p", "h4", "span"]):
+                # Skip text that lives inside the headline anchor itself.
+                if candidate.find_parent("a") is not None:
+                    continue
+                text = clean_subtitle(candidate.get_text(" ", strip=True) or "")
+                if (
+                    text
+                    and text != title
+                    and len(text) >= _MIN_SUBTITLE_LENGTH
+                    and not _TIMESTAMP_RE.match(text)
+                ):
+                    return text
+            container = container.parent
+        return None

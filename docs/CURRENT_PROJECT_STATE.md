@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-07-02 — reflects state after PR 13 + PR 13.1 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default, toggleable from the UI), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, runtime source enable/disable overrides, and the Sources page scheduler/health UI. Test suites: 1059 backend + 286 frontend.
+Last updated: 2026-07-02 — reflects state after PR 13 + PR 13.1 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default, toggleable from the UI), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, runtime source enable/disable overrides, and the Sources page scheduler/health UI. Test suites: 1065 backend + 286 frontend.
 
 ---
 
@@ -122,6 +122,7 @@ future multi-replica deployment needs a single scheduler worker or a distributed
 - **Type:** `html_scrape` — Sport5 has **no public RSS** (confirmed PR 8/PR 10). The adapter scrapes the basketball category page (`https://www.sport5.co.il/liga.aspx?FolderID=273`, static server-rendered HTML, ~12 articles/fetch) with httpx + BeautifulSoup.
 - **Status:** pilot, **disabled by default** (`enabled=False`, `is_pilot=True`). Run manually with `POST /api/ingest/run?source_id=sport5_sport`, or toggle it on from the Sources page ("בריאות מקורות" card) / `PATCH /api/ingest/sources/sport5_sport` — the runtime override persists across restarts and includes it in scheduled/all-source runs (PR 13.1).
 - **Classification:** included in the Hebrew broad-source set (gated LLM path); article URLs with `FolderID=274` get a `basketball` source hint.
+- **Subtitles:** the card's descriptive paragraph is extracted as the article subtitle (PR 13.2) — cleaned like RSS descriptions, shown in Feed/Debug, and fed to the classifier/LLM as context.
 - **Known limitations:** `published_at` not parsed (falls back to ingest time); scraping is fragile to site redesigns — failures degrade to 0 items and surface in source health, never crash ingestion.
 - **ONE / Ynet** still have no accessible RSS; ONE remains the preferred next scraping candidate.
 
@@ -161,7 +162,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 
 On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent).
 
-**Test suite:** 1059 pytest tests across `backend/tests/` + 286 frontend tests (Vitest).
+**Test suite:** 1065 pytest tests across `backend/tests/` + 286 frontend tests (Vitest).
 The test environment is hermetic: `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and
 `INGESTION_SCHEDULER_ENABLED=false` regardless of the developer's `backend/.env`, so no test
 requires Ollama, a real API key, or live Sport5.
@@ -452,7 +453,7 @@ No `.env.local` needed. Uses mock data and frontend engine.
 ```bash
 cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
-# 1059 tests — all should pass (no test requires Ollama, a real API key, or live Sport5;
+# 1065 tests — all should pass (no test requires Ollama, a real API key, or live Sport5;
 # conftest forces CLASSIFICATION_PROVIDER=disabled + INGESTION_SCHEDULER_ENABLED=false)
 # Note: test_reset_returns_403_when_disabled requires ALLOW_DEV_RESET unset or =false in .env
 ```

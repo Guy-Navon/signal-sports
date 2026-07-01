@@ -2,6 +2,7 @@ import React from "react";
 import { useApp } from "@/context/AppContext";
 import { Database, Code2, ExternalLink, CheckCircle2, XCircle } from "lucide-react";
 import IngestionPanel from "@/components/ingestion/IngestionPanel";
+import SchedulerStatusPanel from "@/components/ingestion/SchedulerStatusPanel";
 import GatingBenchmarkPanel from "@/components/ingestion/GatingBenchmarkPanel";
 
 const TRUST_LABELS = {
@@ -47,6 +48,9 @@ export default function Sources() {
           בגרסאות הבאות, כל מקור יהיה מחובר ל-RSS, Scraper, או API בהתאם.
         </p>
       </div>
+
+      {/* Scheduler status + source health (backend mode only) */}
+      <SchedulerStatusPanel isBackendMode={isBackendMode} onFeedRefresh={refreshFeed} />
 
       {/* Ingestion panel */}
       <IngestionPanel isBackendMode={isBackendMode} onFeedRefresh={refreshFeed} />

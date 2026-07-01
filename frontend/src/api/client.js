@@ -96,3 +96,22 @@ export function resetRssData() {
 export function runLlmGatingBenchmark() {
   return apiFetch("/api/dev/benchmark/llm-gating", { method: "POST" });
 }
+
+export function getSchedulerStatus() {
+  return apiFetch("/api/ingest/scheduler/status");
+}
+
+export function runSchedulerNow() {
+  return apiFetch("/api/ingest/scheduler/run-now", { method: "POST" });
+}
+
+export function getSourceHealth() {
+  return apiFetch("/api/ingest/source-health");
+}
+
+// True when the error came from the shared ingestion lock (HTTP 409).
+// apiFetch embeds the status code and the JSON detail in the error message.
+export function isIngestionBusyError(err) {
+  const msg = err?.message || "";
+  return msg.includes("(409)") || msg.includes("ingestion_already_running");
+}

@@ -447,3 +447,75 @@ describe("resetRssData", () => {
     await expect(resetRssData()).rejects.toThrow("Cannot reach backend");
   });
 });
+
+// ── PR 13: scheduler + source-health client functions ─────────────────────────
+
+import { getSchedulerStatus, runSchedulerNow, getSourceHealth, isIngestionBusyError } from "./client";
+
+describe("getSchedulerStatus", () => {
+  it("calls GET /api/ingest/scheduler/status", async () => {
+    const payload = { enabled: false, running: false, interval_minutes: 15 };
+    const mockFetch = mockFetchSuccess(payload);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await getSchedulerStatus();
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/api/ingest/scheduler/status");
+    expect(options?.method).toBeUndefined(); // GET
+    expect(result).toEqual(payload);
+  });
+});
+
+describe("runSchedulerNow", () => {
+  it("calls POST /api/ingest/scheduler/run-now", async () => {
+    const payload = { trigger: "run_now", status: "ok", sources: [] };
+    const mockFetch = mockFetchSuccess(payload);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await runSchedulerNow();
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/api/ingest/scheduler/run-now");
+    expect(options.method).toBe("POST");
+    expect(result).toEqual(payload);
+  });
+
+  it("surfaces 409 conflict in the thrown error", async () => {
+    vi.stubGlobal("fetch", mockFetchHttpError(409, {
+      error: "ingestion_already_running",
+      message: "ייבוא פעיל כרגע",
+    }));
+
+    await expect(runSchedulerNow()).rejects.toThrow("409");
+  });
+});
+
+describe("getSourceHealth", () => {
+  it("calls GET /api/ingest/source-health", async () => {
+    const payload = [{ source_id: "walla_sport", freshness: "healthy" }];
+    const mockFetch = mockFetchSuccess(payload);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await getSourceHealth();
+
+    expect(mockFetch.mock.calls[0][0]).toContain("/api/ingest/source-health");
+    expect(result).toEqual(payload);
+  });
+});
+
+describe("isIngestionBusyError", () => {
+  it("detects 409 status in error message", () => {
+    expect(isIngestionBusyError(new Error("API POST /api/ingest/run failed (409): busy"))).toBe(true);
+  });
+
+  it("detects ingestion_already_running in error message", () => {
+    expect(isIngestionBusyError(new Error('{"error":"ingestion_already_running"}'))).toBe(true);
+  });
+
+  it("returns false for other errors", () => {
+    expect(isIngestionBusyError(new Error("API GET /api/feed failed (500): oops"))).toBe(false);
+    expect(isIngestionBusyError(null)).toBe(false);
+    expect(isIngestionBusyError(undefined)).toBe(false);
+  });
+});

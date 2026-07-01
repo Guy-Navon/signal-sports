@@ -141,6 +141,75 @@ export function formatDuration(ms) {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
+// ── Scheduler + source-health normalizers (PR 13) ─────────────────────────────
+
+export function normalizeSchedulerStatusFromApi(s) {
+  return {
+    enabled: s.enabled ?? false,
+    running: s.running ?? false,
+    intervalMinutes: s.interval_minutes ?? 15,
+    nextRunAt: s.next_run_at ?? null,
+    lastStartedAt: s.last_started_at ?? null,
+    lastFinishedAt: s.last_finished_at ?? null,
+    lastStatus: s.last_status ?? "never_run",
+    lastError: s.last_error ?? null,
+    activeRun: s.active_run ?? null,
+    lastResultSummary: s.last_result_summary ?? null,
+  };
+}
+
+export function normalizeSourceHealthFromApi(h) {
+  return {
+    sourceId: h.source_id,
+    displayName: h.display_name ?? h.source_id,
+    enabled: h.enabled ?? false,
+    sourceType: h.source_type ?? "rss",
+    isPilot: h.is_pilot ?? false,
+    freshness: h.freshness ?? "never_run",
+    lastRunAt: h.last_run_at ?? null,
+    lastStatus: h.last_status ?? null,
+    lastFetchedCount: h.last_fetched_count ?? null,
+    lastInsertedCount: h.last_inserted_count ?? null,
+    lastFailedCount: h.last_failed_count ?? null,
+    lastSkippedDuplicateCount: h.last_skipped_duplicate_count ?? null,
+    consecutiveFailures: h.consecutive_failures ?? 0,
+    lastErrorMessage: h.last_error_message ?? null,
+  };
+}
+
+// Hebrew label + Tailwind classes per freshness value (source-health badge).
+const FRESHNESS_BADGES = {
+  healthy: {
+    label: "תקין",
+    colorClass: "bg-emerald-500/20 border-emerald-500/40 text-emerald-300",
+  },
+  stale: {
+    label: "מיושן",
+    colorClass: "bg-amber-500/20 border-amber-500/50 text-amber-300",
+  },
+  never_run: {
+    label: "לא רץ עדיין",
+    colorClass: "bg-gray-700/50 border-gray-600/50 text-gray-400",
+  },
+  disabled: {
+    label: "כבוי",
+    colorClass: "bg-gray-800/50 border-gray-700/50 text-gray-500",
+  },
+  error: {
+    label: "שגיאה",
+    colorClass: "bg-red-500/10 border-red-500/30 text-red-400",
+  },
+};
+
+export function freshnessBadge(freshness) {
+  return FRESHNESS_BADGES[freshness] ?? FRESHNESS_BADGES.never_run;
+}
+
+export function sourceTypeLabel(sourceType) {
+  if (sourceType === "html_scrape") return "Scraping";
+  return "RSS";
+}
+
 // ── Calibration headline normalizer ──────────────────────────────────────────
 
 export function normalizeCalibrationHeadlineFromApi(h) {

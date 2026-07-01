@@ -60,3 +60,20 @@ def get_recent(session: Session, limit: int = 50) -> List[IngestionRunRecord]:
         .all()
     )
     return [_row_to_record(r) for r in rows]
+
+
+def get_recent_for_source(
+    session: Session, source_id: str, limit: int = 20
+) -> List[IngestionRunRecord]:
+    """Most recent runs for one source, newest first (source-health, PR 13)."""
+    rows = (
+        session.execute(
+            select(IngestionRunRow)
+            .where(IngestionRunRow.source_id == source_id)
+            .order_by(IngestionRunRow.started_at.desc())
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
+    return [_row_to_record(r) for r in rows]

@@ -54,6 +54,7 @@ def create_app() -> FastAPI:
     async def lifespan(application: FastAPI):
         from app.db.database import init_db, SessionLocal
         from app.repositories.seed_runner import seed_all_if_empty
+        from app.ingestion.scheduler import scheduler_state, start_scheduler, stop_scheduler
 
         _ensure_db_dir(settings.database_url)
         init_db()
@@ -61,7 +62,13 @@ def create_app() -> FastAPI:
         with SessionLocal() as session:
             seed_all_if_empty(session)
 
+        # Scheduled ingestion (PR 13) — disabled by default; returns None when
+        # INGESTION_SCHEDULER_ENABLED != true, leaving behavior identical to before.
+        scheduler_task = start_scheduler(scheduler_state)
+
         yield
+
+        await stop_scheduler(scheduler_state, scheduler_task)
 
     application = FastAPI(
         title=settings.app_name,

@@ -450,7 +450,7 @@ describe("resetRssData", () => {
 
 // ── PR 13: scheduler + source-health client functions ─────────────────────────
 
-import { getSchedulerStatus, runSchedulerNow, getSourceHealth, isIngestionBusyError } from "./client";
+import { getSchedulerStatus, runSchedulerNow, getSourceHealth, setSourceEnabled, isIngestionBusyError } from "./client";
 
 describe("getSchedulerStatus", () => {
   it("calls GET /api/ingest/scheduler/status", async () => {
@@ -517,5 +517,33 @@ describe("isIngestionBusyError", () => {
     expect(isIngestionBusyError(new Error("API GET /api/feed failed (500): oops"))).toBe(false);
     expect(isIngestionBusyError(null)).toBe(false);
     expect(isIngestionBusyError(undefined)).toBe(false);
+  });
+});
+
+describe("setSourceEnabled", () => {
+  it("calls PATCH /api/ingest/sources/{id} with enabled body", async () => {
+    const payload = { source_id: "sport5_sport", enabled: true, is_pilot: true };
+    const mockFetch = mockFetchSuccess(payload);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await setSourceEnabled("sport5_sport", true);
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/api/ingest/sources/sport5_sport");
+    expect(options.method).toBe("PATCH");
+    expect(JSON.parse(options.body)).toEqual({ enabled: true });
+    expect(result).toEqual(payload);
+  });
+
+  it("encodes the source id", async () => {
+    const mockFetch = mockFetchSuccess({});
+    vi.stubGlobal("fetch", mockFetch);
+    await setSourceEnabled("a b", false);
+    expect(mockFetch.mock.calls[0][0]).toContain("/api/ingest/sources/a%20b");
+  });
+
+  it("surfaces 404 for unknown source", async () => {
+    vi.stubGlobal("fetch", mockFetchHttpError(404, "Unknown source_id: nope"));
+    await expect(setSourceEnabled("nope", true)).rejects.toThrow("404");
   });
 });

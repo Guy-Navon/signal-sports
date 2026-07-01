@@ -109,6 +109,15 @@ export function getSourceHealth() {
   return apiFetch("/api/ingest/source-health");
 }
 
+// Enable/disable a source at runtime (persisted override; wins over config default).
+export function setSourceEnabled(sourceId, enabled) {
+  return apiFetch(`/api/ingest/sources/${encodeURIComponent(sourceId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+}
+
 // True when the error came from the shared ingestion lock (HTTP 409).
 // apiFetch embeds the status code and the JSON detail in the error message.
 export function isIngestionBusyError(err) {

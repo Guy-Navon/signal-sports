@@ -106,6 +106,7 @@ Exported functions:
 | `getSchedulerStatus()` (PR 13) | `GET /api/ingest/scheduler/status` |
 | `runSchedulerNow()` (PR 13) | `POST /api/ingest/scheduler/run-now` (409 when a run is active) |
 | `getSourceHealth()` (PR 13) | `GET /api/ingest/source-health` |
+| `setSourceEnabled(sourceId, enabled)` (PR 13.1) | `PATCH /api/ingest/sources/{id}` — runtime source toggle |
 | `backfillTranslations({ limit?, sourceId?, dryRun? })` | `POST /api/translations/backfill` |
 
 `isIngestionBusyError(err)` (PR 13, `client.js`) detects the shared-ingestion-lock 409
@@ -122,6 +123,8 @@ section: scheduler enabled/interval/next-run/last-run/last-error from
 while a run is active or after a 409), and per-source health cards from
 `GET /api/ingest/source-health` — freshness badge (תקין / מיושן / לא רץ עדיין / כבוי / שגיאה),
 RSS/Scraping type label, and a "פיילוט" badge for `is_pilot` sources (Sport5).
+Each health card also has a פעיל/כבוי toggle (PR 13.1) calling `setSourceEnabled()` — this is
+how the Sport5 pilot is enabled/disabled from the UI; the override persists in the backend DB.
 Normalizers: `normalizeSchedulerStatusFromApi`, `normalizeSourceHealthFromApi`,
 `freshnessBadge`, `sourceTypeLabel` in `normalizers.js`.
 

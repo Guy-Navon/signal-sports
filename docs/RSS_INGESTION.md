@@ -126,8 +126,13 @@ re-enabling post-MVP.
 fragile (Sport5 can change markup without notice), and the ingestion scheduler would otherwise hit
 the scraper every interval before scrape quality has been validated. To run it manually:
 `POST /api/ingest/run?source_id=sport5_sport` (single-source runs work even for disabled sources).
-To include it in scheduled/all-source runs, set `enabled=True` on the `sport5_sport` entry in
-`config.py`. To disable again, set `enabled=False` — no other change needed.
+
+**Runtime enable/disable (PR 13.1):** every source can be toggled at runtime — from the Sources
+page ("בריאות מקורות" card toggle, backend mode) or via
+`PATCH /api/ingest/sources/{source_id}` with body `{"enabled": true|false}`. The override is
+persisted in the `source_overrides` SQLite table, survives restarts, wins over the `config.py`
+default, and is respected by run-all ingestion, the scheduler, `GET /api/ingest/sources`, and
+source health. `config.py` `enabled` remains the code default when no override exists.
 
 **ONE Sport and Ynet Sport** were investigated in PR 10 and rejected for MVP:
 - ONE Sport: no public RSS (all endpoints 404)
@@ -493,6 +498,7 @@ INGESTION_SCHEDULER_INITIAL_DELAY_SECONDS=30
 | `GET`  | `/api/ingest/scheduler/status` | enabled, running, interval_minutes, next_run_at, last_started_at, last_finished_at, last_status (`ok`\|`error`\|`skipped`\|`never_run`), last_error, active_run, last_result_summary |
 | `POST` | `/api/ingest/scheduler/run-now` | Run ingestion immediately through the same internal path + lock; 409 when busy |
 | `GET`  | `/api/ingest/source-health` | Per source: enabled, source_type, is_pilot, last run counts/status/error, consecutive_failures, freshness |
+| `PATCH`| `/api/ingest/sources/{source_id}` | Enable/disable a source at runtime (body `{"enabled": bool}`); persisted override, 404 for unknown source (PR 13.1) |
 
 **Freshness rules** (`/api/ingest/source-health`, evaluated in order): `disabled` (source
 disabled) → `never_run` (no run history) → `error` (latest run failed) → `stale` (latest

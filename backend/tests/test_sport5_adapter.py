@@ -221,8 +221,10 @@ class TestSport5Ingestion:
         result = first.json()["sources"][0]
         assert result["source_id"] == "sport5_sport"
         assert result["fetched"] == 5
-        assert result["inserted"] == 5
         assert result["failed"] == 0
+        # Other tests in the shared session may have ingested the fixture
+        # already — every fetched item is either newly inserted or deduped.
+        assert result["inserted"] + result["skipped_duplicate"] == 5
 
         result2 = second.json()["sources"][0]
         assert result2["inserted"] == 0

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Clock, Play, RefreshCw, AlertCircle } from "lucide-react";
+import { Clock, Play, RefreshCw, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 import {
   getSchedulerStatus,
   getSourceHealth,
   runSchedulerNow,
+  setSourceEnabled,
   isIngestionBusyError,
 } from "@/api/client";
 import {
@@ -32,7 +33,7 @@ const LAST_STATUS_LABELS = {
   never_run: { label: "טרם רץ", className: "text-gray-500" },
 };
 
-function SourceHealthCard({ health }) {
+function SourceHealthCard({ health, onToggle, isToggling }) {
   const badge = freshnessBadge(health.freshness);
   const hasCounts = health.lastFetchedCount != null;
 
@@ -53,6 +54,30 @@ function SourceHealthCard({ health }) {
             פיילוט
           </span>
         )}
+        <button
+          onClick={() => onToggle(health.sourceId, !health.enabled)}
+          disabled={isToggling}
+          className={`mr-auto flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+            health.enabled
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+              : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600"
+          }`}
+          title={health.enabled ? "כבה מקור" : "הפעל מקור"}
+        >
+          {isToggling ? (
+            <RefreshCw size={10} className="animate-spin" />
+          ) : health.enabled ? (
+            <>
+              <CheckCircle2 size={10} />
+              פעיל
+            </>
+          ) : (
+            <>
+              <XCircle size={10} />
+              כבוי
+            </>
+          )}
+        </button>
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-600">
         <span>
@@ -89,6 +114,7 @@ export default function SchedulerStatusPanel({ isBackendMode, onFeedRefresh }) {
   const [status, setStatus] = useState(null);
   const [health, setHealth] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [togglingSourceId, setTogglingSourceId] = useState(null);
   const [error, setError] = useState(null);
 
   const loadStatus = useCallback(async () => {
@@ -124,6 +150,19 @@ export default function SchedulerStatusPanel({ isBackendMode, onFeedRefresh }) {
       }
     } finally {
       setIsRunning(false);
+      loadStatus();
+    }
+  };
+
+  const handleToggleSource = async (sourceId, enabled) => {
+    setTogglingSourceId(sourceId);
+    setError(null);
+    try {
+      await setSourceEnabled(sourceId, enabled);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTogglingSourceId(null);
       loadStatus();
     }
   };
@@ -198,7 +237,12 @@ export default function SchedulerStatusPanel({ isBackendMode, onFeedRefresh }) {
         <div className="space-y-1.5">
           <div className="text-xs text-gray-600 font-medium">בריאות מקורות</div>
           {health.map(h => (
-            <SourceHealthCard key={h.sourceId} health={h} />
+            <SourceHealthCard
+              key={h.sourceId}
+              health={h}
+              onToggle={handleToggleSource}
+              isToggling={togglingSourceId === h.sourceId}
+            />
           ))}
         </div>
       )}

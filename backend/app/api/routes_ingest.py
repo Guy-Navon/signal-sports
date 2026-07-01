@@ -4,9 +4,12 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from pydantic import BaseModel
+
 from app.db.database import get_session
-from app.ingestion.config import get_enabled_sources, RSS_SOURCES
+from app.ingestion.config import RSS_SOURCES, get_source_config
 from app.ingestion.ingestion_service import run_ingestion
+from app.ingestion.source_state import get_effective_enabled_map
 from app.ingestion.scheduler import (
     run_ingestion_guarded,
     scheduler_state,
@@ -21,7 +24,7 @@ from app.models.ingestion import (
     SchedulerStatusResponse,
     SourceHealthInfo,
 )
-from app.repositories import ingestion_repository
+from app.repositories import ingestion_repository, source_override_repository
 from app.repositories.article_repository import get_rss_articles
 
 router = APIRouter()
@@ -37,20 +40,56 @@ def _ingestion_busy_detail() -> dict:
 
 
 @router.get("/ingest/sources", response_model=List[IngestSourceInfo])
-def list_ingest_sources():
-    """Return all configured ingest sources (RSS and scraping)."""
+def list_ingest_sources(session: Session = Depends(get_session)):
+    """Return all configured ingest sources (RSS and scraping).
+
+    `enabled` is the effective state: a runtime override (set via
+    PATCH /api/ingest/sources/{source_id}) wins over the config.py default.
+    """
+    enabled_map = get_effective_enabled_map(session)
     return [
         IngestSourceInfo(
             source_id=cfg.source_id,
             display_name=cfg.display_name,
             type=cfg.source_type,
-            enabled=cfg.enabled,
+            enabled=enabled_map[cfg.source_id],
             feed_url=cfg.feed_url,
             language=cfg.language,
             is_pilot=cfg.is_pilot,
         )
         for cfg in RSS_SOURCES
     ]
+
+
+class SourceToggleRequest(BaseModel):
+    enabled: bool
+
+
+@router.patch("/ingest/sources/{source_id}", response_model=IngestSourceInfo)
+def set_source_enabled(
+    source_id: str,
+    payload: SourceToggleRequest,
+    session: Session = Depends(get_session),
+):
+    """Enable/disable a source at runtime (PR 13.1).
+
+    The override is persisted in the source_overrides table, survives restarts,
+    and is respected by run-all ingestion, the scheduler, and source health.
+    Used by the Sources page toggle (e.g. turning the Sport5 pilot on/off).
+    """
+    cfg = get_source_config(source_id)
+    if cfg is None:
+        raise HTTPException(status_code=404, detail=f"Unknown source_id: {source_id}")
+    source_override_repository.set_override(session, source_id, payload.enabled)
+    return IngestSourceInfo(
+        source_id=cfg.source_id,
+        display_name=cfg.display_name,
+        type=cfg.source_type,
+        enabled=payload.enabled,
+        feed_url=cfg.feed_url,
+        language=cfg.language,
+        is_pilot=cfg.is_pilot,
+    )
 
 
 @router.post("/ingest/run", response_model=IngestRunResponse)
@@ -147,6 +186,7 @@ def get_source_health(session: Session = Depends(get_session)):
     """
     now = datetime.now(tz=timezone.utc)
     interval = scheduler_state.interval_minutes
+    enabled_map = get_effective_enabled_map(session)
     health: list[SourceHealthInfo] = []
 
     for cfg in RSS_SOURCES:
@@ -160,13 +200,14 @@ def get_source_health(session: Session = Depends(get_session)):
             else:
                 break
 
+        effective_enabled = enabled_map[cfg.source_id]
         health.append(SourceHealthInfo(
             source_id=cfg.source_id,
             display_name=cfg.display_name,
-            enabled=cfg.enabled,
+            enabled=effective_enabled,
             source_type=cfg.source_type,
             is_pilot=cfg.is_pilot,
-            freshness=_freshness(cfg.enabled, last_run, interval, now),
+            freshness=_freshness(effective_enabled, last_run, interval, now),
             last_run_at=last_run.started_at if last_run else None,
             last_status=last_run.status if last_run else None,
             last_fetched_count=last_run.fetched_count if last_run else None,

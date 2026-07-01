@@ -465,10 +465,12 @@ the source-health endpoint surfaces it as `stale`/`never_run`. Anchors are selec
 shape, not CSS class names, to reduce breakage from cosmetic redesigns. `published_at` is
 not parsed in the pilot — scraped items carry ingest-time timestamps.
 
-**How to run / disable:** run manually with `POST /api/ingest/run?source_id=sport5_sport`
-(works while disabled). Enable for scheduled/all-source runs by setting `enabled=True` on
-the `sport5_sport` entry in `backend/app/ingestion/config.py`; set `enabled=False` to
-disable again. Tests use a static fixture (`backend/tests/fixtures/sport5_category.html`)
+**How to run / enable / disable:** run manually with `POST /api/ingest/run?source_id=sport5_sport`
+(works while disabled). Enable/disable at runtime from the Sources page — the פעיל/כבוי toggle
+on the ערוץ הספורט health card — or via `PATCH /api/ingest/sources/sport5_sport` with
+`{"enabled": true|false}` (PR 13.1). The override persists in SQLite across restarts and is
+respected by scheduled and all-source runs; `config.py` `enabled=False` remains the code default.
+Tests use a static fixture (`backend/tests/fixtures/sport5_category.html`)
 — no test calls the live site. See `docs/RSS_INGESTION.md` for the adapter architecture.
 
 ---

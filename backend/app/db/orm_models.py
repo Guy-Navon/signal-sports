@@ -61,6 +61,20 @@ class SourceRow(Base):
     trust_level = Column(String, nullable=False)
 
 
+class SourceOverrideRow(Base):
+    """Runtime enabled/disabled override for ingestion sources (PR 13.1).
+
+    config.py holds the code default; a row here (set via
+    PATCH /api/ingest/sources/{source_id}) wins over it and survives restarts.
+    Distinct from the legacy `sources` demo table — keyed by ingestion
+    source_id (e.g. "sport5_sport").
+    """
+    __tablename__ = "source_overrides"
+
+    source_id = Column(String, primary_key=True)
+    enabled = Column(Boolean, nullable=False)
+
+
 class FeedbackRow(Base):
     __tablename__ = "feedback_events"
 

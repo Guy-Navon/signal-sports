@@ -120,7 +120,7 @@ future multi-replica deployment needs a single scheduler worker or a distributed
 ### Sport5 / ערוץ הספורט (`sport5_sport`) — scraping pilot (PR 13)
 - **Language:** Hebrew (`he`); no translation, same as Walla.
 - **Type:** `html_scrape` — Sport5 has **no public RSS** (confirmed PR 8/PR 10). The adapter scrapes the basketball category page (`https://www.sport5.co.il/liga.aspx?FolderID=273`, static server-rendered HTML, ~12 articles/fetch) with httpx + BeautifulSoup.
-- **Status:** pilot, **disabled by default** (`enabled=False`, `is_pilot=True`). Run manually with `POST /api/ingest/run?source_id=sport5_sport`; enable in `config.py` to include in scheduled runs.
+- **Status:** pilot, **disabled by default** (`enabled=False`, `is_pilot=True`). Run manually with `POST /api/ingest/run?source_id=sport5_sport`, or toggle it on from the Sources page ("בריאות מקורות" card) / `PATCH /api/ingest/sources/sport5_sport` — the runtime override persists across restarts and includes it in scheduled/all-source runs (PR 13.1).
 - **Classification:** included in the Hebrew broad-source set (gated LLM path); article URLs with `FolderID=274` get a `basketball` source hint.
 - **Known limitations:** `published_at` not parsed (falls back to ingest time); scraping is fragile to site redesigns — failures degrade to 0 items and surface in source health, never crash ingestion.
 - **ONE / Ynet** still have no accessible RSS; ONE remains the preferred next scraping candidate.
@@ -147,6 +147,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 | `feedback_events` | User feedback (persists across restarts) |
 | `calibration_headlines` | 16 synthetic preference calibration headlines |
 | `ingestion_runs` | Log of every RSS ingestion run |
+| `source_overrides` | Runtime source enabled/disabled overrides (PR 13.1); wins over config.py defaults |
 
 **Five soft-migrated columns on `articles` (via `ALTER TABLE ADD COLUMN`, idempotent):**
 
@@ -177,6 +178,7 @@ requires Ollama, a real API key, or live Sport5.
 | `GET` | `/api/ingest/scheduler/status` | Scheduler + lock state: enabled, running, next_run_at, last run, active_run (PR 13) |
 | `POST` | `/api/ingest/scheduler/run-now` | Immediate ingestion via internal service path + shared lock; 409 when busy (PR 13) |
 | `GET` | `/api/ingest/source-health` | Per-source freshness (healthy/stale/never_run/disabled/error), last counts, consecutive failures (PR 13) |
+| `PATCH` | `/api/ingest/sources/{source_id}` | Enable/disable a source at runtime; persisted in `source_overrides` table, wins over config.py default (PR 13.1) |
 | `GET` | `/api/feed/{user_id}` | Scored feed (RSS articles only, hidden excluded) |
 | `GET` | `/api/debug/feed/{user_id}` | All articles scored with full reasoning |
 | `GET` | `/api/articles` | All RSS articles in DB |
@@ -201,7 +203,7 @@ requires Ollama, a real API key, or live Sport5.
 
 **Sources page — Ingestion panel:** In backend mode, shows source selector (MVP active sources: וואלה ספורט, ישראל היום ספורט), "הרץ ייבוא עכשיו" button, per-source result breakdown after run, recent runs list (last 5), and "איכות הסיווג" quality toggle. No translation UI — translation is post-MVP and was removed from the Sources page. In local mode, shows a disabled card with instructions to enable backend mode.
 
-**Sources page — "סטטוס ייבוא אוטומטי" panel (PR 13):** In backend mode, shows scheduler enabled/disabled + interval, next run time, last run time + status (הצליח/שגיאה/דולג/טרם רץ), last error, a "הרץ עכשיו" button (disabled with "ייבוא פעיל כרגע" while a run is active or a 409 was received), and per-source health cards: freshness badge (תקין/מיושן/לא רץ עדיין/כבוי/שגיאה), RSS/Scraping type label, "פיילוט" badge for Sport5, last run counts, consecutive failures, and last error. Hidden entirely in local mode. The manual ingestion panel is unchanged.
+**Sources page — "סטטוס ייבוא אוטומטי" panel (PR 13):** In backend mode, shows scheduler enabled/disabled + interval, next run time, last run time + status (הצליח/שגיאה/דולג/טרם רץ), last error, a "הרץ עכשיו" button (disabled with "ייבוא פעיל כרגע" while a run is active or a 409 was received), and per-source health cards: freshness badge (תקין/מיושן/לא רץ עדיין/כבוי/שגיאה), RSS/Scraping type label, "פיילוט" badge for Sport5, last run counts, consecutive failures, and last error. Each health card has a **פעיל/כבוי toggle** (PR 13.1) that calls `PATCH /api/ingest/sources/{id}` — this is how the Sport5 pilot is turned on/off from the UI. Hidden entirely in local mode. The manual ingestion panel is unchanged.
 
 **Sources page — LLM Gating Benchmark panel** (dev/QA only): In backend mode, shows "בנצ׳מרק LLM Gating" section with "הרץ בנצ׳מרק מלא" button. Runs a two-phase benchmark (baseline then gated) and displays a structured report: per-source baseline stats, gated stats, and a comparison row per source showing skip rate, LLM calls saved, time saved, sport_unknown delta, and PASS/FAIL status. Requires ALLOW_DEV_RESET=true and CLASSIFICATION_PROVIDER=ollama. Results are not persisted. Panel hidden in local mode.
 

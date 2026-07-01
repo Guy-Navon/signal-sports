@@ -34,7 +34,8 @@ from app.ingestion.classifier import (
     compute_importance,
     enrich_basketball_entities_after_sport_resolve,
 )
-from app.ingestion.config import RSS_SOURCES, RSSSourceConfig, get_source_config, get_enabled_sources
+from app.ingestion.config import RSS_SOURCES, RSSSourceConfig, get_source_config
+from app.ingestion.source_state import get_effective_enabled_sources
 from app.ingestion.dedup import article_id_from_url, url_already_exists
 from app.models.article import Article
 from app.models.ingestion import IngestionRunRecord, SourceIngestResult
@@ -449,7 +450,8 @@ def run_ingestion(
             ]
         configs = [cfg]
     else:
-        configs = get_enabled_sources()
+        # Effective enabled = config.py default + runtime DB override (PR 13.1).
+        configs = get_effective_enabled_sources(session)
 
     results: list[SourceIngestResult] = []
     for cfg in configs:

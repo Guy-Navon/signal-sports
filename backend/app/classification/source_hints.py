@@ -17,6 +17,14 @@ from typing import Literal, Optional
 _IH_BASKETBALL_PATHS = ("/sport/israeli-basketball/", "/sport/world-basketball/")
 _IH_FOOTBALL_PATHS = ("/sport/world-soccer/",)
 
+# Sport5 article URLs embed the CMS folder in the query string
+# (articles.aspx?FolderID=274&docID=...). FolderID=274 is the basketball news
+# folder — verified against the live basketball category page (PR 13 pilot).
+# All other FolderIDs intentionally return None (conservative: broad/unknown
+# categories fall through to keyword detection and gated LLM classification).
+_SPORT5_BASKETBALL_FOLDER_MARKERS = ("folderid=274&", "folderid=274#")
+_SPORT5_BASKETBALL_FOLDER_SUFFIX = "folderid=274"
+
 
 def extract_source_sport_hint(
     source_id: str,
@@ -32,4 +40,12 @@ def extract_source_sport_hint(
             return "basketball"
         if any(p in url_lower for p in _IH_FOOTBALL_PATHS):
             return "football"
+    if source_id == "sport5_sport":
+        url_lower = url.lower()
+        # Exact-value match: "folderid=274" must not match e.g. folderid=2740.
+        if (
+            any(m in url_lower for m in _SPORT5_BASKETBALL_FOLDER_MARKERS)
+            or url_lower.endswith(_SPORT5_BASKETBALL_FOLDER_SUFFIX)
+        ):
+            return "basketball"
     return None

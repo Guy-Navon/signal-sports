@@ -37,10 +37,11 @@ class IngestRunResponse(BaseModel):
 class IngestSourceInfo(BaseModel):
     source_id: str
     display_name: str
-    type: str = "rss"
+    type: str = "rss"           # "rss" | "html_scrape"
     enabled: bool
     feed_url: str
     language: str = "en"
+    is_pilot: bool = False      # experimental scraping pilot (PR 13)
 
 
 class IngestionRunRecord(BaseModel):
@@ -54,6 +55,47 @@ class IngestionRunRecord(BaseModel):
     skipped_duplicate_count: int
     failed_count: int
     error_message: Optional[str] = None
+
+
+class SchedulerStatusResponse(BaseModel):
+    """Live scheduler + ingestion-lock state (PR 13). Not persisted."""
+    enabled: bool
+    running: bool                                   # scheduler loop alive
+    interval_minutes: int
+    next_run_at: Optional[datetime] = None
+    last_started_at: Optional[datetime] = None
+    last_finished_at: Optional[datetime] = None
+    last_status: str = "never_run"                  # ok | error | skipped | never_run
+    last_error: Optional[str] = None
+    active_run: Optional[Dict[str, str]] = None     # {"trigger", "started_at"}
+    last_result_summary: Optional[List[Dict[str, object]]] = None
+
+
+class RunNowResponse(BaseModel):
+    """POST /api/ingest/scheduler/run-now result (PR 13)."""
+    trigger: str = "run_now"
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+    status: str                                     # ok | error
+    sources: List[Dict[str, object]] = Field(default_factory=list)
+
+
+class SourceHealthInfo(BaseModel):
+    """Per-source ingestion health, computed on request from ingestion_runs (PR 13)."""
+    source_id: str
+    display_name: str
+    enabled: bool
+    source_type: str = "rss"
+    is_pilot: bool = False
+    freshness: str                                  # healthy | stale | never_run | disabled | error
+    last_run_at: Optional[datetime] = None
+    last_status: Optional[str] = None               # ok | error
+    last_fetched_count: Optional[int] = None
+    last_inserted_count: Optional[int] = None
+    last_failed_count: Optional[int] = None
+    last_skipped_duplicate_count: Optional[int] = None
+    consecutive_failures: int = 0
+    last_error_message: Optional[str] = None
 
 
 class QuestionableArticle(BaseModel):

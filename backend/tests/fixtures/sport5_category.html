@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="utf-8"/>
+    <title>כדורסל - ערוץ הספורט</title>
+</head>
+<body>
+    <!-- Site navigation: short-text anchors that must be skipped -->
+    <nav>
+        <a href="/liga.aspx?FolderID=273">כדורסל</a>
+        <a href="/liga.aspx?FolderID=397">כדורגל עולמי</a>
+        <a href="/Default.aspx">ראשי</a>
+        <a href="https://nba.sport5.co.il/NBA.aspx?FolderId=402">NBA</a>
+    </nav>
+
+    <!-- Ad block: anchor without docID must be skipped -->
+    <div class="ad-banner">
+        <a href="https://ads.example.com/click?id=12345">פרסומת - לחצו כאן למבצע המטורף</a>
+    </div>
+
+    <main>
+        <!-- Article card 1: absolute URL, title + subtitle -->
+        <div class="article-card">
+            <a href="https://www.sport5.co.il/articles.aspx?FolderID=274&amp;docID=550765">
+                <h2>"נוקאאוט היסטורי": מה אמרו ברשת על ים מדר?</h2>
+            </a>
+            <p class="subtitle">הגארד הישראלי ממשיך לרכז עניין רב</p>
+        </div>
+
+        <!-- Article card 2: relative URL — must be normalized to absolute -->
+        <div class="article-card">
+            <a href="/articles.aspx?FolderID=274&amp;docID=550760">
+                היקר בתולדות מכבי ת"א: פרטי ההסכם של ים מדר
+            </a>
+        </div>
+
+        <!-- Article card 3: duplicate anchors to the same article
+             (image anchor with no text + title anchor) — one item only -->
+        <div class="article-card">
+            <a href="/articles.aspx?FolderID=274&amp;docID=550741">
+                <img src="/images/heidegger.jpg" alt=""/>
+            </a>
+            <a href="/articles.aspx?FolderID=274&amp;docID=550741">
+                רשמית: מקס היידיגר עזב את בני הרצליה
+            </a>
+        </div>
+
+        <!-- Article card 4: anchor with empty title text — must be skipped -->
+        <div class="article-card">
+            <a href="/articles.aspx?FolderID=274&amp;docID=550999"></a>
+        </div>
+
+        <!-- Article card 5: anchor with too-short text (nav-like) — must be skipped -->
+        <div class="article-card">
+            <a href="/articles.aspx?FolderID=274&amp;docID=550998">עוד...</a>
+        </div>
+
+        <!-- Article card 6: nested markup inside the anchor -->
+        <div class="article-card">
+            <a href="/articles.aspx?FolderID=274&amp;docID=550553">
+                <span class="kicker">פרשנות</span>
+                <h3>מה עכשיו? כך ייראה הסגל של מכבי תל אביב עם מדר</h3>
+            </a>
+        </div>
+
+        <!-- Article card 7: different folder (dayevents-style link without docID) — skipped -->
+        <div class="article-card">
+            <a href="/dayevents.aspx?FolderID=5374">לוח שידורים יומי מלא של הערוץ</a>
+        </div>
+
+        <!-- Article card 8: standard card -->
+        <div class="article-card">
+            <a href="/articles.aspx?FolderID=274&amp;docID=550736">
+                הסכום שהפועל ירושלים תקבל על אוסטין ויילי
+            </a>
+        </div>
+    </main>
+
+    <footer>
+        <a href="/about.aspx">אודות ערוץ הספורט</a>
+    </footer>
+</body>
+</html>

@@ -1,9 +1,10 @@
 """
-RSS source configuration.
+Source configuration (RSS + HTML-scraping sources).
 
-Add entries here to register a new RSS source.
-The feed_url is the only thing that needs to change per-source.
-Ingestion logic (adapter, classifier, dedup) does not need to be touched.
+Add entries here to register a new source.
+For RSS sources, the feed_url is the only thing that needs to change per-source.
+For html_scrape sources, set source_type="html_scrape" and list category_urls.
+Ingestion logic (adapter factory, classifier, dedup) does not need to be touched.
 """
 from dataclasses import dataclass, field
 
@@ -25,6 +26,18 @@ class RSSSourceConfig:
     # are accepted; other items are counted as skipped_filtered.
     # Use this as a category allowlist when the feed mixes sport and non-sport content.
     allowed_url_patterns: tuple[str, ...] = ()
+    # ── PR 13: source type + scraping pilot fields ────────────────────────────
+    # "rss" (default, feedparser) | "html_scrape" (category-page scraping).
+    source_type: str = "rss"
+    # html_scrape only: category pages to fetch and parse for article cards.
+    # For RSS sources this stays empty; feed_url is used instead.
+    category_urls: tuple[str, ...] = ()
+    # Marks experimental scraping pilots in the API/UI (badge + docs).
+    is_pilot: bool = False
+
+
+# Conceptual alias — the config now covers non-RSS sources too.
+SourceConfig = RSSSourceConfig
 
 
 # ── Configured RSS sources ────────────────────────────────────────────────────
@@ -90,6 +103,30 @@ RSS_SOURCES: list[RSSSourceConfig] = [
         language="he",
         allowed_languages=("he",),
         allowed_url_patterns=("/sport/",),
+    ),
+
+    # ── Scraping pilot (PR 13, disabled by default) ───────────────────────────
+
+    # Sport5 / ערוץ הספורט: Hebrew sports site with NO public RSS (confirmed in
+    # PR 8 + PR 10 research). Ingested via category-page HTML scraping — a pilot.
+    # Disabled by default because scraping is structurally fragile (site markup
+    # can change without notice) and the ingestion scheduler would hit it every
+    # interval. Run manually with POST /api/ingest/run?source_id=sport5_sport,
+    # or set enabled=True here to include it in scheduled/all-source runs.
+    # Pilot scope: the basketball category page only (verified server-rendered
+    # static HTML; article anchors /articles.aspx?FolderID=274&docID=...).
+    RSSSourceConfig(
+        source_id="sport5_sport",
+        display_name="ערוץ הספורט",
+        feed_url="https://www.sport5.co.il/",   # base URL (used for relative-URL resolution)
+        language="he",
+        enabled=False,  # pilot: enable manually after validating scrape quality
+        allowed_languages=("he",),
+        source_type="html_scrape",
+        category_urls=(
+            "https://www.sport5.co.il/liga.aspx?FolderID=273",  # basketball category
+        ),
+        is_pilot=True,
     ),
 ]
 

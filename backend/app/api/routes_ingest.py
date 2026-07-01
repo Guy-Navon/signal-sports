@@ -1,16 +1,25 @@
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.database import get_session
 from app.ingestion.config import get_enabled_sources, RSS_SOURCES
 from app.ingestion.ingestion_service import run_ingestion
+from app.ingestion.scheduler import (
+    run_ingestion_guarded,
+    scheduler_state,
+)
 from app.models.ingestion import (
     IngestQualityResponse,
     IngestRunResponse,
     IngestSourceInfo,
     IngestionRunRecord,
     QuestionableArticle,
+    RunNowResponse,
+    SchedulerStatusResponse,
+    SourceHealthInfo,
 )
 from app.repositories import ingestion_repository
 from app.repositories.article_repository import get_rss_articles
@@ -18,17 +27,27 @@ from app.repositories.article_repository import get_rss_articles
 router = APIRouter()
 
 
+def _ingestion_busy_detail() -> dict:
+    """Structured 409 body — identical shape for every lock-guarded endpoint."""
+    return {
+        "error": "ingestion_already_running",
+        "message": "ייבוא פעיל כרגע",
+        "active_run": scheduler_state.active_run,
+    }
+
+
 @router.get("/ingest/sources", response_model=List[IngestSourceInfo])
 def list_ingest_sources():
-    """Return all configured RSS ingest sources."""
+    """Return all configured ingest sources (RSS and scraping)."""
     return [
         IngestSourceInfo(
             source_id=cfg.source_id,
             display_name=cfg.display_name,
-            type="rss",
+            type=cfg.source_type,
             enabled=cfg.enabled,
             feed_url=cfg.feed_url,
             language=cfg.language,
+            is_pilot=cfg.is_pilot,
         )
         for cfg in RSS_SOURCES
     ]
@@ -39,13 +58,126 @@ def run_ingest(
     source_id: Optional[str] = Query(default=None, description="Run a single source by ID; omit for all enabled sources"),
     session: Session = Depends(get_session),
 ):
-    """Fetch, classify, deduplicate, and insert articles from RSS sources.
+    """Fetch, classify, deduplicate, and insert articles from configured sources.
 
     Returns a per-source summary of fetched / inserted / skipped_filtered / skipped_duplicate / failed counts.
+    Returns 409 if another ingestion run (manual, run-now, or scheduled) is active.
     """
-    results = run_ingestion(session, source_id=source_id)
+    if not scheduler_state.lock.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail=_ingestion_busy_detail())
+    started = datetime.now(tz=timezone.utc)
+    scheduler_state.active_run = {"trigger": "manual", "started_at": started.isoformat()}
+    scheduler_state.last_started_at = started
+    try:
+        results = run_ingestion(session, source_id=source_id)
+        scheduler_state.last_status = "ok"
+        scheduler_state.last_error = None
+    except Exception as exc:
+        scheduler_state.last_status = "error"
+        scheduler_state.last_error = str(exc)
+        raise
+    finally:
+        scheduler_state.last_finished_at = datetime.now(tz=timezone.utc)
+        scheduler_state.active_run = None
+        scheduler_state.lock.release()
     overall_status = "ok" if all(r.failed == 0 or r.inserted > 0 for r in results) else "error"
     return IngestRunResponse(status=overall_status, sources=results)
+
+
+@router.get("/ingest/scheduler/status", response_model=SchedulerStatusResponse)
+def get_scheduler_status():
+    """Live scheduler + ingestion-lock state (PR 13). Not persisted."""
+    s = scheduler_state
+    return SchedulerStatusResponse(
+        enabled=s.enabled,
+        running=s.running,
+        interval_minutes=s.interval_minutes,
+        next_run_at=s.next_run_at,
+        last_started_at=s.last_started_at,
+        last_finished_at=s.last_finished_at,
+        last_status=s.last_status,
+        last_error=s.last_error,
+        active_run=s.active_run,
+        last_result_summary=s.last_result_summary,
+    )
+
+
+@router.post("/ingest/scheduler/run-now", response_model=RunNowResponse)
+def scheduler_run_now():
+    """Trigger an ingestion run immediately through the internal service path.
+
+    Uses the same process-level lock as manual and scheduled ingestion;
+    returns 409 if another run is active.
+    """
+    summary = run_ingestion_guarded(scheduler_state, trigger="run_now")
+    if summary is None:
+        raise HTTPException(status_code=409, detail=_ingestion_busy_detail())
+    return RunNowResponse(
+        trigger="run_now",
+        started_at=scheduler_state.last_started_at,
+        finished_at=scheduler_state.last_finished_at,
+        status=scheduler_state.last_status,
+        sources=summary,
+    )
+
+
+def _freshness(
+    enabled: bool,
+    last_run: Optional[IngestionRunRecord],
+    interval_minutes: int,
+    now: datetime,
+) -> str:
+    if not enabled:
+        return "disabled"
+    if last_run is None:
+        return "never_run"
+    if last_run.status == "error":
+        return "error"
+    if now - last_run.started_at > timedelta(minutes=2 * interval_minutes):
+        return "stale"
+    return "healthy"
+
+
+@router.get("/ingest/source-health", response_model=List[SourceHealthInfo])
+def get_source_health(session: Session = Depends(get_session)):
+    """Per-source ingestion health, computed on request from the run log (PR 13).
+
+    Freshness: healthy (successful run within 2x scheduler interval) | stale |
+    never_run | disabled | error (latest run failed).
+    """
+    now = datetime.now(tz=timezone.utc)
+    interval = scheduler_state.interval_minutes
+    health: list[SourceHealthInfo] = []
+
+    for cfg in RSS_SOURCES:
+        runs = ingestion_repository.get_recent_for_source(session, cfg.source_id, limit=20)
+        last_run = runs[0] if runs else None
+
+        consecutive_failures = 0
+        for run in runs:
+            if run.status == "error":
+                consecutive_failures += 1
+            else:
+                break
+
+        health.append(SourceHealthInfo(
+            source_id=cfg.source_id,
+            display_name=cfg.display_name,
+            enabled=cfg.enabled,
+            source_type=cfg.source_type,
+            is_pilot=cfg.is_pilot,
+            freshness=_freshness(cfg.enabled, last_run, interval, now),
+            last_run_at=last_run.started_at if last_run else None,
+            last_status=last_run.status if last_run else None,
+            last_fetched_count=last_run.fetched_count if last_run else None,
+            last_inserted_count=last_run.inserted_count if last_run else None,
+            last_failed_count=last_run.failed_count if last_run else None,
+            last_skipped_duplicate_count=last_run.skipped_duplicate_count if last_run else None,
+            consecutive_failures=consecutive_failures,
+            last_error_message=last_run.error_message if last_run else None,
+        ))
+
+    return health
 
 
 @router.get("/ingest/runs", response_model=List[IngestionRunRecord])

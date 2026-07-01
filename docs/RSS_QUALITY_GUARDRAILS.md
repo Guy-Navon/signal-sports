@@ -633,7 +633,7 @@ Also added IBL clubs to `_BASKETBALL_CTX_KW` so they can disambiguate mixed-enti
 
 **Problem:** When a title contains a full-name "מכבי תל אביב" form but has no sport context keywords (no "כדורסל", no "יורוליג", no Kattash, etc.), the deterministic classifier sets `tags=["ambiguous_club"]` and `entities=[]` — it cannot assign the Maccabi Tel Aviv Basketball entity without knowing which sport. The LLM resolves `sport=basketball`, but the merge step does not retroactively add the entity, so `entities` remains empty after the LLM call. An empty-entity article misses Guy's `maccabi_tel_aviv_basketball` topic (scope=entity match requires the entity in `article.entities`).
 
-**Fix:** New public helper `enrich_maccabi_entity_after_sport_resolve(entities, title_lower, sport)` in `classifier.py`. Called in `ingestion_service.py` immediately after `normalize_league_sport_compatibility()`:
+**Fix (historical — generalized in PR 13, see §10b):** New public helper `enrich_maccabi_entity_after_sport_resolve(entities, title_lower, sport)` in `classifier.py` (now a backwards-compatibility wrapper around `enrich_basketball_entities_after_sport_resolve()`). Called in `ingestion_service.py` immediately after `normalize_league_sport_compatibility()`:
 
 ```python
 enriched_entities = enrich_maccabi_entity_after_sport_resolve(

@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-07-02 — reflects state after PR 13 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, and the Sources page scheduler/health UI. Test suites: 1050 backend + 283 frontend.
+Last updated: 2026-07-02 — reflects state after PR 13 + PR 13.1 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default, toggleable from the UI), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, runtime source enable/disable overrides, and the Sources page scheduler/health UI. Test suites: 1059 backend + 286 frontend.
 
 ---
 
@@ -38,7 +38,7 @@ RSS source
       deterministic classifier (title + subtitle) → sport, league, entities, event_type, importance, confidence
         — always runs; subtitle fills gaps when title is ambiguous or produces sport=unknown
         — subtitle never overrides an already-resolved sport value from the title
-      source URL category hint extracted (extract_source_sport_hint — Israel Hayom only)
+      source URL category hint extracted (extract_source_sport_hint — Israel Hayom paths + Sport5 FolderID=274)
       [Hebrew broad sources only, when CLASSIFICATION_PROVIDER != disabled]:
         should_call_llm_for_article() gate evaluated against rules result
           → sport=unknown / ambiguous_club / conf<0.55 → force call LLM
@@ -77,7 +77,7 @@ future multi-replica deployment needs a single scheduler worker or a distributed
 | Deterministic classifier | Keyword matching + subtitle gap-filling, `backend/app/ingestion/classifier.py` |
 | LLM classification | Gemini + Ollama providers, `backend/app/classification/` |
 | LLM gating | `backend/app/classification/gating.py` — per-article decision on whether to call LLM |
-| Source URL hints | `backend/app/classification/source_hints.py` — Israel Hayom URL category → sport hint |
+| Source URL hints | `backend/app/classification/source_hints.py` — URL category → sport hint (Israel Hayom paths; Sport5 FolderID=274 → basketball, PR 13) |
 | Relevance engine | Python: `backend/app/services/relevance_engine.py`; JS mirror: `src/engine/relevanceEngine.js` |
 | Translation | `backend/app/translation/`, provider configured by `.env` |
 
@@ -161,7 +161,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 
 On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent).
 
-**Test suite:** 1050 pytest tests across `backend/tests/` + 283 frontend tests (Vitest).
+**Test suite:** 1059 pytest tests across `backend/tests/` + 286 frontend tests (Vitest).
 The test environment is hermetic: `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and
 `INGESTION_SCHEDULER_ENABLED=false` regardless of the developer's `backend/.env`, so no test
 requires Ollama, a real API key, or live Sport5.
@@ -307,7 +307,7 @@ LLM classification is an opt-in overlay for Hebrew broad sources only. It does n
    - Guardrail 4b: LLM title_win with no championship evidence in title → reject; use rules event_type
    - Guardrail 5: importance never downgraded (rules high → LLM low: keep high)
    - Guardrail 6: league-sport incompatibility (EuroLeague + football → basketball; etc.) — fires before entity pruning
-   - Guardrail 7: source URL category hint overrides LLM sport (Israel Hayom only)
+   - Guardrail 7: source URL category hint overrides LLM sport (Israel Hayom paths; Sport5 FolderID=274 since PR 13)
 7. Entities: rules entities pruned for sport compatibility (basketball club entities removed when final sport ≠ basketball); LLM entities normalized through alias map and appended
 8. Defense-in-depth (all paths): `normalize_league_sport_compatibility()` called for both rules-only and LLM-merge paths — no Article can be stored with an impossible sport/league combination
 9. Defense-in-depth (relevance engine): entity scope matching checks `topic.sport` vs `article.sport` — a football article cannot match a basketball entity topic even if entities contain a stale basketball club name
@@ -381,16 +381,16 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 
 Priority order:
 
-1. **LLM gating benchmark (PR 12)** — Run ingestion with `CLASSIFICATION_LLM_GATING=disabled` first (baseline), then with `enabled`. Compare `llm_attempts`, `llm_skipped`, `total_ms`, and `sport=unknown` counts from the quality endpoint. Target ≥40% LLM call reduction with no regression. Do not merge PR 12 until benchmark results are reviewed.
+1. **Re-run the LLM gating benchmark (validation task)** — Gating and the benchmark UI shipped with PR 12; the PR 13 quality fixes are in place. From the Sources page (requires `ALLOW_DEV_RESET=true` + `CLASSIFICATION_PROVIDER=ollama`), run "הרץ בנצ׳מרק מלא" and compare `llm_attempts`, `llm_skipped`, `total_ms`, and `sport=unknown` against baseline. Target ≥40% LLM call reduction with no regression (last measured: israel_hayom PASS 41.4%, walla FAIL 26.7% before the quality fixes). Review results before merging the `feature/selective-llm-gating` branch.
 2. **LLM classification benchmark** — Install Ollama, pull `qwen2.5:3b-instruct`, set `CLASSIFICATION_PROVIDER=ollama` + `CLASSIFICATION_MODEL=qwen2.5:3b-instruct` + `CLASSIFICATION_TIMEOUT_SECONDS=30`, re-ingest Walla + Israel Hayom, compare `sport=unknown` count and Guy's feed visibility before/after. Check `fetch_ms`, `llm_avg_ms`, and `llm_fallback_*` counts in the ingest response for performance baseline. Run `POST /api/classify/backfill?source_id=walla_sport` on existing articles. If quality is poor, try `qwen3:4b`.
-2. ~~Expand entity normalization map~~ — **done in PR 13** (25 canonical entities; see `docs/RSS_QUALITY_GUARDRAILS.md` §10a). Player/coach names still missing from the *deterministic* keyword lists remain open.
-3. ~~Scheduled ingestion~~ — **done in PR 13** (asyncio loop in lifespan, `INGESTION_SCHEDULER_ENABLED`, disabled by default).
-4. **Validate Sport5 pilot** — Run `POST /api/ingest/run?source_id=sport5_sport` against the live site, review classification quality in the debug view, then consider `enabled=True`.
-5. **Feed clustering / fuzzy dedup** — Use `difflib.SequenceMatcher` on titles across sources; populate `cluster_id`. Show one card per story.
-5. **Feedback → profile mutation** — `never_show` feedback creates a `hidden` event rule for the article's `event_type` in the matched topic. Requires in-place profile update via the repository.
-6. **More Hebrew sources** — ONE Sport via category page HTML adapter is the preferred next source (traditional HTML, no SPA). Sport5 has no clean RSS. Ynet is harder (SPA).
-7. **Better relevance for LLM-classified articles** — Some LLM-classified articles land in Guy's feed as `feed` when they deserve `high_feed` or `push`. The relevance engine's topic rules may need tuning once LLM entity extraction surfaces more entities (e.g., New York Knicks → Knicks entity → entity_event_rules fires).
-8. **Re-enable English sources + translation** (post-MVP) — Set `eurohoops.enabled=True` in `config.py`, configure `TRANSLATION_PROVIDER=claude` + API key, run translation backfill, verify Italian → Hebrew quality.
+3. ~~Expand entity normalization map~~ — **done in PR 13** (25 canonical entities; see `docs/RSS_QUALITY_GUARDRAILS.md` §10a). Player/coach names still missing from the *deterministic* keyword lists remain open.
+4. ~~Scheduled ingestion~~ — **done in PR 13** (asyncio loop in lifespan, `INGESTION_SCHEDULER_ENABLED`, disabled by default).
+5. **Validate Sport5 pilot** — Run `POST /api/ingest/run?source_id=sport5_sport` against the live site, review classification quality in the debug view, then enable it from the Sources page toggle (or `PATCH /api/ingest/sources/sport5_sport`) if quality holds.
+6. **Feed clustering / fuzzy dedup** — Use `difflib.SequenceMatcher` on titles across sources; populate `cluster_id`. Show one card per story.
+7. **Feedback → profile mutation** — `never_show` feedback creates a `hidden` event rule for the article's `event_type` in the matched topic. Requires in-place profile update via the repository.
+8. **More Hebrew sources** — ONE Sport via category page HTML adapter is the preferred next source (traditional HTML, no SPA; Sport5 is already covered by the scraping pilot). Ynet is harder (SPA).
+9. **Better relevance for LLM-classified articles** — Some LLM-classified articles land in Guy's feed as `feed` when they deserve `high_feed` or `push`. The relevance engine's topic rules may need tuning once LLM entity extraction surfaces more entities (e.g., New York Knicks → Knicks entity → entity_event_rules fires).
+10. **Re-enable English sources + translation** (post-MVP) — Set `eurohoops.enabled=True` in `config.py` (or via the Sources page toggle), configure `TRANSLATION_PROVIDER=claude` + API key, run translation backfill, verify Italian → Hebrew quality.
 
 ---
 
@@ -452,7 +452,7 @@ No `.env.local` needed. Uses mock data and frontend engine.
 ```bash
 cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
-# 1050 tests — all should pass (no test requires Ollama, a real API key, or live Sport5;
+# 1059 tests — all should pass (no test requires Ollama, a real API key, or live Sport5;
 # conftest forces CLASSIFICATION_PROVIDER=disabled + INGESTION_SCHEDULER_ENABLED=false)
 # Note: test_reset_returns_403_when_disabled requires ALLOW_DEV_RESET unset or =false in .env
 ```

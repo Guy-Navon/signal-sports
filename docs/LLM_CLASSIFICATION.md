@@ -251,31 +251,42 @@ Guardrail 6 inside `merge_with_guardrails()` is redundant with this call for the
 
 ---
 
-## Post-Merge Maccabi Entity Injection
+## Post-Merge Basketball Entity Enrichment (generalized in PR 13)
 
 After `normalize_league_sport_compatibility()`, `ingestion_service.py` calls a second enrichment step before constructing the `Article`:
 
 ```python
-enriched_entities = enrich_maccabi_entity_after_sport_resolve(
+enriched_entities, injected = enrich_basketball_entities_after_sport_resolve(
     final_result.entities, title_lower, final_result.sport
 )
-if enriched_entities is not final_result.entities:
+if injected:
     final_result.entities = enriched_entities
     final_result.tags = [t for t in final_result.tags if t != "ambiguous_club"]
+    for name in injected:
+        if name not in final_result.tags:
+            final_result.tags = [*final_result.tags, name]
     final_result.importance = compute_importance(
         final_result.event_type, final_result.entities, final_result.league
     )
 ```
 
-**Why this is needed:** When a Hebrew title uses the full club form "מכבי תל אביב" with no sport context keywords, `classify()` sets `tags=["ambiguous_club"]` and `entities=[]` — it cannot resolve which sport without more context. The LLM resolves `sport=basketball`, but the merge step (`merge_with_guardrails()`) does not retroactively add entities — it only merges the LLM's own entity output. Since the LLM was given a bare title and may not output a canonical entity string, `entities` often remains empty after the merge.
+The injectable clubs live in a data-driven table in `classifier.py`
+(`_BASKETBALL_ENRICHMENT_PHRASES`): **Maccabi Tel Aviv Basketball, Hapoel Tel Aviv
+Basketball, Hapoel Jerusalem Basketball, Hapoel Holon, Bnei Herzliya** — each mapped to its
+exact full-name title phrases. PR 13 generalized what was previously a Maccabi-only mechanism.
 
-**Why empty entities matter:** The `maccabi_tel_aviv_basketball` topic in Guy's profile uses `scope="entity"`, meaning the relevance engine only matches when `"Maccabi Tel Aviv Basketball"` is in `article.entities`. An article with empty entities misses this topic entirely and falls to lower-priority topics, producing the wrong decision.
+**Why this is needed:** When a Hebrew title uses a full club form (e.g. "מכבי תל אביב", "הפועל ירושלים") with no sport context keywords, `classify()` sets `tags=["ambiguous_club"]` (or just finds no entity) — it cannot resolve which sport without more context. The LLM resolves `sport=basketball`, but the merge step (`merge_with_guardrails()`) does not retroactively add entities — it only merges the LLM's own entity output. Since the LLM was given a bare title and may not output a canonical entity string, `entities` often remains empty after the merge.
 
-**Guard conditions in `enrich_maccabi_entity_after_sport_resolve()`:**
-- Only injects when `sport == "basketball"` (LLM must have resolved it)
-- Does not inject when `"Maccabi Tel Aviv Basketball"` or `"Maccabi Tel Aviv Football"` already present
-- Does not inject when `_has_football_maccabi_context()` detects a football Maccabi club
-- Does not inject when the full-name "מכבי תל אביב" phrase is absent from the title
+**Why empty entities matter:** Entity-scope topics (e.g. `maccabi_tel_aviv_basketball` in Guy's profile, `scope="entity"`) only match when the canonical entity name is in `article.entities`. An article with empty entities misses the topic entirely and falls to lower-priority topics, producing the wrong decision.
+
+**Guard conditions in `enrich_basketball_entities_after_sport_resolve()`:**
+- Only injects when `sport == "basketball"` (never football, never unknown)
+- Never injects when `_has_football_maccabi_context()` detects a football Maccabi club in the title
+- Per entity: does not inject when the entity is already present, or its title phrase is absent
+- Maccabi keeps its original exclusion: no injection when `"Maccabi Tel Aviv Football"` is present
+- **Non-Maccabi clubs only:** additionally blocked when generic football context words (`_FOOTBALL_CTX_KW`) appear in the title — an extra-conservative layer; the Maccabi path is semantically identical to the pre-PR 13 behavior
+
+**Backwards compatibility:** `enrich_maccabi_entity_after_sport_resolve()` still exists as a thin Maccabi-only wrapper around the generalized function, kept so older imports/tests continue to work. New code should use `enrich_basketball_entities_after_sport_resolve()`.
 
 **Importance recalculation:** Adding a tracked entity can change the importance score (`event_type="news"` + no entity → `low`; same with entity → `medium`), which in turn affects the relevance decision. `compute_importance()` is called after entity injection to keep importance consistent.
 
@@ -587,7 +598,7 @@ All timing numbers above are now observable via the `SourceIngestResult` fields 
 
 All tests use `FakeLLMProvider`, mocked `httpx`, or mocked `google.genai`. No test requires Ollama or a real API key.
 
-**Total: 1050 tests** (as of PR 13 on branch `feature/selective-llm-gating`). The suite is hermetic — `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and `INGESTION_SCHEDULER_ENABLED=false` regardless of `backend/.env`.
+**Total: 1059 tests** (as of PR 13.1 on branch `feature/selective-llm-gating`). The suite is hermetic — `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and `INGESTION_SCHEDULER_ENABLED=false` regardless of `backend/.env`.
 
 **`backend/tests/test_llm_classification.py`** (added in PR 11, extended with subtitle/Gemini/Ollama/guardrail tests):
 - `TestValidation` (10 tests) — JSON parsing, enum validation, regex fallback, all leagues accepted

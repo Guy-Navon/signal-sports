@@ -224,7 +224,7 @@ the feed and debug view update with newly ingested articles without a full brows
 | Calibration inference (`calibrationEngine.js`) | No backend endpoint for preference inference yet |
 | Sandbox profile apply (`draftToProfile.js`) | No backend profile mutation endpoint yet |
 | Profile comparison tab | Requires multi-profile scoring in one request; backend not wired for this |
-| Source toggle (Sources page) | Frontend-only concept; backend does not persist source toggles |
+| Demo sources list toggle (bottom of Sources page, `feedSources.js`) | Local demo data only. **Real ingestion sources are no longer local-only:** since PR 13.1 the source-health cards toggle them via `PATCH /api/ingest/sources/{id}`, persisted in the backend `source_overrides` table |
 | `less_like_this` feedback | Not in the backend's valid actions set |
 
 ---
@@ -267,7 +267,7 @@ cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
 ```
 
-Expected: 236 tests pass. Run all tests: `.venv\Scripts\python.exe -m pytest tests/ -q`.
+Expected: **1059 tests pass** (as of PR 13.1 — see `docs/CURRENT_PROJECT_STATE.md` for the authoritative current count). Run all tests: `.venv\Scripts\python.exe -m pytest tests/ -q`.
 
 ## Frontend Tests
 
@@ -291,7 +291,7 @@ PR 6 replaced the in-memory data store with SQLite persistence (SQLAlchemy 2.0).
 - Articles, profiles, sources, calibration headlines, and feedback events are all stored in `backend/data/signal_sports.db`.
 - Feedback events survive backend restarts.
 - New endpoint: `GET /api/feedback/{user_id}` — returns all feedback events for a user.
-- 18 new persistence tests added; backend test suite is now 86 tests.
+- 18 new persistence tests added; backend test suite was 86 tests at that point (historical PR 6 count).
 
 See `docs/SQLITE_PERSISTENCE.md` for details on the database design, seed-on-empty behavior, test isolation, and reset instructions.
 

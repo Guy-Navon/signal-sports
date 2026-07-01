@@ -197,7 +197,7 @@ Each `RawSourceItem` is mapped to an `Article` via the classifier:
 | `title`          | Hebrew translation when available; raw RSS title otherwise |
 | `sport`          | From classifier (deterministic) or LLM + guardrails (Hebrew broad sources, PR 11) |
 | `league`         | From classifier or LLM |
-| `entities`       | From classifier or LLM (canonical entity names only); post-merge injection may add `"Maccabi Tel Aviv Basketball"` when LLM resolved sport=basketball for an ambiguous-club title — see `enrich_maccabi_entity_after_sport_resolve()` in `classifier.py` and `docs/LLM_CLASSIFICATION.md` |
+| `entities`       | From classifier or LLM (canonical entity names only); post-merge enrichment may inject a basketball club entity (Maccabi TLV, Hapoel TLV/Jerusalem/Holon, Bnei Herzliya) when the LLM resolved sport=basketball for a title naming the club without sport context — see `enrich_basketball_entities_after_sport_resolve()` in `classifier.py` (PR 13) and `docs/LLM_CLASSIFICATION.md` |
 | `event_type`     | From classifier or LLM |
 | `importance`     | From classifier or LLM (never downgraded by LLM) |
 | `confidence`     | From classifier (deterministic confidence score) |

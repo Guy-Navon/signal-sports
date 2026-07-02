@@ -82,8 +82,11 @@ which is why this source is scraping-based and not RSS.
 - Relative hrefs are resolved against the source base URL (`urljoin`).
 - Duplicate anchors to the same article within one page are deduplicated in-fetch;
   cross-run dedup uses the standard URL-based mechanism.
-- `published_at` is `None` → the ingestion service falls back to ingest time.
-  This is a documented pilot limitation.
+- **Publish time is parsed from the card timestamp** (PR 13.3): cards show
+  `DD.MM.YY - HH:MM` in Israel local time; the adapter converts it to UTC
+  (DST-aware via `Asia/Jerusalem`, `tzdata` dependency) so "לפני X" in the feed
+  reflects the real publish time, like RSS sources. Cards without a parseable
+  timestamp fall back to ingest time.
 - Any network or parse failure is logged and skipped; `fetch()` never raises.
   A Sport5 outage cannot crash an ingestion run.
 

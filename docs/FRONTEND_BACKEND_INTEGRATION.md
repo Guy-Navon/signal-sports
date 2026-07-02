@@ -267,7 +267,7 @@ cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
 ```
 
-Expected: **1065 tests pass** (as of PR 13.1 — see `docs/CURRENT_PROJECT_STATE.md` for the authoritative current count). Run all tests: `.venv\Scripts\python.exe -m pytest tests/ -q`.
+Expected: **1076 tests pass** (as of PR 13.1 — see `docs/CURRENT_PROJECT_STATE.md` for the authoritative current count). Run all tests: `.venv\Scripts\python.exe -m pytest tests/ -q`.
 
 ## Frontend Tests
 

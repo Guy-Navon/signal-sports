@@ -100,10 +100,9 @@ class TestFixtureParsing:
         assert not any("docID=550999" in u for u in urls)  # empty title
         assert not any("docID=550998" in u for u in urls)  # "עוד..." too short
 
-    def test_source_id_and_no_published_at(self):
+    def test_source_id_set_on_all_items(self):
         for item in self._fetch():
             assert item.source_id == "sport5_sport"
-            assert item.published_at is None
 
 
 # ── Card subtitle extraction ──────────────────────────────────────────────────
@@ -139,6 +138,21 @@ class TestSubtitleExtraction:
         # Card 6's <span class="kicker"> lives inside the headline anchor.
         item = self._item(550553)
         assert item.summary is None
+
+    def test_published_at_flows_into_article(self, client):
+        from app.db.database import SessionLocal
+        from app.repositories.article_repository import get_by_id
+        from app.ingestion.dedup import article_id_from_url
+
+        with patch(HTTPX_GET, return_value=mock_response(FIXTURE_HTML)):
+            client.post("/api/ingest/run?source_id=sport5_sport")
+
+        url = "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=550765"
+        with SessionLocal() as session:
+            article = get_by_id(session, article_id_from_url(url))
+        assert article is not None
+        # Card shows 01.07.26 - 21:40 Israel time (IDT, UTC+3) → 18:40 UTC.
+        assert article.published_at.strftime("%Y-%m-%d %H:%M") == "2026-07-01 18:40"
 
     def test_subtitle_flows_into_article(self, client):
         from app.db.database import SessionLocal
@@ -305,3 +319,66 @@ class TestSport5Ingestion:
             resp = client.post("/api/ingest/run")
         source_ids = [s["source_id"] for s in resp.json()["sources"]]
         assert "sport5_sport" not in source_ids
+
+
+# ── Card timestamp → published_at (PR 13.3) ───────────────────────────────────
+
+from datetime import datetime, timezone as _tz
+
+from app.ingestion.adapters.sport5_adapter import _parse_card_timestamp
+
+
+class TestParseCardTimestamp:
+    def test_summer_timestamp_converts_idt_to_utc(self):
+        # July = Israel Daylight Time (UTC+3)
+        dt = _parse_card_timestamp("01.07.26 - 21:40")
+        assert dt == datetime(2026, 7, 1, 18, 40, tzinfo=_tz.utc)
+
+    def test_winter_timestamp_converts_ist_to_utc(self):
+        # January = Israel Standard Time (UTC+2)
+        dt = _parse_card_timestamp("15.01.26 - 09:15")
+        assert dt == datetime(2026, 1, 15, 7, 15, tzinfo=_tz.utc)
+
+    def test_four_digit_year(self):
+        dt = _parse_card_timestamp("01.07.2026 - 21:40")
+        assert dt == datetime(2026, 7, 1, 18, 40, tzinfo=_tz.utc)
+
+    def test_timestamp_embedded_in_longer_text(self):
+        dt = _parse_card_timestamp("עודכן: 01.07.26 - 21:40 | מערכת")
+        assert dt is not None
+
+    def test_no_timestamp_returns_none(self):
+        assert _parse_card_timestamp("הגארד הישראלי ממשיך לרכז עניין") is None
+        assert _parse_card_timestamp("") is None
+
+    def test_impossible_date_returns_none(self):
+        assert _parse_card_timestamp("32.01.26 - 10:00") is None
+        assert _parse_card_timestamp("01.13.26 - 10:00") is None
+        assert _parse_card_timestamp("01.07.26 - 25:00") is None
+
+
+class TestPublishedAtExtraction:
+    def _fetch(self):
+        with patch(HTTPX_GET, return_value=mock_response(FIXTURE_HTML)):
+            return make_adapter().fetch()
+
+    def _item(self, doc_id):
+        return next(i for i in self._fetch() if f"docID={doc_id}" in i.url)
+
+    def test_card_with_timestamp_gets_published_at(self):
+        item = self._item(550765)
+        assert item.published_at == datetime(2026, 7, 1, 18, 40, tzinfo=_tz.utc)
+
+    def test_winter_card_timestamp(self):
+        item = self._item(550736)
+        assert item.published_at == datetime(2026, 1, 15, 7, 15, tzinfo=_tz.utc)
+
+    def test_card_without_timestamp_returns_none(self):
+        # Card 2 has only the headline anchor — falls back to ingest time
+        # downstream, and must not steal a neighbouring card timestamp.
+        item = self._item(550760)
+        assert item.published_at is None
+
+    def test_subtitle_still_extracted_alongside_timestamp(self):
+        item = self._item(550736)
+        assert item.summary == "הסנטר האמריקאי צפוי לעבור לקבוצה אירופית בקיץ הקרוב"

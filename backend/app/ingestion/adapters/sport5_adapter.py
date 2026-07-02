@@ -18,6 +18,7 @@ article cards. It is intentionally conservative:
 
 import logging
 import re
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from urllib.parse import urljoin
 
@@ -28,6 +29,16 @@ from app.ingestion.adapters.base import RawSourceItem, SourceAdapter
 from app.ingestion.subtitle import clean_subtitle
 
 logger = logging.getLogger(__name__)
+
+# Sport5 card timestamps are Israel local time. Prefer the IANA zone (DST-aware,
+# via the tzdata package); fall back to a fixed UTC+2 if it is unavailable —
+# an hour of DST drift is better than crashing or silently using UTC.
+try:
+    from zoneinfo import ZoneInfo
+    _ISRAEL_TZ = ZoneInfo("Asia/Jerusalem")
+except Exception:  # pragma: no cover — tzdata missing on this machine
+    _ISRAEL_TZ = timezone(timedelta(hours=2))
+    logger.warning("Asia/Jerusalem zone unavailable — Sport5 timestamps use fixed UTC+2")
 
 # Anchors whose href contains both markers are article links
 # (e.g. /articles.aspx?FolderID=274&docID=550732). Case-insensitive.
@@ -41,6 +52,32 @@ _MIN_SUBTITLE_LENGTH = 10
 
 # Card text that is a timestamp/byline, not a subtitle (e.g. "01.07.26 - 21:40").
 _TIMESTAMP_RE = re.compile(r"^\d{1,2}\.\d{1,2}\.\d{2,4}")
+
+# Full card timestamp: "01.07.26 - 21:40" (DD.MM.YY or DD.MM.YYYY, Israel local time).
+_CARD_TIMESTAMP_RE = re.compile(
+    r"(\d{1,2})\.(\d{1,2})\.(\d{2,4})\s*-\s*(\d{1,2}):(\d{2})"
+)
+
+
+def _parse_card_timestamp(text: str) -> Optional[datetime]:
+    """Parse a Sport5 card timestamp to a UTC datetime, or None if not one.
+
+    "01.07.26 - 21:40" → 2026-07-01 21:40 Asia/Jerusalem → UTC (DST-aware).
+    Returns None for text without a timestamp or with impossible field values.
+    """
+    match = _CARD_TIMESTAMP_RE.search(text)
+    if match is None:
+        return None
+    day, month, year, hour, minute = (int(g) for g in match.groups())
+    if year < 100:
+        year += 2000
+    try:
+        local = datetime(year, month, day, hour, minute, tzinfo=_ISRAEL_TZ)
+    except ValueError:
+        return None
+    if not (2000 <= year <= 2100):
+        return None
+    return local.astimezone(timezone.utc)
 
 _FETCH_TIMEOUT_SECONDS = 10.0
 _USER_AGENT = "SignalSports/0.1 (+https://github.com/signal-sports; ingestion pilot)"
@@ -121,7 +158,9 @@ class Sport5ScrapeAdapter(SourceAdapter):
                     source_id=self.source_id,
                     url=url,
                     title=title,
-                    published_at=None,  # ingestion falls back to now(UTC)
+                    # None when the card shows no timestamp → ingestion falls
+                    # back to now(UTC), same as RSS entries without a date.
+                    published_at=self._extract_card_published_at(anchor),
                     summary=self._extract_card_subtitle(anchor, title),
                 )
             )
@@ -129,30 +168,39 @@ class Sport5ScrapeAdapter(SourceAdapter):
         return items
 
     @staticmethod
-    def _extract_card_subtitle(anchor, title: str) -> Optional[str]:
-        """Best-effort subtitle from the article card surrounding the anchor.
+    def _card_containers(anchor):
+        """Yield up to two ancestor containers that belong to this card only.
 
-        Sport5 category cards usually place a descriptive paragraph right under
-        the headline anchor. Walk up to two ancestor containers and take the
-        first paragraph-like text that is not the title itself, not a
-        timestamp/byline, and long enough to be a real subtitle. Returns None
-        when nothing qualifies — subtitle is optional, same as RSS entries
-        without a <description>.
+        Stops climbing once a container spans other articles (a card list,
+        not this card) — otherwise card-level extraction would steal a
+        neighbouring card's subtitle or timestamp.
         """
         own_href = anchor["href"].strip()
         container = anchor.parent
         for _ in range(2):
             if container is None:
-                return None
-            # Stop climbing once the container spans other articles (a card
-            # list, not this card) — otherwise we'd steal a neighbour's subtitle.
+                return
             hrefs = {
                 a["href"].strip()
                 for a in container.find_all("a", href=True)
                 if _is_article_href(a["href"])
             }
             if hrefs - {own_href}:
-                return None
+                return
+            yield container
+            container = container.parent
+
+    @classmethod
+    def _extract_card_subtitle(cls, anchor, title: str) -> Optional[str]:
+        """Best-effort subtitle from the article card surrounding the anchor.
+
+        Sport5 category cards usually place a descriptive paragraph right under
+        the headline anchor. Take the first paragraph-like text that is not the
+        title itself, not a timestamp/byline, and long enough to be a real
+        subtitle. Returns None when nothing qualifies — subtitle is optional,
+        same as RSS entries without a <description>.
+        """
+        for container in cls._card_containers(anchor):
             for candidate in container.find_all(["p", "h4", "span"]):
                 # Skip text that lives inside the headline anchor itself.
                 if candidate.find_parent("a") is not None:
@@ -165,5 +213,23 @@ class Sport5ScrapeAdapter(SourceAdapter):
                     and not _TIMESTAMP_RE.match(text)
                 ):
                     return text
-            container = container.parent
+        return None
+
+    @classmethod
+    def _extract_card_published_at(cls, anchor) -> Optional[datetime]:
+        """Publish time from the card's timestamp text ("01.07.26 - 21:40").
+
+        Sport5 cards show the publish time as Israel local time next to the
+        headline. Returns a UTC datetime, or None when the card has no
+        parseable timestamp (the ingestion service then falls back to now).
+        """
+        for container in cls._card_containers(anchor):
+            for candidate in container.find_all(["span", "p", "time", "div"]):
+                if candidate.find_parent("a") is not None:
+                    continue
+                published = _parse_card_timestamp(
+                    candidate.get_text(" ", strip=True) or ""
+                )
+                if published is not None:
+                    return published
         return None

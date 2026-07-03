@@ -1,6 +1,8 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-07-02 — reflects state after PR 13 + PR 13.1 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default, toggleable from the UI), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, runtime source enable/disable overrides, and the Sources page scheduler/health UI. Test suites: 1076 backend + 286 frontend.
+Last updated: 2026-07-04 — reflects the **frontend redesign** ("Court Vision", branch `feature/frontend-redesign-foundation`, PRs 1–6). The Base44-generated QA-dashboard UI was rebuilt into a premium, Hebrew-first, RTL-first dark product with a design-token system (shadcn/ui + Tailwind + Radix, self-hosted Heebo + Frank Ruhl Libre fonts), a product-vs-console split, and a signal-rail decision system. **Backend, API contracts, and the frontend data layer (`src/context`, `src/api`, `src/engine`, `src/data`) were unchanged** — the redesign touched only presentation. See `docs/FRONTEND_DESIGN_SYSTEM.md`. Frontend tests: 325 (286 pre-existing unchanged + 39 new config/module tests). Backend unchanged: 1076.
+
+Prior backend state (unchanged by the redesign) reflects PR 13 + PR 13.1 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default, toggleable from the UI), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, runtime source enable/disable overrides, and the Sources page scheduler/health UI.
 
 ---
 
@@ -201,7 +203,9 @@ requires Ollama, a real API key, or live Sport5.
 
 ## 6. Frontend State
 
-**Data mode badge:** Header pill shows "מצב נתונים: שרת" (blue, backend mode) or "מצב נתונים: מקומי" (gray, local mode).
+**Design system (redesign, 2026-07-04):** The UI runs on the "Court Vision" design system — see `docs/FRONTEND_DESIGN_SYSTEM.md` for tokens, component inventory, and RTL rules. Key points: dark navy canvas with a semantic **signal system** (gold=push, green=high_feed, steel-blue=feed, dim=low_feed, red=hidden/errors, cyan=AI), decision levels rendered as a **signal rail** (coloured edge bar + glow for push) rather than card borders, Heebo/Frank-Ruhl-Libre fonts, and a **product-vs-console split**: consumer pages (Feed, Preferences, Calibration, Results — green/serif) vs an ops **console** (Sources, Debug, LLM QA — steel-blue instrument panel, reached via the "קונסולה" nav group). `<html lang="he" dir="rtl">` with logical-only Tailwind utilities. Both data modes work on every page. The app shell, navigation, and all pages are token-based; components live under `src/components/{shared,shell,feed,ops,debug,preferences}`. The redesign preserved every capability below and changed no backend/API/data-layer code.
+
+**Data mode badge:** Header pill (`DataModeBadge`) shows a pulsing "שרת חי" (green, backend mode) or "מצב מקומי" (gray, local mode).
 
 **Sources page — Ingestion panel:** In backend mode, shows source selector (MVP active sources: וואלה ספורט, ישראל היום ספורט), "הרץ ייבוא עכשיו" button, per-source result breakdown after run, recent runs list (last 5), and "איכות הסיווג" quality toggle. No translation UI — translation is post-MVP and was removed from the Sources page. In local mode, shows a disabled card with instructions to enable backend mode.
 
@@ -211,7 +215,7 @@ requires Ollama, a real API key, or live Sport5.
 
 **Feed card:** Renders the Hebrew-native article title directly. For MVP Hebrew sources, `translatedTitle` is always `null` and the card falls back to `title` (the raw Hebrew RSS title). When available, the RSS subtitle (cleaned `<description>` text) is displayed under the title in a muted secondary style, clamped to 2 lines — this helps disambiguate clickbait or ambiguous Hebrew headlines. No original-language metadata block, no untranslated badge, no "לא תורגם" warning. Subtitle is not a translation. The title fallback logic (`item.translatedTitle || item.title`) is preserved so the card works correctly when English sources are re-enabled post-MVP.
 
-**Debug view:** All articles with full scoring reasoning. Each article card shows the subtitle (when available) directly under the title, clamped to 3 lines, to provide classification context during QA. Also shows LLM classification metadata (PR 11): `classified_by` as a color-coded badge (grey=rules, blue=llm, yellow=llm+rules_guardrail, red=failure, orange=low-confidence), `classification_provider` inline, `classification_confidence` as a percentage, and `classification_reason` as an italic line. Comparison tab always uses local engine (cross-profile comparison not wired to backend).
+**Debug view:** All articles with full scoring reasoning. Each article card shows the subtitle (when available) directly under the title, clamped to 3 lines, to provide classification context during QA. Also shows LLM classification metadata (PR 11): `classified_by` as a color-coded badge (neutral=rules, blue=llm, cyan=llm+rules_guardrail, red=failure, gold=low-confidence — see `classifiedByConfig.js`), `classification_provider` inline, `classification_confidence` as a percentage, and `classification_reason` as an italic line. Comparison tab always uses local engine (cross-profile comparison not wired to backend).
 
 **Local mode:** Remains fully functional with mock data. No backend required. The frontend engine (`relevanceEngine.js`) is kept.
 

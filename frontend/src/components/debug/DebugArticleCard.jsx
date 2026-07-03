@@ -1,0 +1,115 @@
+import React, { useState } from "react";
+import { Bug, ChevronDown, ChevronUp } from "lucide-react";
+import { cn } from "@/lib/utils";
+import DecisionBadge from "@/components/feed/DecisionBadge";
+import ClassifiedByBadge from "@/components/debug/ClassifiedByBadge";
+import ReasoningTrace from "@/components/debug/ReasoningTrace";
+
+function MetaCell({ label, value }) {
+  return (
+    <div className="bg-surface-2 rounded-lg p-2">
+      <div className="text-text-dim mb-0.5">{label}</div>
+      <div className="text-text-secondary font-medium truncate" title={value}>{value}</div>
+    </div>
+  );
+}
+
+export default function DebugArticleCard({ item }) {
+  const [expanded, setExpanded] = useState(false);
+  const decision = item.score?.decision || "hidden";
+  const reasoning = item.score?.reasoning || [];
+  const isCluster = item.type === "cluster";
+
+  const title = isCluster ? item.clusterTitle : item.title;
+  const source = isCluster
+    ? (item.sourceDisplayNames || item.sources || []).join(", ")
+    : item.sourceDisplayName;
+
+  const metaCells = [
+    { label: "ספורט", value: item.sport || "—" },
+    { label: "ליגה", value: item.league || "—" },
+    { label: "סוג אירוע", value: item.eventType || "—" },
+    { label: "חשיבות", value: item.importance || "—" },
+    { label: "ביטחון", value: item.confidence ? `${Math.round(item.confidence * 100)}%` : "—" },
+    { label: "ישויות", value: (item.entities || []).join(", ") || "—" },
+    { label: "נושא תואם", value: item.score?.matchedTopic || "—" },
+    { label: "כלל תואם", value: item.score?.matchedRule || "—" },
+  ];
+
+  return (
+    <div
+      className={cn(
+        "border rounded-xl overflow-hidden transition-colors",
+        decision === "hidden"
+          ? "border-signal-hidden/30 bg-signal-hidden/5"
+          : decision === "push"
+            ? "border-signal-push/25 bg-signal-push/5"
+            : "border-border bg-surface-1"
+      )}
+    >
+      <button
+        className="w-full text-start p-3 flex items-start justify-between gap-3 hover:bg-surface-2/50 transition-colors"
+        onClick={() => setExpanded((e) => !e)}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <DecisionBadge decision={decision} size="xs" />
+            {isCluster && (
+              <span className="text-[10px] bg-surface-3 text-text-secondary rounded-full px-1.5 py-0.5 border border-border">
+                קלאסטר
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-foreground font-medium leading-snug truncate">{title}</p>
+          {item.subtitle && (
+            <p className="text-xs text-text-dim mt-0.5 line-clamp-3 leading-snug">{item.subtitle}</p>
+          )}
+          <p className="text-xs text-text-dim mt-0.5">{source} · {item.sport} · {item.league || "—"}</p>
+        </div>
+        <div className="flex-shrink-0 mt-0.5 text-text-dim">
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-border/60 p-3 space-y-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+            {metaCells.map(({ label, value }) => (
+              <MetaCell key={label} label={label} value={value} />
+            ))}
+          </div>
+
+          {item.classifiedBy && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-text-dim font-medium uppercase tracking-wide">סיווג LLM</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <ClassifiedByBadge value={item.classifiedBy} />
+                {item.classificationProvider && item.classificationProvider !== "rules" && (
+                  <span className="text-[10px] text-text-secondary bg-surface-2 border border-border rounded-full px-1.5 py-0.5">
+                    {item.classificationProvider}
+                  </span>
+                )}
+                {item.classificationConfidence != null && (
+                  <span className="text-[10px] text-text-dim">
+                    ביטחון LLM: {Math.round(item.classificationConfidence * 100)}%
+                  </span>
+                )}
+              </div>
+              {item.classificationReason && (
+                <p className="text-[11px] text-text-dim italic leading-snug">{item.classificationReason}</p>
+              )}
+            </div>
+          )}
+
+          <div>
+            <p className="text-xs text-text-dim font-medium mb-2 flex items-center gap-1">
+              <Bug size={11} />
+              שרשרת ההחלטה:
+            </p>
+            <ReasoningTrace reasoning={reasoning} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

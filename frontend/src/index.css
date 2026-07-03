@@ -1,37 +1,112 @@
+/* Court Vision design tokens — see docs/CURRENT_PROJECT_STATE.md (frontend redesign) */
+@import "@fontsource-variable/heebo";
+@import "@fontsource/frank-ruhl-libre/500.css";
+@import "@fontsource/frank-ruhl-libre/700.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 222 47% 5%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 160 84% 39%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 55%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 160 84% 39%;
-    --radius: 0.5rem;
-  }
-}
+    /* shadcn core tokens (Court Vision values) */
+    --background: 224 50% 4%;
+    --foreground: 210 30% 96%;
+    --card: 224 45% 7%;
+    --card-foreground: 210 30% 96%;
+    --popover: 224 40% 9%;
+    --popover-foreground: 210 30% 96%;
+    --primary: 158 84% 45%;
+    --primary-foreground: 224 50% 4%;
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 210 30% 96%;
+    --muted: 222 30% 12%;
+    --muted-foreground: 215 15% 65%;
+    --accent: 222 30% 14%;
+    --accent-foreground: 210 30% 96%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 210 30% 96%;
+    --border: 222 30% 14%;
+    --input: 222 30% 14%;
+    --ring: 158 84% 45%;
+    --radius: 0.875rem;
 
-@layer base {
+    /* surface elevation ladder */
+    --surface-0: 224 50% 4%;
+    --surface-1: 224 45% 7%;
+    --surface-2: 224 40% 10%;
+    --surface-3: 224 35% 13%;
+
+    /* text tiers */
+    --text-primary: 210 30% 96%;
+    --text-secondary: 215 15% 65%;
+    --text-dim: 215 12% 45%;
+
+    /* signal system — decision levels are the brand.
+       Gold is reserved for push; red for errors/hidden; cyan for AI moments only. */
+    --signal-push: 43 90% 55%;
+    --signal-high: 158 84% 45%;
+    --signal-feed: 217 60% 60%;
+    --signal-low: 215 12% 45%;
+    --signal-hidden: 0 65% 55%;
+    --signal-ai: 190 90% 55%;
+
+    /* typography */
+    --font-body: "Heebo Variable", "Heebo", system-ui, -apple-system, sans-serif;
+    --font-heading: var(--font-body);
+    --font-display: "Frank Ruhl Libre", "Heebo Variable", "Heebo", serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, monospace;
+
+    /* motion */
+    --motion-fast: 120ms;
+    --motion-base: 240ms;
+    --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
   * {
     @apply border-border;
   }
+
+  html {
+    @apply bg-background;
+    scrollbar-gutter: stable;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  ::selection {
+    background-color: hsl(var(--signal-high) / 0.25);
+  }
+}
+
+@layer components {
+  /* glass surface — sticky header and mobile tab bar only */
+  .surface-glass {
+    background-color: hsl(var(--surface-1) / 0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* elevation via background-step + hairline + shadow, never bright borders */
+  .elevation-1 {
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.4), 0 8px 24px hsl(0 0% 0% / 0.25);
+  }
+
+  /* gold glow — push only, defined once, never ad-hoc */
+  .glow-push {
+    box-shadow: 0 0 24px hsl(var(--signal-push) / 0.08), inset 0 0 0 1px hsl(var(--signal-push) / 0.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

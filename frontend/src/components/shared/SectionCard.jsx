@@ -2,7 +2,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 // Console panel: titled section with optional icon and actions slot.
-export default function SectionCard({ title, icon: Icon, actions, children, className }) {
+export default function SectionCard({ title = null, icon: Icon = null, actions = null, children = null, className = "" }) {
   return (
     <section
       className={cn(

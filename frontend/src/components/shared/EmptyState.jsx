@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-export default function EmptyState({ icon: Icon, title, hint, action, className }) {
+export default function EmptyState({ icon: Icon = null, title, hint = null, action = null, className = "" }) {
   return (
     <div className={cn("flex flex-col items-center justify-center text-center py-16 px-4", className)}>
       {Icon && (

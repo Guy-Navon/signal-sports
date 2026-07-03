@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-export default function PageHeader({ title, subtitle, children, className }) {
+export default function PageHeader({ title, subtitle = null, children = null, className = "" }) {
   return (
     <div className={cn("flex items-start justify-between gap-4 mb-6", className)}>
       <div className="min-w-0">

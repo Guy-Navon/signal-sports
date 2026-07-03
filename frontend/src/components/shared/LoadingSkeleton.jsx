@@ -47,7 +47,7 @@ function StatSkeleton() {
 
 const VARIANTS = { card: CardSkeleton, row: RowSkeleton, stat: StatSkeleton };
 
-export default function LoadingSkeleton({ variant = "card", count = 3, className }) {
+export default function LoadingSkeleton({ variant = "card", count = 3, className = "" }) {
   const Item = VARIANTS[variant] || CardSkeleton;
   return (
     <div className={cn("space-y-3", className)} aria-busy="true">

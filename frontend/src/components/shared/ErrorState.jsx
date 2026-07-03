@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils";
 export default function ErrorState({
   variant = "strip",
   title,
-  message,
-  hint,
-  onRetry,
+  message = null,
+  hint = null,
+  onRetry = null,
   retryLabel = "נסה שוב",
-  className,
+  className = "",
 }) {
   if (variant === "page") {
     return (

@@ -2,7 +2,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 // Quiet secondary metadata chip — visible on scan, silent otherwise.
-export default function GhostChip({ children, className, ...props }) {
+export default function GhostChip({ children, className = "", ...props }) {
   return (
     <span
       className={cn(

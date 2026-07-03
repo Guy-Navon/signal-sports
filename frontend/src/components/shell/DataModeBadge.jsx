@@ -2,7 +2,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import PulseDot from "@/components/shared/PulseDot";
 
-export default function DataModeBadge({ isBackendMode, className }) {
+export default function DataModeBadge({ isBackendMode, className = "" }) {
   return (
     <span
       title={isBackendMode ? "מצב נתונים: שרת" : "מצב נתונים: מקומי"}

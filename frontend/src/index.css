@@ -98,6 +98,15 @@
   .glow-push {
     box-shadow: 0 0 24px hsl(var(--signal-push) / 0.08), inset 0 0 0 1px hsl(var(--signal-push) / 0.15);
   }
+
+  /* hide horizontal scrollbar on filter/chip rows */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

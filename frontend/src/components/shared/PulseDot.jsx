@@ -11,7 +11,7 @@ const TONE_CLASSES = {
   neutral: "bg-text-dim",
 };
 
-export default function PulseDot({ tone = "neutral", pulse = false, className }) {
+export default function PulseDot({ tone = "neutral", pulse = false, className = "" }) {
   return (
     <span
       className={cn(

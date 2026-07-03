@@ -12,7 +12,7 @@ const TONE_TEXT = {
   neutral: "text-foreground",
 };
 
-export default function StatCard({ label, value, tone = "neutral", hint, className }) {
+export default function StatCard({ label, value, tone = "neutral", hint = null, className = "" }) {
   return (
     <div
       className={cn(

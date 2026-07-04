@@ -5,7 +5,16 @@
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { useApp } from "@/context/AppContext";
+import { FlaskConical, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 import DecisionBadge from "@/components/feed/DecisionBadge";
+import ClassifiedByBadge from "@/components/debug/ClassifiedByBadge";
+import ReasoningTrace from "@/components/debug/ReasoningTrace";
+import SectionCard from "@/components/shared/SectionCard";
+import StatCard from "@/components/shared/StatCard";
+import PageHeader from "@/components/shared/PageHeader";
+import EmptyState from "@/components/shared/EmptyState";
+import { consoleButton } from "@/components/ops/consoleStyles";
 import {
   getClassifyStatus,
   getDebugFeed,
@@ -21,32 +30,13 @@ import {
   HEBREW_BROAD_SOURCES,
 } from "./llmQaHelpers";
 
-// ── Visual constants ───────────────────────────────────────────────────────────
-
-const CLASSIFIED_BY_STYLES = {
-  rules:                            "bg-gray-800/80 text-gray-400 border-gray-700/40",
-  llm:                              "bg-blue-950/60 text-blue-300 border-blue-700/40",
-  "llm+rules_guardrail":            "bg-yellow-950/60 text-yellow-300 border-yellow-700/40",
-  rules_fallback_after_llm_failure: "bg-red-950/60 text-red-300 border-red-700/40",
-  rules_fallback_low_confidence:    "bg-orange-950/60 text-orange-300 border-orange-700/40",
-};
-
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function ClassifiedByBadge({ value }) {
-  const style = CLASSIFIED_BY_STYLES[value] ?? CLASSIFIED_BY_STYLES.rules;
+function MetaCell({ label, value }) {
   return (
-    <span className={`text-[10px] border rounded px-1.5 py-0.5 font-mono ${style}`}>
-      {value}
-    </span>
-  );
-}
-
-function Stat({ label, value, color = "text-gray-300" }) {
-  return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 text-center">
-      <div className={`text-xl font-bold ${color}`}>{value}</div>
-      <div className="text-[10px] text-gray-600 mt-0.5 leading-tight">{label}</div>
+    <div className="bg-surface-2 rounded-lg p-1.5">
+      <div className="text-text-dim text-[10px]">{label}</div>
+      <div className="text-text-secondary truncate" title={value}>{value}</div>
     </div>
   );
 }
@@ -56,88 +46,73 @@ function QaRow({ item }) {
   const decision = item.score?.decision ?? "hidden";
   const isFp = isPossibleFootballFalsePositive(item);
 
+  const cells = [
+    { label: "sport", value: item.sport ?? "—" },
+    { label: "league", value: item.league ?? "—" },
+    { label: "event_type", value: item.eventType ?? "—" },
+    { label: "importance", value: item.importance ?? "—" },
+    { label: "confidence", value: item.confidence != null ? `${Math.round(item.confidence * 100)}%` : "—" },
+    { label: "source", value: item.source },
+    { label: "entities", value: (item.entities ?? []).join(", ") || "—" },
+    { label: "matched_topic", value: item.score?.matchedTopic ?? "—" },
+  ];
+
   return (
-    <div className={`border rounded-lg overflow-hidden transition-all ${
-      isFp ? "border-orange-700/40 bg-orange-950/10"
-      : decision === "hidden" ? "border-red-900/30 bg-red-950/10"
-      : decision === "push" ? "border-amber-700/40 bg-amber-950/10"
-      : "border-gray-800 bg-gray-900/50"
-    }`}>
+    <div className={cn(
+      "border rounded-xl overflow-hidden transition-colors",
+      isFp ? "border-signal-push/30 bg-signal-push/5"
+      : decision === "hidden" ? "border-signal-hidden/25 bg-signal-hidden/5"
+      : decision === "push" ? "border-signal-push/25 bg-signal-push/5"
+      : "border-border bg-surface-1"
+    )}>
       <button
-        className="w-full text-right p-3 flex items-start justify-between gap-3 hover:bg-white/2 transition-colors"
-        onClick={() => setExpanded(e => !e)}
+        className="w-full text-start p-3 flex items-start justify-between gap-3 hover:bg-surface-2/50 transition-colors"
+        onClick={() => setExpanded((e) => !e)}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <DecisionBadge decision={decision} size="xs" />
             <ClassifiedByBadge value={item.classifiedBy ?? "rules"} />
             {isFp && (
-              <span className="text-[10px] bg-orange-950/60 text-orange-300 border border-orange-700/40 rounded px-1.5 py-0.5">
+              <span className="text-[10px] bg-signal-push/12 text-signal-push border border-signal-push/30 rounded-full px-1.5 py-0.5">
                 Football FP?
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-200 font-medium leading-snug line-clamp-2 text-right">
-            {item.title}
-          </p>
-          <p className="text-xs text-gray-600 mt-0.5">
+          <p className="text-sm text-foreground font-medium leading-snug line-clamp-2">{item.title}</p>
+          <p className="text-xs text-text-dim mt-0.5">
             {item.source} · {item.sport} · {item.league ?? "—"}
           </p>
         </div>
-        <span className="text-gray-700 text-xs flex-shrink-0 mt-0.5">{expanded ? "▲" : "▼"}</span>
+        <span className="text-text-dim text-xs flex-shrink-0 mt-0.5">{expanded ? "▲" : "▼"}</span>
       </button>
 
       {expanded && (
-        <div className="border-t border-gray-800/60 p-3 space-y-2 text-xs">
+        <div className="border-t border-border/60 p-3 space-y-2 text-xs">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {[
-              { label: "sport", value: item.sport ?? "—" },
-              { label: "league", value: item.league ?? "—" },
-              { label: "event_type", value: item.eventType ?? "—" },
-              { label: "importance", value: item.importance ?? "—" },
-              { label: "confidence", value: item.confidence != null ? `${Math.round(item.confidence * 100)}%` : "—" },
-              { label: "source", value: item.source },
-              { label: "entities", value: (item.entities ?? []).join(", ") || "—" },
-              { label: "matched_topic", value: item.score?.matchedTopic ?? "—" },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-gray-800/50 rounded p-1.5">
-                <div className="text-gray-600 text-[10px]">{label}</div>
-                <div className="text-gray-300 truncate" title={value}>{value}</div>
-              </div>
+            {cells.map(({ label, value }) => (
+              <MetaCell key={label} label={label} value={value} />
             ))}
           </div>
 
-          {/* LLM fields */}
           <div className="flex items-center gap-2 flex-wrap">
             <ClassifiedByBadge value={item.classifiedBy ?? "rules"} />
             {item.classificationProvider && item.classificationProvider !== "rules" && (
-              <span className="text-[10px] text-gray-500 bg-gray-800/60 border border-gray-700/40 rounded px-1.5 py-0.5 font-mono">
+              <span className="text-[10px] text-text-secondary bg-surface-2 border border-border rounded-full px-1.5 py-0.5 font-mono">
                 {item.classificationProvider}
               </span>
             )}
             {item.classificationConfidence != null && (
-              <span className="text-[10px] text-gray-500">
+              <span className="text-[10px] text-text-dim">
                 LLM confidence: {Math.round(item.classificationConfidence * 100)}%
               </span>
             )}
           </div>
           {item.classificationReason && (
-            <p className="text-[11px] text-gray-500 italic">{item.classificationReason}</p>
+            <p className="text-[11px] text-text-dim italic">{item.classificationReason}</p>
           )}
 
-          {/* Reasoning chain */}
-          {(item.score?.reasoning ?? []).length > 0 && (
-            <div className="space-y-0.5">
-              {item.score.reasoning.map((line, i) => {
-                const isFinal = line.includes("החלטה סופית");
-                return (
-                  <p key={i} className={`leading-relaxed ${isFinal ? "text-gray-200 font-medium" : "text-gray-500"}`}>
-                    {i + 1}. {line}
-                  </p>
-                );
-              })}
-            </div>
-          )}
+          {(item.score?.reasoning ?? []).length > 0 && <ReasoningTrace reasoning={item.score.reasoning} />}
         </div>
       )}
     </div>
@@ -147,64 +122,64 @@ function QaRow({ item }) {
 function ProviderStatusSection({ status, error }) {
   if (error) {
     return (
-      <section className="border border-red-900/40 bg-red-950/10 rounded-lg p-4">
-        <h2 className="text-sm font-semibold text-red-400 mb-1">ספק סיווג — שגיאה</h2>
-        <p className="text-xs text-red-500">{error}</p>
-      </section>
+      <SectionCard title="ספק סיווג — שגיאה">
+        <p className="text-xs text-signal-hidden">{error}</p>
+      </SectionCard>
     );
   }
   if (!status) {
     return (
-      <section className="border border-gray-800 rounded-lg p-4">
-        <p className="text-xs text-gray-600">טוען סטטוס ספק...</p>
-      </section>
+      <SectionCard title="ספק סיווג">
+        <p className="text-xs text-text-dim">טוען סטטוס ספק...</p>
+      </SectionCard>
     );
   }
 
   const providerColor =
-    status.provider === "disabled" ? "text-gray-500"
-    : status.can_classify ? "text-emerald-400"
-    : "text-orange-400";
+    status.provider === "disabled" ? "text-text-dim"
+    : status.can_classify ? "text-signal-high"
+    : "text-signal-push";
 
   return (
-    <section className="border border-gray-800 rounded-lg p-4 space-y-3">
-      <h2 className="text-sm font-semibold text-gray-300">ספק סיווג</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-        <div className="bg-gray-800/50 rounded p-2">
-          <div className="text-gray-600 text-[10px] mb-0.5">CLASSIFICATION_PROVIDER</div>
-          <div className={`font-mono font-medium ${providerColor}`}>{status.provider}</div>
-        </div>
-        <div className="bg-gray-800/50 rounded p-2">
-          <div className="text-gray-600 text-[10px] mb-0.5">can_classify</div>
-          <div className={status.can_classify ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
-            {status.can_classify ? "true" : "false"}
+    <SectionCard title="ספק סיווג">
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+          <div className="bg-surface-2 rounded-lg p-2">
+            <div className="text-text-dim text-[10px] mb-0.5">CLASSIFICATION_PROVIDER</div>
+            <div className={cn("font-mono font-medium", providerColor)}>{status.provider}</div>
+          </div>
+          <div className="bg-surface-2 rounded-lg p-2">
+            <div className="text-text-dim text-[10px] mb-0.5">can_classify</div>
+            <div className={status.can_classify ? "text-signal-high font-medium" : "text-signal-hidden font-medium"}>
+              {status.can_classify ? "true" : "false"}
+            </div>
+          </div>
+          <div className="bg-surface-2 rounded-lg p-2">
+            <div className="text-text-dim text-[10px] mb-0.5">CLASSIFICATION_MODEL</div>
+            <div className="text-text-secondary font-mono">{status.model ?? "—"}</div>
+          </div>
+          <div className="bg-surface-2 rounded-lg p-2">
+            <div className="text-text-dim text-[10px] mb-0.5">ALLOW_DEV_RESET</div>
+            <div className={status.reset_allowed ? "text-signal-push font-medium" : "text-text-dim"}>
+              {status.reset_allowed ? "true" : "false"}
+            </div>
           </div>
         </div>
-        <div className="bg-gray-800/50 rounded p-2">
-          <div className="text-gray-600 text-[10px] mb-0.5">CLASSIFICATION_MODEL</div>
-          <div className="text-gray-300 font-mono">{status.model ?? "—"}</div>
-        </div>
-        <div className="bg-gray-800/50 rounded p-2">
-          <div className="text-gray-600 text-[10px] mb-0.5">ALLOW_DEV_RESET</div>
-          <div className={status.reset_allowed ? "text-yellow-400 font-medium" : "text-gray-500"}>
-            {status.reset_allowed ? "true" : "false"}
+        {status.base_url && (
+          <div className="bg-surface-2 rounded-lg p-2 text-xs">
+            <span className="text-text-dim">CLASSIFICATION_OLLAMA_BASE_URL: </span>
+            <span className="text-text-secondary font-mono">{status.base_url}</span>
           </div>
-        </div>
+        )}
+        {!status.can_classify && (
+          <div className="bg-signal-push/10 border border-signal-push/25 rounded-lg px-3 py-2 text-xs text-signal-push">
+            הספק לא פעיל — סיווג LLM מושבת. הגדר{" "}
+            <span className="font-mono">CLASSIFICATION_PROVIDER=ollama</span>{" "}
+            ב-<span className="font-mono">backend/.env</span>.
+          </div>
+        )}
       </div>
-      {status.base_url && (
-        <div className="bg-gray-800/30 rounded p-2 text-xs">
-          <span className="text-gray-600">CLASSIFICATION_OLLAMA_BASE_URL: </span>
-          <span className="text-gray-400 font-mono">{status.base_url}</span>
-        </div>
-      )}
-      {!status.can_classify && (
-        <div className="bg-yellow-950/30 border border-yellow-900/40 rounded px-3 py-2 text-xs text-yellow-600">
-          הספק לא פעיל — סיווג LLM מושבת. הגדר{" "}
-          <span className="font-mono text-yellow-500">CLASSIFICATION_PROVIDER=ollama</span>{" "}
-          ב-<span className="font-mono text-yellow-500">backend/.env</span>.
-        </div>
-      )}
-    </section>
+    </SectionCard>
   );
 }
 
@@ -214,78 +189,72 @@ function ResetSection({
   resetting, lastResult, error, onReset,
 }) {
   return (
-    <section className="border border-gray-800 rounded-lg p-4 space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-300">איפוס נתוני RSS</h2>
-          <p className="text-xs text-gray-600 mt-0.5">
-            מוחק כל כתבות rss_ וריצות ייבוא. נתוני seed ופרופילים לא נמחקים.
-          </p>
-        </div>
-        {!showConfirm && (
+    <SectionCard
+      title="איפוס נתוני RSS"
+      actions={
+        !showConfirm && (
           <button
             onClick={() => setShowConfirm(true)}
             disabled={!resetAllowed || resetting}
-            className={`text-xs px-3 py-1.5 rounded border transition-colors flex-shrink-0 ${
-              resetAllowed
-                ? "bg-red-950/40 border-red-800/60 text-red-400 hover:border-red-700 hover:text-red-300"
-                : "bg-gray-800/40 border-gray-700/40 text-gray-600 cursor-not-allowed"
-            }`}
+            className={consoleButton("danger", "px-3 py-1.5 text-xs")}
           >
             איפוס...
           </button>
+        )
+      }
+    >
+      <div className="space-y-3">
+        <p className="text-xs text-text-dim">
+          מוחק כל כתבות rss_ וריצות ייבוא. נתוני seed ופרופילים לא נמחקים.
+        </p>
+
+        {!resetAllowed && (
+          <div className="text-xs text-text-dim bg-surface-2 rounded-lg p-2">
+            מושבת. הגדר <span className="font-mono text-text-secondary">ALLOW_DEV_RESET=true</span>{" "}
+            ב-<span className="font-mono text-text-secondary">backend/.env</span> ואתחל את השרת.
+          </div>
+        )}
+
+        {showConfirm && (
+          <div className="bg-signal-hidden/8 border border-signal-hidden/25 rounded-lg p-3 space-y-2">
+            <p className="text-xs text-signal-hidden font-medium">
+              פעולה בלתי הפיכה. הקלד <span className="font-mono bg-signal-hidden/15 px-1 rounded">RESET</span> לאישור:
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder="הקלד RESET"
+                className="flex-1 bg-surface-2 border border-signal-hidden/40 rounded-lg px-3 py-1.5 text-xs font-mono text-signal-hidden placeholder-text-dim focus:outline-none focus:border-signal-hidden/60"
+                dir="ltr"
+              />
+              <button
+                onClick={onReset}
+                disabled={confirmText !== "RESET" || resetting}
+                className={consoleButton("danger", "px-3 py-1.5 text-xs")}
+              >
+                {resetting ? "מאפס..." : "אפס"}
+              </button>
+              <button
+                onClick={() => { setShowConfirm(false); setConfirmText(""); }}
+                className={consoleButton("ghost")}
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        )}
+
+        {error && <p className="text-xs text-signal-hidden">{error}</p>}
+
+        {lastResult && (
+          <div className="text-xs text-text-secondary bg-surface-2 rounded-lg p-2 font-mono">
+            ✓ נמחקו {lastResult.deleted_articles} כתבות ו-{lastResult.deleted_ingestion_runs} ריצות
+          </div>
         )}
       </div>
-
-      {!resetAllowed && (
-        <div className="text-xs text-gray-600 bg-gray-800/30 rounded p-2">
-          מושבת. הגדר{" "}
-          <span className="font-mono text-gray-400">ALLOW_DEV_RESET=true</span>{" "}
-          ב-<span className="font-mono text-gray-400">backend/.env</span> ואתחל את השרת.
-        </div>
-      )}
-
-      {showConfirm && (
-        <div className="bg-red-950/20 border border-red-900/40 rounded p-3 space-y-2">
-          <p className="text-xs text-red-400 font-medium">
-            פעולה בלתי הפיכה. הקלד <span className="font-mono bg-red-950/60 px-1 rounded">RESET</span> לאישור:
-          </p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={confirmText}
-              onChange={e => setConfirmText(e.target.value)}
-              placeholder="הקלד RESET"
-              className="flex-1 bg-gray-900 border border-red-800/50 rounded px-3 py-1.5 text-xs font-mono text-red-300 placeholder-gray-700 focus:outline-none focus:border-red-700"
-              dir="ltr"
-            />
-            <button
-              onClick={onReset}
-              disabled={confirmText !== "RESET" || resetting}
-              className="text-xs px-3 py-1.5 rounded border bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {resetting ? "מאפס..." : "אפס"}
-            </button>
-            <button
-              onClick={() => { setShowConfirm(false); setConfirmText(""); }}
-              className="text-xs px-3 py-1.5 rounded border border-gray-700 text-gray-500 hover:text-gray-300 transition-colors"
-            >
-              ביטול
-            </button>
-          </div>
-        </div>
-      )}
-
-      {error && (
-        <p className="text-xs text-red-400">{error}</p>
-      )}
-
-      {lastResult && (
-        <div className="text-xs text-gray-500 bg-gray-800/30 rounded p-2 font-mono">
-          ✓ נמחקו {lastResult.deleted_articles} כתבות ו-{lastResult.deleted_ingestion_runs} ריצות
-        </div>
-      )}
-    </section>
+    </SectionCard>
   );
 }
 
@@ -296,38 +265,39 @@ function IngestionSection({ ingesting, ingestResults, onIngest }) {
   ];
 
   return (
-    <section className="border border-gray-800 rounded-lg p-4 space-y-3">
-      <h2 className="text-sm font-semibold text-gray-300">ייבוא כתבות</h2>
-      <div className="flex gap-2 flex-wrap">
-        {sources.map(({ id, label }) => (
-          <button
-            key={id}
-            onClick={() => onIngest(id)}
-            disabled={ingesting != null}
-            className="text-xs px-3 py-1.5 rounded border border-blue-800/60 bg-blue-950/30 text-blue-400 hover:border-blue-700 hover:text-blue-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            {ingesting === id ? "מייבא..." : `ייבא ${label}`}
-          </button>
-        ))}
-        <button
-          onClick={() => onIngest(null)}
-          disabled={ingesting != null}
-          className="text-xs px-3 py-1.5 rounded border border-emerald-800/60 bg-emerald-950/30 text-emerald-400 hover:border-emerald-700 hover:text-emerald-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {ingesting === "both" ? "מייבא..." : "ייבא הכל (במקביל)"}
-        </button>
-      </div>
-
-      {ingestResults.length > 0 && (
-        <div className="space-y-1">
-          {ingestResults.map(r => (
-            <div key={r.source_id} className="text-[11px] text-gray-500 bg-gray-800/30 rounded px-2 py-1 font-mono">
-              {r.source_id}: fetched={r.fetched} inserted={r.inserted} filtered={r.skipped_filtered ?? 0} dup={r.skipped_duplicate ?? 0} failed={r.failed ?? 0}
-            </div>
+    <SectionCard title="ייבוא כתבות">
+      <div className="space-y-3">
+        <div className="flex gap-2 flex-wrap">
+          {sources.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => onIngest(id)}
+              disabled={ingesting != null}
+              className={consoleButton("ghost")}
+            >
+              {ingesting === id ? "מייבא..." : `ייבא ${label}`}
+            </button>
           ))}
+          <button
+            onClick={() => onIngest(null)}
+            disabled={ingesting != null}
+            className={consoleButton("primary", "px-3 py-1.5 text-xs")}
+          >
+            {ingesting === "both" ? "מייבא..." : "ייבא הכל (במקביל)"}
+          </button>
         </div>
-      )}
-    </section>
+
+        {ingestResults.length > 0 && (
+          <div className="space-y-1">
+            {ingestResults.map((r) => (
+              <div key={r.source_id} className="text-[11px] text-text-secondary bg-surface-2 rounded-lg px-2 py-1 font-mono">
+                {r.source_id}: fetched={r.fetched} inserted={r.inserted} filtered={r.skipped_filtered ?? 0} dup={r.skipped_duplicate ?? 0} failed={r.failed ?? 0}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </SectionCard>
   );
 }
 
@@ -337,72 +307,71 @@ function BackfillSection({
   backfillResult, backfillError, onBackfill,
 }) {
   return (
-    <section className="border border-gray-800 rounded-lg p-4 space-y-3">
-      <h2 className="text-sm font-semibold text-gray-300">Backfill סיווג LLM</h2>
-      <p className="text-xs text-gray-600">
-        מסווג מחדש כתבות קיימות ממקורות עברית רחבים עם ה-LLM.
-      </p>
+    <SectionCard title="Backfill סיווג LLM">
+      <div className="space-y-3">
+        <p className="text-xs text-text-dim">
+          מסווג מחדש כתבות קיימות ממקורות עברית רחבים עם ה-LLM.
+        </p>
 
-      <div className="flex items-center gap-4">
-        <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={backfillForce}
-            onChange={e => setBackfillForce(e.target.checked)}
-            className="rounded border-gray-600 bg-gray-800 text-blue-500"
-          />
-          force (כולל כבר מסווגי LLM)
-        </label>
-        <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={backfillDryRun}
-            onChange={e => setBackfillDryRun(e.target.checked)}
-            className="rounded border-gray-600 bg-gray-800 text-yellow-500"
-          />
-          dry_run (ללא כתיבה ל-DB)
-        </label>
-      </div>
-
-      <div className="flex gap-2 flex-wrap">
-        {["walla_sport", "israel_hayom_sport"].map(sourceId => (
-          <button
-            key={sourceId}
-            onClick={() => onBackfill(sourceId)}
-            disabled={backfilling}
-            className="text-xs px-3 py-1.5 rounded border border-purple-800/60 bg-purple-950/30 text-purple-400 hover:border-purple-700 hover:text-purple-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            {backfilling ? "מבצע..." : `Backfill ${sourceId}`}
-          </button>
-        ))}
-      </div>
-
-      {backfillError && (
-        <p className="text-xs text-red-400">{backfillError}</p>
-      )}
-
-      {backfillResult && (
-        <div className="text-[11px] text-gray-500 bg-gray-800/30 rounded px-3 py-2 font-mono space-y-0.5">
-          <div>provider: {backfillResult.provider}</div>
-          <div>processed: {backfillResult.processed}</div>
-          <div>llm_classified: {backfillResult.llm_classified}</div>
-          <div>guardrail_corrections: {backfillResult.guardrail_corrections}</div>
-          <div>fallback_count: {backfillResult.fallback_count}</div>
-          <div>low_confidence_count: {backfillResult.low_confidence_count}</div>
-          <div>skipped_already_classified: {backfillResult.skipped_already_classified}</div>
-          {backfillResult.dry_run && <div className="text-yellow-600">dry_run=true — לא נכתב</div>}
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
+            <input
+              type="checkbox"
+              checked={backfillForce}
+              onChange={(e) => setBackfillForce(e.target.checked)}
+              className="rounded border-border bg-surface-2 text-signal-feed"
+            />
+            force (כולל כבר מסווגי LLM)
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
+            <input
+              type="checkbox"
+              checked={backfillDryRun}
+              onChange={(e) => setBackfillDryRun(e.target.checked)}
+              className="rounded border-border bg-surface-2 text-signal-push"
+            />
+            dry_run (ללא כתיבה ל-DB)
+          </label>
         </div>
-      )}
-    </section>
+
+        <div className="flex gap-2 flex-wrap">
+          {["walla_sport", "israel_hayom_sport"].map((sourceId) => (
+            <button
+              key={sourceId}
+              onClick={() => onBackfill(sourceId)}
+              disabled={backfilling}
+              className={consoleButton("ghost")}
+            >
+              {backfilling ? "מבצע..." : `Backfill ${sourceId}`}
+            </button>
+          ))}
+        </div>
+
+        {backfillError && <p className="text-xs text-signal-hidden">{backfillError}</p>}
+
+        {backfillResult && (
+          <div className="text-[11px] text-text-secondary bg-surface-2 rounded-lg px-3 py-2 font-mono space-y-0.5">
+            <div>provider: {backfillResult.provider}</div>
+            <div>processed: {backfillResult.processed}</div>
+            <div>llm_classified: {backfillResult.llm_classified}</div>
+            <div>guardrail_corrections: {backfillResult.guardrail_corrections}</div>
+            <div>fallback_count: {backfillResult.fallback_count}</div>
+            <div>low_confidence_count: {backfillResult.low_confidence_count}</div>
+            <div>skipped_already_classified: {backfillResult.skipped_already_classified}</div>
+            {backfillResult.dry_run && <div className="text-signal-push">dry_run=true — לא נכתב</div>}
+          </div>
+        )}
+      </div>
+    </SectionCard>
   );
 }
 
 function MetricsSection({ metrics, timeFilter, setTimeFilter, feedError }) {
   if (feedError) {
     return (
-      <section className="border border-red-900/40 rounded-lg p-4">
-        <p className="text-xs text-red-400">שגיאה בטעינת הפיד: {feedError}</p>
-      </section>
+      <SectionCard title="מדדים">
+        <p className="text-xs text-signal-hidden">שגיאה בטעינת הפיד: {feedError}</p>
+      </SectionCard>
     );
   }
 
@@ -410,81 +379,80 @@ function MetricsSection({ metrics, timeFilter, setTimeFilter, feedError }) {
           classifiedByBreakdown, sportBreakdown, decisionBreakdown, usedFallback } = metrics;
 
   return (
-    <section className="border border-gray-800 rounded-lg p-4 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-sm font-semibold text-gray-300">
-          מדדים{" "}
-          <span className="text-gray-600 font-normal text-xs">(מקורות עברית בלבד: וואלה + ישראל היום)</span>
-        </h2>
+    <SectionCard
+      title="מדדים"
+      actions={
         <div className="flex gap-1">
-          {["24h", "all"].map(f => (
+          {["24h", "all"].map((f) => (
             <button
               key={f}
               onClick={() => setTimeFilter(f)}
-              className={`text-xs px-2.5 py-1 rounded border transition-colors ${
+              className={cn(
+                "text-xs px-2.5 py-1 rounded-full border transition-colors",
                 timeFilter === f
-                  ? "bg-gray-700 border-gray-500 text-white"
-                  : "bg-gray-900 border-gray-800 text-gray-500 hover:border-gray-700"
-              }`}
+                  ? "bg-surface-3 border-text-dim text-foreground"
+                  : "bg-surface-1 border-border text-text-dim hover:border-text-dim"
+              )}
             >
               {f === "24h" ? "24 שעות" : "הכל"}
             </button>
           ))}
         </div>
-      </div>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-text-dim text-xs">מקורות עברית בלבד: וואלה + ישראל היום</p>
 
-      {usedFallback && (
-        <div className="bg-yellow-950/20 border border-yellow-900/30 rounded px-3 py-1.5 text-xs text-yellow-700">
-          אין כתבות מ-24 השעות האחרונות — מוצג all-time כ-fallback
-        </div>
-      )}
-
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-        <Stat label="סה״כ" value={total} />
-        <Stat label="וואלה" value={wallaCount} color="text-blue-400" />
-        <Stat label="ישראל היום" value={ihCount} color="text-cyan-400" />
-        <Stat label="ניראה לגיא" value={visibleForGuy} color="text-emerald-400" />
-        <Stat label="מוסתר לגיא" value={hiddenForGuy} color="text-red-400" />
-        <Stat label="sport=unknown" value={unknownCount} color="text-yellow-500" />
-      </div>
-
-      {/* Breakdowns */}
-      <div className="grid md:grid-cols-3 gap-3">
-        {[
-          { title: "classified_by", data: classifiedByBreakdown },
-          { title: "sport", data: sportBreakdown },
-          { title: "decision (Guy)", data: decisionBreakdown },
-        ].map(({ title, data }) => (
-          <div key={title} className="bg-gray-900/50 border border-gray-800 rounded-lg p-3">
-            <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-2">{title}</p>
-            <div className="space-y-1">
-              {Object.entries(data).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-gray-400 font-mono truncate">{k}</span>
-                  <span className="text-xs text-gray-300 font-medium flex-shrink-0">{v}</span>
-                </div>
-              ))}
-              {Object.keys(data).length === 0 && (
-                <p className="text-xs text-gray-700">—</p>
-              )}
-            </div>
+        {usedFallback && (
+          <div className="bg-signal-push/10 border border-signal-push/25 rounded-lg px-3 py-1.5 text-xs text-signal-push">
+            אין כתבות מ-24 השעות האחרונות — מוצג all-time כ-fallback
           </div>
-        ))}
+        )}
+
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+          <StatCard label="סה״כ" value={total} className="px-2 py-2 text-center" />
+          <StatCard label="וואלה" value={wallaCount} tone="feed" className="px-2 py-2 text-center" />
+          <StatCard label="ישראל היום" value={ihCount} tone="ai" className="px-2 py-2 text-center" />
+          <StatCard label="ניראה לגיא" value={visibleForGuy} tone="high" className="px-2 py-2 text-center" />
+          <StatCard label="מוסתר לגיא" value={hiddenForGuy} tone="hidden" className="px-2 py-2 text-center" />
+          <StatCard label="sport=unknown" value={unknownCount} tone="push" className="px-2 py-2 text-center" />
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-3">
+          {[
+            { title: "classified_by", data: classifiedByBreakdown },
+            { title: "sport", data: sportBreakdown },
+            { title: "decision (Guy)", data: decisionBreakdown },
+          ].map(({ title, data }) => (
+            <div key={title} className="bg-surface-2 border border-border rounded-[10px] p-3">
+              <p className="text-[10px] text-text-dim uppercase tracking-wide mb-2">{title}</p>
+              <div className="space-y-1">
+                {Object.entries(data).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-text-secondary font-mono truncate">{k}</span>
+                    <span className="text-xs text-foreground font-medium flex-shrink-0">{v}</span>
+                  </div>
+                ))}
+                {Object.keys(data).length === 0 && <p className="text-xs text-text-dim">—</p>}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    </section>
+    </SectionCard>
   );
 }
 
 // ── Tab panel ─────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: "llm",         label: "LLM",         activeStyle: "text-blue-400 border-blue-400" },
-  { id: "guardrail",   label: "Guardrail",    activeStyle: "text-yellow-400 border-yellow-400" },
-  { id: "fallback",    label: "Fallback",     activeStyle: "text-red-400 border-red-400" },
-  { id: "unknown",     label: "Unknown",      activeStyle: "text-gray-400 border-gray-400" },
-  { id: "visible",     label: "ניראה",        activeStyle: "text-emerald-400 border-emerald-400" },
-  { id: "football_fp", label: "Football FP?", activeStyle: "text-orange-400 border-orange-400" },
-  { id: "push",        label: "Push",         activeStyle: "text-amber-400 border-amber-400" },
+  { id: "llm",         label: "LLM",         active: "text-signal-feed border-signal-feed" },
+  { id: "guardrail",   label: "Guardrail",   active: "text-signal-ai border-signal-ai" },
+  { id: "fallback",    label: "Fallback",    active: "text-signal-hidden border-signal-hidden" },
+  { id: "unknown",     label: "Unknown",     active: "text-text-secondary border-text-secondary" },
+  { id: "visible",     label: "ניראה",       active: "text-signal-high border-signal-high" },
+  { id: "football_fp", label: "Football FP?", active: "text-signal-push border-signal-push" },
+  { id: "push",        label: "Push",        active: "text-signal-push border-signal-push" },
 ];
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -562,13 +530,13 @@ export default function LlmQa() {
   const metrics = calcMetrics(debugItems, timeFilter);
 
   const tabBuckets = {
-    llm:         metrics.items.filter(a => a.classifiedBy === "llm"),
-    guardrail:   metrics.items.filter(a => a.classifiedBy === "llm+rules_guardrail"),
-    fallback:    metrics.items.filter(a => a.classifiedBy?.startsWith("rules_fallback_")),
-    unknown:     metrics.items.filter(a => a.sport === "unknown"),
-    visible:     metrics.items.filter(a => a.score?.decision !== "hidden"),
+    llm:         metrics.items.filter((a) => a.classifiedBy === "llm"),
+    guardrail:   metrics.items.filter((a) => a.classifiedBy === "llm+rules_guardrail"),
+    fallback:    metrics.items.filter((a) => a.classifiedBy?.startsWith("rules_fallback_")),
+    unknown:     metrics.items.filter((a) => a.sport === "unknown"),
+    visible:     metrics.items.filter((a) => a.score?.decision !== "hidden"),
     football_fp: metrics.items.filter(isPossibleFootballFalsePositive),
-    push:        metrics.items.filter(a => a.score?.decision === "push"),
+    push:        metrics.items.filter((a) => a.score?.decision === "push"),
   };
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -596,8 +564,8 @@ export default function LlmQa() {
     try {
       if (sourceId) {
         const r = await runIngestion(sourceId);
-        setIngestResults(prev => [
-          ...prev.filter(x => x.source_id !== r.source_id),
+        setIngestResults((prev) => [
+          ...prev.filter((x) => x.source_id !== r.source_id),
           r,
         ]);
       } else {
@@ -605,9 +573,9 @@ export default function LlmQa() {
           runIngestion("walla_sport"),
           runIngestion("israel_hayom_sport"),
         ]);
-        setIngestResults(prev => {
+        setIngestResults((prev) => {
           const filtered = prev.filter(
-            x => !HEBREW_BROAD_SOURCES.includes(x.source_id)
+            (x) => !HEBREW_BROAD_SOURCES.includes(x.source_id)
           );
           return [...filtered, r1, r2];
         });
@@ -660,60 +628,43 @@ export default function LlmQa() {
 
   if (!isBackendMode) {
     return (
-      <div className="text-center py-20 space-y-3">
-        <p className="text-3xl">🚫</p>
-        <p className="text-lg font-semibold text-gray-400">עמוד זה זמין במצב שרת בלבד</p>
-        <p className="text-sm text-gray-600">
-          הפעל את השרת האחורי והגדר{" "}
-          <span className="font-mono text-gray-500">VITE_DATA_MODE=backend</span>
-        </p>
-      </div>
+      <EmptyState
+        icon={FlaskConical}
+        title="עמוד זה זמין במצב שרת בלבד"
+        hint="הפעל את השרת האחורי והגדר VITE_DATA_MODE=backend."
+      />
     );
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
+  const copyClass =
+    copyStatus === "ok" ? "bg-signal-high/10 border-signal-high/30 text-signal-high"
+    : copyStatus === "err" ? "bg-signal-hidden/10 border-signal-hidden/30 text-signal-hidden"
+    : "bg-surface-2 border-border text-text-secondary hover:text-foreground hover:border-text-dim";
+
   return (
-    <div className="space-y-5 pb-20 md:pb-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-start justify-between flex-wrap gap-2">
-          <div>
-            <h1 className="text-xl font-bold text-white">בדיקת סיווג LLM</h1>
-            <p className="text-xs text-gray-500 mt-0.5">עמוד QA זמני ל-PR 11 — לא עמוד מוצרי</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {loading && (
-              <span className="text-xs text-gray-600 animate-pulse">טוען...</span>
-            )}
-            <button
-              onClick={loadData}
-              disabled={loading}
-              className="text-xs bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-gray-400 hover:text-gray-200 hover:border-gray-600 transition-colors disabled:opacity-40"
-            >
-              רענן
-            </button>
-            <button
-              onClick={handleCopySummary}
-              className={`text-xs rounded px-3 py-1.5 border transition-colors ${
-                copyStatus === "ok"
-                  ? "bg-emerald-900/40 border-emerald-700 text-emerald-400"
-                  : copyStatus === "err"
-                  ? "bg-red-900/40 border-red-700 text-red-400"
-                  : "bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-200 hover:border-gray-600"
-              }`}
-            >
-              {copyStatus === "ok" ? "✓ הועתק" : copyStatus === "err" ? "✗ שגיאה" : "העתק QA Summary"}
-            </button>
-          </div>
-        </div>
-        <div className="bg-yellow-950/20 border border-yellow-900/30 rounded px-3 py-2">
-          <p className="text-xs text-yellow-700">
-            QA בלבד · עמוד זה לא מופיע בניווט הרגיל ·{" "}
-            <span className="font-mono text-yellow-600">ALLOW_DEV_RESET=true</span>{" "}
-            נדרש לאיפוס · אל תריץ Eurohoops/Sportando מכאן
-          </p>
-        </div>
+    <div className="max-w-4xl space-y-5">
+      <PageHeader
+        title="בדיקת סיווג LLM"
+        icon={FlaskConical}
+        subtitle="עמוד QA — לא עמוד מוצרי"
+      >
+        {loading && <span className="text-xs text-text-dim animate-pulse">טוען...</span>}
+        <button onClick={loadData} disabled={loading} className={consoleButton("ghost")}>
+          <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> רענן
+        </button>
+        <button onClick={handleCopySummary} className={cn("text-xs rounded-lg px-3 py-1.5 border transition-colors", copyClass)}>
+          {copyStatus === "ok" ? "✓ הועתק" : copyStatus === "err" ? "✗ שגיאה" : "העתק QA Summary"}
+        </button>
+      </PageHeader>
+
+      <div className="bg-signal-push/8 border border-signal-push/25 rounded-lg px-3 py-2">
+        <p className="text-xs text-signal-push">
+          QA בלבד · עמוד זה לא מופיע בניווט הרגיל ·{" "}
+          <span className="font-mono">ALLOW_DEV_RESET=true</span>{" "}
+          נדרש לאיפוס · אל תריץ Eurohoops/Sportando מכאן
+        </p>
       </div>
 
       <ProviderStatusSection status={providerStatus} error={statusError} />
@@ -730,11 +681,7 @@ export default function LlmQa() {
         onReset={handleReset}
       />
 
-      <IngestionSection
-        ingesting={ingesting}
-        ingestResults={ingestResults}
-        onIngest={handleIngest}
-      />
+      <IngestionSection ingesting={ingesting} ingestResults={ingestResults} onIngest={handleIngest} />
 
       <BackfillSection
         backfilling={backfilling}
@@ -747,30 +694,23 @@ export default function LlmQa() {
         onBackfill={handleBackfill}
       />
 
-      <MetricsSection
-        metrics={metrics}
-        timeFilter={timeFilter}
-        setTimeFilter={setTimeFilter}
-        feedError={feedError}
-      />
+      <MetricsSection metrics={metrics} timeFilter={timeFilter} setTimeFilter={setTimeFilter} feedError={feedError} />
 
       {/* Tab panel */}
       <div className="space-y-3">
-        <div className="flex gap-0.5 border-b border-gray-800 overflow-x-auto">
-          {TABS.map(tab => {
+        <div className="flex gap-0.5 border-b border-border overflow-x-auto">
+          {TABS.map((tab) => {
             const count = tabBuckets[tab.id]?.length ?? 0;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-2.5 text-xs font-medium border-b-2 whitespace-nowrap transition-colors ${
-                  activeTab === tab.id
-                    ? tab.activeStyle
-                    : "text-gray-500 border-transparent hover:text-gray-300"
-                }`}
+                className={cn(
+                  "px-3 py-2.5 text-xs font-medium border-b-2 whitespace-nowrap transition-colors",
+                  activeTab === tab.id ? tab.active : "text-text-dim border-transparent hover:text-text-secondary"
+                )}
               >
-                {tab.label}{" "}
-                <span className="text-gray-600">({count})</span>
+                {tab.label} <span className="text-text-dim">({count})</span>
               </button>
             );
           })}
@@ -778,13 +718,9 @@ export default function LlmQa() {
 
         <div className="space-y-2">
           {(tabBuckets[activeTab] ?? []).length === 0 ? (
-            <div className="text-center py-10 text-gray-600 text-sm">
-              אין כתבות בקטגוריה זו
-            </div>
+            <EmptyState icon={FlaskConical} title="אין כתבות בקטגוריה זו" />
           ) : (
-            (tabBuckets[activeTab] ?? []).map(item => (
-              <QaRow key={item.id} item={item} />
-            ))
+            (tabBuckets[activeTab] ?? []).map((item) => <QaRow key={item.id} item={item} />)
           )}
         </div>
       </div>

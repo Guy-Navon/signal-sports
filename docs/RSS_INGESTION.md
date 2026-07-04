@@ -212,7 +212,7 @@ Each `RawSourceItem` is mapped to an `Article` via the classifier:
 | `importance`     | From classifier or LLM (never downgraded by LLM) |
 | `confidence`     | From classifier (deterministic confidence score) |
 | `tags`           | From classifier |
-| `subtitle`       | Cleaned RSS `<description>` / `<summary>` text (HTML stripped, entities unescaped, truncated to 500 chars); `None` when RSS entry has no description |
+| `subtitle`       | Cleaned RSS `<description>` / `<summary>` text (HTML stripped, entities unescaped, sentence-boundary-aware excerpt up to 240 chars — see `docs/LLM_CLASSIFICATION.md` §Subtitle Context); `None` when RSS entry has no description |
 | `classified_by`  | `rules`, `llm`, `llm+rules_guardrail`, `rules_fallback_after_llm_failure`, `rules_fallback_low_confidence` (PR 11) |
 | `classification_provider` | Which provider classified this article: `rules`, `ollama:llama3.2:3b`, `fake` (PR 11) |
 | `classification_reason` | LLM's one-sentence explanation of the classification (PR 11) |

@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AppProvider } from '@/context/AppContext';
-import AppLayout from '@/components/layout/AppLayout';
+import AppShell from '@/components/shell/AppShell';
 import Feed from '@/pages/Feed';
 import Preferences from '@/pages/Preferences';
 import Calibration from '@/pages/Calibration';
@@ -21,12 +21,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <AppProvider>
         <BrowserRouter>
           <Routes>
-            <Route element={<AppLayout />}>
+            <Route element={<AppShell area="product" />}>
               <Route index element={<Feed />} />
               <Route path="preferences" element={<Preferences />} />
               <Route path="calibration" element={<Calibration />} />
-              <Route path="sources" element={<Sources />} />
               <Route path="results" element={<Results />} />
+            </Route>
+            <Route element={<AppShell area="ops" />}>
+              <Route path="sources" element={<Sources />} />
               <Route path="debug" element={<Debug />} />
               <Route path="llm-qa" element={<LlmQa />} />
             </Route>

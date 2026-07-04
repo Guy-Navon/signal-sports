@@ -1,153 +1,259 @@
 import React, { useState, useMemo } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { Rss, SlidersHorizontal } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import FeedCard from "@/components/feed/FeedCard";
-import { Rss } from "lucide-react";
+import EditionHeader from "@/components/feed/EditionHeader";
+import SignalSpectrum from "@/components/feed/SignalSpectrum";
+import SignalBoard from "@/components/feed/SignalBoard";
+import TopicFilters from "@/components/feed/TopicFilters";
+import LeadStory from "@/components/feed/LeadStory";
+import BulletinStrip from "@/components/feed/BulletinStrip";
+import EditorialTier from "@/components/feed/EditorialTier";
+import StreamRow from "@/components/feed/StreamRow";
+import BriefsDigest from "@/components/feed/BriefsDigest";
+import SectionHeading from "@/components/feed/SectionHeading";
+import EditionSkeleton from "@/components/feed/EditionSkeleton";
+import EmptyState from "@/components/shared/EmptyState";
+import MonoValue from "@/components/shared/MonoValue";
+import { composeEdition } from "@/components/feed/editionComposer";
+import { editionVariants, rowPresence } from "@/components/feed/motionPresets";
+import {
+  getVisibleItems,
+  filterFeedItems,
+  toggleFilterSet,
+} from "@/components/feed/feedFilters";
 
-const FILTER_CHIPS = [
-  { id: "all", label: "הכל" },
-  { id: "push", label: "דורש תשומת לב" },
-  { id: "high_feed", label: "חשוב" },
-  { id: "maccabi", label: "מכבי" },
-  { id: "basketball", label: "כדורסל" },
-  { id: "NBA", label: "NBA" },
-  { id: "international", label: "מקורות מחו״ל" }
-];
-
-const DECISION_RANK = { hidden: 0, low_feed: 1, feed: 2, high_feed: 3, push: 4 };
-
+// The Feed as an edition: the ranked visible items are partitioned into
+// editorial tiers (lead "הסיפור המרכזי" / bulletins / "במוקד" / "עוד מהפיד" /
+// "קריאה נוספת") so the page's *shape* encodes relevance. Desktop composition:
+// the lead is a full-width hero band; below it the editorial column runs
+// beside a sticky "לוח הסיגנל" board (xl+). Filtering collapses the edition
+// into a flat level-annotated list; clearing it recomposes the edition.
 export default function Feed() {
-  const { feedItems, activeProfile } = useApp();
+  const { feedItems, debugItems, activeProfileId, activeProfile, isBackendMode, isLoading } =
+    useApp();
   const [activeFilters, setActiveFilters] = useState(new Set(["all"]));
+  const reduce = useReducedMotion();
+  const v = useMemo(() => editionVariants(reduce), [reduce]);
 
-  function toggleFilter(chipId) {
-    if (chipId === "all") {
-      setActiveFilters(new Set(["all"]));
-      return;
+  const visibleItems = useMemo(() => getVisibleItems(feedItems), [feedItems]);
+
+  const decisionCounts = useMemo(() => {
+    const c = { push: 0, high_feed: 0, feed: 0, low_feed: 0 };
+    for (const item of visibleItems) {
+      const d = item.score?.decision;
+      if (d in c) c[d] += 1;
     }
-    setActiveFilters(prev => {
-      const next = new Set(prev);
-      next.delete("all");
-      if (next.has(chipId)) {
-        next.delete(chipId);
-      } else {
-        next.add(chipId);
-      }
-      return next.size === 0 ? new Set(["all"]) : next;
-    });
-  }
+    return c;
+  }, [visibleItems]);
 
-  // Only show non-hidden items in the main feed
-  const visibleItems = useMemo(() => {
-    return feedItems.filter(item => {
-      const decision = item.score?.decision;
-      return decision && decision !== "hidden";
-    });
-  }, [feedItems]);
+  const edition = useMemo(() => composeEdition(visibleItems), [visibleItems]);
 
-  function itemMatchesFilter(item, filterId) {
-    if (filterId === "push") return item.score?.decision === "push";
-    if (filterId === "high_feed") return item.score?.decision === "high_feed";
-    if (filterId === "maccabi") {
-      const entities = item.entities || [];
-      const tags = item.tags || [];
-      return (
-        entities.some(e => e.toLowerCase().includes("maccabi")) ||
-        tags.some(t => t.includes("מכבי"))
-      );
-    }
-    if (filterId === "basketball") return item.sport === "basketball";
-    if (filterId === "NBA") return item.league === "NBA";
-    if (filterId === "international") {
-      const intlSources = ["sportando", "eurohoops"];
-      return item.type === "cluster"
-        ? item.sources?.some(s => intlSources.includes(s))
-        : intlSources.includes(item.source);
-    }
-    return true;
-  }
+  const isUnfiltered = activeFilters.has("all");
+  const filteredItems = useMemo(
+    () => filterFeedItems(visibleItems, activeFilters),
+    [visibleItems, activeFilters]
+  );
 
-  // Apply filter chips
-  const filteredItems = useMemo(() => {
-    if (activeFilters.has("all")) return visibleItems;
-    return visibleItems.filter(item =>
-      [...activeFilters].some(f => itemMatchesFilter(item, f))
+  const toggleFilter = (id) => setActiveFilters((prev) => toggleFilterSet(prev, id));
+  const resetFilters = () => setActiveFilters(new Set(["all"]));
+
+  // Loading state (backend mode, first fetch)
+  if (isBackendMode && isLoading && visibleItems.length === 0) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <EditionSkeleton />
+      </div>
     );
-  }, [visibleItems, activeFilters]);
-
-  const pushCount = visibleItems.filter(i => i.score?.decision === "push").length;
-  const highCount = visibleItems.filter(i => i.score?.decision === "high_feed").length;
+  }
 
   return (
-    <div className="space-y-4 pb-20 md:pb-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-white">פיד אישי</h1>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {visibleItems.length} פריטים רלוונטיים עבור {activeProfile?.displayName}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {pushCount > 0 && (
-            <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              <span className="text-xs text-amber-300">{pushCount} חשובים</span>
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="max-w-6xl mx-auto">
+      {/* Keyed by profile: switching readers re-composes and re-reveals the edition. */}
+      <motion.div
+        key={activeProfileId || "none"}
+        variants={v.container}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div variants={v.item}>
+          <EditionHeader
+            profileName={activeProfile?.displayName}
+            total={visibleItems.length}
+            scanned={debugItems.length}
+          />
+        </motion.div>
 
-      {/* Filter Chips */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {FILTER_CHIPS.map(chip => (
-          <button
-            key={chip.id}
-            onClick={() => toggleFilter(chip.id)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-              activeFilters.has(chip.id)
-                ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
-                : "bg-gray-800/80 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300"
-            }`}
-          >
-            {chip.label}
-          </button>
-        ))}
-      </div>
+        {/* Spectrum + topic filters above the fold on small screens; the
+            signal board owns them on xl. */}
+        <motion.div variants={v.item} className="mt-5 xl:hidden">
+          <SignalSpectrum
+            counts={decisionCounts}
+            activeFilters={activeFilters}
+            onToggle={toggleFilter}
+          />
+          <TopicFilters
+            activeFilters={activeFilters}
+            onToggle={toggleFilter}
+            onReset={resetFilters}
+            className="mt-3"
+          />
+        </motion.div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-4 gap-2 text-center">
-        {[
-          { label: "דורש תשומת לב", count: visibleItems.filter(i => i.score?.decision === "push").length, color: "text-amber-400" },
-          { label: "חשוב", count: visibleItems.filter(i => i.score?.decision === "high_feed").length, color: "text-emerald-400" },
-          { label: "רגיל", count: visibleItems.filter(i => i.score?.decision === "feed").length, color: "text-blue-400" },
-          { label: "נמוך", count: visibleItems.filter(i => i.score?.decision === "low_feed").length, color: "text-gray-500" }
-        ].map(stat => (
-          <div key={stat.label} className="bg-gray-900/50 rounded-lg px-2 py-2 border border-gray-800">
-            <div className={`text-lg font-bold ${stat.color}`}>{stat.count}</div>
-            <div className="text-[10px] text-gray-600">{stat.label}</div>
-          </div>
-        ))}
-      </div>
+        {visibleItems.length === 0 ? (
+          <motion.div variants={v.item}>
+            <EmptyState
+              icon={Rss}
+              title="אין סיגנלים חדשים"
+              hint="המערכת סורקת את המקורות ברקע — סיפורים שרלוונטיים לפרופיל שלך יופיעו כאן."
+            />
+          </motion.div>
+        ) : (
+          <AnimatePresence mode="wait" initial={false}>
+            {isUnfiltered ? (
+              <motion.div
+                key="edition"
+                variants={v.container}
+                initial="hidden"
+                animate="show"
+                exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              >
+                {/* Full-width hero band */}
+                {edition.lead && (
+                  <motion.div variants={v.headline} className="mt-4 md:mt-5">
+                    <LeadStory item={edition.lead} />
+                  </motion.div>
+                )}
 
-      {/* Feed Items */}
-      {filteredItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Rss size={32} className="text-gray-700 mb-3" />
-          <p className="text-gray-500 text-sm">אין פריטים תואמים לסינון הנוכחי</p>
-          <button
-            onClick={() => toggleFilter("all")}
-            className="mt-3 text-xs text-emerald-400 hover:text-emerald-300"
-          >
-            הצג הכל
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredItems.map(item => (
-            <FeedCard key={item.id} item={item} />
-          ))}
-        </div>
-      )}
+                {edition.bulletins.length > 0 && (
+                  <motion.div variants={v.item} className="mt-4 space-y-1.5">
+                    {edition.bulletins.map((item) => (
+                      <BulletinStrip key={item.id} item={item} />
+                    ))}
+                  </motion.div>
+                )}
+
+                {/* Editorial column + signal board (xl) */}
+                <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_280px] xl:gap-14 mt-10 md:mt-12">
+                  <div className="min-w-0">
+                    {edition.editorial.length > 0 && (
+                      <EditorialTier
+                        items={edition.editorial}
+                        variants={v.item}
+                        headingVariants={v.item}
+                      />
+                    )}
+
+                    {edition.stream.length > 0 && (
+                      <motion.section
+                        variants={v.item}
+                        aria-label="עוד מהפיד"
+                        className={edition.editorial.length > 0 ? "mt-10 md:mt-14" : ""}
+                      >
+                        <SectionHeading className="mb-2">עוד מהפיד</SectionHeading>
+                        <div className="divide-y divide-border/40">
+                          {edition.stream.map((item) => (
+                            <StreamRow key={item.id} item={item} />
+                          ))}
+                        </div>
+                      </motion.section>
+                    )}
+
+                    {edition.briefs.length > 0 && (
+                      <motion.div variants={v.item} className="mt-10 md:mt-14">
+                        <BriefsDigest items={edition.briefs} />
+                      </motion.div>
+                    )}
+                  </div>
+
+                  <motion.aside variants={v.item} className="hidden xl:block">
+                    <div className="sticky top-20">
+                      <SignalBoard
+                        counts={decisionCounts}
+                        activeFilters={activeFilters}
+                        onToggle={toggleFilter}
+                        onReset={resetFilters}
+                        items={visibleItems}
+                        scanned={debugItems.length}
+                      />
+                    </div>
+                  </motion.aside>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="filtered"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                className="mt-8 max-w-4xl"
+              >
+                {/* On xl the spectrum lives in the signal board, which belongs
+                    to the edition view — surface it here so levels can still
+                    be toggled while filtering. */}
+                <div className="hidden xl:block mb-6">
+                  <SignalSpectrum
+                    counts={decisionCounts}
+                    activeFilters={activeFilters}
+                    onToggle={toggleFilter}
+                  />
+                  <TopicFilters
+                    activeFilters={activeFilters}
+                    onToggle={toggleFilter}
+                    onReset={resetFilters}
+                    className="mt-3"
+                  />
+                </div>
+                <SectionHeading
+                  count={filteredItems.length}
+                  className="mb-3"
+                  action={
+                    <button
+                      onClick={resetFilters}
+                      className="text-xs text-signal-high hover:text-signal-high/80 transition-colors flex-shrink-0"
+                    >
+                      חזרה למהדורה המלאה
+                    </button>
+                  }
+                >
+                  מסונן
+                </SectionHeading>
+
+                {filteredItems.length === 0 ? (
+                  <EmptyState
+                    icon={SlidersHorizontal}
+                    title="אין פריטים תואמים לסינון"
+                    hint="נסה להסיר חלק מהמסננים כדי לראות יותר סיפורים."
+                    action={
+                      <button
+                        onClick={resetFilters}
+                        className="text-sm text-signal-high hover:text-signal-high/80 transition-colors"
+                      >
+                        הצג הכל
+                      </button>
+                    }
+                  />
+                ) : (
+                  <div className="divide-y divide-border/40">
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      {filteredItems.map((item) => (
+                        <motion.div key={item.id} layout {...rowPresence(reduce)}>
+                          <StreamRow item={item} showLevelDot />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                <p className="mt-6 text-xs text-text-dim">
+                  מציג <MonoValue>{filteredItems.length}</MonoValue> מתוך{" "}
+                  <MonoValue>{visibleItems.length}</MonoValue> סיפורים במהדורה
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
+      </motion.div>
     </div>
   );
 }

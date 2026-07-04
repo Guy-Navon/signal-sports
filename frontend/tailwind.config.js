@@ -45,6 +45,23 @@ export default {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
+  			surface: {
+  				'0': 'hsl(var(--surface-0) / <alpha-value>)',
+  				'1': 'hsl(var(--surface-1) / <alpha-value>)',
+  				'2': 'hsl(var(--surface-2) / <alpha-value>)',
+  				'3': 'hsl(var(--surface-3) / <alpha-value>)'
+  			},
+  			signal: {
+  				push: 'hsl(var(--signal-push) / <alpha-value>)',
+  				high: 'hsl(var(--signal-high) / <alpha-value>)',
+  				feed: 'hsl(var(--signal-feed) / <alpha-value>)',
+  				low: 'hsl(var(--signal-low) / <alpha-value>)',
+  				hidden: 'hsl(var(--signal-hidden) / <alpha-value>)',
+  				ai: 'hsl(var(--signal-ai) / <alpha-value>)'
+  			},
+  			'text-primary': 'hsl(var(--text-primary) / <alpha-value>)',
+  			'text-secondary': 'hsl(var(--text-secondary) / <alpha-value>)',
+  			'text-dim': 'hsl(var(--text-dim) / <alpha-value>)',
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',
@@ -85,11 +102,49 @@ export default {
   				to: {
   					height: '0'
   				}
+  			},
+  			shimmer: {
+  				'0%': {
+  					backgroundPosition: '200% 0'
+  				},
+  				'100%': {
+  					backgroundPosition: '-200% 0'
+  				}
+  			},
+  			'fade-up': {
+  				from: {
+  					opacity: '0',
+  					transform: 'translateY(12px)'
+  				},
+  				to: {
+  					opacity: '1',
+  					transform: 'translateY(0)'
+  				}
+  			},
+  			'pulse-soft': {
+  				'0%, 100%': {
+  					opacity: '1'
+  				},
+  				'50%': {
+  					opacity: '0.45'
+  				}
+  			},
+  			breathe: {
+  				'0%, 100%': {
+  					opacity: '0.65'
+  				},
+  				'50%': {
+  					opacity: '1'
+  				}
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			shimmer: 'shimmer 1.8s linear infinite',
+  			'fade-up': 'fade-up 240ms cubic-bezier(0.22, 1, 0.36, 1) both',
+  			'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
+  			breathe: 'breathe 4s ease-in-out infinite'
   		}
   	}
   },

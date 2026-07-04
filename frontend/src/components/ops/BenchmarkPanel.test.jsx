@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { formatPercent, formatMs, formatDuration } from "@/api/normalizers";
+import { formatPercent, formatDuration } from "@/api/normalizers";
 
 // ── formatPercent ─────────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Rss, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import EditionHeader from "@/components/feed/EditionHeader";
 import SignalSpectrum from "@/components/feed/SignalSpectrum";
@@ -14,6 +14,7 @@ import BriefsDigest from "@/components/feed/BriefsDigest";
 import SectionHeading from "@/components/feed/SectionHeading";
 import EditionSkeleton from "@/components/feed/EditionSkeleton";
 import EmptyState from "@/components/shared/EmptyState";
+import EditionEmptyState from "@/components/feed/EditionEmptyState";
 import MonoValue from "@/components/shared/MonoValue";
 import { composeEdition } from "@/components/feed/editionComposer";
 import { editionVariants, rowPresence } from "@/components/feed/motionPresets";
@@ -102,11 +103,7 @@ export default function Feed() {
 
         {visibleItems.length === 0 ? (
           <motion.div variants={v.item}>
-            <EmptyState
-              icon={Rss}
-              title="אין סיגנלים חדשים"
-              hint="המערכת סורקת את המקורות ברקע — סיפורים שרלוונטיים לפרופיל שלך יופיעו כאן."
-            />
+            <EditionEmptyState />
           </motion.div>
         ) : (
           <AnimatePresence mode="wait" initial={false}>

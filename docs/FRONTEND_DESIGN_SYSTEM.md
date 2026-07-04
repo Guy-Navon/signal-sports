@@ -182,7 +182,22 @@ Removed in PR A: `ArticleCard`, `FeedHero`, `FeedHeader`, `FilterChips`,
 ### `components/ops/` — console (renamed from `ingestion/`)
 `SchedulerPanel` · `IngestionPanel` · `BenchmarkPanel` · `HealthCard` ·
 `SourceToggleCard` (letter-avatar rows) · `consoleStyles.js` (`consoleButton`
-steel-blue, `consoleToggle`, `consoleAlert`).
+steel-blue, `consoleToggle`, `consoleAlert`). Page content/logic in these
+panels is untouched by every visual PR — PR D (below) only changed the shell
+around them.
+
+### The console's own identity (PR D — ops shell variant)
+Two worlds, one shell (`AppShell`, PR B), now each with their own backdrop:
+`OpsGrid` — a fixed, flat blueprint grid (steel-blue, ~5% opacity, 40px
+cells) behind every ops page, replacing the product's floodlit `Atmosphere`.
+Both backdrops fade in on mount (0.5s opacity) so crossing between product
+and console is felt, not a hard cut. `OpsNav`'s label changed from a plain
+"קונסולת תפעול" tag to a **mono breadcrumb** — "המערכת ⁄ קונסולה ⁄
+{current page}" (`font-mono`, natural RTL flow — deliberately **not**
+`MonoValue`, which forces `dir="ltr"` and is only correct for numerics, not
+Hebrew words). Nothing else in Sources/Debug/LLM QA changed: same
+`ProductNav` console-group rail, same page components, same panels, same
+API calls.
 
 ### `components/debug/`
 `DebugArticleCard` · `ProfileComparisonTable` · `ReasoningTrace` (numbered chain

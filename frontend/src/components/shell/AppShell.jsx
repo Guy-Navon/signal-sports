@@ -5,6 +5,7 @@ import { useApp } from "@/context/AppContext";
 import Masthead from "@/components/shell/Masthead";
 import MobileNav from "@/components/shell/MobileNav";
 import Atmosphere from "@/components/shell/Atmosphere";
+import OpsGrid from "@/components/shell/OpsGrid";
 import ProductNav from "@/components/shell/ProductNav";
 import OpsNav from "@/components/shell/OpsNav";
 import ErrorState from "@/components/shared/ErrorState";
@@ -12,8 +13,8 @@ import ErrorState from "@/components/shared/ErrorState";
 // Product routes read as an edition on an ambient canvas — no sidebar, the
 // masthead carries navigation inline, and the feed gets the full width.
 // Ops routes keep the console rail (ProductNav's console group + the OpsNav
-// strip) exactly as before; the console shell's own visual identity is a
-// later PR — this one only changes how you *arrive* at and *leave* it.
+// strip) and get their own flat, instrument-panel backdrop (OpsGrid) instead
+// of the product's atmosphere — two worlds, one shell.
 export default function AppShell({ area = "product" }) {
   const { isBackendMode, isLoading, apiError, refreshFeed } = useApp();
   const location = useLocation();
@@ -21,7 +22,7 @@ export default function AppShell({ area = "product" }) {
 
   return (
     <div className="min-h-screen flex flex-col relative">
-      {area === "product" && <Atmosphere />}
+      {area === "product" ? <Atmosphere /> : <OpsGrid />}
 
       <Masthead area={area} isBackendMode={isBackendMode} isLoading={isLoading} />
 

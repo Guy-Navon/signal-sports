@@ -1,13 +1,23 @@
 import React from "react";
+import { motion, useReducedMotion } from "framer-motion";
 
 // The product canvas's atmosphere: a fixed, decorative backdrop behind every
 // product page (not rendered in the ops console — ops stays flat/instrument-
 // panel by design). A soft floodlight mesh, one large half-court arc, and a
 // whisper of film grain — identity, not decoration. Static positioning +
-// opacity-only breathing keep this essentially free at runtime.
+// opacity-only breathing keep this essentially free at runtime. Fades in on
+// mount so returning from the console feels like arriving somewhere, not a
+// hard cut.
 export default function Atmosphere() {
+  const reduce = useReducedMotion();
   return (
-    <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+    <motion.div
+      aria-hidden
+      className="fixed inset-0 -z-10 overflow-hidden pointer-events-none"
+      initial={reduce ? { opacity: 1 } : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       <div
         className="absolute inset-0"
         style={{
@@ -32,6 +42,6 @@ export default function Atmosphere() {
             "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
         }}
       />
-    </div>
+    </motion.div>
   );
 }

@@ -51,7 +51,7 @@ export default function BulletinStrip({ item }) {
       </h3>
 
       {item.subtitle && (
-        <p className="mt-1.5 text-sm text-text-secondary leading-relaxed max-w-3xl">
+        <p className="mt-1.5 text-sm text-text-secondary leading-relaxed line-clamp-2 max-w-3xl">
           {item.subtitle}
         </p>
       )}

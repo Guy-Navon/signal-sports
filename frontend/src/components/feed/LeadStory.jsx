@@ -156,7 +156,7 @@ export default function LeadStory({ item }) {
           </h2>
 
           {item.subtitle && (
-            <p className="mt-3.5 text-[0.95rem] md:text-[1.05rem] text-text-secondary leading-relaxed max-w-2xl">
+            <p className="mt-3.5 text-[0.95rem] md:text-[1.05rem] text-text-secondary leading-relaxed max-w-2xl line-clamp-3">
               {item.subtitle}
             </p>
           )}

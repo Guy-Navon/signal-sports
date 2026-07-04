@@ -2,7 +2,11 @@
 
 Last updated: 2026-07-04 — the frontend redesign (PRs 1–6, branch
 `feature/frontend-redesign-foundation`) that turned the Base44-generated QA
-dashboard into a premium, Hebrew-first, RTL-first dark product.
+dashboard into a premium, Hebrew-first, RTL-first dark product, plus
+**PR A ("The Edition", same branch, commit `f23d023`)** which rebuilt the Feed
+from a card list into a composed personal edition under the approved
+"המערכת / The Desk" design concept (codename only — the product name is
+unchanged).
 
 This document is the reference for the design system: the tokens, the component
 inventory, the product-vs-console split, and the hard RTL rules. Read it before
@@ -13,9 +17,18 @@ adding any new UI.
 ## 1. Design language
 
 **"The more a story matters to *you*, the more light it emits."** Relevance is
-the brand. On a calm near-black navy canvas, the decision level of each story is
-encoded as light (a coloured "signal rail" + optional glow), not as loud card
-borders. Everything else recedes.
+the brand. On a calm near-black navy canvas, relevance is encoded as **light and
+shape**, never as loud card borders or badge rows.
+
+Since PR A the Feed is **"The Edition" (המהדורה)**: the ranked visible items are
+partitioned per reader into five visual species — lead story (serif display
+headline directly on the canvas, signal-tinted aura + court-line arc, breathing
+gold for push), **מבזק** bulletin strips (remaining push), the asymmetric
+**"חשובים עכשיו"** tier (high_feed), typographic **"הזרם"** rows (feed), and the
+collapsed **"בקצרה"** digest (low_feed). Decision badges and the old signal-rail
+edge bar are gone from the product feed — position, type scale, and light do
+that work (`DecisionBadge` survives as a console affordance in Debug/LLM-QA/
+Preferences). Two readers' editions differ in *shape*, not just ordering.
 
 Two visual areas share one token system:
 
@@ -38,9 +51,13 @@ the dev tools must feel like a first-class console rather than the whole app.
   hand-rolled Tailwind.
 - **Fonts** (self-hosted, `@fontsource`): **Frank Ruhl Libre** (Hebrew serif
   display) + **Heebo** (UI/body). System mono for numerics.
-- **Motion**: CSS keyframes (`fade-up`, `shimmer`, `pulse-soft`) — no runtime
-  animation library was needed. `framer-motion` is installed but currently
-  unused; prefer CSS unless a layout animation genuinely requires it.
+- **Motion**: `framer-motion` (first adopted in PR A, Feed only): staggered
+  edition entrance, blur headline reveal, `AnimatePresence`/`layout` filter
+  recomposition. Variants live in `components/feed/motionPresets.js`, are
+  **y-axis-only** (sidesteps RTL mirroring), and every factory takes the result
+  of `useReducedMotion()`. CSS keyframes (`fade-up`, `shimmer`, `pulse-soft`,
+  `breathe`) remain for micro/looping effects; prefer CSS unless a layout
+  animation genuinely requires framer.
 
 ---
 
@@ -81,9 +98,13 @@ gold at the top (push stories sort first) then transitions to green/blue as
 relevance drops. Red is errors/hidden only.
 
 ### Type scale
-Display serif for the Feed hero and page titles (`font-display`); Heebo bold for
-card titles (the high-contrast serif reads thin below hero size — do **not** use
-serif for list-sized text). Meta/chips 10–12.5px. Numerics use `MonoValue`.
+Display serif (Frank Ruhl Libre 500/700/**800** — 800 added in PR A) carries the
+edition: lead headline 2rem→3rem at weight 800, bulletin/editorial headlines
+~1.35–1.75rem bold, serif section headings ("חשובים עכשיו", "הזרם", "בקצרה")
+at 1.125rem with a hairline rule. Heebo semibold for stream-row headlines
+(~1.05rem) and all UI/body text — serif still must **not** be used below
+~1.1rem (the high-contrast face reads thin/grey). Kickers/meta 10–12.5px.
+Numerics use `MonoValue`.
 
 ---
 
@@ -102,13 +123,27 @@ groups) · `OpsNav` (console strip) · `DataModeBadge` (pulsing pill) ·
 `ProfileSwitcher` (Radix dropdown, sandbox "בדיקה" tag) · `navConfig.js`
 (+ tests — area resolution, llm-qa backend gate, mobile nav).
 
-### `components/feed/` — the flagship
-`ArticleCard` · `SignalRail` · `DecisionBadge` (+ `decisionConfig.js` — the
-single source of truth for rail/glow/badge/title per decision; Hebrew labels
-cross-locked to `DECISION_LABELS_HE` by test) · `RelevanceReason` (condensed
-"why this reached you" + inline expand) · `SourceMeta` · `EntityChips` ·
-`FeedbackControls` (emits `more_like_this`/`less_like_this`) · `FeedHero` ·
-`FeedHeader` (signal-summary strip) · `FilterChips` (+ `feedFilters.js` + tests).
+### `components/feed/` — the flagship ("The Edition", PR A)
+**Story species:** `LeadStory` (aura + court-arc + serif display headline) ·
+`BulletinStrip` (מבזק, gold start-edge bleed) · `EditorialTier` (asymmetric
+major/minor blocks) · `StreamRow` (typographic row; inline expand; relevance-
+scaled type + level dot in filtered mode) · `BriefsDigest` (collapsed low_feed
+one-liners).
+**Edition frame:** `EditionHeader` (date line + "המהדורה של X") ·
+`SignalSpectrum` (proportional level bar; segments + legend are the level
+filters) · `TopicFilters` (quiet text toggles) · `SectionHeading` (serif +
+hairline rule) · `EditionSkeleton` (edition-shaped loading).
+**Voice & actions:** `DeskVoice` ("למה אצלך" + expandable margin note; full
+trace stays in Debug) · `FeedbackControls` (`variant="icons"|"text"` — emits
+`more_like_this`/`less_like_this` unchanged) · `SourceMeta`.
+**Logic modules (+tests):** `editionComposer.js` (stable partition into tiers) ·
+`storyLabels.js` (Hebrew kicker maps: entity/league/sport · event type;
+`condensedReason`) · `feedFilters.js` (level + topic filters) ·
+`motionPresets.js`. `DecisionBadge` + `decisionConfig.js` remain (Hebrew labels
+cross-locked to `DECISION_LABELS_HE` by test) — consumed by Debug, LLM QA,
+Preferences, and `StreamRow`'s level dots; no longer rendered as feed badges.
+Removed in PR A: `ArticleCard`, `FeedHero`, `FeedHeader`, `FilterChips`,
+`SignalRail`, `EntityChips`, `RelevanceReason`.
 
 ### `components/ops/` — console (renamed from `ingestion/`)
 `SchedulerPanel` · `IngestionPanel` · `BenchmarkPanel` · `HealthCard` ·
@@ -123,9 +158,10 @@ llm=blue / guardrail=cyan / failure=red / low-conf=gold).
 ### `components/preferences/`
 `TopicCard`.
 
-**JS-side variant config lives in plain modules** (`decisionConfig.js`,
-`classifiedByConfig.js`, `navConfig.js`, `feedFilters.js`) so it stays testable
-in the Vitest `node` environment without a DOM.
+**JS-side variant config and pure logic live in plain modules**
+(`decisionConfig.js`, `classifiedByConfig.js`, `navConfig.js`, `feedFilters.js`,
+`editionComposer.js`, `storyLabels.js`, `motionPresets.js`) so they stay
+testable in the Vitest `node` environment without a DOM.
 
 ---
 

@@ -169,7 +169,11 @@ in an `xl:grid-cols-[1fr_280px]`. Serif weight tops out at 700 (the 800 import
 was dropped); the edition title stays smaller than the lead headline.
 **Voice & actions:** `DeskVoice` ("למה אצלך" + expandable margin note; full
 trace stays in Debug) · `FeedbackControls` (`variant="icons"|"text"` — emits
-`more_like_this`/`less_like_this` unchanged) · `SourceMeta`.
+`more_like_this`/`less_like_this` unchanged) · `SourceMeta` ·
+`EditionEmptyState` (PR E — the Feed's own zero-articles moment: enlarged
+`SignalMark`, "ממתין לאות" kicker, replaces the generic shared `EmptyState`
+for this one case only; the shared component is untouched and still used
+for the filtered-empty case and by Debug/LLM QA).
 **Logic modules (+tests):** `editionComposer.js` (stable partition into tiers) ·
 `storyLabels.js` (Hebrew kicker maps: entity/league/sport · event type;
 `condensedReason`) · `feedFilters.js` (level + topic filters) ·
@@ -203,6 +207,31 @@ API calls.
 `DebugArticleCard` · `ProfileComparisonTable` · `ReasoningTrace` (numbered chain
 as a console trace) · `ClassifiedByBadge` (+ `classifiedByConfig.js` + tests —
 llm=blue / guardrail=cyan / failure=red / low-conf=gold).
+
+### Signature details (PR E)
+Small, sitewide finishing touches that were still giving the app a
+"generic scaffold" tell despite the A–D redesign:
+- **Real favicon** (`public/favicon.svg` — the SignalMark bars motif on the
+  canvas navy; previously referenced in `index.html` but the file didn't
+  exist, so the tab showed a broken/default icon) + a `theme-color` meta
+  matching the background (tints mobile browser chrome) + a proper
+  `<title>`/description + a critical-CSS background fallback in
+  `index.html` (kills the flash-of-white before `index.css` loads).
+- **Themed `:focus-visible`** — a global ring using the existing `--ring`
+  token (the same one shadcn components already bind to), replacing the
+  default browser-blue outline everywhere, product and console alike.
+- **Custom scrollbar** — thin, dark, `surface-3` thumb with a `signal-feed`
+  hover tint, via `scrollbar-color`/`::-webkit-scrollbar`. Sitewide, low
+  risk (styling only, no layout impact); note that headless-browser
+  screenshots don't reliably render OS/overlay scrollbars, so this is
+  best verified by eye, not by screenshot.
+- **`PageNotFound` rebuilt** ("אין אות" — no signal, a natural pun for a
+  product literally called Signal) — this page renders outside `AppShell`
+  (it's not nested under either area's layout route) and had never been
+  touched by the redesign; it now carries its own small atmosphere
+  (mesh glow, whisper court-rings, `SignalMark`) rather than the plain
+  centered "404" box it shipped with since Court Vision PR 1.
+- **`EditionEmptyState`** — see the feed component list above.
 
 ### `components/preferences/`
 `TopicCard` (PR C: restyled from a bordered box to a hairline-divided

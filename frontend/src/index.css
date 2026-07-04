@@ -79,6 +79,36 @@
   ::selection {
     background-color: hsl(var(--signal-high) / 0.25);
   }
+
+  /* Themed keyboard focus — replaces the default blue browser ring with the
+     same --ring token shadcn components already use, so keyboard nav reads
+     as considered rather than left to the browser default. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.6);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Thin, dark scrollbar instead of the OS default — a small premium tell. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--surface-3)) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--surface-3));
+    border-radius: 999px;
+    border: 2px solid hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--signal-feed) / 0.4);
+  }
 }
 
 @layer components {

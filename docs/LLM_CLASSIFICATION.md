@@ -113,7 +113,7 @@ Hebrew sports headlines are often ambiguous in isolation — `"מכבי משחק
 
 **`extract_subtitle(entry) → Optional[str]`** in `backend/app/ingestion/subtitle.py`:
 - Priority order: `summary` → `description` → `subtitle` attr → `content[0].value`
-- Calls `clean_subtitle()`: strips HTML tags, unescapes HTML entities (`&amp;`, `&nbsp;`, etc.), collapses whitespace, truncates to 500 characters
+- Calls `clean_subtitle()`: strips HTML tags, unescapes HTML entities (`&amp;`, `&nbsp;`, etc.), collapses whitespace, trims to a short excerpt — up to 240 characters, cut at the last complete sentence within that budget rather than a blunt character cut (falls back to a hard cut only when no sentence boundary exists). Needed because many RSS feeds put the article's opening paragraph in `<description>` rather than a short deck; a raw 500-char slice used to read like unfinished body text in the Feed UI (PR A.4/backend fix)
 - Returns `None` if nothing is found or the text is empty after cleaning
 
 **How it reaches the deterministic classifier:**

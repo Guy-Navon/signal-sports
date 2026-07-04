@@ -29,7 +29,7 @@ Signal Sports is a personalized sports news intelligence feed. The current MVP i
 ```
 RSS source
   → RSSSourceAdapter (feedparser)
-      subtitle extracted from RSS <description> (HTML stripped, truncated 500 chars)
+      subtitle extracted from RSS <description> (HTML stripped, sentence-aware excerpt ≤240 chars)
   → URL/language filter (blocked_url_patterns, allowed_url_patterns, allowed_languages)
   → dedup check (URL-based) — if URL already in DB, skip all downstream work
   → _normalise() [only for new articles]:
@@ -157,7 +157,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 
 | Column | Type | Meaning |
 |--------|------|---------|
-| `subtitle` | TEXT | Cleaned RSS `<description>` text (HTML stripped, ≤500 chars); `null` for old articles and entries with no description |
+| `subtitle` | TEXT | Cleaned RSS `<description>` text (HTML stripped, sentence-aware excerpt ≤240 chars — cut at the last complete sentence within budget, not mid-sentence; see `docs/LLM_CLASSIFICATION.md`); `null` for old articles and entries with no description |
 | `classified_by` | TEXT DEFAULT `'rules'` | `rules`, `llm`, `llm+rules_guardrail`, `rules_fallback_after_llm_failure`, `rules_fallback_low_confidence` (PR 11) |
 | `classification_provider` | TEXT | `rules`, `ollama:llama3.2:3b`, `fake`, etc. (PR 11) |
 | `classification_reason` | TEXT | LLM's one-sentence explanation of the classification (PR 11) |
@@ -301,7 +301,7 @@ LLM classification is an opt-in overlay for Hebrew broad sources only. It does n
 
 **LLM pipeline:**
 1. Deterministic classifier runs first (always)
-2. Subtitle extracted from RSS `<description>` via `subtitle.py` (HTML stripped, entities unescaped, truncated to 500 chars)
+2. Subtitle extracted from RSS `<description>` via `subtitle.py` (HTML stripped, entities unescaped, sentence-aware excerpt ≤240 chars)
 3. LLM called with Hebrew title + optional subtitle (as `Headline: …\nSubtitle: …`) + 6-shot prompt
 4. JSON response validated against strict enum sets (`ALLOWED_SPORTS`, `ALLOWED_LEAGUES`, `ALLOWED_EVENT_TYPES`, `ALLOWED_IMPORTANCES`)
 5. If `confidence < 0.65` → `classified_by = "rules_fallback_low_confidence"`, rules result kept

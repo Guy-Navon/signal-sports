@@ -30,7 +30,8 @@ export default function StreamRow({ item, showLevelDot = false }) {
     ? (item.sourceDisplayNames || [])[0]
     : item.sourceDisplayName;
   const extraSources = isCluster ? Math.max((item.sourceDisplayNames || []).length - 1, 0) : 0;
-  const hasDetail = Boolean(item.subtitle || item.score?.reasoning?.length);
+  // Subtitle is always visible now; the expander reveals the desk's reasoning.
+  const hasDetail = Boolean(item.score?.reasoning?.length);
 
   const titleClass = showLevelDot
     ? FILTERED_TITLE_SIZE[decision] || FILTERED_TITLE_SIZE.feed
@@ -59,6 +60,11 @@ export default function StreamRow({ item, showLevelDot = false }) {
               title
             )}
           </h3>
+          {item.subtitle && (
+            <p className="mt-1 text-[13px] text-text-secondary leading-relaxed line-clamp-2 max-w-3xl">
+              {item.subtitle}
+            </p>
+          )}
           <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs">
             {showLevelDot && (
               <span
@@ -111,12 +117,7 @@ export default function StreamRow({ item, showLevelDot = false }) {
       </div>
 
       {open && (
-        <div className="mt-2 mb-1 space-y-2 pe-1">
-          {item.subtitle && (
-            <p className="text-sm text-text-secondary leading-relaxed line-clamp-3 max-w-3xl">
-              {item.subtitle}
-            </p>
-          )}
+        <div className="mt-2 mb-1 pe-1">
           <DeskVoice reasoning={item.score?.reasoning} variant="line" />
         </div>
       )}

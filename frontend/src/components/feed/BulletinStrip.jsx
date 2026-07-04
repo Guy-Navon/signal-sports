@@ -50,6 +50,12 @@ export default function BulletinStrip({ item }) {
         )}
       </h3>
 
+      {item.subtitle && (
+        <p className="mt-1.5 text-sm text-text-secondary leading-relaxed line-clamp-2 max-w-3xl">
+          {item.subtitle}
+        </p>
+      )}
+
       <DeskVoice reasoning={item.score?.reasoning} variant="line" className="mt-2" />
 
       <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">

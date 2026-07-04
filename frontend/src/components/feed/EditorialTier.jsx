@@ -53,8 +53,13 @@ function EditorialBlock({ item, major = false, variants = undefined }) {
         )}
       </h3>
 
-      {major && item.subtitle && (
-        <p className="mt-2 text-sm md:text-base text-text-secondary leading-relaxed max-w-3xl line-clamp-2">
+      {item.subtitle && (
+        <p
+          className={cn(
+            "mt-2 text-text-secondary leading-relaxed line-clamp-2",
+            major ? "text-sm md:text-[0.95rem] max-w-3xl" : "text-[13px]"
+          )}
+        >
           {item.subtitle}
         </p>
       )}

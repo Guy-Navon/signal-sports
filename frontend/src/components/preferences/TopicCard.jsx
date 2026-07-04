@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, Tag } from "lucide-react";
+import { ChevronDown, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DecisionBadge from "@/components/feed/DecisionBadge";
 import GhostChip from "@/components/shared/GhostChip";
@@ -13,46 +13,43 @@ const MODE_LABELS = {
   high_importance_only: "חשיבות גבוהה בלבד",
 };
 
+// A topic as a quiet, expandable row — kicker line (priority · mode · leagues)
+// instead of a pile of separate badges, matching the Feed's storytelling.
 export default function TopicCard({ topic }) {
   const [expanded, setExpanded] = useState(false);
   const modeLabel = MODE_LABELS[topic.mode] || topic.mode;
+  const kicker = [`עדיפות ${topic.priority}`, modeLabel, topic.leagues?.join(", ")]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="border border-border rounded-2xl overflow-hidden bg-surface-1">
+    <div className="border-b border-border/60 last:border-0">
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="w-full text-start p-4 flex items-start justify-between gap-3 hover:bg-surface-2/50 transition-colors"
+        className="w-full text-start py-3.5 flex items-start justify-between gap-3 group"
       >
-        <div className="flex-1">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="font-medium text-foreground text-sm">{topic.label}</span>
-            <span className="text-[10px] bg-surface-3 border border-border rounded-full px-2 py-0.5 text-text-secondary">
-              עדיפות: {topic.priority}
-            </span>
-          </div>
-          <p className="text-xs text-text-dim">{modeLabel}</p>
-          {topic.leagues && topic.leagues.length > 0 && (
-            <p className="text-xs text-text-dim mt-0.5">ליגות: {topic.leagues.join(", ")}</p>
-          )}
+        <div className="min-w-0">
+          <p className="font-medium text-foreground text-sm group-hover:text-signal-high transition-colors">
+            {topic.label}
+          </p>
+          <p className="text-xs text-text-dim mt-0.5">{kicker}</p>
         </div>
-        <span className="text-text-dim mt-1 flex-shrink-0">
-          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </span>
+        <ChevronDown
+          size={15}
+          className={cn(
+            "text-text-dim flex-shrink-0 mt-0.5 transition-transform",
+            expanded && "rotate-180"
+          )}
+        />
       </button>
 
       {expanded && (
-        <div className="border-t border-border p-4 space-y-4">
-          <div className="bg-surface-2 rounded-lg p-3">
-            <p className="text-xs text-text-secondary">
-              <span className="text-foreground font-medium">מצב: </span>
-              {modeLabel}
+        <div className="pb-4 ps-0.5 space-y-4">
+          {topic.mode === "followed_entities_only" && (
+            <p className="text-xs text-signal-ai/90">
+              נושא זה יציג רק כתבות שמכילות את הישויות שאתה עוקב אחריהן
             </p>
-            {topic.mode === "followed_entities_only" && (
-              <p className="text-xs text-signal-push/90 mt-1">
-                ⚠️ נושא זה יציג רק כתבות שמכילות את הישויות שאתה עוקב אחריהן
-              </p>
-            )}
-          </div>
+          )}
 
           {topic.entities && topic.entities.length > 0 && (
             <div>
@@ -74,7 +71,7 @@ export default function TopicCard({ topic }) {
                 {Object.entries(topic.eventRules).map(([eventType, decision]) => (
                   <div
                     key={eventType}
-                    className={cn("flex items-center justify-between py-1 border-b border-border/50")}
+                    className="flex items-center justify-between py-1 border-b border-border/40 last:border-0"
                   >
                     <span className="text-xs text-text-secondary font-mono">{eventType}</span>
                     <DecisionBadge decision={decision} size="xs" />

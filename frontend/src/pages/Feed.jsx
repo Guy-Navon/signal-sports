@@ -4,6 +4,7 @@ import { Rss, SlidersHorizontal } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import EditionHeader from "@/components/feed/EditionHeader";
 import SignalSpectrum from "@/components/feed/SignalSpectrum";
+import SignalBoard from "@/components/feed/SignalBoard";
 import TopicFilters from "@/components/feed/TopicFilters";
 import LeadStory from "@/components/feed/LeadStory";
 import BulletinStrip from "@/components/feed/BulletinStrip";
@@ -24,8 +25,10 @@ import {
 
 // The Feed as an edition: the ranked visible items are partitioned into
 // editorial tiers (lead / bulletins / editorial / stream / briefs) so the
-// page's *shape* encodes relevance. Filtering collapses the edition into a
-// flat level-annotated list; clearing it recomposes the edition.
+// page's *shape* encodes relevance. Desktop composition: the lead is a
+// full-width hero band; below it the editorial column runs beside a sticky
+// "לוח הסיגנל" board (xl+). Filtering collapses the edition into a flat
+// level-annotated list; clearing it recomposes the edition.
 export default function Feed() {
   const { feedItems, debugItems, activeProfileId, activeProfile, isBackendMode, isLoading } =
     useApp();
@@ -58,14 +61,14 @@ export default function Feed() {
   // Loading state (backend mode, first fetch)
   if (isBackendMode && isLoading && visibleItems.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <EditionSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       {/* Keyed by profile: switching readers re-composes and re-reveals the edition. */}
       <motion.div
         key={activeProfileId || "none"}
@@ -81,7 +84,9 @@ export default function Feed() {
           />
         </motion.div>
 
-        <motion.div variants={v.item} className="mt-6">
+        {/* Spectrum + topic filters above the fold on small screens; the
+            signal board owns them on xl. */}
+        <motion.div variants={v.item} className="mt-5 xl:hidden">
           <SignalSpectrum
             counts={decisionCounts}
             activeFilters={activeFilters}
@@ -113,49 +118,67 @@ export default function Feed() {
                 animate="show"
                 exit={{ opacity: 0, transition: { duration: 0.15 } }}
               >
+                {/* Full-width hero band */}
                 {edition.lead && (
-                  <motion.div variants={v.headline} className="mt-8">
+                  <motion.div variants={v.headline} className="mt-4 md:mt-5">
                     <LeadStory item={edition.lead} />
                   </motion.div>
                 )}
 
                 {edition.bulletins.length > 0 && (
-                  <motion.div
-                    variants={v.item}
-                    className="mt-6 divide-y divide-signal-push/15 border-y border-signal-push/20"
-                  >
+                  <motion.div variants={v.item} className="mt-4 space-y-1.5">
                     {edition.bulletins.map((item) => (
                       <BulletinStrip key={item.id} item={item} />
                     ))}
                   </motion.div>
                 )}
 
-                {edition.editorial.length > 0 && (
-                  <div className="mt-12">
-                    <EditorialTier
-                      items={edition.editorial}
-                      variants={v.item}
-                      headingVariants={v.item}
-                    />
+                {/* Editorial column + signal board (xl) */}
+                <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_280px] xl:gap-14 mt-10 md:mt-12">
+                  <div className="min-w-0">
+                    {edition.editorial.length > 0 && (
+                      <EditorialTier
+                        items={edition.editorial}
+                        variants={v.item}
+                        headingVariants={v.item}
+                      />
+                    )}
+
+                    {edition.stream.length > 0 && (
+                      <motion.section
+                        variants={v.item}
+                        aria-label="הזרם"
+                        className={edition.editorial.length > 0 ? "mt-10 md:mt-14" : ""}
+                      >
+                        <SectionHeading className="mb-2">הזרם</SectionHeading>
+                        <div className="divide-y divide-border/40">
+                          {edition.stream.map((item) => (
+                            <StreamRow key={item.id} item={item} />
+                          ))}
+                        </div>
+                      </motion.section>
+                    )}
+
+                    {edition.briefs.length > 0 && (
+                      <motion.div variants={v.item} className="mt-10 md:mt-14">
+                        <BriefsDigest items={edition.briefs} />
+                      </motion.div>
+                    )}
                   </div>
-                )}
 
-                {edition.stream.length > 0 && (
-                  <motion.section variants={v.item} aria-label="הזרם" className="mt-12">
-                    <SectionHeading className="mb-3">הזרם</SectionHeading>
-                    <div className="divide-y divide-border/40">
-                      {edition.stream.map((item) => (
-                        <StreamRow key={item.id} item={item} />
-                      ))}
+                  <motion.aside variants={v.item} className="hidden xl:block">
+                    <div className="sticky top-20">
+                      <SignalBoard
+                        counts={decisionCounts}
+                        activeFilters={activeFilters}
+                        onToggle={toggleFilter}
+                        onReset={resetFilters}
+                        items={visibleItems}
+                        scanned={debugItems.length}
+                      />
                     </div>
-                  </motion.section>
-                )}
-
-                {edition.briefs.length > 0 && (
-                  <motion.div variants={v.item} className="mt-12">
-                    <BriefsDigest items={edition.briefs} />
-                  </motion.div>
-                )}
+                  </motion.aside>
+                </div>
               </motion.div>
             ) : (
               <motion.div
@@ -163,8 +186,24 @@ export default function Feed() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, transition: { duration: 0.15 } }}
-                className="mt-10"
+                className="mt-8 max-w-4xl"
               >
+                {/* On xl the spectrum lives in the signal board, which belongs
+                    to the edition view — surface it here so levels can still
+                    be toggled while filtering. */}
+                <div className="hidden xl:block mb-6">
+                  <SignalSpectrum
+                    counts={decisionCounts}
+                    activeFilters={activeFilters}
+                    onToggle={toggleFilter}
+                  />
+                  <TopicFilters
+                    activeFilters={activeFilters}
+                    onToggle={toggleFilter}
+                    onReset={resetFilters}
+                    className="mt-3"
+                  />
+                </div>
                 <SectionHeading
                   count={filteredItems.length}
                   className="mb-3"

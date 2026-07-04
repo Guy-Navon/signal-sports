@@ -6,9 +6,9 @@ import DeskVoice from "@/components/feed/DeskVoice";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import { buildKicker } from "@/components/feed/storyLabels";
 
-// מבזק — a push story that isn't the lead. Full-width bulletin strip with a
-// gold tint bleeding from the inline-start edge. Rare by design; when it
-// appears, it should read as an interruption.
+// מבזק — a push story that isn't the lead. Composed bulletin row with a gold
+// bleed from the inline-start edge. Rare by design; reads as an interruption
+// without shouting.
 export default function BulletinStrip({ item }) {
   const isCluster = item.type === "cluster";
   const title = isCluster ? item.clusterTitle : item.translatedTitle || item.title;
@@ -21,12 +21,13 @@ export default function BulletinStrip({ item }) {
   return (
     <article
       className={cn(
-        "relative py-5 px-4 -mx-4 group",
-        // Gold bleed from the inline-start edge (RTL: start = right → gradient to-left).
-        "bg-gradient-to-l from-signal-push/[0.06] via-transparent to-transparent"
+        "relative py-4 px-5 -mx-1 group rounded-xl",
+        // Gold bleed from the inline-start edge (RTL-only app: start = right).
+        "bg-gradient-to-l from-signal-push/[0.07] via-signal-push/[0.02] to-transparent",
+        "transition-colors hover:from-signal-push/[0.1]"
       )}
     >
-      <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-signal-push">
+      <div className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-signal-push">
         <span className="relative flex h-1.5 w-1.5" aria-hidden>
           <span className="absolute inline-flex h-full w-full rounded-full bg-signal-push opacity-60 animate-ping" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-signal-push" />
@@ -34,13 +35,13 @@ export default function BulletinStrip({ item }) {
         <span>מבזק{kicker ? ` · ${kicker}` : ""}</span>
       </div>
 
-      <h3 className="mt-2 font-display font-bold text-foreground text-balance text-xl md:text-[1.65rem] md:leading-snug">
+      <h3 className="mt-1.5 font-display font-bold text-foreground text-balance text-lg md:text-[1.35rem] leading-snug tracking-[-0.005em]">
         {url ? (
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="transition-colors underline decoration-transparent decoration-2 underline-offset-4 hover:decoration-signal-push/50"
+            className="transition-colors underline decoration-transparent decoration-2 underline-offset-4 hover:decoration-signal-push/40"
           >
             {title}
           </a>
@@ -49,9 +50,9 @@ export default function BulletinStrip({ item }) {
         )}
       </h3>
 
-      <DeskVoice reasoning={item.score?.reasoning} variant="full" className="mt-2.5" />
+      <DeskVoice reasoning={item.score?.reasoning} variant="line" className="mt-2" />
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
         <SourceMeta source={sourceLine} publishedAt={item.publishedAt || item.firstSeenAt} />
         {url && (
           <a
@@ -64,7 +65,11 @@ export default function BulletinStrip({ item }) {
             פתח כתבה
           </a>
         )}
-        <FeedbackControls articleId={item.id} variant="text" />
+        <FeedbackControls
+          articleId={item.id}
+          variant="text"
+          className="opacity-70 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity"
+        />
       </div>
     </article>
   );

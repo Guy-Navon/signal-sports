@@ -13,11 +13,11 @@ function timeAgo(dateStr) {
   }
 }
 
-const COLLAPSED_COUNT = 2;
+const COLLAPSED_COUNT = 4;
 
-// "בקצרה" — the low_feed digest. Low-priority stories stop costing vertical
-// space: a collapsed list of one-liners with an expand toggle. This is the
-// signal-over-noise thesis rendered as layout.
+// "בקצרה" — the low_feed digest, intentionally compressed: a quiet inset band
+// of one-liners in two columns. Low-priority stories cost almost no vertical
+// space — the signal-over-noise thesis rendered as layout.
 function BriefRow({ item }) {
   const isCluster = item.type === "cluster";
   const title = isCluster ? item.clusterTitle : item.translatedTitle || item.title;
@@ -27,8 +27,8 @@ function BriefRow({ item }) {
     : item.sourceDisplayName;
 
   return (
-    <div className="group flex items-center justify-between gap-3 py-2">
-      <p className="min-w-0 truncate text-sm text-text-secondary">
+    <div className="group flex items-center justify-between gap-3 py-1.5 min-w-0">
+      <p className="min-w-0 truncate text-[13px] text-text-secondary leading-relaxed">
         {url ? (
           <a href={url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
             {title}
@@ -37,8 +37,8 @@ function BriefRow({ item }) {
           title
         )}
       </p>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-xs text-text-dim">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span className="text-[11px] text-text-dim">
           {source} · {timeAgo(item.publishedAt || item.firstSeenAt)}
         </span>
         <FeedbackControls
@@ -61,7 +61,7 @@ export default function BriefsDigest({ items }) {
     <section aria-label="בקצרה">
       <SectionHeading
         count={items.length}
-        className="mb-2"
+        className="mb-3"
         action={
           hiddenCount > 0 ? (
             <button
@@ -75,7 +75,12 @@ export default function BriefsDigest({ items }) {
       >
         בקצרה
       </SectionHeading>
-      <div className={cn("divide-y divide-border/40", !expanded && hiddenCount > 0 && "pb-1")}>
+      <div
+        className={cn(
+          "rounded-2xl bg-surface-1/35 px-5 py-3",
+          "md:grid md:grid-cols-2 md:gap-x-10"
+        )}
+      >
         {visible.map((item) => (
           <BriefRow key={item.id} item={item} />
         ))}

@@ -20,17 +20,23 @@ function EditorialBlock({ item, major = false, variants = undefined }) {
     : item.sourceDisplayName;
 
   return (
-    <motion.article variants={variants} className={cn("group min-w-0", major && "md:col-span-2")}>
+    <motion.article
+      variants={variants}
+      className={cn(
+        "group min-w-0 transition-transform duration-200 hover:-translate-y-px",
+        major && "md:col-span-2"
+      )}
+    >
       {kicker && (
-        <p className="text-xs font-semibold tracking-wide text-signal-high">{kicker}</p>
+        <p className="text-[11px] font-semibold tracking-wide text-signal-high">{kicker}</p>
       )}
 
       <h3
         className={cn(
-          "mt-1.5 font-display font-bold text-foreground text-balance",
+          "mt-1.5 font-display font-bold text-foreground text-balance tracking-[-0.005em]",
           major
-            ? "text-[1.6rem] leading-snug md:text-3xl md:leading-[1.2]"
-            : "text-xl leading-snug md:text-[1.35rem]"
+            ? "text-[1.45rem] leading-[1.28] md:text-[1.75rem] md:leading-[1.24]"
+            : "text-[1.1rem] leading-[1.32] md:text-[1.2rem]"
         )}
       >
         {url ? (

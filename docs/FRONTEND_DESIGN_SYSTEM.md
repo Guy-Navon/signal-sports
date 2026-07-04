@@ -131,8 +131,16 @@ scaled type + level dot in filtered mode) · `BriefsDigest` (collapsed low_feed
 one-liners).
 **Edition frame:** `EditionHeader` (date line + "המהדורה של X") ·
 `SignalSpectrum` (proportional level bar; segments + legend are the level
-filters) · `TopicFilters` (quiet text toggles) · `SectionHeading` (serif +
-hairline rule) · `EditionSkeleton` (edition-shaped loading).
+filters; grows in on mount) · `SignalBoard` (PR A.1 — sticky side board on xl:
+vertical spectrum, quick topic filters, desk facts derived from page data) ·
+`TopicFilters` (quiet text toggles, inline or vertical) · `SectionHeading`
+(small tracked Heebo label + hairline rule — serif is reserved for story
+headlines) · `EditionSkeleton` (edition-shaped loading).
+**Desktop composition (PR A.1):** the lead is a full-width hero band (layered
+signal mesh, half-court SVG that draws in on mount, signal-strength
+instrument); below it the editorial column runs beside the sticky signal board
+in an `xl:grid-cols-[1fr_280px]`. Serif weight tops out at 700 (the 800 import
+was dropped); the edition title stays smaller than the lead headline.
 **Voice & actions:** `DeskVoice` ("למה אצלך" + expandable margin note; full
 trace stays in Debug) · `FeedbackControls` (`variant="icons"|"text"` — emits
 `more_like_this`/`less_like_this` unchanged) · `SourceMeta`.

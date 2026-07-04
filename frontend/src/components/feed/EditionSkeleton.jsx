@@ -17,21 +17,16 @@ export default function EditionSkeleton() {
       {/* Masthead */}
       <div>
         <div className={shimmer("h-3 w-56")} />
-        <div className={shimmer("h-9 w-72 mt-3")} />
-        <div className={shimmer("h-1.5 w-full rounded-full mt-6")} />
-        <div className="flex gap-4 mt-3">
-          <div className={shimmer("h-3 w-24")} />
-          <div className={shimmer("h-3 w-16")} />
-          <div className={shimmer("h-3 w-16")} />
-        </div>
+        <div className={shimmer("h-7 w-64 mt-3")} />
+        <div className={shimmer("h-1.5 w-full rounded-full mt-6 xl:hidden")} />
       </div>
 
-      {/* Lead story */}
+      {/* Lead story hero band */}
       <div>
         <div className={shimmer("h-3 w-32")} />
-        <div className={shimmer("h-10 w-full mt-3")} />
-        <div className={shimmer("h-10 w-3/4 mt-2")} />
-        <div className={shimmer("h-4 w-2/3 mt-4")} />
+        <div className={shimmer("h-9 w-full max-w-3xl mt-3")} />
+        <div className={shimmer("h-9 w-2/3 mt-2")} />
+        <div className={shimmer("h-4 w-1/2 mt-4")} />
         <div className="flex gap-4 mt-5">
           <div className={shimmer("h-8 w-28 rounded-full")} />
           <div className={shimmer("h-4 w-32 mt-2")} />

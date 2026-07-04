@@ -45,13 +45,13 @@ export default function StreamRow({ item, showLevelDot = false }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className={cn("leading-snug text-foreground", titleClass)}>
+          <h3 className={cn("leading-[1.4] text-foreground", titleClass)}>
             {url ? (
               <a
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-colors underline decoration-transparent underline-offset-4 hover:decoration-border"
+                className="transition-colors underline decoration-transparent underline-offset-4 hover:decoration-text-dim/60"
               >
                 {title}
               </a>

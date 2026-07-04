@@ -2,7 +2,6 @@
 @import "@fontsource-variable/heebo";
 @import "@fontsource/frank-ruhl-libre/500.css";
 @import "@fontsource/frank-ruhl-libre/700.css";
-@import "@fontsource/frank-ruhl-libre/800.css";
 
 @tailwind base;
 @tailwind components;

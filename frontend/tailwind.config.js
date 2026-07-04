@@ -128,6 +128,14 @@ export default {
   				'50%': {
   					opacity: '0.45'
   				}
+  			},
+  			breathe: {
+  				'0%, 100%': {
+  					opacity: '0.65'
+  				},
+  				'50%': {
+  					opacity: '1'
+  				}
   			}
   		},
   		animation: {
@@ -135,7 +143,8 @@ export default {
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			shimmer: 'shimmer 1.8s linear infinite',
   			'fade-up': 'fade-up 240ms cubic-bezier(0.22, 1, 0.36, 1) both',
-  			'pulse-soft': 'pulse-soft 2s ease-in-out infinite'
+  			'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
+  			breathe: 'breathe 4s ease-in-out infinite'
   		}
   	}
   },

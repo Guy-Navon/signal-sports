@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  FILTER_CHIPS,
+  LEVEL_FILTER_IDS,
+  TOPIC_CHIPS,
   getVisibleItems,
   itemMatchesFilter,
   filterFeedItems,
@@ -10,12 +11,13 @@ import {
 const mk = (over = {}) => ({ score: { decision: "feed" }, ...over });
 
 describe("feedFilters", () => {
-  describe("FILTER_CHIPS", () => {
-    it("keeps the expected chip ids in order", () => {
-      expect(FILTER_CHIPS.map((c) => c.id)).toEqual([
-        "all",
-        "push",
-        "high_feed",
+  describe("filter families", () => {
+    it("exposes all four decision levels as spectrum filters", () => {
+      expect(LEVEL_FILTER_IDS).toEqual(["push", "high_feed", "feed", "low_feed"]);
+    });
+
+    it("keeps the expected topic chip ids in order", () => {
+      expect(TOPIC_CHIPS.map((c) => c.id)).toEqual([
         "maccabi",
         "basketball",
         "NBA",
@@ -37,10 +39,13 @@ describe("feedFilters", () => {
   });
 
   describe("itemMatchesFilter", () => {
-    it("matches push/high_feed by decision", () => {
+    it("matches every decision level by exact decision", () => {
       expect(itemMatchesFilter(mk({ score: { decision: "push" } }), "push")).toBe(true);
       expect(itemMatchesFilter(mk({ score: { decision: "feed" } }), "push")).toBe(false);
       expect(itemMatchesFilter(mk({ score: { decision: "high_feed" } }), "high_feed")).toBe(true);
+      expect(itemMatchesFilter(mk({ score: { decision: "feed" } }), "feed")).toBe(true);
+      expect(itemMatchesFilter(mk({ score: { decision: "low_feed" } }), "low_feed")).toBe(true);
+      expect(itemMatchesFilter(mk({ score: { decision: "low_feed" } }), "feed")).toBe(false);
     });
 
     it("matches maccabi via entities (case-insensitive) or Hebrew tags", () => {

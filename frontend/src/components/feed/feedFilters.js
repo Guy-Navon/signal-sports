@@ -1,9 +1,11 @@
 // Feed filter logic — extracted from Feed.jsx so behavior is locked by tests.
+// Two filter families share one active-filter Set:
+//   levels — decision levels, toggled from the signal spectrum
+//   topics — content filters, toggled from the quiet topic row
 
-export const FILTER_CHIPS = [
-  { id: "all", label: "הכל" },
-  { id: "push", label: "דורש תשומת לב" },
-  { id: "high_feed", label: "חשוב" },
+export const LEVEL_FILTER_IDS = ["push", "high_feed", "feed", "low_feed"];
+
+export const TOPIC_CHIPS = [
   { id: "maccabi", label: "מכבי" },
   { id: "basketball", label: "כדורסל" },
   { id: "NBA", label: "NBA" },
@@ -21,8 +23,7 @@ export function getVisibleItems(items) {
 }
 
 export function itemMatchesFilter(item, filterId) {
-  if (filterId === "push") return item.score?.decision === "push";
-  if (filterId === "high_feed") return item.score?.decision === "high_feed";
+  if (LEVEL_FILTER_IDS.includes(filterId)) return item.score?.decision === filterId;
   if (filterId === "maccabi") {
     const entities = item.entities || [];
     const tags = item.tags || [];

@@ -10,7 +10,7 @@ Covers:
   - Classifier smoke tests on titles from new source
   - API source listing includes israel_hayom_sport
   - Deduplication still works for new source
-  - Source rejection documentation: ONE and Ynet have no usable RSS
+  - Source rejection documentation: ONE has no usable RSS
 
 All network calls are mocked. Tests are fully offline.
 """
@@ -162,10 +162,11 @@ class TestIsraelHayomSportConfig:
         assert cfg is not None
         assert cfg.language == "he"
 
-    def test_all_three_hebrew_sources_present(self):
+    def test_enabled_hebrew_sources_present(self):
         ids = {c.source_id for c in get_enabled_sources()}
         assert "walla_sport" in ids
         assert "israel_hayom_sport" in ids
+        assert "ynet_sport" in ids
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -200,11 +201,11 @@ class TestSourcesApiWithExpansion:
         ids = {s["source_id"] for s in r.json()}
         assert "one_sport" not in ids
 
-    def test_ynet_sport_not_in_sources(self, client):
-        # Ynet has no sport-specific RSS — must not be added
+    def test_ynet_sport_in_sources(self, client):
+        # Ynet now has an official sport RSS feed.
         r = client.get("/api/ingest/sources")
         ids = {s["source_id"] for s in r.json()}
-        assert "ynet_sport" not in ids
+        assert "ynet_sport" in ids
 
 
 # ══════════════════════════════════════════════════════════════════════════════

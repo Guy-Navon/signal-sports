@@ -4,6 +4,7 @@ import pytest
 from app.classification.source_hints import extract_source_sport_hint
 
 IH = "israel_hayom_sport"
+YNET = "ynet_sport"
 _BASE = "https://www.israelhayom.co.il"
 
 
@@ -45,3 +46,29 @@ class TestExtractSourceSportHint:
     def test_unknown_source_returns_none(self):
         url = f"{_BASE}/sport/world-basketball/article/999"
         assert extract_source_sport_hint("unknown_source", url) is None
+
+
+class TestYnetSourceSportHint:
+    def test_israeli_basketball_path_returns_basketball(self):
+        url = "https://www.ynet.co.il/sport/israelibasketball/article/rjbzkoummx"
+        assert extract_source_sport_hint(YNET, url) == "basketball"
+
+    def test_world_basketball_path_returns_basketball(self):
+        url = "https://www.ynet.co.il/sport/worldbasketball/article/abc"
+        assert extract_source_sport_hint(YNET, url) == "basketball"
+
+    def test_world_soccer_path_returns_football(self):
+        url = "https://www.ynet.co.il/sport/worldsoccer/article/rjihf00iqfx"
+        assert extract_source_sport_hint(YNET, url) == "football"
+
+    def test_worldcup_path_returns_football(self):
+        url = "https://www.ynet.co.il/sport/worldcup2026/article/ry111laqxme"
+        assert extract_source_sport_hint(YNET, url) == "football"
+
+    def test_generic_sport_article_returns_none(self):
+        url = "https://www.ynet.co.il/sport/article/s1dbqoumfx"
+        assert extract_source_sport_hint(YNET, url) is None
+
+    def test_livegame_url_returns_none(self):
+        url = "https://livegame.ynet.co.il/games/527206"
+        assert extract_source_sport_hint(YNET, url) is None

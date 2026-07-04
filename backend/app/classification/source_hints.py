@@ -25,6 +25,18 @@ _IH_FOOTBALL_PATHS = ("/sport/world-soccer/",)
 _SPORT5_BASKETBALL_FOLDER_MARKERS = ("folderid=274&", "folderid=274#")
 _SPORT5_BASKETBALL_FOLDER_SUFFIX = "folderid=274"
 
+# Ynet sport article paths observed in the official sport RSS feed.
+# Generic /sport/article/ paths and livegame URLs intentionally return None:
+# they are sport content, but the URL alone does not identify a specific sport.
+_YNET_BASKETBALL_PATHS = (
+    "/sport/israelibasketball/",
+    "/sport/worldbasketball/",
+)
+_YNET_FOOTBALL_PATHS = (
+    "/sport/worldsoccer/",
+    "/sport/worldcup",
+)
+
 
 def extract_source_sport_hint(
     source_id: str,
@@ -48,4 +60,10 @@ def extract_source_sport_hint(
             or url_lower.endswith(_SPORT5_BASKETBALL_FOLDER_SUFFIX)
         ):
             return "basketball"
+    if source_id == "ynet_sport":
+        url_lower = url.lower()
+        if any(p in url_lower for p in _YNET_BASKETBALL_PATHS):
+            return "basketball"
+        if any(p in url_lower for p in _YNET_FOOTBALL_PATHS):
+            return "football"
     return None

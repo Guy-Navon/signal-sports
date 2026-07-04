@@ -44,6 +44,10 @@ describe("HEBREW_BROAD_SOURCES", () => {
     expect(HEBREW_BROAD_SOURCES).toContain("israel_hayom_sport");
   });
 
+  it("contains ynet_sport", () => {
+    expect(HEBREW_BROAD_SOURCES).toContain("ynet_sport");
+  });
+
   it("does not contain eurohoops or sportando", () => {
     expect(HEBREW_BROAD_SOURCES).not.toContain("eurohoops");
     expect(HEBREW_BROAD_SOURCES).not.toContain("sportando");
@@ -148,16 +152,18 @@ describe("calcMetrics", () => {
     expect(m.total).toBe(1);
   });
 
-  it("splits count by source (walla vs israel_hayom)", () => {
+  it("splits count by source (walla vs israel_hayom vs ynet)", () => {
     const items = [
       makeItem({ source: "walla_sport" }),
       makeItem({ source: "walla_sport" }),
       makeItem({ source: "israel_hayom_sport" }),
+      makeItem({ source: "ynet_sport" }),
     ];
     const m = calcMetrics(items, "all");
     expect(m.wallaCount).toBe(2);
     expect(m.ihCount).toBe(1);
-    expect(m.total).toBe(3);
+    expect(m.ynetCount).toBe(1);
+    expect(m.total).toBe(4);
   });
 
   it("counts visible vs hidden based on score.decision", () => {
@@ -274,6 +280,7 @@ describe("buildQaSummary", () => {
       total: 30,
       wallaCount: 20,
       ihCount: 10,
+      ynetCount: 5,
       visibleForGuy: 15,
       hiddenForGuy: 15,
       unknownCount: 3,
@@ -318,6 +325,7 @@ describe("buildQaSummary", () => {
     expect(summary).toContain("סה״כ כתבות: 30");
     expect(summary).toContain("וואלה ספורט: 20");
     expect(summary).toContain("ישראל היום: 10");
+    expect(summary).toContain("ynet ספורט: 5");
     expect(summary).toContain("ניראה לגיא: 15");
     expect(summary).toContain("מוסתר לגיא: 15");
   });

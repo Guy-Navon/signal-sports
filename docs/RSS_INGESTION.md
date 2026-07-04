@@ -123,13 +123,14 @@ See `docs/RSS_QUALITY_GUARDRAILS.md` for details on how URL and language filters
 |-----------------------|---------------------|----------|------|-----|---------------------------------------------|
 | `walla_sport`         | וואלה ספורט         | he       | rss  | ✓ active | https://rss.walla.co.il/feed/7         |
 | `israel_hayom_sport`  | ישראל היום ספורט    | he       | rss  | ✓ active | https://www.israelhayom.co.il/rss.xml  |
+| `ynet_sport`          | ynet ספורט          | he       | rss  | ✓ active | https://www.ynet.co.il/Integration/StoryRss3.xml |
 | `sport5_sport`        | ערוץ הספורט         | he       | html_scrape | pilot, disabled | https://www.sport5.co.il/liga.aspx?FolderID=273 (basketball category) |
 | `eurohoops`           | Eurohoops           | en       | rss  | disabled (post-MVP) | https://www.eurohoops.net/feed/ |
 | `sportando`           | Sportando           | en       | rss  | disabled (post-MVP) | https://sportando.basketball/feed/ |
 
-**MVP active sources:** `walla_sport` and `israel_hayom_sport` only. `eurohoops` and `sportando` have
-`enabled=False` in `config.py` and are not fetched by default. They remain in the codebase for easy
-re-enabling post-MVP.
+**MVP active sources:** `walla_sport`, `israel_hayom_sport`, and `ynet_sport`. `eurohoops` and
+`sportando` have `enabled=False` in `config.py` and are not fetched by default. They remain in the
+codebase for easy re-enabling post-MVP.
 
 **Sport5 pilot (PR 13):** `sport5_sport` is a Hebrew **scraping pilot** — `source_type="html_scrape"`,
 `is_pilot=True`, **disabled by default**. Rationale for disabled-by-default: scraping is structurally
@@ -144,11 +145,18 @@ persisted in the `source_overrides` SQLite table, survives restarts, wins over t
 default, and is respected by run-all ingestion, the scheduler, `GET /api/ingest/sources`, and
 source health. `config.py` `enabled` remains the code default when no override exists.
 
-**ONE Sport and Ynet Sport** were investigated in PR 10 and rejected for MVP:
+**ONE Sport** was investigated in PR 10 and remains rejected for MVP:
 - ONE Sport: no public RSS (all endpoints 404)
-- Ynet Sport: SPA frontend with no RSS links (harder to scrape)
 
-If a third Hebrew source is added post-MVP, ONE is the preferred candidate (traditional HTML, less brittle than a SPA).
+**Ynet Sport** was later added through its official sport RSS feed:
+`https://www.ynet.co.il/Integration/StoryRss3.xml`. The feed is valid RSS 2.0, Hebrew, and currently
+returns 30 sport items per fetch. Items include `title`, `link`, `description`, `pubDate`, `guid`,
+and a non-standard `tags` element. The existing RSS adapter uses title/link/pubDate and cleans the
+HTML thumbnail + teaser `description` into `article.subtitle`; the tags element is not stored.
+URLs are already sport-specific, so no `allowed_url_patterns` filter is configured. Observed Ynet
+category paths such as `/sport/israelibasketball/`, `/sport/worldbasketball/`,
+`/sport/worldsoccer/`, and `/sport/worldcup2026/` feed source sport hints; generic
+`/sport/article/` and `livegame.ynet.co.il` URLs fall through to normal keyword/LLM classification.
 
 ### English sources (PR 7, post-MVP)
 
@@ -366,6 +374,7 @@ Run a single MVP source:
 ```
 POST /api/ingest/run?source_id=walla_sport
 POST /api/ingest/run?source_id=israel_hayom_sport
+POST /api/ingest/run?source_id=ynet_sport
 ```
 
 Run a disabled source (must first set `enabled=True` in `config.py`):
@@ -532,10 +541,10 @@ transitions from `never_run` to `ok` after the first tick.
 
 ## Why No Additional Scraping / X Yet
 
-**Additional Hebrew sources (ONE, Ynet):** No clean RSS. Israel Hayom is active via its
-general RSS + `/sport/` allowlist; **Sport5 is now a category-page scraping pilot (PR 13,
-disabled by default)** — see the Sport5 adapter section above. ONE remains the preferred
-next scraping candidate (traditional HTML; less brittle than Ynet's SPA).
+**Additional Hebrew sources:** Ynet is now covered by its official sport RSS feed. Israel Hayom is
+active via its general RSS + `/sport/` allowlist; **Sport5 is now a category-page scraping pilot
+(PR 13, disabled by default)** — see the Sport5 adapter section above. ONE still has no clean public
+RSS and would require a category-page adapter.
 
 **X/Twitter:** Rate-limited API, requires auth, produces short-form content that needs
 different classification. Deferred.

@@ -262,6 +262,7 @@ function IngestionSection({ ingesting, ingestResults, onIngest }) {
   const sources = [
     { id: "walla_sport", label: "וואלה ספורט" },
     { id: "israel_hayom_sport", label: "ישראל היום" },
+    { id: "ynet_sport", label: "ynet ספורט" },
   ];
 
   return (
@@ -283,7 +284,7 @@ function IngestionSection({ ingesting, ingestResults, onIngest }) {
             disabled={ingesting != null}
             className={consoleButton("primary", "px-3 py-1.5 text-xs")}
           >
-            {ingesting === "both" ? "מייבא..." : "ייבא הכל (במקביל)"}
+            {ingesting === "both" ? "מייבא..." : "ייבא הכל"}
           </button>
         </div>
 
@@ -335,7 +336,7 @@ function BackfillSection({
         </div>
 
         <div className="flex gap-2 flex-wrap">
-          {["walla_sport", "israel_hayom_sport"].map((sourceId) => (
+          {HEBREW_BROAD_SOURCES.map((sourceId) => (
             <button
               key={sourceId}
               onClick={() => onBackfill(sourceId)}
@@ -375,7 +376,7 @@ function MetricsSection({ metrics, timeFilter, setTimeFilter, feedError }) {
     );
   }
 
-  const { total, wallaCount, ihCount, visibleForGuy, hiddenForGuy, unknownCount,
+  const { total, wallaCount, ihCount, ynetCount, visibleForGuy, hiddenForGuy, unknownCount,
           classifiedByBreakdown, sportBreakdown, decisionBreakdown, usedFallback } = metrics;
 
   return (
@@ -401,7 +402,7 @@ function MetricsSection({ metrics, timeFilter, setTimeFilter, feedError }) {
       }
     >
       <div className="space-y-4">
-        <p className="text-text-dim text-xs">מקורות עברית בלבד: וואלה + ישראל היום</p>
+        <p className="text-text-dim text-xs">מקורות עברית בלבד: וואלה + ישראל היום + ynet</p>
 
         {usedFallback && (
           <div className="bg-signal-push/10 border border-signal-push/25 rounded-lg px-3 py-1.5 text-xs text-signal-push">
@@ -409,10 +410,11 @@ function MetricsSection({ metrics, timeFilter, setTimeFilter, feedError }) {
           </div>
         )}
 
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
           <StatCard label="סה״כ" value={total} className="px-2 py-2 text-center" />
           <StatCard label="וואלה" value={wallaCount} tone="feed" className="px-2 py-2 text-center" />
           <StatCard label="ישראל היום" value={ihCount} tone="ai" className="px-2 py-2 text-center" />
+          <StatCard label="ynet" value={ynetCount} tone="feed" className="px-2 py-2 text-center" />
           <StatCard label="ניראה לגיא" value={visibleForGuy} tone="high" className="px-2 py-2 text-center" />
           <StatCard label="מוסתר לגיא" value={hiddenForGuy} tone="hidden" className="px-2 py-2 text-center" />
           <StatCard label="sport=unknown" value={unknownCount} tone="push" className="px-2 py-2 text-center" />
@@ -569,15 +571,15 @@ export default function LlmQa() {
           r,
         ]);
       } else {
-        const [r1, r2] = await Promise.all([
-          runIngestion("walla_sport"),
-          runIngestion("israel_hayom_sport"),
-        ]);
+        const results = [];
+        for (const sourceId of HEBREW_BROAD_SOURCES) {
+          results.push(await runIngestion(sourceId));
+        }
         setIngestResults((prev) => {
           const filtered = prev.filter(
             (x) => !HEBREW_BROAD_SOURCES.includes(x.source_id)
           );
-          return [...filtered, r1, r2];
+          return [...filtered, ...results];
         });
       }
       await loadData();

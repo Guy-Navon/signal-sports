@@ -466,7 +466,7 @@ All vars are read at module import time (same pattern as `TRANSLATION_PROVIDER`)
 
 ## Selective LLM Gating (`gating.py`)
 
-The LLM is Ollama/Qwen's primary bottleneck (~12s per call). The gating module decides, per eligible article, whether calling the LLM is likely to add value over the deterministic result. Articles from non-Hebrew-broad sources, or when the provider is disabled, are never considered eligible and bypass gating entirely. The Hebrew broad-source set is `{walla_sport, israel_hayom_sport, sport5_sport}` (Sport5 pilot added in PR 13). **Gating conditions and thresholds are unchanged in PR 13** — the entity-alias expansion does not affect gate decisions (gating reads the deterministic `rules_result`, which the normalizer does not touch; locked by `TestGatingAuditPR13`).
+The LLM is Ollama/Qwen's primary bottleneck (~12s per call). The gating module decides, per eligible article, whether calling the LLM is likely to add value over the deterministic result. Articles from non-Hebrew-broad sources, or when the provider is disabled, are never considered eligible and bypass gating entirely. The Hebrew broad-source set is `{walla_sport, israel_hayom_sport, ynet_sport, sport5_sport}`. **Gating conditions and thresholds are unchanged by source onboarding** — source additions only change eligibility, while gating still reads the deterministic `rules_result`.
 
 **Definition:** `llm_skipped` = article was eligible (Hebrew broad source + provider active + circuit not open) but the gate decided the deterministic result was already strong enough. `llm_attempts` = LLM was actually called.
 
@@ -655,7 +655,7 @@ A one-click benchmark is available on the Sources page (backend mode only).
 
 **What it does:**
 1. Resets RSS data
-2. Runs ingestion for `walla_sport` and `israel_hayom_sport` with `gating_enabled_override=False` (baseline)
+2. Runs ingestion for Hebrew broad sources (`walla_sport`, `israel_hayom_sport`, `ynet_sport`, `sport5_sport`) with `gating_enabled_override=False` (baseline)
 3. Queries `sport=unknown` counts per source
 4. Resets RSS data again
 5. Runs ingestion with `gating_enabled_override=True` (gated)
@@ -692,6 +692,7 @@ Restart backend, then:
 del backend\data\signal_sports.db
 POST /api/ingest/run?source_id=walla_sport
 POST /api/ingest/run?source_id=israel_hayom_sport
+POST /api/ingest/run?source_id=ynet_sport
 GET /api/ingest/quality
 GET /api/debug/feed/guy
 ```

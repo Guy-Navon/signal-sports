@@ -9,7 +9,7 @@ Approximately 30 candidate URLs from Israeli sports publishers were probed durin
 | Source | URLs tried | Outcome |
 |--------|-----------|---------|
 | Walla | `feed/1`, `feed/2`, `feed/5`, `feed/7`, `feed/22`, `feed/31` | `feed/7` is sports (all items link to `sports.walla.co.il`) |
-| Ynet | `/Sport/`, `/articles/sport` variants | Returns general news, not sport-specific |
+| Ynet | `/Sport/`, `/articles/sport` variants | Historical probes found no sport RSS; superseded by the official feed below |
 | Sport5 | RSS endpoint variants | No publicly accessible feed found |
 | ONE | RSS endpoint variants | No publicly accessible feed found |
 | Maariv | Sport category RSS variants | Returns general news |
@@ -344,7 +344,7 @@ classification shows up in debug with sport=unknown and can be fixed by adding c
    (a) `_normalise()` branches on `detected_lang == "he"` before calling `translate_title`;
    (b) the backfill loop checks `article.language == "he"` first, before `force` or
    `include_fake` flags are evaluated.
-   Future Hebrew sources (Sport5, ONE) follow the same path automatically — any source
+   Current/future Hebrew sources (`ynet_sport`, Sport5, ONE) follow the same path automatically — any source
    configured with `language="he"` is treated identically to Walla.
    Non-Hebrew articles (Eurohoops/Sportando) are translated when `TRANSLATION_PROVIDER=claude`
    is configured.  See `docs/TITLE_TRANSLATION.md` for full details.
@@ -372,7 +372,7 @@ classification shows up in debug with sport=unknown and can be fixed by adding c
 | Source | Desired source_id | RSS candidates probed | Outcome |
 |--------|------------------|-----------------------|---------|
 | ONE | `one_sport` | `one.co.il/rss`, `/feed/`, `/sport/rss`, `/Sport/RSS`, `/rss.xml`, `/category/sport/feed`, homepage link scan | All return 404. No RSS link tags found on homepage. **Rejected.** |
-| Ynet Sport | `ynet_sport` | `AjaxRSSFeed.aspx?type=1027/1025/1026`, `/sport/rss`, `/sport/feed`, `/sport/?feed=rss2`, sport page link scan | All return 404 or HTML. No RSS link tags on sport page. **Rejected.** |
+| Ynet Sport | `ynet_sport` | `AjaxRSSFeed.aspx?type=1027/1025/1026`, `/sport/rss`, `/sport/feed`, `/sport/?feed=rss2`, sport page link scan | Historical probes failed; later official RSS discovered at `https://www.ynet.co.il/Integration/StoryRss3.xml`. **Accepted.** |
 | Israel Hayom Sport | `israel_hayom_sport` | `/rss.xml`, `/rss/sport.xml`, `/sport/rss.xml`, `/sport/?feed=rss2`, `/sport/feed/` | `/rss.xml` returns valid RSS (100 items); sport-specific paths return 404 or HTML. **Accepted with URL filter.** |
 | Sport5 | (intentionally excluded) | Not probed | No public RSS known per prior research. **Not attempted.** |
 
@@ -382,12 +382,21 @@ All RSS endpoints return HTTP 404. The ONE homepage contains no RSS or Atom `<li
 ONE does not publish a public RSS feed. Category page scraping would be required but is out of
 scope for this PR.
 
-### Ynet Sport — rejected
+### Ynet Sport — accepted via official RSS
 
-Ynet's legacy `AjaxRSSFeed.aspx` endpoints (type 1025/1026/1027) all return 404 — these were
-removed at some point. The Ynet sport section (`/sport`) is a JavaScript-rendered SPA with no
-embedded RSS link tags. No sport-specific RSS or Atom endpoint was found. This confirms the
-previous finding from PR 8.
+Ynet's legacy `AjaxRSSFeed.aspx` endpoints (type 1025/1026/1027) still returned 404 during
+the PR 10 research, and the sport section page did not advertise RSS link tags. A later source
+onboarding found the official sport RSS feed directly:
+`https://www.ynet.co.il/Integration/StoryRss3.xml`.
+
+The feed is valid RSS 2.0, Hebrew, and currently returns 30 sport items. Items include `title`,
+`link`, `description`, `pubDate`, `guid`, and a non-standard `tags` element. The description
+contains a thumbnail HTML block followed by teaser text; the existing subtitle cleaner strips the
+image markup and stores the teaser in `article.subtitle`. Ynet is now configured as
+`ynet_sport`, enabled by default, and participates in the Hebrew broad-source LLM path. URL sport
+hints are extracted for `/sport/israelibasketball/`, `/sport/worldbasketball/`,
+`/sport/worldsoccer/`, and `/sport/worldcup.../`; generic `/sport/article/` and live-game URLs
+fall through to normal classification.
 
 ### Israel Hayom Sport — accepted
 

@@ -134,7 +134,7 @@ export default function LeadStory({ item }) {
           <h2
             className={cn(
               "mt-3 font-display font-bold text-foreground text-balance",
-              "text-[1.75rem] leading-[1.22] md:text-[2.6rem] md:leading-[1.16] xl:text-[2.9rem]",
+              "text-[1.4rem] leading-[1.3] md:text-[2.6rem] md:leading-[1.16] xl:text-[2.9rem]",
               "tracking-[-0.01em]"
             )}
           >
@@ -156,7 +156,7 @@ export default function LeadStory({ item }) {
           </h2>
 
           {item.subtitle && (
-            <p className="mt-3.5 text-[0.95rem] md:text-[1.05rem] text-text-secondary leading-relaxed max-w-2xl line-clamp-3">
+            <p className="mt-3.5 text-[0.95rem] md:text-[1.05rem] text-text-secondary leading-relaxed max-w-2xl">
               {item.subtitle}
             </p>
           )}

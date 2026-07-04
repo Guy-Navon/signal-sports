@@ -34,7 +34,7 @@ export default function EditionHeader({ profileName = "", total = 0, scanned = 0
             </span>
           )}
         </p>
-        <h1 className="mt-1 font-display font-bold text-[1.55rem] md:text-[1.8rem] text-foreground leading-tight">
+        <h1 className="mt-1 font-display font-bold text-[1.3rem] md:text-[1.8rem] text-foreground leading-tight">
           {profileName ? `המהדורה של ${profileName}` : "המהדורה שלך"}
         </h1>
       </div>

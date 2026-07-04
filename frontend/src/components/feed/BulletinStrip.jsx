@@ -35,7 +35,7 @@ export default function BulletinStrip({ item }) {
         <span>מבזק{kicker ? ` · ${kicker}` : ""}</span>
       </div>
 
-      <h3 className="mt-1.5 font-display font-bold text-foreground text-balance text-lg md:text-[1.35rem] leading-snug tracking-[-0.005em]">
+      <h3 className="mt-1.5 font-display font-bold text-foreground text-balance text-base md:text-[1.35rem] leading-snug tracking-[-0.005em]">
         {url ? (
           <a
             href={url}
@@ -51,7 +51,7 @@ export default function BulletinStrip({ item }) {
       </h3>
 
       {item.subtitle && (
-        <p className="mt-1.5 text-sm text-text-secondary leading-relaxed line-clamp-2 max-w-3xl">
+        <p className="mt-1.5 text-sm text-text-secondary leading-relaxed max-w-3xl">
           {item.subtitle}
         </p>
       )}

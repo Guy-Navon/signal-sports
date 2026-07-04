@@ -35,8 +35,8 @@ function EditorialBlock({ item, major = false, variants = undefined }) {
         className={cn(
           "mt-1.5 font-display font-bold text-foreground text-balance tracking-[-0.005em]",
           major
-            ? "text-[1.45rem] leading-[1.28] md:text-[1.75rem] md:leading-[1.24]"
-            : "text-[1.1rem] leading-[1.32] md:text-[1.2rem]"
+            ? "text-[1.2rem] leading-[1.32] md:text-[1.75rem] md:leading-[1.24]"
+            : "text-[0.95rem] leading-[1.36] md:text-[1.2rem]"
         )}
       >
         {url ? (
@@ -56,7 +56,7 @@ function EditorialBlock({ item, major = false, variants = undefined }) {
       {item.subtitle && (
         <p
           className={cn(
-            "mt-2 text-text-secondary leading-relaxed line-clamp-2",
+            "mt-2 text-text-secondary leading-relaxed",
             major ? "text-sm md:text-[0.95rem] max-w-3xl" : "text-[13px]"
           )}
         >

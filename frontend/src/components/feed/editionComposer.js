@@ -3,11 +3,12 @@
 // data modes; the composer is a stable partition so the engine's prioritisation
 // is preserved inside every tier.
 //
-//   lead      — the single top story (first push, else first high_feed)
+//   lead      — the single top story (first push, else first high_feed),
+//               framed as "הסיפור המרכזי"
 //   bulletins — remaining push stories (rendered as מבזק strips)
-//   editorial — high_feed stories ("חשובים עכשיו" tier)
-//   stream    — feed stories ("הזרם" rows)
-//   briefs    — low_feed stories ("בקצרה" digest)
+//   editorial — high_feed stories ("במוקד" tier)
+//   stream    — feed stories ("עוד מהפיד" rows)
+//   briefs    — low_feed stories ("קריאה נוספת" digest)
 
 export function composeEdition(items) {
   const push = [];

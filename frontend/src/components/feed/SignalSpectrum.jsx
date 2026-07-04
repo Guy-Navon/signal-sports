@@ -9,10 +9,10 @@ import MonoValue from "@/components/shared/MonoValue";
 // moment, and control in one artifact — replaces the counts strip + level
 // filter chips.
 const SEGMENTS = [
-  { id: "push", label: "דורשים תשומת לב", bar: "bg-signal-push", dot: "bg-signal-push", pulse: true },
-  { id: "high_feed", label: "חשובים", bar: "bg-signal-high", dot: "bg-signal-high", pulse: false },
-  { id: "feed", label: "בזרם", bar: "bg-signal-feed/80", dot: "bg-signal-feed", pulse: false },
-  { id: "low_feed", label: "ברקע", bar: "bg-signal-low/50", dot: "bg-signal-low", pulse: false },
+  { id: "push", label: "לא לפספס", bar: "bg-signal-push", dot: "bg-signal-push", pulse: true },
+  { id: "high_feed", label: "במוקד", bar: "bg-signal-high", dot: "bg-signal-high", pulse: false },
+  { id: "feed", label: "עוד מהפיד", bar: "bg-signal-feed/80", dot: "bg-signal-feed", pulse: false },
+  { id: "low_feed", label: "קריאה נוספת", bar: "bg-signal-low/50", dot: "bg-signal-low", pulse: false },
 ];
 
 export default function SignalSpectrum({

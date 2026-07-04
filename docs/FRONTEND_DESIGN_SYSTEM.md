@@ -21,14 +21,18 @@ the brand. On a calm near-black navy canvas, relevance is encoded as **light and
 shape**, never as loud card borders or badge rows.
 
 Since PR A the Feed is **"The Edition" (המהדורה)**: the ranked visible items are
-partitioned per reader into five visual species — lead story (serif display
-headline directly on the canvas, signal-tinted aura + court-line arc, breathing
-gold for push), **מבזק** bulletin strips (remaining push), the asymmetric
-**"חשובים עכשיו"** tier (high_feed), typographic **"הזרם"** rows (feed), and the
-collapsed **"בקצרה"** digest (low_feed). Decision badges and the old signal-rail
-edge bar are gone from the product feed — position, type scale, and light do
-that work (`DecisionBadge` survives as a console affordance in Debug/LLM-QA/
-Preferences). Two readers' editions differ in *shape*, not just ordering.
+partitioned per reader into five visual species — the lead story, framed as
+**"הסיפור המרכזי"** (serif display headline directly on the canvas,
+signal-tinted aura + court-line arc, breathing gold for push), **מבזק**
+bulletin strips (remaining push — the general push-level label is **"לא
+לפספס"**), the asymmetric **"במוקד"** tier (high_feed), typographic **"עוד
+מהפיד"** rows (feed), and the collapsed **"קריאה נוספת"** digest (low_feed).
+These are display copy only (PR A.2) — the underlying decision ids (`push`,
+`high_feed`, `feed`, `low_feed`, `hidden`) are unchanged. Decision badges and
+the old signal-rail edge bar are gone from the product feed — position, type
+scale, and light do that work (`DecisionBadge` survives as a console
+affordance in Debug/LLM-QA/Preferences, using its own label set). Two
+readers' editions differ in *shape*, not just ordering.
 
 Two visual areas share one token system:
 
@@ -100,7 +104,7 @@ relevance drops. Red is errors/hidden only.
 ### Type scale
 Display serif (Frank Ruhl Libre 500/700/**800** — 800 added in PR A) carries the
 edition: lead headline 2rem→3rem at weight 800, bulletin/editorial headlines
-~1.35–1.75rem bold, serif section headings ("חשובים עכשיו", "הזרם", "בקצרה")
+~1.35–1.75rem bold, serif section headings ("במוקד", "עוד מהפיד", "קריאה נוספת")
 at 1.125rem with a hairline rule. Heebo semibold for stream-row headlines
 (~1.05rem) and all UI/body text — serif still must **not** be used below
 ~1.1rem (the high-contrast face reads thin/grey). Kickers/meta 10–12.5px.
@@ -125,7 +129,7 @@ groups) · `OpsNav` (console strip) · `DataModeBadge` (pulsing pill) ·
 
 ### `components/feed/` — the flagship ("The Edition", PR A)
 **Story species:** `LeadStory` (aura + court-arc + serif display headline) ·
-`BulletinStrip` (מבזק, gold start-edge bleed) · `EditorialTier` (asymmetric
+`BulletinStrip` (מבזק / "לא לפספס" level, gold start-edge bleed) · `EditorialTier` (asymmetric
 major/minor blocks) · `StreamRow` (typographic row; inline expand; relevance-
 scaled type + level dot in filtered mode) · `BriefsDigest` (collapsed low_feed
 one-liners).

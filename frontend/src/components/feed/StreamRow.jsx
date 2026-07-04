@@ -7,7 +7,7 @@ import DeskVoice from "@/components/feed/DeskVoice";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import { buildKicker } from "@/components/feed/storyLabels";
 
-// "הזרם" — a regular story as a typographic row, not a card. Headline + one
+// "עוד מהפיד" — a regular story as a typographic row, not a card. Headline + one
 // quiet meta line; subtitle and the desk's reasoning expand inline on demand.
 // In the filtered view (showLevelDot) the row also carries its level as a dot
 // and scales its headline with relevance.

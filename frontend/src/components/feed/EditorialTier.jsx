@@ -7,7 +7,7 @@ import FeedbackControls from "@/components/feed/FeedbackControls";
 import SectionHeading from "@/components/feed/SectionHeading";
 import { buildKicker } from "@/components/feed/storyLabels";
 
-// "חשובים עכשיו" — the high_feed tier. Asymmetric editorial blocks: the first
+// "במוקד" — the high_feed tier. Asymmetric editorial blocks: the first
 // story spans the full width at a larger scale, the rest sit in a two-column
 // grid. Typography and whitespace do the hierarchy; no boxes.
 function EditorialBlock({ item, major = false, variants = undefined }) {
@@ -84,9 +84,9 @@ function EditorialBlock({ item, major = false, variants = undefined }) {
 export default function EditorialTier({ items, variants = undefined, headingVariants = undefined }) {
   if (!items.length) return null;
   return (
-    <section aria-label="חשובים עכשיו">
+    <section aria-label="במוקד">
       <motion.div variants={headingVariants}>
-        <SectionHeading className="mb-6">חשובים עכשיו</SectionHeading>
+        <SectionHeading className="mb-6">במוקד</SectionHeading>
       </motion.div>
       <div className="grid gap-x-10 gap-y-9 md:grid-cols-2">
         {items.map((item, i) => (

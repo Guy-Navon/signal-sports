@@ -100,7 +100,7 @@ export default function LeadStory({ item }) {
 
   return (
     <section
-      aria-label="הסיפור המוביל"
+      aria-label="הסיפור המרכזי"
       className="relative -mx-4 px-4 pt-7 pb-8 md:pt-9 md:pb-10 overflow-hidden"
     >
       {/* Atmosphere: layered signal mesh (breathes for push) + court geometry */}
@@ -126,9 +126,8 @@ export default function LeadStory({ item }) {
               </span>
             )}
             <span>
-              {isPush && "מבזק"}
-              {isPush && kicker && " · "}
-              {kicker}
+              הסיפור המרכזי
+              {kicker && ` · ${kicker}`}
             </span>
           </div>
 

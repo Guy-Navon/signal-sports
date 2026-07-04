@@ -24,11 +24,11 @@ import {
 } from "@/components/feed/feedFilters";
 
 // The Feed as an edition: the ranked visible items are partitioned into
-// editorial tiers (lead / bulletins / editorial / stream / briefs) so the
-// page's *shape* encodes relevance. Desktop composition: the lead is a
-// full-width hero band; below it the editorial column runs beside a sticky
-// "לוח הסיגנל" board (xl+). Filtering collapses the edition into a flat
-// level-annotated list; clearing it recomposes the edition.
+// editorial tiers (lead "הסיפור המרכזי" / bulletins / "במוקד" / "עוד מהפיד" /
+// "קריאה נוספת") so the page's *shape* encodes relevance. Desktop composition:
+// the lead is a full-width hero band; below it the editorial column runs
+// beside a sticky "לוח הסיגנל" board (xl+). Filtering collapses the edition
+// into a flat level-annotated list; clearing it recomposes the edition.
 export default function Feed() {
   const { feedItems, debugItems, activeProfileId, activeProfile, isBackendMode, isLoading } =
     useApp();
@@ -147,10 +147,10 @@ export default function Feed() {
                     {edition.stream.length > 0 && (
                       <motion.section
                         variants={v.item}
-                        aria-label="הזרם"
+                        aria-label="עוד מהפיד"
                         className={edition.editorial.length > 0 ? "mt-10 md:mt-14" : ""}
                       >
-                        <SectionHeading className="mb-2">הזרם</SectionHeading>
+                        <SectionHeading className="mb-2">עוד מהפיד</SectionHeading>
                         <div className="divide-y divide-border/40">
                           {edition.stream.map((item) => (
                             <StreamRow key={item.id} item={item} />

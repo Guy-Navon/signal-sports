@@ -15,9 +15,9 @@ function timeAgo(dateStr) {
 
 const COLLAPSED_COUNT = 4;
 
-// "בקצרה" — the low_feed digest, intentionally compressed: a quiet inset band
-// of one-liners in two columns. Low-priority stories cost almost no vertical
-// space — the signal-over-noise thesis rendered as layout.
+// "קריאה נוספת" — the low_feed digest, intentionally compressed: a quiet inset
+// band of one-liners in two columns. Low-priority stories cost almost no
+// vertical space — the signal-over-noise thesis rendered as layout.
 function BriefRow({ item }) {
   const isCluster = item.type === "cluster";
   const title = isCluster ? item.clusterTitle : item.translatedTitle || item.title;
@@ -58,7 +58,7 @@ export default function BriefsDigest({ items }) {
   const hiddenCount = items.length - COLLAPSED_COUNT;
 
   return (
-    <section aria-label="בקצרה">
+    <section aria-label="קריאה נוספת">
       <SectionHeading
         count={items.length}
         className="mb-3"
@@ -73,7 +73,7 @@ export default function BriefsDigest({ items }) {
           ) : null
         }
       >
-        בקצרה
+        קריאה נוספת
       </SectionHeading>
       <div
         className={cn(

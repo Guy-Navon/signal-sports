@@ -2,9 +2,9 @@
 Tests for the RSS source configuration — Hebrew MVP scope.
 
 Verifies:
-- Only Hebrew sources are active by default (walla_sport, israel_hayom_sport)
+- Only Hebrew sources are active by default (walla_sport, israel_hayom_sport, ynet_sport)
 - Eurohoops and Sportando remain in the codebase but are disabled by default
-- ONE/Ynet are not in the source list at all
+- ONE is not in the source list at all
 """
 
 import pytest
@@ -14,7 +14,7 @@ from app.ingestion.config import get_source_config, get_enabled_sources, RSS_SOU
 class TestEnabledSourcesMvp:
     def test_only_hebrew_sources_enabled(self):
         ids = {c.source_id for c in get_enabled_sources()}
-        assert ids == {"walla_sport", "israel_hayom_sport"}
+        assert ids == {"walla_sport", "israel_hayom_sport", "ynet_sport"}
 
     def test_walla_sport_enabled(self):
         ids = {c.source_id for c in get_enabled_sources()}
@@ -23,6 +23,10 @@ class TestEnabledSourcesMvp:
     def test_israel_hayom_sport_enabled(self):
         ids = {c.source_id for c in get_enabled_sources()}
         assert "israel_hayom_sport" in ids
+
+    def test_ynet_sport_enabled(self):
+        ids = {c.source_id for c in get_enabled_sources()}
+        assert "ynet_sport" in ids
 
     def test_eurohoops_not_in_enabled_sources(self):
         ids = {c.source_id for c in get_enabled_sources()}
@@ -72,8 +76,17 @@ class TestActiveSourceConfig:
         assert cfg.enabled is True
         assert "/sport/" in cfg.allowed_url_patterns
 
+    def test_ynet_sport_config(self):
+        cfg = get_source_config("ynet_sport")
+        assert cfg is not None
+        assert cfg.language == "he"
+        assert cfg.enabled is True
+        assert cfg.source_type == "rss"
+        assert "StoryRss3.xml" in cfg.feed_url
+        assert cfg.allowed_url_patterns == ()
+
     def test_hebrew_sources_allow_only_hebrew(self):
-        for source_id in ("walla_sport", "israel_hayom_sport"):
+        for source_id in ("walla_sport", "israel_hayom_sport", "ynet_sport"):
             cfg = get_source_config(source_id)
             assert cfg.allowed_languages == ("he",), (
                 f"{source_id} should only allow Hebrew articles"
@@ -81,14 +94,14 @@ class TestActiveSourceConfig:
 
 
 class TestRejectedSources:
-    """ONE and Ynet are explicitly not added — no public RSS (PR 10)."""
+    """ONE is explicitly not added because no public RSS exists."""
 
     def test_one_sport_not_in_sources(self):
         assert get_source_config("one_sport") is None
         ids = {c.source_id for c in RSS_SOURCES}
         assert "one_sport" not in ids
 
-    def test_ynet_sport_not_in_sources(self):
-        assert get_source_config("ynet_sport") is None
+    def test_ynet_sport_is_now_configured(self):
+        assert get_source_config("ynet_sport") is not None
         ids = {c.source_id for c in RSS_SOURCES}
-        assert "ynet_sport" not in ids
+        assert "ynet_sport" in ids

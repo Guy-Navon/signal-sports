@@ -104,6 +104,17 @@ RSS_SOURCES: list[RSSSourceConfig] = [
         allowed_languages=("he",),
         allowed_url_patterns=("/sport/",),
     ),
+    # Ynet Sport: official Hebrew sport RSS feed. The feed is sport-specific
+    # and currently returns title, link, description, pubDate, guid, and tags.
+    # The generic RSS adapter handles the required fields; descriptions are
+    # cleaned into subtitles by the shared subtitle pipeline.
+    RSSSourceConfig(
+        source_id="ynet_sport",
+        display_name="ynet ספורט",
+        feed_url="https://www.ynet.co.il/Integration/StoryRss3.xml",
+        language="he",
+        allowed_languages=("he",),
+    ),
 
     # ── Scraping pilot (PR 13, disabled by default) ───────────────────────────
 

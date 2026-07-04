@@ -292,7 +292,7 @@ describe("getClassifyStatus", () => {
     const payload = {
       provider: "ollama",
       can_classify: true,
-      hebrew_broad_sources: ["walla_sport", "israel_hayom_sport"],
+      hebrew_broad_sources: ["walla_sport", "israel_hayom_sport", "ynet_sport"],
       model: "llama3.2:3b",
       base_url: "http://localhost:11434",
       reset_allowed: false,

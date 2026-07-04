@@ -16,13 +16,13 @@ Prior backend state (unchanged by the redesign) reflects PR 13 + PR 13.1 (branch
 
 ## 1. Product in One Paragraph
 
-Signal Sports is a personalized sports news intelligence feed. The current MVP is Hebrew-only: it ingests Hebrew-native sports news from `walla_sport` and `israel_hayom_sport`, classifies each article (sport, league, entities, event type, importance), and surfaces to each user only the articles that are actually worth their attention. The same article can be `push` for one user and `hidden` for another. Translation of non-Hebrew sources is a post-MVP capability — the backend module is intact but disabled by default. The product goal is not "show all sports news" but "show only what matters to this specific user."
+Signal Sports is a personalized sports news intelligence feed. The current MVP is Hebrew-only: it ingests Hebrew-native sports news from `walla_sport`, `israel_hayom_sport`, and `ynet_sport`, classifies each article (sport, league, entities, event type, importance), and surfaces to each user only the articles that are actually worth their attention. The same article can be `push` for one user and `hidden` for another. Translation of non-Hebrew sources is a post-MVP capability — the backend module is intact but disabled by default. The product goal is not "show all sports news" but "show only what matters to this specific user."
 
 ---
 
 ## 2. Product Principles
 
-- **Hebrew-first UI.** Every article is displayed with a Hebrew title. For the MVP, all active sources (`walla_sport`, `israel_hayom_sport`) are Hebrew — no translation is needed or used. The translation module is intact in the backend and can be re-enabled post-MVP for English sources.
+- **Hebrew-first UI.** Every article is displayed with a Hebrew title. For the MVP, all active sources (`walla_sport`, `israel_hayom_sport`, `ynet_sport`) are Hebrew — no translation is needed or used. The translation module is intact in the backend and can be re-enabled post-MVP for English sources.
 - **Personalized relevance, not generic RSS.** The feed is per-user. Identical article sets produce different feeds for different profiles.
 - **False positives are worse than missed classification.** When the classifier is unsure, it assigns `sport=unknown` and the article lands in debug. It does not guess and pollute the feed.
 - **Translation is post-MVP.** `TRANSLATION_PROVIDER=disabled` by default. The `translated_title` DB field, backend translation routes, and the entire `backend/app/translation/` module are intact and ready to be re-enabled, but the frontend no longer shows translation UI or untranslated warnings.
@@ -63,7 +63,7 @@ RSS source
   → Feed/Debug UI (React/Vite, backend mode)
 ```
 
-**MVP active sources:** `walla_sport` and `israel_hayom_sport` only. `eurohoops` and `sportando` are
+**MVP active sources:** `walla_sport`, `israel_hayom_sport`, and `ynet_sport`. `eurohoops` and `sportando` are
 disabled by default and treated as post-MVP / experimental. `sport5_sport` (ערוץ הספורט) is a Hebrew
 **HTML-scraping pilot** added in PR 13 — `source_type="html_scrape"`, `is_pilot=True`, disabled by
 default; run it manually with `POST /api/ingest/run?source_id=sport5_sport`. Hebrew articles are
@@ -127,6 +127,15 @@ future multi-replica deployment needs a single scheduler worker or a distributed
 - **Added in PR 10.** Articles stored as Hebrew-native; `original_title = None`; no translation.
 - **Filtering:** The Israel Hayom RSS is a general news feed (100 items, ~21 sport). The `allowed_url_patterns` filter accepts only URLs containing `/sport/`. Non-sport items (politics, opinion, culture) are counted as `skipped_filtered` and never reach the DB.
 
+### Ynet Sport (`ynet_sport`)
+- **Language:** Hebrew (`he`)
+- **Feed URL:** `https://www.ynet.co.il/Integration/StoryRss3.xml`
+- **What it covers:** Broad Israeli sports coverage: football/world football, basketball (including Israeli basketball paths), tennis, live games, and tournament coverage.
+- **Added after PR 13.** Ynet is an enabled Hebrew RSS source. The official sport RSS feed returns valid RSS 2.0, typically 30 items, with `title`, `link`, `description`, `pubDate`, `guid`, and a non-standard `tags` element. The generic RSS adapter handles it; no scraping is used.
+- **Subtitles:** RSS `<description>` contains a thumbnail HTML block followed by teaser text. The shared subtitle cleaner strips the image markup and stores the teaser as `article.subtitle`.
+- **Publish time:** parsed from item `pubDate` (`+0300` in the inspected feed) through feedparser and stored as UTC.
+- **Source hints:** `/sport/israelibasketball/` and `/sport/worldbasketball/` hint basketball; `/sport/worldsoccer/` and `/sport/worldcup.../` hint football. Generic `/sport/article/` and `livegame.ynet.co.il` URLs return no hint and fall through to the classifier/LLM.
+
 ### Sport5 / ערוץ הספורט (`sport5_sport`) — scraping pilot (PR 13)
 - **Language:** Hebrew (`he`); no translation, same as Walla.
 - **Type:** `html_scrape` — Sport5 has **no public RSS** (confirmed PR 8/PR 10). The adapter scrapes the basketball category page (`https://www.sport5.co.il/liga.aspx?FolderID=273`, static server-rendered HTML, ~12 articles/fetch) with httpx + BeautifulSoup.
@@ -135,7 +144,7 @@ future multi-replica deployment needs a single scheduler worker or a distributed
 - **Subtitles:** the card's descriptive paragraph is extracted as the article subtitle (PR 13.2) — cleaned like RSS descriptions, shown in Feed/Debug, and fed to the classifier/LLM as context.
 - **Publish time:** parsed from the card's `DD.MM.YY - HH:MM` timestamp (Israel local time → UTC, DST-aware; PR 13.3); cards without a timestamp fall back to ingest time.
 - **Known limitations:** scraping is fragile to site redesigns — failures degrade to 0 items and surface in source health, never crash ingestion.
-- **ONE / Ynet** still have no accessible RSS; ONE remains the preferred next scraping candidate.
+- **ONE** still has no accessible RSS; adding it would require a future category-page adapter.
 
 ### Source infrastructure: `allowed_url_patterns` (PR 10)
 - New field on `RSSSourceConfig`: `allowed_url_patterns: tuple[str, ...] = ()`
@@ -217,7 +226,7 @@ requires Ollama, a real API key, or live Sport5.
 
 **Data mode indicator:** `DataModeBadge` in the masthead — a pulsing dot + tooltip ("מצב נתונים: שרת"/"מצב נתונים: מקומי"), shrunk from a labeled pill since it's ops-relevant information, not a consumer-facing label.
 
-**Sources page — Ingestion panel:** In backend mode, shows source selector (MVP active sources: וואלה ספורט, ישראל היום ספורט), "הרץ ייבוא עכשיו" button, per-source result breakdown after run, recent runs list (last 5), and "איכות הסיווג" quality toggle. No translation UI — translation is post-MVP and was removed from the Sources page. In local mode, shows a disabled card with instructions to enable backend mode.
+**Sources page — Ingestion panel:** In backend mode, shows source selector (MVP active sources: וואלה ספורט, ישראל היום ספורט, ynet ספורט), "הרץ ייבוא עכשיו" button, per-source result breakdown after run, recent runs list (last 5), and "איכות הסיווג" quality toggle. No translation UI — translation is post-MVP and was removed from the Sources page. In local mode, shows a disabled card with instructions to enable backend mode.
 
 **Sources page — "סטטוס ייבוא אוטומטי" panel (PR 13):** In backend mode, shows scheduler enabled/disabled + interval, next run time, last run time + status (הצליח/שגיאה/דולג/טרם רץ), last error, a "הרץ עכשיו" button (disabled with "ייבוא פעיל כרגע" while a run is active or a 409 was received), and per-source health cards: freshness badge (תקין/מיושן/לא רץ עדיין/כבוי/שגיאה), RSS/Scraping type label, "פיילוט" badge for Sport5, last run counts, consecutive failures, and last error. Each health card has a **פעיל/כבוי toggle** (PR 13.1) that calls `PATCH /api/ingest/sources/{id}` — this is how the Sport5 pilot is turned on/off from the UI. Hidden entirely in local mode. The manual ingestion panel is unchanged.
 
@@ -304,7 +313,7 @@ The deterministic classifier is keyword-matching only — no NLP, no LLM. It alw
 
 LLM classification is an opt-in overlay for Hebrew broad sources only. It does not change feed decision logic — the relevance engine still reads stored metadata deterministically.
 
-**When it runs:** `source_id in {"walla_sport", "israel_hayom_sport", "sport5_sport"}` AND `CLASSIFICATION_PROVIDER != disabled`. (Sport5 pilot added to the set in PR 13; gating logic unchanged.)
+**When it runs:** `source_id in {"walla_sport", "israel_hayom_sport", "ynet_sport", "sport5_sport"}` AND `CLASSIFICATION_PROVIDER != disabled`. (Sport5 is a disabled-by-default pilot; Ynet is an enabled RSS source. Gating logic itself is unchanged.)
 
 **Provider options (`CLASSIFICATION_PROVIDER` env var):**
 
@@ -344,7 +353,7 @@ See `docs/LLM_CLASSIFICATION.md` for full architecture details.
 
 ## 9. Translation Pipeline State (Post-MVP — Preserved, Not Active)
 
-Translation is not used in the current MVP. All active sources (`walla_sport`, `israel_hayom_sport`) are Hebrew-native — no translation is needed. `TRANSLATION_PROVIDER=disabled` is the default and the correct MVP setting.
+Translation is not used in the current MVP. All active sources (`walla_sport`, `israel_hayom_sport`, `ynet_sport`) are Hebrew-native — no translation is needed. `TRANSLATION_PROVIDER=disabled` is the default and the correct MVP setting.
 
 The translation module is preserved intact for post-MVP re-enablement when English sources (eurohoops, sportando) are added back. No translation code was deleted.
 
@@ -392,7 +401,7 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 - **No auth / multi-user.** User profiles are seeded statically. No login, no registration.
 - **No push notifications.** `push` is a decision level in the engine; no device notification delivery.
 - **No body translation or summaries.** Only titles are translated. Article bodies are not ingested.
-- **Limited source coverage.** MVP active sources: Walla Sport, Israel Hayom Sport. Eurohoops and Sportando are disabled (post-MVP). Sport5 is a scraping pilot (PR 13, disabled by default — no public RSS exists). ONE has no clean public RSS; Ynet has no sport-specific RSS. ONE is the preferred next scraping candidate.
+- **Limited source coverage.** MVP active sources: Walla Sport, Israel Hayom Sport, and Ynet Sport. Eurohoops and Sportando are disabled (post-MVP). Sport5 is a scraping pilot (PR 13, disabled by default — no public RSS exists). ONE has no clean public RSS and would require a future category-page adapter.
 - **LLM classification not yet benchmarked at production scale.** Two providers are implemented: `gemini` (fast, cloud, but only 20 requests/day free tier — exhausted in one ingestion run) and `ollama` (local, uncapped, needs Ollama installed and `qwen2.5:3b-instruct` pulled). Default is `disabled`. Hebrew articles use deterministic classification until a provider is configured. Timing is now instrumented — `fetch_ms`, `llm_avg_ms`, `llm_p95_ms`, and fallback counts appear in `POST /api/ingest/run` responses.
 - **Entity normalization map is conservative (expanded in PR 13).** 25 canonical entities (Israeli basketball clubs, EuroLeague/EuroCup clubs, NBA teams/players) with Hebrew + English aliases; multi-sport European clubs are sport-guarded. Entities not in `_ENTITY_ALIASES` are still silently discarded from `article.entities` even when the LLM identifies them correctly.
 - **Translation not active in MVP.** `TRANSLATION_PROVIDER=disabled` is correct for Hebrew-only MVP. Backend module, DB fields, and API routes are preserved for post-MVP re-enablement. Translation quality validation is a post-MVP concern.
@@ -410,7 +419,7 @@ Priority order:
 5. **Validate Sport5 pilot** — Run `POST /api/ingest/run?source_id=sport5_sport` against the live site, review classification quality in the debug view, then enable it from the Sources page toggle (or `PATCH /api/ingest/sources/sport5_sport`) if quality holds.
 6. **Feed clustering / fuzzy dedup** — Use `difflib.SequenceMatcher` on titles across sources; populate `cluster_id`. Show one card per story.
 7. **Feedback → profile mutation** — `never_show` feedback creates a `hidden` event rule for the article's `event_type` in the matched topic. Requires in-place profile update via the repository.
-8. **More Hebrew sources** — ONE Sport via category page HTML adapter is the preferred next source (traditional HTML, no SPA; Sport5 is already covered by the scraping pilot). Ynet is harder (SPA).
+8. **More Hebrew sources** — ONE Sport via category page HTML adapter is the likely next source candidate (traditional HTML; Sport5 is already covered by the scraping pilot; Ynet is covered by official RSS).
 9. **Better relevance for LLM-classified articles** — Some LLM-classified articles land in Guy's feed as `feed` when they deserve `high_feed` or `push`. The relevance engine's topic rules may need tuning once LLM entity extraction surfaces more entities (e.g., New York Knicks → Knicks entity → entity_event_rules fires).
 10. **Re-enable English sources + translation** (post-MVP) — Set `eurohoops.enabled=True` in `config.py` (or via the Sources page toggle), configure `TRANSLATION_PROVIDER=claude` + API key, run translation backfill, verify Italian → Hebrew quality.
 
@@ -484,6 +493,7 @@ cd backend
 POST http://127.0.0.1:8000/api/ingest/run                                        # MVP active sources only
 POST http://127.0.0.1:8000/api/ingest/run?source_id=walla_sport                  # Hebrew — active
 POST http://127.0.0.1:8000/api/ingest/run?source_id=israel_hayom_sport           # Hebrew — active
+POST http://127.0.0.1:8000/api/ingest/run?source_id=ynet_sport                   # Hebrew — active
 POST http://127.0.0.1:8000/api/ingest/run?source_id=sport5_sport                 # Hebrew — scraping pilot, disabled by default (manual run works)
 # POST http://127.0.0.1:8000/api/ingest/run?source_id=eurohoops                  # disabled — set enabled=True in config.py to re-enable
 # POST http://127.0.0.1:8000/api/ingest/run?source_id=sportando                  # disabled — set enabled=True in config.py to re-enable
@@ -493,7 +503,7 @@ GET  http://127.0.0.1:8000/api/ingest/scheduler/status                          
 GET  http://127.0.0.1:8000/api/ingest/source-health                              # per-source freshness/health
 ```
 `POST /api/ingest/run` (no source_id) only runs sources with `enabled=True` in `config.py`.
-For MVP this means `walla_sport` + `israel_hayom_sport` only. All ingestion triggers share
+For MVP this means `walla_sport` + `israel_hayom_sport` + `ynet_sport`. All ingestion triggers share
 one process-level lock — a second concurrent call returns 409 `ingestion_already_running`.
 
 Expected for `israel_hayom_sport`: `fetched=100, inserted≈21, skipped_filtered≈79, failed=0`.

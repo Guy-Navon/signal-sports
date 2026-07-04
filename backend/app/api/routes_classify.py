@@ -25,7 +25,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Hebrew broad sources eligible for LLM reclassification
-_HEBREW_BROAD_SOURCES = frozenset({"walla_sport", "israel_hayom_sport"})
+_HEBREW_BROAD_SOURCES = frozenset({
+    "walla_sport",
+    "israel_hayom_sport",
+    "ynet_sport",
+    "sport5_sport",
+})
 
 
 class ClassifyStatusResponse(BaseModel):

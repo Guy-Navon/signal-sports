@@ -171,7 +171,7 @@ class TestBenchmarkResponseShape:
         assert r.json()["gated"]["gating_enabled"] is True
 
     def test_sources_list_contains_hebrew_broad_sources(self, client, monkeypatch):
-        """sources list includes walla_sport and israel_hayom_sport."""
+        """sources list includes all Hebrew broad sources."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
         mock_provider = _make_mock_provider()
 
@@ -185,6 +185,7 @@ class TestBenchmarkResponseShape:
         sources = r.json()["sources"]
         assert "walla_sport" in sources
         assert "israel_hayom_sport" in sources
+        assert "ynet_sport" in sources
 
     def test_provider_string_in_response(self, client, monkeypatch):
         """Response provider field reflects the mock provider_id."""

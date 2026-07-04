@@ -4,6 +4,7 @@ import { Settings, User, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TopicCard from "@/components/preferences/TopicCard";
 import PageHeader from "@/components/shared/PageHeader";
+import DeskIntro from "@/components/shared/DeskIntro";
 
 const TABS = [
   { id: "topics", label: "נושאים ועדיפויות" },
@@ -35,8 +36,13 @@ export default function Preferences() {
     updateProfile(activeProfileId, updated);
   };
 
+  const topicCount = activeProfile?.topics?.length || 0;
+  const entityCount = activeProfile?.followedEntities?.length || 0;
+  const mutedCount =
+    (activeProfile?.mutedTopics?.length || 0) + (activeProfile?.mutedSources?.length || 0);
+
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="max-w-2xl space-y-5">
       <PageHeader
         title="העדפות"
         icon={Settings}
@@ -46,6 +52,18 @@ export default function Preferences() {
           </>
         }
       />
+
+      <DeskIntro kicker="מה המערכת יודעת">
+        הפרופיל שלך בנוי מ־<span className="text-foreground font-medium">{topicCount}</span> נושאים
+        במעקב, <span className="text-foreground font-medium">{entityCount}</span> ישויות ספציפיות
+        {mutedCount > 0 && (
+          <>
+            , ו־<span className="text-foreground font-medium">{mutedCount}</span> נושאים ומקורות
+            מושתקים
+          </>
+        )}
+        . שינויים כאן נכנסים לתוקף מיד בפיד.
+      </DeskIntro>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
@@ -66,13 +84,7 @@ export default function Preferences() {
       </div>
 
       {activeTab === "topics" && (
-        <div className="space-y-3">
-          <div className="bg-surface-1 border border-border rounded-[10px] p-3">
-            <p className="text-xs text-text-dim leading-relaxed">
-              כל נושא מגדיר: עדיפות, מצב (all / major_only / followed_entities_only / titles_only), ישויות, וכללי אירוע.
-              שינויים ייכנסו לתוקף מיד.
-            </p>
-          </div>
+        <div>
           {activeProfile?.topics?.map((topic) => (
             <TopicCard key={topic.topicId} topic={topic} />
           ))}
@@ -81,7 +93,7 @@ export default function Preferences() {
 
       {activeTab === "entities" && (
         <div className="space-y-4">
-          <div className="bg-surface-1 border border-border rounded-2xl p-4">
+          <div>
             <p className="text-xs text-text-dim mb-3 flex items-center gap-1">
               <User size={11} /> ישויות שאני עוקב אחריהן (שחקנים, קבוצות, אנשים)
             </p>
@@ -101,13 +113,12 @@ export default function Preferences() {
             )}
           </div>
 
-          <div className="bg-signal-push/8 border border-signal-push/25 rounded-2xl p-3">
-            <p className="text-xs text-signal-push/90">
-              <span className="font-medium">הבדל חשוב:</span> כשנושא במצב{" "}
-              <span className="text-signal-high">followed_entities_only</span>, רק כתבות שמכילות ישויות אלה יוצגו.
-              לעומת זאת, כשנושא במצב <span className="text-signal-high">all</span>, הישויות הן בונוס אך לא תנאי הכרחי.
-            </p>
-          </div>
+          <p className="text-xs text-text-secondary leading-relaxed border-s-2 border-signal-ai/30 ps-3">
+            <span className="text-signal-ai/90 font-medium">הבדל חשוב: </span>
+            כשנושא במצב <span className="text-foreground">followed_entities_only</span>, רק כתבות
+            שמכילות ישויות אלה יוצגו. לעומת זאת, כשנושא במצב{" "}
+            <span className="text-foreground">all</span>, הישויות הן בונוס אך לא תנאי הכרחי.
+          </p>
         </div>
       )}
 

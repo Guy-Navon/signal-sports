@@ -102,13 +102,16 @@ gold at the top (push stories sort first) then transitions to green/blue as
 relevance drops. Red is errors/hidden only.
 
 ### Type scale
-Display serif (Frank Ruhl Libre 500/700/**800** — 800 added in PR A) carries the
-edition: lead headline 2rem→3rem at weight 800, bulletin/editorial headlines
-~1.35–1.75rem bold, serif section headings ("במוקד", "עוד מהפיד", "קריאה נוספת")
-at 1.125rem with a hairline rule. Heebo semibold for stream-row headlines
-(~1.05rem) and all UI/body text — serif still must **not** be used below
-~1.1rem (the high-contrast face reads thin/grey). Kickers/meta 10–12.5px.
-Numerics use `MonoValue`.
+Display serif (Frank Ruhl Libre 500/700 — the 800 weight tried in PR A was
+dropped in the A.1 polish pass, it read as too dramatic) carries story
+headlines: the lead scales 1.4rem→2.9rem responsive, bulletin/editorial
+headlines ~1.2–1.75rem, both weight 700. **Section labels are Heebo, not
+serif** — "במוקד", "עוד מהפיד", "קריאה נוספת" render as small (11px), tracked,
+semibold Heebo labels with a hairline rule (`SectionHeading`); serif is
+reserved for story headlines only and must **not** be used below ~1.1rem (the
+high-contrast face reads thin/grey there). Heebo semibold for stream-row
+headlines (~1.05rem) and all UI/body text. Kickers/meta 10–12.5px. Numerics
+use `MonoValue`.
 
 ---
 
@@ -121,11 +124,30 @@ text stays in body font) · `PageHeader` (serif title + optional icon + actions
 slot) · `SectionCard` (titled console panel) · `GhostChip` (quiet metadata) ·
 `PulseDot` (tone dot, optional pulse) · `MonoValue` (LTR numerics inside RTL).
 
-### `components/shell/` — app frame
-`AppShell` (`area="product"|"ops"`) · `ProductNav` (desktop rail, מוצר/קונסולה
-groups) · `OpsNav` (console strip) · `DataModeBadge` (pulsing pill) ·
-`ProfileSwitcher` (Radix dropdown, sandbox "בדיקה" tag) · `navConfig.js`
-(+ tests — area resolution, llm-qa backend gate, mobile nav).
+### `components/shell/` — app frame (PR B: atmosphere + brand shell)
+`AppShell` (`area="product"|"ops"`) branches structurally by area rather than
+just styling: **product routes have no sidebar** — the feed gets the full
+canvas — while **ops routes keep `ProductNav`'s desktop rail unchanged**
+(מוצר/קונסולה groups, exactly as before PR B; the console's own visual
+identity is a later PR, this one only changed how you arrive at/leave it).
+`Masthead` (replaces the old plain header) — wordmark at the inline-start
+edge, product nav inline (product routes only) or a "חזרה למוצר" link (ops),
+profile switcher + `DataModeBadge` + a console-entry icon (product only) at
+the inline-end edge; starts transparent over the atmosphere and gains
+`surface-glass` + a hairline only past a scroll threshold (`useScrolled.js`).
+`SignalMark` — the wordmark's three-bar icon, same visual language as the
+Feed's SIGNAL strength instrument. `Atmosphere` — a fixed, decorative
+backdrop (soft floodlight mesh + one large half-court arc + a whisper of
+film-grain, all CSS/inline-SVG, opacity-only breathing) behind product pages
+only; **not rendered in the ops console**, which stays flat by design.
+`MobileNav` — a floating glass pill (product) vs. the original edge-to-edge
+tab bar (ops, unchanged). `DataModeBadge` shrank from a labeled pill to a
+dot + tooltip (ops-relevant info, not a consumer-facing label).
+`OpsNav` (console strip, unchanged) · `ProfileSwitcher` (Radix dropdown,
+sandbox "בדיקה" tag, unchanged) · `navConfig.js` (+ tests — area resolution,
+llm-qa backend gate, mobile nav; unchanged, reused by the new shell).
+`AppShell` also wraps `<Outlet/>` in a Framer Motion opacity+y page
+transition keyed by pathname, reduced-motion aware.
 
 ### `components/feed/` — the flagship ("The Edition", PR A)
 **Story species:** `LeadStory` (aura + court-arc + serif display headline) ·

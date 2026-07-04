@@ -9,6 +9,7 @@ signal-sports/
 ├── frontend/       React + Vite + Tailwind frontend
 ├── backend/        FastAPI Python backend
 ├── docs/           Product and architecture documentation
+├── .claude/skills/ Project-level Claude Code skills (source onboarding, classification changes, feed audit, PR finish, handoff)
 └── CLAUDE.md       Project context for AI-assisted development
 ```
 

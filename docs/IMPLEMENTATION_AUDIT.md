@@ -1,5 +1,30 @@
 # Signal Sports — Implementation Audit
 
+> **⚠ HISTORICAL SNAPSHOT — SUPERSEDED.** This document was written before *any*
+> backend work and before the frontend redesign. It audits the original
+> Base44-generated prototype: a pure-frontend app with no backend, no
+> database, no tests, mock data only, and a read-only Preferences page. **None
+> of that describes the current system.** Since this was written:
+> - A full FastAPI backend was built (`backend/app/`) with SQLite persistence,
+>   real RSS ingestion (Walla Sport, Israel Hayom Sport), an HTML-scraping
+>   pilot (Sport5), a deterministic + LLM classification pipeline, a
+>   scheduler, and 1081 pytest tests.
+> - The entire frontend UI was rebuilt twice over: first "Court Vision"
+>   (PRs 1–6, token system + shadcn/Radix adoption), then "The Edition" +
+>   shell/product/ops redesign (PRs A–E) — a from-scratch visual language.
+>   Almost every file path named below (`FeedCard.jsx`, `AppLayout.jsx`,
+>   `ProfileSwitcher.jsx` under `components/feed/`, etc.) no longer exists.
+> - Every specific bug and gap called out below (source-toggle no-op,
+>   unwritable Preferences, no tests, no persistence) has been fixed.
+> - Real clustering is still **not** implemented (dedup is URL-only) — that
+>   part of this audit remains accurate.
+>
+> **For current, accurate state, read `docs/CURRENT_PROJECT_STATE.md` first.**
+> This file is kept only as a historical record of the starting point — do
+> not treat anything below as a description of the app today.
+
+---
+
 ## Repository Structure
 
 ```

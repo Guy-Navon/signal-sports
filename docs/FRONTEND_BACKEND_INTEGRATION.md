@@ -74,7 +74,10 @@ cd frontend
 npm run dev
 ```
 
-The header badge will show **מצב נתונים: שרת** when backend mode is active.
+The masthead's `DataModeBadge` shows a pulsing green dot with a **מצב נתונים: שרת** tooltip
+when backend mode is active (a gray dot + **מצב נתונים: מקומי** tooltip in local mode). It was
+a labeled pill before the frontend redesign (PR B) shrank it to a dot+tooltip, since it's
+ops-relevant information rather than a consumer-facing label.
 
 ---
 
@@ -114,7 +117,7 @@ Exported functions:
 Note: `POST /api/ingest/run` can also return 409 since PR 13 — manual, scheduled, and
 run-now ingestion share one process-level lock.
 
-### Scheduler status panel (PR 13, `SchedulerStatusPanel.jsx`)
+### Scheduler status panel (PR 13, `SchedulerPanel.jsx` — renamed from `SchedulerStatusPanel.jsx` during the frontend redesign's ops-console reorganization, `components/ingestion/` → `components/ops/`)
 
 Rendered on the Sources page in backend mode only (hidden in local mode; the existing
 IngestionPanel already explains how to enable backend mode). Shows the "סטטוס ייבוא אוטומטי"
@@ -169,7 +172,7 @@ React context shape so no consumer component needs to branch on the mode.
 **Backend mode:**
 - On mount: loads profiles from `GET /api/profiles`
 - On `activeProfileId` change: loads `GET /api/feed/{userId}` and `GET /api/debug/feed/{userId}` in parallel
-- `addFeedback`: records locally **and** posts to `POST /api/feedback` for actions the backend accepts (`more_like_this`, `not_interested`, `never_show`, `mute_source`, `always_notify`). The action `less_like_this` (used in `FeedCard`) is tracked locally only.
+- `addFeedback`: records locally **and** posts to `POST /api/feedback` for actions the backend accepts (`more_like_this`, `not_interested`, `never_show`, `mute_source`, `always_notify`). The action `less_like_this` (emitted by `FeedbackControls`, used across the Feed's story components — `LeadStory`, `BulletinStrip`, `EditorialTier`, `StreamRow`, `BriefsDigest` — since the PR A "Edition" redesign; the old monolithic `FeedCard` no longer exists) is tracked locally only.
 - `refreshFeed()`: re-triggers the feed fetch in backend mode
 - `refreshProfiles()`: re-fetches the profile list in backend mode
 - Loading state exposed via `isLoading`
@@ -186,8 +189,9 @@ mutation yet.
 
 ### UI changes
 
-- **Data mode badge** in the top-left header: small pill showing "מצב נתונים: שרת" (blue)
-  or "מצב נתונים: מקומי" (gray). Spinning refresh icon while loading.
+- **Data mode badge** in the masthead: a pulsing dot with a tooltip reading "מצב נתונים: שרת"
+  (green) or "מצב נתונים: מקומי" (gray) — a labeled pill before the frontend redesign (PR B)
+  shrank it to a dot+tooltip. Spinning refresh icon while loading.
 - **Error banner**: if backend mode has an API error, a red banner appears below the header
   with the error detail, the expected backend URL, and a "נסה שוב" retry button.
 - **Ingestion panel** on the Sources page: shows RSS ingestion controls in backend mode.
@@ -195,7 +199,8 @@ mutation yet.
 
 ### Ingestion panel (`IngestionPanel.jsx`)
 
-Located at `src/components/ingestion/IngestionPanel.jsx`. Rendered at the top of the
+Located at `src/components/ops/IngestionPanel.jsx` (moved from `components/ingestion/`
+during the frontend redesign's ops-console reorganization). Rendered at the top of the
 Sources page.
 
 **Backend mode:** Shows:
@@ -247,7 +252,7 @@ is no longer needed.
 
 After starting both servers with `VITE_DATA_MODE=backend`:
 
-- [ ] Header badge shows "מצב נתונים: שרת"
+- [ ] Data-mode dot in the masthead shows a green pulse + "מצב נתונים: שרת" tooltip
 - [ ] Profiles load from backend (Guy + Casual Deni Fan in the switcher)
 - [ ] Feed loads for Guy — Maccabi negotiation articles appear with `push`
 - [ ] Switching to Casual Deni Fan → feed changes (Hornets/Wizards disappears)

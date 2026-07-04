@@ -1,6 +1,14 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-07-04 — reflects the **frontend redesign** ("Court Vision", PRs 1–6) plus **PR A ("The Edition")** and its polish passes, **PR B ("atmosphere + brand shell")**, **PR C ("product pages")**, **PR D ("ops shell variant")** — the full originally-approved redesign plan — and **PR E ("signature details")**, a self-directed finishing pass (real favicon, themed focus rings, custom scrollbar, a rebuilt "אין אות" 404 page, and a bespoke Feed empty state) that closed out the remaining generic-scaffold tells. All merged to `main` (currently `961bcbb`+; PR E in progress on branch `feature/frontend-redesign-signature-details`). The Base44-generated QA-dashboard UI was rebuilt into a premium, Hebrew-first, RTL-first dark product with a design-token system (shadcn/ui + Tailwind + Radix, self-hosted Heebo + Frank Ruhl Libre fonts) and a product-vs-console split. PR A transformed the Feed from a scored card list into a **composed personal edition** (lead story / מבזק bulletins / "במוקד" tier / "עוד מהפיד" rows / "קריאה נוספת" digest, with a clickable signal-spectrum filter and Framer Motion entrance) under the approved "המערכת / The Desk" design concept — codename only, the product name is unchanged. PR B removed the left sidebar on product routes (ops keeps it, unchanged), replaced the plain header with a `Masthead` (wordmark, inline nav, console-entry icon) over a decorative `Atmosphere` backdrop, added a floating mobile pill nav for product routes, and wrapped route changes in a page transition. PR C brought Preferences, Calibration, and Results into the same editorial voice: a new `DeskIntro` line ("מה המערכת יודעת" / "כיול") opens Preferences and Calibration, boxed sections became hairline-divided lists, badge piles became kicker lines — with every hook/handler/`src/engine` call in Calibration's rating flow left verbatim. PR D gave the ops console its own backdrop (`OpsGrid`, a flat blueprint grid replacing the product's `Atmosphere`) and a mono breadcrumb ("המערכת ⁄ קונסולה ⁄ current page") in `OpsNav` — Sources/Debug/LLM QA page content and logic are untouched. **Backend, API contracts, and the frontend data layer (`src/context`, `src/api`, `src/engine`, `src/data`) were unchanged by the redesign** — one exception, explicitly authorized: a subtitle-excerpt fix at the ingestion layer (`backend/app/ingestion/subtitle.py`, PR A follow-up) after a user-reported bug where Walla's RSS `<description>` (the article lede) was being shown as if it were a short deck. See `docs/FRONTEND_DESIGN_SYSTEM.md`. Frontend tests: 341. Backend tests: 1081.
+Last updated: 2026-07-04 — reflects the **complete frontend redesign**: Court Vision (PRs 1–6) followed by five further PRs (A–E) that rebuilt the product's entire visual layer from the ground up. **All merged to `main` at commit `7e029bc`. No open feature branch.** The Base44-generated QA-dashboard UI is gone; the app is now a premium, Hebrew-first, RTL-first dark product with a design-token system (shadcn/ui + Tailwind + Radix, self-hosted Heebo + Frank Ruhl Libre fonts), a product-vs-console split, and a from-scratch product identity under the approved **"המערכת / The Desk"** design concept (a codename for the visual direction only — the product name is still Signal Sports / סיגנל). Full detail lives in `docs/FRONTEND_DESIGN_SYSTEM.md`; the one-paragraph arc:
+
+- **PR A ("The Edition")** rebuilt the Feed from a scored card list into a composed personal edition — lead story ("הסיפור המרכזי") / מבזק bulletins / "במוקד" tier / "עוד מהפיד" rows / "קריאה נוספת" digest, a clickable signal spectrum, Hebrew kickers, a "desk voice" explaining relevance, and Framer Motion (first real use in the app). A same-PR follow-up fixed a real bug at the **backend ingestion layer** (`backend/app/ingestion/subtitle.py`) — Walla's RSS `<description>` is the article's lede paragraph, not a short deck, and was being shown as if it were one; `clean_subtitle()` now cuts at the last complete sentence within a 240-char budget.
+- **PR B ("atmosphere + brand shell")** removed the left sidebar on product routes (Feed/Preferences/Calibration/Results — ops keeps its sidebar, unchanged), replaced the plain header with a `Masthead` (wordmark, inline nav, console-entry icon) over a decorative `Atmosphere` backdrop, added a floating mobile pill nav for product routes, and wrapped route changes in a page transition.
+- **PR C ("product pages")** brought Preferences, Calibration, and Results into the Feed's editorial voice — a `DeskIntro` line opens Preferences/Calibration, boxed sections became hairline-divided lists, badge piles became kicker lines. Every hook/handler/`src/engine` call in Calibration's rating flow is untouched.
+- **PR D ("ops shell variant")** gave the ops console its own backdrop (`OpsGrid`, a flat blueprint grid) and a mono breadcrumb in `OpsNav` — Sources/Debug/LLM QA page content and logic are completely untouched.
+- **PR E ("signature details")**, self-directed rather than requested, fixed real remaining gaps: the site's favicon file didn't exist at all (broken tab icon), the 404 page had never been touched by any redesign PR (it renders outside the app shell entirely), no themed focus rings, no custom scrollbar, and the Feed's empty state used a generic icon.
+
+**Backend, API contracts, and the frontend data layer (`src/context`, `src/api`, `src/engine`, `src/data`) were unchanged by the redesign**, except the one explicitly-authorized subtitle fix above. Frontend tests: 341. Backend tests: 1081.
 
 Prior backend state (unchanged by the redesign) reflects PR 13 + PR 13.1 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default, toggleable from the UI), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, runtime source enable/disable overrides, and the Sources page scheduler/health UI.
 
@@ -203,9 +211,11 @@ requires Ollama, a real API key, or live Sport5.
 
 ## 6. Frontend State
 
-**Design system (redesign 2026-07-04 + PR A + PR B):** The UI runs on the "Court Vision" token system — see `docs/FRONTEND_DESIGN_SYSTEM.md` for tokens, component inventory, and RTL rules. Key points: dark navy canvas with a semantic **signal system** (gold=push, green=high_feed, steel-blue=feed, dim=low_feed, red=hidden/errors, cyan=AI), Heebo/Frank-Ruhl-Libre fonts (serif weights 500/700), and a **product-vs-console split**: consumer pages (Feed, Preferences, Calibration, Results — full-width, no sidebar, ambient `Atmosphere` backdrop) vs an ops **console** (Sources, Debug, LLM QA — unchanged sidebar rail + steel-blue instrument panel). `<html lang="he" dir="rtl">` with logical-only Tailwind utilities. Both data modes work on every page. Components live under `src/components/{shared,shell,feed,ops,debug,preferences}`. The redesign, PR A, and PR B preserved every capability below and changed no backend/API/data-layer code (the one authorized exception is the ingestion subtitle fix, noted above).
+**Design system:** The UI runs on the "Court Vision" token system — see `docs/FRONTEND_DESIGN_SYSTEM.md` for the full tokens, component inventory, and RTL rules (that document is the authoritative reference; this section is a summary). Key points: dark navy canvas with a semantic **signal system** (gold=push, green=high_feed, steel-blue=feed, dim=low_feed, red=hidden/errors, cyan=AI), Heebo/Frank-Ruhl-Libre fonts (serif weights 500/700 — an 800 weight was tried in PR A.1 and dropped for reading too dramatic), and a **product-vs-console split**: product pages (Feed, Preferences, Calibration, Results — full-width, no sidebar, ambient `Atmosphere` backdrop) vs the ops **console** (Sources, Debug, LLM QA — sidebar rail intact, its own flat `OpsGrid` backdrop, steel-blue instrument-panel styling). `<html lang="he" dir="rtl">` with logical-only Tailwind utilities. Both data modes (`local`/`backend`) work on every page. Components live under `src/components/{shared,shell,feed,ops,debug,preferences}`. The entire redesign (Court Vision + PRs A–E) changed no backend/API/data-layer code except the one authorized subtitle fix noted above.
 
-**Data mode indicator:** `DataModeBadge` in the masthead — a pulsing dot + tooltip ("מצב נתונים: שרת"/"מצב נתונים: מקומי"), shrunk from a labeled pill (PR B) since it's ops-relevant information, not a consumer-facing label.
+**App shell (PR B):** `AppShell` branches structurally by area, not just style — product routes render no sidebar at all (the feed/page gets the full canvas); ops routes keep `ProductNav`'s desktop rail exactly as it always has. A `Masthead` component (replacing a plain header) carries the "סיגנל" wordmark + `SignalMark` (a three-bar icon reused as the Feed's own SIGNAL-strength instrument), inline product nav or a "חזרה למוצר" link on ops, and — at the far edge — the profile switcher, `DataModeBadge`, and (product only) a console-entry icon. The masthead starts transparent over the atmosphere/grid and gains a glass surface only past a scroll threshold. Mobile product routes get a floating glass pill nav; ops keeps the original edge-to-edge tab bar. Route changes fade+rise via Framer Motion.
+
+**Data mode indicator:** `DataModeBadge` in the masthead — a pulsing dot + tooltip ("מצב נתונים: שרת"/"מצב נתונים: מקומי"), shrunk from a labeled pill since it's ops-relevant information, not a consumer-facing label.
 
 **Sources page — Ingestion panel:** In backend mode, shows source selector (MVP active sources: וואלה ספורט, ישראל היום ספורט), "הרץ ייבוא עכשיו" button, per-source result breakdown after run, recent runs list (last 5), and "איכות הסיווג" quality toggle. No translation UI — translation is post-MVP and was removed from the Sources page. In local mode, shows a disabled card with instructions to enable backend mode.
 
@@ -213,9 +223,15 @@ requires Ollama, a real API key, or live Sport5.
 
 **Sources page — LLM Gating Benchmark panel** (dev/QA only): In backend mode, shows "בנצ׳מרק LLM Gating" section with "הרץ בנצ׳מרק מלא" button. Runs a two-phase benchmark (baseline then gated) and displays a structured report: per-source baseline stats, gated stats, and a comparison row per source showing skip rate, LLM calls saved, time saved, sport_unknown delta, and PASS/FAIL status. Requires ALLOW_DEV_RESET=true and CLASSIFICATION_PROVIDER=ollama. Results are not persisted. Panel hidden in local mode.
 
-**Feed ("The Edition", PR A + A.2 naming polish):** The Feed is no longer a card list. `editionComposer.js` partitions the ranked visible items into tiers rendered as distinct story species: **lead story**, framed as **"הסיפור המרכזי"** (first push, else first high_feed — serif display headline on the canvas with a signal aura), **מבזק bulletin strips** (remaining push), **"במוקד"** (high_feed, asymmetric editorial blocks), **"עוד מהפיד"** (feed, typographic rows with inline expand), and **"קריאה נוספת"** (low_feed, collapsed digest). The signal spectrum's general level labels are **"לא לפספס"** (push) / **"במוקד"** (high_feed) / **"עוד מהפיד"** (feed) / **"קריאה נוספת"** (low_feed) — display copy only, the decision ids themselves (`push`/`high_feed`/`feed`/`low_feed`/`hidden`) are unchanged and still drive scoring. A clickable **signal spectrum** (segment widths proportional to level counts) plus quiet topic toggles replace the old counts strip and filter chips; decision badges are gone from the product feed. Each story carries a Hebrew **kicker** (entity/league/sport · event type via `storyLabels.js`) and important stories show the **desk voice** ("למה אצלך: …") with the reasoning steps expandable — the full trace stays in Debug. Titles render Hebrew-native: for MVP Hebrew sources `translatedTitle` is always `null` and every species falls back to `title` via the preserved `item.translatedTitle || item.title` logic, so English sources keep working when re-enabled post-MVP. The RSS subtitle still appears under lead/major headlines (clamped) and inside expanded stream rows; it is not a translation, and there is no original-language block or "לא תורגם" warning. Feedback actions (`more_like_this`/`less_like_this`) are unchanged, offered as text buttons on lead/bulletins/editorial and icons on rows. Entrance/filter motion runs on Framer Motion and honors reduced-motion.
+**Ops console identity (PR D):** Sources/Debug/LLM QA keep a distinct instrument-panel backdrop (`OpsGrid`, a flat steel-blue blueprint grid at ~5% opacity, replacing the product's floodlit `Atmosphere`) and a mono breadcrumb in `OpsNav` reading "המערכת ⁄ קונסולה ⁄ {current page}". Nothing in these three pages' own content, logic, or API calls changed — only the shell chrome around them.
+
+**Feed ("The Edition", PR A + polish passes A.1–A.4 + PR A.2 naming):** The Feed is no longer a card list. `editionComposer.js` partitions the ranked visible items into tiers rendered as distinct story species: **lead story**, framed as **"הסיפור המרכזי"** (first push, else first high_feed — serif display headline on a full-width hero band with a signal-tinted mesh + half-court arc + SIGNAL strength instrument), **מבזק bulletin strips** (remaining push), **"במוקד"** (high_feed, asymmetric editorial blocks — one major + a two-column grid), **"עוד מהפיד"** (feed, typographic rows with inline expand), and **"קריאה נוספת"** (low_feed, collapsed digest, 4 rows visible by default). A sticky **"לוח הסיגנל" signal board** (xl+ screens) holds a clickable vertical spectrum + topic filters + desk facts; on smaller screens the spectrum sits above the fold. The signal spectrum's level labels are **"לא לפספס"** (push) / **"במוקד"** (high_feed) / **"עוד מהפיד"** (feed) / **"קריאה נוספת"** (low_feed) — display copy only, the decision ids themselves (`push`/`high_feed`/`feed`/`low_feed`/`hidden`) are unchanged and still drive scoring. Decision badges are gone from the product feed. Each story carries a Hebrew **kicker** (entity/league/sport · event type via `storyLabels.js`) and important stories show the **desk voice** ("למה אצלך: …") with the reasoning steps expandable — the full trace stays in Debug. Titles render Hebrew-native: for MVP Hebrew sources `translatedTitle` is always `null` and every species falls back to `title` via the preserved `item.translatedTitle || item.title` logic. The RSS **subtitle is clamped to 2–3 lines** on every surface (lead/bulletins/editorial/stream) — earlier in the redesign this was briefly shown unclamped, which exposed that some sources' ingested subtitle field runs well past a normal deck length (see the backend subtitle fix above); the frontend clamp is now a permanent defensive layer regardless of ingested length. Subtitle is not a translation; there is no original-language block or "לא תורגם" warning. Feedback actions (`more_like_this`/`less_like_this`) are unchanged, offered as text buttons on lead/bulletins/editorial and icons on rows. Entrance/filter motion runs on Framer Motion and honors reduced-motion. The zero-articles empty state (`EditionEmptyState`, PR E) is a bespoke enlarged-`SignalMark` moment, not the generic shared component.
+
+**Preferences / Calibration / Results (PR C):** Brought into the Feed's editorial voice on top of the PR B shell. A shared `DeskIntro` line (kicker + one sentence, no card) opens Preferences ("מה המערכת יודעת" — reads live topic/entity/muted counts off the active profile) and Calibration ("כיול"). Preferences' `TopicCard` is now a hairline-divided expandable row with a kicker line (priority · mode · leagues) instead of a bordered box with separate badges; its "important difference" callout was retoned from push-gold to `signal-ai` cyan (explanatory, not urgent — gold is reserved for push). Calibration's `HeadlineCard` gained a kicker line + serif headline instead of four pill badges; `InferenceDraftPanel`'s nested boxes became hairline dividers. **Every hook, handler, and `src/engine` call in Calibration is unchanged** — `inferPreferenceDraftFromCalibration`, `convertCalibrationDraftToUserProfile`, `scoreArticle`, `applySandboxProfile`/`resetSandboxProfile`, `updateProfile` are all byte-for-byte the same as before the redesign; only JSX/className changed. `PageHeader` itself was deliberately left untouched since it's shared with the ops console. Results (a coming-soon placeholder) was simplified to one centered moment.
 
 **Debug view:** All articles with full scoring reasoning. Each article card shows the subtitle (when available) directly under the title, clamped to 3 lines, to provide classification context during QA. Also shows LLM classification metadata (PR 11): `classified_by` as a color-coded badge (neutral=rules, blue=llm, cyan=llm+rules_guardrail, red=failure, gold=low-confidence — see `classifiedByConfig.js`), `classification_provider` inline, `classification_confidence` as a percentage, and `classification_reason` as an italic line. Comparison tab always uses local engine (cross-profile comparison not wired to backend).
+
+**Signature details (PR E, self-directed):** The favicon (`public/favicon.svg`, the SignalMark bars motif) previously didn't exist as a file at all despite being referenced in `index.html` — every browser tab showed a broken/default icon through the entire redesign until this was caught and fixed. Also added: a `theme-color` meta + critical-CSS background fallback (kills flash-of-white before CSS loads), a sitewide themed `:focus-visible` ring (using the existing `--ring` token), a custom thin scrollbar, and a rebuilt 404 page ("אין אות" — no signal) — the 404 route renders outside `AppShell` entirely, so it had never been touched by any prior redesign PR and still shipped the original plain "404" box from Court Vision PR 1.
 
 **Local mode:** Remains fully functional with mock data. No backend required. The frontend engine (`relevanceEngine.js`) is kept.
 
@@ -522,46 +538,54 @@ del data\signal_sports.db
 
 ---
 
-## 13. Handoff Prompt for a New Chat
+## 13. Handoff Prompt for a New Chat / New Tool
 
-Copy-paste this into a new conversation:
+This section is written to be self-sufficient for **any** coding agent picking up
+this project cold — Claude, Codex, or a human — with no prior conversation
+history. Read `docs/CURRENT_PROJECT_STATE.md` fully first; it is the
+authoritative, up-to-date summary. Do not trust `docs/IMPLEMENTATION_AUDIT.md`
+as current state — it is an explicitly-marked historical snapshot from before
+the backend and the frontend redesign existed.
 
----
+**Where things stand (2026-07-04):** Backend is a working FastAPI + SQLite app
+with real RSS ingestion (Walla Sport, Israel Hayom Sport active; Sport5 a
+disabled-by-default scraping pilot), a deterministic classifier with an
+optional LLM overlay, and 1081 passing pytest tests. The frontend has just
+finished a complete visual rebuild (Court Vision + PRs A–E, all merged to
+`main`) — see §6 above and `docs/FRONTEND_DESIGN_SYSTEM.md` for the full
+design system. **There is no single "next task" queued** — §11 above
+("Recommended Next Steps") lists several open items in priority order; ask
+the project owner which one (or something else entirely) before picking one
+yourself.
 
-אנחנו ממשיכים את פרויקט Signal Sports.
+**Working-style rules that have held throughout this project** (confirm they
+still apply, but they've been consistent):
+- Respond in Hebrew when the conversation is in Hebrew.
+- Be direct and practical; don't pad answers.
+- Don't assume the state of the code — if unclear, read the actual files or
+  ask, rather than guessing from a doc that might have drifted.
+- Don't change code without being asked. For audits/reviews, be honest and
+  specific about what's weak, generic, or fake — don't soften findings.
+- `backend/`, `src/context`, `src/api`, `src/engine`, `src/data` are treated
+  as a stable contract during frontend-only work; changes there need
+  explicit authorization (though it has been granted before, e.g. the
+  ingestion subtitle fix in §1, when a real bug's root cause lived there).
+- Every meaningful change: run the relevant test suite, lint, and build
+  before calling it done. For frontend UI work, verify live in a running
+  browser (both `local` and `backend` data modes), not just unit tests.
 
-קרא את הקובץ `docs/CURRENT_PROJECT_STATE.md` — הוא מכיל סיכום מדויק של מצב הפרויקט.
-
-כמה כללים לשיח:
-- ענה בעברית.
-- היה ישיר ומעשי.
-- אל תניח הנחות לגבי מצב הקוד — אם לא ברור, שאל לפני שאתה ממשיך.
-- אל תשנה קוד בלי שביקשתי.
-
-המשימה הבאה (אלא אם אני אגיד אחרת): בנצ'מארק של סיווג LLM עם Ollama + Qwen.
-
-שלבים:
-1. להתקין Ollama (אם לא מותקן) ולהריץ `ollama pull qwen2.5:3b-instruct`
-2. להגדיר ב-`backend/.env`:
-   ```
-   CLASSIFICATION_PROVIDER=ollama
-   CLASSIFICATION_MODEL=qwen2.5:3b-instruct
-   CLASSIFICATION_TIMEOUT_SECONDS=30
-   ```
-3. למחוק את ה-DB: `del backend\data\signal_sports.db`
-4. להריץ ייבוא: `POST /api/ingest/run?source_id=walla_sport` ו-`POST /api/ingest/run?source_id=israel_hayom_sport`
-5. לבדוק את `GET /api/ingest/quality` — כמה `sport=unknown` נשארו?
-6. לפתוח את ה-Debug view עבור Guy — אילו כתבות עכשיו נראות שלא היו נראות קודם?
-7. לבדוק שלא יש false positives (כתבות כדורגל שסווגו כסל)
-8. אם האיכות לא מספיקה — לנסות `qwen3:4b` כחלופה
-
-הקשר: ניסינו Gemini בתחילה אבל גירסת ה-preview (`gemini-2.5-flash-lite`) מוגבלת ל-20 בקשות ביום בחינמית — לא מספיק לאפילו ריצת ייבוא אחת של 28 כתבות. עברנו ל-Ollama+Qwen שלא מוגבל.
-
-אחרי ריצת ה-benchmark, בדוק גם בתגובת ה-API (`SourceIngestResult`):
-- `fetch_ms` — זמן שליפת ה-RSS
-- `llm_avg_ms`, `llm_p95_ms` — זמן ממוצע ו-p95 לקריאת LLM
-- `llm_successes`, `llm_fallback_*` — כמה הצליחו מול כמה נפלו
-
-תיעוד: `docs/LLM_CLASSIFICATION.md` מכיל את כל הפרטים הטכניים של מודול הסיווג ו-7 ה-guardrails (כולל 4b, 6, 7 שנוספו ב-QA fixes).
+**Still-open items from the backend track** (independent of the frontend
+work, listed in `docs/CURRENT_PROJECT_STATE.md` §11):
+1. LLM classification benchmark with Ollama + Qwen (`qwen2.5:3b-instruct`) —
+   Gemini's free tier (20 requests/day) proved too limited for even one
+   ingestion run. Full steps are in §11 above and `docs/LLM_CLASSIFICATION.md`.
+2. Feed clustering / fuzzy dedup — still URL-only; `cluster_id` exists but is
+   never populated. This is the single most-repeated "still fake" finding
+   across every audit pass of this project.
+3. Feedback → profile mutation — feedback events are recorded but don't yet
+   change scoring.
+4. Base44 dependency cleanup (Stripe, three.js, react-leaflet, etc. still in
+   `package.json`, unused) — explicitly scoped as separate from any redesign
+   or feature PR; never scheduled.
 
 ---

@@ -1,16 +1,21 @@
 # Signal Sports — Frontend Design System ("Court Vision")
 
-Last updated: 2026-07-04 — the frontend redesign (PRs 1–6, branch
-`feature/frontend-redesign-foundation`) that turned the Base44-generated QA
-dashboard into a premium, Hebrew-first, RTL-first dark product, plus
-**PR A ("The Edition", same branch, commit `f23d023`)** which rebuilt the Feed
-from a card list into a composed personal edition under the approved
-"המערכת / The Desk" design concept (codename only — the product name is
-unchanged).
+Last updated: 2026-07-04 — this is the **complete** picture of the frontend
+redesign, now finished and merged to `main` at commit `7e029bc`: Court Vision
+(PRs 1–6) turned the Base44-generated QA dashboard into a premium,
+Hebrew-first, RTL-first dark product, and five further PRs (**A** "The
+Edition", **B** "atmosphere + brand shell", **C** "product pages", **D** "ops
+shell variant", **E** "signature details") rebuilt the product identity from
+the ground up under the approved **"המערכת / The Desk"** design concept — a
+codename for the visual direction only, the product name is still Signal
+Sports / סיגנל. Section 1 covers the design language, section 4 has the full,
+current component inventory organized by the PR that introduced each part.
 
 This document is the reference for the design system: the tokens, the component
 inventory, the product-vs-console split, and the hard RTL rules. Read it before
-adding any new UI.
+adding any new UI. `docs/CURRENT_PROJECT_STATE.md` has the equivalent summary
+for the whole project (backend + frontend); this file is the frontend-only
+deep reference.
 
 ---
 

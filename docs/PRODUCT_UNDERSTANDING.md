@@ -105,18 +105,18 @@ The MVP does not need real sources, real scraping, backend persistence, or produ
 
 5. **The feed is low noise.** If the feed shows 40 out of 41 articles as feed-or-above, the engine is not filtering. The feed should surface the articles that actually matter and aggressively hide the rest.
 
-## What Should Not Be Built Yet
+## What Should Not Be Built Yet (as of the original MVP scoping)
 
-The following are explicitly out of scope for the current phase:
+The following were explicitly out of scope when this document was first written. **Status update — most of this has since been built; see `docs/CURRENT_PROJECT_STATE.md` for current, authoritative state:**
 
-- Real RSS or scraping from live sources
-- Backend server, database, or API layer
-- User authentication or accounts
-- Push notifications to devices
-- Natural language processing / LLM-based classification (the article metadata should be authored or mocked for now)
-- Natural language preference input (implement preference structure by hand first; LLM conversion comes later)
-- Production deployment
-- Multi-language translation engine (Hebrew title fields exist in the model but no actual translation)
-- Real clustering algorithm (TF-IDF, semantic similarity, time windowing)
+- ~~Real RSS or scraping from live sources~~ — **done.** Walla Sport + Israel Hayom Sport are live RSS sources; Sport5 is a working HTML-scraping pilot (disabled by default).
+- ~~Backend server, database, or API layer~~ — **done.** FastAPI + SQLite, `backend/app/`.
+- User authentication or accounts — **still not built.** Profiles remain statically seeded.
+- Push notifications to devices — **still not built.** `push` is a decision level only; no device delivery.
+- ~~Natural language processing / LLM-based classification~~ — **done.** Deterministic classifier + optional LLM overlay (Gemini/Ollama) with 7 merge guardrails; see `docs/LLM_CLASSIFICATION.md`.
+- Natural language preference input (free text → structured profile) — **still not built.** This is Option 1 from the personalization section above; only Option 2 (synthetic headline calibration) has a working screen (`Calibration.jsx`) and Option 3 (feedback loop) records events but doesn't yet mutate profiles.
+- Production deployment — **still not applicable.** Local dev only.
+- ~~Multi-language translation engine~~ — **built, but intentionally disabled.** `backend/app/translation/` is intact (Claude/Fake/Noop providers); `TRANSLATION_PROVIDER=disabled` is correct for the current Hebrew-only MVP. Re-enable when English sources (Eurohoops, Sportando) return.
+- Real clustering algorithm (TF-IDF, semantic similarity, time windowing) — **still not built.** Dedup is URL-only; `cluster_id` exists on the model but nothing populates it. This is the most-cited "still fake" gap across every audit pass.
 
-The reason these are out of scope is not that they are unimportant. It is that they are downstream of getting the scoring model correct. A sophisticated NLP classifier feeding bad data into a broken scoring engine produces a worse product than well-crafted mock data feeding a correct scoring engine. Get the model right first.
+The original reasoning still holds for what's left: don't build feedback-driven learning or fuzzy clustering on top of an unvalidated scoring engine. The scoring engine and classification pipeline are now validated (1081 backend tests); the remaining gaps (auth, push delivery, NL preference input, feedback→profile mutation, real clustering) are genuine product features, not scaffolding risk.

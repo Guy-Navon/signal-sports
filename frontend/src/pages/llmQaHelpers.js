@@ -3,7 +3,12 @@
  * Exported for testability — no React or side effects.
  */
 
-export const HEBREW_BROAD_SOURCES = ["walla_sport", "israel_hayom_sport", "ynet_sport"];
+export const HEBREW_BROAD_SOURCES = [
+  "walla_sport",
+  "israel_hayom_sport",
+  "ynet_sport",
+  "one_sport",
+];
 
 // Hebrew words that appear almost exclusively in football coverage in Israel.
 // Used as a QA heuristic to flag basketball-classified articles for manual review.
@@ -70,6 +75,7 @@ export function calcMetrics(debugItems, timeFilter) {
     (a) => a.source === "israel_hayom_sport"
   ).length;
   const ynetCount = items.filter((a) => a.source === "ynet_sport").length;
+  const oneCount = items.filter((a) => a.source === "one_sport").length;
   const visibleForGuy = items.filter(
     (a) => a.score?.decision !== "hidden"
   ).length;
@@ -97,6 +103,7 @@ export function calcMetrics(debugItems, timeFilter) {
     wallaCount,
     ihCount,
     ynetCount,
+    oneCount,
     visibleForGuy,
     hiddenForGuy,
     unknownCount: sportBreakdown["unknown"] || 0,
@@ -163,6 +170,7 @@ export function buildQaSummary({
     lines.push(`- וואלה ספורט: ${metrics.wallaCount}`);
     lines.push(`- ישראל היום: ${metrics.ihCount}`);
     lines.push(`- ynet ספורט: ${metrics.ynetCount || 0}`);
+    lines.push(`- ONE ספורט: ${metrics.oneCount || 0}`);
     lines.push(`- ניראה לגיא: ${metrics.visibleForGuy}`);
     lines.push(`- מוסתר לגיא: ${metrics.hiddenForGuy}`);
     lines.push(`- sport=unknown: ${metrics.unknownCount}`);

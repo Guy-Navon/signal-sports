@@ -9,6 +9,7 @@ To add a new source: add a block under the source_id check in extract_source_spo
 Do NOT add generic URL patterns here — all rules must be source-scoped.
 """
 
+import re
 from typing import Literal, Optional
 
 
@@ -36,6 +37,13 @@ _YNET_FOOTBALL_PATHS = (
     "/sport/worldsoccer/",
     "/sport/worldcup",
 )
+
+# ONE article URLs sometimes include the category id after the season segment:
+# /Article/26-27/3,100,0,0/527252.html. Category IDs observed in the public
+# article APIs: 1/3/155 football, 2/5 basketball, 7 other sports.
+_ONE_CATEGORY_RE = re.compile(r"/article/\d{2}-\d{2}/(\d+),", re.IGNORECASE)
+_ONE_FOOTBALL_CATEGORY_IDS = {"1", "3", "155"}
+_ONE_BASKETBALL_CATEGORY_IDS = {"2", "5"}
 
 
 def extract_source_sport_hint(
@@ -66,4 +74,12 @@ def extract_source_sport_hint(
             return "basketball"
         if any(p in url_lower for p in _YNET_FOOTBALL_PATHS):
             return "football"
+    if source_id == "one_sport":
+        match = _ONE_CATEGORY_RE.search(url)
+        if match:
+            category_id = match.group(1)
+            if category_id in _ONE_BASKETBALL_CATEGORY_IDS:
+                return "basketball"
+            if category_id in _ONE_FOOTBALL_CATEGORY_IDS:
+                return "football"
     return None

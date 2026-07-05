@@ -29,6 +29,24 @@ def client():
         yield c
 
 
+@pytest.fixture(autouse=True)
+def _mock_one_api_by_default(monkeypatch):
+    """Keep enabled ONE ingestion hermetic in tests unless a test overrides it."""
+    try:
+        from app.ingestion.adapters import one_adapter
+    except Exception:
+        return
+
+    class _Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"Data": {"Articles": {"Items": []}}}
+
+    monkeypatch.setattr(one_adapter.httpx, "get", lambda *args, **kwargs: _Response())
+
+
 # IDs of seed articles used by feed/scoring tests (must survive the rss-only filter).
 _RSS_SEEDED_IDS = {
     "article_001",   # Maccabi negotiation → push for Guy

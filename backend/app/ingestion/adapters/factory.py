@@ -6,6 +6,7 @@ source types (e.g. html_scrape) plug in here without touching _run_source().
 """
 
 from app.ingestion.adapters.base import SourceAdapter
+from app.ingestion.adapters.one_adapter import OneSportAdapter
 from app.ingestion.adapters.rss_adapter import RSSSourceAdapter
 from app.ingestion.adapters.sport5_adapter import Sport5ScrapeAdapter
 from app.ingestion.config import RSSSourceConfig
@@ -13,8 +14,12 @@ from app.ingestion.config import RSSSourceConfig
 
 def build_adapter(cfg: RSSSourceConfig) -> SourceAdapter:
     if cfg.source_type == "html_scrape":
-        # Currently the only html_scrape source is the Sport5 pilot; a generic
-        # scrape adapter registry can replace this if more scrape sources land.
+        if cfg.source_id == "one_sport":
+            return OneSportAdapter(
+                source_id=cfg.source_id,
+                category_urls=cfg.category_urls,
+                base_url=cfg.feed_url,
+            )
         return Sport5ScrapeAdapter(
             source_id=cfg.source_id,
             category_urls=cfg.category_urls,

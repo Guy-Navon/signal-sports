@@ -309,6 +309,11 @@ Defined in `backend/app/classification/source_hints.py`. Returns a sport string 
 | Israel Hayom | `/sport/opinions-sport/` | `None` (could be any sport) |
 | Sport5 (PR 13) | `FolderID=274` in article URL query (basketball news folder) | `"basketball"` |
 | Sport5 (PR 13) | any other FolderID | `None` (conservative — classifier/LLM decide) |
+| Ynet Sport | `/sport/israelibasketball/`, `/sport/worldbasketball/` | `"basketball"` |
+| Ynet Sport | `/sport/worldsoccer/`, `/sport/worldcup.../` | `"football"` |
+| ONE Sport | `/Article/<season>/2,...` or `/5,...` | `"basketball"` |
+| ONE Sport | `/Article/<season>/1,...`, `/3,...`, or `/155,...` | `"football"` |
+| ONE Sport | generic `/Article/<id>.html` | `None` (classifier/LLM decide) |
 
 The hint flows through both the deterministic classifier and the LLM merge:
 1. `extract_source_sport_hint(cfg.source_id, item.url)` is called once in `_normalise()`
@@ -466,7 +471,7 @@ All vars are read at module import time (same pattern as `TRANSLATION_PROVIDER`)
 
 ## Selective LLM Gating (`gating.py`)
 
-The LLM is Ollama/Qwen's primary bottleneck (~12s per call). The gating module decides, per eligible article, whether calling the LLM is likely to add value over the deterministic result. Articles from non-Hebrew-broad sources, or when the provider is disabled, are never considered eligible and bypass gating entirely. The Hebrew broad-source set is `{walla_sport, israel_hayom_sport, ynet_sport, sport5_sport}`. **Gating conditions and thresholds are unchanged by source onboarding** — source additions only change eligibility, while gating still reads the deterministic `rules_result`.
+The LLM is Ollama/Qwen's primary bottleneck (~12s per call). The gating module decides, per eligible article, whether calling the LLM is likely to add value over the deterministic result. Articles from non-Hebrew-broad sources, or when the provider is disabled, are never considered eligible and bypass gating entirely. The Hebrew broad-source set is `{walla_sport, israel_hayom_sport, ynet_sport, one_sport, sport5_sport}`. **Gating conditions and thresholds are unchanged by source onboarding** — source additions only change eligibility, while gating still reads the deterministic `rules_result`.
 
 **Definition:** `llm_skipped` = article was eligible (Hebrew broad source + provider active + circuit not open) but the gate decided the deterministic result was already strong enough. `llm_attempts` = LLM was actually called.
 
@@ -655,7 +660,7 @@ A one-click benchmark is available on the Sources page (backend mode only).
 
 **What it does:**
 1. Resets RSS data
-2. Runs ingestion for Hebrew broad sources (`walla_sport`, `israel_hayom_sport`, `ynet_sport`, `sport5_sport`) with `gating_enabled_override=False` (baseline)
+2. Runs ingestion for Hebrew broad sources (`walla_sport`, `israel_hayom_sport`, `ynet_sport`, `one_sport`, `sport5_sport`) with `gating_enabled_override=False` (baseline)
 3. Queries `sport=unknown` counts per source
 4. Resets RSS data again
 5. Runs ingestion with `gating_enabled_override=True` (gated)
@@ -693,6 +698,7 @@ del backend\data\signal_sports.db
 POST /api/ingest/run?source_id=walla_sport
 POST /api/ingest/run?source_id=israel_hayom_sport
 POST /api/ingest/run?source_id=ynet_sport
+POST /api/ingest/run?source_id=one_sport
 GET /api/ingest/quality
 GET /api/debug/feed/guy
 ```

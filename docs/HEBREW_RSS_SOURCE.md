@@ -371,16 +371,23 @@ classification shows up in debug with sport=unknown and can be fixed by adding c
 
 | Source | Desired source_id | RSS candidates probed | Outcome |
 |--------|------------------|-----------------------|---------|
-| ONE | `one_sport` | `one.co.il/rss`, `/feed/`, `/sport/rss`, `/Sport/RSS`, `/rss.xml`, `/category/sport/feed`, homepage link scan | All return 404. No RSS link tags found on homepage. **Rejected.** |
+| ONE | `one_sport` | `one.co.il/rss`, `/feed/`, `/sport/rss`, `/Sport/RSS`, `/rss.xml`, `/category/sport/feed`, homepage link scan; later public JSON API inspection | RSS candidates return 404 and no RSS link tags are advertised. Video RSS exists but is not news-article content. **Accepted via public JSON article API, not RSS.** |
 | Ynet Sport | `ynet_sport` | `AjaxRSSFeed.aspx?type=1027/1025/1026`, `/sport/rss`, `/sport/feed`, `/sport/?feed=rss2`, sport page link scan | Historical probes failed; later official RSS discovered at `https://www.ynet.co.il/Integration/StoryRss3.xml`. **Accepted.** |
 | Israel Hayom Sport | `israel_hayom_sport` | `/rss.xml`, `/rss/sport.xml`, `/sport/rss.xml`, `/sport/?feed=rss2`, `/sport/feed/` | `/rss.xml` returns valid RSS (100 items); sport-specific paths return 404 or HTML. **Accepted with URL filter.** |
 | Sport5 | (intentionally excluded) | Not probed | No public RSS known per prior research. **Not attempted.** |
 
-### ONE — rejected
+### ONE — accepted via public JSON article API
 
-All RSS endpoints return HTTP 404. The ONE homepage contains no RSS or Atom `<link>` tags.
-ONE does not publish a public RSS feed. Category page scraping would be required but is out of
-scope for this PR.
+All news RSS endpoint candidates returned HTTP 404, and the ONE homepage contains no RSS or Atom
+`<link>` tags. The RSS-like endpoint `https://sites.one.co.il/rss/video/itunes` is video/podcast
+media and does not provide normal news-article links, so it is not suitable for Signal Sports.
+
+ONE's current homepage does expose public JSON article-list calls under `https://api.one.co.il/`.
+The implemented source `one_sport` uses the existing adapter/factory ingestion path with
+`source_type="html_scrape"` and parses those JSON endpoints directly:
+`/JSON/v6/Articles/Category/1`, `/2`, `/3`, `/5`, `/7`, and `/155`. Items provide `Title.Main`,
+`Title.Secondary`, `Date`, `URL.PC`, `ID`, `IsLive`, and `IsVideo`; `IsVideo=true` items are
+skipped. No article bodies are fetched.
 
 ### Ynet Sport — accepted via official RSS
 
@@ -557,5 +564,5 @@ PR 13 applied this pattern to the Sport5 scraping pilot: article URLs containing
 | High | Validate the Sport5 scraping pilot against the live site; enable if quality holds |
 | Medium | Fuzzy dedup — cluster near-duplicate headlines from multiple sources |
 | ~~Medium~~ partly done (PR 13) | Extended Hebrew entity detection — 25 canonical entities in the normalizer; classifier keyword detection for more players/coaches still open |
-| Medium | More Israeli sports sources — ONE via category page adapter (no public RSS exists) |
+| ~~Medium~~ done | ONE Sport — enabled via public JSON article API because no suitable news RSS exists |
 | Low | Feedback → profile mutation — `never_show` creates a hidden event rule |

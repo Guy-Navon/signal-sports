@@ -86,7 +86,7 @@ describe("runLlmGatingBenchmark API function", () => {
 describe("Benchmark response shape expectations", () => {
   const MOCK_RESPONSE = {
     provider: "ollama:qwen2.5:3b-instruct",
-    sources: ["walla_sport", "israel_hayom_sport", "ynet_sport"],
+    sources: ["walla_sport", "israel_hayom_sport", "ynet_sport", "one_sport"],
     baseline: {
       gating_enabled: false,
       sources: {

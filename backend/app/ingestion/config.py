@@ -115,6 +115,26 @@ RSS_SOURCES: list[RSSSourceConfig] = [
         language="he",
         allowed_languages=("he",),
     ),
+    # ONE Sport: no suitable public news RSS feed was found. The ONE homepage
+    # uses public api.one.co.il JSON article-list endpoints, so this source
+    # reuses the scraping adapter path while parsing stable JSON fields rather
+    # than brittle presentation markup. Video-only feed/items are skipped.
+    RSSSourceConfig(
+        source_id="one_sport",
+        display_name="ONE ספורט",
+        feed_url="https://www.one.co.il/",   # base URL + Referer for API requests
+        language="he",
+        allowed_languages=("he",),
+        source_type="html_scrape",
+        category_urls=(
+            "https://api.one.co.il/JSON/v6/Articles/Category/1",    # football Israel
+            "https://api.one.co.il/JSON/v6/Articles/Category/2",    # basketball Israel
+            "https://api.one.co.il/JSON/v6/Articles/Category/3",    # football world
+            "https://api.one.co.il/JSON/v6/Articles/Category/5",    # basketball world
+            "https://api.one.co.il/JSON/v6/Articles/Category/7",    # other sports
+            "https://api.one.co.il/JSON/v6/Articles/Category/155",  # lower leagues
+        ),
+    ),
 
     # ── Scraping pilot (PR 13, disabled by default) ───────────────────────────
 

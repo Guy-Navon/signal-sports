@@ -148,20 +148,28 @@ assumed:
   unaffected by any of this.
 - At server start, Vite reads **one** environment variable,
   `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS` (note the double leading underscore — this is an
-  internal Vite mechanism, not a `VITE_`-prefixed app env var), and appends its **entire raw
-  value as a single literal string** to the allowed-hosts list. It does **not** split on commas
-  — that was verified by reading Vite's source (`server.allowedHosts = [...server.allowedHosts,
-  additionalHost]`, a plain array push) and by an isolated runtime test (a request with
-  `Host: real-hostname` was blocked when the variable held `real-hostname,other-hostname`,
-  because Vite compared the request's Host header against the literal joined string, not
-  against each half).
+  internal Vite mechanism, not a `VITE_`-prefixed app env var), and appends its raw value to the
+  allowed-hosts list.
 
-Practical consequence: **set this to exactly one exact hostname, nothing else.**
+**Version note:** in this repository's current Vite version (`6.4.3`), that value is appended
+as a single literal string — verified by reading Vite's source
+(`server.allowedHosts = [...server.allowedHosts, additionalHost]`, a plain array push, no
+splitting) and by an isolated runtime test (a request with `Host: real-hostname` was blocked
+when the variable held `real-hostname,other-hostname`, because Vite compared the request's Host
+header against the whole joined string, not against each half). Upstream Vite documentation for
+newer releases describes support for comma-separated hosts in this variable, so a later Vite
+upgrade may change this behavior — re-check the installed version's actual behavior (source or a
+quick runtime test, as above) before relying on multiple comma-separated hosts here. Either way,
+this setup only ever needs one hostname, so the practical instruction below doesn't change:
+
+Practical consequence for this repository, today: **set this to exactly one exact hostname,
+nothing else.**
 ```powershell
 $env:__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS = "<machine>.<tailnet>.ts.net"
 ```
-This is not a stylistic choice — it is the only value that actually works. Do not put a
-comma-separated list here expecting Vite to accept either host; it will accept neither.
+In Vite `6.4.3` this is the only value that actually works — a comma-separated list is accepted
+by neither host. Even on a future Vite version where comma-separated hosts are supported, this
+setup still only has one hostname to allow, so keep this value as a single hostname regardless.
 
 This value is **never committed**. It lives only in the shell that launches `npm run dev` for
 that session (or in your own local shell profile, which is also outside this repository). The
@@ -205,8 +213,9 @@ after setting it; Vite reads the variable once, at server start.
 
 **Set the variable but it's still blocked**
 Almost always one of:
-- The value has a comma or a second hostname in it — see above, only one exact hostname is
-  supported by this mechanism.
+- The value has a comma or a second hostname in it — in the currently installed Vite version
+  (`6.4.3`), only one exact hostname is supported, see
+  [Local allowed-host configuration](#local-allowed-host-configuration) for why.
 - The value was set in a different terminal/shell than the one running `npm run dev`.
 - The value has a typo, trailing slash, or `https://` prefix — it must be the bare hostname
   only (`<machine>.<tailnet>.ts.net`, no scheme, no path).

@@ -150,10 +150,18 @@ class TestMaccabiBackwardCompatibility:
 
 class TestEnrichmentPhraseTable:
     def test_expected_entities_in_table(self):
+        # Derived from the taxonomy registry: all unguarded Israeli Basketball
+        # League clubs (taxonomy PR — previously a hand-maintained 5-club dict).
         assert set(_BASKETBALL_ENRICHMENT_PHRASES) == {
             "Maccabi Tel Aviv Basketball",
             "Hapoel Tel Aviv Basketball",
             "Hapoel Jerusalem Basketball",
             "Hapoel Holon",
             "Bnei Herzliya",
+            "Hapoel Eilat",
+            "Hapoel Galil Gilboa",
+            "Ironi Ramat Gan",
+            "Emek Yizrael Basketball",
+            "Maccabi Ramat Gan",
+            "Maccabi Kiryat Gat",
         }

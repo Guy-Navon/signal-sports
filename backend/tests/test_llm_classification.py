@@ -201,9 +201,16 @@ class TestEntityNormalizer:
         assert "Deni Avdija" in result
 
     def test_maccabi_tlv_hebrew_variants(self):
-        for alias in ["מכבי", "מכבי תל אביב", "maccabi tel aviv", "maccabi tlv"]:
+        for alias in ["מכבי תל אביב", "maccabi tel aviv", "maccabi tlv"]:
             result = normalize_llm_entities([alias], sport="basketball")
             assert "Maccabi Tel Aviv Basketball" in result, f"Alias {alias!r} not normalized"
+
+    def test_bare_family_names_never_normalize(self):
+        # Taxonomy contract: generic family names from the LLM are discarded —
+        # bare "מכבי" must never become Maccabi Tel Aviv (Ramat Gan / Kiryat Gat
+        # contamination) and bare "הפועל" must never become Hapoel Tel Aviv.
+        for family in ["מכבי", "maccabi", "הפועל", "hapoel"]:
+            assert normalize_llm_entities([family], sport="basketball") == []
 
     def test_knicks_hebrew(self):
         result = normalize_llm_entities(["ניקס"], sport="basketball")

@@ -8,7 +8,9 @@ Last updated: 2026-07-04 — reflects the **complete frontend redesign**: Court 
 - **PR D ("ops shell variant")** gave the ops console its own backdrop (`OpsGrid`, a flat blueprint grid) and a mono breadcrumb in `OpsNav` — Sources/Debug/LLM QA page content and logic are completely untouched.
 - **PR E ("signature details")**, self-directed rather than requested, fixed real remaining gaps: the site's favicon file didn't exist at all (broken tab icon), the 404 page had never been touched by any redesign PR (it renders outside the app shell entirely), no themed focus rings, no custom scrollbar, and the Feed's empty state used a generic icon.
 
-**Backend, API contracts, and the frontend data layer (`src/context`, `src/api`, `src/engine`, `src/data`) were unchanged by the redesign**, except the one explicitly-authorized subtitle fix above. Frontend tests: 341. Backend tests: 1081.
+**Backend, API contracts, and the frontend data layer (`src/context`, `src/api`, `src/engine`, `src/data`) were unchanged by the redesign**, except the one explicitly-authorized subtitle fix above. Frontend tests: 341. Backend tests: 1165.
+
+**2026-07-06 — Signal Intelligence Architecture v2 started.** PR 1 (branch `feature/taxonomy-entity-resolver`, PR #26) shipped the canonical taxonomy + entity resolver foundation: `backend/app/taxonomy/` is now the single source of entity truth for the deterministic classifier and the LLM normalizer; bare club-family names ("מכבי", "הפועל"…) never resolve to a team; Maccabi Ramat Gan / Maccabi Kiryat Gat exist as distinct entities. See `docs/TAXONOMY.md` for the taxonomy contract and `docs/INTELLIGENCE_ROADMAP.md` for the full initiative plan (Epic #27, Milestone 1 — the home page for all initiative issues).
 
 Prior backend state (unchanged by the redesign) reflects PR 13 + PR 13.1 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default, toggleable from the UI), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, runtime source enable/disable overrides, and the Sources page scheduler/health UI.
 
@@ -192,7 +194,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 
 On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent).
 
-**Test suite:** 1076 pytest tests across `backend/tests/` + 286 frontend tests (Vitest).
+**Test suite:** 1165 pytest tests across `backend/tests/` + 341 frontend tests (Vitest).
 The test environment is hermetic: `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and
 `INGESTION_SCHEDULER_ENABLED=false` regardless of the developer's `backend/.env`, so no test
 requires Ollama, a real API key, or live Sport5.
@@ -297,9 +299,9 @@ Push must be rare. If more than a handful of articles per day reach push, the en
 The deterministic classifier is keyword-matching only — no NLP, no LLM. It always runs first, for all sources. For English basketball-only sources (`eurohoops`, `sportando`), it is the sole classifier. For Hebrew broad sources, its result is used as guardrail input when LLM is enabled.
 
 **What it detects reliably:**
-- Maccabi Tel Aviv Basketball (English + Hebrew forms, including standalone "מכבי")
+- Maccabi Tel Aviv Basketball (full English + Hebrew name forms; **standalone "מכבי" no longer resolves to any team** — the taxonomy PR made bare club-family names non-resolving to stop Maccabi Ramat Gan / Kiryat Gat contamination; see `docs/TAXONOMY.md`)
 - Deni Avdija ("דני אבדיה", "אבדיה", "avdija", "deni")
-- Oded Kattash ("קטש", "עודד קטש") as a strong Maccabi TLV basketball signal
+- Oded Kattash ("קטש", "עודד קטש") as a strong Maccabi TLV basketball signal — since the taxonomy PR this is a registry data fact (`coach:oded_kattash` → `team:maccabi_tlv_bb`), not a code rule
 - Israeli Basketball League: direct keywords ("ווינר סל", "ליגת העל סל", "הפועל תל אביב") + context inference (known domestic league opponents + Maccabi entity)
 - NBA Hebrew nicknames (וויזארדס, הורנטס, בלייזרס, ניקס, סלטיקס)
 - EuroCup vs EuroLeague disambiguation (EuroCup checked first)
@@ -413,12 +415,14 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 - **No body translation or summaries.** Only titles are translated. Article bodies are not ingested.
 - **Limited source coverage.** MVP active sources: Walla Sport, Israel Hayom Sport, Ynet Sport, and ONE Sport. Eurohoops and Sportando are disabled (post-MVP). Sport5 is a scraping pilot (PR 13, disabled by default — no public RSS exists).
 - **LLM classification not yet benchmarked at production scale.** Two providers are implemented: `gemini` (fast, cloud, but only 20 requests/day free tier — exhausted in one ingestion run) and `ollama` (local, uncapped, needs Ollama installed and `qwen2.5:3b-instruct` pulled). Default is `disabled`. Hebrew articles use deterministic classification until a provider is configured. Timing is now instrumented — `fetch_ms`, `llm_avg_ms`, `llm_p95_ms`, and fallback counts appear in `POST /api/ingest/run` responses.
-- **Entity normalization map is conservative (expanded in PR 13).** 25 canonical entities (Israeli basketball clubs, EuroLeague/EuroCup clubs, NBA teams/players) with Hebrew + English aliases; multi-sport European clubs are sport-guarded. Entities not in `_ENTITY_ALIASES` are still silently discarded from `article.entities` even when the LLM identifies them correctly.
+- **Entity coverage is registry-bound (taxonomy PR).** ~45 canonical entities in `backend/app/taxonomy/entities.py` (all Winner League clubs incl. Maccabi Ramat Gan / Kiryat Gat, Israeli family-name football clubs, EuroLeague/EuroCup clubs, NBA teams/players, coach Kattash) with Hebrew + English aliases; cross-sport names abstain without sport evidence. Entities not in the registry are still silently discarded from `article.entities` even when the LLM identifies them correctly — unresolved-mention capture arrives with the ArticleFacts issue (#28).
 - **Translation not active in MVP.** `TRANSLATION_PROVIDER=disabled` is correct for Hebrew-only MVP. Backend module, DB fields, and API routes are preserved for post-MVP re-enablement. Translation quality validation is a post-MVP concern.
 
 ---
 
 ## 11. Recommended Next Steps
+
+> **The active roadmap is the Signal Intelligence Architecture v2 initiative** — see `docs/INTELLIGENCE_ROADMAP.md` and [Milestone 1](https://github.com/Guy-Navon/signal-sports/milestone/1). The list below predates it and remains for the operational items (benchmarks, source validation) that are still relevant.
 
 Priority order:
 
@@ -498,7 +502,7 @@ No `.env.local` needed. Uses mock data and frontend engine.
 ```bash
 cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
-# 1076 tests — all should pass (no test requires Ollama, a real API key, or live Sport5;
+# 1165 tests — all should pass (no test requires Ollama, a real API key, or live Sport5;
 # conftest forces CLASSIFICATION_PROVIDER=disabled + INGESTION_SCHEDULER_ENABLED=false)
 # Note: test_reset_returns_403_when_disabled requires ALLOW_DEV_RESET unset or =false in .env
 ```
@@ -576,7 +580,7 @@ the backend and the frontend redesign existed.
 **Where things stand (2026-07-04):** Backend is a working FastAPI + SQLite app
 with real RSS ingestion (Walla Sport, Israel Hayom Sport active; Sport5 a
 disabled-by-default scraping pilot), a deterministic classifier with an
-optional LLM overlay, and 1081 passing pytest tests. The frontend has just
+optional LLM overlay, and 1165 passing pytest tests. The frontend has just
 finished a complete visual rebuild (Court Vision + PRs A–E, all merged to
 `main`) — see §6 above and `docs/FRONTEND_DESIGN_SYSTEM.md` for the full
 design system. **There is no single "next task" queued** — §11 above

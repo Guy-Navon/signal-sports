@@ -341,25 +341,17 @@ A football article with `entities=["Maccabi Tel Aviv Basketball"]` will not matc
 
 ## Entity Normalization (`entity_normalizer.py`)
 
-LLM outputs free-text entity strings. The relevance engine requires exact canonical names for entity-scope topic matching and entity event rules. Example: `"Maccabi TLV"`, `"מכבי"`, `"Maccabi Tel Aviv"` must all resolve to `"Maccabi Tel Aviv Basketball"`.
+LLM outputs free-text entity strings. The relevance engine requires exact canonical names for entity-scope topic matching and entity event rules. Example: `"Maccabi TLV"` and `"Maccabi Tel Aviv"` resolve to `"Maccabi Tel Aviv Basketball"` (when sport=basketball). **Bare family names (`"מכבי"`, `"הפועל"`, `"maccabi"`, `"hapoel"`) are discarded** — they must never resolve to a specific team (taxonomy PR; see `docs/TAXONOMY.md`).
 
-The alias map is conservative and explicit. Only listed aliases are normalized. Unknown entities (coach names, club names not yet in the map) are silently discarded from `article.entities`. They remain visible in `classification_reason` for inspection.
+As of the taxonomy foundation PR, the alias map is a derived view over the central taxonomy registry (`backend/app/taxonomy/`) — the deterministic classifier and this normalizer share one source of entity truth.
 
-**Current canonical entities (25 as of PR 13):**
+Normalization is conservative and explicit. Only registry aliases are normalized. Unknown entities (coach names, club names not yet in the registry) are silently discarded from `article.entities`. They remain visible in `classification_reason` for inspection (structured unresolved-mention capture arrives with the ArticleFacts issue, #28).
 
-| Group | Canonical names |
-|-------|-----------------|
-| Original 5 | `Maccabi Tel Aviv Basketball`, `Deni Avdija`, `Hapoel Tel Aviv Basketball`, `Hapoel Jerusalem Basketball`, `New York Knicks` |
-| Israeli basketball (PR 13) | `Hapoel Holon`, `Bnei Herzliya`, `Hapoel Eilat`, `Hapoel Galil Gilboa`, `Ironi Ramat Gan`, `Ironi Ness Ziona` |
-| EuroLeague/EuroCup (PR 13) | `Olympiacos Basketball`, `Panathinaikos Basketball`, `Real Madrid Basketball`, `FC Barcelona Basketball`, `Fenerbahce Basketball`, `Anadolu Efes`, `Partizan Belgrade`, `Crvena Zvezda`, `AS Monaco Basketball`, `Virtus Bologna` |
-| NBA (PR 13) | `Los Angeles Lakers`, `Boston Celtics`, `Portland Trail Blazers`, `Washington Wizards`, `Cleveland Cavaliers`, `LeBron James`, `Jalen Brunson` |
+**Canonical entities live in the taxonomy registry** (`backend/app/taxonomy/entities.py`, ~45 entities as of the taxonomy PR): all Winner League clubs (including `Maccabi Ramat Gan` and `Maccabi Kiryat Gat`), the Israeli family-name football clubs (`Maccabi Tel Aviv Football`, `Hapoel Jerusalem Football`, `Maccabi Haifa`, …), EuroLeague/EuroCup clubs, NBA teams/players, and coach `Oded Katash` (team-linked as data). `_ENTITY_ALIASES` / `_ALIAS_TO_CANONICAL` in `entity_normalizer.py` are now **derived views** of the registry (basketball side), kept for API compatibility.
 
-Each entity has Hebrew + English aliases (e.g. `"אולימפיאקוס"` → `Olympiacos Basketball`,
-`"לייקרס"` → `Los Angeles Lakers`). Full alias table: `docs/RSS_QUALITY_GUARDRAILS.md` §10a.
+**Sport-context guard:** `_BASKETBALL_CLUB_ENTITIES` is derived from the registry — explicitly `guarded` entities (European multi-sport clubs, Ness Ziona) plus basketball clubs sharing an alias with a football club (the Israeli Tel Aviv / Jerusalem pairs). Hebrew `"ריאל מדריד"`/`"ברצלונה"`/`"מונאקו"` usually refer to football — the guard drops the basketball canonical unless the final merged sport is basketball. NBA teams/players and basketball-only Israeli clubs are unguarded.
 
-**Sport-context guard:** All multi-sport club entities (the three Israeli originals + Ness Ziona + the nine multi-sport European clubs) are in `_BASKETBALL_CLUB_ENTITIES` and blocked when `sport != "basketball"`. This is critical for the PR 13 additions: Hebrew `"ריאל מדריד"`/`"ברצלונה"`/`"מונאקו"` usually refer to football — the alias maps to the basketball canonical name, and the guard drops it unless the final merged sport is basketball. NBA teams/players and basketball-only Israeli clubs are unguarded.
-
-**Extending the map:** Add new entries to `_ENTITY_ALIASES` in `entity_normalizer.py`. No other files need to change. If the new entity is a basketball club (multi-sport entity), add its canonical name to `_BASKETBALL_CLUB_ENTITIES` frozenset.
+**Extending coverage:** add a `TaxonomyEntity` in `backend/app/taxonomy/entities.py` — all derived views (normalizer aliases, guard set, enrichment phrases, football-Maccabi keywords) update automatically, and `tests/test_taxonomy_integrity.py` enforces the data invariants. See `docs/TAXONOMY.md`.
 
 ---
 

@@ -10,6 +10,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: "127.0.0.1",
     port: 5173,
     strictPort: true, // Tailscale Serve points at 5173; fail loudly instead of drifting to 5174
     proxy: {

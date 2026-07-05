@@ -27,6 +27,7 @@ def _row_to_article(row: ArticleRow) -> Article:
         league=row.league,
         entities=row.entities or [],
         event_type=row.event_type,
+        event_certainty=row.event_certainty or "confirmed",
         importance=row.importance,
         confidence=row.confidence,
         tags=row.tags or [],
@@ -59,6 +60,7 @@ def _article_to_row(article: Article) -> ArticleRow:
         league=article.league,
         entities=list(article.entities),
         event_type=article.event_type,
+        event_certainty=article.event_certainty,
         importance=article.importance,
         confidence=article.confidence,
         tags=list(article.tags),
@@ -138,6 +140,7 @@ def update_classification_fields(
     importance: str,
     confidence: float,
     tags: List[str],
+    event_certainty: str = "confirmed",
 ) -> None:
     row = session.get(ArticleRow, article_id)
     if row is None:
@@ -146,6 +149,7 @@ def update_classification_fields(
     row.league = league
     row.entities = entities
     row.event_type = event_type
+    row.event_certainty = event_certainty
     row.importance = importance
     row.confidence = confidence
     row.tags = tags
@@ -167,6 +171,7 @@ def update_full_classification(
     classification_provider: Optional[str],
     classification_reason: Optional[str],
     classification_confidence: Optional[float],
+    event_certainty: str = "confirmed",
     primary_competition: Optional[str] = None,
     article_competitions: Optional[List[str]] = None,
     entity_ids: Optional[List[str]] = None,
@@ -181,6 +186,7 @@ def update_full_classification(
     row.league = league
     row.entities = entities
     row.event_type = event_type
+    row.event_certainty = event_certainty
     row.importance = importance
     row.confidence = confidence
     row.tags = tags

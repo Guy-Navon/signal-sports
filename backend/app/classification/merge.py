@@ -10,25 +10,13 @@ import logging
 from typing import Optional
 
 from app.classification.entity_normalizer import normalize_llm_entities, prune_sport_incompatible_entities
+from app.classification.event_evidence import validate_event_evidence
 from app.classification.llm_result import LLMClassificationResult
-from app.ingestion.classifier import ClassificationResult, _assign_confidence, _collect_tags, _has
+from app.ingestion.classifier import ClassificationResult, _assign_confidence, _collect_tags
 
 logger = logging.getLogger(__name__)
 
 _IMPORTANCE_RANK = {"very_high": 4, "high": 3, "medium": 2, "low": 1}
-
-# ── Guardrail 4b: LLM title_win evidence check ────────────────────────────────
-
-# At least one of these must appear in the title for an LLM title_win claim to be accepted.
-# "גמר" is intentionally excluded: a final ≠ a title win.
-_TITLE_WIN_EVIDENCE_KW = (
-    "אלוף", "אלופה", "אלופת", "אלופות",
-    "הניפה", "הניף",            # lifted/raised a trophy
-    "champion", "champions", "title", "trophy", "clinches", "clinched",
-    "בגביע", "הגביע", "גביע",
-    "בתואר", "תואר",
-    "באליפות",
-)
 
 # ── League-sport compatibility ─────────────────────────────────────────────────
 
@@ -76,6 +64,7 @@ def normalize_league_sport_compatibility(result: ClassificationResult) -> Classi
         importance=result.importance,
         confidence=result.confidence,
         tags=result.tags,
+        event_certainty=result.event_certainty,
     )
 
 
@@ -85,6 +74,7 @@ def merge_with_guardrails(
     title_lower: str,
     football_maccabi_detected: bool = False,
     source_sport_hint: Optional[str] = None,
+    subtitle_lower: Optional[str] = None,
 ) -> tuple[ClassificationResult, str]:
     """
     Returns (final ClassificationResult, classified_by string).
@@ -94,7 +84,11 @@ def merge_with_guardrails(
     league = llm.league
     event_type = llm.event_type
     importance = llm.importance
+    event_certainty = "weak" if event_type != "news" else "confirmed"
     guardrail_fired = False
+    evidence_text = title_lower
+    if subtitle_lower:
+        evidence_text = f"{title_lower} {subtitle_lower}"
 
     # Guardrail 1: Football Maccabi clubs (deterministic, high precision)
     # Rules detected an explicit football Maccabi club keyword — LLM must not override.
@@ -117,16 +111,28 @@ def merge_with_guardrails(
     # Guardrail 4: Rules found a specific event type but LLM says "news" — rules wins
     if rules.event_type != "news" and event_type == "news":
         event_type = rules.event_type
+        event_certainty = rules.event_certainty
         guardrail_fired = True
 
-    # Guardrail 4b: Reject LLM title_win when the title contains no championship evidence.
-    # Prevents hallucinated title_win for fluff/embarrassment/media articles.
-    if event_type == "title_win" and not _has(title_lower, *_TITLE_WIN_EVIDENCE_KW):
-        event_type = rules.event_type
+    # Guardrail 4b generalized: every specific event type needs semantic evidence.
+    evidence = validate_event_evidence(event_type, evidence_text, source="llm", sport=sport)
+    if event_type != "news" and not evidence.valid:
+        fallback = rules.event_type if rules.event_type != event_type else "news"
+        fallback_evidence = validate_event_evidence(
+            fallback, evidence_text, source="rules", sport=sport
+        )
+        event_type = fallback if fallback_evidence.valid else "news"
+        event_certainty = fallback_evidence.certainty if fallback_evidence.valid else "confirmed"
         guardrail_fired = True
         logger.warning(
-            "Guardrail 4b: LLM title_win rejected — no championship evidence in title; fallback=%s",
-            rules.event_type,
+            "Guardrail 4b: LLM event_type %s rejected — missing semantic evidence; fallback=%s",
+            llm.event_type, event_type,
+        )
+    elif event_type != "news":
+        event_certainty = (
+            "confirmed"
+            if event_type == rules.event_type and rules.event_type != "news"
+            else evidence.certainty
         )
 
     # Guardrail 5: Never downgrade importance
@@ -185,4 +191,5 @@ def merge_with_guardrails(
         importance=importance,
         confidence=new_confidence,
         tags=tags,
+        event_certainty=event_certainty,
     ), classified_by

@@ -14,12 +14,19 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.classification.facts import build_article_facts
+from app.classification.event_evidence import validate_event_evidence
 from app.classification.merge import merge_with_guardrails, normalize_league_sport_compatibility
 from app.classification.service import get_llm_provider
 from app.classification.source_hints import extract_source_sport_hint
 from app.classification.validation import LLM_MIN_CONFIDENCE
 from app.db.database import get_session
-from app.ingestion.classifier import classify, _has_football_maccabi_context
+from app.ingestion.classifier import (
+    classify,
+    _has_football_maccabi_context,
+    _assign_confidence,
+    _collect_tags,
+    compute_importance,
+)
 from app.repositories import article_repository
 
 logger = logging.getLogger(__name__)
@@ -145,6 +152,7 @@ def classify_backfill(
     for article in candidates:
         classify_title = article.title
         source_sport_hint = extract_source_sport_hint(article.source, article.url)
+        evidence_text = f"{classify_title.lower()} {article.subtitle.lower() if article.subtitle else ''}"
 
         rules_result = classify(
             classify_title,
@@ -155,7 +163,7 @@ def classify_backfill(
             source_sport_hint=source_sport_hint,
         )
 
-        llm_raw = provider.classify_title(classify_title, article.language)
+        llm_raw = provider.classify_title(classify_title, article.language, subtitle=article.subtitle)
 
         if llm_raw is None:
             classified_by = "rules_fallback_after_llm_failure"
@@ -176,6 +184,8 @@ def classify_backfill(
             final_result, classified_by = merge_with_guardrails(
                 llm_raw, rules_result, classify_title.lower(),
                 football_maccabi_detected=football_maccabi,
+                source_sport_hint=source_sport_hint,
+                subtitle_lower=article.subtitle.lower() if article.subtitle else None,
             )
             classification_provider = provider.provider_id
             classification_reason = llm_raw.reason
@@ -198,6 +208,33 @@ def classify_backfill(
             gate_reason=None,
             classified_by=classified_by,
         )
+        source = "llm" if final_result.event_certainty == "weak" else "rules"
+        event_evidence = validate_event_evidence(
+            final_result.event_type,
+            evidence_text,
+            source=source,
+            sport=facts.sport,
+        )
+        if event_evidence.valid:
+            final_result.event_certainty = event_evidence.certainty
+        else:
+            final_result.event_type = "news"
+            final_result.event_certainty = "confirmed"
+            final_result.importance = compute_importance(
+                final_result.event_type, facts.entities, facts.league
+            )
+            final_result.confidence = _assign_confidence(
+                facts.sport, facts.league, facts.entities, final_result.event_type,
+                source_id=article.source,
+            )
+            final_result.tags = _collect_tags(
+                facts.sport, facts.league, facts.entities, final_result.event_type
+            )
+        facts.trace["event"] = {
+            "final": final_result.event_type,
+            "certainty": final_result.event_certainty,
+            "validated_after_facts": True,
+        }
 
         if not dry_run:
             article_repository.update_full_classification(
@@ -210,6 +247,7 @@ def classify_backfill(
                 importance=final_result.importance,
                 confidence=final_result.confidence,
                 tags=final_result.tags,
+                event_certainty=final_result.event_certainty,
                 classified_by=classified_by,
                 classification_provider=classification_provider,
                 classification_reason=classification_reason,

@@ -165,7 +165,8 @@ league: NBA | EuroLeague | EuroCup | Israeli Basketball League |
         Israeli Premier League | null
 event_type: signing | negotiation | candidate | injury | major_trade |
             match_result | regular_season_result | finals_result | title_win |
-            grand_slam_winner | playoff_result | schedule | news
+            grand_slam_winner | playoff_result | early_round_result |
+            schedule | release | news
 importance: very_high | high | medium | low
 ```
 
@@ -193,6 +194,7 @@ merge_with_guardrails(
     llm_result, rules_result, title_lower,
     football_maccabi_detected=False,
     source_sport_hint=None,
+    subtitle_lower=None,
 ) → (ClassificationResult, classified_by)
 ```
 
@@ -206,10 +208,10 @@ If LLM returns `sport="unknown"` but rules resolved a sport → use rules sport.
 If LLM returns `league=null` but rules found a league → use rules league. Rules league detection (especially for basketball-only sources) is reliable.
 
 **Guardrail 4 — Rules event_type wins over LLM "news":**
-If rules detected a specific event type (signing, injury, negotiation, etc.) but LLM returns "news" → use rules event_type. Keyword-based event detection is reliable for explicitly marked events.
+If rules detected a specific event type (signing, injury, negotiation, etc.) but LLM returns "news" → use rules event_type, then pass that event through the shared semantic validator.
 
-**Guardrail 4b — LLM title_win requires championship evidence:**
-If LLM returns `event_type="title_win"` but the title contains none of the championship keywords (`_TITLE_WIN_EVIDENCE_KW`) → reject the LLM claim and fall back to the rules event_type. Prevents hallucinated `title_win` for fluff/embarrassment/media articles ("צפו ברגע המביך", "זכה לביקורת"). Evidence keywords include: `אלוף`, `אלופה`, `אלופת`, `אלופות`, `הניפה`, `הניף`, `champion`, `champions`, `title`, `trophy`, `clinches`, `clinched`, `גביע`, `תואר`, `באליפות`. "גמר" (final) is intentionally excluded — a final is not a title win.
+**Guardrail 4b — Semantic event evidence contract:**
+Rules and LLM event proposals both pass through `classification/event_evidence.py`. Specific non-news events require positive evidence in title/subtitle context; on doubt the event falls back to `news` (or a validated rules event). This replaces the old title-only `title_win` keyword guardrail and generalizes it to signing, release, negotiation, candidate, schedule/result, tennis round results, and championship events. Examples: `title_win` needs champion/title-win evidence and blocks "wants/dreams of a title"; signing blocks candidate/negotiation language; release blocks hospital-release/negated-release language; schedule blocks match-result promotion.
 
 **Guardrail 5 — Importance never downgraded:**
 If LLM `importance` rank is lower than rules `importance` rank → keep rules importance. Prevents LLM from downgrading a finals result or title win.
@@ -383,16 +385,17 @@ When `llm_circuit_open=True`, `_normalise()` skips the LLM entirely — the arti
 
 ## DB Schema
 
-Four new columns on the `articles` table (soft-migrated via `ALTER TABLE ADD COLUMN`):
+Classification metadata columns on the `articles` table (soft-migrated via `ALTER TABLE ADD COLUMN`):
 
 ```sql
 ALTER TABLE articles ADD COLUMN classified_by TEXT DEFAULT 'rules';
 ALTER TABLE articles ADD COLUMN classification_provider TEXT;
 ALTER TABLE articles ADD COLUMN classification_reason TEXT;
 ALTER TABLE articles ADD COLUMN classification_confidence REAL;
+ALTER TABLE articles ADD COLUMN event_certainty TEXT DEFAULT 'confirmed';
 ```
 
-Safe on all existing databases: `ALTER TABLE ADD COLUMN` is idempotent in SQLite when wrapped in a try/except (column already exists → exception caught, ignored). Existing rows receive `classified_by='rules'`, NULLs for the other three.
+Safe on all existing databases: `ALTER TABLE ADD COLUMN` is idempotent in SQLite when wrapped in a try/except (column already exists → exception caught, ignored). Existing rows receive `classified_by='rules'`, `event_certainty='confirmed'`, and NULLs for the provider/reason/confidence fields.
 
 The `classification_confidence` column (LLM's self-assessed confidence) is intentionally separate from the existing `confidence` column (deterministic additive score). Merging them would break the quality endpoint's `low_confidence_count` logic.
 
@@ -413,7 +416,7 @@ POST /api/classify/backfill
 
 **When `force=false`:** skips articles with `classified_by` in `{"llm", "llm+rules_guardrail"}`. Processes only articles that were classified by rules or that previously failed LLM classification.
 
-**Updates all 11 classification fields** per article: `sport`, `league`, `entities`, `event_type`, `importance`, `confidence`, `tags`, `classified_by`, `classification_provider`, `classification_reason`, `classification_confidence`. Updating only metadata fields while leaving `sport=unknown` in place would be meaningless.
+**Updates all 12 classification fields** per article: `sport`, `league`, `entities`, `event_type`, `event_certainty`, `importance`, `confidence`, `tags`, `classified_by`, `classification_provider`, `classification_reason`, `classification_confidence`. Updating only metadata fields while leaving `sport=unknown` in place would be meaningless.
 
 **`source_id` filter applied at DB query level** (not post-filter in Python) — a lesson from the translation backfill where the parameter was accepted but not applied to the SQLAlchemy query.
 
@@ -595,14 +598,14 @@ All timing numbers above are now observable via the `SourceIngestResult` fields 
 
 All tests use `FakeLLMProvider`, mocked `httpx`, or mocked `google.genai`. No test requires Ollama or a real API key.
 
-**Total: 1076 tests** (as of PR 13.1 on branch `feature/selective-llm-gating`). The suite is hermetic — `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and `INGESTION_SCHEDULER_ENABLED=false` regardless of `backend/.env`.
+**Total: 1215 tests** (as of issue #30 event semantic validation rebased on ArticleFacts). The suite is hermetic — `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and `INGESTION_SCHEDULER_ENABLED=false` regardless of `backend/.env`.
 
 **`backend/tests/test_llm_classification.py`** (added in PR 11, extended with subtitle/Gemini/Ollama/guardrail tests):
 - `TestValidation` (10 tests) — JSON parsing, enum validation, regex fallback, all leagues accepted
 - `TestFakeProvider` (6 tests) — 4 regression headlines, disabled provider, unknown headline
 - `TestEntityNormalizer` (12 tests) — all aliases, sport-context blocking, deduplication, deterministic order
 - `TestMergeWithGuardrails` — all 7 guardrails, entity merging, ordering, no-guardrail case, sport-compatibility entity pruning; including:
-  - `test_guardrail_4b_*` (4 tests) — title_win evidence required; false positives rejected; "אלופת"/"גביע"/"champion" evidence kept
+  - semantic event-evidence guardrail tests — specific LLM events without evidence are rejected; validated rule/LLM agreement marks event certainty as confirmed
   - `test_guardrail_6_*` (6 tests) — all basketball leagues force basketball; Israeli Premier League forces football; null league no-override; entity pruning uses corrected sport
   - `test_guardrail_7_*` (4 tests) — basketball/football URL hint overrides LLM; None hint is no-op; matching hint doesn't fire unnecessary guardrail
 - `TestNormalizeLeagueSportCompat` (9 tests) — direct unit tests of `normalize_league_sport_compatibility()`: EuroLeague/NBA/Spanish ACB → basketball; Israeli Premier League → football; null league unchanged; valid combo unchanged; all `_BASKETBALL_LEAGUES` forced; returns new instance on correction; returns same instance when unchanged
@@ -611,6 +614,9 @@ All tests use `FakeLLMProvider`, mocked `httpx`, or mocked `google.genai`. No te
 - `TestServiceFactory` (6 tests) — all four provider variants created correctly from env vars
 - `TestSubtitleInPrompt` (6 tests) — `build_user_message()` with/without subtitle, None same as absent, empty string omitted
 - `TestOllamaProvider` (9 tests) — subtitle pass-through, no-subtitle sends headline only, connect error flag, timeout does not set flag, flag reset on success, system prompt sent
+
+**`backend/tests/test_event_evidence.py`**:
+- Table-driven event evidence tests for `title_win`, `signing`, `release`, `schedule`, `match_result`, certainty assignment, and LLM merge reuse of the same contract.
 
 **`backend/tests/test_subtitle.py`**:
 - `TestCleanSubtitle` (11 tests) — strips HTML, unescapes entities, collapses whitespace, truncates, empty/whitespace/HTML-only returns None

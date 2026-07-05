@@ -18,6 +18,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+from app.classification.event_evidence import EventEvidence, validate_event_evidence
 from app.taxonomy import (
     COMPETITIONS,
     EntityResolution,
@@ -40,6 +41,7 @@ class ClassificationResult:
     importance: str             # very_low | low | medium | high | very_high
     confidence: float           # 0.0 – 1.0
     tags: list[str]             # keyword hits for debugging / display
+    event_certainty: str = "confirmed"  # confirmed | probable | weak
 
 
 # ── Sources that produce only basketball content ──────────────────────────────
@@ -603,6 +605,12 @@ _TRADE_KW = (
 )
 _TRADE_WORD_KW = ("trade",)
 
+_RELEASE_KW = (
+    "שוחרר", "שוחררה", "שוחררו",
+    "שחררה את", "שחרר את", "נפרדה מ",
+    "released", "waived", "cut by", "roster cuts",
+)
+
 _FINALS_KW = ("גמר", "finals", "championship", "אליפות")
 
 # title_win detection — split into two sets to avoid false positives.
@@ -647,66 +655,82 @@ _RESULT_KW = (
 _REGULAR_SEASON_KW = ("ליגה הרגילה", "regular season")
 
 
-def _detect_event_type(text: str, sport: str) -> str:
+def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
     # Death/accident guard: prevent "נהרג"/"נפטר" articles from triggering title_win
     # via incidental championship words (e.g. "נהרג אלוף הגביע" → "news", not "title_win").
     if _has(text, *_DEATH_ACCIDENT_KW):
-        return "news"
+        return validate_event_evidence("news", text, source="rules")
 
-    # Grand slam winner: needs BOTH the tournament context AND a win signal
+    proposals: list[str] = []
+
+    # Grand slam winner: needs BOTH the tournament context AND a win signal.
     if sport == "tennis" and _has(text, *_GRAND_SLAM_KW) and _has(text, *_GRAND_SLAM_WIN_KW):
-        return "grand_slam_winner"
+        proposals.append("grand_slam_winner")
 
     # Finals / championship result
     if _has(text, *_FINALS_KW):
-        return "finals_result"
+        proposals.append("finals_result")
     if _has(text, *_TITLE_WIN_UNAMBIGUOUS_KW):
-        return "title_win"
+        proposals.append("title_win")
     if _has(text, *_WIN_VERB_HE) and _has(text, *_WIN_CHAMPIONSHIP_CTX_KW):
-        return "title_win"
+        proposals.append("title_win")
+
+    # Release / roster cut. Checked before signing so "released" does not become
+    # a generic transaction.
+    if _has(text, *_RELEASE_KW):
+        proposals.append("release")
 
     # Negotiation — checked BEFORE signing because "על סף חתימה" (on the verge of
     # signing) contains "חתימה" which would otherwise trigger signing detection first.
     if _has(text, *_NEGOTIATION_KW) or any(_has_word(text, w) for w in _NEGOTIATION_WORD_KW):
-        return "negotiation"
+        proposals.append("negotiation")
 
     # Signing
     if _has(text, *_SIGNING_KW) or any(_has_word(text, w) for w in _SIGNING_WORD_KW):
-        return "signing"
+        proposals.append("signing")
 
     # Candidate / monitoring
     if _has(text, *_CANDIDATE_KW) or any(_has_word(text, w) for w in _CANDIDATE_WORD_KW):
-        return "candidate"
+        proposals.append("candidate")
 
     # Injury
     if _has(text, *_INJURY_KW):
-        return "injury"
+        proposals.append("injury")
 
     # Trade
     if _has(text, *_TRADE_KW) or any(_has_word(text, w) for w in _TRADE_WORD_KW):
-        return "major_trade"
+        proposals.append("major_trade")
 
     # Playoff
     if _has(text, *_PLAYOFF_KW):
-        return "playoff_result"
+        proposals.append("playoff_result")
 
     # Tennis early round
     if sport == "tennis" and _has(text, *_EARLY_ROUND_TENNIS_KW):
-        return "early_round_result"
+        proposals.append("early_round_result")
 
     # Regular season result
     if _has(text, *_REGULAR_SEASON_KW):
-        return "regular_season_result"
+        proposals.append("regular_season_result")
 
     # Schedule / preview
     if _has(text, *_SCHEDULE_KW):
-        return "schedule"
+        proposals.append("schedule")
 
     # Generic match result
     if _has(text, *_RESULT_KW):
-        return "match_result"
+        proposals.append("match_result")
 
-    return "news"
+    for proposal in proposals:
+        evidence = validate_event_evidence(proposal, text, source="rules", sport=sport)
+        if evidence.valid:
+            return evidence
+
+    return validate_event_evidence("news", text, source="rules", sport=sport)
+
+
+def _detect_event_type(text: str, sport: str) -> str:
+    return _detect_event_evidence(text, sport).event_type
 
 
 # ── Importance assignment ─────────────────────────────────────────────────────
@@ -927,13 +951,15 @@ def classify(
     if league is None:
         league = _infer_league_from_membership(entities, sport)
 
-    event_type = _detect_event_type(text, sport)
+    event_evidence = _detect_event_evidence(text, sport)
+    event_type = event_evidence.event_type
 
     # Event type gap: subtitle refines generic "news" to a more specific event type.
     if event_type == "news" and sub_text:
-        sub_event_type = _detect_event_type(sub_text, sport)
-        if sub_event_type != "news":
-            event_type = sub_event_type
+        sub_event_evidence = _detect_event_evidence(sub_text, sport)
+        if sub_event_evidence.event_type != "news":
+            event_evidence = sub_event_evidence
+            event_type = sub_event_evidence.event_type
 
     importance = _assign_importance(event_type, entities, league)
     confidence = _assign_confidence(sport, league, entities, event_type, source_id)
@@ -949,6 +975,7 @@ def classify(
         importance=importance,
         confidence=confidence,
         tags=tags,
+        event_certainty=event_evidence.certainty,
     )
 
 

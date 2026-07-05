@@ -8,7 +8,7 @@ Last updated: 2026-07-04 — reflects the **complete frontend redesign**: Court 
 - **PR D ("ops shell variant")** gave the ops console its own backdrop (`OpsGrid`, a flat blueprint grid) and a mono breadcrumb in `OpsNav` — Sources/Debug/LLM QA page content and logic are completely untouched.
 - **PR E ("signature details")**, self-directed rather than requested, fixed real remaining gaps: the site's favicon file didn't exist at all (broken tab icon), the 404 page had never been touched by any redesign PR (it renders outside the app shell entirely), no themed focus rings, no custom scrollbar, and the Feed's empty state used a generic icon.
 
-**Backend, API contracts, and the frontend data layer (`src/context`, `src/api`, `src/engine`, `src/data`) were unchanged by the redesign**, except the one explicitly-authorized subtitle fix above. Frontend tests: 341. Backend tests: 1165.
+**Backend, API contracts, and the frontend data layer (`src/context`, `src/api`, `src/engine`, `src/data`) were unchanged by the redesign**, except the one explicitly-authorized subtitle fix above. Frontend tests: 341. Backend tests: 1215.
 
 **2026-07-06 — Signal Intelligence Architecture v2 started.** PR 1 (branch `feature/taxonomy-entity-resolver`, PR #26) shipped the canonical taxonomy + entity resolver foundation: `backend/app/taxonomy/` is now the single source of entity truth for the deterministic classifier and the LLM normalizer; bare club-family names ("מכבי", "הפועל"…) never resolve to a team; Maccabi Ramat Gan / Maccabi Kiryat Gat exist as distinct entities. See `docs/TAXONOMY.md` for the taxonomy contract and `docs/INTELLIGENCE_ROADMAP.md` for the full initiative plan (Epic #27, Milestone 1 — the home page for all initiative issues).
 
@@ -174,7 +174,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 
 | Table | Content |
 |-------|---------|
-| `articles` | All ingested articles; `entities` and `tags` stored as JSON; includes `subtitle` column and 4 LLM classification metadata columns (PR 11) |
+| `articles` | All ingested articles; `entities` and `tags` stored as JSON; includes `subtitle`, `event_certainty`, and 4 LLM classification metadata columns |
 | `profiles` | User profiles; `topics` list stored as JSON |
 | `sources` | RSS source configuration |
 | `feedback_events` | User feedback (persists across restarts) |
@@ -191,6 +191,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 | `classification_provider` | TEXT | `rules`, `ollama:llama3.2:3b`, `fake`, etc. (PR 11) |
 | `classification_reason` | TEXT | LLM's one-sentence explanation of the classification (PR 11) |
 | `classification_confidence` | REAL | LLM's self-assessed confidence (0.0–1.0); separate from the deterministic `confidence` field (PR 11) |
+| `event_certainty` | TEXT DEFAULT `'confirmed'` | Event evidence grade: `confirmed`, `probable`, or `weak` (issue #30) |
 | `primary_competition` | TEXT | Competition id (`comp:*`) the article is explicitly about — explicit article evidence only; NULL when the league is only membership-inferred (#28) |
 | `article_competitions` | JSON | Additional explicitly-evidenced competition ids (#28) |
 | `entity_ids` | JSON | Canonical taxonomy ids (`team:*`/`player:*`/`coach:*`) for the resolved entities (#28) |
@@ -215,7 +216,15 @@ no-LLM path produces the same schema (more abstentions). Contract:
 `docs/ARTICLE_FACTS.md`. Backend tests: **1188** (baseline 1165; 3 documented
 intentional updates encoding the old bias).
 
-**Test suite:** 1165 pytest tests across `backend/tests/` + 341 frontend tests (Vitest).
+**2026-07-06 — Intelligence Architecture v2, PR 3 (event semantic validation, #30).**
+Specific non-news event types now pass a shared semantic evidence contract in
+both the deterministic rules path and the LLM merge path. `event_certainty`
+survives ingestion and backfill, and the final ArticleFacts trace records the
+validated event. On doubt, event type falls back to `news`.
+
+On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent).
+
+**Test suite:** 1215 pytest tests across `backend/tests/` + 341 frontend tests (Vitest).
 The test environment is hermetic: `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and
 `INGESTION_SCHEDULER_ENABLED=false` regardless of the developer's `backend/.env`, so no test
 requires Ollama, a real API key, or live Sport5.
@@ -332,7 +341,7 @@ The deterministic classifier is keyword-matching only — no NLP, no LLM. It alw
 - Generic news with no entity → `importance=low` (prevents filler from polluting feed)
 - **PR 11 fix:** `"אלופת"` and `"אלופות"` added to unambiguous championship keywords. These use regular pe (פ U+05E4) unlike "אלוף" (final pe ף U+05E3) — the Python `in` operator returned `False` for `"אלוף" in "אלופת"`. This fixes "ניו יורק אלופת ה-NBA" → `event_type=title_win`.
 - **PR 11 fix:** `"mvp"` added to `_BASKETBALL_KW`. "MVP" is unambiguously basketball in Israeli sports context.
-- **Post-QA fix:** `title_win` hardened — Hebrew win verbs "זכה/זכתה/זכו/זוכה" no longer trigger `title_win` standalone. Now require: unambiguous championship word (`אלוף`, `אלופת`, `הניפה/הניף`, `champion`, etc.) OR compound `win-verb + championship-context` (`זכה + בגביע/בתואר/באליפות`). Fixes false positives: "זכה לביקורת", "זכו ברגע המביך", "צפו ברגע".
+- **Issue #30 fix:** event types now pass through a shared semantic evidence contract (`classification/event_evidence.py`) in both rules and LLM merge paths. Specific non-news events require positive evidence; on doubt they fall back to `news`. `title_win` no longer accepts bare "title" language ("wants/dreams of a title"), `candidate`/`negotiation` block false `signing`, `schedule` blocks false `match_result`, and `release` is now a first-class event type with hospital/negation blockers.
 - **Post-QA fix:** `_GRAND_SLAM_KW` expanded to include specific tournament names (roland garros, רולאן גארוס, wimbledon, וימבלדון, us open, australian open). "אלקאראז זוכה ברולאן גארוס" now correctly fires `grand_slam_winner`.
 - **Post-QA fix:** `source_sport_hint` parameter added — pre-computed URL category hint flows through `classify()` → `_detect_sport()` as the first check before all keyword logic.
 
@@ -367,8 +376,8 @@ LLM classification is an opt-in overlay for Hebrew broad sources only. It does n
    - Guardrail 1: football Maccabi clubs detected → sport = football, LLM overruled
    - Guardrail 2: LLM sport=unknown → use rules sport
    - Guardrail 3: LLM league=null → use rules league
-   - Guardrail 4: rules found specific event_type but LLM says "news" → use rules
-   - Guardrail 4b: LLM title_win with no championship evidence in title → reject; use rules event_type
+   - Guardrail 4: rules found specific event_type but LLM says "news" → use rules, then validate semantic evidence
+   - Guardrail 4b: semantic event evidence contract rejects unsupported specific event types (title_win/signing/release/schedule/result/etc.) → fall back to validated rules event or news
    - Guardrail 5: importance never downgraded (rules high → LLM low: keep high)
    - Guardrail 6: league-sport incompatibility (EuroLeague + football → basketball; etc.) — fires before entity pruning
    - Guardrail 7: source URL category hint overrides LLM sport (Israel Hayom paths; Sport5 FolderID=274 since PR 13)
@@ -378,7 +387,7 @@ LLM classification is an opt-in overlay for Hebrew broad sources only. It does n
 
 **Per-run circuit breaker:** The first `httpx.ConnectError` (Ollama not running) opens a circuit for the rest of that ingestion run. Remaining articles use rules immediately (~2s total overhead, not 30 × 2s). Timeouts do not open the circuit. The circuit resets on the next `POST /api/ingest/run`.
 
-**Backfill endpoint:** `POST /api/classify/backfill` reclassifies existing articles. Updates all 11 classification fields (sport, league, entities, event_type, importance, confidence, tags, classified_by, classification_provider, classification_reason, classification_confidence). Use after enabling Ollama on a database with existing articles.
+**Backfill endpoint:** `POST /api/classify/backfill` reclassifies existing articles. Updates all 12 classification fields (sport, league, entities, event_type, event_certainty, importance, confidence, tags, classified_by, classification_provider, classification_reason, classification_confidence). Use after enabling Ollama on a database with existing articles.
 
 See `docs/LLM_CLASSIFICATION.md` for full architecture details.
 
@@ -523,7 +532,7 @@ No `.env.local` needed. Uses mock data and frontend engine.
 ```bash
 cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
-# 1165 tests — all should pass (no test requires Ollama, a real API key, or live Sport5;
+# 1215 tests — all should pass (no test requires Ollama, a real API key, or live Sport5;
 # conftest forces CLASSIFICATION_PROVIDER=disabled + INGESTION_SCHEDULER_ENABLED=false)
 # Note: test_reset_returns_403_when_disabled requires ALLOW_DEV_RESET unset or =false in .env
 ```
@@ -601,7 +610,7 @@ the backend and the frontend redesign existed.
 **Where things stand (2026-07-04):** Backend is a working FastAPI + SQLite app
 with real RSS ingestion (Walla Sport, Israel Hayom Sport active; Sport5 a
 disabled-by-default scraping pilot), a deterministic classifier with an
-optional LLM overlay, and 1165 passing pytest tests. The frontend has just
+optional LLM overlay, and 1215 passing pytest tests. The frontend has just
 finished a complete visual rebuild (Court Vision + PRs A–E, all merged to
 `main`) — see §6 above and `docs/FRONTEND_DESIGN_SYSTEM.md` for the full
 design system. **There is no single "next task" queued** — §11 above

@@ -95,6 +95,20 @@ class TestValidation:
         assert result is not None
         assert result.event_type == "news"
 
+    def test_release_event_type_is_allowed(self):
+        raw = ('{"sport":"basketball","league":"NBA","entities":[],'
+               '"event_type":"release","importance":"medium","confidence":0.8,"reason":"x"}')
+        result = parse_and_validate_llm_json(raw)
+        assert result is not None
+        assert result.event_type == "release"
+
+    def test_early_round_result_event_type_is_allowed(self):
+        raw = ('{"sport":"tennis","league":"Wimbledon","entities":[],'
+               '"event_type":"early_round_result","importance":"low","confidence":0.8,"reason":"x"}')
+        result = parse_and_validate_llm_json(raw)
+        assert result is not None
+        assert result.event_type == "early_round_result"
+
     def test_unparseable_json_returns_none(self):
         assert parse_and_validate_llm_json("Here is the classification: {...}") is None
 
@@ -257,7 +271,7 @@ class TestMergeWithGuardrails:
     def test_llm_sport_fills_rules_unknown(self):
         rules = make_rules_result(sport="unknown")
         llm = make_llm_result(sport="basketball", league="NBA", confidence=0.90)
-        merged, by = merge_with_guardrails(llm, rules, "...")
+        merged, by = merge_with_guardrails(llm, rules, "nba finals")
         assert merged.sport == "basketball"
         assert merged.league == "NBA"
         assert by == "llm"
@@ -282,7 +296,7 @@ class TestMergeWithGuardrails:
     def test_importance_never_downgraded(self):
         rules = make_rules_result(importance="very_high")
         llm = make_llm_result(importance="low", confidence=0.85)
-        merged, _ = merge_with_guardrails(llm, rules, "...")
+        merged, _ = merge_with_guardrails(llm, rules, "maccabi signed a guard")
         assert merged.importance == "very_high"
 
     def test_rules_event_type_wins_over_llm_news(self):
@@ -290,7 +304,7 @@ class TestMergeWithGuardrails:
         rules = make_rules_result(event_type="finals_result", importance="very_high")
         llm = make_llm_result(sport="basketball", league="NBA", event_type="news",
                                confidence=0.88)
-        merged, by = merge_with_guardrails(llm, rules, "...")
+        merged, by = merge_with_guardrails(llm, rules, "nba finals")
         assert merged.event_type == "finals_result"
         assert by == "llm+rules_guardrail"
 
@@ -299,7 +313,7 @@ class TestMergeWithGuardrails:
         rules = make_rules_result(event_type="news")
         llm = make_llm_result(sport="basketball", league="NBA", event_type="signing",
                                confidence=0.90)
-        merged, _ = merge_with_guardrails(llm, rules, "...")
+        merged, _ = merge_with_guardrails(llm, rules, "maccabi signed a guard")
         assert merged.event_type == "signing"
 
     def test_llm_league_fills_rules_none(self):
@@ -379,7 +393,7 @@ class TestMergeWithGuardrails:
                                   event_type="signing", importance="high")
         llm = make_llm_result(sport="basketball", league="NBA",
                                event_type="signing", importance="high", confidence=0.92)
-        _, by = merge_with_guardrails(llm, rules, "...")
+        _, by = merge_with_guardrails(llm, rules, "maccabi signed a guard")
         assert by == "llm"
 
     # ── Entity pruning (sport compatibility) ──────────────────────────────────

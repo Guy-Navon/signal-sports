@@ -18,6 +18,14 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+from app.taxonomy import (
+    EntityResolution,
+    entities_by_sport,
+    entity_by_id,
+    legacy_sport,
+    resolve_entities,
+)
+
 
 # ── Result type ───────────────────────────────────────────────────────────────
 
@@ -99,7 +107,9 @@ _BASKETBALL_CTX_KW = (
     "ווינר סל", "ליגת העל סל", "ליגת ווינר",     # Israeli Basketball League
     "קטש", "עודד קטש", "kattash",                # Maccabi TLV head coach
     "הפועל חולון",                               # Hapoel Holon Basketball (unambiguous)
-    "הפועל ירושלים",                             # Hapoel Jerusalem Basketball (unambiguous)
+    # NOTE: "הפועל ירושלים" was removed here (taxonomy PR) — the club exists in
+    # BOTH sports, so its name is an entity mention, not basketball evidence.
+    # Treating it as basketball context forced football articles into basketball.
     "בני הרצליה",                                # Bnei Herzliya Basketball (unambiguous)
     "גמר סל",                                     # basketball final
     # Additional IBL clubs for disambiguation of Maccabi/Hapoel TLV articles
@@ -197,20 +207,25 @@ _FOOTBALL_KW = (
 
 # Maccabi clubs that are FOOTBALL — must be checked BEFORE _BASKETBALL_KW
 # because "מכבי" appears in _BASKETBALL_KW and would win the sport check first.
-# Add any new football Maccabi club here rather than relying on football context words.
-_FOOTBALL_MACCABI_KW = (
-    "מכבי חיפה",         # Maccabi Haifa (football)
-    "מכבי נתניה",        # Maccabi Netanya (football)
-    "מכבי פתח תקווה",    # Maccabi Petah Tikva (football)
-    'מכבי פ"ת',          # Maccabi Petah Tikva short form
-    "מכבי פ״ת",          # Maccabi Petah Tikva short form (typographic quote)
-    "מכבי יפו",          # Maccabi Jaffa (football)
-    "מכבי בני ריינה",    # Maccabi Bnei Raina (football)
-    "מכבי הרצליה",       # Maccabi Herzliya (football)
-    "maccabi haifa",
-    "maccabi netanya",
-    "maccabi petah tikva",
-)
+# Derived from the taxonomy registry (single source of entity truth): every
+# football club in the מכבי family whose alias is not shared with a basketball
+# entity (which excludes the ambiguous "מכבי תל אביב" forms).
+def _derive_football_maccabi_kw() -> tuple[str, ...]:
+    basketball_aliases = {
+        a.lower() for e in entities_by_sport("basketball") for a in e.aliases
+    }
+    kw: list[str] = []
+    for entity in entities_by_sport("football"):
+        if entity.family != "מכבי":
+            continue
+        for alias in entity.aliases:
+            lowered = alias.lower()
+            if lowered not in basketball_aliases and lowered not in kw:
+                kw.append(lowered)
+    return tuple(kw)
+
+
+_FOOTBALL_MACCABI_KW = _derive_football_maccabi_kw()
 _TENNIS_KW = (
     "tennis", "טניס", "wimbledon", "וימבלדון",
     "roland garros", "רולאן גארוס", "french open",
@@ -391,42 +406,90 @@ _DENI_KW = (
 )
 
 
-def _detect_entities(text: str, source_id: str = "") -> list[str]:
+def _sport_context_for_resolver(
+    text: str,
+    source_id: str = "",
+    sport_override: Optional[str] = None,
+) -> Optional[str]:
+    """Sport evidence for entity resolution.
+
+    Priority: explicit override (already-resolved sport) > basketball-only
+    source > context keywords. Conflicting or absent evidence → None, which
+    makes the resolver abstain on cross-sport club names.
+    """
+    if sport_override in ("basketball", "football"):
+        return sport_override
+    if source_id in _BASKETBALL_ONLY_SOURCES:
+        return "basketball"
+    basketball = _has_basketball_context(text)
+    football = _has_football_context(text) or _has_football_maccabi_context(text)
+    if basketball and not football:
+        return "basketball"
+    if football and not basketball:
+        return "football"
+    return None
+
+
+def _resolve_text_entities(
+    text: str,
+    source_id: str = "",
+    sport_override: Optional[str] = None,
+) -> EntityResolution:
+    """Run the taxonomy resolver with the sport evidence available to the classifier."""
+    return resolve_entities(
+        text,
+        sport_context=_sport_context_for_resolver(text, source_id, sport_override),
+    )
+
+
+def _resolution_to_legacy_entities(resolution: EntityResolution) -> list[str]:
+    """Convert resolved taxonomy entities to legacy display names.
+
+    Coach mentions imply their current team (Kattash → Maccabi TLV Basketball) —
+    a taxonomy data fact replacing the old hardcoded rule. The coach's own name
+    is not emitted, matching pre-taxonomy behavior.
+    """
     entities: list[str] = []
-    basketball_only = source_id in _BASKETBALL_ONLY_SOURCES
-
-    # ── Maccabi Tel Aviv ──────────────────────────────────────────────────────
-    if _has_maccabi_tel_aviv_phrase(text):
-        # Full-name form: assign specific entity only when sport context confirms it.
-        # Basketball-only sources (eurohoops, sportando) always mean basketball.
-        if basketball_only or _has_basketball_context(text):
-            entities.append("Maccabi Tel Aviv Basketball")
-        elif _has_football_context(text):
-            entities.append("Maccabi Tel Aviv Football")
-        # else: ambiguous — no entity; classify() adds ambiguous_club tag
-    elif _has(text, "מכבי", "maccabi"):
-        # Short form without "Tel Aviv": assumed basketball.
-        # Football Maccabi clubs (Netanya, Haifa…) are handled upstream by sport
-        # detection; the post-filter in classify() strips this if sport=football.
-        entities.append("Maccabi Tel Aviv Basketball")
-
-    # Kattash implies Maccabi TLV Basketball regardless of title form.
-    if _has_kattash_context(text) and "Maccabi Tel Aviv Basketball" not in entities:
-        entities.append("Maccabi Tel Aviv Basketball")
-
-    # ── Hapoel Tel Aviv ──────────────────────────────────────────────────────
-    if _has_hapoel_tel_aviv_phrase(text):
-        if basketball_only or _has_basketball_context(text):
-            entities.append("Hapoel Tel Aviv Basketball")
-        elif _has_football_context(text):
-            entities.append("Hapoel Tel Aviv Football")
-        # else: ambiguous — no entity
-
-    # ── Deni Avdija ──────────────────────────────────────────────────────────
-    if _has(text, *_DENI_KW):
-        entities.append("Deni Avdija")
-
+    for entity in resolution.resolved:
+        if entity.kind == "coach":
+            team = entity_by_id(entity.team_id) if entity.team_id else None
+            if team and team.legacy_name not in entities:
+                entities.append(team.legacy_name)
+            continue
+        if entity.legacy_name not in entities:
+            entities.append(entity.legacy_name)
     return entities
+
+
+def _detect_entities(
+    text: str,
+    source_id: str = "",
+    sport_override: Optional[str] = None,
+) -> list[str]:
+    """Canonical entity detection via the taxonomy resolver.
+
+    Contract (taxonomy PR):
+    - Full-name aliases only; longest match wins ("מכבי רמת גן" can never
+      resolve to Maccabi Tel Aviv).
+    - Bare family names ("מכבי", "הפועל", "עירוני", 'בית"ר') never resolve to
+      a specific team.
+    - Cross-sport club names (מכבי תל אביב, הפועל ירושלים…) resolve only with
+      sport evidence; otherwise the mention abstains and classify() tags the
+      article ambiguous_club.
+    """
+    return _resolution_to_legacy_entities(
+        _resolve_text_entities(text, source_id, sport_override)
+    )
+
+
+def _filter_entities_for_sport(entities: list[str], sport: str) -> list[str]:
+    """Drop entities whose taxonomy sport contradicts the resolved article sport.
+
+    Entities unknown to the taxonomy (legacy_sport → None) pass through.
+    """
+    if sport not in ("basketball", "football"):
+        return entities
+    return [e for e in entities if legacy_sport(e) in (None, sport)]
 
 
 # ── Event type detection ──────────────────────────────────────────────────────
@@ -716,36 +779,38 @@ def classify(
     sub_text = subtitle.lower() if subtitle else ""
 
     sport = _detect_sport(text, source_id, source_sport_hint=source_sport_hint)
-    entities = _detect_entities(text, source_id)
 
-    # Detect ambiguous Israeli club titles before sport inference modifies entities.
-    # A title is ambiguous when a full-name club phrase is present but no sport context
-    # allowed entity detection to assign a specific club entity.
-    # Basketball-only sources are never ambiguous — they only cover basketball.
     _basketball_only_src = source_id in _BASKETBALL_ONLY_SOURCES
-    is_ambiguous_club = not _basketball_only_src and (
-        (
-            _has_maccabi_tel_aviv_phrase(text)
-            and "Maccabi Tel Aviv Basketball" not in entities
-            and "Maccabi Tel Aviv Football" not in entities
-        ) or (
-            _has_hapoel_tel_aviv_phrase(text)
-            and "Hapoel Tel Aviv Basketball" not in entities
-            and "Hapoel Tel Aviv Football" not in entities
-        )
-    )
+    title_resolution = _resolve_text_entities(text, source_id)
+    entities = _resolution_to_legacy_entities(title_resolution)
 
-    # Entity-based sport inference: basketball entities imply basketball sport.
-    # Applies only to unambiguous entities (Kattash, Deni, standalone "מכבי").
+    # Ambiguous club mention: the resolver found a cross-sport club name it could
+    # not disambiguate (e.g. "מכבי תל אביב" / "הפועל ירושלים" with no sport
+    # evidence). Abstain — no entity, ambiguous_club tag, LLM gate force-calls.
+    # Basketball-only sources are never ambiguous — they only cover basketball.
+    is_ambiguous_club = not _basketball_only_src and bool(title_resolution.ambiguous)
+
+    # Entity-based sport inference: when all resolved entities agree on one
+    # sport, that sport is taxonomy evidence (previously a basketball-only bias).
     if sport == "unknown" and entities and not is_ambiguous_club:
-        sport = "basketball"
+        entity_sports = {legacy_sport(e) for e in entities} - {None}
+        if len(entity_sports) == 1:
+            sport = next(iter(entity_sports))
 
-    # Cross-sport entity post-filters — defensive; entity detection should already
-    # agree with sport detection, but these prevent stray entities if they diverge.
-    if sport == "football":
-        entities = [e for e in entities if e not in ("Maccabi Tel Aviv Basketball", "Hapoel Tel Aviv Basketball")]
-    if sport == "basketball":
-        entities = [e for e in entities if e not in ("Maccabi Tel Aviv Football", "Hapoel Tel Aviv Football")]
+    # Cross-sport entity post-filter — defensive; entity resolution should already
+    # agree with sport detection, but this prevents stray entities if they diverge.
+    entities = _filter_entities_for_sport(entities, sport)
+
+    # Sport detection may have resolved the sport (source hint, explicit sport
+    # keywords) even when mixed context words made entity resolution abstain
+    # (e.g. "ליגת העל בכדורסל" contains both football and basketball markers).
+    # Re-resolve the ambiguous mention with the resolved sport as taxonomy evidence.
+    if is_ambiguous_club and sport in ("basketball", "football"):
+        for name in _detect_entities(text, source_id, sport_override=sport):
+            if name not in entities:
+                entities.append(name)
+        if entities:
+            is_ambiguous_club = False
 
     # ── Subtitle gap-filling ───────────────────────────────────────────────────
     # Title is always the primary signal. Subtitle fills gaps only:
@@ -769,39 +834,30 @@ def classify(
                 elif _has_football_context(sub_text):
                     sport = "football"
 
-            # When subtitle resolved sport for an ambiguous-club title, assign entity.
+            # When subtitle resolved sport for an ambiguous-club title, re-resolve
+            # the title's entities using that sport as taxonomy evidence.
             if sport != "unknown" and is_ambiguous_club:
-                if _has_maccabi_tel_aviv_phrase(text):
-                    if sport == "basketball":
-                        entities.append("Maccabi Tel Aviv Basketball")
-                    elif sport == "football":
-                        entities.append("Maccabi Tel Aviv Football")
-                if _has_hapoel_tel_aviv_phrase(text):
-                    if sport == "basketball":
-                        entities.append("Hapoel Tel Aviv Basketball")
-                    elif sport == "football":
-                        entities.append("Hapoel Tel Aviv Football")
+                for name in _detect_entities(text, source_id, sport_override=sport):
+                    if name not in entities:
+                        entities.append(name)
                 if entities:
                     is_ambiguous_club = False  # ambiguity resolved via subtitle
 
-            # Re-apply entity-based sport inference and cross-sport post-filters
+            # Re-apply entity-based sport inference and the cross-sport post-filter
             # after subtitle may have modified sport or entities.
             if sport == "unknown" and entities and not is_ambiguous_club:
-                sport = "basketball"
-            if sport == "football":
-                entities = [e for e in entities if e not in ("Maccabi Tel Aviv Basketball", "Hapoel Tel Aviv Basketball")]
-            if sport == "basketball":
-                entities = [e for e in entities if e not in ("Maccabi Tel Aviv Football", "Hapoel Tel Aviv Football")]
+                entity_sports = {legacy_sport(e) for e in entities} - {None}
+                if len(entity_sports) == 1:
+                    sport = next(iter(entity_sports))
+            entities = _filter_entities_for_sport(entities, sport)
 
         # Entity gap: subtitle adds entities when title produced none.
         if not entities:
-            sub_entities = _detect_entities(sub_text, source_id)
-            # Apply cross-sport post-filters to subtitle entities.
-            if sport == "football":
-                sub_entities = [e for e in sub_entities if "Basketball" not in e]
-            elif sport == "basketball":
-                sub_entities = [e for e in sub_entities if "Football" not in e]
-            entities = sub_entities
+            sub_entities = _detect_entities(
+                sub_text, source_id,
+                sport_override=sport if sport in ("basketball", "football") else None,
+            )
+            entities = _filter_entities_for_sport(sub_entities, sport)
 
     league = _detect_league(text, sport, url=url)
 
@@ -893,14 +949,22 @@ def enrich_maccabi_entity_after_sport_resolve(
 
 # Basketball club entities injectable post-merge when the LLM resolved
 # sport=basketball for a title that names the club but had no sport context
-# keywords (the ambiguous_club gap). Phrases are exact full-name club forms.
-_BASKETBALL_ENRICHMENT_PHRASES: dict[str, tuple[str, ...]] = {
-    "Maccabi Tel Aviv Basketball": _MACCABI_TLV_KW,
-    "Hapoel Tel Aviv Basketball": _HAPOEL_TLV_KW,
-    "Hapoel Jerusalem Basketball": ("הפועל ירושלים", "hapoel jerusalem"),
-    "Hapoel Holon": ("הפועל חולון", "hapoel holon"),
-    "Bnei Herzliya": ("בני הרצליה", "bnei herzliya"),
-}
+# keywords (the ambiguous_club gap). Derived from the taxonomy registry:
+# all unguarded Israeli Basketball League clubs, with their full-name aliases.
+def _derive_basketball_enrichment_phrases() -> dict[str, tuple[str, ...]]:
+    phrases: dict[str, tuple[str, ...]] = {}
+    for entity in entities_by_sport("basketball"):
+        if entity.kind != "team" or entity.guarded:
+            continue
+        if entity.domestic_competition != "comp:ibl":
+            continue
+        phrases[entity.legacy_name] = tuple(entity.aliases)
+    return phrases
+
+
+_BASKETBALL_ENRICHMENT_PHRASES: dict[str, tuple[str, ...]] = (
+    _derive_basketball_enrichment_phrases()
+)
 
 
 def enrich_basketball_entities_after_sport_resolve(

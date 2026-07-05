@@ -297,7 +297,7 @@ Push must be rare. If more than a handful of articles per day reach push, the en
 The deterministic classifier is keyword-matching only — no NLP, no LLM. It always runs first, for all sources. For English basketball-only sources (`eurohoops`, `sportando`), it is the sole classifier. For Hebrew broad sources, its result is used as guardrail input when LLM is enabled.
 
 **What it detects reliably:**
-- Maccabi Tel Aviv Basketball (English + Hebrew forms, including standalone "מכבי")
+- Maccabi Tel Aviv Basketball (full English + Hebrew name forms; **standalone "מכבי" no longer resolves to any team** — the taxonomy PR made bare club-family names non-resolving to stop Maccabi Ramat Gan / Kiryat Gat contamination; see `docs/TAXONOMY.md`)
 - Deni Avdija ("דני אבדיה", "אבדיה", "avdija", "deni")
 - Oded Kattash ("קטש", "עודד קטש") as a strong Maccabi TLV basketball signal
 - Israeli Basketball League: direct keywords ("ווינר סל", "ליגת העל סל", "הפועל תל אביב") + context inference (known domestic league opponents + Maccabi entity)

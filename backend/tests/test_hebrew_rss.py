@@ -264,10 +264,12 @@ class TestHebrewClassifierMaccabi:
         assert r.importance == "very_high"
 
     def test_short_maccabi_in_finals_context(self):
-        # "מכבי" alone (short form) detected as entity when basketball context is clear
+        # Taxonomy contract change: bare "מכבי" is a club-family name and must
+        # NEVER resolve to Maccabi Tel Aviv (Maccabi Ramat Gan / Kiryat Gat
+        # contamination). Sport keywords still classify the article.
         r = classify("מכבי ניצחה בגמר ליגת העל בכדורסל", source_id="walla_sport", language="he")
         assert r.sport == "basketball"
-        assert "Maccabi Tel Aviv Basketball" in r.entities
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
         assert r.event_type == "finals_result"
 
     def test_maccabi_candidate(self):
@@ -556,7 +558,8 @@ class TestDisambiguationRegression:
             source_id="walla_sport", language="he",
         )
         assert r.sport == "basketball"
-        assert "Maccabi Tel Aviv Basketball" in r.entities
+        # Taxonomy contract change: bare "מכבי" never resolves to a specific team.
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
 
     def test_maccabi_haifa_no_basketball_entity(self):
         r = classify(
@@ -641,7 +644,8 @@ class TestHebrewClassifierEventTypes:
     def test_injury_in_doubt(self):
         r = classify("שחקן מכבי בספק לקראת המשחק הבא", source_id="walla_sport", language="he")
         assert r.event_type == "injury"
-        assert "Maccabi Tel Aviv Basketball" in r.entities
+        # Taxonomy contract change: bare "מכבי" never resolves to a specific team.
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
 
     def test_injury_tear(self):
         r = classify("אבדיה סבל מקרע בשריר — ייעדר חודשיים", source_id="walla_sport", language="he")
@@ -769,10 +773,12 @@ class TestMaccabiTLVDisambiguation:
         assert "Maccabi Tel Aviv Football" in r.entities
 
     def test_maccabi_short_form_is_still_basketball(self):
-        # Standalone "מכבי" without "תל אביב" still defaults to basketball
+        # Standalone "מכבי" without "תל אביב" still defaults sport to basketball,
+        # but (taxonomy contract change) never resolves to a specific team —
+        # it is a family mention, not an entity.
         r = classify("מכבי ניצחה בגמר", source_id="walla_sport", language="he")
         assert r.sport == "basketball"
-        assert "Maccabi Tel Aviv Basketball" in r.entities
+        assert "Maccabi Tel Aviv Basketball" not in r.entities
         assert "ambiguous_club" not in r.tags
 
     def test_maccabi_ta_ambiguous_confidence_is_low(self):

@@ -1,250 +1,66 @@
 """
 Maps LLM free-text entity strings to canonical names used by the relevance engine.
 
-Only recognized aliases produce output. Unknown entity strings are silently discarded —
-they appear in classification_reason for debugging but do not affect relevance.
+Backed by the central taxonomy registry (``app.taxonomy``) — the classifier and
+this normalizer share one source of entity truth (taxonomy foundation PR).
 
-Basketball club entities require sport="basketball" to prevent football-context misuse
-(e.g., "הפועל תל אביב" in a football headline must not produce a basketball entity).
+Rules:
+- Only full, specific name forms normalize to a canonical entity. Generic club
+  family names ("מכבי", "maccabi", "הפועל"…) are NOT aliases and are discarded —
+  a bare "מכבי" from the LLM must never become Maccabi Tel Aviv.
+- Unknown entity strings are silently discarded — they remain visible in
+  classification_reason for debugging but do not affect relevance.
+- Basketball club entities that double as football clubs require
+  sport="basketball" (e.g. "הפועל ירושלים" in a football headline must not
+  produce a basketball entity).
+
+Public contract preserved from the pre-taxonomy module:
+``_ENTITY_ALIASES`` / ``_ALIAS_TO_CANONICAL`` (now derived views),
+``_BASKETBALL_CLUB_ENTITIES``, ``prune_sport_incompatible_entities()``,
+``normalize_llm_entities()``.
 """
 
-from typing import Optional
+from app.taxonomy import entities_by_sport
 
-# canonical name → list of aliases (Hebrew and English variants, lowercase after lookup)
+# Basketball-side view of the registry: legacy canonical name → aliases.
+# Football entities are deliberately excluded — LLM entity normalization only
+# produces basketball-side canonicals (football clubs reach Article.entities
+# via the deterministic path), matching pre-taxonomy behavior.
 _ENTITY_ALIASES: dict[str, list[str]] = {
-    "Maccabi Tel Aviv Basketball": [
-        "מכבי",
-        "מכבי תל אביב",
-        'מכבי ת"א',
-        "מכבי תא",
-        "maccabi",
-        "maccabi tel aviv",
-        "maccabi tlv",
-        "maccabi tl",
-        "maccabi t.a.",
-    ],
-    "Deni Avdija": [
-        "דני אבדיה",
-        "אבדיה",
-        "deni avdija",
-        "avdija",
-        "deni",
-    ],
-    "Hapoel Tel Aviv Basketball": [
-        "הפועל תל אביב",
-        'הפועל ת"א',
-        "הפועל תא",
-        "hapoel tel aviv",
-        "hapoel tlv",
-        "hapoel t.a.",
-    ],
-    "Hapoel Jerusalem Basketball": [
-        "הפועל ירושלים",
-        "hapoel jerusalem",
-    ],
-    "New York Knicks": [
-        "ניקס",
-        "ניו יורק ניקס",
-        "new york knicks",
-        "knicks",
-        "ny knicks",
-    ],
-    # ── Israeli Basketball League clubs (PR 13) ──────────────────────────────
-    "Hapoel Holon": [
-        "הפועל חולון",
-        "hapoel holon",
-    ],
-    "Bnei Herzliya": [
-        "בני הרצליה",
-        "bnei herzliya",
-        "bney herzliya",
-    ],
-    "Hapoel Eilat": [
-        "הפועל אילת",
-        "hapoel eilat",
-    ],
-    "Hapoel Galil Gilboa": [
-        "הפועל גלבוע גליל",
-        "גלבוע גליל",
-        "גליל גלבוע",
-        "גלבוע עליון",
-        "hapoel gilboa galil",
-        "gilboa galil",
-        "hapoel galil gilboa",
-    ],
-    "Ironi Ramat Gan": [
-        "עירוני רמת גן",
-        "ironi ramat gan",
-    ],
-    # Ness Ziona is sport-guarded: Sektzia Ness Ziona is a football club.
-    "Ironi Ness Ziona": [
-        "עירוני נס ציונה",
-        "נס ציונה",
-        "ironi ness ziona",
-        "ness ziona",
-    ],
-    # ── EuroLeague / EuroCup clubs (PR 13) ───────────────────────────────────
-    # All multi-sport European clubs are sport-guarded (they have football
-    # sections; the bare Hebrew name usually refers to football).
-    "Olympiacos Basketball": [
-        "אולימפיאקוס",
-        "olympiacos",
-        "olympiacos basketball",
-        "olympiacos bc",
-        "olympiacos piraeus",
-    ],
-    "Panathinaikos Basketball": [
-        "פנאתינייקוס",
-        "פנאתינאיקוס",
-        "panathinaikos",
-        "panathinaikos basketball",
-        "panathinaikos bc",
-    ],
-    "Real Madrid Basketball": [
-        "ריאל מדריד",
-        "real madrid",
-        "real madrid basketball",
-        "real madrid baloncesto",
-    ],
-    "FC Barcelona Basketball": [
-        "ברצלונה",
-        "barcelona",
-        "fc barcelona",
-        "barca",
-        "barça",
-        "barcelona basketball",
-        "fc barcelona basketball",
-    ],
-    "Fenerbahce Basketball": [
-        "פנרבחצ'ה",
-        "פנרבחצה",
-        "fenerbahce",
-        "fenerbahce beko",
-        "fenerbahce basketball",
-    ],
-    # Bare Hebrew "אפס" (Efes) intentionally NOT an alias — it means "zero".
-    "Anadolu Efes": [
-        "אנאדולו אפס",
-        "אנדולו אפס",
-        "anadolu efes",
-        "efes",
-    ],
-    "Partizan Belgrade": [
-        "פרטיזן",
-        "פרטיזן בלגרד",
-        "partizan",
-        "partizan belgrade",
-    ],
-    "Crvena Zvezda": [
-        "הכוכב האדום",
-        "צרוונה זבזדה",
-        "crvena zvezda",
-        "red star",
-        "red star belgrade",
-    ],
-    "AS Monaco Basketball": [
-        "מונאקו",
-        "מונקו",
-        "monaco",
-        "as monaco",
-        "as monaco basketball",
-    ],
-    "Virtus Bologna": [
-        "וירטוס בולוניה",
-        "וירטוס",
-        "virtus bologna",
-        "virtus",
-    ],
-    # ── NBA teams and players (PR 13) ────────────────────────────────────────
-    # NBA teams and players are single-sport in Israeli coverage — unguarded,
-    # matching the New York Knicks precedent.
-    "Los Angeles Lakers": [
-        "לייקרס",
-        "לוס אנג'לס לייקרס",
-        "lakers",
-        "los angeles lakers",
-        "la lakers",
-    ],
-    "Boston Celtics": [
-        "סלטיקס",
-        "בוסטון סלטיקס",
-        "celtics",
-        "boston celtics",
-    ],
-    "Portland Trail Blazers": [
-        "בלייזרס",
-        "פורטלנד",
-        "פורטלנד בלייזרס",
-        "trail blazers",
-        "portland trail blazers",
-        "blazers",
-    ],
-    "Washington Wizards": [
-        "וויזארדס",
-        "ויזארדס",
-        "וושינגטון וויזארדס",
-        "wizards",
-        "washington wizards",
-    ],
-    "Cleveland Cavaliers": [
-        "קאבלירס",
-        "קאבס",
-        "קליבלנד",
-        "קליבלנד קאבלירס",
-        "cavaliers",
-        "cavs",
-        "cleveland cavaliers",
-    ],
-    "LeBron James": [
-        "לברון",
-        "לברון ג'יימס",
-        "lebron",
-        "lebron james",
-    ],
-    "Jalen Brunson": [
-        "ג'יילן ברונסון",
-        "ברונסון",
-        "jalen brunson",
-        "brunson",
-    ],
+    e.legacy_name: list(e.aliases) for e in entities_by_sport("basketball")
 }
 
-# Reverse lookup: lowercase alias → canonical name
+# Reverse lookup: lowercase alias → canonical name. Canonical names also map to
+# themselves so providers that emit canonical strings normalize cleanly.
 _ALIAS_TO_CANONICAL: dict[str, str] = {
     alias.lower(): canonical
     for canonical, aliases in _ENTITY_ALIASES.items()
     for alias in aliases
 }
+for _canonical in _ENTITY_ALIASES:
+    _ALIAS_TO_CANONICAL.setdefault(_canonical.lower(), _canonical)
 
-# Entities that require sport="basketball" to be accepted
-# (they also refer to football clubs or are otherwise sport-ambiguous)
-_BASKETBALL_CLUB_ENTITIES = frozenset({
-    "Maccabi Tel Aviv Basketball",
-    "Hapoel Tel Aviv Basketball",
-    "Hapoel Jerusalem Basketball",
-    # Sektzia Ness Ziona is an Israeli football club — "נס ציונה" alone is ambiguous.
-    "Ironi Ness Ziona",
-    # Multi-sport European clubs: their bare Hebrew names ("ריאל מדריד",
-    # "ברצלונה", "מונאקו"...) usually refer to the football section.
-    "Olympiacos Basketball",
-    "Panathinaikos Basketball",
-    "Real Madrid Basketball",
-    "FC Barcelona Basketball",
-    "Fenerbahce Basketball",
-    "Anadolu Efes",
-    "Partizan Belgrade",
-    "Crvena Zvezda",
-    "AS Monaco Basketball",
-})
+# Entities that require sport="basketball" to be accepted. Derived from the
+# registry: explicitly guarded entities (European multi-sport clubs, Ness Ziona)
+# plus basketball clubs sharing an alias with a football club (the Israeli
+# Tel Aviv / Jerusalem pairs).
+_FOOTBALL_ALIASES: frozenset[str] = frozenset(
+    a.lower() for e in entities_by_sport("football") for a in e.aliases
+)
+_BASKETBALL_CLUB_ENTITIES: frozenset[str] = frozenset(
+    e.legacy_name
+    for e in entities_by_sport("basketball")
+    if e.guarded or any(a.lower() in _FOOTBALL_ALIASES for a in e.aliases)
+)
 
 
 def prune_sport_incompatible_entities(entities: list[str], sport: str) -> list[str]:
     """Remove basketball club entities when sport is not basketball.
 
     Called after the final sport is determined in merge_with_guardrails() so that
-    a rules entity like "Maccabi Tel Aviv Basketball" added from an ambiguous "מכבי"
-    mention does not survive into a football article and trigger a false basketball
-    topic match in the relevance engine.
+    a rules entity added from an ambiguous club mention does not survive into a
+    football article and trigger a false basketball topic match in the relevance
+    engine.
     """
     if sport == "basketball":
         return list(entities)
@@ -254,7 +70,7 @@ def prune_sport_incompatible_entities(entities: list[str], sport: str) -> list[s
 def normalize_llm_entities(llm_entities: list[str], sport: str) -> list[str]:
     """
     Map LLM free-text entity strings to canonical names.
-    Returns only entities present in the alias map, in input order.
+    Returns only entities present in the taxonomy, in input order.
     Basketball club entities are excluded when sport != "basketball".
     """
     canonical_list: list[str] = []

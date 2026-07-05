@@ -341,7 +341,9 @@ A football article with `entities=["Maccabi Tel Aviv Basketball"]` will not matc
 
 ## Entity Normalization (`entity_normalizer.py`)
 
-LLM outputs free-text entity strings. The relevance engine requires exact canonical names for entity-scope topic matching and entity event rules. Example: `"Maccabi TLV"`, `"מכבי"`, `"Maccabi Tel Aviv"` must all resolve to `"Maccabi Tel Aviv Basketball"`.
+LLM outputs free-text entity strings. The relevance engine requires exact canonical names for entity-scope topic matching and entity event rules. Example: `"Maccabi TLV"` and `"Maccabi Tel Aviv"` resolve to `"Maccabi Tel Aviv Basketball"` (when sport=basketball). **Bare family names (`"מכבי"`, `"הפועל"`, `"maccabi"`, `"hapoel"`) are discarded** — they must never resolve to a specific team (taxonomy PR; see `docs/TAXONOMY.md`).
+
+As of the taxonomy foundation PR, the alias map is a derived view over the central taxonomy registry (`backend/app/taxonomy/`) — the deterministic classifier and this normalizer share one source of entity truth.
 
 The alias map is conservative and explicit. Only listed aliases are normalized. Unknown entities (coach names, club names not yet in the map) are silently discarded from `article.entities`. They remain visible in `classification_reason` for inspection.
 

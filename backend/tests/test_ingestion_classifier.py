@@ -239,14 +239,19 @@ class TestSubtitleSportGap:
         )
         assert r.sport == "basketball"
 
-    def test_subtitle_resolves_sport_via_context_keyword(self):
-        """'הפועל ירושלים' in subtitle (in _BASKETBALL_CTX_KW) → sport=basketball."""
+    def test_subtitle_dual_sport_club_name_is_not_sport_evidence(self):
+        """Taxonomy contract change: 'הפועל ירושלים' exists in BOTH sports, so its
+        bare name is an entity mention, not basketball evidence. The old behavior
+        (club name → basketball context) is exactly the mechanism that classified
+        Hapoel Jerusalem FOOTBALL articles as basketball. Abstention is correct —
+        the LLM gate force-calls on sport=unknown."""
         r = classify(
             "ערב מרגש לאוהדים",
             subtitle="הפועל ירושלים מנצחת בגמר האליפות",
             source_id="walla_sport", language="he",
         )
-        assert r.sport == "basketball"
+        assert r.sport == "unknown"
+        assert r.entities == []
 
     def test_subtitle_resolves_sport_tennis(self):
         """Title has no sport. Subtitle with 'טניס' → sport=tennis."""

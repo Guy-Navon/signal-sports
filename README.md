@@ -45,3 +45,4 @@ See [backend/README.md](backend/README.md) for full details.
 - [BACKEND_FOUNDATION.md](docs/BACKEND_FOUNDATION.md) — backend architecture and engine design
 - [CALIBRATION_V0.md](docs/CALIBRATION_V0.md) — calibration flow design
 - [CALIBRATION_APPLY.md](docs/CALIBRATION_APPLY.md) — applying calibration to sandbox profile
+- [MOBILE_REMOTE_ACCESS.md](docs/MOBILE_REMOTE_ACCESS.md) — private phone access via Tailscale Serve

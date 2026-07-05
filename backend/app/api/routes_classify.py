@@ -29,6 +29,7 @@ _HEBREW_BROAD_SOURCES = frozenset({
     "walla_sport",
     "israel_hayom_sport",
     "ynet_sport",
+    "one_sport",
     "sport5_sport",
 })
 

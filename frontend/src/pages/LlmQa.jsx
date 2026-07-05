@@ -263,6 +263,7 @@ function IngestionSection({ ingesting, ingestResults, onIngest }) {
     { id: "walla_sport", label: "וואלה ספורט" },
     { id: "israel_hayom_sport", label: "ישראל היום" },
     { id: "ynet_sport", label: "ynet ספורט" },
+    { id: "one_sport", label: "ONE ספורט" },
   ];
 
   return (
@@ -376,7 +377,7 @@ function MetricsSection({ metrics, timeFilter, setTimeFilter, feedError }) {
     );
   }
 
-  const { total, wallaCount, ihCount, ynetCount, visibleForGuy, hiddenForGuy, unknownCount,
+  const { total, wallaCount, ihCount, ynetCount, oneCount, visibleForGuy, hiddenForGuy, unknownCount,
           classifiedByBreakdown, sportBreakdown, decisionBreakdown, usedFallback } = metrics;
 
   return (
@@ -402,7 +403,7 @@ function MetricsSection({ metrics, timeFilter, setTimeFilter, feedError }) {
       }
     >
       <div className="space-y-4">
-        <p className="text-text-dim text-xs">מקורות עברית בלבד: וואלה + ישראל היום + ynet</p>
+        <p className="text-text-dim text-xs">מקורות עברית בלבד: וואלה + ישראל היום + ynet + ONE</p>
 
         {usedFallback && (
           <div className="bg-signal-push/10 border border-signal-push/25 rounded-lg px-3 py-1.5 text-xs text-signal-push">
@@ -410,11 +411,12 @@ function MetricsSection({ metrics, timeFilter, setTimeFilter, feedError }) {
           </div>
         )}
 
-        <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-8 gap-2">
           <StatCard label="סה״כ" value={total} className="px-2 py-2 text-center" />
           <StatCard label="וואלה" value={wallaCount} tone="feed" className="px-2 py-2 text-center" />
           <StatCard label="ישראל היום" value={ihCount} tone="ai" className="px-2 py-2 text-center" />
           <StatCard label="ynet" value={ynetCount} tone="feed" className="px-2 py-2 text-center" />
+          <StatCard label="ONE" value={oneCount} tone="ai" className="px-2 py-2 text-center" />
           <StatCard label="ניראה לגיא" value={visibleForGuy} tone="high" className="px-2 py-2 text-center" />
           <StatCard label="מוסתר לגיא" value={hiddenForGuy} tone="hidden" className="px-2 py-2 text-center" />
           <StatCard label="sport=unknown" value={unknownCount} tone="push" className="px-2 py-2 text-center" />

@@ -167,6 +167,7 @@ class TestIsraelHayomSportConfig:
         assert "walla_sport" in ids
         assert "israel_hayom_sport" in ids
         assert "ynet_sport" in ids
+        assert "one_sport" in ids
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -195,11 +196,11 @@ class TestSourcesApiWithExpansion:
         ih = next(s for s in r.json() if s["source_id"] == "israel_hayom_sport")
         assert ih["display_name"] and len(ih["display_name"]) > 0
 
-    def test_one_sport_not_in_sources(self, client):
-        # ONE has no RSS feed — must not be added
+    def test_one_sport_in_sources(self, client):
+        # ONE is now configured through public JSON article-list endpoints.
         r = client.get("/api/ingest/sources")
         ids = {s["source_id"] for s in r.json()}
-        assert "one_sport" not in ids
+        assert "one_sport" in ids
 
     def test_ynet_sport_in_sources(self, client):
         # Ynet now has an official sport RSS feed.

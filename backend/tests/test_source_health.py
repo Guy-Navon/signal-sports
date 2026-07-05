@@ -75,8 +75,8 @@ class TestSourceHealthEndpoint:
         r = client.get("/api/ingest/source-health")
         body = r.json()
         source_ids = {s["source_id"] for s in body}
-        assert {"walla_sport", "israel_hayom_sport", "ynet_sport", "eurohoops",
-                "sportando", "sport5_sport"} <= source_ids
+        assert {"walla_sport", "israel_hayom_sport", "ynet_sport", "one_sport",
+                "eurohoops", "sportando", "sport5_sport"} <= source_ids
         for s in body:
             for key in (
                 "source_id", "display_name", "enabled", "source_type", "is_pilot",

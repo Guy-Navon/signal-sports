@@ -186,6 +186,7 @@ class TestBenchmarkResponseShape:
         assert "walla_sport" in sources
         assert "israel_hayom_sport" in sources
         assert "ynet_sport" in sources
+        assert "one_sport" in sources
 
     def test_provider_string_in_response(self, client, monkeypatch):
         """Response provider field reflects the mock provider_id."""

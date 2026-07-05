@@ -50,11 +50,12 @@ _LLM_PROVIDER = get_llm_provider()
 
 # Sources that route through LLM when the provider is active.
 # English basket-only sources (eurohoops, sportando) always use deterministic path.
-# sport5_sport (Hebrew scraping pilot, PR 13) and ynet_sport are gated like the other Hebrew sources.
+# ynet_sport, one_sport, and sport5_sport are gated like the other Hebrew sources.
 _HEBREW_BROAD_SOURCES = frozenset({
     "walla_sport",
     "israel_hayom_sport",
     "ynet_sport",
+    "one_sport",
     "sport5_sport",
 })
 

@@ -24,13 +24,12 @@ Create a `.env.local` file inside the `frontend/` directory (git-ignored):
 
 ```env
 VITE_DATA_MODE=backend
-VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_DATA_MODE` | `local` | `local` or `backend`. Defaults to `local` so the app works with no backend running. |
-| `VITE_API_BASE_URL` | `http://127.0.0.1:8000` | Base URL of the FastAPI backend. |
+| `VITE_API_BASE_URL` | *(unset)* | Optional direct-override. Default (unset) is same-origin: relative paths (`/api/...`, `/health`) proxied by the Vite dev server (`server.proxy` in `vite.config.js`) to `http://127.0.0.1:8000`. Set this only to bypass the proxy and call a backend directly, cross-origin, e.g. `http://127.0.0.1:8000`. |
 
 If `VITE_DATA_MODE` is missing or set to anything other than `backend`, the app runs in
 `local` mode automatically — it will not break if the backend is not running.
@@ -64,8 +63,10 @@ No `.env.local` needed. The app uses mock data and the frontend engine.
 
 ```env
 VITE_DATA_MODE=backend
-VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
+
+No `VITE_API_BASE_URL` is needed — the Vite dev server proxies `/api` and `/health`
+to `http://127.0.0.1:8000` (fixed dev port `5173`, `strictPort: true`).
 
 3. Start the frontend:
 
@@ -86,7 +87,9 @@ ops-relevant information rather than a consumer-facing label.
 ### API Client (`frontend/src/api/client.js`)
 
 Central module for all backend requests. All `fetch` calls go through `apiFetch` which:
-- Prefixes every path with `VITE_API_BASE_URL`
+- Prefixes every path with `API_BASE_URL` — empty by default, so requests are same-origin
+  relative paths (`/api/...`, `/health`) proxied by the Vite dev server to
+  `http://127.0.0.1:8000`; set `VITE_API_BASE_URL` to override with a direct, cross-origin URL
 - Throws a descriptive error on network failure or non-2xx response
 - Parses the FastAPI `detail` field from error responses
 

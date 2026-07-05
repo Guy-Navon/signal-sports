@@ -31,7 +31,7 @@ export default function AppShell({ area = "product" }) {
           variant="strip"
           title="שגיאה בחיבור לשרת"
           message={apiError}
-          hint="שרת צריך לרוץ על http://127.0.0.1:8000"
+          hint="ודא ששרת ה-API רץ (uvicorn, פורט 8000)"
           onRetry={refreshFeed}
         />
       )}

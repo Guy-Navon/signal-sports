@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+// Default is same-origin: relative paths served through the Vite dev proxy
+// (see vite.config.js). Set VITE_API_BASE_URL only to hit a backend directly
+// (cross-origin), e.g. http://127.0.0.1:8000 without the proxy.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 async function apiFetch(path, options = {}) {
   let res;

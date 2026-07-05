@@ -12,6 +12,8 @@ Last updated: 2026-07-04 — reflects the **complete frontend redesign**: Court 
 
 Prior backend state (unchanged by the redesign) reflects PR 13 + PR 13.1 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default, toggleable from the UI), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, runtime source enable/disable overrides, and the Sources page scheduler/health UI.
 
+**Issue #17 ("Same-origin frontend API via Vite proxy + fixed dev port 5173"), part of the Private Mobile Access initiative (#16):** the frontend now defaults to same-origin relative API paths (`/api/...`, `/health`) instead of an absolute `http://127.0.0.1:8000`. `frontend/vite.config.js` gained a `server` block — fixed port `5173` with `strictPort: true` (fails loudly instead of drifting to 5174) and a dev proxy forwarding `/api` and `/health` to `http://127.0.0.1:8000`. `frontend/src/api/client.js`'s `API_BASE_URL` now defaults to `""` via `??` (empty string means same-origin); `VITE_API_BASE_URL` still works as an explicit override for calling a backend directly, cross-origin. No backend or CORS changes. This is the foundation the next issue (Tailscale Serve remote access) depends on — not yet implemented.
+
 ---
 
 ## 1. Product in One Paragraph
@@ -463,14 +465,19 @@ Set `INGESTION_SCHEDULER_ENABLED=true` to run ingestion automatically every `ING
 Create `frontend/.env.local`:
 ```
 VITE_DATA_MODE=backend
-VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 Then:
 ```bash
 cd frontend
 npm run dev
 ```
-App runs at http://localhost:5173. Header badge shows "מצב נתונים: שרת".
+App runs at http://localhost:5173 (fixed port, `strictPort: true` — fails loudly if 5173 is
+already taken instead of drifting to 5174). API calls are same-origin relative paths
+(`/api/...`, `/health`) proxied by Vite to `http://127.0.0.1:8000` — no `VITE_API_BASE_URL`
+needed. Header badge shows "מצב נתונים: שרת".
+
+Set `VITE_API_BASE_URL=http://127.0.0.1:8000` in `.env.local` only to bypass the proxy and
+call the backend directly, cross-origin (e.g. for debugging the proxy itself).
 
 ### Frontend in local mode (default, no backend needed)
 ```bash

@@ -35,6 +35,41 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// ── Base URL (same-origin default vs explicit override) ──────────────────────
+// The module reads VITE_API_BASE_URL at load time, and vitest also loads
+// frontend/.env.local (which sets VITE_API_BASE_URL on the owner's machine),
+// so these tests stub the env and reset modules to force a fresh read.
+
+describe("API_BASE_URL", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("defaults to same-origin relative paths when VITE_API_BASE_URL is unset", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "");
+    vi.resetModules();
+    const mockFetch = mockFetchSuccess([]);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { getProfiles } = await import("./client");
+    await getProfiles();
+
+    expect(mockFetch).toHaveBeenCalledWith("/api/profiles", {});
+  });
+
+  it("uses the explicit override when VITE_API_BASE_URL is set", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "http://127.0.0.1:8000");
+    vi.resetModules();
+    const mockFetch = mockFetchSuccess([]);
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { getProfiles } = await import("./client");
+    await getProfiles();
+
+    expect(mockFetch).toHaveBeenCalledWith("http://127.0.0.1:8000/api/profiles", {});
+  });
+});
+
 // ── Health check ──────────────────────────────────────────────────────────────
 
 describe("getHealth", () => {

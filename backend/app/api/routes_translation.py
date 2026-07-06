@@ -178,6 +178,7 @@ def backfill_translations(
                         importance=result.importance,
                         confidence=result.confidence,
                         tags=result.tags,
+                        event_certainty=result.event_certainty,
                     )
             else:
                 if lang_changed:

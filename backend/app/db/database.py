@@ -22,6 +22,7 @@ def _apply_migrations(eng) -> None:
         ("articles", "classification_provider",   "TEXT"),
         ("articles", "classification_reason",     "TEXT"),
         ("articles", "classification_confidence", "REAL"),
+        ("articles", "event_certainty",           "TEXT DEFAULT 'confirmed'"),
         # ArticleFacts (issue #28) — same soft-migration pattern as PR 11.
         ("articles", "primary_competition",       "TEXT"),
         ("articles", "article_competitions",      "JSON"),

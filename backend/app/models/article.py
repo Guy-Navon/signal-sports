@@ -17,6 +17,7 @@ class Article(BaseModel):
     league: Optional[str] = None
     entities: List[str] = []
     event_type: str
+    event_certainty: str = "confirmed"
     importance: str  # very_low | low | medium | high | very_high
     confidence: float = 0.85
     tags: List[str] = []

@@ -23,6 +23,7 @@ class ArticleRow(Base):
     league = Column(String, nullable=True)
     entities = Column(JSON, nullable=False)
     event_type = Column(String, nullable=False)
+    event_certainty = Column(String, nullable=True, default="confirmed")
     importance = Column(String, nullable=False)
     confidence = Column(Float, nullable=False, default=0.85)
     tags = Column(JSON, nullable=False)

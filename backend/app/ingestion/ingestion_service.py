@@ -21,6 +21,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.classification.facts import build_article_facts
+from app.classification.event_evidence import validate_event_evidence
 from app.classification.gating import LLMGateDecision, should_call_llm_for_article
 from app.classification.llm_result import LLMClassificationResult
 from app.classification.merge import merge_with_guardrails, normalize_league_sport_compatibility
@@ -32,6 +33,8 @@ from app.ingestion.adapters.factory import build_adapter
 from app.ingestion.classifier import (
     classify,
     _has_football_maccabi_context,
+    _assign_confidence,
+    _collect_tags,
     has_maccabi_tel_aviv_phrase,
     compute_importance,
     enrich_basketball_entities_after_sport_resolve,
@@ -60,6 +63,43 @@ _HEBREW_BROAD_SOURCES = frozenset({
     "one_sport",
     "sport5_sport",
 })
+
+
+def _apply_post_facts_event_validation(
+    final_result,
+    *,
+    facts,
+    evidence_text: str,
+    source_id: str,
+):
+    """Idempotent final event check after ArticleFacts may correct sport."""
+    source = "llm" if final_result.event_certainty == "weak" else "rules"
+    event_evidence = validate_event_evidence(
+        final_result.event_type,
+        evidence_text,
+        source=source,
+        sport=facts.sport,
+    )
+    if event_evidence.valid:
+        final_result.event_certainty = event_evidence.certainty
+    else:
+        final_result.event_type = "news"
+        final_result.event_certainty = "confirmed"
+        final_result.importance = compute_importance(
+            final_result.event_type, facts.entities, facts.league
+        )
+        final_result.confidence = _assign_confidence(
+            facts.sport, facts.league, facts.entities, final_result.event_type, source_id=source_id
+        )
+        final_result.tags = _collect_tags(
+            facts.sport, facts.league, facts.entities, final_result.event_type
+        )
+    facts.trace["event"] = {
+        "final": final_result.event_type,
+        "certainty": final_result.event_certainty,
+        "validated_after_facts": True,
+    }
+    return final_result
 
 
 # ── URL filter ────────────────────────────────────────────────────────────────
@@ -182,6 +222,7 @@ def _normalise(
                     llm_raw, rules_result, title_lower,
                     football_maccabi_detected=football_maccabi,
                     source_sport_hint=source_sport_hint,
+                    subtitle_lower=subtitle.lower() if subtitle else None,
                 )
                 classification_provider = _LLM_PROVIDER.provider_id
                 classification_confidence = llm_raw.confidence
@@ -226,6 +267,12 @@ def _normalise(
         gate_reason=(gate.reason if gate is not None else None),
         classified_by=classified_by,
     )
+    final_result = _apply_post_facts_event_validation(
+        final_result,
+        facts=facts,
+        evidence_text=f"{title_lower} {subtitle.lower() if subtitle else ''}",
+        source_id=cfg.source_id,
+    )
 
     article = Article(
         id=article_id_from_url(item.url),
@@ -241,6 +288,7 @@ def _normalise(
         league=facts.league,
         entities=facts.entities,
         event_type=final_result.event_type,
+        event_certainty=final_result.event_certainty,
         importance=final_result.importance,
         confidence=final_result.confidence,
         tags=final_result.tags,

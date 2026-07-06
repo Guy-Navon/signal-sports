@@ -20,7 +20,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.classification.facts import build_article_facts
 from app.classification.gating import LLMGateDecision, should_call_llm_for_article
+from app.classification.llm_result import LLMClassificationResult
 from app.classification.merge import merge_with_guardrails, normalize_league_sport_compatibility
 from app.classification.source_hints import extract_source_sport_hint
 from app.classification.service import get_llm_provider
@@ -136,6 +138,7 @@ def _normalise(
     # subtitle is already assigned above; reused here as extra context for the LLM prompt.
     llm_ms: Optional[float] = None
     gate: Optional[LLMGateDecision] = None
+    llm_proposal: Optional[LLMClassificationResult] = None
 
     if (
         cfg.source_id in _HEBREW_BROAD_SOURCES
@@ -163,6 +166,7 @@ def _normalise(
             _t0 = time.perf_counter()
             llm_raw = _LLM_PROVIDER.classify_title(classify_title, detected_lang, subtitle=subtitle)
             llm_ms = (time.perf_counter() - _t0) * 1000
+            llm_proposal = llm_raw  # raw proposal captured for the classification trace
 
             if llm_raw is None:
                 classified_by = "rules_fallback_after_llm_failure"
@@ -205,6 +209,24 @@ def _normalise(
             final_result.event_type, final_result.entities, final_result.league
         )
 
+    # ArticleFacts consistency-validation stage (issue #28): validate the
+    # sport/entity/competition triangle, derive evidence-backed competitions +
+    # canonical entity IDs, and record the classification trace. This is the
+    # authority for the persisted facts; it may drop sport-incompatible entities
+    # or abstain (sport=unknown) on an unresolvable conflict.
+    facts = build_article_facts(
+        title=classify_title,
+        subtitle=subtitle,
+        url=item.url,
+        source_id=cfg.source_id,
+        source_sport_hint=source_sport_hint,
+        result=final_result,
+        llm_raw=llm_proposal,
+        gate_should_call=(gate.should_call_llm if gate is not None else None),
+        gate_reason=(gate.reason if gate is not None else None),
+        classified_by=classified_by,
+    )
+
     article = Article(
         id=article_id_from_url(item.url),
         source=cfg.source_id,
@@ -215,9 +237,9 @@ def _normalise(
         translated_title=translated_title,
         language=detected_lang,
         published_at=published_at,
-        sport=final_result.sport,
-        league=final_result.league,
-        entities=final_result.entities,
+        sport=facts.sport,
+        league=facts.league,
+        entities=facts.entities,
         event_type=final_result.event_type,
         importance=final_result.importance,
         confidence=final_result.confidence,
@@ -227,6 +249,11 @@ def _normalise(
         classification_provider=classification_provider,
         classification_reason=classification_reason,
         classification_confidence=classification_confidence,
+        primary_competition=facts.primary_competition,
+        article_competitions=facts.article_competitions,
+        entity_ids=facts.entity_ids,
+        classification_trace=facts.trace,
+        taxonomy_version=facts.taxonomy_version,
     )
     return article, llm_ms, gate
 

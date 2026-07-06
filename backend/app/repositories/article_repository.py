@@ -36,6 +36,11 @@ def _row_to_article(row: ArticleRow) -> Article:
         classification_provider=row.classification_provider,
         classification_reason=row.classification_reason,
         classification_confidence=row.classification_confidence,
+        primary_competition=row.primary_competition,
+        article_competitions=row.article_competitions or [],
+        entity_ids=row.entity_ids or [],
+        classification_trace=row.classification_trace,
+        taxonomy_version=row.taxonomy_version,
     )
 
 
@@ -63,6 +68,11 @@ def _article_to_row(article: Article) -> ArticleRow:
         classification_provider=article.classification_provider,
         classification_reason=article.classification_reason,
         classification_confidence=article.classification_confidence,
+        primary_competition=article.primary_competition,
+        article_competitions=list(article.article_competitions),
+        entity_ids=list(article.entity_ids),
+        classification_trace=article.classification_trace,
+        taxonomy_version=article.taxonomy_version,
     )
 
 
@@ -157,8 +167,13 @@ def update_full_classification(
     classification_provider: Optional[str],
     classification_reason: Optional[str],
     classification_confidence: Optional[float],
+    primary_competition: Optional[str] = None,
+    article_competitions: Optional[List[str]] = None,
+    entity_ids: Optional[List[str]] = None,
+    classification_trace: Optional[dict] = None,
+    taxonomy_version: Optional[int] = None,
 ) -> None:
-    """Update all classification fields including LLM metadata. Used by backfill."""
+    """Update all classification fields including LLM metadata and ArticleFacts. Used by backfill."""
     row = session.get(ArticleRow, article_id)
     if row is None:
         return
@@ -173,6 +188,11 @@ def update_full_classification(
     row.classification_provider = classification_provider
     row.classification_reason = classification_reason
     row.classification_confidence = classification_confidence
+    row.primary_competition = primary_competition
+    row.article_competitions = list(article_competitions or [])
+    row.entity_ids = list(entity_ids or [])
+    row.classification_trace = classification_trace
+    row.taxonomy_version = taxonomy_version
     session.commit()
 
 

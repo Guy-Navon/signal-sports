@@ -182,7 +182,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 | `ingestion_runs` | Log of every RSS ingestion run |
 | `source_overrides` | Runtime source enabled/disabled overrides (PR 13.1); wins over config.py defaults |
 
-**Five soft-migrated columns on `articles` (via `ALTER TABLE ADD COLUMN`, idempotent):**
+**Soft-migrated columns on `articles` (via `ALTER TABLE ADD COLUMN`, idempotent):**
 
 | Column | Type | Meaning |
 |--------|------|---------|
@@ -191,8 +191,29 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 | `classification_provider` | TEXT | `rules`, `ollama:llama3.2:3b`, `fake`, etc. (PR 11) |
 | `classification_reason` | TEXT | LLM's one-sentence explanation of the classification (PR 11) |
 | `classification_confidence` | REAL | LLM's self-assessed confidence (0.0–1.0); separate from the deterministic `confidence` field (PR 11) |
+| `primary_competition` | TEXT | Competition id (`comp:*`) the article is explicitly about — explicit article evidence only; NULL when the league is only membership-inferred (#28) |
+| `article_competitions` | JSON | Additional explicitly-evidenced competition ids (#28) |
+| `entity_ids` | JSON | Canonical taxonomy ids (`team:*`/`player:*`/`coach:*`) for the resolved entities (#28) |
+| `classification_trace` | JSON | Evidence hits, LLM gate decision + reason, LLM raw proposal, normalization actions, and conflicts (#28) |
+| `taxonomy_version` | INTEGER | Taxonomy registry version that produced the facts (#28) |
 
 On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent).
+
+**2026-07-06 — Intelligence Architecture v2, PR 2 (ArticleFacts, #28).** A
+consistency-validation stage (`backend/app/classification/facts.py`) persists
+evidence-backed facts on every article: `primary_competition` /
+`article_competitions` (explicit competition evidence only — never team
+membership), `entity_ids` (canonical taxonomy ids), a compact
+`classification_trace`, and `taxonomy_version`. It enforces the
+sport/entity/competition triangle (no entity/competition whose sport differs from
+the article; abstain on the unresolvable case), records every conflict, and the
+last entity→basketball bias path (bare `מכבי`/`maccabi` as sport evidence) was
+removed so a football subtitle signal (`שוער`) can correct a bare-family title.
+Membership-derived legacy `league` (a resolved team → its domestic competition)
+substantially lowers the `league=NULL` rate. LLM optionality preserved — the
+no-LLM path produces the same schema (more abstentions). Contract:
+`docs/ARTICLE_FACTS.md`. Backend tests: **1188** (baseline 1165; 3 documented
+intentional updates encoding the old bias).
 
 **Test suite:** 1165 pytest tests across `backend/tests/` + 341 frontend tests (Vitest).
 The test environment is hermetic: `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and

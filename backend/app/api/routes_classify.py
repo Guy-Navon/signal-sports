@@ -13,8 +13,10 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.classification.merge import merge_with_guardrails
+from app.classification.facts import build_article_facts
+from app.classification.merge import merge_with_guardrails, normalize_league_sport_compatibility
 from app.classification.service import get_llm_provider
+from app.classification.source_hints import extract_source_sport_hint
 from app.classification.validation import LLM_MIN_CONFIDENCE
 from app.db.database import get_session
 from app.ingestion.classifier import classify, _has_football_maccabi_context
@@ -142,6 +144,7 @@ def classify_backfill(
 
     for article in candidates:
         classify_title = article.title
+        source_sport_hint = extract_source_sport_hint(article.source, article.url)
 
         rules_result = classify(
             classify_title,
@@ -179,13 +182,28 @@ def classify_backfill(
             if classified_by == "llm+rules_guardrail":
                 guardrail_corrections += 1
 
+        # Defense-in-depth parity with ingestion, then the ArticleFacts stage.
+        final_result = normalize_league_sport_compatibility(final_result)
+        facts = build_article_facts(
+            title=classify_title,
+            subtitle=article.subtitle,
+            url=article.url,
+            source_id=article.source,
+            source_sport_hint=source_sport_hint,
+            result=final_result,
+            llm_raw=llm_raw,
+            gate_should_call=None,
+            gate_reason=None,
+            classified_by=classified_by,
+        )
+
         if not dry_run:
             article_repository.update_full_classification(
                 session,
                 article.id,
-                sport=final_result.sport,
-                league=final_result.league,
-                entities=final_result.entities,
+                sport=facts.sport,
+                league=facts.league,
+                entities=facts.entities,
                 event_type=final_result.event_type,
                 importance=final_result.importance,
                 confidence=final_result.confidence,
@@ -194,6 +212,11 @@ def classify_backfill(
                 classification_provider=classification_provider,
                 classification_reason=classification_reason,
                 classification_confidence=classification_confidence,
+                primary_competition=facts.primary_competition,
+                article_competitions=facts.article_competitions,
+                entity_ids=facts.entity_ids,
+                classification_trace=facts.trace,
+                taxonomy_version=facts.taxonomy_version,
             )
 
         logger.info(

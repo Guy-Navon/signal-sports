@@ -74,6 +74,16 @@ These bind every PR in the initiative:
   backend tests green (baseline 1129); Ramat Gan / Kiryat Gat contamination
   fixed and verified on real stored headlines. Contract: `docs/TAXONOMY.md`.
 
+- **PR 2 — ArticleFacts: competition evidence + consistency validation + trace**
+  ([#28](https://github.com/Guy-Navon/signal-sports/issues/28)): 5 soft-migrated
+  columns (`primary_competition`, `article_competitions`, `entity_ids`,
+  `classification_trace`, `taxonomy_version`); a consistency-validation stage
+  (`backend/app/classification/facts.py`) enforcing the sport/entity/competition
+  triangle with recorded conflicts and abstention; last entity→basketball bias
+  path removed; subtitle can now correct sport by joint weighted evidence;
+  membership-derived legacy league drops the `league=NULL` rate; backfill extended.
+  Contract: `docs/ARTICLE_FACTS.md`. 1188 backend tests green (baseline 1165).
+
 ## 4. Near-future roadmap (dependency order)
 
 | Order | Issue | What it delivers | Depends on | Agent | Parallel |

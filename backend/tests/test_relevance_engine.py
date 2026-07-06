@@ -227,7 +227,7 @@ def test_entity_scope_maccabi_matches_maccabi_entity(guy):
         sport="basketball", league="EuroLeague",
         entities=["Maccabi Tel Aviv Basketball"], event_type="negotiation"
     )
-    matched, reason = _does_topic_match_article(art, maccabi_topic)
+    matched, reason, _ = _does_topic_match_article(art, maccabi_topic)
     assert matched is True
     assert "entity" in reason.lower() or "ישות" in reason
 
@@ -238,7 +238,7 @@ def test_entity_scope_maccabi_does_not_match_real_madrid(guy):
         sport="basketball", league="EuroLeague",
         entities=["Real Madrid Basketball"], event_type="major_transfer"
     )
-    matched, _ = _does_topic_match_article(art, maccabi_topic)
+    matched, _, _ = _does_topic_match_article(art, maccabi_topic)
     assert matched is False, "Entity scope must not match non-Maccabi entity"
 
 
@@ -248,7 +248,7 @@ def test_entity_scope_maccabi_does_not_match_via_sport_alone(guy):
         sport="basketball", league="Spanish ACB",
         entities=["FC Barcelona Basketball"], event_type="playoff_result"
     )
-    matched, _ = _does_topic_match_article(art, maccabi_topic)
+    matched, _, _ = _does_topic_match_article(art, maccabi_topic)
     assert matched is False, "Entity scope must not match via sport alone"
 
 
@@ -258,7 +258,7 @@ def test_league_scope_nba_matches_nba_league(guy):
         sport="basketball", league="NBA",
         entities=["Charlotte Hornets", "Washington Wizards"], event_type="regular_season_result"
     )
-    matched, reason = _does_topic_match_article(art, nba_topic)
+    matched, reason, _ = _does_topic_match_article(art, nba_topic)
     assert matched is True
     assert "NBA" in reason
 
@@ -269,7 +269,7 @@ def test_league_scope_nba_does_not_match_euroleague(guy):
         sport="basketball", league="EuroLeague",
         entities=["Fenerbahce"], event_type="match_result"
     )
-    matched, _ = _does_topic_match_article(art, nba_topic)
+    matched, _, _ = _does_topic_match_article(art, nba_topic)
     assert matched is False
 
 
@@ -279,7 +279,7 @@ def test_league_scope_euroleague_matches_non_maccabi_euroleague(guy):
         sport="basketball", league="EuroLeague",
         entities=["Real Madrid Basketball"], event_type="major_transfer"
     )
-    matched, reason = _does_topic_match_article(art, el_topic)
+    matched, reason, _ = _does_topic_match_article(art, el_topic)
     assert matched is True
     assert "EuroLeague" in reason
 
@@ -290,7 +290,7 @@ def test_league_group_scope_matches_spanish_acb(guy):
         sport="basketball", league="Spanish ACB",
         entities=["Real Madrid Basketball"], event_type="playoff_result", importance="high"
     )
-    matched, _ = _does_topic_match_article(art, eu_topic)
+    matched, _, _ = _does_topic_match_article(art, eu_topic)
     assert matched is True
 
 
@@ -300,7 +300,7 @@ def test_league_group_scope_matches_turkish_bsl(guy):
         sport="basketball", league="Turkish BSL",
         entities=["Fenerbahce"], event_type="match_result"
     )
-    matched, _ = _does_topic_match_article(art, eu_topic)
+    matched, _, _ = _does_topic_match_article(art, eu_topic)
     assert matched is True
 
 
@@ -310,7 +310,7 @@ def test_league_group_scope_does_not_match_nba(guy):
         sport="basketball", league="NBA",
         entities=["Charlotte Hornets"], event_type="regular_season_result"
     )
-    matched, _ = _does_topic_match_article(art, eu_topic)
+    matched, _, _ = _does_topic_match_article(art, eu_topic)
     assert matched is False
 
 
@@ -320,7 +320,7 @@ def test_sport_scope_football_matches_any_football(guy):
         sport="football", league="Israeli Premier League",
         entities=[], event_type="regular_season_result"
     )
-    matched, _ = _does_topic_match_article(art, football_topic)
+    matched, _, _ = _does_topic_match_article(art, football_topic)
     assert matched is True
 
 
@@ -330,7 +330,7 @@ def test_sport_scope_football_does_not_match_basketball(guy):
         sport="basketball", league="NBA",
         entities=[], event_type="regular_season_result"
     )
-    matched, _ = _does_topic_match_article(art, football_topic)
+    matched, _, _ = _does_topic_match_article(art, football_topic)
     assert matched is False
 
 
@@ -340,7 +340,7 @@ def test_sport_scope_tennis_matches_regardless_of_league(guy):
         sport="tennis", league="Wimbledon",
         entities=["Carlos Alcaraz"], event_type="early_round_result"
     )
-    matched, _ = _does_topic_match_article(art, tennis_topic)
+    matched, _, _ = _does_topic_match_article(art, tennis_topic)
     assert matched is True
 
 
@@ -352,8 +352,8 @@ def test_non_maccabi_euroleague_transfer_is_high_feed_end_to_end(guy):
         sport="basketball", league="EuroLeague",
         entities=["Real Madrid Basketball"], event_type="major_transfer", importance="high"
     )
-    maccabi_matched, _ = _does_topic_match_article(art, maccabi_topic)
-    el_matched, _ = _does_topic_match_article(art, el_topic)
+    maccabi_matched, _, _ = _does_topic_match_article(art, maccabi_topic)
+    el_matched, _, _ = _does_topic_match_article(art, el_topic)
     assert maccabi_matched is False, "Maccabi entity scope must not match Real Madrid article"
     assert el_matched is True, "EuroLeague league scope must match EuroLeague article"
     # End-to-end: score the article and expect high_feed

@@ -151,6 +151,11 @@ SEED_PROFILES = [
                 },
             ),
             TopicPreference(
+                # Single authoritative football policy (issue #29 profile-drift
+                # fix): explicit low-interest sport scope gated to genuinely
+                # major events, not a titles_only-with-empty-rules blanket hide
+                # nor a major_only importance fallback (which leaked). Keep this
+                # identical to frontend/src/data/userProfiles.js's football topic.
                 topic_id="football",
                 label="כדורגל",
                 sport="football",
@@ -159,7 +164,10 @@ SEED_PROFILES = [
                 mode="titles_only",
                 leagues=[],
                 entities=[],
-                event_rules={},
+                event_rules={
+                    "major_transfer": "low_feed",
+                    "title_win": "low_feed",
+                },
             ),
             TopicPreference(
                 topic_id="tennis",

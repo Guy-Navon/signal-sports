@@ -404,8 +404,13 @@ class TestGuyNegativeCasesQA:
         )
         assert _guy_decision(article, guy_profile) == "hidden"
 
-    def test_case13_football_title_win_hidden(self, guy_profile):
-        """Case 13: Football title_win — was 'feed' in old rules, now hidden (rules emptied)."""
+    def test_case13_football_title_win_is_low_feed(self, guy_profile):
+        """Case 13 (updated for issue #29): football title_win was hidden under the
+        old all-hidden titles_only policy; the unified football policy (issue #29,
+        applied identically to seed_profiles.py and userProfiles.js) declares an
+        explicit title_win/major_transfer low_feed rule instead — "genuinely major
+        event, low priority" rather than a titles_only blanket hide or a
+        major_only importance-fallback leak. Still nowhere near feed/high_feed/push."""
         article = _article(
             title="ריאל מדריד אלוף ליגת האלופות",
             sport="football",
@@ -414,7 +419,7 @@ class TestGuyNegativeCasesQA:
             event_type="title_win",
             importance="very_high",
         )
-        assert _guy_decision(article, guy_profile) == "hidden"
+        assert _guy_decision(article, guy_profile) == "low_feed"
 
     def test_case14_football_major_transfer_hidden(self, guy_profile):
         """Case 14: Football major_trade — was 'feed' in old rules, now hidden."""

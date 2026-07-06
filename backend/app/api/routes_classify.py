@@ -151,6 +151,8 @@ def classify_backfill(
             source_id=article.source,
             language=article.language,
             url=article.url,
+            subtitle=article.subtitle,
+            source_sport_hint=source_sport_hint,
         )
 
         llm_raw = provider.classify_title(classify_title, article.language)

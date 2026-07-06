@@ -124,16 +124,21 @@ class TestTriangleInvariants:
         assert any(c["field"] == "entity" for c in f.conflicts)
 
     def test_basketball_competition_plus_football_sport_cannot_survive(self):
-        """A basketball competition explicitly named in a football-sport article must
-        not be persisted as a competition (sport mismatch dropped + recorded)."""
+        """Invariant: no persisted competition may have a sport ≠ the article sport.
+        Here the incoming football sport has NO evidence backing while an explicit
+        basketball competition (יורוליג) does — so the weight order resolves it by
+        overriding sport→basketball (the competition is the stronger evidence). The
+        impossible football+EuroLeague pair does not survive either way."""
+        from app.taxonomy import COMPETITIONS
         bad = ClassificationResult(
             sport="football", league=None, entities=[], event_type="match_result",
             importance="medium", confidence=0.7, tags=["football"],
         )
         f = _facts_from_result(bad, title="הערב: משחק גדול ביורוליג")
-        assert f.primary_competition is None
-        assert "comp:euroleague" not in f.article_competitions
-        assert any(c["field"] == "competition" for c in f.conflicts)
+        persisted = ([f.primary_competition] if f.primary_competition else []) + f.article_competitions
+        for cid in persisted:
+            assert COMPETITIONS[cid].sport == f.sport      # invariant holds
+        assert any(c["field"] in ("competition", "sport") for c in f.conflicts)
 
     def test_conflict_recorded_shape(self):
         bad = ClassificationResult(
@@ -167,6 +172,98 @@ class TestSubtitleEvidenceWeighting:
     def test_no_conflict_when_only_one_sport_signal(self):
         f = _facts("מכבי מחפשת חיזוק", subtitle="השוער עזב")
         assert not any(c["field"] == "sport" for c in f.conflicts)
+
+
+# ── B1: the weight order is ENFORCED, not merely recorded ─────────────────────
+
+class TestWeightedEvidenceOverride:
+    def test_1_entity_derived_basketball_loses_to_football_subtitle(self):
+        """entity_derived basketball (40) vs explicit subtitle football (60):
+        football must win, the basketball entity is dropped, override recorded."""
+        f = _facts(
+            "רועי פריצקי עוזב את מכבי רמת גן",           # basketball entity, no sport kw
+            subtitle="השוער המנוסה עבר לקבוצה אחרת",       # explicit football signal
+        )
+        assert f.sport == "football"
+        assert "Maccabi Ramat Gan" not in f.entities
+        sc = next(c for c in f.conflicts if c["field"] == "sport")
+        assert sc["rule"] == "weighted_evidence_override"
+        assert sc["winner"] == "football"
+
+    def test_2_llm_basketball_loses_to_deterministic_football(self):
+        """LLM basketball (20) vs explicit deterministic football title (80):
+        deterministic evidence must win."""
+        from app.classification.llm_result import LLMClassificationResult
+        proposal = LLMClassificationResult(
+            sport="basketball", league=None, entities=[], event_type="news",
+            importance="medium", confidence=0.9, reason="llm thinks basketball",
+        )
+        incoming = ClassificationResult(
+            sport="basketball", league=None, entities=[], event_type="news",
+            importance="medium", confidence=0.7, tags=["basketball"],
+        )
+        f = _facts_from_result(incoming, title="כדורגל: השוער חתם בקבוצה חדשה", llm_raw=proposal)
+        assert f.sport == "football"
+        sc = next(c for c in f.conflicts if c["field"] == "sport")
+        assert sc["rule"] == "weighted_evidence_override"
+
+    def test_3_explicit_competition_beats_entity_derived_conflicting_sport(self):
+        """explicit competition keyword (55) vs entity_derived conflicting sport (40):
+        competition evidence must win."""
+        incoming = ClassificationResult(
+            sport="football", league=None, entities=["Beitar Jerusalem"],  # football entity → 40
+            event_type="news", importance="medium", confidence=0.7, tags=["football"],
+        )
+        f = _facts_from_result(incoming, title="ערב היורוליג הגדול")  # explicit basketball comp → 55
+        assert f.sport == "basketball"
+        assert "Beitar Jerusalem" not in f.entities
+        sc = next(c for c in f.conflicts if c["field"] == "sport")
+        assert sc["rule"] == "weighted_evidence_override"
+
+    def test_4_basketball_only_source_not_overridden_or_abstained(self):
+        """A basketball-only source (Eurohoops/Sportando) is authoritative: a stray
+        football keyword must NOT override it or trigger abstention."""
+        f = _facts("Deni Avdija latest news", subtitle="השוער", source_id="eurohoops")
+        assert f.sport == "basketball"
+        assert any(
+            e["source"] == "basketball_only_source" for e in f.trace["sport"]["evidence"]
+        )
+        # No override / abstention conflict fired.
+        assert not any(
+            c["field"] == "sport" and c["winner"] in ("football", "unknown")
+            for c in f.conflicts
+        )
+
+    def test_5a_equal_weight_tie_keeps_incoming_sport(self):
+        """Equal-weight explicit tie (basketball 80 + football 80): the classifier's
+        deterministic pick is retained (documented behavior)."""
+        f = _facts("כדורסל וכדורגל: הערב אירוע ספורט גדול")
+        assert f.sport in ("basketball", "football")   # a deterministic sport, not unknown
+        sc = next((c for c in f.conflicts if c["field"] == "sport"), None)
+        assert sc is not None and sc["rule"] == "equal_weight_tie_kept"
+
+    def test_5b_equal_weight_tie_abstains_when_incoming_is_neither(self):
+        """Equal-weight explicit tie where the incoming sport is neither tied sport:
+        abstain — never guess between equally-supported sports."""
+        incoming = ClassificationResult(
+            sport="tennis", league=None, entities=[], event_type="news",
+            importance="medium", confidence=0.5, tags=["tennis"],
+        )
+        f = _facts_from_result(incoming, title="כדורסל וכדורגל בערב אחד")
+        assert f.sport == "unknown"
+        sc = next(c for c in f.conflicts if c["field"] == "sport")
+        assert sc["rule"] == "equal_weight_tie_abstain"
+
+    def test_6_conflict_rule_labels_reflect_actual_weight_comparison(self):
+        """Kept-with-conflict: the recorded rule names the source that actually
+        outweighed the loser (title 80 > subtitle 60)."""
+        f = _facts("כדורסל: הקבוצה ניצחה הערב", subtitle="השוער הגדול הגיע ליציע")
+        sc = next(c for c in f.conflicts if c["field"] == "sport")
+        assert sc["winner"] == "basketball"
+        assert sc["rule"] == "title_keyword_outweighs"
+        # the winning source really is heavier than the conflicting one
+        weights = {(e["source"], e["sport"]): e["weight"] for e in sc["candidates"]}
+        assert weights[("title_keyword", "basketball")] > weights[("subtitle_keyword", "football")]
 
 
 # ── Case 9: entity_ids resolution ─────────────────────────────────────────────

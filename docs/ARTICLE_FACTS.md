@@ -40,9 +40,16 @@ Example — "דני אבדיה נפצע" (no "NBA" keyword): `league = "NBA"` (m
 
 ## Consistency validation — the sport/entity/competition triangle
 
-`build_article_facts()` never re-runs sport detection; the authority is the
-classifier (no-LLM path) / `merge_with_guardrails` (LLM path). The facts stage
-**validates** the triangle, records conflicts, and enforces invariants:
+`build_article_facts()` does not run keyword sport *detection*, but it **is the
+authority on the triangle**: it **enforces** the declared evidence-weight order,
+then validates entities/competitions under the resolved sport. When the incoming
+sport (from the classifier / `merge_with_guardrails`) is backed only by weaker
+**non-explicit** evidence (`entity_derived` / `llm`) and a **higher-weight
+explicit** source names a different sport, the stage **overrides** to that sport
+(`rule: weighted_evidence_override`), then drops the now-incompatible entities and
+nulls an incompatible legacy league. Equal-weight explicit ties across sports keep
+the classifier's pick if it is among them, else **abstain**. It records every
+conflict and enforces the invariants:
 
 - **No persisted entity whose taxonomy sport ≠ the article sport.** A conflicting
   entity is dropped-with-record.
@@ -54,8 +61,12 @@ classifier (no-LLM path) / `merge_with_guardrails` (LLM path). The facts stage
 
 ### Evidence weight order (recorded in the trace)
 
-`source URL hint (100) > explicit sport keyword — title (80) > subtitle (60) >
-competition keyword (55) > entity-derived sport (40) > LLM proposal (20)`.
+`source URL hint / basketball-only source (100) > explicit sport keyword —
+title (80) > subtitle (60) > competition keyword (55) > entity-derived sport (40)
+> LLM proposal (20)`. The first five are **explicit** (article-level or
+source-category) evidence; only explicit evidence may override an incoming sport.
+Basketball-only sources (Eurohoops/Sportando) carry source-category authority so a
+stray keyword cannot override or abstain them.
 
 Bare club-family names (`מכבי`, `הפועל`, …) are **not** sport evidence — the last
 entity→basketball bias path was removed (`"מכבי"`/`"maccabi"` dropped from the

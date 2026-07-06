@@ -35,6 +35,7 @@ from app.classification.llm_result import LLMClassificationResult
 from app.ingestion.classifier import (
     ClassificationResult,
     _BASKETBALL_CTX_KW,
+    _BASKETBALL_ONLY_SOURCES,
     _FOOTBALL_CTX_KW,
     _FOOTBALL_MACCABI_KW,
     _TENNIS_KW,
@@ -93,16 +94,24 @@ _COMP_ID_BY_DISPLAY: dict[str, str] = {c.display_en: c.id for c in COMPETITIONS.
 
 
 # ── Sport-evidence weights (issue #28 evidence order) ─────────────────────────
+# source URL hint / basketball-only source (source category, authoritative)
+#   > explicit sport keyword: title > subtitle > competition keyword
+#   > entity-derived sport > LLM proposal.
 _W_SOURCE_HINT = 100
+_W_BASKETBALL_ONLY_SOURCE = 100   # source category is as authoritative as a URL hint
 _W_TITLE_KEYWORD = 80
 _W_SUBTITLE_KEYWORD = 60
 _W_COMPETITION_KEYWORD = 55
 _W_ENTITY_DERIVED = 40
 _W_LLM = 20
 
-_EXPLICIT_SPORT_SOURCES = frozenset(
-    {"source_url_hint", "title_keyword", "subtitle_keyword", "competition_keyword"}
-)
+# Explicit evidence is article-level / source-category evidence. It outranks the
+# non-explicit (derived) sources — entity_derived and llm — and is the only kind
+# that may OVERRIDE an incoming sport in the consistency stage.
+_EXPLICIT_SPORT_SOURCES = frozenset({
+    "source_url_hint", "basketball_only_source",
+    "title_keyword", "subtitle_keyword", "competition_keyword",
+})
 
 
 @dataclass
@@ -162,6 +171,7 @@ def _scan_competitions(text: str) -> list[str]:
 def _collect_sport_evidence(
     title_l: str,
     sub_l: str,
+    source_id: str,
     source_sport_hint: Optional[str],
     competition_ids: list[str],
     entities: list[str],
@@ -174,6 +184,13 @@ def _collect_sport_evidence(
     if source_sport_hint:
         evidence.append({"sport": source_sport_hint, "source": "source_url_hint",
                          "weight": _W_SOURCE_HINT, "detail": source_sport_hint})
+
+    # Basketball-only source (Eurohoops / Sportando) — an authoritative source-category
+    # signal. Given explicit authority so these never get overridden to, or abstained
+    # into, another sport by a stray keyword.
+    if source_id in _BASKETBALL_ONLY_SOURCES:
+        evidence.append({"sport": "basketball", "source": "basketball_only_source",
+                         "weight": _W_BASKETBALL_ONLY_SOURCE, "detail": source_id})
 
     _title_sets = (
         ("basketball", _BASKETBALL_CTX_KW),
@@ -217,6 +234,66 @@ def _sport_has_explicit_support(evidence: list[dict], sport: str) -> bool:
     )
 
 
+def _strongest_for(evidence: list[dict], sport: str) -> Optional[dict]:
+    """The highest-weight evidence item supporting ``sport`` (None if none)."""
+    candidates = [e for e in evidence if e["sport"] == sport]
+    return max(candidates, key=lambda e: e["weight"]) if candidates else None
+
+
+def _resolve_sport_with_evidence(
+    evidence: list[dict], current_sport: str
+) -> tuple[str, Optional[dict]]:
+    """Enforce the declared evidence-weight order (B1). Returns (sport, conflict|None).
+
+    The resolved sport must be backed by the strongest EXPLICIT evidence. When the
+    incoming sport (from the classifier / LLM merge) is backed only by weaker
+    non-explicit evidence (entity_derived / llm) and a higher-weight explicit source
+    names a different sport, override to that sport and record
+    ``weighted_evidence_override``. Equal-weight explicit ties across sports keep the
+    incoming sport if it is among them (the classifier already applied deterministic
+    title precedence); otherwise abstain — never guess between equally-supported
+    sports. Conflict ``rule`` labels always reflect the actual weight comparison.
+    """
+    if not evidence:
+        return current_sport, None
+
+    distinct = {e["sport"] for e in evidence}
+    explicit = [e for e in evidence if e["source"] in _EXPLICIT_SPORT_SOURCES]
+
+    def _conflict(winner: str, rule: str) -> dict:
+        return {"field": "sport", "candidates": evidence, "winner": winner, "rule": rule}
+
+    # No explicit evidence: keep the incoming (entity/LLM-derived) sport; record an
+    # honest comparison only if there is disagreement among the weak signals.
+    if not explicit:
+        if len(distinct) > 1 and current_sport != "unknown":
+            win = _strongest_for(evidence, current_sport)
+            rule = f'{win["source"]}_outweighs' if win else "weighted_evidence"
+            return current_sport, _conflict(current_sport, rule)
+        return current_sport, None
+
+    top_w = max(e["weight"] for e in explicit)
+    top_sports = {e["sport"] for e in explicit if e["weight"] == top_w}
+
+    # Equal-weight explicit tie across multiple sports.
+    if len(top_sports) > 1:
+        if current_sport in top_sports:
+            return current_sport, _conflict(current_sport, "equal_weight_tie_kept")
+        return "unknown", _conflict("unknown", "equal_weight_tie_abstain")
+
+    winner = next(iter(top_sports))
+    if winner != current_sport:
+        # Incoming sport is not backed by the strongest explicit evidence → override.
+        return winner, _conflict(winner, "weighted_evidence_override")
+
+    # Incoming sport IS the strongest explicit sport. Record the honest comparison
+    # if any other sport was in evidence.
+    if len(distinct) > 1:
+        win = _strongest_for(explicit, current_sport)
+        return current_sport, _conflict(current_sport, f'{win["source"]}_outweighs')
+    return current_sport, None
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def build_article_facts(
@@ -234,9 +311,12 @@ def build_article_facts(
 ) -> ArticleFacts:
     """Validate a completed classification into evidence-backed ArticleFacts.
 
-    ``result`` is the authoritative (rules-only or LLM-merged) classification.
-    This stage never re-runs sport detection; it validates the sport/entity/
-    competition triangle, records conflicts, and derives the persistable facts.
+    ``result`` is the incoming (rules-only or LLM-merged) classification. This
+    stage does not run keyword sport DETECTION, but it is the authority on the
+    sport/entity/competition triangle: it ENFORCES the declared evidence-weight
+    order (explicit evidence may override an incoming sport backed only by weaker
+    non-explicit evidence — B1), then validates entities and competitions under the
+    resolved sport, records every conflict, and derives the persistable facts.
     """
     title_l = (title or "").lower()
     sub_l = (subtitle or "").lower()
@@ -254,10 +334,33 @@ def build_article_facts(
             explicit_comp_ids.append(cid)
 
     sport_evidence = _collect_sport_evidence(
-        title_l, sub_l, source_sport_hint, explicit_comp_ids, result.entities, llm_raw
+        title_l, sub_l, source_id, source_sport_hint, explicit_comp_ids,
+        result.entities, llm_raw,
     )
 
+    # ── Sport resolution: ENFORCE the weight order (B1) ───────────────────────
+    # The incoming sport is the classifier / LLM-merge decision. Here explicit
+    # evidence may OVERRIDE it when the incoming sport is backed only by weaker
+    # non-explicit evidence. Recorded once as a sport conflict.
+    sport, sport_conflict = _resolve_sport_with_evidence(sport_evidence, sport)
+    if sport_conflict is not None:
+        conflicts.append(sport_conflict)
+
+    # League guard: an override (or a defensively-incompatible incoming league)
+    # can leave the legacy league naming a competition of the wrong sport. Null it.
+    if league is not None and sport in ("basketball", "football"):
+        league_cid = _COMP_ID_BY_DISPLAY.get(league)
+        if league_cid is not None and COMPETITIONS[league_cid].sport != sport:
+            conflicts.append({
+                "field": "league",
+                "candidates": [f"{league} (sport={COMPETITIONS[league_cid].sport})"],
+                "winner": sport,
+                "rule": "league_dropped_sport_conflict",
+            })
+            league = None
+
     # ── Entity validation (invariant: entity sport == article sport) ─────────
+    # Runs under the RESOLVED sport, so an override drops the now-incompatible entities.
     kept_entities: list[str] = []
     dropped_entities: list[dict] = []
     for e in result.entities:
@@ -294,17 +397,6 @@ def build_article_facts(
                 "winner": sport,
                 "rule": "entity_dropped_sport_conflict",
             })
-
-    # ── Sport conflict recording (auto-resolved cases too) ───────────────────
-    distinct_sports = {e["sport"] for e in sport_evidence}
-    if sport != "unknown" and len(distinct_sports) > 1:
-        winning = next((e for e in sport_evidence if e["sport"] == sport), None)
-        conflicts.append({
-            "field": "sport",
-            "candidates": sport_evidence,
-            "winner": sport,
-            "rule": f'{winning["source"]}_outweighs' if winning else "weighted_evidence",
-        })
 
     # ── Competition validation (invariant: competition sport == article sport) ─
     primary_competition: Optional[str] = None

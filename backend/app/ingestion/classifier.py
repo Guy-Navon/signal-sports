@@ -19,9 +19,11 @@ from dataclasses import dataclass
 from typing import Optional
 
 from app.taxonomy import (
+    COMPETITIONS,
     EntityResolution,
     entities_by_sport,
     entity_by_id,
+    entity_by_legacy_name,
     legacy_sport,
     resolve_entities,
 )
@@ -173,7 +175,12 @@ def _has_hapoel_tel_aviv_football_context(text: str) -> bool:
 _BASKETBALL_KW = (
     "basketball", "כדורסל", "nba", "euroleague", "eurocup", "יורוליג", "יורוקאפ",
     "acb", "bsl", "lba", "lnb",
-    "maccabi", "מכבי",          # almost always basketball
+    # NOTE (issue #28): bare club-family names "מכבי" / "maccabi" were REMOVED here.
+    # They are family markers, not sport evidence — a football מכבי story (מכבי חיפה,
+    # or a bare "מכבי" whose subtitle says "שוער") must not be forced to basketball.
+    # This was the last entity→basketball bias path; sport now comes from explicit
+    # keywords / competitions / evidence-weighted resolution. Full-name Maccabi TLV
+    # forms are still handled (with sport context) via _MACCABI_TLV_KW.
     "ווינר סל", "ליגת העל סל",  # Israeli Basketball League explicit markers
     # Israeli basketball clubs — allow sport inference without "כדורסל" keyword
     "בני הרצליה",               # Bnei Herzliya basketball
@@ -490,6 +497,40 @@ def _filter_entities_for_sport(entities: list[str], sport: str) -> list[str]:
     if sport not in ("basketball", "football"):
         return entities
     return [e for e in entities if legacy_sport(e) in (None, sport)]
+
+
+def _infer_league_from_membership(entities: list[str], sport: str) -> Optional[str]:
+    """Infer the legacy league from resolved entities' competition membership.
+
+    This populates the legacy `league` DISPLAY field (issue #28) so basketball
+    stories about a resolved team stop landing with league=NULL — the root of the
+    73% league-NULL rate. It is membership-derived and applies ONLY to the legacy
+    league field; `primary_competition` stays explicit-evidence-only (see
+    app/classification/facts.py). Generalizes the old Deni→NBA special case.
+
+    Uses each entity's domestic competition (teams) or sole membership
+    (players/coaches). Returns a league only when all contributing entities of the
+    article's sport agree on one competition; conflicting memberships → None.
+    """
+    if sport not in ("basketball", "football"):
+        return None
+    comps: set[str] = set()
+    for name in entities:
+        ent = entity_by_legacy_name(name)
+        if ent is None or ent.sport != sport:
+            continue
+        if ent.domestic_competition:
+            comps.add(ent.domestic_competition)
+        elif ent.memberships:
+            # players/coaches (and teams without a domestic slot): use the single
+            # membership when unambiguous.
+            membership_comps = {m[0] for m in ent.memberships}
+            if len(membership_comps) == 1:
+                comps.add(next(iter(membership_comps)))
+    if len(comps) != 1:
+        return None
+    comp = COMPETITIONS.get(next(iter(comps)))
+    return comp.display_en if comp else None
 
 
 # ── Event type detection ──────────────────────────────────────────────────────
@@ -879,6 +920,12 @@ def classify(
         and (_has(text, *_ISRAELI_BBALL_CONTEXT_KW) or _has(sub_text, *_ISRAELI_BBALL_CONTEXT_KW))
     ):
         league = "Israeli Basketball League"
+
+    # Membership-derived league (issue #28): a resolved team/player still implies a
+    # league even with no explicit competition keyword. Legacy DISPLAY field only —
+    # primary_competition stays explicit-evidence-only in the facts stage.
+    if league is None:
+        league = _infer_league_from_membership(entities, sport)
 
     event_type = _detect_event_type(text, sport)
 

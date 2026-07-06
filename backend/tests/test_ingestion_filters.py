@@ -142,11 +142,15 @@ class TestIsraeliLeagueContextInference:
         r = classify("Maccabi Tel Aviv defeats Hapoel Holon in overtime", source_id="eurohoops", language="en")
         assert r.league == "Israeli Basketball League"
 
-    def test_maccabi_no_context_kw_league_remains_none(self):
-        # Maccabi alone without any Israeli context keyword — league should not be inferred
+    def test_maccabi_no_context_kw_infers_domestic_league(self):
+        # Contract change (issue #28): a resolved team now yields a membership-inferred
+        # legacy league instead of NULL — the fix for the 73% league-NULL rate. With no
+        # explicit competition keyword, Maccabi TLV defaults to its DOMESTIC competition
+        # (Israeli Basketball League). This is the legacy DISPLAY league only;
+        # primary_competition stays None here (no explicit competition evidence), and the
+        # precise IBL-vs-EuroLeague reach is a scoring-time concern (issue #29).
         r = classify("Maccabi Tel Aviv roster preview for the season", source_id="eurohoops", language="en")
-        # League may be None or EuroLeague depending on other keywords — just not Israeli
-        assert r.league != "Israeli Basketball League"
+        assert r.league == "Israeli Basketball League"
 
     def test_maccabi_euroleague_kw_overrides_context(self):
         # EuroLeague keyword is detected first (ordered detection), so EuroLeague wins

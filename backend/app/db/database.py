@@ -22,6 +22,12 @@ def _apply_migrations(eng) -> None:
         ("articles", "classification_provider",   "TEXT"),
         ("articles", "classification_reason",     "TEXT"),
         ("articles", "classification_confidence", "REAL"),
+        # ArticleFacts (issue #28) — same soft-migration pattern as PR 11.
+        ("articles", "primary_competition",       "TEXT"),
+        ("articles", "article_competitions",      "JSON"),
+        ("articles", "entity_ids",                "JSON"),
+        ("articles", "classification_trace",      "JSON"),
+        ("articles", "taxonomy_version",          "INTEGER"),
     ]
     with eng.connect() as conn:
         for table, col, col_type in migrations:

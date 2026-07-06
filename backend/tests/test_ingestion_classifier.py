@@ -195,8 +195,11 @@ class TestHebrewRegressions:
         assert r.event_type == "title_win"
         assert r.importance == "very_high"
 
-    def test_brunson_mvp_sport_now_basketball(self):
-        """mvp fix: sport now basketball (was: unknown). League still None — requires LLM."""
+    def test_brunson_mvp_sport_and_league_now_resolved(self):
+        """mvp fix: sport basketball. League now NBA deterministically (issue #28):
+        Brunson resolves to a taxonomy entity whose membership is NBA, and legacy
+        league is now membership-inferred — this class of article no longer needs
+        the LLM to recover the league."""
         r = classify(
             "ג'יילן ברונסון ה-MVP של סדרת הגמר: \"בכל פעם, פשוט לקחנו את זה\"",
             source_id="walla_sport", language="he",
@@ -204,7 +207,7 @@ class TestHebrewRegressions:
         assert r.sport == "basketball"        # fixed from unknown
         assert r.event_type == "finals_result"
         assert r.importance == "very_high"
-        assert r.league is None               # still None; LLM needed (Brunson → Knicks → NBA)
+        assert r.league == "NBA"              # membership-inferred (was: None, LLM-only)
 
     def test_hapoel_tlv_harper_still_ambiguous_without_llm(self):
         """Multi-sport entity: still unknown without LLM. Documents known gap."""

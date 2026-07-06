@@ -34,6 +34,12 @@ class ArticleRow(Base):
     classification_provider = Column(String, nullable=True)
     classification_reason = Column(String, nullable=True)
     classification_confidence = Column(Float, nullable=True)
+    # ArticleFacts (issue #28) — added via soft migration; nullable for existing rows
+    primary_competition = Column(String, nullable=True)
+    article_competitions = Column(JSON, nullable=True)
+    entity_ids = Column(JSON, nullable=True)
+    classification_trace = Column(JSON, nullable=True)
+    taxonomy_version = Column(Integer, nullable=True)
 
 
 class ProfileRow(Base):

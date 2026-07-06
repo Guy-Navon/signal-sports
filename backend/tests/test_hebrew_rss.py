@@ -772,14 +772,16 @@ class TestMaccabiTLVDisambiguation:
         assert r.sport == "football"
         assert "Maccabi Tel Aviv Football" in r.entities
 
-    def test_maccabi_short_form_is_still_basketball(self):
-        # Standalone "מכבי" without "תל אביב" still defaults sport to basketball,
-        # but (taxonomy contract change) never resolves to a specific team —
-        # it is a family mention, not an entity.
+    def test_maccabi_short_form_is_not_sport_evidence(self):
+        # Contract change (issue #28): a bare club-family name "מכבי" is NOT sport
+        # evidence. It used to force sport=basketball (the last entity→basketball
+        # bias path); a football מכבי story could then never be corrected. Now a
+        # bare "מכבי" with no other sport signal → sport=unknown (a family mention),
+        # which force-calls the LLM via the sport_unknown gate. It still never
+        # resolves to a specific team.
         r = classify("מכבי ניצחה בגמר", source_id="walla_sport", language="he")
-        assert r.sport == "basketball"
+        assert r.sport == "unknown"
         assert "Maccabi Tel Aviv Basketball" not in r.entities
-        assert "ambiguous_club" not in r.tags
 
     def test_maccabi_ta_ambiguous_confidence_is_low(self):
         r = classify('מכבי ת"א חתמה על שחקן', source_id="walla_sport", language="he")

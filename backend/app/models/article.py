@@ -27,3 +27,11 @@ class Article(BaseModel):
     classification_provider: Optional[str] = None
     classification_reason: Optional[str] = None
     classification_confidence: Optional[float] = None
+    # ArticleFacts (issue #28) — evidence-backed competitions, canonical entity IDs,
+    # and a compact classification trace. Legacy `league`/`entities` stay populated;
+    # `league` == display_en of `primary_competition` when a primary is set.
+    primary_competition: Optional[str] = None       # competition id (comp:*), explicit evidence only
+    article_competitions: List[str] = []             # additional explicitly-evidenced competition ids
+    entity_ids: List[str] = []                       # canonical taxonomy ids (team:* / player:* / coach:*)
+    classification_trace: Optional[dict] = None      # evidence hits, gate/LLM decision, conflicts, normalization
+    taxonomy_version: Optional[int] = None           # taxonomy registry version that produced these facts

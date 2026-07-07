@@ -181,9 +181,45 @@ signals). Every feedback action today is inert-but-persisted (no scoring
 effect yet — that's #34, feedback learning), so this is a pure
 persistence-parity fix, no learning logic involved.
 
+## Known limitations
+
+**Competition-anchored events with no explicit competition evidence can
+remain hidden — including from broad competition followers.** Because
+competition-anchored events (`match_result`, `regular_season_result`,
+`playoff_result`, `finals_result`, `title_win`, `schedule`, …) match *only*
+through explicit competition evidence, a game-result story whose competition
+is not named in the text — and is only derivable from the participating
+teams' taxonomy memberships — gets no reach and is hidden on post-facts rows.
+
+Taxonomy membership alone is **intentionally insufficient** for ordinary
+competition-anchored reach: single-team membership is diffuse (a team plays
+in all its competitions), so allowing it would let, e.g., a Maccabi
+domestic-league game reach a EuroLeague-only follower. That fail-closed
+behavior is deliberate and correct as a conservative default, but it
+**under-serves broad competition followers for game-result stories** (a
+"NBA: all" follower can miss a plain Lakers-vs-Celtics result that never
+prints the word "NBA").
+
+The planned fix is **uniqueness-gated participant-set competition inference at
+relevance time** (issue #40): for a competition-anchored event, intersect the
+*participating* entities' memberships and accept the result **only when it
+resolves to exactly one competition** (`Lakers {NBA} ∩ Celtics {NBA} = {NBA}`;
+`Maccabi {IBL, EuroLeague} ∩ Real Madrid {ACB, EuroLeague} = {EuroLeague}`).
+An **ambiguous or empty intersection must abstain**
+(`Maccabi {IBL, EuroLeague} ∩ Hapoel TLV {IBL, EuroLeague}` → abstain), which
+reproduces the exact guarantee this contract already enforces. Participant
+inference is taxonomy-derived, not text-explicit, so it **must not populate
+`primary_competition` or `article_competitions`** (those stay explicit-article
+evidence only, per #28); it is a scoring-time computation surfaced in the
+reasoning trace, and explicit competition matches always outrank it. See
+issue #40 (sequenced after #29, before #32), which also covers the taxonomy
+coverage gap that compounds this (most NBA teams are not yet registered, so
+the participating entities don't even resolve).
+
 ## Non-goals (this issue)
 
 Affinity scoring / Preference Model v2 (#32); learned adjustments;
 calibration; any JS-engine feature growth beyond the matching change
 described here; redesigning classification (#28/#30's territory) or
-`event_certainty` (#30, unrelated to this contract).
+`event_certainty` (#30, unrelated to this contract); participant-set
+competition inference and taxonomy coverage expansion (#40).

@@ -42,22 +42,39 @@ grant a forgotten future event type cross-competition reach. `interview` is
 deliberately in neither set — a generic interview shouldn't spread through
 every competition a team happens to belong to.
 
-## Three-tier league/league_group matching
+## Four-tier league/league_group matching (#29, extended by #40)
 
 Applies only to `scope in ("league", "league_group")` — entity/sport scopes
 are unchanged.
 
 1. **Explicit** — `{primary_competition, *article_competitions}` (ids, from
    ArticleFacts) → `display_en` → intersect with `topic.leagues`. Works for
-   *any* event type; the only path a competition-anchored event can match
-   through.
+   *any* event type; always the highest-authority match.
 2. **Legacy fallback** — only when `taxonomy_version is None` (the article
    predates ArticleFacts): fall back to `article.league ∈ topic.leagues`,
    exactly as before. Every pre-existing seed/mock article has
    `taxonomy_version=None`, so this makes the change 100% backward
    compatible.
-3. **Membership-derived reach** — only when `event_type` is in
-   `TEAM_ANCHORED_EVENTS` and neither of the above matched.
+3. **Participant-set competition inference** (issue #40 Part B) — only for
+   competition-anchored events (excluding
+   `PARTICIPANT_INFERENCE_EXCLUDED_EVENTS = {friendly_match}` — a friendly
+   between two clubs sharing a competition is by definition not a game in
+   that competition). Intersect the participating **team** entities'
+   taxonomy memberships (players/coaches are never participants; identity is
+   entity_ids-first exactly like membership reach); accept **only a
+   singleton intersection** — at least two teams, empty or multi-competition
+   intersections abstain. An incidental extra team can only *shrink* the
+   intersection, so it can force abstention but never redirect the inference
+   (fail-closed by shape). Relevance-time only: the inferred competition is
+   **never persisted** into `primary_competition`/`article_competitions`
+   (explicit article evidence only, per #28). Trace provenance:
+   `via_participant_inference: comp:<id>`. Match kind:
+   `participant_inference`. A uniquely-inferred match is genuine
+   event-competition evidence, so it is **not** subject to the membership
+   feed ceiling below — but push discipline is unchanged (push still
+   requires an explicit rule; boosts cap at high_feed).
+4. **Membership-derived reach** — only when `event_type` is in
+   `TEAM_ANCHORED_EVENTS` and none of the above matched.
 
 ## entity_ids-first identity (canonical, not display-string)
 
@@ -200,21 +217,29 @@ behavior is deliberate and correct as a conservative default, but it
 "NBA: all" follower can miss a plain Lakers-vs-Celtics result that never
 prints the word "NBA").
 
-The planned fix is **uniqueness-gated participant-set competition inference at
-relevance time** (issue #40): for a competition-anchored event, intersect the
-*participating* entities' memberships and accept the result **only when it
-resolves to exactly one competition** (`Lakers {NBA} ∩ Celtics {NBA} = {NBA}`;
-`Maccabi {IBL, EuroLeague} ∩ Real Madrid {ACB, EuroLeague} = {EuroLeague}`).
-An **ambiguous or empty intersection must abstain**
-(`Maccabi {IBL, EuroLeague} ∩ Hapoel TLV {IBL, EuroLeague}` → abstain), which
-reproduces the exact guarantee this contract already enforces. Participant
-inference is taxonomy-derived, not text-explicit, so it **must not populate
-`primary_competition` or `article_competitions`** (those stay explicit-article
-evidence only, per #28); it is a scoring-time computation surfaced in the
-reasoning trace, and explicit competition matches always outrank it. See
-issue #40 (sequenced after #29, before #32), which also covers the taxonomy
-coverage gap that compounds this (most NBA teams are not yet registered, so
-the participating entities don't even resolve).
+**SHIPPED (issue #40):** uniqueness-gated **participant-set competition
+inference at relevance time** now closes this gap for the common case — see
+"Four-tier league/league_group matching" tier 3 above
+(`Lakers {NBA} ∩ Celtics {NBA} = {NBA}` → infer;
+`Maccabi {IBL, EuroLeague} ∩ Real Madrid {ACB, EuroLeague} = {EuroLeague}` →
+infer; `Maccabi {IBL, EuroLeague} ∩ Hapoel TLV {IBL, EuroLeague}` → abstain).
+The taxonomy coverage gap that compounded this was closed in #40 Part A
+(NBA 30/30, EuroLeague 2025-26 20/20 — audit table in `docs/TAXONOMY.md`).
+
+What **remains** fail-closed-hidden after #40, by design:
+
+- competition-anchored events whose participants share **more than one**
+  competition (two Israeli EuroLeague clubs: the domestic derby abstains —
+  exactly the guarantee that protects a EuroLeague-only follower);
+- competition-anchored events with **fewer than two resolved team entities**
+  (single-team game reports, unregistered opponents);
+- `friendly_match` (excluded from inference — participants' shared
+  competition does not identify a friendly's competition);
+- event types in neither allowlist (e.g. `interview`).
+
+These abstentions are the contract working as intended (false positives are
+worse than abstention); coverage growth in the taxonomy shrinks the
+"unregistered opponent" class over time.
 
 ## Non-goals (this issue)
 

@@ -27,6 +27,7 @@ def build_taxonomy_export() -> dict:
         e.id: {
             "legacy_name": e.legacy_name,
             "sport": e.sport,
+            "kind": e.kind,
             "memberships": [comp_id for comp_id, _season in e.memberships],
         }
         for e in ENTITIES.values()

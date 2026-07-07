@@ -328,6 +328,25 @@ hand-maintained JS mirror. See `docs/RELEVANCE_VISIBILITY_CONTRACT.md` for
 the full contract, the sport=unknown decision, and the feed-ceiling
 reasoning.
 
+**2026-07-07 — Signal Intelligence Architecture v2, #40 (competition-reach
+completion).** Part A (PR #41): taxonomy coverage expanded — NBA 30/30 teams,
+EuroLeague 2025-26 20/20 clubs, IBL 15 clubs (+ Hapoel Haifa FC twin for
+cross-sport alias safety); ACB/BSL/Greek/LBA/LNB audited and deliberately
+left EL-clubs-only (audit table + season-uncertainty notes in
+`docs/TAXONOMY.md`). Part B: the league match model is now **four-tier** —
+a new **participant-set competition inference** tier sits between the legacy
+fallback and membership reach: for competition-anchored events (except
+`friendly_match`), the intersection of the participating *team* entities'
+memberships identifies the event's competition **only when it is a
+singleton** (Lakers ∩ Celtics = {NBA} → infer; Maccabi ∩ Hapoel TLV =
+{IBL, EuroLeague} → abstain). Fail-closed by shape (extra teams only shrink
+the intersection), relevance-time only (never persisted into ArticleFacts
+fields), `match_kind: participant_inference`, trace
+`via_participant_inference: comp:*`, exempt from the membership feed ceiling
+(genuine event evidence), push discipline unchanged. Real-DB QA: the two
+hidden NBA game results (Hornets–Wizards mock, Brooklyn–Sacramento real row)
+flip hidden → feed for Guy; zero changes for Casual Deni Fan.
+
 **Demo profile: Guy (basketball power user)**
 - Maccabi Tel Aviv Basketball: `entity` scope, very high priority — signing/negotiation/injury → `push`
 - NBA: `league` scope, high priority, mode `all` — most events visible

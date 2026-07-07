@@ -18,7 +18,9 @@ import {
   idForLegacyName,
   legacyNameForId,
   reachForEntityIds,
-  reachForLegacyNames
+  reachForLegacyNames,
+  teamMembershipsForEntityIds,
+  teamMembershipsForLegacyNames
 } from "@/engine/taxonomyReach";
 
 export const DECISION_RANK = {
@@ -52,6 +54,12 @@ export const COMPETITION_ANCHORED_EVENTS = new Set([
   "generic_regular_season_result", "friendly_match", "final_four",
   "major_match_result", "match_summary"
 ]);
+
+// Participant-set competition inference (issue #40 Part B) applies to
+// competition-anchored events EXCEPT these: a friendly between two clubs that
+// share a competition is, by definition, not a game in that competition — the
+// shared-membership premise does not hold for it.
+export const PARTICIPANT_INFERENCE_EXCLUDED_EVENTS = new Set(["friendly_match"]);
 
 
 /**
@@ -114,6 +122,10 @@ export function scoreArticle(article, profile, options = {}) {
       // Membership-derived reach with no independent entity backing is one tier
       // below explicit/legacy evidence — it can justify feed visibility but never
       // high_feed/push on its own (issue #29).
+      // NOTE: "participant_inference" (issue #40) is deliberately NOT capped here —
+      // a unique participant intersection is genuine event-competition evidence,
+      // not diffuse reach. Push discipline is unaffected: push still requires an
+      // explicit rule (boosts cap at high_feed).
       if (!topicEntityMatch(article, topic, profile)) {
         topicReasoning.push(
           `התאמה מבוססת שיוך קבוצתי בלבד (ללא ישות עוקבת) → תקרה: ` +
@@ -430,6 +442,27 @@ function entityReach(article) {
   return reachForLegacyNames(article.entities || []);
 }
 
+/** Unique shared competition id of the article's participating TEAM entities,
+ * or null (issue #40 Part B). Mirrors backend _participant_inferred_competition:
+ *   - at least two resolved team entities (fewer → abstain);
+ *   - intersect ALL participating teams' memberships — an incidental extra
+ *     team can only shrink the intersection (fail-closed by shape);
+ *   - accept only a singleton intersection; empty or >1 → abstain.
+ * Relevance-time only — never persisted into primaryCompetition/articleCompetitions. */
+function participantInferredCompetition(article) {
+  const teams = article.taxonomyVersion != null
+    ? teamMembershipsForEntityIds(article.entityIds || [])
+    : teamMembershipsForLegacyNames(article.entities || []);
+  if (teams.size < 2) return null;
+  let shared = null;
+  for (const memberships of teams.values()) {
+    const set = new Set(memberships);
+    shared = shared === null ? set : new Set([...shared].filter(c => set.has(c)));
+    if (shared.size === 0) return null;
+  }
+  return shared.size === 1 ? [...shared][0] : null;
+}
+
 /**
  * The article entity (as its legacy display name, for entityEventRules dict
  * lookups) that backs this topic for this profile, or null.
@@ -460,16 +493,18 @@ function topicEntityMatch(article, topic, profile) {
  * Scope semantics:
  *   "entity"       — match only if article.entities ∩ topic.entities is non-empty.
  *                    Prevents sport-wide OR league-wide over-matching for team/person topics.
- *   "league"       — three-tier competition-aware match (issue #29): explicit evidence,
- *                    legacy fallback, or team-membership reach.
- *   "league_group" — same three-tier match as "league".
+ *   "league"       — four-tier competition-aware match (issues #29 + #40): explicit
+ *                    evidence, legacy fallback, participant-set inference, or
+ *                    team-membership reach.
+ *   "league_group" — same four-tier match as "league".
  *   "sport"        — match only if article.sport === topic.sport.
  *                    Use with restrictive modes (major_only, titles_only) to avoid broad noise.
  *   undefined      — legacy OR matching: sport OR league OR entity (backward compat for
  *                    calibration-generated topics that pre-date scope guards).
  *
  * Returns { matched: boolean, reason: string|null, matchKind: string|null }
- * matchKind is one of "explicit", "legacy", "membership", or null.
+ * matchKind is one of "explicit", "legacy", "participant_inference",
+ * "membership", or null. The membership feed ceiling applies to "membership" only.
  */
 export function doesTopicMatchArticle(article, topic) {
   const { scope } = topic;
@@ -524,7 +559,30 @@ export function doesTopicMatchArticle(article, topic) {
       };
     }
 
-    // 3. Membership-derived reach — team-anchored events only (allowlist).
+    // 3. Participant-set competition inference (issue #40 Part B) —
+    // competition-anchored events only. When ALL participating teams share
+    // exactly one competition, that intersection identifies the event's
+    // competition. Genuine event-competition evidence (not diffuse reach), so
+    // it is NOT subject to the membership feed ceiling — but still lower
+    // authority than explicit evidence (tier 1 wins above).
+    if (
+      COMPETITION_ANCHORED_EVENTS.has(article.eventType) &&
+      !PARTICIPANT_INFERENCE_EXCLUDED_EVENTS.has(article.eventType)
+    ) {
+      const compId = participantInferredCompetition(article);
+      if (compId !== null) {
+        const compName = competitionDisplayName(compId);
+        if (compName && topic.leagues.includes(compName)) {
+          return {
+            matched: true,
+            reason: `התאמה דרך הסקת משתתפים (via_participant_inference: ${compId}) (scope: ${scope}): ${compName}`,
+            matchKind: "participant_inference"
+          };
+        }
+      }
+    }
+
+    // 4. Membership-derived reach — team-anchored events only (allowlist).
     if (TEAM_ANCHORED_EVENTS.has(article.eventType)) {
       const reach = entityReach(article);
       const reachHit = topic.leagues.find(name => name in reach);

@@ -53,3 +53,28 @@ export function reachForLegacyNames(legacyNames = []) {
   }
   return reach;
 }
+
+function teamMemberships(entityId, out) {
+  const entity = taxonomyData.entities[entityId];
+  if (!entity || entity.kind !== "team") return;
+  out.set(entityId, entity.memberships);
+}
+
+/** entity id -> memberships[] for the TEAM entities among canonical entity ids
+ * (post-ArticleFacts, authoritative). Players/coaches are never participants. */
+export function teamMembershipsForEntityIds(entityIds = []) {
+  const out = new Map();
+  for (const id of entityIds) teamMemberships(id, out);
+  return out;
+}
+
+/** entity id -> memberships[] for the TEAM entities among legacy display-name
+ * strings (pre-ArticleFacts fallback only). */
+export function teamMembershipsForLegacyNames(legacyNames = []) {
+  const out = new Map();
+  for (const name of legacyNames) {
+    const id = idForLegacyName(name);
+    if (id) teamMemberships(id, out);
+  }
+  return out;
+}

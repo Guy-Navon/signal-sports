@@ -10,7 +10,7 @@ Last updated: 2026-07-04 — reflects the **complete frontend redesign**: Court 
 
 **Backend, API contracts, and the frontend data layer (`src/context`, `src/api`, `src/engine`, `src/data`) were unchanged by the redesign**, except the one explicitly-authorized subtitle fix above. Frontend tests: 341. Backend tests: 1215.
 
-**2026-07-06 — Signal Intelligence Architecture v2 started.** PR 1 (branch `feature/taxonomy-entity-resolver`, PR #26) shipped the canonical taxonomy + entity resolver foundation: `backend/app/taxonomy/` is now the single source of entity truth for the deterministic classifier and the LLM normalizer; bare club-family names ("מכבי", "הפועל"…) never resolve to a team; Maccabi Ramat Gan / Maccabi Kiryat Gat exist as distinct entities. See `docs/TAXONOMY.md` for the taxonomy contract and `docs/INTELLIGENCE_ROADMAP.md` for the full initiative plan (Epic #27, Milestone 1 — the home page for all initiative issues).
+**2026-07-06 — Signal Intelligence Architecture v2 started.** PR 1 (branch `feature/taxonomy-entity-resolver`, PR #26) shipped the canonical taxonomy + entity resolver foundation: `backend/app/taxonomy/` is now the single source of entity truth for the deterministic classifier and the LLM normalizer; bare club-family names ("מכבי", "הפועל"…) never resolve to a team; Maccabi Ramat Gan / Maccabi Kiryat Gat exist as distinct entities. See `docs/TAXONOMY.md` for the taxonomy contract and `docs/INTELLIGENCE_ROADMAP.md` for the full initiative plan (Epic #27, Milestone 1 — the home page for all initiative issues). PR 2 (`feature/article-facts`, #28/#38) added evidence-backed `primary_competition`/`article_competitions`/`entity_ids` — see `docs/ARTICLE_FACTS.md`. PR 3 (`feature/relevance-visibility-contract-29`, #29) is the VISIBILITY layer: competition-aware league matching (explicit evidence → legacy fallback → team-membership reach), a membership-only feed ceiling, `entity_ids`-first identity, the `major_only` leak removed, and a Guy/Casual-Deni-Fan profile drift guard — see `docs/RELEVANCE_VISIBILITY_CONTRACT.md`.
 
 Prior backend state (unchanged by the redesign) reflects PR 13 + PR 13.1 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default, toggleable from the UI), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, runtime source enable/disable overrides, and the Sources page scheduler/health UI.
 
@@ -224,7 +224,7 @@ validated event. On doubt, event type falls back to `news`.
 
 On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent).
 
-**Test suite:** 1215 pytest tests across `backend/tests/` + 341 frontend tests (Vitest).
+**Test suite:** 1241 pytest tests across `backend/tests/` + 368 frontend tests (Vitest).
 The test environment is hermetic: `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and
 `INGESTION_SCHEDULER_ENABLED=false` regardless of the developer's `backend/.env`, so no test
 requires Ollama, a real API key, or live Sport5.
@@ -302,13 +302,39 @@ requires Ollama, a real API key, or live Sport5.
 
 Push must be rare. If more than a handful of articles per day reach push, the engine is too aggressive.
 
+**2026-07-06 — Signal Intelligence Architecture v2, PR 3 (Relevance Visibility
+Contract, #29).** `league`/`league_group`-scope topics now match through a
+three-tier model instead of a single legacy `article.league` string: explicit
+competition evidence (`primary_competition`/`article_competitions`, #28) →
+legacy fallback (pre-ArticleFacts rows only) → team-membership reach (an
+explicit `TEAM_ANCHORED_EVENTS` allowlist — signing/negotiation/release/
+injury/trade/etc. — computed at scoring time from taxonomy memberships,
+tagged `via_team_membership: comp:*` in the trace; `COMPETITION_ANCHORED_EVENTS`
+events like `match_result`/`title_win`/`schedule` require explicit evidence
+only, and an unlisted event type gets no membership reach — fail-closed, not
+"everything not competition-anchored"). Membership reach is authoritative
+through canonical `entity_ids` on post-ArticleFacts rows (never the legacy
+display string); a match via membership alone, with no independent topic/
+profile entity backing, is capped at `feed` (never `high_feed`/`push`) — a
+ceiling, not a rank subtraction, so a Maccabi Ramat Gan signing still lands
+`feed` via the Israeli Basketball League follow while a Deni Avdija trade
+(entity-backed) still reaches `push`. The `major_only` mode's
+`major_importance_fallback` → `low_feed` leak (any high-importance article
+with no matched scope) was removed from both engines. Frontend consumes a
+**generated** taxonomy artifact (`frontend/src/data/taxonomyReach.generated.json`,
+produced by `backend/scripts/generate_taxonomy_export.py` from
+`backend/app/taxonomy/`, freshness-guarded by a backend test) rather than a
+hand-maintained JS mirror. See `docs/RELEVANCE_VISIBILITY_CONTRACT.md` for
+the full contract, the sport=unknown decision, and the feed-ceiling
+reasoning.
+
 **Demo profile: Guy (basketball power user)**
 - Maccabi Tel Aviv Basketball: `entity` scope, very high priority — signing/negotiation/injury → `push`
 - NBA: `league` scope, high priority, mode `all` — most events visible
-- EuroLeague: `league` scope — high priority, non-Maccabi transfers → `high_feed` not `push`
-- Israeli Basketball League: `league` scope — high priority
+- EuroLeague: `league` scope — high priority; `leagues: ["EuroLeague", "EuroCup"]` on both engines (#29 drift fix); non-Maccabi transfers → `high_feed` not `push`
+- Israeli Basketball League: `league` scope — high priority; non-Maccabi teams (Maccabi Ramat Gan, Hapoel Holon, …) are visible via this broad follow, via membership reach when the article has no explicit league text
 - European domestic basketball (ACB, BSL, Greek, LBA, LNB): `league_group` scope — moderate priority
-- Football: `sport` scope, mode `titles_only`, empty event rules — all football is `hidden` for Guy (prevents major_importance_fallback leakage)
+- Football: `sport` scope, mode `titles_only` — **one authoritative policy** (#29 drift fix) applied identically on both engines: `major_transfer`/`title_win` → `low_feed`, everything else hidden (was `titles_only`/all-hidden on backend vs a leaky `major_only` on frontend)
 - Tennis: `sport` scope, mode `titles_only` — only Grand Slam winners/finals visible
 
 **Demo profile: Casual Deni Fan**
@@ -319,6 +345,10 @@ Push must be rare. If more than a handful of articles per day reach push, the en
 **Scope guards** prevent topic rules from bleeding across articles. A `maccabi_tel_aviv_basketball` topic (entity scope) only matches when the article's entities include Maccabi TLV — not all basketball articles. Without this, Maccabi-level `push` rules would fire on unrelated EuroLeague transfers.
 
 **Entity event rules** (`entityEventRules`) allow per-entity overrides. Example: within the EuroLeague topic, a Maccabi TLV signing → `push`, but a non-Maccabi EuroLeague signing → `high_feed`.
+
+**Profile drift guard (#29):** `docs/fixtures/profile_parity.json` is a canonical, hand-checked snapshot of every relevance-driving field on every shipped topic for both profiles. `backend/tests/test_profile_drift_guard.py` and `frontend/src/data/userProfiles.drift.test.js` each independently assert their profile normalizes to this file — either side drifting fails that side's test. Building this caught one additional pre-existing drift beyond football/EuroCup: `euroleague.schedule` was `low_feed` on backend, `hidden` on frontend; aligned to backend's `low_feed`.
+
+**`less_like_this` feedback fix (#29):** `FeedbackControls.jsx` emits `less_like_this`, but it was missing from both `AppContext.jsx`'s `BACKEND_VALID_ACTIONS` and the backend's `routes_feedback.py` `VALID_ACTIONS` — the POST was silently dropped in backend mode. Added as its own action on both sides (persisted only, like every other feedback action today — no scoring effect until #34).
 
 ---
 

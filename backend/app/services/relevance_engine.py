@@ -17,6 +17,24 @@ from typing import Optional, Set
 from app.models.article import Article
 from app.models.profile import UserProfile, TopicPreference
 from app.models.scoring import DecisionResult
+from app.taxonomy import COMPETITIONS, entity_by_id, entity_by_legacy_name
+
+# Event-reach allowlists (issue #29) — explicit and fail-closed. An event type
+# in neither set gets no membership-derived reach at all: it can still match a
+# league/league_group topic via explicit competition evidence (or the legacy
+# pre-ArticleFacts fallback), just never via "the team also plays in X".
+# `interview` is deliberately in neither set — a generic interview shouldn't
+# spread through every competition a team belongs to.
+TEAM_ANCHORED_EVENTS = frozenset({
+    "signing", "major_signing", "negotiation", "candidate", "release",
+    "injury", "major_trade", "star_trade", "major_transfer",
+})
+COMPETITION_ANCHORED_EVENTS = frozenset({
+    "match_result", "regular_season_result", "playoff_result", "finals_result",
+    "title_win", "schedule", "pre_match", "generic_preview",
+    "generic_regular_season_result", "friendly_match", "final_four",
+    "major_match_result", "match_summary",
+})
 
 DECISION_RANK = {
     "hidden": 0,
@@ -92,8 +110,18 @@ def score_article(
     best_rule: Optional[str] = None
     best_topic_reasoning: list[str] = []
 
-    for topic, match_reason in matching_topics:
+    for topic, match_reason, match_kind in matching_topics:
         t_decision, t_rule, t_reasoning = _score_against_topic(article, topic, profile, match_reason)
+        if match_kind == "membership" and DECISION_RANK[t_decision] > DECISION_RANK["feed"]:
+            # Membership-derived reach with no independent entity backing is one
+            # tier below explicit/legacy evidence — it can justify feed visibility
+            # but never high_feed/push on its own (issue #29).
+            if not _topic_entity_match(article, topic, profile):
+                t_reasoning.append(
+                    f"התאמה מבוססת שיוך קבוצתי בלבד (ללא ישות עוקבת) → תקרה: "
+                    f"{DECISION_LABELS['feed']} (היה {DECISION_LABELS[t_decision]})"
+                )
+                t_decision = "feed"
         if DECISION_RANK[t_decision] > DECISION_RANK[best_decision]:
             best_decision = t_decision
             best_topic_id = topic.topic_id
@@ -147,17 +175,17 @@ def _score_against_topic(
         return (fallback, "importance_fallback", r)
 
     if topic.mode == "major_only":
-        major_importance = {"high", "very_high"}
+        # The importance-based `major_importance_fallback` → low_feed leak was
+        # removed (issue #29): a high-importance article with no matching event
+        # rule is not a "real matched scope", so it's hidden like titles_only,
+        # not surfaced as low_feed. This makes major_only behaviorally identical
+        # to titles_only; the mode is kept only for backward-compat with any
+        # already-persisted profile referencing it.
         event_decision = _get_event_decision(article.event_type, topic.event_rules)
-        if article.importance not in major_importance and (not event_decision or event_decision == "hidden"):
-            r.append(f"מצב major_only — חשיבות: {article.importance}, אירוע: {article.event_type} → מוסתר")
-            return ("hidden", "major_only_no_match", r)
         if event_decision and event_decision != "hidden":
             r.append(f"מצב major_only — כלל אירוע: {article.event_type} → {DECISION_LABELS[event_decision]}")
             return (event_decision, f"event:{article.event_type}", r)
-        if article.importance in major_importance:
-            r.append("מצב major_only — חשיבות גבוהה ללא כלל ספציפי → low_feed")
-            return ("low_feed", "major_importance_fallback", r)
+        r.append(f"מצב major_only — אין כלל אירוע תואם ({article.event_type}) → מוסתר")
         return ("hidden", "major_only_no_match", r)
 
     # Default: all
@@ -176,7 +204,7 @@ def _score_followed_entities_only(
         *(profile.followed_entities or []),
     })
 
-    entity_match = next((e for e in article_entities if e in relevant_entities), None)
+    entity_match = _topic_entity_match(article, topic, profile)
 
     if not entity_match:
         r.append("מצב followed_entities_only")
@@ -219,14 +247,9 @@ def _score_all_mode(
     profile: UserProfile,
     r: list[str],
 ) -> tuple[str, Optional[str], list[str]]:
-    article_entities = article.entities or []
     topic_entities = topic.entities or []
-    profile_entities = profile.followed_entities or []
 
-    entity_match = next(
-        (e for e in article_entities if e in topic_entities or e in profile_entities),
-        None,
-    )
+    entity_match = _topic_entity_match(article, topic, profile)
 
     if entity_match:
         r.append(f"ישות תואמת: {entity_match}")
@@ -321,14 +344,94 @@ def _importance_fallback(importance: str, topic_priority: int, r: list[str]) -> 
     return decision
 
 
-def _does_topic_match_article(article: Article, topic: TopicPreference) -> tuple[bool, Optional[str]]:
+def _explicit_competition_names(article: Article) -> set[str]:
+    """Display names of the article's explicitly-evidenced competitions (#28) —
+    primary_competition + article_competitions. Never includes membership-only
+    reach; that is computed separately in `_entity_reach`."""
+    comp_ids = list(article.article_competitions or [])
+    if article.primary_competition:
+        comp_ids = [article.primary_competition] + comp_ids
+    return {COMPETITIONS[c].display_en for c in comp_ids if c in COMPETITIONS}
+
+
+def _entity_reach(article: Article) -> dict[str, str]:
+    """Competition display name -> comp id, via the article's resolved
+    entities' taxonomy memberships (issue #29).
+
+    Identity source is tiered, matching the entity_ids-first contract:
+      - post-ArticleFacts rows (taxonomy_version is not None): resolve
+        *only* through the canonical `entity_ids` — the authoritative,
+        rename-proof path.
+      - legacy rows (taxonomy_version is None, entity_ids never populated):
+        fall back to the legacy `entities` display strings, compatibility
+        path only.
     """
-    Scope-aware topic matching. Returns (matched, match_reason).
+    reach: dict[str, str] = {}
+
+    def _add(ent) -> None:
+        if ent is None:
+            return
+        for comp_id, _season in ent.memberships:
+            comp = COMPETITIONS.get(comp_id)
+            if comp:
+                reach.setdefault(comp.display_en, comp_id)
+
+    if article.taxonomy_version is not None:
+        for entity_id in article.entity_ids or []:
+            _add(entity_by_id(entity_id))
+    else:
+        for legacy_name in article.entities or []:
+            _add(entity_by_legacy_name(legacy_name))
+
+    return reach
+
+
+def _topic_entity_match(
+    article: Article, topic: TopicPreference, profile: UserProfile
+) -> Optional[str]:
+    """The article entity (returned as its legacy display name, for
+    `entity_event_rules` dict lookups) that backs this topic for this
+    profile, or None.
+
+    Tiered identically to `_entity_reach`: post-ArticleFacts rows compare
+    canonical ids (topic/profile entity names — still legacy strings in
+    today's profile schema — resolved to ids, checked against the article's
+    canonical `entity_ids`), so a renamed/missing legacy display string on a
+    post-facts row does not break entity backing. Legacy rows compare
+    display strings directly, exactly as before.
+    """
+    if article.taxonomy_version is not None:
+        relevant_ids: set[str] = set()
+        for name in (*(topic.entities or []), *(profile.followed_entities or [])):
+            ent = entity_by_legacy_name(name)
+            if ent:
+                relevant_ids.add(ent.id)
+        hit_id = next((eid for eid in (article.entity_ids or []) if eid in relevant_ids), None)
+        if hit_id is None:
+            return None
+        ent = entity_by_id(hit_id)
+        return ent.legacy_name if ent else hit_id
+
+    article_entities = article.entities or []
+    relevant = {*(topic.entities or []), *(profile.followed_entities or [])}
+    return next((e for e in article_entities if e in relevant), None)
+
+
+def _does_topic_match_article(
+    article: Article, topic: TopicPreference
+) -> tuple[bool, Optional[str], Optional[str]]:
+    """
+    Scope-aware topic matching. Returns (matched, match_reason, match_kind).
+
+    match_kind is one of "explicit", "legacy", "membership", or None (not
+    applicable — entity/sport scopes, or no match). It drives the
+    membership-reach feed ceiling applied in `score_article`.
 
     Scope semantics (mirrors frontend doesTopicMatchArticle):
       "entity"       — match only if article.entities ∩ topic.entities is non-empty.
-      "league"       — match only if article.league ∈ topic.leagues.
-      "league_group" — match only if article.league ∈ topic.leagues (group of related leagues).
+      "league"       — three-tier competition-aware match (issue #29): explicit
+                       evidence, legacy fallback, or team-membership reach.
+      "league_group" — same three-tier match as "league".
       "sport"        — match only if article.sport == topic.sport.
       None           — legacy OR matching: sport OR league OR entity.
     """
@@ -337,14 +440,14 @@ def _does_topic_match_article(article: Article, topic: TopicPreference) -> tuple
     if scope is None:
         # Legacy OR matching for topics without an explicit scope
         if topic.sport and article.sport == topic.sport:
-            return (True, f"התאמה לפי ספורט: {article.sport}")
+            return (True, f"התאמה לפי ספורט: {article.sport}", None)
         if topic.leagues and article.league and article.league in topic.leagues:
-            return (True, f"התאמה לפי ליגה: {article.league}")
+            return (True, f"התאמה לפי ליגה: {article.league}", None)
         if topic.entities and article.entities:
             hit = next((e for e in article.entities if e in topic.entities), None)
             if hit:
-                return (True, f"התאמה לפי ישות: {hit}")
-        return (False, None)
+                return (True, f"התאמה לפי ישות: {hit}", None)
+        return (False, None, None)
 
     if scope == "entity":
         if topic.entities and article.entities:
@@ -354,33 +457,57 @@ def _does_topic_match_article(article: Article, topic: TopicPreference) -> tuple
                 # football/tennis article even if entities overlap due to classification error.
                 # "unknown" sport passes through — the article may simply be unclassified.
                 if topic.sport and article.sport != "unknown" and article.sport != topic.sport:
-                    return (False, None)
-                return (True, f"התאמה לפי ישות (scope: entity): {hit}")
-        return (False, None)
+                    return (False, None, None)
+                return (True, f"התאמה לפי ישות (scope: entity): {hit}", None)
+        return (False, None, None)
 
     if scope in ("league", "league_group"):
-        if topic.leagues and article.league and article.league in topic.leagues:
-            return (True, f"התאמה לפי ליגה (scope: {scope}): {article.league}")
-        return (False, None)
+        if not topic.leagues:
+            return (False, None, None)
+
+        # 1. Explicit competition evidence — works for any event type.
+        explicit_names = _explicit_competition_names(article)
+        hit = next((name for name in topic.leagues if name in explicit_names), None)
+        if hit:
+            return (True, f"התאמה לפי תחרות מפורשת (scope: {scope}): {hit}", "explicit")
+
+        # 2. Legacy fallback — only for rows that predate ArticleFacts, where
+        # the explicit/membership distinction was never persisted.
+        if article.taxonomy_version is None and article.league and article.league in topic.leagues:
+            return (True, f"התאמה לפי ליגה (scope: {scope}): {article.league}", "legacy")
+
+        # 3. Membership-derived reach — team-anchored events only (allowlist).
+        if article.event_type in TEAM_ANCHORED_EVENTS:
+            reach = _entity_reach(article)
+            hit = next((name for name in topic.leagues if name in reach), None)
+            if hit:
+                comp_id = reach[hit]
+                return (
+                    True,
+                    f"התאמה דרך שיוך קבוצתי (via_team_membership: {comp_id}) (scope: {scope}): {hit}",
+                    "membership",
+                )
+
+        return (False, None, None)
 
     if scope == "sport":
         if topic.sport and article.sport == topic.sport:
-            return (True, f"התאמה לפי ספורט (scope: sport): {article.sport}")
-        return (False, None)
+            return (True, f"התאמה לפי ספורט (scope: sport): {article.sport}", None)
+        return (False, None, None)
 
-    return (False, None)
+    return (False, None, None)
 
 
 def _find_matching_topics(
     article: Article,
     profile: UserProfile,
-) -> list[tuple[TopicPreference, Optional[str]]]:
-    """Return list of (topic, match_reason) sorted by priority descending."""
+) -> list[tuple[TopicPreference, Optional[str], Optional[str]]]:
+    """Return list of (topic, match_reason, match_kind) sorted by priority descending."""
     matched = []
     for topic in profile.topics:
-        is_match, reason = _does_topic_match_article(article, topic)
+        is_match, reason, match_kind = _does_topic_match_article(article, topic)
         if is_match:
-            matched.append((topic, reason))
+            matched.append((topic, reason, match_kind))
     matched.sort(key=lambda t: t[0].priority, reverse=True)
     return matched
 

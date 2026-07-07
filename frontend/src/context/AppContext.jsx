@@ -18,6 +18,7 @@ const AppContext = createContext(null);
 // Backend feedback actions supported by the API
 const BACKEND_VALID_ACTIONS = new Set([
   "more_like_this",
+  "less_like_this",
   "not_interested",
   "never_show",
   "mute_source",

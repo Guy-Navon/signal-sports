@@ -1,0 +1,441 @@
+{
+  "competitions": {
+    "comp:acb": {
+      "display_en": "Spanish ACB",
+      "sport": "basketball"
+    },
+    "comp:australian_open": {
+      "display_en": "Australian Open",
+      "sport": "tennis"
+    },
+    "comp:bsl": {
+      "display_en": "Turkish BSL",
+      "sport": "basketball"
+    },
+    "comp:bundesliga": {
+      "display_en": "Bundesliga",
+      "sport": "football"
+    },
+    "comp:epl": {
+      "display_en": "Premier League",
+      "sport": "football"
+    },
+    "comp:eurocup": {
+      "display_en": "EuroCup",
+      "sport": "basketball"
+    },
+    "comp:euroleague": {
+      "display_en": "EuroLeague",
+      "sport": "basketball"
+    },
+    "comp:greek_basket": {
+      "display_en": "Greek Basket League",
+      "sport": "basketball"
+    },
+    "comp:ibl": {
+      "display_en": "Israeli Basketball League",
+      "sport": "basketball"
+    },
+    "comp:la_liga": {
+      "display_en": "La Liga",
+      "sport": "football"
+    },
+    "comp:lba": {
+      "display_en": "Italian LBA",
+      "sport": "basketball"
+    },
+    "comp:leumit_fc": {
+      "display_en": "Israeli Liga Leumit",
+      "sport": "football"
+    },
+    "comp:ligat_haal": {
+      "display_en": "Israeli Premier League",
+      "sport": "football"
+    },
+    "comp:lnb": {
+      "display_en": "French LNB",
+      "sport": "basketball"
+    },
+    "comp:nba": {
+      "display_en": "NBA",
+      "sport": "basketball"
+    },
+    "comp:roland_garros": {
+      "display_en": "Roland Garros",
+      "sport": "tennis"
+    },
+    "comp:ucl": {
+      "display_en": "UEFA Champions League",
+      "sport": "football"
+    },
+    "comp:us_open": {
+      "display_en": "US Open",
+      "sport": "tennis"
+    },
+    "comp:wimbledon": {
+      "display_en": "Wimbledon",
+      "sport": "tennis"
+    }
+  },
+  "entities": {
+    "coach:oded_kattash": {
+      "legacy_name": "Oded Katash",
+      "memberships": [
+        "comp:ibl",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "player:deni_avdija": {
+      "legacy_name": "Deni Avdija",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "player:jalen_brunson": {
+      "legacy_name": "Jalen Brunson",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "player:lebron_james": {
+      "legacy_name": "LeBron James",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:anadolu_efes": {
+      "legacy_name": "Anadolu Efes",
+      "memberships": [
+        "comp:bsl",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:barcelona_bb": {
+      "legacy_name": "FC Barcelona Basketball",
+      "memberships": [
+        "comp:acb",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:beitar_jlm_fc": {
+      "legacy_name": "Beitar Jerusalem",
+      "memberships": [
+        "comp:ligat_haal"
+      ],
+      "sport": "football"
+    },
+    "team:bnei_herzliya": {
+      "legacy_name": "Bnei Herzliya",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
+    "team:boston_celtics": {
+      "legacy_name": "Boston Celtics",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:cleveland_cavaliers": {
+      "legacy_name": "Cleveland Cavaliers",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:crvena_zvezda_bb": {
+      "legacy_name": "Crvena Zvezda",
+      "memberships": [
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:emek_yizrael_bb": {
+      "legacy_name": "Emek Yizrael Basketball",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
+    "team:fenerbahce_bb": {
+      "legacy_name": "Fenerbahce Basketball",
+      "memberships": [
+        "comp:bsl",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:hapoel_beer_sheva_fc": {
+      "legacy_name": "Hapoel Beer Sheva",
+      "memberships": [
+        "comp:ligat_haal"
+      ],
+      "sport": "football"
+    },
+    "team:hapoel_eilat": {
+      "legacy_name": "Hapoel Eilat",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
+    "team:hapoel_galil_gilboa": {
+      "legacy_name": "Hapoel Galil Gilboa",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
+    "team:hapoel_holon": {
+      "legacy_name": "Hapoel Holon",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
+    "team:hapoel_jlm_bb": {
+      "legacy_name": "Hapoel Jerusalem Basketball",
+      "memberships": [
+        "comp:ibl",
+        "comp:eurocup"
+      ],
+      "sport": "basketball"
+    },
+    "team:hapoel_jlm_fc": {
+      "legacy_name": "Hapoel Jerusalem Football",
+      "memberships": [
+        "comp:ligat_haal"
+      ],
+      "sport": "football"
+    },
+    "team:hapoel_tlv_bb": {
+      "legacy_name": "Hapoel Tel Aviv Basketball",
+      "memberships": [
+        "comp:ibl",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:hapoel_tlv_fc": {
+      "legacy_name": "Hapoel Tel Aviv Football",
+      "memberships": [
+        "comp:ligat_haal"
+      ],
+      "sport": "football"
+    },
+    "team:ironi_ness_ziona": {
+      "legacy_name": "Ironi Ness Ziona",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
+    "team:ironi_ramat_gan": {
+      "legacy_name": "Ironi Ramat Gan",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
+    "team:la_lakers": {
+      "legacy_name": "Los Angeles Lakers",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:maccabi_bnei_raina_fc": {
+      "legacy_name": "Maccabi Bnei Raina",
+      "memberships": [
+        "comp:ligat_haal"
+      ],
+      "sport": "football"
+    },
+    "team:maccabi_haifa_fc": {
+      "legacy_name": "Maccabi Haifa",
+      "memberships": [
+        "comp:ligat_haal"
+      ],
+      "sport": "football"
+    },
+    "team:maccabi_herzliya_fc": {
+      "legacy_name": "Maccabi Herzliya",
+      "memberships": [
+        "comp:leumit_fc"
+      ],
+      "sport": "football"
+    },
+    "team:maccabi_jaffa_fc": {
+      "legacy_name": "Maccabi Jaffa",
+      "memberships": [
+        "comp:leumit_fc"
+      ],
+      "sport": "football"
+    },
+    "team:maccabi_kiryat_gat": {
+      "legacy_name": "Maccabi Kiryat Gat",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
+    "team:maccabi_netanya_fc": {
+      "legacy_name": "Maccabi Netanya",
+      "memberships": [
+        "comp:ligat_haal"
+      ],
+      "sport": "football"
+    },
+    "team:maccabi_petah_tikva_fc": {
+      "legacy_name": "Maccabi Petah Tikva",
+      "memberships": [
+        "comp:ligat_haal"
+      ],
+      "sport": "football"
+    },
+    "team:maccabi_ramat_gan": {
+      "legacy_name": "Maccabi Ramat Gan",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
+    "team:maccabi_tlv_bb": {
+      "legacy_name": "Maccabi Tel Aviv Basketball",
+      "memberships": [
+        "comp:ibl",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:maccabi_tlv_fc": {
+      "legacy_name": "Maccabi Tel Aviv Football",
+      "memberships": [
+        "comp:ligat_haal"
+      ],
+      "sport": "football"
+    },
+    "team:monaco_bb": {
+      "legacy_name": "AS Monaco Basketball",
+      "memberships": [
+        "comp:lnb",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:ny_knicks": {
+      "legacy_name": "New York Knicks",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:olympiacos_bb": {
+      "legacy_name": "Olympiacos Basketball",
+      "memberships": [
+        "comp:greek_basket",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:panathinaikos_bb": {
+      "legacy_name": "Panathinaikos Basketball",
+      "memberships": [
+        "comp:greek_basket",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:partizan_bb": {
+      "legacy_name": "Partizan Belgrade",
+      "memberships": [
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:portland_blazers": {
+      "legacy_name": "Portland Trail Blazers",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:real_madrid_bb": {
+      "legacy_name": "Real Madrid Basketball",
+      "memberships": [
+        "comp:acb",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:virtus_bologna": {
+      "legacy_name": "Virtus Bologna",
+      "memberships": [
+        "comp:lba",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:washington_wizards": {
+      "legacy_name": "Washington Wizards",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    }
+  },
+  "legacy_name_to_id": {
+    "AS Monaco Basketball": "team:monaco_bb",
+    "Anadolu Efes": "team:anadolu_efes",
+    "Beitar Jerusalem": "team:beitar_jlm_fc",
+    "Bnei Herzliya": "team:bnei_herzliya",
+    "Boston Celtics": "team:boston_celtics",
+    "Cleveland Cavaliers": "team:cleveland_cavaliers",
+    "Crvena Zvezda": "team:crvena_zvezda_bb",
+    "Deni Avdija": "player:deni_avdija",
+    "Emek Yizrael Basketball": "team:emek_yizrael_bb",
+    "FC Barcelona Basketball": "team:barcelona_bb",
+    "Fenerbahce Basketball": "team:fenerbahce_bb",
+    "Hapoel Beer Sheva": "team:hapoel_beer_sheva_fc",
+    "Hapoel Eilat": "team:hapoel_eilat",
+    "Hapoel Galil Gilboa": "team:hapoel_galil_gilboa",
+    "Hapoel Holon": "team:hapoel_holon",
+    "Hapoel Jerusalem Basketball": "team:hapoel_jlm_bb",
+    "Hapoel Jerusalem Football": "team:hapoel_jlm_fc",
+    "Hapoel Tel Aviv Basketball": "team:hapoel_tlv_bb",
+    "Hapoel Tel Aviv Football": "team:hapoel_tlv_fc",
+    "Ironi Ness Ziona": "team:ironi_ness_ziona",
+    "Ironi Ramat Gan": "team:ironi_ramat_gan",
+    "Jalen Brunson": "player:jalen_brunson",
+    "LeBron James": "player:lebron_james",
+    "Los Angeles Lakers": "team:la_lakers",
+    "Maccabi Bnei Raina": "team:maccabi_bnei_raina_fc",
+    "Maccabi Haifa": "team:maccabi_haifa_fc",
+    "Maccabi Herzliya": "team:maccabi_herzliya_fc",
+    "Maccabi Jaffa": "team:maccabi_jaffa_fc",
+    "Maccabi Kiryat Gat": "team:maccabi_kiryat_gat",
+    "Maccabi Netanya": "team:maccabi_netanya_fc",
+    "Maccabi Petah Tikva": "team:maccabi_petah_tikva_fc",
+    "Maccabi Ramat Gan": "team:maccabi_ramat_gan",
+    "Maccabi Tel Aviv Basketball": "team:maccabi_tlv_bb",
+    "Maccabi Tel Aviv Football": "team:maccabi_tlv_fc",
+    "New York Knicks": "team:ny_knicks",
+    "Oded Katash": "coach:oded_kattash",
+    "Olympiacos Basketball": "team:olympiacos_bb",
+    "Panathinaikos Basketball": "team:panathinaikos_bb",
+    "Partizan Belgrade": "team:partizan_bb",
+    "Portland Trail Blazers": "team:portland_blazers",
+    "Real Madrid Basketball": "team:real_madrid_bb",
+    "Virtus Bologna": "team:virtus_bologna",
+    "Washington Wizards": "team:washington_wizards"
+  },
+  "taxonomy_version": 1
+}

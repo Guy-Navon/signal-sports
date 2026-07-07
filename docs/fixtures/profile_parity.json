@@ -1,0 +1,243 @@
+{
+  "guy": [
+    {
+      "topic_id": "maccabi_tel_aviv_basketball",
+      "sport": "basketball",
+      "scope": "entity",
+      "priority": 100,
+      "mode": "all",
+      "leagues": [
+        "EuroLeague",
+        "Israeli Basketball League"
+      ],
+      "entities": [
+        "Maccabi Tel Aviv Basketball",
+        "Oded Katash"
+      ],
+      "event_rules": {
+        "analysis": "feed",
+        "candidate": "high_feed",
+        "friendly_match": "low_feed",
+        "generic_preview": "hidden",
+        "injury": "push",
+        "interview": "feed",
+        "major_signing": "push",
+        "match_result": "feed",
+        "match_summary": "feed",
+        "negotiation": "push",
+        "opinion": "feed",
+        "playoff_result": "high_feed",
+        "pre_match": "hidden",
+        "regular_season_result": "feed",
+        "rumor": "high_feed",
+        "schedule": "hidden",
+        "signing": "push",
+        "title_win": "push"
+      },
+      "entity_event_rules": null
+    },
+    {
+      "topic_id": "nba",
+      "sport": "basketball",
+      "scope": "league",
+      "priority": 90,
+      "mode": "all",
+      "leagues": [
+        "NBA"
+      ],
+      "entities": [
+        "Deni Avdija"
+      ],
+      "event_rules": {
+        "analysis": "feed",
+        "finals_result": "high_feed",
+        "generic_preview": "low_feed",
+        "injury": "feed",
+        "interview": "feed",
+        "major_signing": "high_feed",
+        "major_trade": "high_feed",
+        "match_result": "feed",
+        "match_summary": "feed",
+        "playoff_result": "high_feed",
+        "record": "high_feed",
+        "regular_season_result": "feed",
+        "schedule": "hidden",
+        "signing": "feed",
+        "star_trade": "push",
+        "title_win": "push"
+      },
+      "entity_event_rules": {
+        "Deni Avdija": {
+          "injury": "push",
+          "major_trade": "push"
+        }
+      }
+    },
+    {
+      "topic_id": "euroleague",
+      "sport": "basketball",
+      "scope": "league",
+      "priority": 95,
+      "mode": "all",
+      "leagues": [
+        "EuroCup",
+        "EuroLeague"
+      ],
+      "entities": [
+        "Maccabi Tel Aviv Basketball"
+      ],
+      "event_rules": {
+        "analysis": "feed",
+        "candidate": "feed",
+        "final_four": "high_feed",
+        "generic_preview": "low_feed",
+        "injury": "feed",
+        "interview": "feed",
+        "major_signing": "high_feed",
+        "major_transfer": "high_feed",
+        "match_result": "feed",
+        "match_summary": "feed",
+        "negotiation": "high_feed",
+        "opinion": "feed",
+        "playoff_result": "high_feed",
+        "regular_season_result": "feed",
+        "schedule": "low_feed",
+        "signing": "high_feed",
+        "title_win": "push"
+      },
+      "entity_event_rules": null
+    },
+    {
+      "topic_id": "israeli_basketball",
+      "sport": "basketball",
+      "scope": "league",
+      "priority": 85,
+      "mode": "all",
+      "leagues": [
+        "Israeli Basketball League"
+      ],
+      "entities": [],
+      "event_rules": {
+        "analysis": "feed",
+        "candidate": "feed",
+        "friendly_match": "low_feed",
+        "generic_preview": "low_feed",
+        "injury": "feed",
+        "interview": "feed",
+        "major_signing": "high_feed",
+        "match_result": "feed",
+        "match_summary": "feed",
+        "negotiation": "feed",
+        "opinion": "feed",
+        "playoff_result": "high_feed",
+        "regular_season_result": "feed",
+        "schedule": "hidden",
+        "signing": "feed",
+        "title_win": "high_feed"
+      },
+      "entity_event_rules": null
+    },
+    {
+      "topic_id": "major_european_domestic_basketball",
+      "sport": "basketball",
+      "scope": "league_group",
+      "priority": 65,
+      "mode": "high_importance_only",
+      "leagues": [
+        "French LNB",
+        "Greek Basket League",
+        "Italian LBA",
+        "Spanish ACB",
+        "Turkish BSL"
+      ],
+      "entities": [],
+      "event_rules": {
+        "euroleague_related_transfer": "high_feed",
+        "generic_preview": "hidden",
+        "generic_regular_season_result": "hidden",
+        "major_match_result": "feed",
+        "major_signing": "feed",
+        "match_result": "hidden",
+        "playoff_result": "feed",
+        "regular_season_result": "hidden",
+        "schedule": "hidden",
+        "title_win": "high_feed"
+      },
+      "entity_event_rules": null
+    },
+    {
+      "topic_id": "football",
+      "sport": "football",
+      "scope": "sport",
+      "priority": 20,
+      "mode": "titles_only",
+      "leagues": [],
+      "entities": [],
+      "event_rules": {
+        "major_transfer": "low_feed",
+        "title_win": "low_feed"
+      },
+      "entity_event_rules": null
+    },
+    {
+      "topic_id": "tennis",
+      "sport": "tennis",
+      "scope": "sport",
+      "priority": 25,
+      "mode": "titles_only",
+      "leagues": [],
+      "entities": [],
+      "event_rules": {
+        "analysis": "hidden",
+        "early_round_result": "hidden",
+        "generic_news": "hidden",
+        "grand_slam_final": "feed",
+        "grand_slam_winner": "high_feed",
+        "match_result": "hidden",
+        "regular_season_result": "hidden",
+        "schedule": "hidden"
+      },
+      "entity_event_rules": null
+    }
+  ],
+  "casual_deni_fan": [
+    {
+      "topic_id": "nba",
+      "sport": "basketball",
+      "scope": "league",
+      "priority": 45,
+      "mode": "followed_entities_only",
+      "leagues": [
+        "NBA"
+      ],
+      "entities": [
+        "Deni Avdija"
+      ],
+      "event_rules": {
+        "analysis": "feed",
+        "finals_result": "feed",
+        "followed_entity_news": "high_feed",
+        "generic_preview": "hidden",
+        "injury": "feed",
+        "interview": "feed",
+        "major_trade": "feed",
+        "match_result": "feed",
+        "match_summary": "feed",
+        "playoff_result": "feed",
+        "record": "feed",
+        "regular_season_result": "feed",
+        "schedule": "hidden",
+        "signing": "hidden",
+        "star_trade": "feed"
+      },
+      "entity_event_rules": {
+        "Deni Avdija": {
+          "injury": "push",
+          "major_trade": "push",
+          "record": "high_feed",
+          "regular_season_result": "high_feed"
+        }
+      }
+    }
+  ]
+}

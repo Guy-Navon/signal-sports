@@ -10,7 +10,10 @@ from app.repositories import feedback_repository, article_repository, profile_re
 
 router = APIRouter()
 
-VALID_ACTIONS = {"more_like_this", "not_interested", "never_show", "mute_source", "always_notify"}
+VALID_ACTIONS = {
+    "more_like_this", "less_like_this", "not_interested", "never_show",
+    "mute_source", "always_notify",
+}
 
 
 @router.post("/feedback", response_model=FeedbackEvent, status_code=201)

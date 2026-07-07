@@ -6,7 +6,7 @@ class FeedbackEvent(BaseModel):
     id: str
     user_id: str
     article_id: str
-    # more_like_this | not_interested | never_show | mute_source | always_notify
+    # more_like_this | less_like_this | not_interested | never_show | mute_source | always_notify
     action: str
     created_at: datetime
 

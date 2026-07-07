@@ -13,6 +13,13 @@
  * The importance boost NEVER elevates to push automatically — push must be explicitly
  * declared in eventRules or in topic.entityEventRules for a specific entity + event.
  */
+import {
+  competitionDisplayName,
+  idForLegacyName,
+  legacyNameForId,
+  reachForEntityIds,
+  reachForLegacyNames
+} from "@/engine/taxonomyReach";
 
 export const DECISION_RANK = {
   hidden: 0,
@@ -29,6 +36,22 @@ export const DECISION_LABELS_HE = {
   high_feed: "חשוב",
   push: "דורש תשומת לב"
 };
+
+// Event-reach allowlists (issue #29) — mirrors backend/app/services/relevance_engine.py.
+// Explicit and fail-closed: an event type in neither set gets no membership-derived
+// reach at all (matches only via explicit competition evidence or the legacy
+// pre-ArticleFacts fallback). `interview` is deliberately in neither set — a generic
+// interview shouldn't spread through every competition a team belongs to.
+export const TEAM_ANCHORED_EVENTS = new Set([
+  "signing", "major_signing", "negotiation", "candidate", "release",
+  "injury", "major_trade", "star_trade", "major_transfer"
+]);
+export const COMPETITION_ANCHORED_EVENTS = new Set([
+  "match_result", "regular_season_result", "playoff_result", "finals_result",
+  "title_win", "schedule", "pre_match", "generic_preview",
+  "generic_regular_season_result", "friendly_match", "final_four",
+  "major_match_result", "match_summary"
+]);
 
 
 /**
@@ -84,8 +107,21 @@ export function scoreArticle(article, profile, options = {}) {
   let bestRule = null;
   let bestTopicReasoning = [];
 
-  for (const { topic, matchReason } of matchingTopics) {
-    const { topicDecision, topicRule, topicReasoning } = scoreAgainstTopic(article, topic, profile, matchReason);
+  for (const { topic, matchReason, matchKind } of matchingTopics) {
+    // eslint-disable-next-line prefer-const
+    let { topicDecision, topicRule, topicReasoning } = scoreAgainstTopic(article, topic, profile, matchReason);
+    if (matchKind === "membership" && DECISION_RANK[topicDecision] > DECISION_RANK.feed) {
+      // Membership-derived reach with no independent entity backing is one tier
+      // below explicit/legacy evidence — it can justify feed visibility but never
+      // high_feed/push on its own (issue #29).
+      if (!topicEntityMatch(article, topic, profile)) {
+        topicReasoning.push(
+          `התאמה מבוססת שיוך קבוצתי בלבד (ללא ישות עוקבת) → תקרה: ` +
+          `${DECISION_LABELS_HE.feed} (היה ${DECISION_LABELS_HE[topicDecision]})`
+        );
+        topicDecision = "feed";
+      }
+    }
     if (DECISION_RANK[topicDecision] > DECISION_RANK[bestDecision]) {
       bestDecision = topicDecision;
       bestTopicId = topic.topicId;
@@ -152,25 +188,21 @@ function scoreAgainstTopic(article, topic, profile, matchReason) {
   }
 
   // ── Mode: major_only ─────────────────────────────────────────
+  // The importance-based major_importance_fallback → low_feed leak was removed
+  // (issue #29): a high-importance article with no matching event rule is not
+  // a "real matched scope", so it's hidden like titles_only, not surfaced as
+  // low_feed. This makes major_only behaviorally identical to titles_only;
+  // the mode is kept only for backward-compat with any already-persisted
+  // profile referencing it.
   if (topic.mode === "major_only") {
-    const majorImportance = ["high", "very_high"];
     const eventDecision = getEventDecision(article.eventType, topic.eventRules);
-
-    if (!majorImportance.includes(article.importance) && (!eventDecision || eventDecision === "hidden")) {
-      r.push(`מצב major_only — חשיבות: ${article.importance}, אירוע: ${article.eventType} → מוסתר`);
-      return result("hidden", "major_only_no_match", r);
-    }
 
     if (eventDecision && eventDecision !== "hidden") {
       r.push(`מצב major_only — כלל אירוע: ${article.eventType} → ${DECISION_LABELS_HE[eventDecision]}`);
       return result(eventDecision, `event:${article.eventType}`, r);
     }
 
-    if (majorImportance.includes(article.importance)) {
-      r.push(`מצב major_only — חשיבות גבוהה ללא כלל ספציפי → low_feed`);
-      return result("low_feed", "major_importance_fallback", r);
-    }
-
+    r.push(`מצב major_only — אין כלל אירוע תואם (${article.eventType}) → מוסתר`);
     return result("hidden", "major_only_no_match", r);
   }
 
@@ -189,7 +221,7 @@ function scoreFollowedEntitiesOnly(article, topic, profile, r) {
     ...new Set([...(topic.entities || []), ...(profile.followedEntities || [])])
   ];
 
-  const entityMatch = articleEntities.find(e => relevantEntities.includes(e));
+  const entityMatch = topicEntityMatch(article, topic, profile);
 
   if (!entityMatch) {
     r.push(`מצב followed_entities_only`);
@@ -241,12 +273,8 @@ function scoreFollowedEntitiesOnly(article, topic, profile, r) {
  * entityEventRules["Deni Avdija"].major_trade → push."
  */
 function scoreAllMode(article, topic, profile, r) {
-  const articleEntities = article.entities || [];
   const topicEntities = topic.entities || [];
-  const profileEntities = profile.followedEntities || [];
-  const entityMatch = articleEntities.find(e =>
-    topicEntities.includes(e) || profileEntities.includes(e)
-  );
+  const entityMatch = topicEntityMatch(article, topic, profile);
 
   if (entityMatch) {
     r.push(`ישות תואמת: ${entityMatch}`);
@@ -375,20 +403,73 @@ function importanceFallback(importance, topicPriority, reasoning) {
   return decision;
 }
 
+/** Display names of the article's explicitly-evidenced competitions (#28) —
+ * primaryCompetition + articleCompetitions. Never includes membership-only
+ * reach; that is computed separately in entityReach(). */
+function explicitCompetitionNames(article) {
+  const ids = [...(article.articleCompetitions || [])];
+  if (article.primaryCompetition) ids.unshift(article.primaryCompetition);
+  const names = new Set();
+  for (const id of ids) {
+    const name = competitionDisplayName(id);
+    if (name) names.add(name);
+  }
+  return names;
+}
+
+/** Competition display name -> comp id, via the article's resolved entities'
+ * taxonomy memberships (issue #29). Tiered identically to the backend:
+ *   - post-ArticleFacts rows (taxonomyVersion is set): resolve only through
+ *     the canonical entityIds — the authoritative, rename-proof path.
+ *   - legacy rows (taxonomyVersion is undefined/null): fall back to the
+ *     legacy `entities` display strings, compatibility path only. */
+function entityReach(article) {
+  if (article.taxonomyVersion != null) {
+    return reachForEntityIds(article.entityIds || []);
+  }
+  return reachForLegacyNames(article.entities || []);
+}
+
+/**
+ * The article entity (as its legacy display name, for entityEventRules dict
+ * lookups) that backs this topic for this profile, or null.
+ *
+ * Tiered identically to entityReach(): post-ArticleFacts rows compare
+ * canonical ids (topic/profile entity names — still legacy strings in
+ * today's profile schema — resolved to ids, checked against the article's
+ * canonical entityIds), so a renamed/missing legacy display string on a
+ * post-facts row does not break entity backing. Legacy rows compare display
+ * strings directly, exactly as before.
+ */
+function topicEntityMatch(article, topic, profile) {
+  const names = [...(topic.entities || []), ...(profile.followedEntities || [])];
+
+  if (article.taxonomyVersion != null) {
+    const relevantIds = new Set(names.map(idForLegacyName).filter(Boolean));
+    const hitId = (article.entityIds || []).find(id => relevantIds.has(id));
+    return hitId ? (legacyNameForId(hitId) ?? hitId) : null;
+  }
+
+  const relevant = new Set(names);
+  return (article.entities || []).find(e => relevant.has(e)) ?? null;
+}
+
 /**
  * Exported for testing. Determine whether a topic matches an article, respecting the topic's scope guard.
  *
  * Scope semantics:
  *   "entity"       — match only if article.entities ∩ topic.entities is non-empty.
  *                    Prevents sport-wide OR league-wide over-matching for team/person topics.
- *   "league"       — match only if article.league ∈ topic.leagues.
- *   "league_group" — match only if article.league ∈ topic.leagues (group of related leagues).
+ *   "league"       — three-tier competition-aware match (issue #29): explicit evidence,
+ *                    legacy fallback, or team-membership reach.
+ *   "league_group" — same three-tier match as "league".
  *   "sport"        — match only if article.sport === topic.sport.
  *                    Use with restrictive modes (major_only, titles_only) to avoid broad noise.
  *   undefined      — legacy OR matching: sport OR league OR entity (backward compat for
  *                    calibration-generated topics that pre-date scope guards).
  *
- * Returns { matched: boolean, reason: string|null }
+ * Returns { matched: boolean, reason: string|null, matchKind: string|null }
+ * matchKind is one of "explicit", "legacy", "membership", or null.
  */
 export function doesTopicMatchArticle(article, topic) {
   const { scope } = topic;
@@ -396,54 +477,90 @@ export function doesTopicMatchArticle(article, topic) {
   if (!scope) {
     // Legacy OR matching for topics without an explicit scope (e.g. calibration-generated)
     if (topic.sport && article.sport === topic.sport) {
-      return { matched: true, reason: `התאמה לפי ספורט: ${article.sport}` };
+      return { matched: true, reason: `התאמה לפי ספורט: ${article.sport}`, matchKind: null };
     }
     if (topic.leagues?.length > 0 && article.league && topic.leagues.includes(article.league)) {
-      return { matched: true, reason: `התאמה לפי ליגה: ${article.league}` };
+      return { matched: true, reason: `התאמה לפי ליגה: ${article.league}`, matchKind: null };
     }
     if (topic.entities?.length > 0 && article.entities?.length > 0) {
       const hit = article.entities.find(e => topic.entities.includes(e));
-      if (hit) return { matched: true, reason: `התאמה לפי ישות: ${hit}` };
+      if (hit) return { matched: true, reason: `התאמה לפי ישות: ${hit}`, matchKind: null };
     }
-    return { matched: false, reason: null };
+    return { matched: false, reason: null, matchKind: null };
   }
 
   if (scope === "entity") {
     // Must have an entity intersection — sport and league alone are not enough
     if (topic.entities?.length > 0 && article.entities?.length > 0) {
       const hit = article.entities.find(e => topic.entities.includes(e));
-      if (hit) return { matched: true, reason: `התאמה לפי ישות (scope: entity): ${hit}` };
+      if (hit) return { matched: true, reason: `התאמה לפי ישות (scope: entity): ${hit}`, matchKind: null };
     }
-    return { matched: false, reason: null };
+    return { matched: false, reason: null, matchKind: null };
   }
 
   if (scope === "league" || scope === "league_group") {
-    if (topic.leagues?.length > 0 && article.league && topic.leagues.includes(article.league)) {
-      return { matched: true, reason: `התאמה לפי ליגה (scope: ${scope}): ${article.league}` };
+    if (!(topic.leagues?.length > 0)) {
+      return { matched: false, reason: null, matchKind: null };
     }
-    return { matched: false, reason: null };
+
+    // 1. Explicit competition evidence — works for any event type.
+    const explicitNames = explicitCompetitionNames(article);
+    const explicitHit = topic.leagues.find(name => explicitNames.has(name));
+    if (explicitHit) {
+      return {
+        matched: true,
+        reason: `התאמה לפי תחרות מפורשת (scope: ${scope}): ${explicitHit}`,
+        matchKind: "explicit"
+      };
+    }
+
+    // 2. Legacy fallback — only for rows that predate ArticleFacts, where the
+    // explicit/membership distinction was never persisted.
+    if (article.taxonomyVersion == null && article.league && topic.leagues.includes(article.league)) {
+      return {
+        matched: true,
+        reason: `התאמה לפי ליגה (scope: ${scope}): ${article.league}`,
+        matchKind: "legacy"
+      };
+    }
+
+    // 3. Membership-derived reach — team-anchored events only (allowlist).
+    if (TEAM_ANCHORED_EVENTS.has(article.eventType)) {
+      const reach = entityReach(article);
+      const reachHit = topic.leagues.find(name => name in reach);
+      if (reachHit) {
+        const compId = reach[reachHit];
+        return {
+          matched: true,
+          reason: `התאמה דרך שיוך קבוצתי (via_team_membership: ${compId}) (scope: ${scope}): ${reachHit}`,
+          matchKind: "membership"
+        };
+      }
+    }
+
+    return { matched: false, reason: null, matchKind: null };
   }
 
   if (scope === "sport") {
     if (topic.sport && article.sport === topic.sport) {
-      return { matched: true, reason: `התאמה לפי ספורט (scope: sport): ${article.sport}` };
+      return { matched: true, reason: `התאמה לפי ספורט (scope: sport): ${article.sport}`, matchKind: null };
     }
-    return { matched: false, reason: null };
+    return { matched: false, reason: null, matchKind: null };
   }
 
-  return { matched: false, reason: null };
+  return { matched: false, reason: null, matchKind: null };
 }
 
 /**
  * Find all topics in profile that match this article, respecting each topic's scope guard.
- * Returns array of { topic, matchReason } sorted by priority descending.
+ * Returns array of { topic, matchReason, matchKind } sorted by priority descending.
  */
 function findMatchingTopics(article, profile) {
   const matched = [];
 
   for (const topic of profile.topics) {
-    const { matched: isMatch, reason } = doesTopicMatchArticle(article, topic);
-    if (isMatch) matched.push({ topic, matchReason: reason });
+    const { matched: isMatch, reason, matchKind } = doesTopicMatchArticle(article, topic);
+    if (isMatch) matched.push({ topic, matchReason: reason, matchKind });
   }
 
   // Highest priority topic evaluated first

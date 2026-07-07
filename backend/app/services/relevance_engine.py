@@ -36,6 +36,13 @@ COMPETITION_ANCHORED_EVENTS = frozenset({
     "major_match_result", "match_summary",
 })
 
+# Participant-set competition inference (issue #40 Part B) applies to
+# competition-anchored events EXCEPT these: a friendly between two clubs that
+# share a competition is, by definition, not a game in that competition — the
+# shared-membership premise ("the event happened in exactly one competition
+# both participants belong to") does not hold for it.
+PARTICIPANT_INFERENCE_EXCLUDED_EVENTS = frozenset({"friendly_match"})
+
 DECISION_RANK = {
     "hidden": 0,
     "low_feed": 1,
@@ -116,6 +123,11 @@ def score_article(
             # Membership-derived reach with no independent entity backing is one
             # tier below explicit/legacy evidence — it can justify feed visibility
             # but never high_feed/push on its own (issue #29).
+            # NOTE: "participant_inference" (issue #40) is deliberately NOT
+            # capped here — a unique participant intersection is genuine
+            # event-competition evidence, not diffuse reach. Push discipline is
+            # unaffected: push still requires an explicit rule (boosts cap at
+            # high_feed).
             if not _topic_entity_match(article, topic, profile):
                 t_reasoning.append(
                     f"התאמה מבוססת שיוך קבוצתי בלבד (ללא ישות עוקבת) → תקרה: "
@@ -386,6 +398,56 @@ def _entity_reach(article: Article) -> dict[str, str]:
     return reach
 
 
+def _participant_teams(article: Article) -> list:
+    """The article's resolved TEAM entities — the participant candidates for
+    competition inference (issue #40 Part B).
+
+    Identity is tiered identically to `_entity_reach`: post-ArticleFacts rows
+    resolve only through canonical `entity_ids`; legacy rows fall back to the
+    `entities` display strings. Players and coaches are never participants —
+    a player mention plus his own team must not become a two-participant set.
+    """
+    teams: dict[str, object] = {}
+    if article.taxonomy_version is not None:
+        for entity_id in article.entity_ids or []:
+            ent = entity_by_id(entity_id)
+            if ent is not None and ent.kind == "team":
+                teams[ent.id] = ent
+    else:
+        for legacy_name in article.entities or []:
+            ent = entity_by_legacy_name(legacy_name)
+            if ent is not None and ent.kind == "team":
+                teams[ent.id] = ent
+    return list(teams.values())
+
+
+def _participant_inferred_competition(article: Article) -> Optional[str]:
+    """Unique shared competition of the article's participating teams, or None.
+
+    The inference contract (issue #40 Part B):
+    - at least two resolved team entities (fewer → abstain);
+    - intersect ALL participating teams' competition memberships — an
+      incidental extra team can only shrink the intersection, so it can force
+      abstention but never redirect the inference (fail-closed by shape);
+    - accept only a singleton intersection; empty or >1 (e.g. two Israeli
+      EuroLeague clubs sharing {IBL, EuroLeague}) → abstain.
+
+    Relevance-time only: the inferred id is never persisted into
+    `primary_competition`/`article_competitions` (explicit article evidence
+    only, #28) — it exists in the scoring trace alone.
+    """
+    teams = _participant_teams(article)
+    if len(teams) < 2:
+        return None
+    shared: Optional[set[str]] = None
+    for team in teams:
+        memberships = {comp_id for comp_id, _season in team.memberships}
+        shared = memberships if shared is None else (shared & memberships)
+        if not shared:
+            return None
+    return next(iter(shared)) if shared is not None and len(shared) == 1 else None
+
+
 def _topic_entity_match(
     article: Article, topic: TopicPreference, profile: UserProfile
 ) -> Optional[str]:
@@ -423,14 +485,16 @@ def _does_topic_match_article(
     """
     Scope-aware topic matching. Returns (matched, match_reason, match_kind).
 
-    match_kind is one of "explicit", "legacy", "membership", or None (not
-    applicable — entity/sport scopes, or no match). It drives the
-    membership-reach feed ceiling applied in `score_article`.
+    match_kind is one of "explicit", "legacy", "participant_inference",
+    "membership", or None (not applicable — entity/sport scopes, or no match).
+    It drives the membership-reach feed ceiling applied in `score_article`
+    (which applies to "membership" only).
 
     Scope semantics (mirrors frontend doesTopicMatchArticle):
       "entity"       — match only if article.entities ∩ topic.entities is non-empty.
-      "league"       — three-tier competition-aware match (issue #29): explicit
-                       evidence, legacy fallback, or team-membership reach.
+      "league"       — four-tier competition-aware match (issues #29 + #40):
+                       explicit evidence, legacy fallback, participant-set
+                       inference, or team-membership reach.
       "league_group" — same three-tier match as "league".
       "sport"        — match only if article.sport == topic.sport.
       None           — legacy OR matching: sport OR league OR entity.
@@ -476,7 +540,28 @@ def _does_topic_match_article(
         if article.taxonomy_version is None and article.league and article.league in topic.leagues:
             return (True, f"התאמה לפי ליגה (scope: {scope}): {article.league}", "legacy")
 
-        # 3. Membership-derived reach — team-anchored events only (allowlist).
+        # 3. Participant-set competition inference (issue #40 Part B) —
+        # competition-anchored events only. When ALL participating teams share
+        # exactly one competition, that intersection identifies the event's
+        # competition. This is event-competition evidence (not diffuse team
+        # reach), so it is NOT subject to the membership feed ceiling — but it
+        # is still lower authority than explicit evidence (tier 1 wins above).
+        if (
+            article.event_type in COMPETITION_ANCHORED_EVENTS
+            and article.event_type not in PARTICIPANT_INFERENCE_EXCLUDED_EVENTS
+        ):
+            comp_id = _participant_inferred_competition(article)
+            if comp_id is not None:
+                comp = COMPETITIONS.get(comp_id)
+                if comp and comp.display_en in topic.leagues:
+                    return (
+                        True,
+                        f"התאמה דרך הסקת משתתפים (via_participant_inference: {comp_id}) "
+                        f"(scope: {scope}): {comp.display_en}",
+                        "participant_inference",
+                    )
+
+        # 4. Membership-derived reach — team-anchored events only (allowlist).
         if article.event_type in TEAM_ANCHORED_EVENTS:
             reach = _entity_reach(article)
             hit = next((name for name in topic.leagues if name in reach), None)

@@ -79,6 +79,7 @@
   },
   "entities": {
     "coach:oded_kattash": {
+      "kind": "coach",
       "legacy_name": "Oded Katash",
       "memberships": [
         "comp:ibl",
@@ -87,6 +88,7 @@
       "sport": "basketball"
     },
     "player:deni_avdija": {
+      "kind": "player",
       "legacy_name": "Deni Avdija",
       "memberships": [
         "comp:nba"
@@ -94,6 +96,7 @@
       "sport": "basketball"
     },
     "player:jalen_brunson": {
+      "kind": "player",
       "legacy_name": "Jalen Brunson",
       "memberships": [
         "comp:nba"
@@ -101,6 +104,7 @@
       "sport": "basketball"
     },
     "player:lebron_james": {
+      "kind": "player",
       "legacy_name": "LeBron James",
       "memberships": [
         "comp:nba"
@@ -108,6 +112,7 @@
       "sport": "basketball"
     },
     "team:anadolu_efes": {
+      "kind": "team",
       "legacy_name": "Anadolu Efes",
       "memberships": [
         "comp:bsl",
@@ -116,6 +121,7 @@
       "sport": "basketball"
     },
     "team:asvel": {
+      "kind": "team",
       "legacy_name": "ASVEL Villeurbanne",
       "memberships": [
         "comp:lnb",
@@ -124,6 +130,7 @@
       "sport": "basketball"
     },
     "team:atlanta_hawks": {
+      "kind": "team",
       "legacy_name": "Atlanta Hawks",
       "memberships": [
         "comp:nba"
@@ -131,6 +138,7 @@
       "sport": "basketball"
     },
     "team:barcelona_bb": {
+      "kind": "team",
       "legacy_name": "FC Barcelona Basketball",
       "memberships": [
         "comp:acb",
@@ -139,6 +147,7 @@
       "sport": "basketball"
     },
     "team:baskonia": {
+      "kind": "team",
       "legacy_name": "Baskonia",
       "memberships": [
         "comp:acb",
@@ -147,6 +156,7 @@
       "sport": "basketball"
     },
     "team:bayern_munich_bb": {
+      "kind": "team",
       "legacy_name": "Bayern Munich Basketball",
       "memberships": [
         "comp:euroleague"
@@ -154,6 +164,7 @@
       "sport": "basketball"
     },
     "team:beitar_jlm_fc": {
+      "kind": "team",
       "legacy_name": "Beitar Jerusalem",
       "memberships": [
         "comp:ligat_haal"
@@ -161,6 +172,7 @@
       "sport": "football"
     },
     "team:bnei_herzliya": {
+      "kind": "team",
       "legacy_name": "Bnei Herzliya",
       "memberships": [
         "comp:ibl"
@@ -168,6 +180,7 @@
       "sport": "basketball"
     },
     "team:boston_celtics": {
+      "kind": "team",
       "legacy_name": "Boston Celtics",
       "memberships": [
         "comp:nba"
@@ -175,6 +188,7 @@
       "sport": "basketball"
     },
     "team:brooklyn_nets": {
+      "kind": "team",
       "legacy_name": "Brooklyn Nets",
       "memberships": [
         "comp:nba"
@@ -182,6 +196,7 @@
       "sport": "basketball"
     },
     "team:charlotte_hornets": {
+      "kind": "team",
       "legacy_name": "Charlotte Hornets",
       "memberships": [
         "comp:nba"
@@ -189,6 +204,7 @@
       "sport": "basketball"
     },
     "team:chicago_bulls": {
+      "kind": "team",
       "legacy_name": "Chicago Bulls",
       "memberships": [
         "comp:nba"
@@ -196,6 +212,7 @@
       "sport": "basketball"
     },
     "team:cleveland_cavaliers": {
+      "kind": "team",
       "legacy_name": "Cleveland Cavaliers",
       "memberships": [
         "comp:nba"
@@ -203,6 +220,7 @@
       "sport": "basketball"
     },
     "team:crvena_zvezda_bb": {
+      "kind": "team",
       "legacy_name": "Crvena Zvezda",
       "memberships": [
         "comp:euroleague"
@@ -210,6 +228,7 @@
       "sport": "basketball"
     },
     "team:dallas_mavericks": {
+      "kind": "team",
       "legacy_name": "Dallas Mavericks",
       "memberships": [
         "comp:nba"
@@ -217,6 +236,7 @@
       "sport": "basketball"
     },
     "team:denver_nuggets": {
+      "kind": "team",
       "legacy_name": "Denver Nuggets",
       "memberships": [
         "comp:nba"
@@ -224,6 +244,7 @@
       "sport": "basketball"
     },
     "team:detroit_pistons": {
+      "kind": "team",
       "legacy_name": "Detroit Pistons",
       "memberships": [
         "comp:nba"
@@ -231,6 +252,7 @@
       "sport": "basketball"
     },
     "team:dubai_bb": {
+      "kind": "team",
       "legacy_name": "Dubai Basketball",
       "memberships": [
         "comp:euroleague"
@@ -238,6 +260,7 @@
       "sport": "basketball"
     },
     "team:emek_yizrael_bb": {
+      "kind": "team",
       "legacy_name": "Emek Yizrael Basketball",
       "memberships": [
         "comp:ibl"
@@ -245,6 +268,7 @@
       "sport": "basketball"
     },
     "team:fenerbahce_bb": {
+      "kind": "team",
       "legacy_name": "Fenerbahce Basketball",
       "memberships": [
         "comp:bsl",
@@ -253,6 +277,7 @@
       "sport": "basketball"
     },
     "team:golden_state_warriors": {
+      "kind": "team",
       "legacy_name": "Golden State Warriors",
       "memberships": [
         "comp:nba"
@@ -260,6 +285,7 @@
       "sport": "basketball"
     },
     "team:hapoel_beer_sheva_bb": {
+      "kind": "team",
       "legacy_name": "Hapoel Beer Sheva Basketball",
       "memberships": [
         "comp:ibl"
@@ -267,6 +293,7 @@
       "sport": "basketball"
     },
     "team:hapoel_beer_sheva_fc": {
+      "kind": "team",
       "legacy_name": "Hapoel Beer Sheva",
       "memberships": [
         "comp:ligat_haal"
@@ -274,6 +301,7 @@
       "sport": "football"
     },
     "team:hapoel_eilat": {
+      "kind": "team",
       "legacy_name": "Hapoel Eilat",
       "memberships": [
         "comp:ibl"
@@ -281,6 +309,7 @@
       "sport": "basketball"
     },
     "team:hapoel_galil_gilboa": {
+      "kind": "team",
       "legacy_name": "Hapoel Galil Gilboa",
       "memberships": [
         "comp:ibl"
@@ -288,6 +317,7 @@
       "sport": "basketball"
     },
     "team:hapoel_haifa_bb": {
+      "kind": "team",
       "legacy_name": "Hapoel Haifa Basketball",
       "memberships": [
         "comp:ibl"
@@ -295,6 +325,7 @@
       "sport": "basketball"
     },
     "team:hapoel_haifa_fc": {
+      "kind": "team",
       "legacy_name": "Hapoel Haifa Football",
       "memberships": [
         "comp:ligat_haal"
@@ -302,6 +333,7 @@
       "sport": "football"
     },
     "team:hapoel_holon": {
+      "kind": "team",
       "legacy_name": "Hapoel Holon",
       "memberships": [
         "comp:ibl"
@@ -309,6 +341,7 @@
       "sport": "basketball"
     },
     "team:hapoel_jlm_bb": {
+      "kind": "team",
       "legacy_name": "Hapoel Jerusalem Basketball",
       "memberships": [
         "comp:ibl",
@@ -317,6 +350,7 @@
       "sport": "basketball"
     },
     "team:hapoel_jlm_fc": {
+      "kind": "team",
       "legacy_name": "Hapoel Jerusalem Football",
       "memberships": [
         "comp:ligat_haal"
@@ -324,6 +358,7 @@
       "sport": "football"
     },
     "team:hapoel_tlv_bb": {
+      "kind": "team",
       "legacy_name": "Hapoel Tel Aviv Basketball",
       "memberships": [
         "comp:ibl",
@@ -332,6 +367,7 @@
       "sport": "basketball"
     },
     "team:hapoel_tlv_fc": {
+      "kind": "team",
       "legacy_name": "Hapoel Tel Aviv Football",
       "memberships": [
         "comp:ligat_haal"
@@ -339,6 +375,7 @@
       "sport": "football"
     },
     "team:houston_rockets": {
+      "kind": "team",
       "legacy_name": "Houston Rockets",
       "memberships": [
         "comp:nba"
@@ -346,6 +383,7 @@
       "sport": "basketball"
     },
     "team:indiana_pacers": {
+      "kind": "team",
       "legacy_name": "Indiana Pacers",
       "memberships": [
         "comp:nba"
@@ -353,6 +391,7 @@
       "sport": "basketball"
     },
     "team:ironi_kiryat_ata": {
+      "kind": "team",
       "legacy_name": "Ironi Kiryat Ata",
       "memberships": [
         "comp:ibl"
@@ -360,6 +399,7 @@
       "sport": "basketball"
     },
     "team:ironi_ness_ziona": {
+      "kind": "team",
       "legacy_name": "Ironi Ness Ziona",
       "memberships": [
         "comp:ibl"
@@ -367,6 +407,7 @@
       "sport": "basketball"
     },
     "team:ironi_ramat_gan": {
+      "kind": "team",
       "legacy_name": "Ironi Ramat Gan",
       "memberships": [
         "comp:ibl"
@@ -374,6 +415,7 @@
       "sport": "basketball"
     },
     "team:la_clippers": {
+      "kind": "team",
       "legacy_name": "LA Clippers",
       "memberships": [
         "comp:nba"
@@ -381,6 +423,7 @@
       "sport": "basketball"
     },
     "team:la_lakers": {
+      "kind": "team",
       "legacy_name": "Los Angeles Lakers",
       "memberships": [
         "comp:nba"
@@ -388,6 +431,7 @@
       "sport": "basketball"
     },
     "team:maccabi_bnei_raina_fc": {
+      "kind": "team",
       "legacy_name": "Maccabi Bnei Raina",
       "memberships": [
         "comp:ligat_haal"
@@ -395,6 +439,7 @@
       "sport": "football"
     },
     "team:maccabi_haifa_fc": {
+      "kind": "team",
       "legacy_name": "Maccabi Haifa",
       "memberships": [
         "comp:ligat_haal"
@@ -402,6 +447,7 @@
       "sport": "football"
     },
     "team:maccabi_herzliya_fc": {
+      "kind": "team",
       "legacy_name": "Maccabi Herzliya",
       "memberships": [
         "comp:leumit_fc"
@@ -409,6 +455,7 @@
       "sport": "football"
     },
     "team:maccabi_jaffa_fc": {
+      "kind": "team",
       "legacy_name": "Maccabi Jaffa",
       "memberships": [
         "comp:leumit_fc"
@@ -416,6 +463,7 @@
       "sport": "football"
     },
     "team:maccabi_kiryat_gat": {
+      "kind": "team",
       "legacy_name": "Maccabi Kiryat Gat",
       "memberships": [
         "comp:ibl"
@@ -423,6 +471,7 @@
       "sport": "basketball"
     },
     "team:maccabi_netanya_fc": {
+      "kind": "team",
       "legacy_name": "Maccabi Netanya",
       "memberships": [
         "comp:ligat_haal"
@@ -430,6 +479,7 @@
       "sport": "football"
     },
     "team:maccabi_petah_tikva_fc": {
+      "kind": "team",
       "legacy_name": "Maccabi Petah Tikva",
       "memberships": [
         "comp:ligat_haal"
@@ -437,6 +487,7 @@
       "sport": "football"
     },
     "team:maccabi_ramat_gan": {
+      "kind": "team",
       "legacy_name": "Maccabi Ramat Gan",
       "memberships": [
         "comp:ibl"
@@ -444,6 +495,7 @@
       "sport": "basketball"
     },
     "team:maccabi_tlv_bb": {
+      "kind": "team",
       "legacy_name": "Maccabi Tel Aviv Basketball",
       "memberships": [
         "comp:ibl",
@@ -452,6 +504,7 @@
       "sport": "basketball"
     },
     "team:maccabi_tlv_fc": {
+      "kind": "team",
       "legacy_name": "Maccabi Tel Aviv Football",
       "memberships": [
         "comp:ligat_haal"
@@ -459,6 +512,7 @@
       "sport": "football"
     },
     "team:memphis_grizzlies": {
+      "kind": "team",
       "legacy_name": "Memphis Grizzlies",
       "memberships": [
         "comp:nba"
@@ -466,6 +520,7 @@
       "sport": "basketball"
     },
     "team:miami_heat": {
+      "kind": "team",
       "legacy_name": "Miami Heat",
       "memberships": [
         "comp:nba"
@@ -473,6 +528,7 @@
       "sport": "basketball"
     },
     "team:milwaukee_bucks": {
+      "kind": "team",
       "legacy_name": "Milwaukee Bucks",
       "memberships": [
         "comp:nba"
@@ -480,6 +536,7 @@
       "sport": "basketball"
     },
     "team:minnesota_timberwolves": {
+      "kind": "team",
       "legacy_name": "Minnesota Timberwolves",
       "memberships": [
         "comp:nba"
@@ -487,6 +544,7 @@
       "sport": "basketball"
     },
     "team:monaco_bb": {
+      "kind": "team",
       "legacy_name": "AS Monaco Basketball",
       "memberships": [
         "comp:lnb",
@@ -495,6 +553,7 @@
       "sport": "basketball"
     },
     "team:new_orleans_pelicans": {
+      "kind": "team",
       "legacy_name": "New Orleans Pelicans",
       "memberships": [
         "comp:nba"
@@ -502,6 +561,7 @@
       "sport": "basketball"
     },
     "team:ny_knicks": {
+      "kind": "team",
       "legacy_name": "New York Knicks",
       "memberships": [
         "comp:nba"
@@ -509,6 +569,7 @@
       "sport": "basketball"
     },
     "team:okc_thunder": {
+      "kind": "team",
       "legacy_name": "Oklahoma City Thunder",
       "memberships": [
         "comp:nba"
@@ -516,6 +577,7 @@
       "sport": "basketball"
     },
     "team:olimpia_milano": {
+      "kind": "team",
       "legacy_name": "Olimpia Milano",
       "memberships": [
         "comp:lba",
@@ -524,6 +586,7 @@
       "sport": "basketball"
     },
     "team:olympiacos_bb": {
+      "kind": "team",
       "legacy_name": "Olympiacos Basketball",
       "memberships": [
         "comp:greek_basket",
@@ -532,6 +595,7 @@
       "sport": "basketball"
     },
     "team:orlando_magic": {
+      "kind": "team",
       "legacy_name": "Orlando Magic",
       "memberships": [
         "comp:nba"
@@ -539,6 +603,7 @@
       "sport": "basketball"
     },
     "team:panathinaikos_bb": {
+      "kind": "team",
       "legacy_name": "Panathinaikos Basketball",
       "memberships": [
         "comp:greek_basket",
@@ -547,6 +612,7 @@
       "sport": "basketball"
     },
     "team:paris_bb": {
+      "kind": "team",
       "legacy_name": "Paris Basketball",
       "memberships": [
         "comp:lnb",
@@ -555,6 +621,7 @@
       "sport": "basketball"
     },
     "team:partizan_bb": {
+      "kind": "team",
       "legacy_name": "Partizan Belgrade",
       "memberships": [
         "comp:euroleague"
@@ -562,6 +629,7 @@
       "sport": "basketball"
     },
     "team:philadelphia_76ers": {
+      "kind": "team",
       "legacy_name": "Philadelphia 76ers",
       "memberships": [
         "comp:nba"
@@ -569,6 +637,7 @@
       "sport": "basketball"
     },
     "team:phoenix_suns": {
+      "kind": "team",
       "legacy_name": "Phoenix Suns",
       "memberships": [
         "comp:nba"
@@ -576,6 +645,7 @@
       "sport": "basketball"
     },
     "team:portland_blazers": {
+      "kind": "team",
       "legacy_name": "Portland Trail Blazers",
       "memberships": [
         "comp:nba"
@@ -583,6 +653,7 @@
       "sport": "basketball"
     },
     "team:real_madrid_bb": {
+      "kind": "team",
       "legacy_name": "Real Madrid Basketball",
       "memberships": [
         "comp:acb",
@@ -591,6 +662,7 @@
       "sport": "basketball"
     },
     "team:sacramento_kings": {
+      "kind": "team",
       "legacy_name": "Sacramento Kings",
       "memberships": [
         "comp:nba"
@@ -598,6 +670,7 @@
       "sport": "basketball"
     },
     "team:san_antonio_spurs": {
+      "kind": "team",
       "legacy_name": "San Antonio Spurs",
       "memberships": [
         "comp:nba"
@@ -605,6 +678,7 @@
       "sport": "basketball"
     },
     "team:toronto_raptors": {
+      "kind": "team",
       "legacy_name": "Toronto Raptors",
       "memberships": [
         "comp:nba"
@@ -612,6 +686,7 @@
       "sport": "basketball"
     },
     "team:utah_jazz": {
+      "kind": "team",
       "legacy_name": "Utah Jazz",
       "memberships": [
         "comp:nba"
@@ -619,6 +694,7 @@
       "sport": "basketball"
     },
     "team:valencia_bb": {
+      "kind": "team",
       "legacy_name": "Valencia Basket",
       "memberships": [
         "comp:acb",
@@ -627,6 +703,7 @@
       "sport": "basketball"
     },
     "team:virtus_bologna": {
+      "kind": "team",
       "legacy_name": "Virtus Bologna",
       "memberships": [
         "comp:lba",
@@ -635,6 +712,7 @@
       "sport": "basketball"
     },
     "team:washington_wizards": {
+      "kind": "team",
       "legacy_name": "Washington Wizards",
       "memberships": [
         "comp:nba"
@@ -642,6 +720,7 @@
       "sport": "basketball"
     },
     "team:zalgiris": {
+      "kind": "team",
       "legacy_name": "Zalgiris Kaunas",
       "memberships": [
         "comp:euroleague"

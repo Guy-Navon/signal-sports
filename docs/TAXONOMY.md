@@ -80,3 +80,56 @@ entity recall (correctness over recall, by explicit product decision). Partial
 recovery paths: full-name mention in the subtitle, the Kattash link, and the
 LLM path (`sport_unknown` / `ambiguous_club` force-calls). Full recovery comes
 with evidence-weighted resolution in the ArticleFacts PR.
+
+## Coverage audit (#40 Part A — 2026-07-07)
+
+Registry state after the #40 Part A expansion, distinguishing **repository
+coverage** (what is registered), **real-world coverage** (whether that is the
+complete current competition), and **season-aware uncertainty** (facts that
+rot as rosters change). Memberships have no season data yet (`season=None`
+means "current"); every claim below is anchored to the **2025–26 season** and
+must be re-audited when seasons roll over.
+
+| Competition | Repository | Real-world assessment | Uncertainty |
+|---|---|---|---|
+| NBA | 30/30 teams | Complete (franchise set is stable) | Low |
+| EuroLeague | 20/20 clubs (2025-26) | Complete for 2025-26 | Annual: promotion/licence changes each season |
+| Israeli Basketball League | 15 clubs | Near-complete; promoted/relegated edge clubs may be missing | Annual roster churn; verify at season start |
+| EuroCup | 1 club (Hapoel Jerusalem) | Deliberately sparse — EuroCup lineup is volatile; register on coverage evidence | High |
+| Spanish ACB | 4 clubs (Real Madrid, Barcelona, Baskonia, Valencia) | Partial by design — EuroLeague clubs only; no non-EL ACB club has appeared in ingested coverage | Medium |
+| Turkish BSL | 2 clubs (Fenerbahce, Anadolu Efes) | Partial by design — zero non-EL BSL mentions in the real DB | Medium |
+| Greek Basket League | 2 clubs (Olympiacos, Panathinaikos) | Partial by design — zero non-EL Greek mentions in the real DB | Medium |
+| Italian LBA | 2 clubs (Virtus, Olimpia Milano) | Partial by design | Medium |
+| French LNB | 3 clubs (Monaco, ASVEL, Paris) | Partial by design | Medium |
+| Israeli football | 13 clubs | Top-coverage clubs only; intentionally not audited here (not a tracked basketball competition) | — |
+
+Audit decisions (evidence-based, from the real 150-article local DB):
+
+- **NBA completed** (6 → 30). Materiality: the #29 QA hidden-row case
+  ("ברוקלין ניצחה את סקרמנטו") and mock finals/trade articles referencing
+  Heat/Suns/Hornets. Alias safety documented inline in `entities.py` (the
+  resolver is a substring scanner — no common-word bare aliases, no
+  football-brand collisions, no bare LA forms).
+- **EuroLeague completed for 2025-26** (12 → 20): Baskonia, Valencia (guarded),
+  Olimpia Milano (guarded), ASVEL, Paris (guarded), Bayern (guarded),
+  Zalgiris, Dubai (guarded). Clubs whose domestic league is untracked (German
+  BBL, Lithuanian LKL, ABA) carry only the EuroLeague membership, per the
+  Partizan/Crvena Zvezda precedent — **do not** register a domestic
+  competition without registering the competition itself.
+- **IBL**: added Ironi Kiryat Ata (real-DB mention), Hapoel Beer Sheva BC and
+  Hapoel Haifa BC (established top-flight clubs). Hapoel Haifa FC registered
+  simultaneously so the shared "הפועל חיפה" forms stay cross-sport ambiguous.
+  NOT added for lack of current-season evidence: Maccabi Rishon LeZion, Hapoel
+  Afula, Elitzur Netanya (register on coverage evidence, with the same
+  cross-sport care), Maccabi Haifa BC (would make the very common football
+  "מכבי חיפה" ambiguous — needs coverage evidence to justify that cost).
+- **Non-EL domestic clubs abroad** (ACB/BSL/Greek/LBA/LNB): audited and
+  deliberately NOT expanded — zero mentions in ingested coverage; speculative
+  aliases for clubs like AEK/Aris/Galatasaray carry real false-positive risk
+  (football brand names) with no measured benefit. Revisit when English
+  basketball sources (Sportando, Eurohoops) are onboarded.
+
+After any registry change: regenerate the frontend artifact with
+`backend/.venv/Scripts/python.exe backend/scripts/generate_taxonomy_export.py`
+and commit `frontend/src/data/taxonomyReach.generated.json`
+(`tests/test_taxonomy_export_freshness.py` fails loudly otherwise).

@@ -115,10 +115,40 @@
       ],
       "sport": "basketball"
     },
+    "team:asvel": {
+      "legacy_name": "ASVEL Villeurbanne",
+      "memberships": [
+        "comp:lnb",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:atlanta_hawks": {
+      "legacy_name": "Atlanta Hawks",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
     "team:barcelona_bb": {
       "legacy_name": "FC Barcelona Basketball",
       "memberships": [
         "comp:acb",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:baskonia": {
+      "legacy_name": "Baskonia",
+      "memberships": [
+        "comp:acb",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:bayern_munich_bb": {
+      "legacy_name": "Bayern Munich Basketball",
+      "memberships": [
         "comp:euroleague"
       ],
       "sport": "basketball"
@@ -144,6 +174,27 @@
       ],
       "sport": "basketball"
     },
+    "team:brooklyn_nets": {
+      "legacy_name": "Brooklyn Nets",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:charlotte_hornets": {
+      "legacy_name": "Charlotte Hornets",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:chicago_bulls": {
+      "legacy_name": "Chicago Bulls",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
     "team:cleveland_cavaliers": {
       "legacy_name": "Cleveland Cavaliers",
       "memberships": [
@@ -153,6 +204,34 @@
     },
     "team:crvena_zvezda_bb": {
       "legacy_name": "Crvena Zvezda",
+      "memberships": [
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:dallas_mavericks": {
+      "legacy_name": "Dallas Mavericks",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:denver_nuggets": {
+      "legacy_name": "Denver Nuggets",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:detroit_pistons": {
+      "legacy_name": "Detroit Pistons",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:dubai_bb": {
+      "legacy_name": "Dubai Basketball",
       "memberships": [
         "comp:euroleague"
       ],
@@ -170,6 +249,20 @@
       "memberships": [
         "comp:bsl",
         "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:golden_state_warriors": {
+      "legacy_name": "Golden State Warriors",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:hapoel_beer_sheva_bb": {
+      "legacy_name": "Hapoel Beer Sheva Basketball",
+      "memberships": [
+        "comp:ibl"
       ],
       "sport": "basketball"
     },
@@ -193,6 +286,20 @@
         "comp:ibl"
       ],
       "sport": "basketball"
+    },
+    "team:hapoel_haifa_bb": {
+      "legacy_name": "Hapoel Haifa Basketball",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
+    "team:hapoel_haifa_fc": {
+      "legacy_name": "Hapoel Haifa Football",
+      "memberships": [
+        "comp:ligat_haal"
+      ],
+      "sport": "football"
     },
     "team:hapoel_holon": {
       "legacy_name": "Hapoel Holon",
@@ -231,6 +338,27 @@
       ],
       "sport": "football"
     },
+    "team:houston_rockets": {
+      "legacy_name": "Houston Rockets",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:indiana_pacers": {
+      "legacy_name": "Indiana Pacers",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:ironi_kiryat_ata": {
+      "legacy_name": "Ironi Kiryat Ata",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
     "team:ironi_ness_ziona": {
       "legacy_name": "Ironi Ness Ziona",
       "memberships": [
@@ -242,6 +370,13 @@
       "legacy_name": "Ironi Ramat Gan",
       "memberships": [
         "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
+    "team:la_clippers": {
+      "legacy_name": "LA Clippers",
+      "memberships": [
+        "comp:nba"
       ],
       "sport": "basketball"
     },
@@ -323,6 +458,34 @@
       ],
       "sport": "football"
     },
+    "team:memphis_grizzlies": {
+      "legacy_name": "Memphis Grizzlies",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:miami_heat": {
+      "legacy_name": "Miami Heat",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:milwaukee_bucks": {
+      "legacy_name": "Milwaukee Bucks",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:minnesota_timberwolves": {
+      "legacy_name": "Minnesota Timberwolves",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
     "team:monaco_bb": {
       "legacy_name": "AS Monaco Basketball",
       "memberships": [
@@ -331,10 +494,32 @@
       ],
       "sport": "basketball"
     },
+    "team:new_orleans_pelicans": {
+      "legacy_name": "New Orleans Pelicans",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
     "team:ny_knicks": {
       "legacy_name": "New York Knicks",
       "memberships": [
         "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:okc_thunder": {
+      "legacy_name": "Oklahoma City Thunder",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:olimpia_milano": {
+      "legacy_name": "Olimpia Milano",
+      "memberships": [
+        "comp:lba",
+        "comp:euroleague"
       ],
       "sport": "basketball"
     },
@@ -346,6 +531,13 @@
       ],
       "sport": "basketball"
     },
+    "team:orlando_magic": {
+      "legacy_name": "Orlando Magic",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
     "team:panathinaikos_bb": {
       "legacy_name": "Panathinaikos Basketball",
       "memberships": [
@@ -354,10 +546,32 @@
       ],
       "sport": "basketball"
     },
+    "team:paris_bb": {
+      "legacy_name": "Paris Basketball",
+      "memberships": [
+        "comp:lnb",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
     "team:partizan_bb": {
       "legacy_name": "Partizan Belgrade",
       "memberships": [
         "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:philadelphia_76ers": {
+      "legacy_name": "Philadelphia 76ers",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:phoenix_suns": {
+      "legacy_name": "Phoenix Suns",
+      "memberships": [
+        "comp:nba"
       ],
       "sport": "basketball"
     },
@@ -370,6 +584,42 @@
     },
     "team:real_madrid_bb": {
       "legacy_name": "Real Madrid Basketball",
+      "memberships": [
+        "comp:acb",
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
+    },
+    "team:sacramento_kings": {
+      "legacy_name": "Sacramento Kings",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:san_antonio_spurs": {
+      "legacy_name": "San Antonio Spurs",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:toronto_raptors": {
+      "legacy_name": "Toronto Raptors",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:utah_jazz": {
+      "legacy_name": "Utah Jazz",
+      "memberships": [
+        "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:valencia_bb": {
+      "legacy_name": "Valencia Basket",
       "memberships": [
         "comp:acb",
         "comp:euroleague"
@@ -390,31 +640,57 @@
         "comp:nba"
       ],
       "sport": "basketball"
+    },
+    "team:zalgiris": {
+      "legacy_name": "Zalgiris Kaunas",
+      "memberships": [
+        "comp:euroleague"
+      ],
+      "sport": "basketball"
     }
   },
   "legacy_name_to_id": {
     "AS Monaco Basketball": "team:monaco_bb",
+    "ASVEL Villeurbanne": "team:asvel",
     "Anadolu Efes": "team:anadolu_efes",
+    "Atlanta Hawks": "team:atlanta_hawks",
+    "Baskonia": "team:baskonia",
+    "Bayern Munich Basketball": "team:bayern_munich_bb",
     "Beitar Jerusalem": "team:beitar_jlm_fc",
     "Bnei Herzliya": "team:bnei_herzliya",
     "Boston Celtics": "team:boston_celtics",
+    "Brooklyn Nets": "team:brooklyn_nets",
+    "Charlotte Hornets": "team:charlotte_hornets",
+    "Chicago Bulls": "team:chicago_bulls",
     "Cleveland Cavaliers": "team:cleveland_cavaliers",
     "Crvena Zvezda": "team:crvena_zvezda_bb",
+    "Dallas Mavericks": "team:dallas_mavericks",
     "Deni Avdija": "player:deni_avdija",
+    "Denver Nuggets": "team:denver_nuggets",
+    "Detroit Pistons": "team:detroit_pistons",
+    "Dubai Basketball": "team:dubai_bb",
     "Emek Yizrael Basketball": "team:emek_yizrael_bb",
     "FC Barcelona Basketball": "team:barcelona_bb",
     "Fenerbahce Basketball": "team:fenerbahce_bb",
+    "Golden State Warriors": "team:golden_state_warriors",
     "Hapoel Beer Sheva": "team:hapoel_beer_sheva_fc",
+    "Hapoel Beer Sheva Basketball": "team:hapoel_beer_sheva_bb",
     "Hapoel Eilat": "team:hapoel_eilat",
     "Hapoel Galil Gilboa": "team:hapoel_galil_gilboa",
+    "Hapoel Haifa Basketball": "team:hapoel_haifa_bb",
+    "Hapoel Haifa Football": "team:hapoel_haifa_fc",
     "Hapoel Holon": "team:hapoel_holon",
     "Hapoel Jerusalem Basketball": "team:hapoel_jlm_bb",
     "Hapoel Jerusalem Football": "team:hapoel_jlm_fc",
     "Hapoel Tel Aviv Basketball": "team:hapoel_tlv_bb",
     "Hapoel Tel Aviv Football": "team:hapoel_tlv_fc",
+    "Houston Rockets": "team:houston_rockets",
+    "Indiana Pacers": "team:indiana_pacers",
+    "Ironi Kiryat Ata": "team:ironi_kiryat_ata",
     "Ironi Ness Ziona": "team:ironi_ness_ziona",
     "Ironi Ramat Gan": "team:ironi_ramat_gan",
     "Jalen Brunson": "player:jalen_brunson",
+    "LA Clippers": "team:la_clippers",
     "LeBron James": "player:lebron_james",
     "Los Angeles Lakers": "team:la_lakers",
     "Maccabi Bnei Raina": "team:maccabi_bnei_raina_fc",
@@ -427,15 +703,32 @@
     "Maccabi Ramat Gan": "team:maccabi_ramat_gan",
     "Maccabi Tel Aviv Basketball": "team:maccabi_tlv_bb",
     "Maccabi Tel Aviv Football": "team:maccabi_tlv_fc",
+    "Memphis Grizzlies": "team:memphis_grizzlies",
+    "Miami Heat": "team:miami_heat",
+    "Milwaukee Bucks": "team:milwaukee_bucks",
+    "Minnesota Timberwolves": "team:minnesota_timberwolves",
+    "New Orleans Pelicans": "team:new_orleans_pelicans",
     "New York Knicks": "team:ny_knicks",
     "Oded Katash": "coach:oded_kattash",
+    "Oklahoma City Thunder": "team:okc_thunder",
+    "Olimpia Milano": "team:olimpia_milano",
     "Olympiacos Basketball": "team:olympiacos_bb",
+    "Orlando Magic": "team:orlando_magic",
     "Panathinaikos Basketball": "team:panathinaikos_bb",
+    "Paris Basketball": "team:paris_bb",
     "Partizan Belgrade": "team:partizan_bb",
+    "Philadelphia 76ers": "team:philadelphia_76ers",
+    "Phoenix Suns": "team:phoenix_suns",
     "Portland Trail Blazers": "team:portland_blazers",
     "Real Madrid Basketball": "team:real_madrid_bb",
+    "Sacramento Kings": "team:sacramento_kings",
+    "San Antonio Spurs": "team:san_antonio_spurs",
+    "Toronto Raptors": "team:toronto_raptors",
+    "Utah Jazz": "team:utah_jazz",
+    "Valencia Basket": "team:valencia_bb",
     "Virtus Bologna": "team:virtus_bologna",
-    "Washington Wizards": "team:washington_wizards"
+    "Washington Wizards": "team:washington_wizards",
+    "Zalgiris Kaunas": "team:zalgiris"
   },
   "taxonomy_version": 1
 }

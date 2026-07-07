@@ -164,4 +164,9 @@ class TestEnrichmentPhraseTable:
             "Emek Yizrael Basketball",
             "Maccabi Ramat Gan",
             "Maccabi Kiryat Gat",
+            # #40 Part A IBL additions — Beer Sheva/Haifa share aliases with
+            # football clubs, but injection is gated on sport == basketball.
+            "Ironi Kiryat Ata",
+            "Hapoel Beer Sheva Basketball",
+            "Hapoel Haifa Basketball",
         }

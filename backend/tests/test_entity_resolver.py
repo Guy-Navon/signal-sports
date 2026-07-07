@@ -177,3 +177,103 @@ class TestResolveMention:
     def test_legacy_display_name_resolves(self):
         entity = resolve_mention("Maccabi Ramat Gan")
         assert entity is not None and entity.id == "team:maccabi_ramat_gan"
+
+# ── #40 Part A — taxonomy coverage expansion regression cases ─────────────────
+
+class TestNbaCoverageExpansion:
+    def test_brooklyn_beats_sacramento_resolves_both_teams(self):
+        # The real hidden-row case from the #29 QA (issue #40): an NBA summer
+        # league result with no explicit "NBA" keyword must at least resolve
+        # both participating teams so participant inference has evidence.
+        resolution = resolve_entities(
+            "עבירה של שארפ על שרף לא נשרקה - ברוקלין ניצחה את סקרמנטו בליגת הקיץ",
+            sport_context="basketball",
+        )
+        names = {e.legacy_name for e in resolution.resolved}
+        assert names == {"Brooklyn Nets", "Sacramento Kings"}
+
+    def test_all_thirty_nba_teams_registered(self):
+        from app.taxonomy.entities import ENTITIES
+        nba_teams = [
+            e for e in ENTITIES.values()
+            if e.kind == "team" and e.domestic_competition == "comp:nba"
+        ]
+        assert len(nba_teams) == 30
+
+    def test_miami_heat_requires_full_form(self):
+        # Bare "מיאמי" must NOT be an alias (Inter Miami football coverage);
+        # bare "היט" must not be one either (substring of "להיט").
+        assert resolve_entities("מסי כיכב במדי מיאמי", sport_context="football").resolved == []
+        assert resolve_entities("הלהיט החדש של הקיץ").resolved == []
+        heat = resolve_entities("מיאמי היט ניצחו בפלורידה", sport_context="basketball")
+        assert [e.legacy_name for e in heat.resolved] == ["Miami Heat"]
+
+    def test_lakers_clippers_full_forms_distinct(self):
+        resolution = resolve_entities(
+            "דרבי בלוס אנג'לס: לייקרס מול קליפרס", sport_context="basketball"
+        )
+        names = {e.legacy_name for e in resolution.resolved}
+        assert names == {"Los Angeles Lakers", "LA Clippers"}
+
+    def test_spurs_hebrew_resolves_english_bare_spurs_absent(self):
+        # Hebrew "ספרס" is committed basketball evidence (classifier keyword);
+        # bare English "spurs" must NOT be an alias (Tottenham Hotspur).
+        bb = resolve_entities("סן אנטוניו ספרס בניצחון", sport_context="basketball")
+        assert [e.legacy_name for e in bb.resolved] == ["San Antonio Spurs"]
+        fc = resolve_entities("spurs beat arsenal in the derby", sport_context="football")
+        assert fc.resolved == []
+
+
+class TestEuroLeague2526Expansion:
+    def test_guarded_bayern_needs_basketball_evidence(self):
+        no_ctx = resolve_entities("באיירן מינכן ניצחה 2-1")
+        bb = resolve_entities("באיירן מינכן ניצחה ביורוליג", sport_context="basketball")
+        assert no_ctx.resolved == []
+        assert [e.legacy_name for e in bb.resolved] == ["Bayern Munich Basketball"]
+
+    def test_guarded_valencia_needs_basketball_evidence(self):
+        # Valencia CF protection: bare "ולנסיה" without basketball evidence abstains.
+        assert resolve_entities("ולנסיה ניצחה בליגה").resolved == []
+        bb = resolve_entities("ולנסיה ניצחה בליגה", sport_context="basketball")
+        assert [e.legacy_name for e in bb.resolved] == ["Valencia Basket"]
+
+    def test_unguarded_zalgiris_resolves_without_context(self):
+        resolution = resolve_entities("זלגיריס קובנה עם ניצחון ביתי")
+        assert [e.legacy_name for e in resolution.resolved] == ["Zalgiris Kaunas"]
+
+    def test_euroleague_2526_membership_count_is_twenty(self):
+        from app.taxonomy.entities import ENTITIES
+        el_teams = [
+            e for e in ENTITIES.values()
+            if e.kind == "team"
+            and any(comp == "comp:euroleague" for comp, _ in e.memberships)
+        ]
+        assert len(el_teams) == 20
+
+
+class TestIblCoverageExpansion:
+    def test_kiryat_ata_resolves(self):
+        # Real-DB coverage case: "כהן סיכם בקרית אתא".
+        resolution = resolve_entities("אחרי שנת שיקום: כהן סיכם בקרית אתא",
+                                      sport_context="basketball")
+        assert [e.legacy_name for e in resolution.resolved] == ["Ironi Kiryat Ata"]
+
+    def test_hapoel_beer_sheva_cross_sport_ambiguity(self):
+        # The shared forms must stay ambiguous without sport evidence — the
+        # football club must not silently lose its alias to the new BB club.
+        no_ctx = resolve_entities("הפועל באר שבע עם הודעה לאוהדים")
+        assert no_ctx.resolved == []
+        assert len(no_ctx.ambiguous) == 1
+        fc = resolve_entities("הפועל באר שבע", sport_context="football")
+        bb = resolve_entities("הפועל באר שבע", sport_context="basketball")
+        assert [e.legacy_name for e in fc.resolved] == ["Hapoel Beer Sheva"]
+        assert [e.legacy_name for e in bb.resolved] == ["Hapoel Beer Sheva Basketball"]
+
+    def test_hapoel_haifa_cross_sport_ambiguity(self):
+        no_ctx = resolve_entities("הפועל חיפה מנצחת")
+        assert no_ctx.resolved == []
+        assert len(no_ctx.ambiguous) == 1
+        fc = resolve_entities("הפועל חיפה", sport_context="football")
+        bb = resolve_entities("הפועל חיפה", sport_context="basketball")
+        assert [e.legacy_name for e in fc.resolved] == ["Hapoel Haifa Football"]
+        assert [e.legacy_name for e in bb.resolved] == ["Hapoel Haifa Basketball"]

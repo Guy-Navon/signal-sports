@@ -107,6 +107,63 @@ function SourceResultCard({ result }) {
   );
 }
 
+function formatRate(rate) {
+  if (rate == null) return "—";
+  return `${Math.round(rate * 1000) / 10}%`;
+}
+
+/** LLM dependency trend (issue #31): recent gated-ingestion runs with their
+ * persisted per-run metrics. Runs predating the metrics column show "—". */
+function LlmDependencyTrend({ runs }) {
+  const withActivity = (runs ?? []).filter((r) => r.metrics != null);
+  if (withActivity.length === 0) return null;
+
+  return (
+    <div>
+      <div className="text-text-dim mb-1">תלות ב-LLM — ריצות אחרונות</div>
+      <div className="space-y-1">
+        {withActivity.slice(0, 8).map((run) => {
+          const m = run.metrics;
+          return (
+            <div
+              key={run.id}
+              className="flex flex-wrap items-center gap-x-3 gap-y-0.5 bg-surface-2 border border-border rounded-[10px] px-3 py-1.5"
+            >
+              <span className="text-text-secondary font-medium">{run.source_id}</span>
+              <span className="text-text-dim">{formatRunTime(run.started_at)}</span>
+              <span className="text-text-dim">
+                כתבות <MonoValue className="text-text-secondary">{m.new_articles}</MonoValue>
+              </span>
+              <span className="text-text-dim">
+                קריאות LLM{" "}
+                <MonoValue className={m.llm_call_rate > 0.25 ? "text-signal-push" : "text-text-secondary"}>
+                  {formatRate(m.llm_call_rate)}
+                </MonoValue>
+              </span>
+              <span className="text-text-dim">
+                הימנעות <MonoValue className="text-text-secondary">{formatRate(m.abstention_rate)}</MonoValue>
+              </span>
+              <span className="text-text-dim">
+                קונפליקטים <MonoValue className="text-text-secondary">{formatRate(m.conflict_rate)}</MonoValue>
+              </span>
+              {m.llm_avg_ms != null && (
+                <span className="text-text-dim">
+                  ממוצע <MonoValue className="text-text-secondary">{formatMs(m.llm_avg_ms)}</MonoValue>
+                </span>
+              )}
+              {m.estimated_cost_per_run > 0 && (
+                <span className="text-text-dim">
+                  עלות <MonoValue className="text-text-secondary">${m.estimated_cost_per_run}</MonoValue>
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function QualityPanel({ quality }) {
   return (
     <div className="mt-3 space-y-3 text-xs">
@@ -151,6 +208,8 @@ function QualityPanel({ quality }) {
           </div>
         </div>
       )}
+
+      <LlmDependencyTrend runs={quality.llm_dependency_runs} />
 
       {quality.questionable_articles?.length > 0 && (
         <div>

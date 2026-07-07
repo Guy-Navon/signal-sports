@@ -29,6 +29,7 @@ def _row_to_record(row: IngestionRunRow) -> IngestionRunRecord:
         skipped_duplicate_count=row.skipped_duplicate_count,
         failed_count=row.failed_count,
         error_message=row.error_message,
+        metrics=row.metrics,
     )
 
 
@@ -44,6 +45,7 @@ def insert(session: Session, record: IngestionRunRecord) -> None:
         skipped_duplicate_count=record.skipped_duplicate_count,
         failed_count=record.failed_count,
         error_message=record.error_message,
+        metrics=record.metrics,
     )
     session.add(row)
     session.commit()

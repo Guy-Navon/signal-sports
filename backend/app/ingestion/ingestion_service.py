@@ -43,6 +43,7 @@ from app.ingestion.config import RSS_SOURCES, RSSSourceConfig, get_source_config
 from app.ingestion.source_state import get_effective_enabled_sources
 from app.ingestion.dedup import article_id_from_url, url_already_exists
 from app.models.article import Article
+from app.ingestion.run_metrics import ArticleQualityCounters, compute_run_metrics
 from app.models.ingestion import IngestionRunRecord, SourceIngestResult
 from app.repositories import article_repository, ingestion_repository
 from app.translation.language_detection import detect_language
@@ -80,6 +81,7 @@ def _apply_post_facts_event_validation(
         source=source,
         sport=facts.sport,
     )
+    corrected = not event_evidence.valid
     if event_evidence.valid:
         final_result.event_certainty = event_evidence.certainty
     else:
@@ -98,6 +100,9 @@ def _apply_post_facts_event_validation(
         "final": final_result.event_type,
         "certainty": final_result.event_certainty,
         "validated_after_facts": True,
+        # True when the proposed event failed semantic evidence validation and
+        # was corrected to "news" — feeds the per-run event_correction_rate (#31).
+        "corrected": corrected,
     }
     return final_result
 
@@ -337,6 +342,9 @@ def _run_source(
     llm_skipped = 0
     llm_skip_reasons: dict[str, int] = {}
     llm_call_reasons: dict[str, int] = {}
+    # Per-article classification-quality accumulation (issue #31) — observed
+    # once per inserted article, inside the normal gated path only.
+    quality_counters = ArticleQualityCounters()
 
     items: list[RawSourceItem] = []
     try:
@@ -414,6 +422,7 @@ def _run_source(
 
             article_repository.insert(session, article)
             inserted += 1
+            quality_counters.observe(article)
         except Exception as exc:
             msg = f"Item error [{item.url}]: {exc}"
             logger.error(msg)
@@ -459,6 +468,24 @@ def _run_source(
         slowest_str,
     )
 
+    # Per-run LLM dependency / quality metrics (issue #31) — computed from the
+    # accumulators above, persisted on the run row (soft-migrated JSON column).
+    # This is the ONLY place metrics are computed: normal gated ingestion.
+    run_metrics = compute_run_metrics(
+        counters=quality_counters,
+        llm_attempts=llm_attempts,
+        llm_successes=llm_successes,
+        llm_fallback_connect_error=llm_fallback_connect_error,
+        llm_fallback_timeout_or_parse=llm_fallback_timeout_or_parse,
+        llm_fallback_low_confidence=llm_fallback_low_confidence,
+        llm_skipped=llm_skipped,
+        llm_skip_reasons=llm_skip_reasons,
+        llm_call_reasons=llm_call_reasons,
+        llm_avg_ms=llm_avg_ms,
+        llm_p95_ms=llm_p95_ms,
+        total_ms=total_ms,
+    )
+
     # skipped_filtered is intentionally NOT stored in the run log — the DB schema
     # does not have that column and adding it would require a migration.  It is
     # returned in the live API response only.
@@ -473,6 +500,7 @@ def _run_source(
         skipped_duplicate_count=skipped_duplicate,
         failed_count=failed,
         error_message=errors[0] if errors else None,
+        metrics=run_metrics,
     )
     ingestion_repository.insert(session, run_record)
 
@@ -496,6 +524,7 @@ def _run_source(
         llm_skipped=llm_skipped,
         llm_skip_reasons=llm_skip_reasons,
         llm_call_reasons=llm_call_reasons,
+        metrics=run_metrics,
     )
 
 

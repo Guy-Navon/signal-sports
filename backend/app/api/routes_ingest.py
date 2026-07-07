@@ -288,4 +288,6 @@ def get_ingest_quality(session: Session = Depends(get_session)):
         importance_breakdown=importance_breakdown,
         low_confidence_count=low_confidence_count,
         questionable_articles=questionable,
+        # LLM dependency trend (issue #31) — per-run persisted metrics history.
+        llm_dependency_runs=ingestion_repository.get_recent(session, limit=20),
     )

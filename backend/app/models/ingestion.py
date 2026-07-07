@@ -27,6 +27,9 @@ class SourceIngestResult(BaseModel):
     llm_skipped: int = 0
     llm_skip_reasons: Dict[str, int] = Field(default_factory=dict)
     llm_call_reasons: Dict[str, int] = Field(default_factory=dict)
+    # Per-run LLM dependency / quality metrics (issue #31) — also persisted on
+    # the ingestion_runs row. Computed only in the normal gated ingestion path.
+    metrics: Optional[Dict] = None
 
 
 class IngestRunResponse(BaseModel):
@@ -55,6 +58,9 @@ class IngestionRunRecord(BaseModel):
     skipped_duplicate_count: int
     failed_count: int
     error_message: Optional[str] = None
+    # LLM dependency / quality metrics (issue #31). None on rows that predate
+    # the metrics column — old runs stay readable unchanged.
+    metrics: Optional[Dict] = None
 
 
 class SchedulerStatusResponse(BaseModel):
@@ -118,3 +124,8 @@ class IngestQualityResponse(BaseModel):
     importance_breakdown: Dict[str, int]
     low_confidence_count: int
     questionable_articles: List[QuestionableArticle]
+    # LLM dependency trend (issue #31): recent ingestion runs, newest first,
+    # each carrying its persisted per-run metrics dict (None for runs that
+    # predate the metrics column). Normal gated ingestion runs only — the
+    # forced classification backfill never writes run records by design.
+    llm_dependency_runs: List[IngestionRunRecord] = Field(default_factory=list)

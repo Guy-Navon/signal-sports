@@ -543,7 +543,7 @@ A keyword like "NBA" in the title is a strong signal, but the gating additionall
 
 ## Ingestion Timing Instrumentation
 
-`SourceIngestResult` now includes per-run timing fields (live API response only — not stored in the DB run log):
+`SourceIngestResult` now includes per-run timing fields (raw counters below are live-response fields; since issue #31 the *derived* metrics dict is additionally persisted — see "Persisted LLM Dependency Metrics" below):
 
 ```python
 fetch_ms: Optional[float]              # RSS fetch duration in ms
@@ -571,6 +571,47 @@ Timing [israel_hayom_sport]: fetch=420ms total=18.3s | LLM: attempts=12 successe
 A DEBUG-level line is also emitted for each individual gated-skip, showing the article title, skip reason, and the deterministic sport/league/event_type/confidence values that triggered it. The top 5 slowest articles (by LLM latency) are INFO logger-only — not included in the API response.
 
 **Sources UI:** The Sources page (`IngestionPanel.jsx`) reads the `SourceIngestResult` timing fields from the `POST /api/ingest/run` response and displays them immediately after a manual ingestion run. The timing row shows fetch time, total time, LLM success ratio, skipped count (`דולגו N`), avg/p95 latency, and fallback breakdown. When `llm_attempts === 0` (provider disabled), the row shows `LLM לא הופעל`. The `דולגו` count is hidden when zero to avoid noise for non-gated runs.
+
+---
+
+## Persisted LLM Dependency Metrics (issue #31)
+
+**2026-07-07 — issue #31.** Every normal gated ingestion run now persists a
+derived metrics dict on its `ingestion_runs` row (`metrics` JSON column, soft
+migration; rows predating the column load as `metrics=None` — old-run
+compatibility preserved). Computation lives in
+`backend/app/ingestion/run_metrics.py` (`compute_run_metrics()` +
+`ArticleQualityCounters`), pure functions over counters the pipeline already
+records — no new telemetry.
+
+**Metric families** (schema_version 1): counts (new_articles, llm_attempts/
+successes/skipped, skip/call reason dicts, fallbacks by kind, abstained,
+ambiguous, with_conflicts, weighted_evidence_overrides, events_corrected) and
+rates (deterministic_accept_rate, llm_call_rate, gate_skip_rate,
+fallback_rate, low_confidence_fallback_rate, abstention_rate, ambiguity_rate,
+conflict_rate, weighted_evidence_override_rate, event_correction_rate), plus
+latency (llm_avg_ms/llm_p95_ms/total_ms), throughput (articles_per_minute)
+and cost estimates (`LLM_COST_PER_CALL_ESTIMATE` env × attempts; per-run and
+per-1000-articles). Rates are `None` when the denominator is zero — "not
+measurable this run" is distinct from "measured zero". The disabled-provider
+path records `llm_call_rate=0.0` with everything else still measured.
+
+**Denominator honesty (hard rule):** metrics are computed ONLY inside
+`_run_source` — the normal gated ingestion path. `POST /api/classify/backfill`
+force-calls the LLM by design and never writes `ingestion_runs` rows, so
+forced-backfill numbers (e.g. the 132/134 figure from the #29 QA) can never
+masquerade as production call rate (regression-tested).
+
+**Event-correction observability:** `_apply_post_facts_event_validation` now
+records `corrected: true` in `trace["event"]` when semantic evidence
+validation rejects the proposed event (→ `news`), feeding
+`event_correction_rate`.
+
+**Surfacing:** `GET /api/ingest/quality` gained `llm_dependency_runs` (newest
+20 run records, each carrying its metrics dict); the Sources page quality
+panel renders the trend (per run: articles, call-rate — highlighted red above
+the 25% epic target — abstention, conflicts, avg latency, cost). The per-run
+INFO log line is unchanged.
 
 ---
 

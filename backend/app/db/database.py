@@ -29,6 +29,8 @@ def _apply_migrations(eng) -> None:
         ("articles", "entity_ids",                "JSON"),
         ("articles", "classification_trace",      "JSON"),
         ("articles", "taxonomy_version",          "INTEGER"),
+        # LLM dependency metrics (issue #31) — same soft-migration pattern.
+        ("ingestion_runs", "metrics",             "JSON"),
     ]
     with eng.connect() as conn:
         for table, col, col_type in migrations:

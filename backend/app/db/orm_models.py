@@ -120,3 +120,5 @@ class IngestionRunRow(Base):
     skipped_duplicate_count = Column(Integer, nullable=False, default=0)
     failed_count = Column(Integer, nullable=False, default=0)
     error_message = Column(String, nullable=True)
+    # LLM dependency / quality metrics dict (issue #31) — soft-migrated JSON.
+    metrics = Column(JSON, nullable=True)

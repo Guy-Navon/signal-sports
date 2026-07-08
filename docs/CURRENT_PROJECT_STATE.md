@@ -551,6 +551,8 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 
 > **The active roadmap is the Signal Intelligence Architecture v2 initiative** — see `docs/INTELLIGENCE_ROADMAP.md` and [Milestone 1](https://github.com/Guy-Navon/signal-sports/milestone/1). The list below predates it and remains for the operational items (benchmarks, source validation) that are still relevant.
 
+> **Next milestone (approved design, 2026-07-08 — not yet implemented): User Platform** — real accounts, authentication, onboarding, and per-user data isolation wrapped around the existing FACTS → VISIBILITY → PREFERENCE → LEARNING pipeline. Architecture contract: `docs/USER_PLATFORM.md`; implementation is tracked by the User Platform Epic on GitHub. Until those PRs land, the "No auth / multi-user" limitation in §10 remains accurate.
+
 Priority order:
 
 1. **Re-run the LLM gating benchmark (validation task)** — Gating and the benchmark UI shipped with PR 12; the PR 13 quality fixes are in place. From the Sources page (requires `ALLOW_DEV_RESET=true` + `CLASSIFICATION_PROVIDER=ollama`), run "הרץ בנצ׳מרק מלא" and compare `llm_attempts`, `llm_skipped`, `total_ms`, and `sport=unknown` against baseline. Target ≥40% LLM call reduction with no regression (last measured: israel_hayom PASS 41.4%, walla FAIL 26.7% before the quality fixes). Review results before merging the `feature/selective-llm-gating` branch.

@@ -1,12 +1,13 @@
 # User Platform — Architecture Contract
 
-**Status: approved architecture (2026-07-08) — PR 1 / Issue #49 implemented.**
-The backend Auth Core now exists: `users` and `auth_sessions` tables, cookie-backed
-opaque sessions, `/api/auth/*`, current-user dependencies, CSRF checks, fail-closed
-insecure-bypass configuration, and the idempotent demo/admin startup ensure-step.
-The rest of the milestone is still in progress: no `/api/me/*` consumer surface,
-no frontend auth shell, no onboarding UX, no legacy/ops admin gating, and no account
-lifecycle endpoints yet.
+**Status: approved architecture (2026-07-08) — PR 1 / Issue #49 is in draft review.**
+Draft PR #56 implements the backend Auth Core on its feature branch: `users` and
+`auth_sessions` tables, cookie-backed opaque sessions, `/api/auth/*`, current-user
+dependencies, CSRF checks, fail-closed insecure-bypass configuration, and the
+idempotent demo/admin startup ensure-step. Until PR #56 is merged, this is not yet
+main-branch behavior. The rest of the milestone is still in progress: no `/api/me/*`
+consumer surface, no frontend auth shell, no onboarding UX, no legacy/ops admin
+gating, and no account lifecycle endpoints yet.
 
 **Execution home:**
 [GitHub Milestone 2 "User Platform"](https://github.com/Guy-Navon/signal-sports/milestone/2)
@@ -353,7 +354,7 @@ test/lint/typecheck/build when touched, docs truth sweep, corpus DB never reset.
 Authoritative per-issue detail lives in the GitHub issues: PR 1 = #49, PR 2 = #50,
 PR 3 = #51, PR 4 = #52, PR 5 = #53, PR 6 = #54, PR 7 = #55 (Epic #48, Milestone 2).
 
-1. **Auth core (backend)** ⭐ Fable review — **implemented in Issue #49**:
+1. **Auth core (backend)** ⭐ Fable review — **draft PR #56 for Issue #49**:
    users/auth_sessions tables (FK + pragma), auth service + `/api/auth/*`, security
    deps, bypass flag + startup guard, CSRF middleware, ensure-step (demo users
    backfill + admin bootstrap). Legacy routes untouched.
@@ -428,4 +429,6 @@ bypass semantics).
 - 2026-07-08 — Architecture approved (design revision pass: fail-closed
   `ALLOW_INSECURE_AUTH_BYPASS`; fixed 30-day session expiry; real FK on
   `auth_sessions.user_id`; IP-independent login rate limiting; explicit test identities;
-  skipped-calibration empty-feed decision). No implementation yet.
+  skipped-calibration empty-feed decision). No implementation on main yet.
+- 2026-07-08 — Draft PR #56 opened for Issue #49 backend Auth Core. Pending Fable
+  architecture review and merge; later User Platform issues remain unimplemented.

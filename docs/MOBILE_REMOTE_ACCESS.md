@@ -182,12 +182,15 @@ wildcard, and no personal hostname anywhere in tracked files.
 
 - **The tailnet remains the network boundary; Auth Core now adds application sessions.**
   Access to the dev machine still requires being signed into the same private Tailscale
-  tailnet as the PC — WireGuard-encrypted, identity-bound devices. User Platform PR 1
-  adds same-origin cookie auth (`/api/auth/*`) designed to work through this exact
-  Tailscale Serve → Vite proxy chain. Set `AUTH_COOKIE_SECURE=true` when using the
-  HTTPS Serve URL because HTTPS termination is invisible to FastAPI. Consumer `/api/me/*`
-  routes, frontend auth, onboarding UX, and legacy/ops route gating arrive in later
-  User Platform PRs.
+  tailnet as the PC — WireGuard-encrypted, identity-bound devices. Draft PR #56 for
+  User Platform PR 1 adds same-origin cookie auth (`/api/auth/*`) designed to work
+  through this exact Tailscale Serve → Vite proxy chain. When using the HTTPS Serve
+  URL, set both `AUTH_COOKIE_SECURE=true` and
+  `CSRF_ALLOWED_ORIGINS=https://<machine>.<tailnet>.ts.net` in local backend env
+  (placeholder shown; never commit a real hostname). Tailscale Serve terminates HTTPS
+  before Vite/uvicorn, so FastAPI sees an HTTP request to `127.0.0.1:8000` while the
+  browser sends the HTTPS tailnet Origin. Consumer `/api/me/*` routes, frontend auth,
+  onboarding UX, and legacy/ops route gating arrive in later User Platform PRs.
 - **This is single-user private testing, not production authentication.** Do not treat this
   setup as hardened for multi-user or public use.
 - **Never enable Tailscale Funnel** for this setup. Funnel republishes a Serve config to the

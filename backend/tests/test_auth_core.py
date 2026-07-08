@@ -371,6 +371,26 @@ def test_csrf_reject_and_allow_cases(client):
     assert allowed.status_code == 200
 
 
+def test_csrf_tailscale_https_origin_requires_explicit_allowlist(client, monkeypatch):
+    monkeypatch.setattr(settings, "csrf_allowed_origins", tuple())
+    proxy_headers = {
+        "host": "127.0.0.1:8000",
+        "origin": "https://machine.tailnet.ts.net",
+        "sec-fetch-site": "same-origin",
+    }
+
+    rejected = client.post("/api/auth/logout", headers=proxy_headers)
+    assert rejected.status_code == 403
+
+    monkeypatch.setattr(
+        settings,
+        "csrf_allowed_origins",
+        ("https://machine.tailnet.ts.net",),
+    )
+    allowed = client.post("/api/auth/logout", headers=proxy_headers)
+    assert allowed.status_code == 200
+
+
 def test_insecure_bypass_default_fail_closed(monkeypatch):
     monkeypatch.delenv("ALLOW_INSECURE_AUTH_BYPASS", raising=False)
     assert security_deps.allow_insecure_auth_bypass() is False

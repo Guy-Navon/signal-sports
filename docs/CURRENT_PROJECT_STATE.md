@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-08.
 
-**2026-07-08 — Intelligence Architecture v2 COMPLETE; User Platform milestone started.** The Signal Intelligence Architecture v2 initiative (Epic #27, Milestone 1) is fully landed and closed — the Preference V2 affinity engine serves `/api/feed` (flipped after the shadow checkpoint), Calibration V2 and feedback learning are live, and `docs/RELEVANCE_CONTRACT.md` is the umbrella contract. The **active milestone is User Platform** — real accounts, authentication, onboarding, and per-user isolation. PR 1 / Issue #49 has landed the backend Auth Core (`users`, `auth_sessions`, `/api/auth/*`, cookie sessions, CSRF, security dependencies, startup ensure-step); later PRs still own `/api/me/*`, frontend auth, onboarding UX, legacy/ops route gating, explicit test identities, and account lifecycle. Contract in `docs/USER_PLATFORM.md`, execution home [Milestone 2](https://github.com/Guy-Navon/signal-sports/milestone/2) (Epic #48, issues #49–#55). See §13 for cold-start orientation.
+**2026-07-08 — Intelligence Architecture v2 COMPLETE; User Platform milestone started.** The Signal Intelligence Architecture v2 initiative (Epic #27, Milestone 1) is fully landed and closed — the Preference V2 affinity engine serves `/api/feed` (flipped after the shadow checkpoint), Calibration V2 and feedback learning are live, and `docs/RELEVANCE_CONTRACT.md` is the umbrella contract. The **active milestone is User Platform** — real accounts, authentication, onboarding, and per-user isolation. Draft PR #56 for Issue #49 implements the backend Auth Core on its feature branch (`users`, `auth_sessions`, `/api/auth/*`, cookie sessions, CSRF, security dependencies, startup ensure-step), pending Fable review and merge; later PRs still own `/api/me/*`, frontend auth, onboarding UX, legacy/ops route gating, explicit test identities, and account lifecycle. Contract in `docs/USER_PLATFORM.md`, execution home [Milestone 2](https://github.com/Guy-Navon/signal-sports/milestone/2) (Epic #48, issues #49–#55). See §13 for cold-start orientation.
 
 The header below this line describes the **frontend redesign completed 2026-07-04**: Court Vision (PRs 1–6) followed by five further PRs (A–E) that rebuilt the product's entire visual layer from the ground up. **All merged to `main` at commit `7e029bc`. No open feature branch.** The Base44-generated QA-dashboard UI is gone; the app is now a premium, Hebrew-first, RTL-first dark product with a design-token system (shadcn/ui + Tailwind + Radix, self-hosted Heebo + Frank Ruhl Libre fonts), a product-vs-console split, and a from-scratch product identity under the approved **"המערכת / The Desk"** design concept (a codename for the visual direction only — the product name is still Signal Sports / סיגנל). Full detail lives in `docs/FRONTEND_DESIGN_SYSTEM.md`; the one-paragraph arc:
 
@@ -12,7 +12,7 @@ The header below this line describes the **frontend redesign completed 2026-07-0
 - **PR D ("ops shell variant")** gave the ops console its own backdrop (`OpsGrid`, a flat blueprint grid) and a mono breadcrumb in `OpsNav` — Sources/Debug/LLM QA page content and logic are completely untouched.
 - **PR E ("signature details")**, self-directed rather than requested, fixed real remaining gaps: the site's favicon file didn't exist at all (broken tab icon), the 404 page had never been touched by any redesign PR (it renders outside the app shell entirely), no themed focus rings, no custom scrollbar, and the Feed's empty state used a generic icon.
 
-**Backend, API contracts, and the frontend data layer (`src/context`, `src/api`, `src/engine`, `src/data`) were unchanged by the redesign**, except the one explicitly-authorized subtitle fix above. Frontend tests: 341. Backend tests: 1215.
+**Backend, API contracts, and the frontend data layer (`src/context`, `src/api`, `src/engine`, `src/data`) were unchanged by the redesign**, except the one explicitly-authorized subtitle fix above. Test counts have changed since that historical redesign checkpoint; use the current collectors instead of this section for live counts.
 
 **2026-07-06 — Signal Intelligence Architecture v2 started.** PR 1 (branch `feature/taxonomy-entity-resolver`, PR #26) shipped the canonical taxonomy + entity resolver foundation: `backend/app/taxonomy/` is now the single source of entity truth for the deterministic classifier and the LLM normalizer; bare club-family names ("מכבי", "הפועל"…) never resolve to a team; Maccabi Ramat Gan / Maccabi Kiryat Gat exist as distinct entities. See `docs/TAXONOMY.md` for the taxonomy contract and `docs/INTELLIGENCE_ROADMAP.md` for the full initiative plan (Epic #27, Milestone 1 — the home page for all initiative issues). PR 2 (`feature/article-facts`, #28/#38) added evidence-backed `primary_competition`/`article_competitions`/`entity_ids` — see `docs/ARTICLE_FACTS.md`. PR 3 (`feature/relevance-visibility-contract-29`, #29) is the VISIBILITY layer: competition-aware league matching (explicit evidence → legacy fallback → team-membership reach), a membership-only feed ceiling, `entity_ids`-first identity, the `major_only` leak removed, and a Guy/Casual-Deni-Fan profile drift guard — see `docs/RELEVANCE_VISIBILITY_CONTRACT.md`.
 
@@ -185,8 +185,8 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 | `calibration_headlines` | 16 synthetic preference calibration headlines |
 | `ingestion_runs` | Log of every RSS ingestion run |
 | `source_overrides` | Runtime source enabled/disabled overrides (PR 13.1); wins over config.py defaults |
-| `users` | Account identity rows for Auth Core; demo profiles have credential-less `role='demo'` rows |
-| `auth_sessions` | SHA-256-hashed opaque session tokens, FK to `users.id` with ON DELETE CASCADE |
+| `users` | Draft PR #56: account identity rows for Auth Core; demo profiles have credential-less `role='demo'` rows |
+| `auth_sessions` | Draft PR #56: SHA-256-hashed opaque session tokens, FK to `users.id` with ON DELETE CASCADE |
 
 **Soft-migrated columns on `articles` (via `ALTER TABLE ADD COLUMN`, idempotent):**
 
@@ -204,7 +204,7 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 | `classification_trace` | JSON | Evidence hits, LLM gate decision + reason, LLM raw proposal, normalization actions, and conflicts (#28) |
 | `taxonomy_version` | INTEGER | Taxonomy registry version that produced the facts (#28) |
 
-On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent). Auth Core then idempotently creates credential-less `users` rows for existing profile rows and optionally bootstraps the first admin from `AUTH_ADMIN_EMAIL` / `AUTH_ADMIN_PASSWORD` without resetting existing admin credentials.
+On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent). On the draft PR #56 branch, Auth Core then idempotently creates credential-less `users` rows for existing profile rows and optionally bootstraps the first admin from `AUTH_ADMIN_EMAIL` / `AUTH_ADMIN_PASSWORD` without resetting existing admin credentials.
 
 **2026-07-06 — Intelligence Architecture v2, PR 2 (ArticleFacts, #28).** A
 consistency-validation stage (`backend/app/classification/facts.py`) persists
@@ -228,9 +228,9 @@ both the deterministic rules path and the LLM merge path. `event_certainty`
 survives ingestion and backfill, and the final ArticleFacts trace records the
 validated event. On doubt, event type falls back to `news`.
 
-On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent). Auth ensure-steps are create-only: existing profile, article, feedback, and calibration data are not rewritten.
+On startup: tables are created if missing; soft migrations add new columns to existing databases safely; seed data is inserted only into empty tables (idempotent). On the draft PR #56 branch, Auth ensure-steps are create-only: existing profile, article, feedback, and calibration data are not rewritten.
 
-**Test suite:** 1241 pytest tests across `backend/tests/` + 368 frontend tests (Vitest).
+**Test suite:** use `pytest tests/ --collect-only -q` and the frontend collector for current counts; do not trust stale counts copied into docs.
 The test environment is hermetic: `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and
 `INGESTION_SCHEDULER_ENABLED=false` regardless of the developer's `backend/.env`, so no test
 requires Ollama, a real API key, or live Sport5.
@@ -261,10 +261,10 @@ requires Ollama, a real API key, or live Sport5.
 | `GET` | `/api/calibration/headlines` | Synthetic calibration headlines |
 | `GET` | `/api/classify/status` | Current classification provider state |
 | `POST` | `/api/classify/backfill` | Reclassify existing articles with current LLM provider |
-| `POST` | `/api/auth/signup` | Create account + matching empty ProfileV2 profile atomically; sets HttpOnly session cookie |
-| `POST` | `/api/auth/login` | Email/password login; fresh opaque cookie session; rate-limited by account key + global window |
-| `POST` | `/api/auth/logout` | Server-side session revocation; clears auth cookie |
-| `GET` | `/api/auth/session` | Session bootstrap: current user plus onboarding/calibration summary |
+| `POST` | `/api/auth/signup` | Draft PR #56: create account + matching empty ProfileV2 profile atomically; sets HttpOnly session cookie |
+| `POST` | `/api/auth/login` | Draft PR #56: email/password login; fresh opaque cookie session; rate-limited by account key + global window |
+| `POST` | `/api/auth/logout` | Draft PR #56: server-side session revocation; clears auth cookie |
+| `GET` | `/api/auth/session` | Draft PR #56: session bootstrap; current user plus onboarding/calibration summary |
 
 **Feed filter:** `GET /api/feed`, `GET /api/debug/feed`, and `GET /api/articles` return only articles whose `id` starts with `rss_`. Seed articles (e.g. `article_001`) are excluded from the feed but accessible via single-item lookup.
 
@@ -547,7 +547,7 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 - **Scheduler is opt-in and process-local (PR 13).** `INGESTION_SCHEDULER_ENABLED=false` by default — ingestion then runs only on `POST /api/ingest/run` / `run-now`. When enabled, an asyncio loop in the FastAPI lifespan ingests enabled sources every `INGESTION_SCHEDULER_INTERVAL_MINUTES`. Multi-replica deployments need a single scheduler worker or a distributed lock.
 - **No fuzzy dedup / clustering.** Deduplication is URL-only. The same story from Eurohoops and Walla appears as two separate articles. `cluster_id` field exists in the model but is never populated.
 - **No feedback → profile mutation.** Feedback events are stored in SQLite but do not yet modify topic rules or event rules in user profiles.
-- **User Platform is partially implemented.** Backend Auth Core exists (`users`, `auth_sessions`, `/api/auth/*`, current-user dependencies, CSRF middleware, fail-closed bypass config), but existing consumer product flows still use legacy `{user_id}` routes until `/api/me/*` and frontend auth land in later PRs. Legacy/ops routes are not admin-gated yet.
+- **User Platform is in draft implementation.** Draft PR #56 implements Backend Auth Core (`users`, `auth_sessions`, `/api/auth/*`, current-user dependencies, CSRF middleware, fail-closed bypass config) on its feature branch, but it is not main-branch behavior until merge. Existing consumer product flows still use legacy `{user_id}` routes until `/api/me/*` and frontend auth land in later PRs. Legacy/ops routes are not admin-gated yet.
 - **No push notifications.** `push` is a decision level in the engine; no device notification delivery.
 - **No body translation or summaries.** Only titles are translated. Article bodies are not ingested.
 - **Limited source coverage.** MVP active sources: Walla Sport, Israel Hayom Sport, Ynet Sport, and ONE Sport. Eurohoops and Sportando are disabled (post-MVP). Sport5 is a scraping pilot (PR 13, disabled by default — no public RSS exists).
@@ -561,7 +561,7 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 
 > **The active roadmap is the Signal Intelligence Architecture v2 initiative** — see `docs/INTELLIGENCE_ROADMAP.md` and [Milestone 1](https://github.com/Guy-Navon/signal-sports/milestone/1). The list below predates it and remains for the operational items (benchmarks, source validation) that are still relevant.
 
-> **Active milestone: User Platform** — real accounts, authentication, onboarding, and per-user data isolation wrapped around the existing FACTS → VISIBILITY → PREFERENCE → LEARNING pipeline. Architecture contract: `docs/USER_PLATFORM.md`; implementation is tracked by the User Platform Epic on GitHub. PR 1 has landed backend auth/session infrastructure; later PRs migrate the consumer surface and frontend.
+> **Active milestone: User Platform** — real accounts, authentication, onboarding, and per-user data isolation wrapped around the existing FACTS → VISIBILITY → PREFERENCE → LEARNING pipeline. Architecture contract: `docs/USER_PLATFORM.md`; implementation is tracked by the User Platform Epic on GitHub. Draft PR #56 implements backend auth/session infrastructure pending review and merge; later PRs migrate the consumer surface and frontend.
 
 Priority order:
 
@@ -604,6 +604,7 @@ AUTH_COOKIE_SECURE=false
 AUTH_ADMIN_EMAIL=
 AUTH_ADMIN_PASSWORD=
 ALLOW_INSECURE_AUTH_BYPASS=false
+CSRF_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175
 INGESTION_SCHEDULER_ENABLED=false
 INGESTION_SCHEDULER_INTERVAL_MINUTES=15
 INGESTION_SCHEDULER_INITIAL_DELAY_SECONDS=30
@@ -615,6 +616,7 @@ Set `CLASSIFICATION_PROVIDER=gemini` with a `CLASSIFICATION_API_KEY` (Google AI 
 Set `CLASSIFICATION_PROVIDER=fake` to test the LLM classification path in dev without Ollama installed.
 Set `ALLOW_DEV_RESET=true` only for local QA sessions (enables `POST /api/dev/reset-rss-data`). Never enable in production.
 Set `AUTH_COOKIE_SECURE=true` when serving the browser over HTTPS through Tailscale Serve; keep it `false` for plain localhost HTTP.
+Set `CSRF_ALLOWED_ORIGINS=https://<machine>.<tailnet>.ts.net` as a local value when using Tailscale Serve HTTPS; never commit a real personal hostname.
 Set `ALLOW_INSECURE_AUTH_BYPASS=true` only for explicit local legacy/ops development. Startup refuses this flag when `AUTH_COOKIE_SECURE=true`; `/api/auth/*` is never bypassed.
 Set `INGESTION_SCHEDULER_ENABLED=true` to run ingestion automatically every `INGESTION_SCHEDULER_INTERVAL_MINUTES` (default 15). Disabled by default — the app then behaves exactly as before PR 13. Verify from the Sources page ("סטטוס ייבוא אוטומטי") or `GET /api/ingest/scheduler/status`.
 
@@ -647,8 +649,9 @@ No `.env.local` needed. Uses mock data and frontend engine.
 ```bash
 cd backend
 .venv\Scripts\python.exe -m pytest tests/ -v
-# 1215 tests — all should pass (no test requires Ollama, a real API key, or live Sport5;
-# conftest forces CLASSIFICATION_PROVIDER=disabled + INGESTION_SCHEDULER_ENABLED=false)
+# Use pytest collection for the current count. No test requires Ollama, a real API key,
+# or live Sport5; conftest forces CLASSIFICATION_PROVIDER=disabled +
+# INGESTION_SCHEDULER_ENABLED=false.
 # Note: test_reset_returns_403_when_disabled requires ALLOW_DEV_RESET unset or =false in .env
 ```
 
@@ -737,8 +740,8 @@ see `docs/FRONTEND_DESIGN_SYSTEM.md`.
 
 **The active milestone is User Platform** — real accounts, authentication,
 onboarding, and strict per-user isolation, wrapped around the intelligence
-pipeline without changing it. PR 1 / Issue #49 has implemented backend Auth
-Core; read `docs/USER_PLATFORM.md` first (it is the authoritative contract),
+pipeline without changing it. Draft PR #56 for Issue #49 implements backend Auth
+Core on its feature branch; read `docs/USER_PLATFORM.md` first (it is the authoritative contract),
 then pick up the lowest unblocked issue in
 [Milestone 2](https://github.com/Guy-Navon/signal-sports/milestone/2)
 (Epic #48; dependency chain #49 → #50 → #51 → { #52 ∥ #53 } → #54 → #55; one

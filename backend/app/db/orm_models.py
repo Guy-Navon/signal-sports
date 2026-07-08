@@ -96,6 +96,18 @@ class FeedbackRow(Base):
     created_at = Column(String, nullable=False)
 
 
+class CalibrationResponseRow(Base):
+    """Calibration V2 (issue #33): one persisted rating per (user, item).
+    Re-rating upserts; dataset_version records which dataset was rated."""
+    __tablename__ = "calibration_responses"
+
+    user_id = Column(String, primary_key=True)
+    item_id = Column(String, primary_key=True)
+    rating = Column(String, nullable=False)          # 5-level ordinal key
+    dataset_version = Column(Integer, nullable=False)
+    created_at = Column(String, nullable=False)      # ISO-8601
+
+
 class CalibrationHeadlineRow(Base):
     __tablename__ = "calibration_headlines"
 

@@ -1,5 +1,7 @@
 # Signal Sports — Synthetic Headline Calibration v0
 
+> **DEPRECATED (2026-07-08, issue #33):** superseded by `CALIBRATION_V2.md` — the frontend-only flow described here was removed.
+
 ## What it is
 
 Synthetic headline calibration is a user onboarding mechanism that builds a personalized preference profile without asking the user to fill out structured forms or edit rule sets.

@@ -1,7 +1,7 @@
 import React from "react";
 import { ChevronDown, User } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { SANDBOX_PROFILE_ID } from "@/engine/draftToProfile";
+import { SANDBOX_PROFILE_ID } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
 import PulseDot from "@/components/shared/PulseDot";
 import {

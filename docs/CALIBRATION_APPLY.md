@@ -1,5 +1,7 @@
 # Calibration Apply — Design Notes
 
+> **DEPRECATED (2026-07-08, issue #33):** superseded by `CALIBRATION_V2.md` — the frontend-only flow described here was removed.
+
 ## What This Is
 
 PR 3 adds the ability to convert a calibration draft into a real (but isolated) user profile called the **sandbox profile**, and apply it to the feed without touching the existing Guy or Casual Deni Fan profiles.

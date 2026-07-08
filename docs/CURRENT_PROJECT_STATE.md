@@ -365,6 +365,20 @@ shadow tab. `matched_topic` now returns canonical scope ids
 (`team:*`/`comp:*`) instead of legacy topic_ids. Full contract + checkpoint
 report: `docs/PREFERENCE_MODEL_V2.md`.
 
+**2026-07-08 — Signal Intelligence Architecture v2, #33 (Calibration V2).**
+Calibration is backend-owned end to end: one versioned 24-item dataset
+(`app/calibration_v2/dataset.py`, factorial + contrast pairs), hierarchical
+additive inference (median-based levels, support >=2, one answer can never
+create an exclude, contradictions widen uncertainty toward neutral),
+persistent apply through the ProfileV2 mutation path (`source="calibration"`
+entries only — explicit/learned never touched, overrides never written),
+ratings persisted per (user, item, dataset_version). New API:
+`GET /api/calibration/items`, `POST /api/calibration/preview`,
+`POST /api/calibration/apply`, `GET /api/calibration/responses/{user_id}`.
+Both stale datasets deleted (backend 16-row seed, frontend 43-headline file
++ JS inference); the Calibration page is a thin backend client (local mode:
+backend-required notice). See `docs/CALIBRATION_V2.md`.
+
 **Demo profile: Guy (basketball power user)**
 - Maccabi Tel Aviv Basketball: `entity` scope, very high priority — signing/negotiation/injury → `push`
 - NBA: `league` scope, high priority, mode `all` — most events visible

@@ -1,5 +1,5 @@
 import hashlib
-import hmac
+import logging
 import secrets
 import threading
 import time
@@ -14,6 +14,8 @@ from sqlalchemy.orm import Session
 
 from app.db.orm_models import AuthSessionRow, ProfileRow, UserRow
 from app.models.profile_v2 import ProfileV2
+
+logger = logging.getLogger(__name__)
 
 SESSION_TOKEN_BYTES = 32
 SESSION_DAYS = 30
@@ -129,10 +131,6 @@ def generate_session_token() -> str:
 
 def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
-
-
-def constant_time_token_hash(token: str, stored_hash: str) -> bool:
-    return hmac.compare_digest(token_hash(token), stored_hash)
 
 
 def empty_profile_row(user_id: str, display_name: str, profile_type: str = "self_serve") -> ProfileRow:
@@ -303,6 +301,13 @@ def ensure_users_for_profiles(session: Session) -> int:
 
 
 def bootstrap_admin(session: Session, *, email: Optional[str], password: Optional[str]) -> Optional[UserRow]:
+    if bool(email) != bool(password):
+        logger.warning(
+            "Partial admin bootstrap configuration ignored: set both "
+            "AUTH_ADMIN_EMAIL and AUTH_ADMIN_PASSWORD, or unset both."
+        )
+        return None
+
     existing_admin = session.execute(
         select(UserRow).where(UserRow.role == "admin")
     ).scalar_one_or_none()
@@ -310,6 +315,13 @@ def bootstrap_admin(session: Session, *, email: Optional[str], password: Optiona
         return None
     if not email or not password:
         return None
+    existing_user = get_user_by_email(session, email)
+    if existing_user is not None:
+        raise RuntimeError(
+            "AUTH_ADMIN_EMAIL is already registered to a non-admin account. "
+            "Unset AUTH_ADMIN_EMAIL/AUTH_ADMIN_PASSWORD or explicitly resolve/promote "
+            "that account through a supported admin path."
+        )
     return create_user_with_profile(
         session,
         email=email,

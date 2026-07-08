@@ -23,8 +23,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         origin = request.headers.get("origin")
         if origin is not None:
             allowed = set(settings.csrf_allowed_origins)
-            request_origin = f"{request.url.scheme}://{request.headers.get('host')}"
-            if origin not in allowed and origin != request_origin:
+            if origin not in allowed:
                 return JSONResponse(
                     status_code=403,
                     content={"detail": "CSRF check failed"},

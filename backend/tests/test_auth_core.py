@@ -231,6 +231,74 @@ def test_require_user_returns_401_for_expired_session(client):
     assert response.status_code == 401
 
 
+def _admin_test_app() -> FastAPI:
+    app = FastAPI()
+
+    @app.get("/legacy/protected")
+    def protected(user=Depends(security_deps.require_admin)):
+        return {"id": user.id if user is not None else None}
+
+    @app.get("/api/auth/protected")
+    def auth_protected(user=Depends(security_deps.require_admin)):
+        return {"id": user.id if user is not None else None}
+
+    return app
+
+
+def _create_user_and_token(email: str, role: str) -> str:
+    with SessionLocal() as session:
+        user = auth_service.create_user_with_profile(
+            session,
+            email=email,
+            password="correct horse battery",
+            role=role,
+        )
+        raw, _ = auth_service.create_session(session, user)
+        return raw
+
+
+def test_require_admin_rejects_anonymous_request(client):
+    with TestClient(_admin_test_app()) as admin_client:
+        response = admin_client.get("/legacy/protected")
+    assert response.status_code == 401
+
+
+def test_require_admin_rejects_authenticated_user_role(client):
+    raw = _create_user_and_token("plain-user@example.com", "user")
+    with TestClient(_admin_test_app()) as admin_client:
+        response = admin_client.get(
+            "/legacy/protected",
+            cookies={settings.auth_cookie_name: raw},
+        )
+    assert response.status_code == 403
+
+
+def test_require_admin_allows_authenticated_admin_role(client):
+    raw = _create_user_and_token("admin-user@example.com", "admin")
+    with TestClient(_admin_test_app()) as admin_client:
+        response = admin_client.get(
+            "/legacy/protected",
+            cookies={settings.auth_cookie_name: raw},
+        )
+    assert response.status_code == 200
+    assert response.json()["id"].startswith("usr_")
+
+
+def test_require_admin_bypass_allows_legacy_ops_path_without_admin_auth(client, monkeypatch):
+    monkeypatch.setenv("ALLOW_INSECURE_AUTH_BYPASS", "true")
+    with TestClient(_admin_test_app()) as admin_client:
+        response = admin_client.get("/legacy/protected")
+    assert response.status_code == 200
+    assert response.json() == {"id": None}
+
+
+def test_require_admin_bypass_never_opens_auth_paths(client, monkeypatch):
+    monkeypatch.setenv("ALLOW_INSECURE_AUTH_BYPASS", "true")
+    with TestClient(_admin_test_app()) as admin_client:
+        response = admin_client.get("/api/auth/protected")
+    assert response.status_code == 401
+
+
 def test_logout_revokes_session_and_clears_cookie(client):
     assert _signup(client, "logout@example.com").status_code == 201
     login = client.post(
@@ -324,6 +392,48 @@ def test_admin_bootstrap_is_create_only_and_never_resets_password(client):
         assert session.get(ProfileRow, created.id) is not None
 
 
+def test_admin_bootstrap_refuses_non_admin_email_collision(client):
+    with SessionLocal() as session:
+        user = auth_service.create_user_with_profile(
+            session,
+            email="collision@example.com",
+            password="user password",
+            role="user",
+        )
+        first_hash = user.password_hash
+
+        with pytest.raises(RuntimeError, match="already registered to a non-admin account"):
+            auth_service.bootstrap_admin(
+                session,
+                email="collision@example.com",
+                password="admin password",
+            )
+
+        session.refresh(user)
+        assert user.role == "user"
+        assert user.password_hash == first_hash
+        assert session.query(UserRow).filter(UserRow.role == "admin").count() == 0
+
+
+def test_admin_bootstrap_warns_on_partial_configuration(client, caplog):
+    with SessionLocal() as session:
+        assert auth_service.bootstrap_admin(
+            session,
+            email="partial@example.com",
+            password=None,
+        ) is None
+        assert "Partial admin bootstrap configuration ignored" in caplog.text
+        caplog.clear()
+
+        assert auth_service.bootstrap_admin(
+            session,
+            email=None,
+            password="admin password",
+        ) is None
+        assert "Partial admin bootstrap configuration ignored" in caplog.text
+        assert session.query(UserRow).filter(UserRow.role == "admin").count() == 0
+
+
 def test_sqlite_fk_enforcement_and_user_delete_cascades_sessions(client):
     with SessionLocal() as session:
         with pytest.raises(IntegrityError):
@@ -389,6 +499,19 @@ def test_csrf_tailscale_https_origin_requires_explicit_allowlist(client, monkeyp
     )
     allowed = client.post("/api/auth/logout", headers=proxy_headers)
     assert allowed.status_code == 200
+
+
+def test_csrf_host_header_cannot_allow_unlisted_origin(client, monkeypatch):
+    monkeypatch.setattr(settings, "csrf_allowed_origins", tuple())
+    response = client.post(
+        "/api/auth/logout",
+        headers={
+            "host": "evil.example",
+            "origin": "http://evil.example",
+            "sec-fetch-site": "same-origin",
+        },
+    )
+    assert response.status_code == 403
 
 
 def test_insecure_bypass_default_fail_closed(monkeypatch):

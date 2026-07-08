@@ -15,8 +15,26 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_dir}/test.db"
 #   configured; tests that exercise the LLM path monkeypatch a fake provider.
 # - INGESTION_SCHEDULER_ENABLED=false: the scheduler must never start inside the
 #   session-scoped TestClient lifespan (PR 13).
+# - Auth env: tests must not inherit a developer's backend/.env auth settings.
 os.environ["CLASSIFICATION_PROVIDER"] = "disabled"
 os.environ["INGESTION_SCHEDULER_ENABLED"] = "false"
+os.environ["ALLOW_INSECURE_AUTH_BYPASS"] = "false"
+os.environ["AUTH_ADMIN_EMAIL"] = ""
+os.environ["AUTH_ADMIN_PASSWORD"] = ""
+os.environ["AUTH_COOKIE_SECURE"] = "false"
+os.environ["CSRF_ALLOWED_ORIGINS"] = ",".join(
+    [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://testserver",
+    ]
+)
 
 
 @pytest.fixture(scope="session")

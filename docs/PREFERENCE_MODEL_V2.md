@@ -24,9 +24,11 @@ migration), coexisting with legacy `topics`:
   (shadow analysis caught the alias map turning NBA `major_trade` into a
   `star_trade` push).
 
-**Provenance contract:** for a duplicate (scope, target), explicit beats
-calibration beats learned — a learned entry never overrides an explicit one
-(`effective_scope_affinities()`).
+**Provenance contract:** for a duplicate (scope, target), the signal
+hierarchy (#34) is **explicit > learned > calibration** — a learned entry
+never overrides an explicit one, and repeated real-feed feedback refines
+synthetic calibration answers (`effective_scope_affinities()`; the same
+authority resolution applies to duplicate event affinities in the scorer).
 
 ## The scorer (`app/services/preference_engine.py`)
 
@@ -119,5 +121,6 @@ Remaining 9 disagreements — accepted, each explainable:
 ## Non-goals delivered elsewhere
 
 Calibration inference produces v2 affinities in #33; feedback learning
-mutates `source="learned"` entries in #34 (never overriding explicit);
+derives `source="learned"` entries in #34 (never overriding explicit) —
+see `docs/FEEDBACK_LEARNING.md`;
 observability wrap-up in #35.

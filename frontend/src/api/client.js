@@ -103,6 +103,27 @@ export function getCalibrationResponses(userId) {
   return apiFetch(`/api/calibration/responses/${encodeURIComponent(userId)}`);
 }
 
+/** Feedback learning (issue #34). */
+export function getLearningState(userId) {
+  return apiFetch(`/api/learning/${encodeURIComponent(userId)}`);
+}
+
+export function resetLearning(userId, feature = {}) {
+  return apiFetch(`/api/learning/${encodeURIComponent(userId)}/reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(feature),
+  });
+}
+
+export function neverShow(userId, articleId) {
+  return apiFetch(`/api/profiles/${encodeURIComponent(userId)}/never_show`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ article_id: articleId }),
+  });
+}
+
 /** Shadow-mode comparison (issue #32): legacy vs Preference V2 decisions. */
 export function getShadowReport(userId) {
   return apiFetch(`/api/debug/shadow/${encodeURIComponent(userId)}`);

@@ -119,14 +119,20 @@ def _resolve_event_delta(
     v2: ProfileV2, base_target: Optional[str], event_type: str
 ) -> Optional[EventAffinity]:
     """Scoped entry for the base scope beats the global entry; exact event
-    type beats an alias."""
+    type beats an alias; for a duplicate (scope_ref, event_type) the
+    higher-authority source wins (explicit > learned > calibration, #34)."""
+    from app.models.profile_v2 import SOURCE_AUTHORITY
+
+    def _best(cands: list) -> Optional[EventAffinity]:
+        return max(cands, key=lambda e: SOURCE_AUTHORITY[e.source]) if cands else None
+
     def _find(scope_ref: Optional[str]) -> Optional[EventAffinity]:
         pool = [e for e in v2.event_affinities if e.scope_ref == scope_ref]
-        exact = next((e for e in pool if e.event_type == event_type), None)
+        exact = _best([e for e in pool if e.event_type == event_type])
         if exact:
             return exact
         for alias in _EVENT_ALIASES.get(event_type, []):
-            hit = next((e for e in pool if e.event_type == alias), None)
+            hit = _best([e for e in pool if e.event_type == alias])
             if hit:
                 return hit
         return None

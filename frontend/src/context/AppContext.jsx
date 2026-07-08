@@ -3,7 +3,7 @@ import { userProfiles } from "@/data/userProfiles";
 import { mockArticles, mockClusters } from "@/data/mockArticles";
 import { feedSources } from "@/data/feedSources";
 import { scoreAllArticles, scoreCluster, scoreArticle, DECISION_RANK } from "@/engine/relevanceEngine";
-import { getProfiles, getFeed, getDebugFeed, submitFeedback, getCalibrationHeadlines } from "@/api/client";
+import { getProfiles, getFeed, getDebugFeed, submitFeedback, getCalibrationHeadlines, neverShow } from "@/api/client";
 // Sandbox preview profile id (was in the deleted draftToProfile.js — the
 // calibration flow is backend-owned since issue #33).
 export const SANDBOX_PROFILE_ID = "calibrated_sandbox";
@@ -189,6 +189,11 @@ export function AppProvider({ children }) {
 
   const resolvedProfileList = isBackendMode ? backendProfileList : profileList;
 
+  // ── Manual refresh helpers ───────────────────────────────────────────────────
+  const refreshFeed = useCallback(() => {
+    if (isBackendMode) setFeedRefreshTick(n => n + 1);
+  }, [isBackendMode]);
+
   // ── Feedback ────────────────────────────────────────────────────────────────
   const addFeedback = useCallback((articleId, action) => {
     // Track locally always
@@ -207,11 +212,34 @@ export function AppProvider({ children }) {
         user_id: activeProfileId,
         article_id: articleId,
         action,
+      }).then(() => {
+        // Dismissing actions hide the article immediately (issue #34) —
+        // refresh so the feed reflects it.
+        if (action === "less_like_this" || action === "not_interested" || action === "never_show") {
+          refreshFeed();
+        }
       }).catch(() => {
         // Feedback failure is non-fatal; local state already recorded the event
       });
     }
-  }, [activeProfileId, isBackendMode]);
+  }, [activeProfileId, isBackendMode, refreshFeed]);
+
+  // Explicit scoped suppression (issue #34): creates a never_show override
+  // for the most specific scope on the article, then refreshes the feed.
+  const neverShowArticle = useCallback(async (articleId) => {
+    if (!isBackendMode) return;
+    try {
+      await neverShow(activeProfileId, articleId);
+      await submitFeedback({
+        user_id: activeProfileId,
+        article_id: articleId,
+        action: "never_show",
+      });
+    } catch {
+      // non-fatal
+    }
+    refreshFeed();
+  }, [activeProfileId, isBackendMode, refreshFeed]);
 
   const getFeedbackForArticle = useCallback((articleId) => {
     return feedback.filter(f => f.userId === activeProfileId && f.articleId === articleId);
@@ -238,11 +266,6 @@ export function AppProvider({ children }) {
     setSandboxProfile(null);
     setActiveProfileId(current => current === SANDBOX_PROFILE_ID ? "guy" : current);
   }, []);
-
-  // ── Manual refresh helpers ───────────────────────────────────────────────────
-  const refreshFeed = useCallback(() => {
-    if (isBackendMode) setFeedRefreshTick(n => n + 1);
-  }, [isBackendMode]);
 
   const refreshProfiles = useCallback(() => {
     if (!isBackendMode) return;
@@ -287,6 +310,7 @@ export function AppProvider({ children }) {
     // Feedback
     feedback,
     addFeedback,
+    neverShowArticle,
     getFeedbackForArticle,
   };
 

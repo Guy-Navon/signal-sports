@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Dict, Optional, List
 from pydantic import BaseModel
 from app.models.article import Article
 
@@ -9,6 +9,9 @@ class DecisionResult(BaseModel):
     matched_entities: List[str] = []
     matched_event_rule: Optional[str] = None
     reasoning: List[str] = []
+    # Structured contribution trace (Preference V2, issue #32):
+    # [{step, scope, effect, detail}]. None on legacy-engine results.
+    contributions: Optional[List[Dict]] = None
 
 
 class ScoredArticle(BaseModel):
@@ -17,3 +20,4 @@ class ScoredArticle(BaseModel):
     matched_topic: Optional[str] = None
     matched_event_rule: Optional[str] = None
     reasoning: List[str] = []
+    contributions: Optional[List[Dict]] = None

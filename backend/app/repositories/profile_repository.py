@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.db.orm_models import ProfileRow
 from app.models.profile import UserProfile, TopicPreference
+from app.models.profile_v2 import ProfileV2
 
 
 # ── Conversion helpers ────────────────────────────────────────────────────────
@@ -19,6 +20,7 @@ def _row_to_profile(row: ProfileRow) -> UserProfile:
         muted_topics=row.muted_topics or [],
         muted_sources=row.muted_sources or [],
         followed_entities=row.followed_entities or [],
+        profile_v2=ProfileV2.model_validate(row.profile_v2) if row.profile_v2 else None,
     )
 
 
@@ -32,6 +34,7 @@ def _profile_to_row(profile: UserProfile) -> ProfileRow:
         muted_topics=list(profile.muted_topics),
         muted_sources=list(profile.muted_sources),
         followed_entities=list(profile.followed_entities),
+        profile_v2=profile.profile_v2.model_dump(mode="json") if profile.profile_v2 else None,
     )
 
 
@@ -53,4 +56,30 @@ def count(session: Session) -> int:
 
 def insert(session: Session, profile: UserProfile) -> None:
     session.add(_profile_to_row(profile))
+    session.commit()
+
+
+def update(session: Session, profile: UserProfile) -> None:
+    """Full-row update for an existing profile (PUT /api/profiles/{user_id})."""
+    row = session.get(ProfileRow, profile.user_id)
+    if row is None:
+        raise ValueError(f"profile {profile.user_id!r} does not exist")
+    new_row = _profile_to_row(profile)
+    row.display_name = new_row.display_name
+    row.language = new_row.language
+    row.profile_type = new_row.profile_type
+    row.topics = new_row.topics
+    row.muted_topics = new_row.muted_topics
+    row.muted_sources = new_row.muted_sources
+    row.followed_entities = new_row.followed_entities
+    row.profile_v2 = new_row.profile_v2
+    session.commit()
+
+
+def set_profile_v2(session: Session, user_id: str, profile_v2: ProfileV2) -> None:
+    """Write only the v2 payload (seed backfill for pre-existing rows)."""
+    row = session.get(ProfileRow, user_id)
+    if row is None:
+        raise ValueError(f"profile {user_id!r} does not exist")
+    row.profile_v2 = profile_v2.model_dump(mode="json")
     session.commit()

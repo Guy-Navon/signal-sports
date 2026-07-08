@@ -78,6 +78,11 @@ export function getIngestQuality() {
   return apiFetch("/api/ingest/quality");
 }
 
+/** Shadow-mode comparison (issue #32): legacy vs Preference V2 decisions. */
+export function getShadowReport(userId) {
+  return apiFetch(`/api/debug/shadow/${encodeURIComponent(userId)}`);
+}
+
 export function getClassifyStatus() {
   return apiFetch("/api/classify/status");
 }

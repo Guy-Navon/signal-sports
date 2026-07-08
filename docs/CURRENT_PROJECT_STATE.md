@@ -347,6 +347,24 @@ fields), `match_kind: participant_inference`, trace
 hidden NBA game results (Hornets–Wizards mock, Brooklyn–Sacramento real row)
 flip hidden → feed for Guy; zero changes for Casual Deni Fan.
 
+**2026-07-08 — Signal Intelligence Architecture v2, #32 (Preference Model
+V2).** The backend feed is now scored by a layered **affinity engine**
+(`app/services/preference_engine.py`) over `ProfileV2` (scope affinities
+-2..+2 with explicit/calibration/learned provenance, scoped event deltas,
+mute/never_show/always_push overrides — JSON on the profiles row).
+Visibility is **consumed, not re-derived**: competition scopes call the same
+four-tier `match_competition_names()` machinery as the legacy engine. Push
+exists only via explicit `always_push` overrides (exact event match, no
+alias widening). Every decision carries a structured contribution trace.
+Flip performed after the Fable shadow checkpoint (241 real articles: Guy
+96.3% agreement, Deni fan 100%, push parity exact); rollback:
+`PREFERENCE_ENGINE=legacy`. The JS engine is frozen (local mode only, no v2
+port). New surfaces: `GET /api/debug/shadow/{user_id}`, `GET /api/feed-engine`,
+`PUT /api/profiles/{user_id}` (first mutation endpoint), Debug "מנוע v2"
+shadow tab. `matched_topic` now returns canonical scope ids
+(`team:*`/`comp:*`) instead of legacy topic_ids. Full contract + checkpoint
+report: `docs/PREFERENCE_MODEL_V2.md`.
+
 **Demo profile: Guy (basketball power user)**
 - Maccabi Tel Aviv Basketball: `entity` scope, very high priority — signing/negotiation/injury → `push`
 - NBA: `league` scope, high priority, mode `all` — most events visible

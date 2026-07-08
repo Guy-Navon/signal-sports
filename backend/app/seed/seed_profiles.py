@@ -246,3 +246,183 @@ SEED_PROFILES = [
 def seed_profiles(db) -> None:
     for profile in SEED_PROFILES:
         db.profiles[profile.user_id] = profile
+
+
+# ── ProfileV2 seeds (issue #32) ───────────────────────────────────────────────
+# The same product semantics expressed as affinities + overrides. Legacy
+# topics above stay authoritative until the shadow-validated engine flip;
+# known deliberate divergences are documented in docs/PREFERENCE_MODEL_V2.md.
+
+from app.models.profile_v2 import (  # noqa: E402
+    EventAffinity,
+    OverrideRule,
+    ProfileV2,
+    ScopeAffinity,
+)
+
+
+def _ev(scope_ref, event_type, delta):
+    return EventAffinity(scope_ref=scope_ref, event_type=event_type, delta=delta)
+
+
+GUY_PROFILE_V2 = ProfileV2(
+    scope_affinities=[
+        # Maccabi Tel Aviv basketball — the very-high core follow.
+        ScopeAffinity(scope="team", target_id="team:maccabi_tlv_bb", level=2),
+        # Broad competition follows.
+        ScopeAffinity(scope="competition", target_id="comp:euroleague", level=1),
+        ScopeAffinity(scope="competition", target_id="comp:eurocup", level=1),
+        ScopeAffinity(scope="competition", target_id="comp:nba", level=1),
+        ScopeAffinity(scope="competition", target_id="comp:ibl", level=1),
+        # Secondary European domestic leagues — selective (low).
+        ScopeAffinity(scope="competition", target_id="comp:acb", level=-1),
+        ScopeAffinity(scope="competition", target_id="comp:bsl", level=-1),
+        ScopeAffinity(scope="competition", target_id="comp:greek_basket", level=-1),
+        ScopeAffinity(scope="competition", target_id="comp:lba", level=-1),
+        ScopeAffinity(scope="competition", target_id="comp:lnb", level=-1),
+        # Low-interest sports — visible only through event affinities.
+        ScopeAffinity(scope="sport", target_id="football", level=-1),
+        ScopeAffinity(scope="sport", target_id="tennis", level=-1),
+        # Followed people.
+        ScopeAffinity(scope="player", target_id="player:deni_avdija", level=1),
+        ScopeAffinity(scope="player", target_id="coach:oded_kattash", level=1),
+    ],
+    event_affinities=[
+        # NBA (base 2 = feed): elevated and demoted events.
+        _ev("comp:nba", "finals_result", 1),
+        _ev("comp:nba", "playoff_result", 1),
+        _ev("comp:nba", "major_trade", 1),
+        _ev("comp:nba", "major_signing", 1),
+        _ev("comp:nba", "record", 1),
+        _ev("comp:nba", "generic_preview", -1),
+        _ev("comp:nba", "schedule", -2),
+        # EuroLeague / EuroCup (base 2 = feed).
+        _ev("comp:euroleague", "signing", 1),
+        _ev("comp:euroleague", "major_signing", 1),
+        _ev("comp:euroleague", "negotiation", 1),
+        _ev("comp:euroleague", "major_transfer", 1),
+        _ev("comp:euroleague", "playoff_result", 1),
+        _ev("comp:euroleague", "final_four", 1),
+        _ev("comp:euroleague", "generic_preview", -1),
+        _ev("comp:euroleague", "schedule", -1),
+        _ev("comp:eurocup", "signing", 1),
+        _ev("comp:eurocup", "major_signing", 1),
+        _ev("comp:eurocup", "negotiation", 1),
+        _ev("comp:eurocup", "major_transfer", 1),
+        _ev("comp:eurocup", "playoff_result", 1),
+        _ev("comp:eurocup", "final_four", 1),
+        _ev("comp:eurocup", "generic_preview", -1),
+        _ev("comp:eurocup", "schedule", -1),
+        # Israeli Basketball League (base 2 = feed).
+        _ev("comp:ibl", "major_signing", 1),
+        _ev("comp:ibl", "playoff_result", 1),
+        _ev("comp:ibl", "title_win", 1),
+        _ev("comp:ibl", "friendly_match", -1),
+        _ev("comp:ibl", "generic_preview", -1),
+        _ev("comp:ibl", "schedule", -2),
+        # Maccabi (base 3 = high_feed): routine events step down to feed;
+        # transfer-cycle events keep the high base; pushes are overrides.
+        _ev("team:maccabi_tlv_bb", "news", -1),
+        _ev("team:maccabi_tlv_bb", "match_result", -1),
+        _ev("team:maccabi_tlv_bb", "match_summary", -1),
+        _ev("team:maccabi_tlv_bb", "regular_season_result", -1),
+        _ev("team:maccabi_tlv_bb", "interview", -1),
+        _ev("team:maccabi_tlv_bb", "analysis", -1),
+        _ev("team:maccabi_tlv_bb", "opinion", -1),
+        _ev("team:maccabi_tlv_bb", "friendly_match", -2),
+        # Secondary European leagues (base 0): only genuinely major events.
+        _ev("comp:acb", "title_win", 2),
+        _ev("comp:acb", "major_match_result", 2),
+        _ev("comp:acb", "playoff_result", 2),
+        _ev("comp:acb", "major_signing", 2),
+        _ev("comp:bsl", "title_win", 2),
+        _ev("comp:bsl", "major_match_result", 2),
+        _ev("comp:bsl", "playoff_result", 2),
+        _ev("comp:bsl", "major_signing", 2),
+        _ev("comp:greek_basket", "title_win", 2),
+        _ev("comp:greek_basket", "major_match_result", 2),
+        _ev("comp:greek_basket", "playoff_result", 2),
+        _ev("comp:greek_basket", "major_signing", 2),
+        _ev("comp:lba", "title_win", 2),
+        _ev("comp:lba", "major_match_result", 2),
+        _ev("comp:lba", "playoff_result", 2),
+        _ev("comp:lba", "major_signing", 2),
+        _ev("comp:lnb", "title_win", 2),
+        _ev("comp:lnb", "major_match_result", 2),
+        _ev("comp:lnb", "playoff_result", 2),
+        _ev("comp:lnb", "major_signing", 2),
+        # Football (base 0): only huge stories surface, as low_feed.
+        _ev("football", "major_transfer", 1),
+        _ev("football", "title_win", 1),
+        # Tennis (base 0): Grand Slam finals/winners only.
+        _ev("tennis", "grand_slam_winner", 2),
+        _ev("tennis", "grand_slam_final", 2),
+    ],
+    overrides=[
+        # Push — explicit and rare (the only push path in v2).
+        OverrideRule(kind="always_push", scope="team", target_id="team:maccabi_tlv_bb",
+                     event_type="signing"),
+        OverrideRule(kind="always_push", scope="team", target_id="team:maccabi_tlv_bb",
+                     event_type="major_signing"),
+        OverrideRule(kind="always_push", scope="team", target_id="team:maccabi_tlv_bb",
+                     event_type="negotiation"),
+        OverrideRule(kind="always_push", scope="team", target_id="team:maccabi_tlv_bb",
+                     event_type="injury"),
+        OverrideRule(kind="always_push", scope="team", target_id="team:maccabi_tlv_bb",
+                     event_type="title_win"),
+        OverrideRule(kind="always_push", scope="competition", target_id="comp:nba",
+                     event_type="star_trade"),
+        OverrideRule(kind="always_push", scope="competition", target_id="comp:nba",
+                     event_type="title_win"),
+        OverrideRule(kind="always_push", scope="competition", target_id="comp:euroleague",
+                     event_type="title_win"),
+        OverrideRule(kind="always_push", scope="competition", target_id="comp:eurocup",
+                     event_type="title_win"),
+        OverrideRule(kind="always_push", scope="player", target_id="player:deni_avdija",
+                     event_type="major_trade"),
+        OverrideRule(kind="always_push", scope="player", target_id="player:deni_avdija",
+                     event_type="injury"),
+        # Maccabi noise events stay hidden even at a very-high base.
+        OverrideRule(kind="never_show", scope="team", target_id="team:maccabi_tlv_bb",
+                     event_type="pre_match"),
+        OverrideRule(kind="never_show", scope="team", target_id="team:maccabi_tlv_bb",
+                     event_type="schedule"),
+        OverrideRule(kind="never_show", scope="team", target_id="team:maccabi_tlv_bb",
+                     event_type="generic_preview"),
+    ],
+)
+
+
+DENI_FAN_PROFILE_V2 = ProfileV2(
+    scope_affinities=[
+        # The one thing this user cares about.
+        ScopeAffinity(scope="player", target_id="player:deni_avdija", level=2),
+    ],
+    event_affinities=[
+        # Routine Deni coverage steps down from the very-high base to feed.
+        _ev("player:deni_avdija", "interview", -1),
+        _ev("player:deni_avdija", "analysis", -1),
+        _ev("player:deni_avdija", "match_summary", -1),
+        _ev("player:deni_avdija", "match_result", -1),
+    ],
+    overrides=[
+        OverrideRule(kind="always_push", scope="player", target_id="player:deni_avdija",
+                     event_type="major_trade"),
+        OverrideRule(kind="always_push", scope="player", target_id="player:deni_avdija",
+                     event_type="injury"),
+        OverrideRule(kind="never_show", scope="player", target_id="player:deni_avdija",
+                     event_type="generic_preview"),
+        OverrideRule(kind="never_show", scope="player", target_id="player:deni_avdija",
+                     event_type="schedule"),
+    ],
+)
+
+
+PROFILE_V2_SEEDS = {
+    "guy": GUY_PROFILE_V2,
+    "casual_deni_fan": DENI_FAN_PROFILE_V2,
+}
+
+# Attach v2 payloads to the seed profiles (fresh DBs get both models at once).
+for _p in SEED_PROFILES:
+    _p.profile_v2 = PROFILE_V2_SEEDS.get(_p.user_id)

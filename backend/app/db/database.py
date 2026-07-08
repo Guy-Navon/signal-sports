@@ -31,6 +31,8 @@ def _apply_migrations(eng) -> None:
         ("articles", "taxonomy_version",          "INTEGER"),
         # LLM dependency metrics (issue #31) — same soft-migration pattern.
         ("ingestion_runs", "metrics",             "JSON"),
+        # ProfileV2 affinity model (issue #32).
+        ("profiles", "profile_v2",                "JSON"),
     ]
     with eng.connect() as conn:
         for table, col, col_type in migrations:

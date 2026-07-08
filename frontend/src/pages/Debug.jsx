@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
-import { Bug, Search, GitCompare } from "lucide-react";
+import { Bug, Search, GitCompare, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DebugArticleCard from "@/components/debug/DebugArticleCard";
 import ProfileComparisonTable from "@/components/debug/ProfileComparisonTable";
+import ShadowComparisonPanel from "@/components/debug/ShadowComparisonPanel";
 import PageHeader from "@/components/shared/PageHeader";
 import StatCard from "@/components/shared/StatCard";
 import EmptyState from "@/components/shared/EmptyState";
@@ -26,7 +27,7 @@ const STAT_TILES = [
 ];
 
 export default function Debug() {
-  const { debugItems, activeProfile, comparisonItems, profiles } = useApp();
+  const { debugItems, activeProfile, activeProfileId, comparisonItems, profiles, isBackendMode } = useApp();
   const [filterDecision, setFilterDecision] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("debug");
@@ -90,7 +91,14 @@ export default function Debug() {
         <button onClick={() => setActiveTab("compare")} className={tabButton("compare", activeTab === "compare")}>
           <GitCompare size={13} /> השוואת פרופילים
         </button>
+        <button onClick={() => setActiveTab("shadow")} className={tabButton("shadow", activeTab === "shadow")}>
+          <FlaskConical size={13} /> מנוע v2 (shadow)
+        </button>
       </div>
+
+      {activeTab === "shadow" && (
+        <ShadowComparisonPanel userId={activeProfileId} isBackendMode={isBackendMode} />
+      )}
 
       {activeTab === "compare" && (
         <div className="space-y-3">

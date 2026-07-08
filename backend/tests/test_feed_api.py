@@ -180,8 +180,10 @@ def test_non_maccabi_euroleague_transfer_is_high_feed_not_push(rss_seeded):
         f"Non-Maccabi EuroLeague major transfer must be high_feed via EuroLeague topic. "
         f"Got {item['decision']}. Reasoning: {item['reasoning']}"
     )
-    assert item["matched_topic"] == "euroleague", (
-        f"Must be matched by EuroLeague topic. Got matched_topic={item['matched_topic']}"
+    # Engine flip (#32): matched_topic is now the v2 canonical scope id
+    # (comp:euroleague), not the legacy topic_id ("euroleague").
+    assert item["matched_topic"] == "comp:euroleague", (
+        f"Must be matched by the EuroLeague scope. Got matched_topic={item['matched_topic']}"
     )
 
 
@@ -192,7 +194,8 @@ def test_maccabi_negotiation_still_push_after_scope_guard(rss_seeded):
     item = next((i for i in data if i["article"]["id"] == "rss_article_001"), None)
     assert item is not None
     assert item["decision"] == "push"
-    assert item["matched_topic"] == "maccabi_tel_aviv_basketball"
+    # Engine flip (#32): v2 canonical scope id instead of the legacy topic_id.
+    assert item["matched_topic"] == "team:maccabi_tlv_bb"
 
 
 # ── Feedback ──────────────────────────────────────────────────────────────────

@@ -448,6 +448,68 @@ def _participant_inferred_competition(article: Article) -> Optional[str]:
     return next(iter(shared)) if shared is not None and len(shared) == 1 else None
 
 
+def match_competition_names(
+    article: Article, wanted_names
+) -> Optional[tuple[str, str, str]]:
+    """Four-tier competition-aware matching (issues #29 + #40) against an
+    iterable of competition display names.
+
+    THE single visibility primitive for competition scopes — used by the
+    legacy topic engine and by the Preference V2 scorer (#32), so preference
+    scoring consumes the same match_kind machinery instead of re-deriving
+    visibility.
+
+    Returns (match_kind, display_name, provenance) where match_kind is one of
+    "explicit" | "legacy" | "participant_inference" | "membership", or None
+    when no tier matches. provenance is the trace tag (e.g.
+    "via_participant_inference: comp:nba").
+    """
+    wanted = list(wanted_names)
+    if not wanted:
+        return None
+
+    # 1. Explicit competition evidence — works for any event type.
+    explicit_names = _explicit_competition_names(article)
+    hit = next((name for name in wanted if name in explicit_names), None)
+    if hit:
+        return ("explicit", hit, "explicit_competition_evidence")
+
+    # 2. Legacy fallback — only for rows that predate ArticleFacts, where
+    # the explicit/membership distinction was never persisted.
+    if article.taxonomy_version is None and article.league and article.league in wanted:
+        return ("legacy", article.league, "legacy_league_string")
+
+    # 3. Participant-set competition inference (issue #40 Part B) —
+    # competition-anchored events only. When ALL participating teams share
+    # exactly one competition, that intersection identifies the event's
+    # competition. This is event-competition evidence (not diffuse team
+    # reach), so it is NOT subject to the membership feed ceiling — but it
+    # is still lower authority than explicit evidence (tier 1 wins above).
+    if (
+        article.event_type in COMPETITION_ANCHORED_EVENTS
+        and article.event_type not in PARTICIPANT_INFERENCE_EXCLUDED_EVENTS
+    ):
+        comp_id = _participant_inferred_competition(article)
+        if comp_id is not None:
+            comp = COMPETITIONS.get(comp_id)
+            if comp and comp.display_en in wanted:
+                return (
+                    "participant_inference",
+                    comp.display_en,
+                    f"via_participant_inference: {comp_id}",
+                )
+
+    # 4. Membership-derived reach — team-anchored events only (allowlist).
+    if article.event_type in TEAM_ANCHORED_EVENTS:
+        reach = _entity_reach(article)
+        hit = next((name for name in wanted if name in reach), None)
+        if hit:
+            comp_id = reach[hit]
+            return ("membership", hit, f"via_team_membership: {comp_id}")
+
+    return None
+
+
 def _topic_entity_match(
     article: Article, topic: TopicPreference, profile: UserProfile
 ) -> Optional[str]:
@@ -528,52 +590,19 @@ def _does_topic_match_article(
     if scope in ("league", "league_group"):
         if not topic.leagues:
             return (False, None, None)
-
-        # 1. Explicit competition evidence — works for any event type.
-        explicit_names = _explicit_competition_names(article)
-        hit = next((name for name in topic.leagues if name in explicit_names), None)
-        if hit:
-            return (True, f"התאמה לפי תחרות מפורשת (scope: {scope}): {hit}", "explicit")
-
-        # 2. Legacy fallback — only for rows that predate ArticleFacts, where
-        # the explicit/membership distinction was never persisted.
-        if article.taxonomy_version is None and article.league and article.league in topic.leagues:
-            return (True, f"התאמה לפי ליגה (scope: {scope}): {article.league}", "legacy")
-
-        # 3. Participant-set competition inference (issue #40 Part B) —
-        # competition-anchored events only. When ALL participating teams share
-        # exactly one competition, that intersection identifies the event's
-        # competition. This is event-competition evidence (not diffuse team
-        # reach), so it is NOT subject to the membership feed ceiling — but it
-        # is still lower authority than explicit evidence (tier 1 wins above).
-        if (
-            article.event_type in COMPETITION_ANCHORED_EVENTS
-            and article.event_type not in PARTICIPANT_INFERENCE_EXCLUDED_EVENTS
-        ):
-            comp_id = _participant_inferred_competition(article)
-            if comp_id is not None:
-                comp = COMPETITIONS.get(comp_id)
-                if comp and comp.display_en in topic.leagues:
-                    return (
-                        True,
-                        f"התאמה דרך הסקת משתתפים (via_participant_inference: {comp_id}) "
-                        f"(scope: {scope}): {comp.display_en}",
-                        "participant_inference",
-                    )
-
-        # 4. Membership-derived reach — team-anchored events only (allowlist).
-        if article.event_type in TEAM_ANCHORED_EVENTS:
-            reach = _entity_reach(article)
-            hit = next((name for name in topic.leagues if name in reach), None)
-            if hit:
-                comp_id = reach[hit]
-                return (
-                    True,
-                    f"התאמה דרך שיוך קבוצתי (via_team_membership: {comp_id}) (scope: {scope}): {hit}",
-                    "membership",
-                )
-
-        return (False, None, None)
+        hit = match_competition_names(article, topic.leagues)
+        if hit is None:
+            return (False, None, None)
+        match_kind, name, provenance = hit
+        if match_kind == "explicit":
+            reason = f"התאמה לפי תחרות מפורשת (scope: {scope}): {name}"
+        elif match_kind == "legacy":
+            reason = f"התאמה לפי ליגה (scope: {scope}): {name}"
+        elif match_kind == "participant_inference":
+            reason = f"התאמה דרך הסקת משתתפים ({provenance}) (scope: {scope}): {name}"
+        else:  # membership
+            reason = f"התאמה דרך שיוך קבוצתי ({provenance}) (scope: {scope}): {name}"
+        return (True, reason, match_kind)
 
     if scope == "sport":
         if topic.sport and article.sport == topic.sport:

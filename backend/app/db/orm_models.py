@@ -94,6 +94,10 @@ class FeedbackRow(Base):
     action = Column(String, nullable=False)
     # Stored as ISO-8601 string
     created_at = Column(String, nullable=False)
+    # Click-time context (issue #34) — soft-migrated JSON.
+    context = Column(JSON, nullable=True)
+    # Tombstone flag (issue #34) — soft-migrated; 0 = active, 1 = retracted.
+    retracted = Column(Integer, nullable=False, default=0)
 
 
 class CalibrationResponseRow(Base):

@@ -3,6 +3,7 @@ import { useApp } from "@/context/AppContext";
 import { Settings, User, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TopicCard from "@/components/preferences/TopicCard";
+import LearnedAdjustmentsPanel from "@/components/preferences/LearnedAdjustmentsPanel";
 import PageHeader from "@/components/shared/PageHeader";
 import DeskIntro from "@/components/shared/DeskIntro";
 
@@ -10,10 +11,11 @@ const TABS = [
   { id: "topics", label: "נושאים ועדיפויות" },
   { id: "entities", label: "ישויות במעקב" },
   { id: "muted", label: "מושתק" },
+  { id: "learned", label: "נלמד" },
 ];
 
 export default function Preferences() {
-  const { activeProfile, activeProfileId, updateProfile } = useApp();
+  const { activeProfile, activeProfileId, updateProfile, isBackendMode } = useApp();
   const [activeTab, setActiveTab] = useState("topics");
 
   const handleMuteSource = (sourceId) => {
@@ -137,6 +139,10 @@ export default function Preferences() {
             onToggle={handleMuteSource}
           />
         </div>
+      )}
+
+      {activeTab === "learned" && (
+        <LearnedAdjustmentsPanel userId={activeProfileId} isBackendMode={isBackendMode} />
       )}
     </div>
   );

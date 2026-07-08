@@ -38,9 +38,12 @@ AFFINITY_LEVEL_NAMES = {
     2: "very_high",
 }
 
-# Source authority for duplicate-target resolution: learned never overrides
-# explicit (architecture contract).
-SOURCE_AUTHORITY = {"explicit": 3, "calibration": 2, "learned": 1}
+# Source authority for duplicate-target resolution. The signal hierarchy
+# (issue #34): explicit > repeated feedback (learned) > calibration. Learned
+# never overrides explicit (architecture contract); learned DOES refine
+# calibration — repeated real-feed feedback is stronger evidence than
+# synthetic onboarding answers.
+SOURCE_AUTHORITY = {"explicit": 3, "learned": 2, "calibration": 1}
 
 
 def _validate_scope_target(kind: str, target_id: str) -> None:

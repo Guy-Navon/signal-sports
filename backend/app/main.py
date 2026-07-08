@@ -34,6 +34,7 @@ from app.api import (
     routes_articles,
     routes_feed,
     routes_feedback,
+    routes_learning,
     routes_calibration,
     routes_ingest,
     routes_translation,
@@ -98,6 +99,7 @@ def create_app() -> FastAPI:
     application.include_router(routes_articles.router, prefix="/api", tags=["articles"])
     application.include_router(routes_feed.router, prefix="/api", tags=["feed"])
     application.include_router(routes_feedback.router, prefix="/api", tags=["feedback"])
+    application.include_router(routes_learning.router, prefix="/api", tags=["learning"])
     application.include_router(routes_calibration.router, prefix="/api", tags=["calibration"])
     application.include_router(routes_ingest.router, prefix="/api", tags=["ingest"])
     application.include_router(routes_translation.router, prefix="/api", tags=["translation"])

@@ -33,6 +33,9 @@ def _apply_migrations(eng) -> None:
         ("ingestion_runs", "metrics",             "JSON"),
         # ProfileV2 affinity model (issue #32).
         ("profiles", "profile_v2",                "JSON"),
+        # Feedback learning (issue #34).
+        ("feedback_events", "context",            "JSON"),
+        ("feedback_events", "retracted",          "INTEGER DEFAULT 0"),
     ]
     with eng.connect() as conn:
         for table, col, col_type in migrations:

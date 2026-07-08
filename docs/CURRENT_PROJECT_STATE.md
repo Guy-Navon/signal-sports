@@ -379,6 +379,22 @@ Both stale datasets deleted (backend 16-row seed, frontend 43-headline file
 + JS inference); the Calibration page is a thin backend client (local mode:
 backend-required notice). See `docs/CALIBRATION_V2.md`.
 
+**2026-07-08 — Signal Intelligence Architecture v2, #34 (Feedback
+Learning).** Feedback events now carry click-time context (decision +
+most-diagnostic attribution from the v2 contribution trace, captured
+server-side) and drive **derived** learned adjustments — a pure function of
+the non-retracted event log: activation at >=3 net consistent events,
+magnitude cap +/-1, 90-day half-life decay, learned floor -1 (never an
+exclude). Signal hierarchy: explicit > learned > calibration. Dismissing
+actions hide that article from the feed immediately (per-article, not
+profile). Scoped explicit suppression via
+`POST /api/profiles/{user_id}/never_show` (most specific scope on the
+article). Inspect/undo: `GET /api/learning/{user_id}`,
+`POST /api/learning/{user_id}/reset` (tombstones — restores prior state
+exactly); Preferences "נלמד" tab with per-row reset. `article_opened` is a
+logged passive slot with no learning effect. See
+`docs/FEEDBACK_LEARNING.md`.
+
 **Demo profile: Guy (basketball power user)**
 - Maccabi Tel Aviv Basketball: `entity` scope, very high priority — signing/negotiation/injury → `push`
 - NBA: `league` scope, high priority, mode `all` — most events visible

@@ -50,6 +50,7 @@ ACTION_WEIGHTS = {
 DISMISSING_ACTIONS = frozenset({"less_like_this", "not_interested", "never_show"})
 
 ACTIVATION_THRESHOLD = 3.0
+ACTIVATION_EPSILON = 0.01
 DECAY_HALF_LIFE_DAYS = 90.0
 
 
@@ -159,7 +160,7 @@ def derive_learned_adjustments(
 
     for feature in buckets.values():
         feature.net = round(feature.net, 3)
-        if abs(feature.net) >= ACTIVATION_THRESHOLD:
+        if abs(feature.net) + ACTIVATION_EPSILON >= ACTIVATION_THRESHOLD:
             feature.active = True
             feature.direction = 1 if feature.net > 0 else -1
 

@@ -180,14 +180,14 @@ wildcard, and no personal hostname anywhere in tracked files.
 
 ## Security model
 
-- **The tailnet is the current security boundary.** Access requires being signed into the same
-  private Tailscale tailnet as the PC — WireGuard-encrypted, identity-bound devices. There is
-  no separate application-level authentication layer, and none is added by this issue.
-  (Forward-looking: the approved **User Platform milestone** — `docs/USER_PLATFORM.md`,
-  Epic #48 — adds application-level auth with same-origin cookie sessions designed to work
-  through this exact Tailscale Serve → Vite proxy chain, including an explicit
-  `AUTH_COOKIE_SECURE` env because the HTTPS termination here is invisible to FastAPI.
-  Until those PRs land, this paragraph remains the complete security story.)
+- **The tailnet remains the network boundary; Auth Core now adds application sessions.**
+  Access to the dev machine still requires being signed into the same private Tailscale
+  tailnet as the PC — WireGuard-encrypted, identity-bound devices. User Platform PR 1
+  adds same-origin cookie auth (`/api/auth/*`) designed to work through this exact
+  Tailscale Serve → Vite proxy chain. Set `AUTH_COOKIE_SECURE=true` when using the
+  HTTPS Serve URL because HTTPS termination is invisible to FastAPI. Consumer `/api/me/*`
+  routes, frontend auth, onboarding UX, and legacy/ops route gating arrive in later
+  User Platform PRs.
 - **This is single-user private testing, not production authentication.** Do not treat this
   setup as hardened for multi-user or public use.
 - **Never enable Tailscale Funnel** for this setup. Funnel republishes a Serve config to the

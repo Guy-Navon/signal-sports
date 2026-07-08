@@ -1,5 +1,5 @@
-from sqlalchemy import Column, String, Text, Float, Boolean, JSON, Integer
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import Column, String, Text, Float, Boolean, JSON, Integer, ForeignKey
+from sqlalchemy.orm import DeclarativeBase, relationship
 
 
 class Base(DeclarativeBase):
@@ -58,6 +58,43 @@ class ProfileRow(Base):
     # ProfileV2 affinity model (issue #32) — soft-migrated JSON, nullable
     # during the legacy-topics coexistence window.
     profile_v2 = Column(JSON, nullable=True)
+
+
+class UserRow(Base):
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True)
+    email = Column(String, nullable=True, unique=True, index=True)
+    password_hash = Column(String, nullable=True)
+    role = Column(String, nullable=False, default="user")
+    created_at = Column(String, nullable=False)
+    onboarding_completed_at = Column(String, nullable=True)
+    last_login_at = Column(String, nullable=True)
+
+    sessions = relationship(
+        "AuthSessionRow",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class AuthSessionRow(Base):
+    __tablename__ = "auth_sessions"
+
+    token_hash = Column(String, primary_key=True)
+    user_id = Column(
+        String,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    created_at = Column(String, nullable=False)
+    expires_at = Column(String, nullable=False)
+    last_seen_at = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+
+    user = relationship("UserRow", back_populates="sessions")
 
 
 class SourceRow(Base):

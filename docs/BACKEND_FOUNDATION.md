@@ -104,7 +104,7 @@ As of PR 6, the frontend is connected to the backend (PR 5) and the backend uses
 | Debug display | `Debug.jsx` | `GET /api/debug/feed/{user_id}` |
 | Feedback | Context state (always) | SQLite via `feedback_events` table |
 | Calibration | `calibrationEngine.js` + `Calibration.jsx` | `GET /api/calibration/headlines` |
-| Authentication | None | None |
+| Authentication | N/A in local mock mode | Backend Auth Core exists: email/password accounts, HttpOnly cookie sessions, `/api/auth/*`; existing product routes still use legacy `{user_id}` until later User Platform PRs |
 
 In `backend` mode (`VITE_DATA_MODE=backend`), the frontend fetches profiles and feed from the API. In `local` mode (default), the frontend uses mock data and the local engine. Both modes expose identical context shape. See `docs/FRONTEND_BACKEND_INTEGRATION.md` for details.
 
@@ -115,7 +115,7 @@ In `backend` mode (`VITE_DATA_MODE=backend`), the frontend fetches profiles and 
 | SQLite / database | **Done in PR 6.** See `docs/SQLITE_PERSISTENCE.md`. |
 | Frontend integration | **Done in PR 5.** See `docs/FRONTEND_BACKEND_INTEGRATION.md`. |
 | Real RSS/scraping | Deferred — SQLite now ready; first source adapter is PR 7. |
-| Authentication | Still not implemented — but no longer merely deferred: the **User Platform milestone** (Epic #48, issues #49–#55) is approved and planned. Architecture contract: `docs/USER_PLATFORM.md`. |
+| Authentication | Auth Core implemented in User Platform PR 1 / Issue #49; `/api/me/*`, frontend auth, onboarding UX, legacy/ops gating, and account lifecycle are later issues. |
 | Push notifications | Out of scope. |
 | LLM calls | Out of scope. |
 | Article clustering | Deferred — needs a real algorithm. |

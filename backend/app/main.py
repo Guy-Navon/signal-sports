@@ -1,4 +1,5 @@
 import pathlib
+import os
 
 
 def _load_dotenv() -> None:
@@ -27,8 +28,11 @@ _load_dotenv()
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.csrf import CSRFMiddleware
 from app.core.config import settings
+from app.core.security_deps import validate_auth_startup_config
 from app.api import (
+    routes_auth,
     routes_health,
     routes_profiles,
     routes_articles,
@@ -55,13 +59,21 @@ def create_app() -> FastAPI:
     async def lifespan(application: FastAPI):
         from app.db.database import init_db, SessionLocal
         from app.repositories.seed_runner import seed_all_if_empty
+        from app.services.auth_service import bootstrap_admin, ensure_users_for_profiles
         from app.ingestion.scheduler import scheduler_state, start_scheduler, stop_scheduler
 
+        validate_auth_startup_config()
         _ensure_db_dir(settings.database_url)
         init_db()
 
         with SessionLocal() as session:
             seed_all_if_empty(session)
+            ensure_users_for_profiles(session)
+            bootstrap_admin(
+                session,
+                email=os.environ.get("AUTH_ADMIN_EMAIL"),
+                password=os.environ.get("AUTH_ADMIN_PASSWORD"),
+            )
 
         # Scheduled ingestion (PR 13) — disabled by default; returns None when
         # INGESTION_SCHEDULER_ENABLED != true, leaving behavior identical to before.
@@ -93,8 +105,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    application.add_middleware(CSRFMiddleware)
 
     application.include_router(routes_health.router, tags=["health"])
+    application.include_router(routes_auth.router, prefix="/api", tags=["auth"])
     application.include_router(routes_profiles.router, prefix="/api", tags=["profiles"])
     application.include_router(routes_articles.router, prefix="/api", tags=["articles"])
     application.include_router(routes_feed.router, prefix="/api", tags=["feed"])

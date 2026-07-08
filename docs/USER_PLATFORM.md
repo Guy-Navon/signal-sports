@@ -1,11 +1,12 @@
 # User Platform — Architecture Contract
 
-**Status: approved architecture (2026-07-08) — NOT yet implemented.**
-Until the implementation PRs land, the current-state claims elsewhere remain true: there is
-no authentication, no accounts, and no session handling anywhere in the system
-(`BACKEND_FOUNDATION.md` "Authentication: None", `CURRENT_PROJECT_STATE.md` §10,
-`MOBILE_REMOTE_ACCESS.md` security model). This document is the contract those PRs build
-against.
+**Status: approved architecture (2026-07-08) — PR 1 / Issue #49 implemented.**
+The backend Auth Core now exists: `users` and `auth_sessions` tables, cookie-backed
+opaque sessions, `/api/auth/*`, current-user dependencies, CSRF checks, fail-closed
+insecure-bypass configuration, and the idempotent demo/admin startup ensure-step.
+The rest of the milestone is still in progress: no `/api/me/*` consumer surface,
+no frontend auth shell, no onboarding UX, no legacy/ops admin gating, and no account
+lifecycle endpoints yet.
 
 **Execution home:**
 [GitHub Milestone 2 "User Platform"](https://github.com/Guy-Navon/signal-sports/milestone/2)
@@ -352,10 +353,10 @@ test/lint/typecheck/build when touched, docs truth sweep, corpus DB never reset.
 Authoritative per-issue detail lives in the GitHub issues: PR 1 = #49, PR 2 = #50,
 PR 3 = #51, PR 4 = #52, PR 5 = #53, PR 6 = #54, PR 7 = #55 (Epic #48, Milestone 2).
 
-1. **Auth core (backend)** ⭐ Fable review — users/auth_sessions tables (FK + pragma),
-   auth service + `/api/auth/*`, security deps, bypass flag + startup guard, CSRF
-   middleware, ensure-step (demo users backfill + admin bootstrap). Legacy routes
-   untouched.
+1. **Auth core (backend)** ⭐ Fable review — **implemented in Issue #49**:
+   users/auth_sessions tables (FK + pragma), auth service + `/api/auth/*`, security
+   deps, bypass flag + startup guard, CSRF middleware, ensure-step (demo users
+   backfill + admin bootstrap). Legacy routes untouched.
 2. **Consumer `/api/me/*` surface (backend)** — full consumer API, always session-gated;
    signup creates the profile row; onboarding block in the session payload.
 3. **Frontend auth shell** — AuthContext, login/signup pages, account menu, 401 handling;

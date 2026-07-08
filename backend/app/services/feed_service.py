@@ -41,6 +41,7 @@ def build_feed(
                 matched_event_rule=result.matched_event_rule,
                 reasoning=result.reasoning,
                 contributions=result.contributions,
+                engine=engine,
             ))
 
     # Sort: decision rank (desc), then published_at (desc)

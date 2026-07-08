@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import DecisionBadge from "@/components/feed/DecisionBadge";
 import ClassifiedByBadge from "@/components/debug/ClassifiedByBadge";
 import ReasoningTrace from "@/components/debug/ReasoningTrace";
+import FactsTracePanel from "@/components/debug/FactsTracePanel";
 
 function MetaCell({ label, value }) {
   return (
@@ -54,6 +55,9 @@ export default function DebugArticleCard({ item }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <DecisionBadge decision={decision} size="xs" />
+            <span className="text-[10px] bg-surface-3 text-text-dim rounded-full px-1.5 py-0.5 border border-border" title="המנוע שיצר את העקבה">
+              {item.score?.engine ?? "js-local"}
+            </span>
             {isCluster && (
               <span className="text-[10px] bg-surface-3 text-text-secondary rounded-full px-1.5 py-0.5 border border-border">
                 קלאסטר
@@ -101,6 +105,8 @@ export default function DebugArticleCard({ item }) {
             </div>
           )}
 
+          {item.classificationTrace && <FactsTracePanel trace={item.classificationTrace} />}
+
           <div>
             <p className="text-xs text-text-dim font-medium mb-2 flex items-center gap-1">
               <Bug size={11} />
@@ -108,6 +114,25 @@ export default function DebugArticleCard({ item }) {
             </p>
             <ReasoningTrace reasoning={reasoning} />
           </div>
+
+          {item.score?.contributions?.length > 0 && (
+            <div>
+              <p className="text-[10px] text-text-dim font-medium uppercase tracking-wide mb-1">
+                תרומות (מנוע v2)
+              </p>
+              <div className="space-y-0.5">
+                {item.score.contributions.map((c, i) => (
+                  <div key={i} className="flex flex-wrap gap-x-2 text-[11px] font-mono">
+                    <span className="text-text-dim">{c.step}</span>
+                    <span className={c.effect === "hidden" || String(c.effect).startsWith("-") ? "text-signal-hidden" : "text-signal-high"}>
+                      {c.effect}
+                    </span>
+                    <span className="text-text-secondary">{c.detail}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

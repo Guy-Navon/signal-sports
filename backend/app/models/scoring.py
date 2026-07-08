@@ -21,3 +21,5 @@ class ScoredArticle(BaseModel):
     matched_event_rule: Optional[str] = None
     reasoning: List[str] = []
     contributions: Optional[List[Dict]] = None
+    # Which engine produced this trace (issue #35): "v2" | "legacy".
+    engine: Optional[str] = None

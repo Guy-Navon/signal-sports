@@ -241,6 +241,16 @@ def score_article_v2(
             return _result("hidden", ex.affinity.target_id, "excluded_scope")
     matches = [m for m in matches if m.affinity.level > -2]
 
+    # Observability (issue #35): record which followed scopes did NOT match,
+    # so Debug shows rejected scopes next to the matched ones.
+    matched_targets = {m.affinity.target_id for m in matches}
+    rejected = [
+        a.target_id for a in v2.effective_scope_affinities()
+        if a.target_id not in matched_targets
+    ]
+    if rejected:
+        _contribute("scopes_considered", None, "no_match", ", ".join(sorted(rejected)))
+
     # Max points win. Ties break toward the BROADER scope so a followed
     # entity inside a followed broad scope is expressed as base + entity
     # boost ("shown because you follow the NBA; elevated because Deni Avdija

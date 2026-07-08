@@ -1,6 +1,8 @@
 from typing import Optional, List, Dict
 from pydantic import BaseModel
 
+from app.models.profile_v2 import ProfileV2
+
 
 class TopicPreference(BaseModel):
     topic_id: str
@@ -25,3 +27,7 @@ class UserProfile(BaseModel):
     muted_topics: List[str] = []
     muted_sources: List[str] = []
     followed_entities: List[str] = []
+    # Affinity-based preference model (issue #32) — coexists with legacy
+    # topics during the v2 migration window. None on profiles that have not
+    # been expressed in v2 yet; the v2 scorer requires it.
+    profile_v2: Optional[ProfileV2] = None

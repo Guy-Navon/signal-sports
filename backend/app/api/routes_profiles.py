@@ -20,3 +20,21 @@ def get_profile(user_id: str, session: Session = Depends(get_session)):
     if not profile:
         raise HTTPException(status_code=404, detail=f"Profile '{user_id}' not found")
     return profile
+
+
+@router.put("/profiles/{user_id}", response_model=UserProfile)
+def put_profile(user_id: str, payload: UserProfile, session: Session = Depends(get_session)):
+    """Profile mutation API (issue #32). Full-profile PUT; the pydantic
+    models (incl. ProfileV2 affinity levels/targets/overrides) are the
+    validation layer. The path user_id is authoritative — a mismatched
+    payload user_id is rejected rather than silently renaming."""
+    if payload.user_id != user_id:
+        raise HTTPException(
+            status_code=422,
+            detail=f"payload user_id {payload.user_id!r} does not match path {user_id!r}",
+        )
+    existing = profile_repository.get_by_id(session, user_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Profile '{user_id}' not found")
+    profile_repository.update(session, payload)
+    return profile_repository.get_by_id(session, user_id)

@@ -55,6 +55,9 @@ class ProfileRow(Base):
     muted_topics = Column(JSON, nullable=False)
     muted_sources = Column(JSON, nullable=False)
     followed_entities = Column(JSON, nullable=False)
+    # ProfileV2 affinity model (issue #32) — soft-migrated JSON, nullable
+    # during the legacy-topics coexistence window.
+    profile_v2 = Column(JSON, nullable=True)
 
 
 class SourceRow(Base):

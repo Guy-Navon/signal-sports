@@ -242,8 +242,9 @@ def test_euroleague_real_madrid_is_high_feed_not_push(rss_seeded):
     article = next((a for a in debug if a["article"]["id"] == "rss_article_014"), None)
     assert article is not None, "rss_article_014 not in debug feed"
     assert article["decision"] == "high_feed", f"Expected high_feed, got {article['decision']}"
-    assert article["matched_topic"] == "euroleague", (
-        f"Expected matched_topic=euroleague, got {article['matched_topic']}"
+    # Engine flip (#32): v2 canonical scope id instead of the legacy topic_id.
+    assert article["matched_topic"] == "comp:euroleague", (
+        f"Expected matched_topic=comp:euroleague, got {article['matched_topic']}"
     )
 
 

@@ -5,7 +5,17 @@ Until the implementation PRs land, the current-state claims elsewhere remain tru
 no authentication, no accounts, and no session handling anywhere in the system
 (`BACKEND_FOUNDATION.md` "Authentication: None", `CURRENT_PROJECT_STATE.md` §10,
 `MOBILE_REMOTE_ACCESS.md` security model). This document is the contract those PRs build
-against. Implementation is tracked by the **User Platform Epic** on GitHub.
+against.
+
+**Execution home:**
+[GitHub Milestone 2 "User Platform"](https://github.com/Guy-Navon/signal-sports/milestone/2)
+· Epic [#48](https://github.com/Guy-Navon/signal-sports/issues/48) · issues #49–#55
+(one PR per issue). Dependency chain: **#49 → #50 → #51 → { #52 ∥ #53 } → #54 → #55**
+(#54 depends on #53 and accounts for #52's integration state). Fable review checkpoints
+before merge: **#49** (auth/session/identity architecture), **#52** (onboarding
+product/UX), **#54** (authorization enforcement + regression). An implementation agent
+picking up this milestone cold should read this document fully, then take the lowest
+unblocked issue — each issue body is a self-contained contract.
 
 ## What this milestone is
 
@@ -339,7 +349,8 @@ reverse-proxy config).
 Seven PRs. Linear dependency chain except PR 4 ∥ PR 5 (both depend on PR 3). Every PR
 passes the standing gates: full backend pytest green (non-decreasing count), frontend
 test/lint/typecheck/build when touched, docs truth sweep, corpus DB never reset.
-Authoritative per-issue detail lives in the GitHub issues under the User Platform Epic.
+Authoritative per-issue detail lives in the GitHub issues: PR 1 = #49, PR 2 = #50,
+PR 3 = #51, PR 4 = #52, PR 5 = #53, PR 6 = #54, PR 7 = #55 (Epic #48, Milestone 2).
 
 1. **Auth core (backend)** ⭐ Fable review — users/auth_sessions tables (FK + pragma),
    auth service + `/api/auth/*`, security deps, bypass flag + startup guard, CSRF

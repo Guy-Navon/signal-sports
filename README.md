@@ -40,9 +40,20 @@ See [backend/README.md](backend/README.md) for full details.
 
 ## Docs
 
-- [PRODUCT_UNDERSTANDING.md](docs/PRODUCT_UNDERSTANDING.md) — what Signal Sports is and isn't
-- [IMPLEMENTATION_AUDIT.md](docs/IMPLEMENTATION_AUDIT.md) — current state vs intended product
+Start here for orientation (any agent picking up the project cold):
+
+- [CURRENT_PROJECT_STATE.md](docs/CURRENT_PROJECT_STATE.md) — **the authoritative, up-to-date summary**; §13 is a self-sufficient handoff prompt
+- [RELEVANCE_CONTRACT.md](docs/RELEVANCE_CONTRACT.md) — umbrella contract for the intelligence pipeline (FACTS → VISIBILITY → PREFERENCE → LEARNING)
+- [USER_PLATFORM.md](docs/USER_PLATFORM.md) — **active milestone**: accounts, auth, onboarding, per-user isolation — approved architecture, not yet implemented (Epic #48, issues #49–#55)
+
+Reference:
+
+- [PRODUCT_UNDERSTANDING.md](docs/PRODUCT_UNDERSTANDING.md) — what Signal Sports is and isn't (vision; not an implementation reference)
 - [BACKEND_FOUNDATION.md](docs/BACKEND_FOUNDATION.md) — backend architecture and engine design
-- [CALIBRATION_V0.md](docs/CALIBRATION_V0.md) — calibration flow design
-- [CALIBRATION_APPLY.md](docs/CALIBRATION_APPLY.md) — applying calibration to sandbox profile
+- [FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md) — design tokens, product-vs-console split, RTL rules
 - [MOBILE_REMOTE_ACCESS.md](docs/MOBILE_REMOTE_ACCESS.md) — private phone access via Tailscale Serve
+
+Historical (kept for record, superseded — do not cite as current behavior):
+
+- [IMPLEMENTATION_AUDIT.md](docs/IMPLEMENTATION_AUDIT.md) — pre-backend snapshot
+- [CALIBRATION_V0.md](docs/CALIBRATION_V0.md) / [CALIBRATION_APPLY.md](docs/CALIBRATION_APPLY.md) — superseded by [CALIBRATION_V2.md](docs/CALIBRATION_V2.md)

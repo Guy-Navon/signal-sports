@@ -115,7 +115,7 @@ In `backend` mode (`VITE_DATA_MODE=backend`), the frontend fetches profiles and 
 | SQLite / database | **Done in PR 6.** See `docs/SQLITE_PERSISTENCE.md`. |
 | Frontend integration | **Done in PR 5.** See `docs/FRONTEND_BACKEND_INTEGRATION.md`. |
 | Real RSS/scraping | Deferred — SQLite now ready; first source adapter is PR 7. |
-| Authentication | Deferred — not needed until multi-user or production. |
+| Authentication | Still not implemented — but no longer merely deferred: the **User Platform milestone** (Epic #48, issues #49–#55) is approved and planned. Architecture contract: `docs/USER_PLATFORM.md`. |
 | Push notifications | Out of scope. |
 | LLM calls | Out of scope. |
 | Article clustering | Deferred — needs a real algorithm. |

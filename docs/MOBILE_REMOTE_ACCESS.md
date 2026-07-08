@@ -183,6 +183,11 @@ wildcard, and no personal hostname anywhere in tracked files.
 - **The tailnet is the current security boundary.** Access requires being signed into the same
   private Tailscale tailnet as the PC — WireGuard-encrypted, identity-bound devices. There is
   no separate application-level authentication layer, and none is added by this issue.
+  (Forward-looking: the approved **User Platform milestone** — `docs/USER_PLATFORM.md`,
+  Epic #48 — adds application-level auth with same-origin cookie sessions designed to work
+  through this exact Tailscale Serve → Vite proxy chain, including an explicit
+  `AUTH_COOKIE_SECURE` env because the HTTPS termination here is invisible to FastAPI.
+  Until those PRs land, this paragraph remains the complete security story.)
 - **This is single-user private testing, not production authentication.** Do not treat this
   setup as hardened for multi-user or public use.
 - **Never enable Tailscale Funnel** for this setup. Funnel republishes a Serve config to the

@@ -1,7 +1,7 @@
 # Signal Intelligence Architecture v2 — Plan & Near-Future Roadmap
 
-Last updated: 2026-07-06 (after PR 1 shipped).
-**Home page for all initiative work: [Milestone 1](https://github.com/Guy-Navon/signal-sports/milestone/1)** · Epic: [#27](https://github.com/Guy-Navon/signal-sports/issues/27)
+Last updated: 2026-07-08 — **this initiative is COMPLETE** (Epic #27 and Milestone 1 closed; Preference V2 serves the live feed). The §2 invariants below still bind all future work. **The next active milestone is User Platform** — see `docs/USER_PLATFORM.md` and [Milestone 2](https://github.com/Guy-Navon/signal-sports/milestone/2).
+**Home page for this (completed) initiative's work: [Milestone 1](https://github.com/Guy-Navon/signal-sports/milestone/1)** · Epic: [#27](https://github.com/Guy-Navon/signal-sports/issues/27)
 
 This document is the standing summary of the approved architecture decision
 (full review: architecture plan of 2026-07-05 + LLM addendum of 2026-07-06)

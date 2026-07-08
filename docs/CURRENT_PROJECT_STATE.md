@@ -1,6 +1,10 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-07-04 — reflects the **complete frontend redesign**: Court Vision (PRs 1–6) followed by five further PRs (A–E) that rebuilt the product's entire visual layer from the ground up. **All merged to `main` at commit `7e029bc`. No open feature branch.** The Base44-generated QA-dashboard UI is gone; the app is now a premium, Hebrew-first, RTL-first dark product with a design-token system (shadcn/ui + Tailwind + Radix, self-hosted Heebo + Frank Ruhl Libre fonts), a product-vs-console split, and a from-scratch product identity under the approved **"המערכת / The Desk"** design concept (a codename for the visual direction only — the product name is still Signal Sports / סיגנל). Full detail lives in `docs/FRONTEND_DESIGN_SYSTEM.md`; the one-paragraph arc:
+Last updated: 2026-07-08.
+
+**2026-07-08 — Intelligence Architecture v2 COMPLETE; User Platform milestone approved (design only).** The Signal Intelligence Architecture v2 initiative (Epic #27, Milestone 1) is fully landed and closed — the Preference V2 affinity engine serves `/api/feed` (flipped after the shadow checkpoint), Calibration V2 and feedback learning are live, and `docs/RELEVANCE_CONTRACT.md` is the umbrella contract. The **next milestone is User Platform** — real accounts, authentication, onboarding, and per-user isolation. Its architecture is approved and fully planned but **nothing is implemented yet**: contract in `docs/USER_PLATFORM.md`, execution home [Milestone 2](https://github.com/Guy-Navon/signal-sports/milestone/2) (Epic #48, issues #49–#55). See §13 for cold-start orientation.
+
+The header below this line describes the **frontend redesign completed 2026-07-04**: Court Vision (PRs 1–6) followed by five further PRs (A–E) that rebuilt the product's entire visual layer from the ground up. **All merged to `main` at commit `7e029bc`. No open feature branch.** The Base44-generated QA-dashboard UI is gone; the app is now a premium, Hebrew-first, RTL-first dark product with a design-token system (shadcn/ui + Tailwind + Radix, self-hosted Heebo + Frank Ruhl Libre fonts), a product-vs-console split, and a from-scratch product identity under the approved **"המערכת / The Desk"** design concept (a codename for the visual direction only — the product name is still Signal Sports / סיגנל). Full detail lives in `docs/FRONTEND_DESIGN_SYSTEM.md`; the one-paragraph arc:
 
 - **PR A ("The Edition")** rebuilt the Feed from a scored card list into a composed personal edition — lead story ("הסיפור המרכזי") / מבזק bulletins / "במוקד" tier / "עוד מהפיד" rows / "קריאה נוספת" digest, a clickable signal spectrum, Hebrew kickers, a "desk voice" explaining relevance, and Framer Motion (first real use in the app). A same-PR follow-up fixed a real bug at the **backend ingestion layer** (`backend/app/ingestion/subtitle.py`) — Walla's RSS `<description>` is the article's lede paragraph, not a short deck, and was being shown as if it were one; `clean_subtitle()` now cuts at the last complete sentence within a 240-char budget.
 - **PR B ("atmosphere + brand shell")** removed the left sidebar on product routes (Feed/Preferences/Calibration/Results — ops keeps its sidebar, unchanged), replaced the plain header with a `Masthead` (wordmark, inline nav, console-entry icon) over a decorative `Atmosphere` backdrop, added a floating mobile pill nav for product routes, and wrapped route changes in a page transition.
@@ -537,7 +541,7 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 - **Scheduler is opt-in and process-local (PR 13).** `INGESTION_SCHEDULER_ENABLED=false` by default — ingestion then runs only on `POST /api/ingest/run` / `run-now`. When enabled, an asyncio loop in the FastAPI lifespan ingests enabled sources every `INGESTION_SCHEDULER_INTERVAL_MINUTES`. Multi-replica deployments need a single scheduler worker or a distributed lock.
 - **No fuzzy dedup / clustering.** Deduplication is URL-only. The same story from Eurohoops and Walla appears as two separate articles. `cluster_id` field exists in the model but is never populated.
 - **No feedback → profile mutation.** Feedback events are stored in SQLite but do not yet modify topic rules or event rules in user profiles.
-- **No auth / multi-user.** User profiles are seeded statically. No login, no registration.
+- **No auth / multi-user.** User profiles are seeded statically. No login, no registration. *Still true — but this is now the subject of the approved **User Platform milestone**: architecture contract `docs/USER_PLATFORM.md`, Epic #48, issues #49–#55, [Milestone 2](https://github.com/Guy-Navon/signal-sports/milestone/2). Not yet implemented; do not treat any of that design as shipped behavior.*
 - **No push notifications.** `push` is a decision level in the engine; no device notification delivery.
 - **No body translation or summaries.** Only titles are translated. Article bodies are not ingested.
 - **Limited source coverage.** MVP active sources: Walla Sport, Israel Hayom Sport, Ynet Sport, and ONE Sport. Eurohoops and Sportando are disabled (post-MVP). Sport5 is a scraping pilot (PR 13, disabled by default — no public RSS exists).
@@ -706,16 +710,31 @@ authoritative, up-to-date summary. Do not trust `docs/IMPLEMENTATION_AUDIT.md`
 as current state — it is an explicitly-marked historical snapshot from before
 the backend and the frontend redesign existed.
 
-**Where things stand (2026-07-04):** Backend is a working FastAPI + SQLite app
-with real RSS ingestion (Walla Sport, Israel Hayom Sport active; Sport5 a
+**Where things stand (2026-07-08):** Backend is a working FastAPI + SQLite app
+with real Hebrew RSS ingestion (Walla, Israel Hayom, Ynet, ONE active; Sport5 a
 disabled-by-default scraping pilot), a deterministic classifier with an
-optional LLM overlay, and 1215 passing pytest tests. The frontend has just
-finished a complete visual rebuild (Court Vision + PRs A–E, all merged to
-`main`) — see §6 above and `docs/FRONTEND_DESIGN_SYSTEM.md` for the full
-design system. **There is no single "next task" queued** — §11 above
-("Recommended Next Steps") lists several open items in priority order; ask
-the project owner which one (or something else entirely) before picking one
-yourself.
+optional LLM overlay, and a large green pytest suite (run
+`pytest tests/ --collect-only -q` for the current count — do not trust numbers
+quoted in docs). The **Signal Intelligence Architecture v2** initiative is
+COMPLETE and closed (Epic #27, Milestone 1): the Preference V2 affinity engine
+serves `/api/feed`, Calibration V2 is backend-owned, feedback learning derives
+bounded adjustments from the event log, and `docs/RELEVANCE_CONTRACT.md` is
+the umbrella contract for FACTS → VISIBILITY → PREFERENCE → LEARNING. The
+frontend completed a full visual rebuild earlier (Court Vision + PRs A–E) —
+see `docs/FRONTEND_DESIGN_SYSTEM.md`.
+
+**The active milestone is User Platform** — real accounts, authentication,
+onboarding, and strict per-user isolation, wrapped around the intelligence
+pipeline without changing it. The architecture is **approved but not yet
+implemented**: read `docs/USER_PLATFORM.md` first (it is the authoritative
+contract), then pick up the lowest unblocked issue in
+[Milestone 2](https://github.com/Guy-Navon/signal-sports/milestone/2)
+(Epic #48; dependency chain #49 → #50 → #51 → { #52 ∥ #53 } → #54 → #55; one
+PR per issue; Fable review checkpoints before merging #49, #52, #54). Each
+issue body is a self-contained contract with acceptance criteria, required
+tests, and QA steps. Until those PRs land, there is no auth anywhere —
+`user_id` is a caller-supplied string and the two seeded demo profiles
+(`guy`, `casual_deni_fan`) are the only users.
 
 **Working-style rules that have held throughout this project** (confirm they
 still apply, but they've been consistent):
@@ -733,18 +752,24 @@ still apply, but they've been consistent):
   before calling it done. For frontend UI work, verify live in a running
   browser (both `local` and `backend` data modes), not just unit tests.
 
-**Still-open items from the backend track** (independent of the frontend
-work, listed in `docs/CURRENT_PROJECT_STATE.md` §11):
+**Still-open items outside the User Platform milestone** (operational backlog,
+see §11):
 1. LLM classification benchmark with Ollama + Qwen (`qwen2.5:3b-instruct`) —
    Gemini's free tier (20 requests/day) proved too limited for even one
    ingestion run. Full steps are in §11 above and `docs/LLM_CLASSIFICATION.md`.
 2. Feed clustering / fuzzy dedup — still URL-only; `cluster_id` exists but is
    never populated. This is the single most-repeated "still fake" finding
    across every audit pass of this project.
-3. Feedback → profile mutation — feedback events are recorded but don't yet
-   change scoring.
+3. ~~Feedback → profile mutation~~ — **done** (issue #34): feedback learning
+   derives bounded adjustments from the event log at read time; see
+   `docs/FEEDBACK_LEARNING.md`.
 4. Base44 dependency cleanup (Stripe, three.js, react-leaflet, etc. still in
    `package.json`, unused) — explicitly scoped as separate from any redesign
    or feature PR; never scheduled.
+5. Private Mobile Access backlog (#16–#23) — Tailscale flow works; mobile UX /
+   PWA-lite issues remain open. Note the User Platform milestone changes this
+   area's security story: `docs/MOBILE_REMOTE_ACCESS.md` currently documents
+   the tailnet as the *only* security boundary, which stays true until the
+   User Platform PRs land.
 
 ---

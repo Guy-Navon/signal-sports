@@ -11,12 +11,13 @@ no assuming the reader saw this conversation.
 1. `git status`, `git branch --show-current`, `git log --oneline -15`, and `git diff` for any uncommitted work.
 2. **Task goal** — what this session was asked to do.
 3. **Completed work** — files/components materially changed (`git diff --stat` against `main` or the prior commit), described in terms of behavior, not a file list dump.
-4. **Tests executed and results** — re-run them if the current state is at all unclear; do not assume the pass counts in `docs/CURRENT_PROJECT_STATE.md` still hold if backend/frontend code changed this session.
-5. **Key technical/product decisions made** — anything a fresh agent would otherwise re-litigate.
-6. **Unresolved issues and known risks.**
-7. **Remaining work and the recommended next action** — cross-check against `docs/CURRENT_PROJECT_STATE.md` §11 ("Recommended Next Steps"): is the top item still accurate, or did this session change the priority order?
-8. **Exact docs to read first** — always `docs/CURRENT_PROJECT_STATE.md`; add the specific doc(s) for whatever area this session touched. Explicitly note: do not treat `docs/IMPLEMENTATION_AUDIT.md` as current state — it is a marked historical snapshot from before the backend and frontend redesign existed.
-9. **Commands to reproduce/verify current state** — the exact run/test commands needed (backend uvicorn + pytest, frontend `npm run dev`/`test`/`build`), not "see the README".
+4. **Tests executed and results** — re-run them if the current state is at all unclear; never quote suite counts from docs (they drift — see `signal-doc-truth`), only counts from runs this session.
+5. **Key technical/product decisions made** — anything a fresh agent would otherwise re-litigate. Standing decisions the next agent must not "helpfully" reverse: the JS relevance engine is frozen (no v2/taxonomy/learning ports); backend is authoritative for intelligence; LLM optionality (`CLASSIFICATION_PROVIDER=disabled` is first-class); push only via explicit overrides; facts → visibility → preference → learning layer boundaries.
+6. **Relevant runtime state** — which engine serves the feed (`GET /api/feed-engine`; `PREFERENCE_ENGINE` env), provider settings in `backend/.env`, and whether the real DB corpus (`backend/data/signal_sports.db`) was modified this session (ingestion, backfill, feedback clicks — these affect future QA diffs; see `signal-real-data-qa`).
+7. **Unresolved issues and known risks.**
+8. **Remaining work and the recommended next action** — cross-check against `docs/CURRENT_PROJECT_STATE.md` §11 and `docs/INTELLIGENCE_ROADMAP.md` (the v2 milestone is complete; #36 async enrichment stays deferred behind a measured trigger): is the priority order still accurate after this session?
+9. **Exact docs to read first** — always `docs/CURRENT_PROJECT_STATE.md` and `docs/RELEVANCE_CONTRACT.md` (the umbrella pipeline map); add the layer contract(s) for whatever this session touched. Warn about historical docs per the topology in `signal-doc-truth` (`IMPLEMENTATION_AUDIT.md`, `CALIBRATION_V0.md`/`CALIBRATION_APPLY.md` are not current state).
+10. **Commands to reproduce/verify current state** — exact run/test commands (backend uvicorn + pytest, frontend `npm run dev`/`test`/`build`, data mode setup), not "see the README".
 
 ## Format
 

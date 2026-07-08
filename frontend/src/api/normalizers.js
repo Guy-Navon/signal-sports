@@ -30,6 +30,8 @@ export function normalizeArticleFromApi(a) {
     classificationProvider: a.classification_provider ?? null,
     classificationReason: a.classification_reason ?? null,
     classificationConfidence: a.classification_confidence ?? null,
+    // ArticleFacts classification trace (issue #35 — Debug facts panels).
+    classificationTrace: a.classification_trace ?? null,
   };
 }
 
@@ -83,6 +85,9 @@ export function normalizeScoredArticleFromApi(sa) {
       matchedTopic: sa.matched_topic ?? null,
       matchedRule: sa.matched_event_rule ?? null,
       reasoning: sa.reasoning ?? [],
+      // Preference V2 structured trace + engine badge (issues #32/#35).
+      contributions: sa.contributions ?? null,
+      engine: sa.engine ?? null,
     },
   };
 }

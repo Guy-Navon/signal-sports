@@ -67,6 +67,19 @@ These bind every PR in the initiative:
 
 ## 3. Where we are (done)
 
+> **MILESTONE COMPLETE (2026-07-08).** Every issue in §4 has shipped:
+> #28 (PR #38), #30 (PR #37), #29 (PR #39), #40 (PRs #41+#42 — competition
+> reach completion: NBA 30/30 + EuroLeague 20/20 taxonomy, participant-set
+> inference), #31 (PR #43), #32 (PR #44 — Preference V2 flipped after the
+> Fable shadow checkpoint: Guy 96.3%, Deni fan 100% agreement, push parity),
+> #33 (PR #45 — Calibration V2), #34 (PR #46 — feedback learning),
+> #35 (observability wrap-up). #36 stays deferred — trigger evaluated
+> against measured per-run metrics (see the issue). Current truth lives in
+> `docs/RELEVANCE_CONTRACT.md` (umbrella), the per-layer contracts, and
+> `docs/CURRENT_PROJECT_STATE.md`; the sections below are the original plan,
+> kept for history.
+
+
 - **PR 1 — taxonomy + entity resolver foundation** ([PR #26](https://github.com/Guy-Navon/signal-sports/pull/26)):
   `backend/app/taxonomy/` (~45 entities, competitions with membership+season
   slots, longest-match resolver, family-name abstention, integrity validation);

@@ -120,3 +120,29 @@ class TestFeedEngineFlag:
     def test_invalid_engine_value_falls_back_to_v2(self, client: TestClient, monkeypatch):
         monkeypatch.setenv("PREFERENCE_ENGINE", "quantum")
         assert client.get("/api/feed-engine").json() == {"engine": "v2"}
+
+
+class TestObservabilityShape:
+    """Issue #35 — trace fields exposed through the debug feed payload."""
+
+    def test_debug_payload_carries_engine_and_contributions(self, client: TestClient, rss_seeded):
+        items = client.get("/api/debug/feed/guy").json()
+        assert len(items) > 0
+        for item in items:
+            assert item["engine"] in ("v2", "legacy")
+        v2_items = [i for i in items if i["engine"] == "v2" and i["decision"] != "hidden"]
+        assert any(i.get("contributions") for i in v2_items)
+
+    def test_v2_trace_shows_rejected_scopes(self, client: TestClient, rss_seeded):
+        items = client.get("/api/debug/feed/guy").json()
+        with_rejected = [
+            i for i in items
+            if any(c["step"] == "scopes_considered" for c in (i.get("contributions") or []))
+        ]
+        assert len(with_rejected) > 0
+        entry = next(
+            c for c in with_rejected[0]["contributions"]
+            if c["step"] == "scopes_considered"
+        )
+        assert entry["effect"] == "no_match"
+        assert entry["detail"]  # comma-separated non-matching followed scopes

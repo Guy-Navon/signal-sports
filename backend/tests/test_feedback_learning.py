@@ -25,9 +25,16 @@ from app.services.learning_service import (
     dismissed_article_ids,
     with_learned,
 )
+from app.services import learning_service
 from app.services.preference_engine import score_article_v2
 
 NOW = datetime(2026, 7, 8, 12, 0, tzinfo=timezone.utc)
+
+
+class _FrozenDateTime(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return NOW if tz is not None else NOW.replace(tzinfo=None)
 
 
 def _event(action, attribution, event_id="e", created_at=NOW, retracted=False):
@@ -225,7 +232,8 @@ class TestSignalHierarchy:
         article = _article(entity_ids=["team:la_lakers"], event_type="signing")
         assert score_article_v2(article, effective).decision == "hidden"
 
-    def test_learned_refines_calibration(self):
+    def test_learned_refines_calibration(self, monkeypatch):
+        monkeypatch.setattr(learning_service, "datetime", _FrozenDateTime)
         profile = UserProfile(
             user_id="u", display_name="U", profile_type="test",
             profile_v2=ProfileV2(

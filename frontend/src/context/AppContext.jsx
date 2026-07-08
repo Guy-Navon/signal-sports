@@ -3,8 +3,11 @@ import { userProfiles } from "@/data/userProfiles";
 import { mockArticles, mockClusters } from "@/data/mockArticles";
 import { feedSources } from "@/data/feedSources";
 import { scoreAllArticles, scoreCluster, scoreArticle, DECISION_RANK } from "@/engine/relevanceEngine";
-import { SANDBOX_PROFILE_ID } from "@/engine/draftToProfile";
 import { getProfiles, getFeed, getDebugFeed, submitFeedback, getCalibrationHeadlines } from "@/api/client";
+// Sandbox preview profile id (was in the deleted draftToProfile.js — the
+// calibration flow is backend-owned since issue #33).
+export const SANDBOX_PROFILE_ID = "calibrated_sandbox";
+
 import {
   normalizeProfileFromApi,
   normalizeScoredArticleFromApi,

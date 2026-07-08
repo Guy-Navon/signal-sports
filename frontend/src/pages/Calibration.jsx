@@ -1,590 +1,248 @@
-import React, { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
-import {
-  Zap, ThumbsUp, Minus, ThumbsDown, EyeOff,
-  ChevronDown, ChevronUp, Target, RotateCcw,
-  CheckCircle, ArrowLeft, Trash2
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { calibrationHeadlines } from "@/data/calibrationHeadlines";
-import { mockArticles } from "@/data/mockArticles";
-import {
-  inferPreferenceDraftFromCalibration,
-  RATING_LABELS_HE,
-  RATINGS
-} from "@/engine/calibrationEngine";
-import {
-  convertCalibrationDraftToUserProfile,
-  previewEntityEventRules
-} from "@/engine/draftToProfile";
-import { scoreArticle } from "@/engine/relevanceEngine";
+import React, { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
+import { SlidersHorizontal, RefreshCw, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  getCalibrationItems,
+  previewCalibration,
+  applyCalibration,
+  getCalibrationResponses,
+} from "@/api/client";
 import PageHeader from "@/components/shared/PageHeader";
-import DeskIntro from "@/components/shared/DeskIntro";
+import SectionCard from "@/components/shared/SectionCard";
+import StatCard from "@/components/shared/StatCard";
+import { consoleButton, consoleAlert } from "@/components/ops/consoleStyles";
 
-// ── Rating config ─────────────────────────────────────────────────────────────
+/**
+ * Calibration V2 (issue #33) — backend-owned flow: the versioned dataset,
+ * the hierarchical inference and the persistent apply all live in the
+ * backend. This page only collects ratings and renders the results; there
+ * is no frontend inference and no frontend-only sandbox state anymore.
+ */
 
 const RATING_BUTTONS = [
-  {
-    key: RATINGS.push,
-    icon: Zap,
-    label: RATING_LABELS_HE[RATINGS.push],
-    activeClass: "bg-signal-push/20 border-signal-push text-signal-push",
-    hoverClass: "hover:border-signal-push/50 hover:text-signal-push",
-  },
-  {
-    key: RATINGS.interesting,
-    icon: ThumbsUp,
-    label: RATING_LABELS_HE[RATINGS.interesting],
-    activeClass: "bg-signal-high/20 border-signal-high text-signal-high",
-    hoverClass: "hover:border-signal-high/50 hover:text-signal-high",
-  },
-  {
-    key: RATINGS.neutral,
-    icon: Minus,
-    label: RATING_LABELS_HE[RATINGS.neutral],
-    activeClass: "bg-surface-3 border-text-dim text-foreground",
-    hoverClass: "hover:border-text-dim hover:text-text-secondary",
-  },
-  {
-    key: RATINGS.not_interesting,
-    icon: ThumbsDown,
-    label: RATING_LABELS_HE[RATINGS.not_interesting],
-    activeClass: "bg-signal-hidden/12 border-signal-hidden/50 text-signal-hidden/90",
-    hoverClass: "hover:border-signal-hidden/40 hover:text-signal-hidden/80",
-  },
-  {
-    key: RATINGS.never_show,
-    icon: EyeOff,
-    label: RATING_LABELS_HE[RATINGS.never_show],
-    activeClass: "bg-signal-hidden/20 border-signal-hidden text-signal-hidden",
-    hoverClass: "hover:border-signal-hidden/50 hover:text-signal-hidden",
-  }
+  { key: "push", label: "תעדכן אותי מיד", tone: "text-signal-push border-signal-push/40 bg-signal-push/10" },
+  { key: "interesting", label: "מעניין", tone: "text-signal-high border-signal-high/40 bg-signal-high/10" },
+  { key: "neutral", label: "סבבה, לא קריטי", tone: "text-signal-feed border-signal-feed/40 bg-signal-feed/10" },
+  { key: "not_interesting", label: "לא מעניין", tone: "text-text-secondary border-border bg-surface-2" },
+  { key: "never_show", label: "אל תראה לי כאלה", tone: "text-signal-hidden border-signal-hidden/40 bg-signal-hidden/10" },
 ];
 
-const SPORT_LABELS_HE = {
-  basketball: "כדורסל",
-  football: "כדורגל",
-  tennis: "טניס"
+const SPORT_LABELS = { basketball: "כדורסל", football: "כדורגל", tennis: "טניס" };
+const LEVEL_LABELS = {
+  "-2": "לא לראות בכלל", "-1": "עניין נמוך", 0: "עניין בינוני",
+  1: "עניין גבוה", 2: "עניין מאוד גבוה",
 };
 
-const EVENT_TYPE_LABELS_HE = {
-  negotiation: "מו״מ",
-  signing: "חתימה",
-  injury: "פציעה",
-  candidate: "מועמד",
-  interview: "ראיון",
-  friendly_match: "ידידות",
-  major_signing: "חתימה גדולה",
-  match_result: "תוצאה",
-  finals_result: "גמר",
-  playoff_result: "פלייאוף",
-  title_win: "אלוף",
-  regular_season_result: "תוצאה רגילה",
-  major_trade: "טרייד",
-  star_trade: "טרייד כוכב",
-  generic_preview: "תצפית",
-  major_match_result: "דרבי/משחק מרכזי",
-  grand_slam_winner: "זכייה גראנד סלאם",
-  early_round_result: "סיבוב ראשוני",
-  generic_news: "חדשות כלליות",
-  major_transfer: "טרנספר ענק",
-  schedule: "לו״ז",
-  record: "שיא"
-};
-
-const IMPORTANCE_LABELS_HE = {
-  very_high: "גבוה מאוד",
-  high: "גבוה",
-  medium: "בינוני",
-  low: "נמוך",
-  very_low: "נמוך מאוד"
-};
-
-const MODE_LABELS_HE = {
-  all: "הכל",
-  followed_entities_only: "ישויות בלבד",
-  titles_only: "כותרות בלבד",
-  major_only: "חשוב בלבד",
-  high_importance_only: "חשיבות גבוהה",
-  muted: "מושתק"
-};
-
-const DECISION_LABELS_HE = {
-  push: "דחוף",
-  high_feed: "חשוב",
-  feed: "רגיל",
-  low_feed: "נמוך",
-  hidden: "מוסתר"
-};
-
-const DECISION_COLORS = {
-  push: "text-signal-push",
-  high_feed: "text-signal-high",
-  feed: "text-signal-feed",
-  low_feed: "text-text-dim",
-  hidden: "text-signal-hidden"
-};
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function HeadlineCard({ headline, currentRating, onRate }) {
-  const sport = SPORT_LABELS_HE[headline.sport] || headline.sport;
-  const eventType = EVENT_TYPE_LABELS_HE[headline.eventType] || headline.eventType;
-  const importanceLabel = IMPORTANCE_LABELS_HE[headline.importance] || headline.importance;
-  const kicker = [headline.league || sport, eventType].filter(Boolean).join(" · ");
-  const isRated = !!currentRating;
-
+function ItemCard({ item, rating, onRate }) {
   return (
-    <div
-      className={cn(
-        "rounded-2xl border transition-colors bg-surface-1/60",
-        isRated ? "border-border" : "border-border/50"
-      )}
-    >
-      <div className="p-4 pb-3">
-        <p className="text-[11px] font-semibold tracking-wide text-signal-high">
-          {kicker}
-          <span className="text-text-dim font-normal"> · {importanceLabel}</span>
-        </p>
-        <p className="font-display text-base font-bold text-foreground leading-snug mt-1.5">
-          {headline.title}
-        </p>
-
-        {headline.entities.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-1.5">
-            {headline.entities.map((e) => (
-              <span key={e} className="text-[11px] text-text-dim">{e}</span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="border-t border-border/60 px-3 py-2.5 flex gap-1.5 flex-wrap">
-        {RATING_BUTTONS.map((btn) => {
-          const Icon = btn.icon;
-          const isActive = currentRating === btn.key;
-          return (
-            <button
-              key={btn.key}
-              onClick={() => onRate(headline.id, isActive ? null : btn.key)}
-              title={btn.label}
-              className={cn(
-                "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] border transition-colors",
-                isActive ? btn.activeClass : cn("border-border text-text-dim", btn.hoverClass)
-              )}
-            >
-              <Icon size={11} />
-              <span className="hidden sm:inline">{btn.label}</span>
-            </button>
-          );
-        })}
+    <div className="bg-surface-1 border border-border rounded-[10px] p-3">
+      <div className="text-sm text-foreground mb-1">{item.title}</div>
+      <div className="text-xs text-text-dim mb-2">{SPORT_LABELS[item.sport] ?? item.sport}</div>
+      <div className="flex gap-1.5 flex-wrap">
+        {RATING_BUTTONS.map(({ key, label, tone }) => (
+          <button
+            key={key}
+            onClick={() => onRate(item.id, rating === key ? null : key)}
+            className={cn(
+              "px-2.5 py-1 rounded-full text-xs border transition-colors",
+              rating === key ? tone : "border-border text-text-dim hover:border-text-dim"
+            )}
+          >
+            {label}
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
-function DecisionChip({ decision }) {
+function scopeLabel(affinity) {
+  return affinity.target_id
+    .replace("comp:", "")
+    .replace("team:", "")
+    .replace("player:", "")
+    .replace("coach:", "");
+}
+
+function PreviewPanel({ preview }) {
+  if (!preview) return null;
+  const scopes = preview.scope_affinities ?? [];
+  const events = preview.event_affinities ?? [];
   return (
-    <span className={cn("font-medium", DECISION_COLORS[decision] || "text-text-dim")}>
-      {DECISION_LABELS_HE[decision] || decision}
-    </span>
+    <SectionCard title="מה המערכת למדה עליך" icon={Sparkles}>
+      {scopes.length === 0 ? (
+        <p className="text-xs text-text-dim">דרג עוד כותרות כדי שנוכל להסיק העדפות (נדרשות לפחות שתיים לכל תחום).</p>
+      ) : (
+        <div className="space-y-2 text-xs">
+          <div className="flex flex-wrap gap-1.5">
+            {scopes.map((a) => (
+              <span key={`${a.scope}:${a.target_id}`}
+                className="px-2 py-0.5 rounded-full border border-border bg-surface-2 text-text-secondary">
+                {scopeLabel(a)}: {LEVEL_LABELS[a.level] ?? a.level}
+              </span>
+            ))}
+          </div>
+          {events.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {events.map((e) => (
+                <span key={`${e.scope_ref}:${e.event_type}`}
+                  className="px-2 py-0.5 rounded-full border border-border/60 bg-surface-1 text-text-dim">
+                  {e.event_type} @ {scopeLabel({ target_id: e.scope_ref ?? "כללי" })}: {e.delta > 0 ? `+${e.delta}` : e.delta}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </SectionCard>
   );
 }
 
-function InferenceDraftPanel({ draft, ratedCount, onApply, sandboxExists, onReset, justApplied, sandboxFeedStats }) {
-  const [expanded, setExpanded] = useState(true);
+export default function Calibration() {
+  const { isBackendMode, activeProfileId, refreshProfiles, refreshFeed } = useApp();
+  const [items, setItems] = useState([]);
+  const [version, setVersion] = useState(null);
+  const [ratings, setRatings] = useState({});
+  const [preview, setPreview] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const [error, setError] = useState(null);
 
-  if (ratedCount < 3) {
+  useEffect(() => {
+    if (!isBackendMode) return;
+    setIsLoading(true);
+    Promise.all([
+      getCalibrationItems(),
+      getCalibrationResponses(activeProfileId).catch(() => ({ ratings: {} })),
+    ])
+      .then(([data, saved]) => {
+        setItems(data.items);
+        setVersion(data.version);
+        setRatings(saved.ratings ?? {});
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setIsLoading(false));
+  }, [isBackendMode, activeProfileId]);
+
+  const ratedCount = Object.keys(ratings).length;
+
+  const handleRate = (id, rating) => {
+    setApplied(false);
+    setRatings((prev) => {
+      const next = { ...prev };
+      if (rating === null) delete next[id];
+      else next[id] = rating;
+      return next;
+    });
+  };
+
+  const handlePreview = async () => {
+    setError(null);
+    try {
+      setPreview(await previewCalibration(ratings));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleApply = async () => {
+    setIsApplying(true);
+    setError(null);
+    try {
+      await applyCalibration(activeProfileId, ratings);
+      setApplied(true);
+      refreshProfiles?.();
+      refreshFeed?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  const bySport = useMemo(() => {
+    const groups = {};
+    for (const item of items) (groups[item.sport] ??= []).push(item);
+    return groups;
+  }, [items]);
+
+  if (!isBackendMode) {
     return (
-      <div className="border-t border-border pt-4 text-center">
-        <Target size={20} className="text-text-dim mx-auto mb-2" />
-        <p className="text-xs text-text-dim">דרג/י לפחות 3 כותרות כדי לראות תובנות ראשוניות</p>
-        <p className="text-xs text-text-dim mt-1">{ratedCount}/3 דורגו עד כה</p>
+      <div className="max-w-4xl space-y-4">
+        <PageHeader title="כיול העדפות" icon={SlidersHorizontal} subtitle="דרג כותרות סינתטיות כדי שנלמד מה מעניין אותך" />
+        <SectionCard title="כיול העדפות" icon={SlidersHorizontal}>
+          <p className="text-xs text-text-secondary">
+            כיול ההעדפות רץ בבקאנד (מודל ההעדפות v2) וזמין רק במצב שרת.
+          </p>
+          <p className="text-xs text-text-dim mt-1">
+            הפעל <span className="font-mono">VITE_DATA_MODE=backend</span> כדי לכייל את הפרופיל.
+          </p>
+        </SectionCard>
       </div>
     );
   }
 
-  const hasTopics = draft.inferredTopics.length > 0;
-
   return (
-    <div className="border border-border rounded-2xl overflow-hidden bg-surface-1/80 backdrop-blur-sm elevation-1">
-      <button
-        onClick={() => setExpanded((e) => !e)}
-        className="w-full flex items-center justify-between p-4 text-start hover:bg-surface-2/50 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <Target size={14} className="text-signal-ai" />
-          <span className="text-sm font-medium text-foreground">תובנות ראשוניות</span>
-          <span className="text-[10px] text-text-dim">({ratedCount} כותרות דורגו)</span>
-        </div>
-        <span className="text-text-dim">{expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
-      </button>
+    <div className="max-w-4xl space-y-4">
+      <PageHeader
+        title="כיול העדפות"
+        icon={SlidersHorizontal}
+        subtitle={
+          <>
+            דרג כותרות סינתטיות — המערכת תסיק פרופיל העדפות ותשמור אותו לפרופיל{" "}
+            <span className="text-signal-high">{activeProfileId}</span>
+            {version != null && <span className="text-text-dim"> · גרסת מאגר {version}</span>}
+          </>
+        }
+      />
 
-      {expanded && (
-        <div className="border-t border-border p-4 space-y-4">
-          {hasTopics && (
-            <div>
-              <p className="text-xs text-text-dim mb-2">נושאים שזוהו</p>
-              <div className="space-y-3">
-                {draft.inferredTopics.map((topic) => {
-                  const entityRulesPreview = previewEntityEventRules(topic);
-                  return (
-                    <div key={topic.topicKey} className="border-s-2 border-signal-ai/25 ps-3">
-                      <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                        <span className="text-xs font-medium text-foreground">{topic.label}</span>
-                        <span className="text-[10px] text-text-dim">
-                          עדיפות {topic.priority} · {MODE_LABELS_HE[topic.mode] || topic.mode}
-                        </span>
-                      </div>
-
-                      {Object.entries(topic.eventRules).length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {Object.entries(topic.eventRules).map(([eventType, decision]) => (
-                            <span key={eventType} className="text-[10px] flex items-center gap-1">
-                              <span className="text-text-dim">{EVENT_TYPE_LABELS_HE[eventType] || eventType}</span>
-                              <span className="text-text-dim">→</span>
-                              <DecisionChip decision={decision} />
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {entityRulesPreview && (
-                        <div className="mt-2 pt-2 border-t border-border/60">
-                          <p className="text-[10px] text-text-dim mb-1">כללים ספציפיים לישות</p>
-                          {Object.entries(entityRulesPreview).map(([entity, rules]) => (
-                            <div key={entity} className="flex flex-wrap items-center gap-1">
-                              <span className="text-[10px] text-signal-high/80 font-medium">{entity}:</span>
-                              {Object.entries(rules).map(([eventType, decision]) => (
-                                <span key={eventType} className="text-[10px] flex items-center gap-1">
-                                  <span className="text-text-dim">{EVENT_TYPE_LABELS_HE[eventType] || eventType}</span>
-                                  <span className="text-text-dim">→</span>
-                                  <DecisionChip decision={decision} />
-                                </span>
-                              ))}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <p className="text-[10px] text-text-dim mt-1.5">{topic.reasoning.join(" · ")}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {draft.followedEntities.length > 0 && (
-            <div>
-              <p className="text-xs text-text-dim mb-1.5">ישויות שזוהו כרלוונטיות</p>
-              <div className="flex flex-wrap gap-1.5">
-                {draft.followedEntities.map((e) => (
-                  <span key={e} className="text-[11px] bg-signal-high/10 border border-signal-high/30 rounded-full px-2.5 py-1 text-signal-high">{e}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {draft.mutedCandidates.length > 0 && (
-            <div>
-              <p className="text-xs text-text-dim mb-1.5">מועמדים להשתקה</p>
-              <div className="flex flex-wrap gap-1.5">
-                {[...new Set(draft.mutedCandidates)].map((s) => (
-                  <span key={s} className="text-[11px] bg-signal-hidden/10 border border-signal-hidden/25 rounded-full px-2.5 py-1 text-signal-hidden">
-                    {SPORT_LABELS_HE[s] || s}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {draft.reasoning.length > 0 && (
-            <div className="border-t border-border pt-3">
-              {draft.reasoning.map((line, i) => (
-                <p key={i} className="text-[10px] text-text-dim leading-relaxed">{line}</p>
-              ))}
-            </div>
-          )}
-
-          <div className="border-t border-border pt-3 space-y-2">
-            {justApplied && (
-              <div className="flex items-center gap-2 p-3 bg-signal-high/10 border border-signal-high/30 rounded-lg">
-                <CheckCircle size={14} className="text-signal-high shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-signal-high">הפרופיל המכויל הופעל. גיא ומעריץ דני לא השתנו.</p>
-                </div>
-                <Link to="/" className="flex items-center gap-1 text-xs text-signal-high hover:text-signal-high/80 transition-colors shrink-0">
-                  עבור לפיד
-                  <ArrowLeft size={11} />
-                </Link>
-              </div>
-            )}
-
-            {justApplied && sandboxFeedStats && (
-              <div className="border-t border-border pt-3 space-y-2">
-                <p className="text-[10px] text-text-dim font-medium">תוצאות בדיקה</p>
-                <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  <span className="text-[10px] text-text-secondary">נושאים: <span className="text-foreground">{sandboxFeedStats.topicCount}</span></span>
-                  <span className="text-[10px] text-text-secondary">ישויות: <span className="text-foreground">{sandboxFeedStats.entityCount}</span></span>
-                  <span className="text-[10px] text-text-secondary">מושתקים: <span className="text-foreground">{sandboxFeedStats.mutedCount}</span></span>
-                  <span className={cn("text-[10px] font-medium",
-                    sandboxFeedStats.visibleCount === 0 ? "text-signal-hidden"
-                    : sandboxFeedStats.visibleCount >= 10 ? "text-signal-high"
-                    : "text-signal-push"
-                  )}>
-                    נראים: {sandboxFeedStats.visibleCount}/{sandboxFeedStats.totalCount}
-                  </span>
-                </div>
-
-                {sandboxFeedStats.visibleCount > 0 && (
-                  <div>
-                    <p className="text-[10px] text-text-dim mb-1">כותרות מובילות</p>
-                    <div className="space-y-1">
-                      {sandboxFeedStats.topVisible.map((a) => (
-                        <div key={a.id} className="flex items-start gap-1.5">
-                          <DecisionChip decision={a.decision} />
-                          <span className="text-[10px] text-text-secondary leading-tight">{a.title}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {sandboxFeedStats.visibleCount === 0 && sandboxFeedStats.topHiddenReasons.length > 0 && (
-                  <div>
-                    <p className="text-[10px] text-signal-hidden mb-1">⚠️ אפס כתבות נראות — סיבות הסתרה</p>
-                    <div className="space-y-1">
-                      {sandboxFeedStats.topHiddenReasons.map((item, i) => (
-                        <div key={i} className="text-[10px] text-text-dim leading-tight">
-                          <span className="text-text-secondary">{item.title}</span>
-                          {item.reason && <span className="text-text-dim"> — {item.reason}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {!justApplied && (
-              <button
-                onClick={onApply}
-                disabled={!hasTopics}
-                className={cn(
-                  "w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border text-xs transition-colors",
-                  hasTopics
-                    ? "border-signal-high/50 bg-signal-high/10 text-signal-high hover:bg-signal-high/20"
-                    : "border-border text-text-dim cursor-not-allowed"
-                )}
-              >
-                <CheckCircle size={12} />
-                החל על פרופיל בדיקה
-              </button>
-            )}
-
-            {sandboxExists && (
-              <button
-                onClick={onReset}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-border text-text-dim text-xs hover:border-text-dim hover:text-text-secondary transition-colors"
-              >
-                <Trash2 size={11} />
-                אפס פרופיל בדיקה
-              </button>
-            )}
-
-            <p className="text-[10px] text-text-dim text-center">
-              הפרופיל המכויל הוא פרופיל נפרד — פרופילי גיא ומעריץ דני אינם משתנים
-            </p>
-          </div>
+      {error && (
+        <div className={consoleAlert("error")}>
+          <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
         </div>
       )}
-    </div>
-  );
-}
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard label="דורגו" value={`${ratedCount}/${items.length}`} tone={ratedCount > 0 ? "high" : "neutral"} />
+        <StatCard label="תחומים במאגר" value={Object.keys(bySport).length} />
+        <StatCard label="סטטוס" value={applied ? "נשמר" : "טיוטה"} tone={applied ? "high" : "neutral"} />
+      </div>
 
-const SPORT_FILTERS = [
-  { id: "all", label: "הכל" },
-  { id: "basketball", label: "כדורסל" },
-  { id: "football", label: "כדורגל" },
-  { id: "tennis", label: "טניס" }
-];
-
-export default function Calibration() {
-  const { applySandboxProfile, resetSandboxProfile, sandboxProfile } = useApp();
-  const [ratings, setRatings] = useState({});
-  const [sportFilter, setSportFilter] = useState("all");
-  const [justApplied, setJustApplied] = useState(false);
-
-  const ratedCount = Object.keys(ratings).length;
-  const total = calibrationHeadlines.length;
-
-  const filteredHeadlines = useMemo(() => {
-    if (sportFilter === "all") return calibrationHeadlines;
-    return calibrationHeadlines.filter((h) => h.sport === sportFilter);
-  }, [sportFilter]);
-
-  const draft = useMemo(
-    () => inferPreferenceDraftFromCalibration(ratings, calibrationHeadlines),
-    [ratings]
-  );
-
-  const handleRate = (id, rating) => {
-    setRatings((prev) => {
-      if (rating === null) {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      }
-      return { ...prev, [id]: rating };
-    });
-    setJustApplied(false);
-  };
-
-  const handleClear = () => {
-    setRatings({});
-    setJustApplied(false);
-  };
-
-  const handleApply = () => {
-    const profile = convertCalibrationDraftToUserProfile(draft);
-    applySandboxProfile(profile);
-    setJustApplied(true);
-  };
-
-  const handleReset = () => {
-    resetSandboxProfile();
-    setJustApplied(false);
-  };
-
-  const sandboxFeedStats = useMemo(() => {
-    if (!justApplied) return null;
-    const profile = convertCalibrationDraftToUserProfile(draft);
-    const scored = mockArticles.map((a) => {
-      const result = scoreArticle(a, profile);
-      return {
-        id: a.id,
-        title: a.title,
-        decision: result.decision,
-        lastReason: result.reasoning[result.reasoning.length - 1] ?? ""
-      };
-    });
-    const visible = scored.filter((s) => s.decision !== "hidden");
-    const hidden = scored.filter((s) => s.decision === "hidden");
-    return {
-      topicCount: profile.topics.length,
-      entityCount: profile.followedEntities.length,
-      mutedCount: profile.mutedTopics.length,
-      visibleCount: visible.length,
-      totalCount: scored.length,
-      topVisible: visible.slice(0, 5),
-      topHiddenReasons: visible.length === 0
-        ? hidden.slice(0, 5).map((s) => ({ title: s.title, reason: s.lastReason }))
-        : []
-    };
-  }, [justApplied, draft]);
-
-  const progressPercent = total > 0 ? Math.round((ratedCount / total) * 100) : 0;
-
-  return (
-    <div className="max-w-2xl space-y-5">
-      <PageHeader
-        title="כיוונון העדפות"
-        icon={Target}
-        subtitle="דרג/י כותרות ספורטיביות מדומות — המערכת תלמד מה מעניין אותך"
-      >
-        {ratedCount > 0 && (
-          <button
-            onClick={handleClear}
-            className="flex items-center gap-1.5 text-xs text-text-dim hover:text-text-secondary transition-colors"
-          >
-            <RotateCcw size={12} />
-            איפוס
-          </button>
-        )}
-      </PageHeader>
-
-      <DeskIntro kicker="כיול">
-        כל כותרת שתדרג/י מלמדת את המערכת קצת יותר על מה שחשוב לך — אחרי 3 דירוגים תופענה תובנות
-        ראשוניות למטה.
-      </DeskIntro>
-
-      {/* Progress */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-text-secondary">
-            <span className="text-foreground font-medium">{ratedCount}</span> / {total} כותרות דורגו
+      <div className="flex gap-2 flex-wrap items-center">
+        <button onClick={handlePreview} disabled={ratedCount === 0} className={consoleButton("secondary")}>
+          <Sparkles size={13} /> תצוגה מקדימה
+        </button>
+        <button onClick={handleApply} disabled={isApplying || ratedCount === 0} className={consoleButton("primary")}>
+          {isApplying
+            ? <><RefreshCw size={13} className="animate-spin" /> שומר...</>
+            : <><CheckCircle2 size={13} /> שמור לפרופיל</>}
+        </button>
+        {applied && (
+          <span className="text-xs text-signal-high flex items-center gap-1">
+            <CheckCircle2 size={12} /> ההעדפות נשמרו — הפיד מחושב לפיהן
           </span>
-          <span className="text-xs text-text-dim">{progressPercent}%</span>
+        )}
+      </div>
+
+      <PreviewPanel preview={preview} />
+
+      {isLoading ? (
+        <div className="flex items-center gap-2 text-xs text-text-dim">
+          <RefreshCw size={12} className="animate-spin" /> טוען כותרות...
         </div>
-        <div className="h-1.5 bg-surface-3 rounded-full overflow-hidden">
-          <div className="h-full bg-signal-high rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }} />
-        </div>
-      </div>
-
-      {/* Sport filter chips */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {SPORT_FILTERS.map((filter) => (
-          <button
-            key={filter.id}
-            onClick={() => setSportFilter(filter.id)}
-            className={cn(
-              "flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
-              sportFilter === filter.id
-                ? "bg-signal-high/15 border-signal-high/40 text-signal-high"
-                : "bg-surface-1 border-border text-text-dim hover:border-text-dim hover:text-text-secondary"
-            )}
-          >
-            {filter.label}
-            {filter.id !== "all" && (
-              <span className="ms-1 text-text-dim">
-                ({calibrationHeadlines.filter((h) => h.sport === filter.id).length})
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Rating legend */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 border-y border-border/60 py-2">
-        {RATING_BUTTONS.map((btn) => {
-          const Icon = btn.icon;
-          return (
-            <span key={btn.key} className="flex items-center gap-1 text-[10px] text-text-dim">
-              <Icon size={10} />
-              {btn.label}
-            </span>
-          );
-        })}
-      </div>
-
-      {/* Headline cards */}
-      <div className="space-y-3">
-        {filteredHeadlines.map((headline) => (
-          <HeadlineCard
-            key={headline.id}
-            headline={headline}
-            currentRating={ratings[headline.id]}
-            onRate={handleRate}
-          />
-        ))}
-      </div>
-
-      {/* Inference draft panel */}
-      <div className="sticky bottom-4 md:static md:bottom-auto">
-        <InferenceDraftPanel
-          draft={draft}
-          ratedCount={ratedCount}
-          onApply={handleApply}
-          sandboxExists={!!sandboxProfile}
-          onReset={handleReset}
-          justApplied={justApplied}
-          sandboxFeedStats={sandboxFeedStats}
-        />
-      </div>
+      ) : (
+        Object.entries(bySport).map(([sport, sportItems]) => (
+          <div key={sport} className="space-y-2">
+            <h2 className="text-sm font-semibold text-text-secondary">{SPORT_LABELS[sport] ?? sport}</h2>
+            {sportItems.map((item) => (
+              <ItemCard key={item.id} item={item} rating={ratings[item.id]} onRate={handleRate} />
+            ))}
+          </div>
+        ))
+      )}
     </div>
   );
 }

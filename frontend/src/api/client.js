@@ -78,6 +78,31 @@ export function getIngestQuality() {
   return apiFetch("/api/ingest/quality");
 }
 
+/** Calibration V2 (issue #33) — backend-owned dataset + inference. */
+export function getCalibrationItems() {
+  return apiFetch("/api/calibration/items");
+}
+
+export function previewCalibration(ratings) {
+  return apiFetch("/api/calibration/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ratings }),
+  });
+}
+
+export function applyCalibration(userId, ratings) {
+  return apiFetch("/api/calibration/apply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: userId, ratings }),
+  });
+}
+
+export function getCalibrationResponses(userId) {
+  return apiFetch(`/api/calibration/responses/${encodeURIComponent(userId)}`);
+}
+
 /** Shadow-mode comparison (issue #32): legacy vs Preference V2 decisions. */
 export function getShadowReport(userId) {
   return apiFetch(`/api/debug/shadow/${encodeURIComponent(userId)}`);

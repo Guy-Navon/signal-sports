@@ -1,10 +1,10 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-07-09 (evening — reliability track opened).
+Last updated: 2026-07-10 (consistency sweep — stale statements corrected; two active tracks).
 
 **2026-07-09 (later) — Classification & Feed Reliability investigation completed; second active track opened; onboarding gated.** A 15-case trace-level investigation of real feed failures is committed as **`docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`** (canonical evidence — event-assertion semantics defects, LLM-evidence circularity for cross-sport clubs, deterministic-coverage gaps; architecture judged fundamentally sound). Execution home: **[Milestone 3](https://github.com/Guy-Navon/signal-sports/milestone/3) / Epic [#58](https://github.com/Guy-Navon/signal-sports/issues/58)**, issues #59–#65, sequencing principle regression-first (#59 golden fixtures before any fix). **There are now two active tracks that run in parallel:** User Platform (#50 next) and Reliability (#59 next). **Cross-track gate:** User Platform #52 (onboarding) is hard-blocked until the Reliability Sign-off issue [#63](https://github.com/Guy-Navon/signal-sports/issues/63) closes — onboarding/calibration and preference learning must not encode unreliable classification facts. All review checkpoints are now model-independent contracts written in the issue bodies (#52 product review, #54 security/regression review, #63 reliability sign-off) — no future review depends on any specific model or on past conversation history. See §13 for cold-start orientation.
 
-**2026-07-09 — Intelligence Architecture v2 COMPLETE; User Platform PR 1 landed.** The Signal Intelligence Architecture v2 initiative (Epic #27, Milestone 1) is fully landed and closed — the Preference V2 affinity engine serves `/api/feed` (flipped after the shadow checkpoint), Calibration V2 and feedback learning are live, and `docs/RELEVANCE_CONTRACT.md` is the umbrella contract. The **active milestone is User Platform** — real accounts, authentication, onboarding, and per-user isolation. PR #56 / Issue #49 landed the backend Auth Core on main (`users`, `auth_sessions`, `/api/auth/*`, cookie sessions, CSRF, security dependencies, startup ensure-step). Later PRs still own `/api/me/*`, frontend auth, onboarding UX, legacy/ops route gating, explicit test identities, and account lifecycle. The lowest unblocked User Platform issue is #50. Contract in `docs/USER_PLATFORM.md`, execution home [Milestone 2](https://github.com/Guy-Navon/signal-sports/milestone/2) (Epic #48, issues #49–#55). See §13 for cold-start orientation.
+**2026-07-09 — Intelligence Architecture v2 COMPLETE; User Platform PR 1 landed.** The Signal Intelligence Architecture v2 initiative (Epic #27, Milestone 1) is fully landed and closed — the Preference V2 affinity engine serves `/api/feed` (flipped after the shadow checkpoint), Calibration V2 and feedback learning are live, and `docs/RELEVANCE_CONTRACT.md` is the umbrella contract. The active milestone became **User Platform** (since superseded as the *sole* focus — there are now two active tracks; see the entry above). PR #56 / Issue #49 landed the backend Auth Core on main (`users`, `auth_sessions`, `/api/auth/*`, cookie sessions, CSRF, security dependencies, startup ensure-step). Later PRs still own `/api/me/*`, frontend auth, onboarding UX, legacy/ops route gating, explicit test identities, and account lifecycle. The lowest unblocked User Platform issue is #50. Contract in `docs/USER_PLATFORM.md`, execution home [Milestone 2](https://github.com/Guy-Navon/signal-sports/milestone/2) (Epic #48, issues #49–#55). See §13 for cold-start orientation.
 
 The header below this line describes the **frontend redesign completed 2026-07-04**: Court Vision (PRs 1–6) followed by five further PRs (A–E) that rebuilt the product's entire visual layer from the ground up. **All merged to `main` at commit `7e029bc`. No open feature branch.** The Base44-generated QA-dashboard UI is gone; the app is now a premium, Hebrew-first, RTL-first dark product with a design-token system (shadcn/ui + Tailwind + Radix, self-hosted Heebo + Frank Ruhl Libre fonts), a product-vs-console split, and a from-scratch product identity under the approved **"המערכת / The Desk"** design concept (a codename for the visual direction only — the product name is still Signal Sports / סיגנל). Full detail lives in `docs/FRONTEND_DESIGN_SYSTEM.md`; the one-paragraph arc:
 
@@ -20,7 +20,7 @@ The header below this line describes the **frontend redesign completed 2026-07-0
 
 Prior backend state (unchanged by the redesign) reflects PR 13 + PR 13.1 (branch `feature/selective-llm-gating`): entity normalization expanded to 25 canonical entities, generalized post-merge basketball entity enrichment, new signing keywords, Sport5 (ערוץ הספורט) HTML-scraping pilot source (disabled by default, toggleable from the UI), scheduled ingestion loop with process-level ingestion lock (disabled by default), scheduler-status + source-health endpoints, runtime source enable/disable overrides, and the Sources page scheduler/health UI.
 
-**Issue #17 ("Same-origin frontend API via Vite proxy + fixed dev port 5173"), part of the Private Mobile Access initiative (#16):** the frontend now defaults to same-origin relative API paths (`/api/...`, `/health`) instead of an absolute `http://127.0.0.1:8000`. `frontend/vite.config.js` gained a `server` block — fixed port `5173` with `strictPort: true` (fails loudly instead of drifting to 5174) and a dev proxy forwarding `/api` and `/health` to `http://127.0.0.1:8000`. `frontend/src/api/client.js`'s `API_BASE_URL` now defaults to `""` via `??` (empty string means same-origin); `VITE_API_BASE_URL` still works as an explicit override for calling a backend directly, cross-origin. No backend or CORS changes. This is the foundation the next issue (Tailscale Serve remote access) depends on — not yet implemented.
+**Issue #17 ("Same-origin frontend API via Vite proxy + fixed dev port 5173"), part of the Private Mobile Access initiative (#16):** the frontend now defaults to same-origin relative API paths (`/api/...`, `/health`) instead of an absolute `http://127.0.0.1:8000`. `frontend/vite.config.js` gained a `server` block — fixed port `5173` with `strictPort: true` (fails loudly instead of drifting to 5174) and a dev proxy forwarding `/api` and `/health` to `http://127.0.0.1:8000`. `frontend/src/api/client.js`'s `API_BASE_URL` now defaults to `""` via `??` (empty string means same-origin); `VITE_API_BASE_URL` still works as an explicit override for calling a backend directly, cross-origin. No backend or CORS changes. This was the foundation for Tailscale Serve remote access, which has since landed (issue #18, closed; see `docs/MOBILE_REMOTE_ACCESS.md`).
 
 ---
 
@@ -34,7 +34,7 @@ Signal Sports is a personalized sports news intelligence feed. The current MVP i
 
 - **Hebrew-first UI.** Every article is displayed with a Hebrew title. For the MVP, all active sources (`walla_sport`, `israel_hayom_sport`, `ynet_sport`, `one_sport`) are Hebrew — no translation is needed or used. The translation module is intact in the backend and can be re-enabled post-MVP for English sources.
 - **Personalized relevance, not generic RSS.** The feed is per-user. Identical article sets produce different feeds for different profiles.
-- **False positives are worse than missed classification.** When the classifier is unsure, it assigns `sport=unknown` and the article lands in debug. It does not guess and pollute the feed.
+- **False positives are worse than missed classification.** When the classifier is unsure, it assigns `sport=unknown` and the article lands in debug. It does not guess and pollute the feed. *(Aspirational where the 2026-07-09 investigation found violations — false champion-vocabulary events and LLM-echo sport guesses; being restored by Epic #58.)*
 - **Translation is post-MVP.** `TRANSLATION_PROVIDER=disabled` by default. The `translated_title` DB field, backend translation routes, and the entire `backend/app/translation/` module are intact and ready to be re-enabled, but the frontend no longer shows translation UI or untranslated warnings.
 - **Store original title forever.** `original_title` is written once and never overwritten. Retranslation always uses `original_title` as source so no content is lost.
 - **Use debug/quality views to inspect classifier mistakes.** The debug feed shows all articles including hidden ones with full reasoning. The quality endpoint shows sport breakdowns and questionable articles.
@@ -58,7 +58,8 @@ RSS source
       deterministic classifier (title + subtitle) → sport, league, entities, event_type, importance, confidence
         — always runs; subtitle fills gaps when title is ambiguous or produces sport=unknown
         — subtitle never overrides an already-resolved sport value from the title
-      source URL category hint extracted (extract_source_sport_hint — Israel Hayom paths + Sport5 FolderID=274)
+      source URL category hint extracted (extract_source_sport_hint — Israel Hayom paths, Sport5 FolderID=274,
+        Ynet sport paths, ONE category IDs; known gap: Israel Hayom /sport/israeli-soccer/ unmapped — issue #62)
       [Hebrew broad sources only, when CLASSIFICATION_PROVIDER != disabled]:
         should_call_llm_for_article() gate evaluated against rules result
           → sport=unknown / ambiguous_club / conf<0.55 → force call LLM
@@ -68,8 +69,13 @@ RSS source
           → merge with 7 deterministic guardrails → classified_by=llm or llm+rules_guardrail
           → on failure or low confidence: use deterministic result → classified_by=rules_fallback_*
       normalize_league_sport_compatibility() — universal post-merge safety net (both paths)
+      post-merge basketball entity enrichment (ambiguous-club titles, once sport resolves)
+      build_article_facts() — ArticleFacts consistency stage (#28): weighted sport evidence,
+        explicit-only competitions, entity/competition sport invariants, classification_trace
+      post-facts event re-validation against the event evidence contract (#30)
   → SQLite insert (articles table)
-  → relevance engine (per-user scoring: hidden / low_feed / feed / high_feed / push)
+  → Preference V2 engine (default): per-user scoring hidden / low_feed / feed / high_feed / push
+      over ProfileV2 affinities (legacy relevance engine only via PREFERENCE_ENGINE=legacy)
   → Feed/Debug UI (React/Vite, backend mode)
 ```
 
@@ -98,7 +104,7 @@ future multi-replica deployment needs a single scheduler worker or a distributed
 | LLM classification | Gemini + Ollama providers, `backend/app/classification/` |
 | LLM gating | `backend/app/classification/gating.py` — per-article decision on whether to call LLM |
 | Source URL hints | `backend/app/classification/source_hints.py` — URL category → sport hint (Israel Hayom paths; Sport5 FolderID=274; Ynet sport paths; ONE category IDs) |
-| Relevance engine | Python: `backend/app/services/relevance_engine.py`; JS mirror: `src/engine/relevanceEngine.js` |
+| Feed scoring | Preference V2 engine (default): `backend/app/services/preference_engine.py`; legacy engine `relevance_engine.py` (rollback: `PREFERENCE_ENGINE=legacy`); frozen JS engine `src/engine/relevanceEngine.js` (local demo mode only, no v2 port) |
 | Translation | `backend/app/translation/`, provider configured by `.env` |
 
 **Frontend data modes:**
@@ -128,7 +134,7 @@ future multi-replica deployment needs a single scheduler worker or a distributed
 - **Feed URL:** `https://rss.walla.co.il/feed/7`
 - **What it covers:** Israeli basketball (Maccabi TLV, Winner League, EuroCup, EuroLeague), Israeli football, international tennis (Grand Slams), NBA, World Cup / Euros. Typically 30 items per fetch.
 - **This is the first Hebrew source.** Articles are stored as-is; `original_title = None`; no translation runs.
-- **Known issue:** The broad Walla Sport feed includes a lot of football and generic news. During non-basketball seasons (e.g., FIFA World Cup 2026), the feed is noise-heavy. The classifier correctly downgrades most of this to `hidden` for basketball-focused profiles.
+- **Known issue:** The broad Walla Sport feed includes a lot of football and generic news. During non-basketball seasons (e.g., FIFA World Cup 2026), the feed is noise-heavy. The classifier downgrades much of this to `hidden` for basketball-focused profiles — but the 2026-07-09 investigation found football noise leaking to `feed`/`push` through false `title_win` events and cross-sport entity errors (Epic #58).
 
 ### Israel Hayom Sport (`israel_hayom_sport`)
 - **Language:** Hebrew (`he`)
@@ -184,7 +190,8 @@ The backend is a FastAPI application in `backend/`. All state is persisted in SQ
 | `profiles` | User profiles; `topics` list stored as JSON |
 | `sources` | RSS source configuration |
 | `feedback_events` | User feedback (persists across restarts) |
-| `calibration_headlines` | 16 synthetic preference calibration headlines |
+| `calibration_headlines` | Legacy V0 seed table — superseded by Calibration V2's code-owned versioned dataset (#33); not used by the current calibration flow |
+| `calibration_responses` | Calibration V2 ratings, keyed per (user, item, dataset_version) |
 | `ingestion_runs` | Log of every RSS ingestion run |
 | `source_overrides` | Runtime source enabled/disabled overrides (PR 13.1); wins over config.py defaults |
 | `users` | Auth Core account identity rows; demo profiles have credential-less `role='demo'` rows |
@@ -268,6 +275,8 @@ requires Ollama, a real API key, or live Sport5.
 | `POST` | `/api/auth/logout` | Server-side session revocation; clears auth cookie |
 | `GET` | `/api/auth/session` | Session bootstrap; current user plus onboarding/calibration summary |
 
+The endpoint table above is a core summary, **not exhaustive** — Calibration V2 (`GET /api/calibration/items`, `POST /api/calibration/preview`, `POST /api/calibration/apply`), learning (`GET /api/learning/{user_id}`, reset), profile mutation (`PUT /api/profiles/{user_id}`), engine/debug surfaces (`GET /api/feed-engine`, `GET /api/debug/shadow/{user_id}`), and the benchmark endpoint are documented in §7 and their contract docs; use `/docs` (OpenAPI) for the live list.
+
 **Feed filter:** `GET /api/feed`, `GET /api/debug/feed`, and `GET /api/articles` return only articles whose `id` starts with `rss_`. Seed articles (e.g. `article_001`) are excluded from the feed but accessible via single-item lookup.
 
 ---
@@ -292,7 +301,7 @@ requires Ollama, a real API key, or live Sport5.
 
 **Preferences / Calibration / Results (PR C):** Brought into the Feed's editorial voice on top of the PR B shell. A shared `DeskIntro` line (kicker + one sentence, no card) opens Preferences ("מה המערכת יודעת" — reads live topic/entity/muted counts off the active profile) and Calibration ("כיול"). Preferences' `TopicCard` is now a hairline-divided expandable row with a kicker line (priority · mode · leagues) instead of a bordered box with separate badges; its "important difference" callout was retoned from push-gold to `signal-ai` cyan (explanatory, not urgent — gold is reserved for push). Calibration's `HeadlineCard` gained a kicker line + serif headline instead of four pill badges; `InferenceDraftPanel`'s nested boxes became hairline dividers. **Every hook, handler, and `src/engine` call in Calibration is unchanged** — `inferPreferenceDraftFromCalibration`, `convertCalibrationDraftToUserProfile`, `scoreArticle`, `applySandboxProfile`/`resetSandboxProfile`, `updateProfile` are all byte-for-byte the same as before the redesign; only JSX/className changed. `PageHeader` itself was deliberately left untouched since it's shared with the ops console. Results (a coming-soon placeholder) was simplified to one centered moment.
 
-**Debug view:** All articles with full scoring reasoning. Each article card shows the subtitle (when available) directly under the title, clamped to 3 lines, to provide classification context during QA. Also shows LLM classification metadata (PR 11): `classified_by` as a color-coded badge (neutral=rules, blue=llm, cyan=llm+rules_guardrail, red=failure, gold=low-confidence — see `classifiedByConfig.js`), `classification_provider` inline, `classification_confidence` as a percentage, and `classification_reason` as an italic line. Comparison tab always uses local engine (cross-profile comparison not wired to backend).
+**Debug view:** All articles with full scoring reasoning. Each article card shows the subtitle (when available) directly under the title, clamped to 3 lines, to provide classification context during QA. Also shows LLM classification metadata (PR 11): `classified_by` as a color-coded badge (neutral=rules, blue=llm, cyan=llm+rules_guardrail, red=failure, gold=low-confidence — see `classifiedByConfig.js`), `classification_provider` inline, `classification_confidence` as a percentage, and `classification_reason` as an italic line. Since #35 the Debug page also renders the persisted facts trace (sport-evidence chips + weights, LLM gate decision + reason, alias-to-id normalization, rejected LLM mentions, conflicts) and a per-row engine badge (`v2`/`legacy`/`js-local`). Comparison tab always uses local engine (cross-profile comparison not wired to backend).
 
 **Signature details (PR E, self-directed):** The favicon (`public/favicon.svg`, the SignalMark bars motif) previously didn't exist as a file at all despite being referenced in `index.html` — every browser tab showed a broken/default icon through the entire redesign until this was caught and fixed. Also added: a `theme-color` meta + critical-CSS background fallback (kills flash-of-white before CSS loads), a sitewide themed `:focus-visible` ring (using the existing `--ring` token), a custom thin scrollbar, and a rebuilt 404 page ("אין אות" — no signal) — the 404 route renders outside `AppShell` entirely, so it had never been touched by any prior redesign PR and still shipped the original plain "404" box from Court Vision PR 1.
 
@@ -407,6 +416,16 @@ exactly); Preferences "נלמד" tab with per-row reset. `article_opened` is a
 logged passive slot with no learning effect. See
 `docs/FEEDBACK_LEARNING.md`.
 
+**Note on the profile descriptions below (added 2026-07-09):** they document the
+**legacy topic model**, still shipped for the legacy engine and the parity fixture
+(`docs/fixtures/profile_parity.json`). The engine actually serving `/api/feed` is
+**Preference V2** over `ProfileV2` payloads (#32 entry above;
+`backend/app/seed/seed_profiles.py`, `docs/PREFERENCE_MODEL_V2.md`) — e.g. Guy's v2
+profile expresses football/tennis as level -1 sport scopes with event deltas rather
+than a `titles_only` mode, and push exists only via explicit `always_push` overrides.
+The "Scope guards" and "Entity event rules" paragraphs below likewise describe the
+legacy engine's mechanics.
+
 **Demo profile: Guy (basketball power user)**
 - Maccabi Tel Aviv Basketball: `entity` scope, very high priority — signing/negotiation/injury → `push`
 - NBA: `league` scope, high priority, mode `all` — most events visible
@@ -453,6 +472,12 @@ The deterministic classifier is keyword-matching only — no NLP, no LLM. It alw
 - **Issue #30 fix:** event types now pass through a shared semantic evidence contract (`classification/event_evidence.py`) in both rules and LLM merge paths. Specific non-news events require positive evidence; on doubt they fall back to `news`. `title_win` no longer accepts bare "title" language ("wants/dreams of a title"), `candidate`/`negotiation` block false `signing`, `schedule` blocks false `match_result`, and `release` is now a first-class event type with hospital/negation blockers.
 - **Post-QA fix:** `_GRAND_SLAM_KW` expanded to include specific tournament names (roland garros, רולאן גארוס, wimbledon, וימבלדון, us open, australian open). "אלקאראז זוכה ברולאן גארוס" now correctly fires `grand_slam_winner`.
 - **Post-QA fix:** `source_sport_hint` parameter added — pre-computed URL category hint flows through `classify()` → `_detect_sport()` as the first check before all keyword logic.
+
+**Known classification defects (2026-07-09 investigation — tracked in Epic #58; do NOT treat these behaviors as intentional):**
+- False `title_win`/`finals_result` from champion-vocabulary evidence: champion epithets ("האלופה", "אלופת איטליה"), competition names containing champion words ("אלוף האלופים", "ליגת האלופות"), and aspirational win phrases ("לזכות באליפות") currently validate as confirmed events (~15 of 17 persisted `title_win` rows were false). Issue #60.
+- LLM-echo sport circularity: for cross-sport club titles with no explicit evidence, a wrong LLM sport guess can be laundered into `entity_derived` evidence via post-merge enrichment and locked in. Issue #61.
+- Evidence-coverage gaps (Israel Hayom `/sport/israeli-soccer/` hint, football transfer-market vocabulary, taxonomy entries). Issue #62.
+Evidence and full traces: `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`.
 
 **Confidence scoring:** 0.40 base + 0.15 (sport) + 0.05 (basketball-only source) + 0.15 (league) + 0.15 (entity) + 0.10 (non-news event type); capped at 0.95.
 
@@ -540,7 +565,7 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 4. Source config default (`"en"` for Eurohoops, `"he"` for Walla)
 
 ### Next manual step
-**Not translation** — the next manual step is the LLM classification benchmark with Ollama/Qwen. See Section 11 and the handoff prompt in Section 13. Translation quality verification is a post-MVP concern for when English sources are re-enabled.
+**Not translation** — current next actions are owned by the two active GitHub epics (#48 User Platform, #58 Reliability); see §13. Translation quality verification is a post-MVP concern for when English sources are re-enabled.
 
 ---
 
@@ -548,34 +573,35 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 
 - **Scheduler is opt-in and process-local (PR 13).** `INGESTION_SCHEDULER_ENABLED=false` by default — ingestion then runs only on `POST /api/ingest/run` / `run-now`. When enabled, an asyncio loop in the FastAPI lifespan ingests enabled sources every `INGESTION_SCHEDULER_INTERVAL_MINUTES`. Multi-replica deployments need a single scheduler worker or a distributed lock.
 - **No fuzzy dedup / clustering.** Deduplication is URL-only. The same story from Eurohoops and Walla appears as two separate articles. `cluster_id` field exists in the model but is never populated.
-- **No feedback → profile mutation.** Feedback events are stored in SQLite but do not yet modify topic rules or event rules in user profiles.
+- **Feedback learning is derived, not rule-mutating (by design — #34, live).** Feedback events drive bounded **learned** adjustments computed from the non-retracted event log at read time (activation at >=3 net consistent events, magnitude cap +/-1, decay, never an exclude); explicit topic/event rules and overrides are never silently mutated. See `docs/FEEDBACK_LEARNING.md` and §7.
+- **Known classification reliability defects (2026-07-09).** False `title_win`/`finals_result` events, LLM-echo sport circularity on cross-sport clubs, and evidence-coverage gaps produce wrong persisted facts — including false pushes for Guy. Tracked and sequenced in Epic #58 (Milestone 3); evidence in `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`. User Platform #52 (onboarding) is gated on the Reliability Sign-off (#63).
 - **User Platform PR 1 is landed; later surfaces remain future work.** Backend Auth Core (`users`, `auth_sessions`, `/api/auth/*`, current-user dependencies, CSRF middleware, fail-closed bypass config) is main-branch behavior. Existing consumer product flows still use legacy `{user_id}` routes until `/api/me/*` and frontend auth land in later PRs. Legacy/ops routes are not admin-gated yet.
 - **No push notifications.** `push` is a decision level in the engine; no device notification delivery.
 - **No body translation or summaries.** Only titles are translated. Article bodies are not ingested.
 - **Limited source coverage.** MVP active sources: Walla Sport, Israel Hayom Sport, Ynet Sport, and ONE Sport. Eurohoops and Sportando are disabled (post-MVP). Sport5 is a scraping pilot (PR 13, disabled by default — no public RSS exists).
-- **LLM classification not yet benchmarked at production scale.** Two providers are implemented: `gemini` (fast, cloud, but only 20 requests/day free tier — exhausted in one ingestion run) and `ollama` (local, uncapped, needs Ollama installed and `qwen2.5:3b-instruct` pulled). Default is `disabled`. Hebrew articles use deterministic classification until a provider is configured. Timing is now instrumented — `fetch_ms`, `llm_avg_ms`, `llm_p95_ms`, and fallback counts appear in `POST /api/ingest/run` responses.
-- **Entity coverage is registry-bound (taxonomy PR).** ~45 canonical entities in `backend/app/taxonomy/entities.py` (all Winner League clubs incl. Maccabi Ramat Gan / Kiryat Gat, Israeli family-name football clubs, EuroLeague/EuroCup clubs, NBA teams/players, coach Kattash) with Hebrew + English aliases; cross-sport names abstain without sport evidence. Entities not in the registry are still silently discarded from `article.entities` even when the LLM identifies them correctly — unresolved-mention capture arrives with the ArticleFacts issue (#28).
+- **LLM classification runs on a small local model and is a known quality liability.** Production-style ingestion has used `ollama` + `qwen2.5:3b-instruct` (Gemini's 20-req/day free tier is insufficient; default remains `disabled`, and the no-LLM path is fully functional). The model hallucinates on some Hebrew headlines and the few-shot prompt is basketball-skewed — provider/prompt evaluation is reliability issue #65; pipeline robustness to wrong guesses is issue #61. Timing is instrumented (`fetch_ms`, `llm_avg_ms`, `llm_p95_ms`, fallback counts in `POST /api/ingest/run` responses).
+- **Entity coverage is registry-bound (taxonomy PR).** ~45 canonical entities in `backend/app/taxonomy/entities.py` (all Winner League clubs incl. Maccabi Ramat Gan / Kiryat Gat, Israeli family-name football clubs, EuroLeague/EuroCup clubs, NBA teams/players, coach Kattash) with Hebrew + English aliases; cross-sport names abstain without sport evidence. Entities not in the registry are discarded from `article.entities`, but since #28 (landed) every rejected LLM mention is recorded in the classification trace (`rejected_llm_mentions`). Known registry gaps (Budućnost, nickname strategy, selected players) are reliability issue #62.
 - **Translation not active in MVP.** `TRANSLATION_PROVIDER=disabled` is correct for Hebrew-only MVP. Backend module, DB fields, and API routes are preserved for post-MVP re-enablement. Translation quality validation is a post-MVP concern.
 
 ---
 
 ## 11. Recommended Next Steps
 
-> **The active roadmap is the Signal Intelligence Architecture v2 initiative** — see `docs/INTELLIGENCE_ROADMAP.md` and [Milestone 1](https://github.com/Guy-Navon/signal-sports/milestone/1). The list below predates it and remains for the operational items (benchmarks, source validation) that are still relevant.
+> **Historical note:** an earlier version of this section pointed to the Signal Intelligence Architecture v2 roadmap — that initiative is **complete and closed** (Epic #27, Milestone 1; see `docs/INTELLIGENCE_ROADMAP.md` for its history). The authoritative execution order now lives in the two GitHub epics referenced below. The numbered list at the end of this section is a **non-authoritative operational backlog** kept for reference — verify each item against the epics and current code before acting.
 
-> **Two active tracks (2026-07-09).** (1) **User Platform** — real accounts, authentication, onboarding, and per-user data isolation wrapped around the existing FACTS → VISIBILITY → PREFERENCE → LEARNING pipeline; contract `docs/USER_PLATFORM.md`; canonical graph in Epic #48; next unblocked issue #50. (2) **Classification & Feed Reliability** — regression-first hardening of classification facts; evidence `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`; canonical graph in Epic #58; next unblocked issue #59. They run in parallel; the single cross-track gate is that **#52 (onboarding) is blocked until Reliability Sign-off #63 closes**.
+> **Two active tracks (2026-07-09).** (1) **User Platform** — real accounts, authentication, onboarding, and per-user data isolation wrapped around the existing FACTS → VISIBILITY → PREFERENCE → LEARNING pipeline; contract `docs/USER_PLATFORM.md`; canonical graph in Epic #48; next unblocked issue #50. (2) **Classification & Feed Reliability** — regression-first hardening of classification facts; evidence `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`; canonical graph in Epic #58; next unblocked issue #59. They run in parallel; the single cross-track gate is that **#52 (onboarding) is blocked until Reliability Sign-off #63 closes**. **Canonical next actions: Reliability #59 (primary), User Platform #50 (parallel); then follow the epic dependency graphs.**
 
-Priority order:
+Non-authoritative operational backlog (historical numbering preserved):
 
-1. **Re-run the LLM gating benchmark (validation task)** — Gating and the benchmark UI shipped with PR 12; the PR 13 quality fixes are in place. From the Sources page (requires `ALLOW_DEV_RESET=true` + `CLASSIFICATION_PROVIDER=ollama`), run "הרץ בנצ׳מרק מלא" and compare `llm_attempts`, `llm_skipped`, `total_ms`, and `sport=unknown` against baseline. Target ≥40% LLM call reduction with no regression (last measured: israel_hayom PASS 41.4%, walla FAIL 26.7% before the quality fixes). Review results before merging the `feature/selective-llm-gating` branch.
-2. **LLM classification benchmark** — Install Ollama, pull `qwen2.5:3b-instruct`, set `CLASSIFICATION_PROVIDER=ollama` + `CLASSIFICATION_MODEL=qwen2.5:3b-instruct` + `CLASSIFICATION_TIMEOUT_SECONDS=30`, re-ingest Walla + Israel Hayom, compare `sport=unknown` count and Guy's feed visibility before/after. Check `fetch_ms`, `llm_avg_ms`, and `llm_fallback_*` counts in the ingest response for performance baseline. Run `POST /api/classify/backfill?source_id=walla_sport` on existing articles. If quality is poor, try `qwen3:4b`.
+1. ~~Re-run the LLM gating benchmark~~ — **historical**: the `feature/selective-llm-gating` branch merged long ago (PR 13 era; no open feature branch exists). The benchmark tooling still works from the Sources page (`ALLOW_DEV_RESET=true` + `CLASSIFICATION_PROVIDER=ollama`) and may inform reliability issue #65.
+2. **LLM provider/prompt evaluation** — now owned by reliability issue **#65** (non-gating). The Ollama/Qwen setup steps in §12 remain valid; quality evidence so far is in `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`.
 3. ~~Expand entity normalization map~~ — **done in PR 13** (25 canonical entities; see `docs/RSS_QUALITY_GUARDRAILS.md` §10a). Player/coach names still missing from the *deterministic* keyword lists remain open.
 4. ~~Scheduled ingestion~~ — **done in PR 13** (asyncio loop in lifespan, `INGESTION_SCHEDULER_ENABLED`, disabled by default).
 5. **Validate Sport5 pilot** — Run `POST /api/ingest/run?source_id=sport5_sport` against the live site, review classification quality in the debug view, then enable it from the Sources page toggle (or `PATCH /api/ingest/sources/sport5_sport`) if quality holds.
 6. **Feed clustering / fuzzy dedup** — Use `difflib.SequenceMatcher` on titles across sources; populate `cluster_id`. Show one card per story.
-7. **Feedback → profile mutation** — `never_show` feedback creates a `hidden` event rule for the article's `event_type` in the matched topic. Requires in-place profile update via the repository.
-8. **More Hebrew sources** — ONE Sport via category page HTML adapter is the likely next source candidate (traditional HTML; Sport5 is already covered by the scraping pilot; Ynet is covered by official RSS).
-9. **Better relevance for LLM-classified articles** — Some LLM-classified articles land in Guy's feed as `feed` when they deserve `high_feed` or `push`. The relevance engine's topic rules may need tuning once LLM entity extraction surfaces more entities (e.g., New York Knicks → Knicks entity → entity_event_rules fires).
+7. ~~Feedback → profile mutation~~ — **done** (#34): feedback learning derives bounded adjustments from the event log at read time; scoped `never_show` exists via `POST /api/profiles/{user_id}/never_show`. See `docs/FEEDBACK_LEARNING.md`.
+8. ~~More Hebrew sources — ONE Sport~~ — **done**: ONE Sport is onboarded and enabled (public JSON article endpoints; see §4). No further source onboarding is currently scheduled.
+9. ~~Better relevance for LLM-classified articles~~ — **superseded** by the Classification & Feed Reliability track (Epic #58), which owns classification/feed decision quality end-to-end with regression-first sequencing.
 10. **Re-enable English sources + translation** (post-MVP) — Set `eurohoops.enabled=True` in `config.py` (or via the Sources page toggle), configure `TRANSLATION_PROVIDER=claude` + API key, run translation backfill, verify Italian → Hebrew quality.
 
 ---
@@ -710,9 +736,16 @@ POST http://127.0.0.1:8000/api/translations/backfill?source_id=sportando&limit=5
 ```
 
 ### Reset local database
+
+> ⚠️ **Never do this to the real corpus DB.** `backend/data/signal_sports.db` holds the real
+> ingested article corpus that serves as regression/replay evidence for the reliability track
+> (Epic #58) — protecting it is a standing invariant in both active epics. Only ever reset a
+> **scratch** database: point `DATABASE_URL` at a different file first, then delete that file.
+
 ```bash
 cd backend
-del data\signal_sports.db
+# ONLY for a scratch DB configured via DATABASE_URL — never data\signal_sports.db
+del data\scratch.db
 # Restart backend — tables and seed data recreated automatically
 ```
 
@@ -818,9 +851,11 @@ still apply, but they've been consistent):
 
 **Still-open items outside the User Platform milestone** (operational backlog,
 see §11):
-1. LLM classification benchmark with Ollama + Qwen (`qwen2.5:3b-instruct`) —
+1. LLM provider/prompt evaluation — now reliability issue #65 (non-gating).
    Gemini's free tier (20 requests/day) proved too limited for even one
-   ingestion run. Full steps are in §11 above and `docs/LLM_CLASSIFICATION.md`.
+   ingestion run; the current provider is local Ollama + `qwen2.5:3b-instruct`,
+   a known quality liability. See `docs/LLM_CLASSIFICATION.md` and the
+   investigation report.
 2. Feed clustering / fuzzy dedup — still URL-only; `cluster_id` exists but is
    never populated. This is the single most-repeated "still fake" finding
    across every audit pass of this project.

@@ -1,0 +1,674 @@
+{
+ "description": "Golden-15 reliability regression cases (investigation 2026-07-09, issues #59-#63). pinned = behavior at fixture creation; desired = behavioral contract. status=failure cases: pinned asserted until the fix_owner issue lands, desired is strict-xfail.",
+ "cases": [
+  {
+   "case": "C1",
+   "article_id": "rss_33eef11e564e6ccbd36b",
+   "status": "failure",
+   "fix_owner": "#60",
+   "source_id": "walla_sport",
+   "url": "https://sports.walla.co.il/item/3852020",
+   "title": "זה מה שישכנע את לברון? הפנייה הפומבית שהדהימה את ה-NBA",
+   "subtitle": "נשיא הסיקסרס התארח בפודקאסט של סוכנו של ג'יימס ושלח מסר ישיר: \"זו הקבוצה שנותנת לך את הסיכוי הטוב ביותר לזכות באליפות\"",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "basketball",
+    "league": "NBA",
+    "entities": [
+     "LeBron James"
+    ],
+    "entity_ids": [
+     "player:lebron_james"
+    ],
+    "event_type": "title_win",
+    "event_certainty": "confirmed",
+    "importance": "very_high",
+    "primary_competition": "comp:nba",
+    "classified_by": "rules",
+    "guy": "push",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "basketball",
+    "entities": [
+     "LeBron James"
+    ],
+    "event_type__not": "title_win",
+    "importance__not": "very_high",
+    "guy__in": [
+     "low_feed",
+     "feed"
+    ],
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C2",
+   "article_id": "rss_4966b592b253e1237912",
+   "status": "failure",
+   "fix_owner": "#61+#62",
+   "source_id": "ynet_sport",
+   "url": "https://www.ynet.co.il/sport/israelisoccer/article/jznrv8ntt",
+   "title": "דן גלזר חתם במכבי ת\"א | נחשף ב-ynet",
+   "subtitle": "אחרי שסגר את תנאיו אצל האלופה (כ-350 אלף אירו לעונה) והוסכמו דמי המעבר לקייראט הקזחית (כ-200 אלף אירו), נסגרה סופית עסקת חזרתו של גלזר לקריית שלום",
+   "llm_proposal": {
+    "sport": "basketball",
+    "league": null,
+    "event_type": "signing",
+    "importance": "high",
+    "confidence": 0.9,
+    "entities": [
+     "Danny Galzer",
+     "Maccabi Tel Aviv Basketball"
+    ],
+    "reason": "Basketball player Danny Galzer signs with Maccabi Tel Aviv after negotiations."
+   },
+   "pinned": {
+    "sport": "basketball",
+    "league": null,
+    "entities": [
+     "Maccabi Tel Aviv Basketball"
+    ],
+    "entity_ids": [
+     "team:maccabi_tlv_bb"
+    ],
+    "event_type": "signing",
+    "event_certainty": "confirmed",
+    "importance": "high",
+    "primary_competition": null,
+    "classified_by": "llm",
+    "guy": "push",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "football",
+    "entity_ids": [
+     "team:maccabi_tlv_fc"
+    ],
+    "event_type": "signing",
+    "guy": "hidden",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C2sib",
+   "article_id": "rss_cb0b4c43ca530340e218",
+   "status": "failure",
+   "fix_owner": "#60+#61+#62",
+   "source_id": "ynet_sport",
+   "url": "https://www.ynet.co.il/sport/israelisoccer/article/fyrqm5cp1",
+   "title": "דן גלזר יוצג במכבי ת\"א ביממה הקרובה | נחשף ב-ynet",
+   "subtitle": "אחרי שסגר את תנאיו אצל האלופה (כ-350 אלף אירו לעונה) והוסכמו דמי המעבר לקייראט הקזחית (כ-200 אלף אירו), נסגרה סופית עסקת חזרתו של גלזר לקריית שלום",
+   "llm_proposal": {
+    "sport": "basketball",
+    "league": null,
+    "event_type": "release",
+    "importance": "medium",
+    "confidence": 0.85,
+    "entities": [
+     "Danny Galzer",
+     "Maccabi Tel Aviv Basketball"
+    ],
+    "reason": "Basketball player Danny Galzer released by Maccabi Tel Aviv after contract negotiations"
+   },
+   "pinned": {
+    "sport": "basketball",
+    "league": null,
+    "entities": [
+     "Maccabi Tel Aviv Basketball"
+    ],
+    "entity_ids": [
+     "team:maccabi_tlv_bb"
+    ],
+    "event_type": "title_win",
+    "event_certainty": "confirmed",
+    "importance": "very_high",
+    "primary_competition": null,
+    "classified_by": "llm+rules_guardrail",
+    "guy": "push",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "football",
+    "entity_ids": [
+     "team:maccabi_tlv_fc"
+    ],
+    "event_type__not": "title_win",
+    "importance__not": "very_high",
+    "guy": "hidden",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C3",
+   "article_id": "rss_05c8c1cbe8e772816f61",
+   "status": "failure",
+   "fix_owner": "#62 (+#61 safety)",
+   "source_id": "israel_hayom_sport",
+   "url": "https://www.israelhayom.co.il/sport/israeli-soccer/article/20929931",
+   "title": "עם תפנית מפתיעה: הרכש הכפול של מכבי תל אביב, ושני הזרים שעל הפרק",
+   "subtitle": "דן גלזר סיכם, ופרטים אחרונים מפרידים בין אסטר סוקלר לצהובים • סטליוס אנדראו יכריע בקרוב בצל ההתעניינות מאיטליה • והמגעים עם אמיר סהיטי חודשו • עושים סדר",
+   "llm_proposal": {
+    "sport": "basketball",
+    "league": null,
+    "event_type": "major_trade",
+    "importance": "high",
+    "confidence": 0.85,
+    "entities": [
+     "Maccabi Tel Aviv Basketball"
+    ],
+    "reason": "Major trades and new signings by Maccabi Tel Aviv basketball team."
+   },
+   "pinned": {
+    "sport": "basketball",
+    "league": null,
+    "entities": [
+     "Maccabi Tel Aviv Basketball"
+    ],
+    "entity_ids": [
+     "team:maccabi_tlv_bb"
+    ],
+    "event_type": "negotiation",
+    "event_certainty": "probable",
+    "importance": "high",
+    "primary_competition": null,
+    "classified_by": "llm+rules_guardrail",
+    "guy": "push",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "football",
+    "entity_ids": [
+     "team:maccabi_tlv_fc"
+    ],
+    "event_type": "negotiation",
+    "guy": "hidden",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C4",
+   "article_id": "rss_e0a2baec61f2f442b009",
+   "status": "failure",
+   "fix_owner": "#60",
+   "source_id": "walla_sport",
+   "url": "https://sports.walla.co.il/item/3852012",
+   "title": "כמות הכרטיסים שמכרה מכבי תל אביב לאלוף האלופים בטרנר",
+   "subtitle": "שמונה ימים לפני המפגש עם הפועל באר שבע, הצהובים מציגים נתון מפתיע ביציעים ובמקביל מתקרבים לסולד אאוט במכירת המנויים",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "football",
+    "league": "Israeli Premier League",
+    "entities": [
+     "Maccabi Tel Aviv Football"
+    ],
+    "entity_ids": [
+     "team:maccabi_tlv_fc"
+    ],
+    "event_type": "title_win",
+    "event_certainty": "confirmed",
+    "importance": "very_high",
+    "primary_competition": null,
+    "classified_by": "rules",
+    "guy": "feed",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "football",
+    "entity_ids": [
+     "team:maccabi_tlv_fc"
+    ],
+    "event_type__not": "title_win",
+    "importance__not": "very_high",
+    "guy": "hidden",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C5ynet",
+   "article_id": "rss_8c01ba5b97becd709976",
+   "status": "failure",
+   "fix_owner": "#60",
+   "source_id": "ynet_sport",
+   "url": "https://www.ynet.co.il/sport/worldsoccer/article/skvykf3mze",
+   "title": "דיווח: אינטר שיפרה את ההצעה על ענאן חלאילי",
+   "subtitle": "מתקרב לאלופת איטליה? הנראזורי הציעו לאוניון סן ז'ילואז 23 מיליון אירו על שחקן הכנף הישראלי, שכבר סיכם את תנאיו במועדון. הבלגים סירבו ורוצים 30 מיליון",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "football",
+    "league": null,
+    "entities": [],
+    "entity_ids": [],
+    "event_type": "title_win",
+    "event_certainty": "confirmed",
+    "importance": "very_high",
+    "primary_competition": null,
+    "classified_by": "rules",
+    "guy": "feed",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "football",
+    "event_type": "negotiation",
+    "importance__not": "very_high",
+    "guy": "hidden",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C5walla",
+   "article_id": "rss_8cb0f5b7f65e0e799a65",
+   "status": "positive",
+   "fix_owner": "-",
+   "source_id": "walla_sport",
+   "url": "https://sports.walla.co.il/item/3852033",
+   "title": "זה מתקרב: אינטר שיפרה שוב את הצעתה על ענאן חלאילי",
+   "subtitle": "באיטליה מדווחים כי הנראזורי העלו את ההצעה ל-27 מיליון יורו כולל בונוסים, ומתנהלים במגעים ישירים עם סן ז'ילואז בניסיון לסגור את העסקה עוד השבוע. הישראלי נותר המועמד היחיד של אינטר לעמדה",
+   "llm_proposal": {
+    "sport": "unknown",
+    "league": null,
+    "event_type": "negotiation",
+    "importance": "medium",
+    "confidence": 0.85,
+    "entities": [
+     "Inter"
+    ],
+    "reason": "Inter is negotiating with a player in Italy, likely for a transfer."
+   },
+   "pinned": {
+    "sport": "unknown",
+    "league": null,
+    "entities": [],
+    "entity_ids": [],
+    "event_type": "negotiation",
+    "event_certainty": "probable",
+    "importance": "medium",
+    "primary_competition": null,
+    "classified_by": "llm",
+    "guy": "hidden",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "unknown",
+    "event_type": "negotiation",
+    "guy": "hidden",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C6",
+   "article_id": "rss_b0b7e0ef69b37b780a80",
+   "status": "failure",
+   "fix_owner": "#60",
+   "source_id": "walla_sport",
+   "url": "https://sports.walla.co.il/item/3851988",
+   "title": "הפועל ב\"ש מחפשת שני שחקני הגנה, מאמץ רב לסגור עם זרים",
+   "subtitle": "האלופה חזרה ממחנה האימון בפולין, ועל הפרק: צירוף מגן שמאלי ובלם לפני המשחקים באירופה. וולף זוכה לעדיפות בשער לקראת אלוף האלופים",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "football",
+    "league": "Israeli Premier League",
+    "entities": [
+     "Hapoel Beer Sheva"
+    ],
+    "entity_ids": [
+     "team:hapoel_beer_sheva_fc"
+    ],
+    "event_type": "title_win",
+    "event_certainty": "confirmed",
+    "importance": "very_high",
+    "primary_competition": null,
+    "classified_by": "rules",
+    "guy": "feed",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "football",
+    "entity_ids": [
+     "team:hapoel_beer_sheva_fc"
+    ],
+    "event_type__not": "title_win",
+    "importance__not": "very_high",
+    "guy": "hidden",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C7",
+   "article_id": "rss_8241cfdb7c303cf65ce2",
+   "status": "failure",
+   "fix_owner": "#60",
+   "source_id": "ynet_sport",
+   "url": "https://www.ynet.co.il/sport/worldcup2026/article/rkyhbknmfg",
+   "title": "מספיק עם הקונספירציות: אף אחד לא מסדר למסי את המונדיאל",
+   "subtitle": "מתחילת הטורניר מנסים להכתים את אלופת העולם: אדום שלא נשלף, הגרלה \"קלה\", ועכשיו גם בכי מצרי על השיפוט. בפועל, מצרים הלוזרית קרסה ואי אפשר באמת לעצור את מספר 10",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "football",
+    "league": null,
+    "entities": [],
+    "entity_ids": [],
+    "event_type": "title_win",
+    "event_certainty": "confirmed",
+    "importance": "very_high",
+    "primary_competition": null,
+    "classified_by": "rules",
+    "guy": "feed",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "football",
+    "event_type__not": "title_win",
+    "importance__not": "very_high",
+    "guy": "hidden",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C8",
+   "article_id": "rss_d1736b70a0e2919d31a1",
+   "status": "positive",
+   "fix_owner": "-",
+   "source_id": "walla_sport",
+   "url": "https://sports.walla.co.il/item/3852013",
+   "title": "כפי שפורסם לראשונה בוואלה: דן גלזר חתם במכבי תל אביב",
+   "subtitle": "הקשר בן ה-29 חזר לקבוצת נעוריו וחתם על חוזה לשנתיים עם אופציה לעונה שלישית: \"תחושה מיוחדת לחזור הביתה\". מחזיקת הגביע רכשה אותו מקייראט תמורת כ-200 אלף יורו, והוא ישתכר כ-300 אלף יורו נטו לעונה",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "football",
+    "league": "Israeli Premier League",
+    "entities": [
+     "Maccabi Tel Aviv Football"
+    ],
+    "entity_ids": [
+     "team:maccabi_tlv_fc"
+    ],
+    "event_type": "signing",
+    "event_certainty": "confirmed",
+    "importance": "medium",
+    "primary_competition": null,
+    "classified_by": "rules",
+    "guy": "hidden",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "football",
+    "entity_ids": [
+     "team:maccabi_tlv_fc"
+    ],
+    "event_type": "signing",
+    "event_certainty": "confirmed",
+    "guy": "hidden",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C9",
+   "article_id": "rss_4f373fbfb598575654bb",
+   "status": "failure",
+   "fix_owner": "#60",
+   "source_id": "sport5_sport",
+   "url": "https://www.sport5.co.il/articles.aspx?FolderID=405&docID=551523",
+   "title": "בחוזה עתק: זאק לידיי על סף סיכום בהפועל",
+   "subtitle": "באירופה מיישרים קו עם חשיפת ערוץ הספורט: הפורוורד קיבל הצעת ענק",
+   "llm_proposal": {
+    "sport": "football",
+    "league": null,
+    "event_type": "negotiation",
+    "importance": "medium",
+    "confidence": 0.85,
+    "entities": [
+     "Hapoel Tel Aviv Football",
+     "Zakandyy"
+    ],
+    "reason": "Football player Zakandyy is in talks with Hapoel Tel Aviv regarding a potential contract extension."
+   },
+   "pinned": {
+    "sport": "basketball",
+    "league": null,
+    "entities": [],
+    "entity_ids": [],
+    "event_type": "news",
+    "event_certainty": "confirmed",
+    "importance": "medium",
+    "primary_competition": null,
+    "classified_by": "llm+rules_guardrail",
+    "guy": "hidden",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "basketball",
+    "entity_ids": [],
+    "event_type": "negotiation",
+    "guy": "hidden",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C10",
+   "article_id": "rss_65ed93aa42045974b4d7",
+   "status": "positive",
+   "fix_owner": "-",
+   "source_id": "walla_sport",
+   "url": "https://sports.walla.co.il/item/3851793",
+   "title": "זה רשמי: גרשון יאבוסלה חתם על חוזה עתק בפנאתינייקוס",
+   "subtitle": "גרשון יאבוסלה עוזב שוב את ה-NBA וחזר לאירופה. פנאתינייקוס אישרה היום (רביעי) כי הפורוורד הצרפתי חתם על חוזה לשלוש שנים, ובכך יהפוך לאחד משלושת השחקנים בעלי השכר הגבוה ביותר בכדורסל האירופי.",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "basketball",
+    "league": "NBA",
+    "entities": [
+     "Panathinaikos Basketball"
+    ],
+    "entity_ids": [
+     "team:panathinaikos_bb"
+    ],
+    "event_type": "signing",
+    "event_certainty": "confirmed",
+    "importance": "high",
+    "primary_competition": "comp:nba",
+    "classified_by": "rules",
+    "guy": "feed",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "basketball",
+    "entity_ids": [
+     "team:panathinaikos_bb"
+    ],
+    "event_type": "signing",
+    "guy__in": [
+     "feed",
+     "high_feed"
+    ],
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C11",
+   "article_id": "rss_cbf82691b2b0c97fd41e",
+   "status": "positive",
+   "fix_owner": "-",
+   "source_id": "ynet_sport",
+   "url": "https://www.ynet.co.il/sport/israelibasketball/article/s1cg00bsqmg",
+   "title": "רשמי: ג'ון דיברתולמיאו חתם לשנתיים נוספות במכבי ת\"א",
+   "subtitle": "קפטן הצהובים ימשיך לעונה עשירית במדי האלופה. צפוי להשתכר כ-1.4 מיליון דולר לאורך התקופה",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "basketball",
+    "league": "Israeli Basketball League",
+    "entities": [
+     "Maccabi Tel Aviv Basketball"
+    ],
+    "entity_ids": [
+     "team:maccabi_tlv_bb"
+    ],
+    "event_type": "signing",
+    "event_certainty": "confirmed",
+    "importance": "high",
+    "primary_competition": null,
+    "classified_by": "rules",
+    "guy": "push",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "basketball",
+    "entity_ids": [
+     "team:maccabi_tlv_bb"
+    ],
+    "event_type": "signing",
+    "event_certainty": "confirmed",
+    "guy": "push",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C12",
+   "article_id": "rss_b3a65b930842b6a7a886",
+   "status": "positive",
+   "fix_owner": "-",
+   "source_id": "sport5_sport",
+   "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=551527",
+   "title": "מלך החטיפות ביורוליג בעבר בדרך לנס ציונה",
+   "subtitle": "הרכז האמריקאי פריס לי במו\"מ מתקדם. בעונה האחרונה שיחק בקאזאן",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "basketball",
+    "league": "EuroLeague",
+    "entities": [
+     "Ironi Ness Ziona"
+    ],
+    "entity_ids": [
+     "team:ironi_ness_ziona"
+    ],
+    "event_type": "negotiation",
+    "event_certainty": "confirmed",
+    "importance": "high",
+    "primary_competition": "comp:euroleague",
+    "classified_by": "rules",
+    "guy": "high_feed",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "basketball",
+    "entity_ids": [
+     "team:ironi_ness_ziona"
+    ],
+    "event_type": "negotiation",
+    "guy": "high_feed",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C13",
+   "article_id": "rss_8283463e8caf737071a4",
+   "status": "positive",
+   "fix_owner": "-",
+   "source_id": "sport5_sport",
+   "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=551536",
+   "title": "בכל הכוח: מכבי הולכת על ברונו פרננדו",
+   "subtitle": "הולמס עדיין לא מוכן להגיע לישראל, והצהובים מאיצים מגעים עם סנטר פרטיזן",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "basketball",
+    "league": "EuroLeague",
+    "entities": [
+     "Partizan Belgrade"
+    ],
+    "entity_ids": [
+     "team:partizan_bb"
+    ],
+    "event_type": "negotiation",
+    "event_certainty": "probable",
+    "importance": "high",
+    "primary_competition": null,
+    "classified_by": "rules",
+    "guy": "feed",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "basketball",
+    "entity_ids": [
+     "team:partizan_bb"
+    ],
+    "event_type": "negotiation",
+    "guy": "feed",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C14",
+   "article_id": "rss_a47af1f45ce74cfd72f8",
+   "status": "positive",
+   "fix_owner": "-",
+   "source_id": "ynet_sport",
+   "url": "https://www.ynet.co.il/sport/israelibasketball/article/sybo3iixml",
+   "title": "הדרמה במכבי ת\"א: \"כבר סגרו עם הולמס ופרננדו, לא בטוח שרקנאטי יביא את הסכומים האלה\"",
+   "subtitle": "גורמים במועדון משוכנעים שמשפחת רקנאטי, שרכשה את מניות פדרמן ושטילמן, מסתירה משקיע סודי: \"אין מצב שהביאו את הכסף לבד\". ההאשמות על עיכוב עסקת ים מדר בכוונה, והספקות סביב החוזים הגדולים שכבר נסגרו",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "basketball",
+    "league": "Israeli Basketball League",
+    "entities": [
+     "Maccabi Tel Aviv Basketball"
+    ],
+    "entity_ids": [
+     "team:maccabi_tlv_bb"
+    ],
+    "event_type": "news",
+    "event_certainty": "confirmed",
+    "importance": "medium",
+    "primary_competition": null,
+    "classified_by": "rules",
+    "guy": "feed",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "basketball",
+    "entity_ids": [
+     "team:maccabi_tlv_bb"
+    ],
+    "event_type": "news",
+    "guy": "feed",
+    "deni": "hidden"
+   }
+  },
+  {
+   "case": "C15",
+   "article_id": "rss_457954c5a61f71aa158a",
+   "status": "positive",
+   "fix_owner": "-",
+   "source_id": "walla_sport",
+   "url": "https://sports.walla.co.il/item/3851760",
+   "title": "אחרי שלוש עונות בישראל: ג'סטין סמית' חתם בבודוצ'נוסט",
+   "subtitle": "הפורוורד האמריקאי, ששיחק בשנתיים האחרונות בהפועל ירושלים וקודם לכן בחולון, עבר למונטנגרו. האדומים נפרדו: \"תודה על המחויבות והאנרגיות\"",
+   "llm_proposal": null,
+   "pinned": {
+    "sport": "basketball",
+    "league": "Israeli Basketball League",
+    "entities": [
+     "Hapoel Jerusalem Basketball"
+    ],
+    "entity_ids": [
+     "team:hapoel_jlm_bb"
+    ],
+    "event_type": "signing",
+    "event_certainty": "confirmed",
+    "importance": "medium",
+    "primary_competition": null,
+    "classified_by": "rules",
+    "guy": "feed",
+    "deni": "hidden"
+   },
+   "desired": {
+    "sport": "basketball",
+    "entity_ids": [
+     "team:hapoel_jlm_bb"
+    ],
+    "event_type": "signing",
+    "guy": "feed",
+    "deni": "hidden"
+   }
+  }
+ ]
+}

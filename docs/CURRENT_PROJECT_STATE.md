@@ -1,6 +1,8 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-07-09.
+Last updated: 2026-07-09 (evening — reliability track opened).
+
+**2026-07-09 (later) — Classification & Feed Reliability investigation completed; second active track opened; onboarding gated.** A 15-case trace-level investigation of real feed failures is committed as **`docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`** (canonical evidence — event-assertion semantics defects, LLM-evidence circularity for cross-sport clubs, deterministic-coverage gaps; architecture judged fundamentally sound). Execution home: **[Milestone 3](https://github.com/Guy-Navon/signal-sports/milestone/3) / Epic [#58](https://github.com/Guy-Navon/signal-sports/issues/58)**, issues #59–#65, sequencing principle regression-first (#59 golden fixtures before any fix). **There are now two active tracks that run in parallel:** User Platform (#50 next) and Reliability (#59 next). **Cross-track gate:** User Platform #52 (onboarding) is hard-blocked until the Reliability Sign-off issue [#63](https://github.com/Guy-Navon/signal-sports/issues/63) closes — onboarding/calibration and preference learning must not encode unreliable classification facts. All review checkpoints are now model-independent contracts written in the issue bodies (#52 product review, #54 security/regression review, #63 reliability sign-off) — no future review depends on any specific model or on past conversation history. See §13 for cold-start orientation.
 
 **2026-07-09 — Intelligence Architecture v2 COMPLETE; User Platform PR 1 landed.** The Signal Intelligence Architecture v2 initiative (Epic #27, Milestone 1) is fully landed and closed — the Preference V2 affinity engine serves `/api/feed` (flipped after the shadow checkpoint), Calibration V2 and feedback learning are live, and `docs/RELEVANCE_CONTRACT.md` is the umbrella contract. The **active milestone is User Platform** — real accounts, authentication, onboarding, and per-user isolation. PR #56 / Issue #49 landed the backend Auth Core on main (`users`, `auth_sessions`, `/api/auth/*`, cookie sessions, CSRF, security dependencies, startup ensure-step). Later PRs still own `/api/me/*`, frontend auth, onboarding UX, legacy/ops route gating, explicit test identities, and account lifecycle. The lowest unblocked User Platform issue is #50. Contract in `docs/USER_PLATFORM.md`, execution home [Milestone 2](https://github.com/Guy-Navon/signal-sports/milestone/2) (Epic #48, issues #49–#55). See §13 for cold-start orientation.
 
@@ -561,7 +563,7 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 
 > **The active roadmap is the Signal Intelligence Architecture v2 initiative** — see `docs/INTELLIGENCE_ROADMAP.md` and [Milestone 1](https://github.com/Guy-Navon/signal-sports/milestone/1). The list below predates it and remains for the operational items (benchmarks, source validation) that are still relevant.
 
-> **Active milestone: User Platform** — real accounts, authentication, onboarding, and per-user data isolation wrapped around the existing FACTS → VISIBILITY → PREFERENCE → LEARNING pipeline. Architecture contract: `docs/USER_PLATFORM.md`; implementation is tracked by the User Platform Epic on GitHub. Backend auth/session infrastructure is landed; the next unblocked work is the consumer `/api/me/*` surface (#50), followed by frontend auth and onboarding/admin gating work.
+> **Two active tracks (2026-07-09).** (1) **User Platform** — real accounts, authentication, onboarding, and per-user data isolation wrapped around the existing FACTS → VISIBILITY → PREFERENCE → LEARNING pipeline; contract `docs/USER_PLATFORM.md`; canonical graph in Epic #48; next unblocked issue #50. (2) **Classification & Feed Reliability** — regression-first hardening of classification facts; evidence `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`; canonical graph in Epic #58; next unblocked issue #59. They run in parallel; the single cross-track gate is that **#52 (onboarding) is blocked until Reliability Sign-off #63 closes**.
 
 Priority order:
 
@@ -725,7 +727,7 @@ authoritative, up-to-date summary. Do not trust `docs/IMPLEMENTATION_AUDIT.md`
 as current state — it is an explicitly-marked historical snapshot from before
 the backend and the frontend redesign existed.
 
-**Where things stand (2026-07-08):** Backend is a working FastAPI + SQLite app
+**Where things stand (2026-07-09):** Backend is a working FastAPI + SQLite app
 with real Hebrew RSS ingestion (Walla, Israel Hayom, Ynet, ONE active; Sport5 a
 disabled-by-default scraping pilot), a deterministic classifier with an
 optional LLM overlay, and a large green pytest suite (run
@@ -738,19 +740,65 @@ the umbrella contract for FACTS → VISIBILITY → PREFERENCE → LEARNING. The
 frontend completed a full visual rebuild earlier (Court Vision + PRs A–E) —
 see `docs/FRONTEND_DESIGN_SYSTEM.md`.
 
-**The active milestone is User Platform** — real accounts, authentication,
-onboarding, and strict per-user isolation, wrapped around the intelligence
-pipeline without changing it. Issue #49 / PR #56 landed backend Auth Core on main;
-read `docs/USER_PLATFORM.md` first (it is the authoritative contract), then pick up the lowest unblocked issue in
-[Milestone 2](https://github.com/Guy-Navon/signal-sports/milestone/2)
-(Epic #48; dependency chain #49 → #50 → #51 → { #52 ∥ #53 } → #54 → #55; one
-PR per issue; Fable review checkpoint #49 is complete; #52 and #54 remain future checkpoints). Each
-issue body is a self-contained contract with acceptance criteria, required
-tests, and QA steps. At this point auth/session infrastructure exists, but
-existing product flows are not migrated to `/api/me/*` and legacy/ops route
-gating has not landed; `user_id` remains caller-supplied on those legacy
-routes. The two seeded demo profiles (`guy`, `casual_deni_fan`) now also have
-credential-less demo `users` rows and remain permanent QA fixtures.
+**There are two active tracks (2026-07-09), designed to run in parallel:**
+
+1. **User Platform** (Milestone 2, Epic #48, issues #49–#55) — real accounts,
+   authentication, onboarding, and strict per-user isolation, wrapped around
+   the intelligence pipeline without changing it. Issue #49 / PR #56 landed
+   backend Auth Core on main; auth/session infrastructure exists, but product
+   flows are not yet migrated to `/api/me/*` and legacy/ops route gating has
+   not landed (`user_id` remains caller-supplied on legacy routes). Contract:
+   `docs/USER_PLATFORM.md`. **The canonical dependency graph, issue states,
+   and review gates live in Epic #48 — trust it over any doc snapshot.**
+   Next unblocked issue: #50.
+2. **Classification & Feed Reliability** (Milestone 3, Epic #58, issues
+   #59–#65) — regression-first hardening of classification facts, driven by
+   the 15-case investigation `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`.
+   **The canonical dependency graph lives in Epic #58.** Next unblocked issue:
+   #59 (golden-15 fixtures — must land before any behavior-changing fix).
+
+**The single cross-track gate:** User Platform **#52 (onboarding) is
+hard-blocked until the Reliability Sign-off issue #63 closes** — onboarding
+routes new users through calibration inference and first-impression feeds,
+which must not be built on unreliable classification facts. Everything else
+in both tracks is parallel-safe (auth/frontend files vs classification files;
+near-zero overlap).
+
+**Review gates are model-independent contracts written in the issue bodies**
+(#52 Product Review — human product judgment; #54 Security/Authorization
+Review + Regression Gate; #63 Reliability Sign-off). No review step depends
+on any specific model, tool, or past conversation. Each issue body is a
+self-contained contract with scope, non-goals, acceptance criteria, required
+tests, verification, and a handoff requirement for the finishing PR.
+
+The two seeded demo profiles (`guy`, `casual_deni_fan`) have credential-less
+demo `users` rows and remain permanent QA fixtures; zero unintended decision
+drift for either profile is a standing regression requirement across both
+tracks.
+
+**Reusable startup prompt for any implementing agent** (Claude Code, Codex,
+or other — no prior context assumed):
+
+> You are working on Signal Sports. Read `docs/CURRENT_PROJECT_STATE.md`
+> fully (especially §13), then the epic for your track (GitHub #48 for User
+> Platform, #58 for Reliability) to find the canonical dependency graph, then
+> read your assigned issue completely, including its architecture-contract
+> links (`docs/USER_PLATFORM.md` or
+> `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md` +
+> `docs/RELEVANCE_CONTRACT.md`). Before writing code: verify the issue's
+> dependencies are actually closed and that no blocker section says
+> "do not start". Implement only what the issue scopes — its Non-goals
+> section is binding; if you believe scope must grow, comment on the issue
+> instead of expanding silently. Preserve the standing invariants: the two
+> demo profiles' decisions must not drift unintentionally, positive
+> regression cases must stay green, push happens only via explicit overrides,
+> the corpus DB is never reset, and the frozen JS engine stays frozen. Run
+> the issue's required tests plus the full backend suite (and frontend
+> test/lint/build when touched). Update docs the issue names. Open a PR that
+> reports against the issue's Handoff requirement section: what changed, what
+> was preserved, test evidence, replay/QA deltas where required, and known
+> gaps. If your issue has a review-gate section, request that review
+> explicitly and do not merge without it.
 
 **Working-style rules that have held throughout this project** (confirm they
 still apply, but they've been consistent):

@@ -12,12 +12,16 @@ unblocked User Platform issue is #50.
 **Execution home:**
 [GitHub Milestone 2 "User Platform"](https://github.com/Guy-Navon/signal-sports/milestone/2)
 · Epic [#48](https://github.com/Guy-Navon/signal-sports/issues/48) · issues #49–#55
-(one PR per issue). Dependency chain: **#49 → #50 → #51 → { #52 ∥ #53 } → #54 → #55**
-(#54 depends on #53 and accounts for #52's integration state). Fable review checkpoints
-before merge: **#49** (auth/session/identity architecture), **#52** (onboarding
-product/UX), **#54** (authorization enforcement + regression). An implementation agent
-picking up this milestone cold should read this document fully, then take the lowest
-unblocked issue — each issue body is a self-contained contract.
+(one PR per issue). **Epic #48 holds the canonical dependency graph and issue states —
+this document deliberately does not duplicate it.** One cross-track gate: **#52
+(onboarding) is hard-blocked by the Classification & Feed Reliability sign-off
+([#63](https://github.com/Guy-Navon/signal-sports/issues/63), Epic #58, Milestone 3)**;
+all other issues here are independent of that track and may proceed in parallel with it.
+Review gates are model-independent contracts defined in the issue bodies: **#52**
+(Product Review — Onboarding), **#54** (Security/Authorization Review + Regression
+Gate); #49's architecture review completed 2026-07-08. An implementation agent picking
+up this milestone cold should read this document fully, then take the lowest unblocked
+issue per Epic #48 — each issue body is a self-contained contract.
 
 ## What this milestone is
 
@@ -354,7 +358,7 @@ test/lint/typecheck/build when touched, docs truth sweep, corpus DB never reset.
 Authoritative per-issue detail lives in the GitHub issues: PR 1 = #49, PR 2 = #50,
 PR 3 = #51, PR 4 = #52, PR 5 = #53, PR 6 = #54, PR 7 = #55 (Epic #48, Milestone 2).
 
-1. **Auth core (backend)** ⭐ Fable review — **complete on main via PR #56 / Issue #49**:
+1. **Auth core (backend)** ⭐ architecture review (completed) — **complete on main via PR #56 / Issue #49**:
    users/auth_sessions tables (FK + pragma), auth service + `/api/auth/*`, security
    deps, bypass flag + startup guard, CSRF middleware, ensure-step (demo users
    backfill + admin bootstrap). Legacy routes untouched.
@@ -362,13 +366,16 @@ PR 3 = #51, PR 4 = #52, PR 5 = #53, PR 6 = #54, PR 7 = #55 (Epic #48, Milestone 
    signup creates the profile row; onboarding block in the session payload.
 3. **Frontend auth shell** — AuthContext, login/signup pages, account menu, 401 handling;
    runtime-adaptive (bypass ⇒ today's UI exactly).
-4. **Onboarding flow** ⭐ Fable review — the state machine end-to-end: welcome, calibration
+4. **Onboarding flow** ⭐ Product Review gate — the state machine end-to-end: welcome, calibration
    resume-awareness, empty-feed prompt + calibrate banner, routing guards.
+   **Cross-track blocker: requires the Classification & Feed Reliability sign-off
+   (issue #63, Epic #58) before starting** — onboarding feeds Calibration V2 inference
+   and first impressions off classification facts.
 5. **Admin gating + ops view-as** — legacy `{user_id}` + ops routes gain `require_admin`,
    enforced by default from this PR (fail closed); ProfileSwitcher moves to the ops console
    as QA view-as; AppContext split. Transitional, time-boxed compat: conftest + dev `.env`
    set `ALLOW_INSECURE_AUTH_BYPASS=true` explicitly until PR 6.
-6. **Enforcement verification + explicit test identities** ⭐ Fable review — remove the
+6. **Enforcement verification + explicit test identities** ⭐ Security/Regression review gate — remove the
    transitional bypass; replace the single implicit test client with explicit
    `anonymous_client` / `user_client` / `admin_client` fixtures (one shared app instance,
    separate cookie jars); migrate legacy tests to the right fixture per route contract;
@@ -378,8 +385,12 @@ PR 3 = #51, PR 4 = #52, PR 5 = #53, PR 6 = #54, PR 7 = #55 (Epic #48, Milestone 
    deletion cascade + account page, expired-session pruning, limiter tuning,
    admin-mutation logging.
 
-**Fable review checkpoints**: PR 1 (auth/session/identity architecture), PR 4 (onboarding
-product/UX), PR 6 (authorization enforcement + regression).
+**Review gates** (model-independent — the reviewer may be a human or any capable agent
+that is not the implementer; the full entry criteria / evidence / approval contracts
+live in the issue bodies): PR 1 auth/session/identity architecture review (completed
+2026-07-08); PR 4 (#52) Product Review — Onboarding, a genuine human product-judgment
+gate; PR 6 (#54) Security/Authorization Review + Regression Gate. PR 4 is additionally
+hard-blocked by the Reliability Sign-off (#63) — see Epic #58.
 
 ## Risks
 
@@ -433,3 +444,11 @@ bypass semantics).
   yet landed on main.
 - 2026-07-09 — PR #56 merged for Issue #49 backend Auth Core. Later User Platform
   issues remain unimplemented; #50 is the next unblocked issue.
+- 2026-07-09 (later) — Cross-track gate added: #52 (onboarding) is hard-blocked by the
+  Classification & Feed Reliability sign-off (#63, Epic #58, Milestone 3) because
+  onboarding feeds Calibration V2 inference and first impressions off classification
+  facts (evidence: docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md). #52 may now land
+  before or after #54; both orders are handled in the issue bodies. All review
+  checkpoints converted to model-independent contracts (Product Review for #52,
+  Security/Authorization + Regression for #54) defined in the issue bodies; Epic #48
+  is the single canonical home of the dependency graph.

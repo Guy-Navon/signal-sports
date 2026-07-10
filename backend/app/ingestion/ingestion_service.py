@@ -301,6 +301,11 @@ def _normalise(
         gate_should_call=(gate.should_call_llm if gate is not None else None),
         gate_reason=(gate.reason if gate is not None else None),
         classified_by=classified_by,
+        # Provenance (issue #61): only deterministically text-resolved entities
+        # may act as entity_derived sport evidence; LLM-appended and
+        # enrichment-injected entities are sport-derived, not sport evidence.
+        text_resolved_entities=rules_result.entities,
+        enrichment_injected=injected,
     )
     final_result = _apply_post_facts_event_validation(
         final_result,

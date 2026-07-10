@@ -66,18 +66,14 @@
    "pinned": {
     "sport": "basketball",
     "league": null,
-    "entities": [
-     "Maccabi Tel Aviv Basketball"
-    ],
-    "entity_ids": [
-     "team:maccabi_tlv_bb"
-    ],
+    "entities": [],
+    "entity_ids": [],
     "event_type": "signing",
     "event_certainty": "confirmed",
     "importance": "high",
     "primary_competition": null,
     "classified_by": "llm",
-    "guy": "push",
+    "guy": "hidden",
     "deni": "hidden"
    },
    "desired": {
@@ -114,18 +110,14 @@
    "pinned": {
     "sport": "basketball",
     "league": null,
-    "entities": [
-     "Maccabi Tel Aviv Basketball"
-    ],
-    "entity_ids": [
-     "team:maccabi_tlv_bb"
-    ],
+    "entities": [],
+    "entity_ids": [],
     "event_type": "news",
     "event_certainty": "confirmed",
     "importance": "medium",
     "primary_competition": null,
     "classified_by": "llm+rules_guardrail",
-    "guy": "feed",
+    "guy": "hidden",
     "deni": "hidden"
    },
    "desired": {
@@ -162,18 +154,14 @@
    "pinned": {
     "sport": "basketball",
     "league": null,
-    "entities": [
-     "Maccabi Tel Aviv Basketball"
-    ],
-    "entity_ids": [
-     "team:maccabi_tlv_bb"
-    ],
+    "entities": [],
+    "entity_ids": [],
     "event_type": "negotiation",
     "event_certainty": "probable",
     "importance": "high",
     "primary_competition": null,
     "classified_by": "llm+rules_guardrail",
-    "guy": "push",
+    "guy": "hidden",
     "deni": "hidden"
    },
    "desired": {

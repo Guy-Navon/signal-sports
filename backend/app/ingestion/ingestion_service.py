@@ -70,10 +70,18 @@ def _apply_post_facts_event_validation(
     final_result,
     *,
     facts,
-    evidence_text: str,
+    title_lower: str,
+    subtitle_lower: str,
     source_id: str,
 ):
-    """Idempotent final event check after ArticleFacts may correct sport."""
+    """Idempotent final event check after ArticleFacts may correct sport.
+
+    Validity is checked over title + subtitle combined; certainty is
+    title-first (issue #60): an event whose evidence lives only in the
+    subtitle never carries "confirmed" certainty, and a non-confirmed
+    championship event never carries very_high importance.
+    """
+    evidence_text = f"{title_lower} {subtitle_lower}".strip()
     source = "llm" if final_result.event_certainty == "weak" else "rules"
     event_evidence = validate_event_evidence(
         final_result.event_type,
@@ -83,7 +91,29 @@ def _apply_post_facts_event_validation(
     )
     corrected = not event_evidence.valid
     if event_evidence.valid:
-        final_result.event_certainty = event_evidence.certainty
+        certainty = event_evidence.certainty
+        if certainty == "confirmed":
+            title_evidence = validate_event_evidence(
+                final_result.event_type,
+                title_lower,
+                source=source,
+                sport=facts.sport,
+            )
+            if not title_evidence.valid:
+                certainty = "probable"  # subtitle-only evidence caps at probable
+        final_result.event_certainty = certainty
+        recomputed = compute_importance(
+            final_result.event_type, facts.entities, facts.league,
+            event_certainty=certainty,
+        )
+        # Only the certainty gate may LOWER importance here (very_high → high
+        # for non-confirmed championship events); never raise past the merge's
+        # never-downgrade guardrail semantics.
+        if (
+            final_result.importance == "very_high"
+            and recomputed != "very_high"
+        ):
+            final_result.importance = recomputed
     else:
         final_result.event_type = "news"
         final_result.event_certainty = "confirmed"
@@ -275,7 +305,8 @@ def _normalise(
     final_result = _apply_post_facts_event_validation(
         final_result,
         facts=facts,
-        evidence_text=f"{title_lower} {subtitle.lower() if subtitle else ''}",
+        title_lower=title_lower,
+        subtitle_lower=subtitle.lower() if subtitle else "",
         source_id=cfg.source_id,
     )
 

@@ -410,3 +410,117 @@ class TestBackfillAndPersistence:
         assert a["entity_ids"] == []
         assert a["classification_trace"] is None
         assert a["taxonomy_version"] is None
+
+
+class TestLLMEvidenceCircularity:
+    """Issue #61: one uncertain LLM inference must not become multiple
+    fake-independent signals, and a derived cross-sport entity must not
+    persist without explicit sport evidence."""
+
+    def _llm(self, sport="basketball", entities=()):
+        from app.classification.llm_result import LLMClassificationResult
+        return LLMClassificationResult(
+            sport=sport, league=None, entities=list(entities),
+            event_type="signing", importance="high", confidence=0.9,
+            reason="test",
+        )
+
+    def test_llm_appended_cross_sport_entity_dropped_without_explicit_sport(self):
+        # The golden C2 mechanism: ambiguous-club title, no sport keywords
+        # anywhere, LLM guesses basketball and names the basketball club. The
+        # merged result carries the entity — the facts stage must refuse to
+        # persist it (and its id) because the sport is LLM-only.
+        merged = ClassificationResult(
+            sport="basketball", league=None,
+            entities=["Maccabi Tel Aviv Basketball"],
+            event_type="signing", importance="high", confidence=0.9,
+            tags=[], event_certainty="confirmed",
+        )
+        f = build_article_facts(
+            title='דן גלזר חתם במכבי ת"א', subtitle=None, url="",
+            source_id="ynet_sport", source_sport_hint=None,
+            result=merged, llm_raw=self._llm(entities=["Maccabi Tel Aviv Basketball"]),
+            classified_by="llm",
+            text_resolved_entities=[],   # nothing was resolved from text
+        )
+        assert f.entities == []
+        assert f.entity_ids == []
+        assert any(
+            c["rule"] == "cross_sport_entity_requires_explicit_sport"
+            for c in f.conflicts
+        )
+        # The sport survives with honest (non-explicit) provenance in the trace.
+        assert f.sport == "basketball"
+        sources = {e["source"] for e in f.trace["sport"]["evidence"]}
+        assert "entity_derived" not in sources  # no laundered evidence
+
+    def test_derived_entity_never_counts_as_entity_derived_evidence(self):
+        merged = ClassificationResult(
+            sport="basketball", league=None,
+            entities=["Maccabi Tel Aviv Basketball"],
+            event_type="news", importance="medium", confidence=0.8,
+            tags=[], event_certainty="confirmed",
+        )
+        f = build_article_facts(
+            title="כותרת ניטרלית", subtitle=None, url="", source_id="ynet_sport",
+            source_sport_hint=None, result=merged, llm_raw=self._llm(),
+            classified_by="llm", text_resolved_entities=[],
+        )
+        assert all(
+            e["source"] != "entity_derived" for e in f.trace["sport"]["evidence"]
+        )
+
+    def test_text_resolved_cross_sport_entity_is_exempt(self):
+        # Golden C4 shape: the deterministic resolver produced the football
+        # club under its own (broader) sport evidence; the facts stage must
+        # not second-guess it even when its narrower context keywords see no
+        # explicit football evidence.
+        r = classify(
+            "כמות הכרטיסים שמכרה מכבי תל אביב לאלוף האלופים בטרנר",
+            source_id="walla_sport", language="he",
+            subtitle="שמונה ימים לפני המפגש עם הפועל באר שבע",
+        )
+        assert "Maccabi Tel Aviv Football" in r.entities
+        f = build_article_facts(
+            title="כמות הכרטיסים שמכרה מכבי תל אביב לאלוף האלופים בטרנר",
+            subtitle="שמונה ימים לפני המפגש עם הפועל באר שבע",
+            url="", source_id="walla_sport", source_sport_hint=None,
+            result=r, classified_by="rules",
+            text_resolved_entities=r.entities,
+        )
+        assert "Maccabi Tel Aviv Football" in f.entities
+
+    def test_explicit_sport_support_keeps_derived_entity(self):
+        # With a source URL hint (explicit, weight 100) the derived entity may
+        # persist — the sport is proven independently of the LLM.
+        merged = ClassificationResult(
+            sport="basketball", league=None,
+            entities=["Maccabi Tel Aviv Basketball"],
+            event_type="signing", importance="high", confidence=0.9,
+            tags=[], event_certainty="confirmed",
+        )
+        f = build_article_facts(
+            title='דן גלזר חתם במכבי ת"א', subtitle=None, url="",
+            source_id="ynet_sport", source_sport_hint="basketball",
+            result=merged, llm_raw=self._llm(entities=["Maccabi Tel Aviv Basketball"]),
+            classified_by="llm", text_resolved_entities=[],
+        )
+        assert "Maccabi Tel Aviv Basketball" in f.entities
+
+    def test_enrichment_provenance_recorded_in_trace(self):
+        merged = ClassificationResult(
+            sport="basketball", league=None,
+            entities=["Maccabi Tel Aviv Basketball"],
+            event_type="signing", importance="high", confidence=0.9,
+            tags=[], event_certainty="confirmed",
+        )
+        f = build_article_facts(
+            title='דן גלזר חתם במכבי ת"א', subtitle=None, url="",
+            source_id="ynet_sport", source_sport_hint="basketball",
+            result=merged, llm_raw=None, classified_by="llm+rules_guardrail",
+            text_resolved_entities=[],
+            enrichment_injected=["Maccabi Tel Aviv Basketball"],
+        )
+        assert f.trace["entities"]["enrichment_injected"] == [
+            "Maccabi Tel Aviv Basketball"
+        ]

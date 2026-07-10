@@ -44,6 +44,7 @@ from app.taxonomy import (
     COMPETITIONS,
     TAXONOMY_VERSION,
     entity_by_legacy_name,
+    is_cross_sport_ambiguous,
     legacy_sport,
     resolve_mention,
 )
@@ -178,7 +179,13 @@ def _collect_sport_evidence(
     llm_raw: Optional[LLMClassificationResult],
 ) -> list[dict]:
     """Weighted sport-evidence candidates, strongest first. Bare club-family names
-    are NOT sport evidence (removed entity→basketball bias)."""
+    are NOT sport evidence (removed entity→basketball bias).
+
+    ``entities`` here must be TEXT-RESOLVED entities only (deterministic
+    resolver output). LLM-proposed and enrichment-injected entities are
+    derived FROM a sport decision, so counting them as ``entity_derived``
+    sport evidence would launder one uncertain inference into a second,
+    fake-independent signal (issue #61 — the C2/C3 circularity)."""
     evidence: list[dict] = []
 
     if source_sport_hint:
@@ -308,6 +315,8 @@ def build_article_facts(
     gate_should_call: Optional[bool] = None,
     gate_reason: Optional[str] = None,
     classified_by: str = "rules",
+    text_resolved_entities: Optional[list[str]] = None,
+    enrichment_injected: Optional[list[str]] = None,
 ) -> ArticleFacts:
     """Validate a completed classification into evidence-backed ArticleFacts.
 
@@ -333,9 +342,17 @@ def build_article_facts(
         if cid not in explicit_comp_ids:
             explicit_comp_ids.append(cid)
 
+    # entity_derived evidence comes from TEXT-RESOLVED entities only (#61):
+    # entities that entered via the LLM proposal or post-merge enrichment are
+    # sport-derived and must not confirm the sport that created them.
+    if text_resolved_entities is not None:
+        derived_pool = [e for e in result.entities if e in text_resolved_entities]
+    else:
+        derived_pool = list(result.entities)
+
     sport_evidence = _collect_sport_evidence(
         title_l, sub_l, source_id, source_sport_hint, explicit_comp_ids,
-        result.entities, llm_raw,
+        derived_pool, llm_raw,
     )
 
     # ── Sport resolution: ENFORCE the weight order (B1) ───────────────────────
@@ -369,6 +386,42 @@ def build_article_facts(
             dropped_entities.append({"entity": e, "entity_sport": e_sport, "article_sport": sport})
         else:
             kept_entities.append(e)
+
+    # ── Cross-sport identity invariant (issue #61) ────────────────────────────
+    # A DERIVED entity (LLM-proposed or enrichment-injected — i.e., NOT
+    # resolved from the text by the deterministic resolver) whose name cannot
+    # prove its sport (shared cross-sport alias or guarded club) may persist
+    # only when the article sport is backed by EXPLICIT evidence. Without it,
+    # the sport is at best an LLM guess, and persisting the sport-specific
+    # entity would launder that guess into a trusted fact (the C2/C3
+    # false-push mechanism). Text-resolved entities are exempt: the resolver
+    # only resolves cross-sport names under sport evidence in the first place
+    # (its evidence set is broader than this stage's context keywords — e.g.
+    # club names in the sport-detection lists), so re-checking its work here
+    # would create false drops. Abstention beats guessing: the entity is
+    # dropped-with-record; the sport keeps its honest provenance.
+    if (
+        kept_entities
+        and text_resolved_entities is not None
+        and not _sport_has_explicit_support(sport_evidence, sport)
+    ):
+        surviving: list[str] = []
+        for e in kept_entities:
+            ent = entity_by_legacy_name(e)
+            if (
+                e not in text_resolved_entities
+                and ent is not None
+                and is_cross_sport_ambiguous(ent)
+            ):
+                conflicts.append({
+                    "field": "entity",
+                    "candidates": [f"{e} (cross-sport name, derived provenance)"],
+                    "winner": None,
+                    "rule": "cross_sport_entity_requires_explicit_sport",
+                })
+            else:
+                surviving.append(e)
+        kept_entities = surviving
 
     # Abstention: entities were dropped for conflicting with a sport that has no
     # explicit support of its own — the article sport is not trustworthy. Collapse
@@ -480,6 +533,9 @@ def build_article_facts(
             "alias_to_id": alias_to_id,
             "dropped": dropped_entities,
             "rejected_llm_mentions": rejected_mentions,
+            # Provenance (issue #61): entities injected by post-merge
+            # enrichment — never counted as entity_derived sport evidence.
+            "enrichment_injected": list(enrichment_injected or []),
         },
         "llm": llm_trace,
         "conflicts": conflicts,

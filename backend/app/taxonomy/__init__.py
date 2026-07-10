@@ -27,6 +27,7 @@ from app.taxonomy.entities import (
 )
 from app.taxonomy.resolver import (
     EntityResolution,
+    is_cross_sport_ambiguous,
     resolve_entities,
     resolve_mention,
 )
@@ -43,6 +44,7 @@ __all__ = [
     "FAMILY_NAMES",
     "entity_by_id",
     "entity_by_legacy_name",
+    "is_cross_sport_ambiguous",
     "entities_by_sport",
     "legacy_sport",
     "EntityResolution",

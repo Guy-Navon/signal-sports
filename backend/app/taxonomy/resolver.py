@@ -127,6 +127,28 @@ def resolve_entities(text: str, sport_context: Optional[str] = None) -> EntityRe
     return result
 
 
+# Entity ids whose textual identity is NOT sport-safe on its own: either the
+# entity shares an alias with an entity of a different sport (מכבי תל אביב,
+# הפועל ירושלים, …) or it is guarded (European multi-sport clubs whose bare
+# name usually means the football side). Persisting such an entity requires
+# the article sport to be backed by explicit evidence (issue #61).
+_CROSS_SPORT_AMBIGUOUS_IDS: frozenset[str] = frozenset(
+    e.id
+    for e in ENTITIES.values()
+    if e.guarded
+    or any(
+        other.sport != e.sport
+        for a in e.aliases
+        for other in _ALIAS_INDEX.get(a.lower(), ())
+    )
+)
+
+
+def is_cross_sport_ambiguous(entity: TaxonomyEntity) -> bool:
+    """True when this entity's name alone cannot prove its sport."""
+    return entity.id in _CROSS_SPORT_AMBIGUOUS_IDS
+
+
 def resolve_mention(raw: str, sport_context: Optional[str] = None) -> Optional[TaxonomyEntity]:
     """Resolve a discrete mention string (e.g. an LLM entity output) exactly.
 

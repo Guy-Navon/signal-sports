@@ -1,8 +1,10 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-07-10 (reliability fixes #59–#62 landed; awaiting #63 sign-off).
+Last updated: 2026-07-10 (Reliability Sign-off #63 CLOSED — approved; #52 unblocked).
 
-**2026-07-10 — Reliability core fixes LANDED (#59–#62, PRs #66–#69); #63 sign-off pending one human product confirmation.** The golden-15 regression suite is in the tree (`backend/tests/test_golden_cases.py` — all 17 cases now positive, real-pipeline replay, both profiles); event-assertion semantics (#60), LLM-evidence circularity provenance (#61), and hint/keyword/taxonomy coverage (#62) are merged. Corpus results (311 articles, replay + persisted backfill with a DB backup at `backend/data/signal_sports.pre_reliability_backfill.backup.db`): title_win 19→4, finals_result 63→31, Guy pushes 13→7 (all seven trace to explicit overrides on verified facts), **zero casual_deni_fan decision changes**, zero newly-visible noise, C2/C8 cross-vendor parity. Snapshots: `docs/qa/reliability_baseline.json` (pre) / `docs/qa/reliability_post_fix.json` (post). §8/§10 known-defect callouts below describe the pre-fix state — the defect classes are now structurally controlled; residual imprecision (4 title_win rows, finals_result features) is documented in issue #63's evidence. **#52 (onboarding) stays blocked until #63 closes with the human confirmation.**
+**2026-07-10 (later) — RELIABILITY SIGN-OFF APPROVED; #63 CLOSED; onboarding gate LIFTED.** The product owner approved the sign-off after one requested follow-up (PR #70: silver/bronze medal placement is no longer a title win; gold preserved). Final corpus state @ `6e6fff9`: title_win 19→3 (1 genuine + 2 accepted decision-neutral edge cases), finals_result 63→31, Guy pushes 13→7 (all explicit-override-backed; the 4× Madar duplication is a recorded **clustering/dedup product gap**, not a push-discipline failure), **zero casual_deni_fan drift**. **#52 (onboarding) is unblocked** and depends on #51 only. Reliability leftovers: #64 (open product decisions), #65 (non-gating). The golden-17 suite (`backend/tests/test_golden_cases.py`) is a standing regression contract for any future classification change.
+
+**2026-07-10 — Reliability core fixes LANDED (#59–#62, PRs #66–#69); #63 sign-off pending one human product confirmation.** The golden-15 regression suite is in the tree (`backend/tests/test_golden_cases.py` — all 17 cases now positive, real-pipeline replay, both profiles); event-assertion semantics (#60), LLM-evidence circularity provenance (#61), and hint/keyword/taxonomy coverage (#62) are merged. Corpus results (311 articles, replay + persisted backfill with a DB backup at `backend/data/signal_sports.pre_reliability_backfill.backup.db`): title_win 19→4, finals_result 63→31, Guy pushes 13→7 (all seven trace to explicit overrides on verified facts), **zero casual_deni_fan decision changes**, zero newly-visible noise, C2/C8 cross-vendor parity. Snapshots: `docs/qa/reliability_baseline.json` (pre) / `docs/qa/reliability_post_fix.json` (post). §8/§10 known-defect callouts below describe the pre-fix state — the defect classes are now structurally controlled; residual imprecision (4 title_win rows, finals_result features) is documented in issue #63's evidence. (Superseded by the entry above: #63 has since closed and #52 is unblocked.)
 
 **2026-07-09 (later) — Classification & Feed Reliability investigation completed; second active track opened; onboarding gated.** A 15-case trace-level investigation of real feed failures is committed as **`docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`** (canonical evidence — event-assertion semantics defects, LLM-evidence circularity for cross-sport clubs, deterministic-coverage gaps; architecture judged fundamentally sound). Execution home: **[Milestone 3](https://github.com/Guy-Navon/signal-sports/milestone/3) / Epic [#58](https://github.com/Guy-Navon/signal-sports/issues/58)**, issues #59–#65, sequencing principle regression-first (#59 golden fixtures before any fix). **There are now two active tracks that run in parallel:** User Platform (#50 next) and Reliability (#59 next). **Cross-track gate:** User Platform #52 (onboarding) is hard-blocked until the Reliability Sign-off issue [#63](https://github.com/Guy-Navon/signal-sports/issues/63) closes — onboarding/calibration and preference learning must not encode unreliable classification facts. All review checkpoints are now model-independent contracts written in the issue bodies (#52 product review, #54 security/regression review, #63 reliability sign-off) — no future review depends on any specific model or on past conversation history. See §13 for cold-start orientation.
 
@@ -591,7 +593,7 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 
 > **Historical note:** an earlier version of this section pointed to the Signal Intelligence Architecture v2 roadmap — that initiative is **complete and closed** (Epic #27, Milestone 1; see `docs/INTELLIGENCE_ROADMAP.md` for its history). The authoritative execution order now lives in the two GitHub epics referenced below. The numbered list at the end of this section is a **non-authoritative operational backlog** kept for reference — verify each item against the epics and current code before acting.
 
-> **Two active tracks (2026-07-09).** (1) **User Platform** — real accounts, authentication, onboarding, and per-user data isolation wrapped around the existing FACTS → VISIBILITY → PREFERENCE → LEARNING pipeline; contract `docs/USER_PLATFORM.md`; canonical graph in Epic #48; next unblocked issue #50. (2) **Classification & Feed Reliability** — regression-first hardening of classification facts; evidence `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`; canonical graph in Epic #58; next unblocked issue #59. They run in parallel; the single cross-track gate is that **#52 (onboarding) is blocked until Reliability Sign-off #63 closes**. **Canonical next actions: close #63 (evidence posted; one human product confirmation pending), User Platform #50 (parallel); then follow the epic dependency graphs.**
+> **Two active tracks (2026-07-09).** (1) **User Platform** — real accounts, authentication, onboarding, and per-user data isolation wrapped around the existing FACTS → VISIBILITY → PREFERENCE → LEARNING pipeline; contract `docs/USER_PLATFORM.md`; canonical graph in Epic #48; next unblocked issue #50. (2) **Classification & Feed Reliability** — regression-first hardening of classification facts; evidence `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`; canonical graph in Epic #58; next unblocked issue #59. They run in parallel; the single cross-track gate is that **#52 (onboarding) is blocked until Reliability Sign-off #63 closes**. **Canonical next actions: User Platform #50 (primary; then #51 → {#52 ∥ #53} per Epic #48). Reliability track core COMPLETE (#59–#63 closed); #64/#65 remain open, non-blocking.**
 
 Non-authoritative operational backlog (historical numbering preserved):
 
@@ -790,16 +792,15 @@ see `docs/FRONTEND_DESIGN_SYSTEM.md`.
    #59–#65) — regression-first hardening of classification facts, driven by
    the 15-case investigation `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`.
    **The canonical dependency graph lives in Epic #58.** State 2026-07-10:
-   #59–#62 landed (PRs #66–#69, all 17 golden cases positive); #63 evidence
-   posted, awaiting one human product confirmation; #64 product decisions
-   open; #65 non-gating.
+   **core track COMPLETE** — #59–#63 closed (PRs #66–#70), sign-off approved,
+   all 17 golden cases positive. Open: #64 (product decisions), #65
+   (non-gating LLM eval). Next unblocked work is User Platform #50.
 
-**The single cross-track gate:** User Platform **#52 (onboarding) is
-hard-blocked until the Reliability Sign-off issue #63 closes** — onboarding
-routes new users through calibration inference and first-impression feeds,
-which must not be built on unreliable classification facts. Everything else
-in both tracks is parallel-safe (auth/frontend files vs classification files;
-near-zero overlap).
+**Cross-track gate: CLEARED (2026-07-10).** Reliability Sign-off #63 closed
+with the full evidence bundle and product approval — #52 (onboarding) now
+depends on #51 only. The golden-17 suite plus the committed QA snapshots
+(`docs/qa/reliability_baseline.json`, `docs/qa/reliability_post_fix.json`)
+are the standing regression contract for classification behavior.
 
 **Review gates are model-independent contracts written in the issue bodies**
 (#52 Product Review — human product judgment; #54 Security/Authorization

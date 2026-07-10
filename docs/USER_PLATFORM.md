@@ -13,10 +13,10 @@ unblocked User Platform issue is #50.
 [GitHub Milestone 2 "User Platform"](https://github.com/Guy-Navon/signal-sports/milestone/2)
 · Epic [#48](https://github.com/Guy-Navon/signal-sports/issues/48) · issues #49–#55
 (one PR per issue). **Epic #48 holds the canonical dependency graph and issue states —
-this document deliberately does not duplicate it.** One cross-track gate: **#52
-(onboarding) is hard-blocked by the Classification & Feed Reliability sign-off
-([#63](https://github.com/Guy-Navon/signal-sports/issues/63), Epic #58, Milestone 3)**;
-all other issues here are independent of that track and may proceed in parallel with it.
+this document deliberately does not duplicate it.** The former cross-track gate on #52
+(Classification & Feed Reliability sign-off,
+[#63](https://github.com/Guy-Navon/signal-sports/issues/63)) **cleared 2026-07-10** —
+#52 depends on #51 only.
 Review gates are model-independent contracts defined in the issue bodies: **#52**
 (Product Review — Onboarding), **#54** (Security/Authorization Review + Regression
 Gate); #49's architecture review completed 2026-07-08. An implementation agent picking
@@ -368,9 +368,8 @@ PR 3 = #51, PR 4 = #52, PR 5 = #53, PR 6 = #54, PR 7 = #55 (Epic #48, Milestone 
    runtime-adaptive (bypass ⇒ today's UI exactly).
 4. **Onboarding flow** ⭐ Product Review gate — the state machine end-to-end: welcome, calibration
    resume-awareness, empty-feed prompt + calibrate banner, routing guards.
-   **Cross-track blocker: requires the Classification & Feed Reliability sign-off
-   (issue #63, Epic #58) before starting** — onboarding feeds Calibration V2 inference
-   and first impressions off classification facts.
+   The former cross-track reliability blocker (#63) cleared 2026-07-10 with the
+   sign-off approval — this PR depends on PR 3 only.
 5. **Admin gating + ops view-as** — legacy `{user_id}` + ops routes gain `require_admin`,
    enforced by default from this PR (fail closed); ProfileSwitcher moves to the ops console
    as QA view-as; AppContext split. Transitional, time-boxed compat: conftest + dev `.env`
@@ -389,8 +388,8 @@ PR 3 = #51, PR 4 = #52, PR 5 = #53, PR 6 = #54, PR 7 = #55 (Epic #48, Milestone 
 that is not the implementer; the full entry criteria / evidence / approval contracts
 live in the issue bodies): PR 1 auth/session/identity architecture review (completed
 2026-07-08); PR 4 (#52) Product Review — Onboarding, a genuine human product-judgment
-gate; PR 6 (#54) Security/Authorization Review + Regression Gate. PR 4 is additionally
-hard-blocked by the Reliability Sign-off (#63) — see Epic #58.
+gate; PR 6 (#54) Security/Authorization Review + Regression Gate. PR 4's former reliability
+gate (#63) cleared 2026-07-10.
 
 ## Risks
 
@@ -444,6 +443,9 @@ bypass semantics).
   yet landed on main.
 - 2026-07-09 — PR #56 merged for Issue #49 backend Auth Core. Later User Platform
   issues remain unimplemented; #50 is the next unblocked issue.
+- 2026-07-10 — Cross-track gate CLEARED: Reliability Sign-off #63 closed (Epic #58
+  complete for the core track, PRs #66–#70; golden-17 suite green; zero demo-profile
+  drift). #52 unblocked, depends on #51 only.
 - 2026-07-09 (later) — Cross-track gate added: #52 (onboarding) is hard-blocked by the
   Classification & Feed Reliability sign-off (#63, Epic #58, Milestone 3) because
   onboarding feeds Calibration V2 inference and first impressions off classification

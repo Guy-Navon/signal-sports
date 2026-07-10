@@ -22,9 +22,11 @@ import './index.css';
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClientInstance}>
-      <AppProvider>
-        <BrowserRouter>
-          <AuthProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          {/* AppProvider consumes AuthContext for the consumer/QA data split
+              (User Platform PR 5, #53) — it must sit below AuthProvider. */}
+          <AppProvider>
             <Routes>
               {/* Auth pages: product-styled routes OUTSIDE both AppShell groups
                   (PageNotFound precedent). Redirect away in local/bypass modes. */}
@@ -48,9 +50,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               </Route>
               <Route path="*" element={<PageNotFound />} />
             </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </AppProvider>
+          </AppProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>
 );

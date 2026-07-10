@@ -6,6 +6,7 @@ import SignalMark from "@/components/shell/SignalMark";
 import DataModeBadge from "@/components/shell/DataModeBadge";
 import ProfileSwitcher from "@/components/shell/ProfileSwitcher";
 import { useAuth } from "@/context/AuthContext";
+import { productShowsProfileSwitcher } from "@/context/dataRouting";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +72,17 @@ function AccountMenu() {
 export default function Masthead({ area, isBackendMode, isLoading }) {
   const location = useLocation();
   const scrolled = useScrolled();
+  const auth = useAuth();
+  // PR 5 (#53): under a consumer session the ProfileSwitcher leaves the
+  // product masthead (the session IS the product identity) and remains on the
+  // ops console as the admin QA view-as control. Local/bypass: today's UI.
+  const consumerView = {
+    isBackendMode,
+    authEnforced: auth.authEnforced,
+    user: auth.user,
+  };
+  const showSwitcher =
+    area === "ops" || productShowsProfileSwitcher(consumerView);
   const opsItems = getOpsNavItems(isBackendMode);
   const consoleEntryPath = opsItems[0]?.path || "/sources";
 
@@ -119,7 +131,16 @@ export default function Masthead({ area, isBackendMode, isLoading }) {
             <RefreshCw size={12} className="text-signal-high animate-spin" />
           )}
           <DataModeBadge isBackendMode={isBackendMode} />
-          <ProfileSwitcher />
+          {showSwitcher && (
+            <div className="flex items-center gap-1.5">
+              {area === "ops" && auth.authEnforced && auth.user && (
+                <span className="hidden md:inline text-[10px] font-mono uppercase tracking-wider text-text-dim">
+                  QA view-as
+                </span>
+              )}
+              <ProfileSwitcher />
+            </div>
+          )}
           <AccountMenu />
           {area === "product" && (
             <Link

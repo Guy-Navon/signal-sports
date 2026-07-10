@@ -13,6 +13,7 @@ Feedback-learning API (issue #34).
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from app.core.security_deps import require_admin
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -64,7 +65,7 @@ def _learning_state(session: Session, user_id: str):
     return profile, events, derive_learned_adjustments(events, profile.profile_v2)
 
 
-@router.get("/learning/{user_id}", response_model=LearningStateResponse)
+@router.get("/learning/{user_id}", response_model=LearningStateResponse, dependencies=[Depends(require_admin)])
 def get_learning_state(user_id: str, session: Session = Depends(get_session)):
     _profile, _events, adjustments = _learning_state(session, user_id)
     return LearningStateResponse(
@@ -82,7 +83,7 @@ def get_learning_state(user_id: str, session: Session = Depends(get_session)):
     )
 
 
-@router.post("/learning/{user_id}/reset")
+@router.post("/learning/{user_id}/reset", dependencies=[Depends(require_admin)])
 def reset_learning(
     user_id: str,
     payload: LearningResetRequest,
@@ -114,7 +115,7 @@ def reset_learning(
     return {"retracted_events": retracted}
 
 
-@router.post("/profiles/{user_id}/never_show")
+@router.post("/profiles/{user_id}/never_show", dependencies=[Depends(require_admin)])
 def never_show(
     user_id: str,
     payload: NeverShowRequest,

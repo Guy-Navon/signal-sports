@@ -257,13 +257,15 @@ def _create_user_and_token(email: str, role: str) -> str:
         return raw
 
 
-def test_require_admin_rejects_anonymous_request(client):
+def test_require_admin_rejects_anonymous_request(client, monkeypatch):
+    monkeypatch.setenv("ALLOW_INSECURE_AUTH_BYPASS", "false")  # transitional PR-5 line off
     with TestClient(_admin_test_app()) as admin_client:
         response = admin_client.get("/legacy/protected")
     assert response.status_code == 401
 
 
-def test_require_admin_rejects_authenticated_user_role(client):
+def test_require_admin_rejects_authenticated_user_role(client, monkeypatch):
+    monkeypatch.setenv("ALLOW_INSECURE_AUTH_BYPASS", "false")  # transitional PR-5 line off
     raw = _create_user_and_token("plain-user@example.com", "user")
     with TestClient(_admin_test_app()) as admin_client:
         response = admin_client.get(
@@ -333,7 +335,10 @@ def test_cookie_flags_follow_configuration(client, monkeypatch):
     assert "secure" in secure.headers["set-cookie"].lower()
 
 
-def test_session_bootstrap_shape(client):
+def test_session_bootstrap_shape(client, monkeypatch):
+    # Enforcement shape: explicit, independent of the transitional PR-5 bypass
+    # line in conftest (removed in PR 6 / #54).
+    monkeypatch.setenv("ALLOW_INSECURE_AUTH_BYPASS", "false")
     anon = client.get("/api/auth/session")
     assert anon.status_code == 200
     assert anon.json() == {"auth_enforced": True, "user": None, "onboarding": None}

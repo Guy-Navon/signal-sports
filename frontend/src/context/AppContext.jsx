@@ -3,7 +3,16 @@ import { userProfiles } from "@/data/userProfiles";
 import { mockArticles, mockClusters } from "@/data/mockArticles";
 import { feedSources } from "@/data/feedSources";
 import { scoreAllArticles, scoreCluster, scoreArticle, DECISION_RANK } from "@/engine/relevanceEngine";
-import { getProfiles, getFeed, getDebugFeed, submitFeedback, getCalibrationHeadlines, neverShow } from "@/api/client";
+import {
+  getProfiles, getFeed, getDebugFeed, submitFeedback, getCalibrationHeadlines, neverShow,
+  getMeFeed, getMeProfile, submitMeFeedback, meNeverShow,
+} from "@/api/client";
+import { useAuth } from "@/context/AuthContext";
+import {
+  isConsumerSession as computeConsumerSession,
+  canFetchQaSurface,
+  backendFetchesBlocked,
+} from "@/context/dataRouting";
 // Sandbox preview profile id (was in the deleted draftToProfile.js — the
 // calibration flow is backend-owned since issue #33).
 export const SANDBOX_PROFILE_ID = "calibrated_sandbox";
@@ -31,6 +40,25 @@ const BACKEND_VALID_ACTIONS = new Set([
 export function AppProvider({ children }) {
   const isBackendMode = DATA_MODE === "backend";
 
+  // Consumer/QA split (User Platform PR 5, #53). Under real enforcement with
+  // a signed-in user the PRODUCT surface uses /api/me/* (session identity)
+  // while activeProfileId becomes the ops-console QA view-as identity only.
+  // Local mode and bypass keep the pre-auth single-identity behavior exactly.
+  const auth = useAuth();
+  const authView = {
+    isBackendMode,
+    authStatus: auth.status,
+    authEnforced: auth.authEnforced,
+    user: auth.user,
+  };
+  const consumerSession = computeConsumerSession(authView);
+  const qaSurfaceAllowed = canFetchQaSurface(authView);
+  const fetchesBlocked = backendFetchesBlocked(authView);
+  const consumerUserId = consumerSession ? auth.user.id : null;
+
+  // The session user's own profile (product surface under enforcement).
+  const [meProfile, setMeProfile] = useState(null);
+
   // ── Local state (used in both modes) ────────────────────────────────────────
   const [activeProfileId, setActiveProfileId] = useState("guy");
   const [profiles, setProfiles] = useState(userProfiles);
@@ -47,24 +75,39 @@ export function AppProvider({ children }) {
   // Used to trigger manual refresh without changing activeProfileId
   const [feedRefreshTick, setFeedRefreshTick] = useState(0);
 
-  // ── Load backend profiles once on mount ─────────────────────────────────────
+  // ── Load backend profiles once (QA surface — admin/bypass only) ─────────────
   useEffect(() => {
-    if (!isBackendMode) return;
+    if (!isBackendMode || fetchesBlocked || !qaSurfaceAllowed) return;
     getProfiles()
       .then(raw => setBackendProfiles(raw.map(normalizeProfileFromApi)))
       .catch(err => setApiError(err.message));
-  }, [isBackendMode]);
+  }, [isBackendMode, fetchesBlocked, qaSurfaceAllowed]);
 
-  // ── Load feed whenever activeProfileId or refresh tick changes ───────────────
+  // ── Load the session user's own profile (consumer surface) ──────────────────
   useEffect(() => {
-    if (!isBackendMode) return;
+    if (!consumerSession) {
+      setMeProfile(null);
+      return;
+    }
+    getMeProfile()
+      .then(raw => setMeProfile(normalizeProfileFromApi(raw)))
+      .catch(err => setApiError(err.message));
+  }, [consumerSession, consumerUserId]);
+
+  // ── Load feeds whenever identity or refresh tick changes ────────────────────
+  // Product feed: session identity (/api/me/feed) under a consumer session,
+  // legacy {user_id} otherwise. QA debug feed: view-as identity, fetched only
+  // when this client may touch the admin surface (bypass/local, or admin).
+  useEffect(() => {
+    if (!isBackendMode || fetchesBlocked) return;
     let cancelled = false;
     setIsLoading(true);
     setApiError(null);
-    Promise.all([
-      getFeed(activeProfileId),
-      getDebugFeed(activeProfileId),
-    ])
+    const productFeedPromise = consumerSession ? getMeFeed() : getFeed(activeProfileId);
+    const debugFeedPromise = qaSurfaceAllowed
+      ? getDebugFeed(activeProfileId)
+      : Promise.resolve([]);
+    Promise.all([productFeedPromise, debugFeedPromise])
       .then(([feedRaw, debugRaw]) => {
         if (cancelled) return;
         setBackendFeedItems(feedRaw.map(normalizeScoredArticleFromApi));
@@ -78,7 +121,8 @@ export function AppProvider({ children }) {
         if (!cancelled) setIsLoading(false);
       });
     return () => { cancelled = true; };
-  }, [isBackendMode, activeProfileId, feedRefreshTick]);
+  }, [isBackendMode, fetchesBlocked, consumerSession, consumerUserId,
+      qaSurfaceAllowed, activeProfileId, feedRefreshTick]);
 
   // ── Local computed state (only used in local mode) ───────────────────────────
   const allProfiles = useMemo(() => ({
@@ -183,9 +227,11 @@ export function AppProvider({ children }) {
     return backendProfiles.map(p => ({ id: p.userId, label: p.displayName }));
   }, [backendProfiles]);
 
-  const activeProfile = isBackendMode
-    ? (backendProfilesMap[activeProfileId] ?? null)
-    : (allProfiles[activeProfileId] ?? null);
+  const activeProfile = consumerSession
+    ? meProfile
+    : isBackendMode
+      ? (backendProfilesMap[activeProfileId] ?? null)
+      : (allProfiles[activeProfileId] ?? null);
 
   const resolvedProfileList = isBackendMode ? backendProfileList : profileList;
 
@@ -206,13 +252,18 @@ export function AppProvider({ children }) {
     };
     setFeedback(prev => [...prev, entry]);
 
-    // In backend mode, POST to API for supported actions
+    // In backend mode, POST to API for supported actions. Consumer sessions
+    // go through /api/me/feedback (server-derived identity, #53); the legacy
+    // body-identity form remains for bypass/QA use only.
     if (isBackendMode && BACKEND_VALID_ACTIONS.has(action)) {
-      submitFeedback({
-        user_id: activeProfileId,
-        article_id: articleId,
-        action,
-      }).then(() => {
+      const post = consumerSession
+        ? submitMeFeedback(articleId, action)
+        : submitFeedback({
+            user_id: activeProfileId,
+            article_id: articleId,
+            action,
+          });
+      post.then(() => {
         // Dismissing actions hide the article immediately (issue #34) —
         // refresh so the feed reflects it.
         if (action === "less_like_this" || action === "not_interested" || action === "never_show") {
@@ -222,24 +273,29 @@ export function AppProvider({ children }) {
         // Feedback failure is non-fatal; local state already recorded the event
       });
     }
-  }, [activeProfileId, isBackendMode, refreshFeed]);
+  }, [activeProfileId, isBackendMode, consumerSession, refreshFeed]);
 
   // Explicit scoped suppression (issue #34): creates a never_show override
   // for the most specific scope on the article, then refreshes the feed.
   const neverShowArticle = useCallback(async (articleId) => {
     if (!isBackendMode) return;
     try {
-      await neverShow(activeProfileId, articleId);
-      await submitFeedback({
-        user_id: activeProfileId,
-        article_id: articleId,
-        action: "never_show",
-      });
+      if (consumerSession) {
+        await meNeverShow(articleId);
+        await submitMeFeedback(articleId, "never_show");
+      } else {
+        await neverShow(activeProfileId, articleId);
+        await submitFeedback({
+          user_id: activeProfileId,
+          article_id: articleId,
+          action: "never_show",
+        });
+      }
     } catch {
       // non-fatal
     }
     refreshFeed();
-  }, [activeProfileId, isBackendMode, refreshFeed]);
+  }, [activeProfileId, isBackendMode, consumerSession, refreshFeed]);
 
   const getFeedbackForArticle = useCallback((articleId) => {
     return feedback.filter(f => f.userId === activeProfileId && f.articleId === articleId);
@@ -269,15 +325,26 @@ export function AppProvider({ children }) {
 
   const refreshProfiles = useCallback(() => {
     if (!isBackendMode) return;
-    getProfiles()
-      .then(raw => setBackendProfiles(raw.map(normalizeProfileFromApi)))
-      .catch(err => setApiError(err.message));
-  }, [isBackendMode]);
+    if (consumerSession) {
+      getMeProfile()
+        .then(raw => setMeProfile(normalizeProfileFromApi(raw)))
+        .catch(err => setApiError(err.message));
+    }
+    if (qaSurfaceAllowed) {
+      getProfiles()
+        .then(raw => setBackendProfiles(raw.map(normalizeProfileFromApi)))
+        .catch(err => setApiError(err.message));
+    }
+  }, [isBackendMode, consumerSession, qaSurfaceAllowed]);
 
   const value = {
     // Mode
     dataMode: DATA_MODE,
     isBackendMode,
+    // Consumer/QA split (#53): product surface uses the session identity;
+    // activeProfileId is the ops QA view-as identity under enforcement.
+    consumerSession,
+    qaSurfaceAllowed,
     isLoading,
     apiError,
     refreshFeed,

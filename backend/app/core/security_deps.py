@@ -74,3 +74,23 @@ def require_admin(
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin required")
     return current_user
+
+
+def require_session(
+    current_user: UserRow | None = Depends(get_current_user),
+) -> UserRow | None:
+    """Session-gated product surface, any role (User Platform PR 5, #53).
+
+    Applies to product data that is not user-scoped (calibration items/preview,
+    articles, feed-engine). Unlike require_user (the /me surface), this gate
+    honors ALLOW_INSECURE_AUTH_BYPASS - the bypass restores the pre-auth open
+    behavior on this surface only.
+    """
+    if allow_insecure_auth_bypass():
+        return current_user
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+    return current_user

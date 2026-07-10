@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from app.core.security_deps import require_admin
 from datetime import datetime, timezone
 from typing import List
 import uuid
@@ -20,7 +21,7 @@ VALID_ACTIONS = {
 }
 
 
-@router.post("/feedback", response_model=FeedbackEvent, status_code=201)
+@router.post("/feedback", response_model=FeedbackEvent, status_code=201, dependencies=[Depends(require_admin)])
 def submit_feedback(request: FeedbackRequest, session: Session = Depends(get_session)):
     if request.action not in VALID_ACTIONS:
         raise HTTPException(
@@ -56,7 +57,7 @@ def submit_feedback(request: FeedbackRequest, session: Session = Depends(get_ses
     return event
 
 
-@router.get("/feedback/{user_id}", response_model=List[FeedbackEvent])
+@router.get("/feedback/{user_id}", response_model=List[FeedbackEvent], dependencies=[Depends(require_admin)])
 def get_feedback_for_user(user_id: str, session: Session = Depends(get_session)):
     if not profile_repository.get_by_id(session, user_id):
         raise HTTPException(status_code=404, detail=f"Profile '{user_id}' not found")

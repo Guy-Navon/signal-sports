@@ -3,12 +3,26 @@
 // (cross-origin), e.g. http://127.0.0.1:8000 without the proxy.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
+// Session-expiry signal (User Platform PR 3, issue #51): any authenticated
+// API call that comes back 401 means the cookie session is gone — AuthContext
+// listens for this event, clears the user, and redirects to /login. Auth
+// routes themselves are excluded (a failed login is not an expired session).
+export const AUTH_EXPIRED_EVENT = "signal:auth-expired";
+
+function emitAuthExpired(path) {
+  if (typeof window === "undefined" || path.startsWith("/api/auth/")) return;
+  window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail: { path } }));
+}
+
 async function apiFetch(path, options = {}) {
   let res;
   try {
     res = await fetch(`${API_BASE_URL}${path}`, options);
   } catch (err) {
     throw new Error(`Cannot reach backend at ${API_BASE_URL}${path}: ${err.message}`);
+  }
+  if (res.status === 401) {
+    emitAuthExpired(path);
   }
   if (!res.ok) {
     let detail = "";
@@ -177,4 +191,30 @@ export function setSourceEnabled(sourceId, enabled) {
 export function isIngestionBusyError(err) {
   const msg = err?.message || "";
   return msg.includes("(409)") || msg.includes("ingestion_already_running");
+}
+
+/** Auth shell (User Platform PR 3, issue #51). Cookies ride same-origin
+ * fetch automatically — no header or token work. */
+export function getAuthSession() {
+  return apiFetch("/api/auth/session");
+}
+
+export function authLogin(email, password) {
+  return apiFetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export function authSignup({ email, password, displayName }) {
+  return apiFetch("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, display_name: displayName || null }),
+  });
+}
+
+export function authLogout() {
+  return apiFetch("/api/auth/logout", { method: "POST" });
 }

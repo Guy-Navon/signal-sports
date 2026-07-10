@@ -582,3 +582,68 @@ describe("setSourceEnabled", () => {
     await expect(setSourceEnabled("nope", true)).rejects.toThrow("404");
   });
 });
+
+// ── Auth shell (User Platform PR 3, issue #51) ────────────────────────────────
+
+import { getAuthSession, authLogin, authLogout, AUTH_EXPIRED_EVENT } from "./client";
+
+describe("auth endpoints", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("getAuthSession hits the bootstrap route", async () => {
+    const fetchMock = mockFetchSuccess({ auth_enforced: true, user: null, onboarding: null });
+    vi.stubGlobal("fetch", fetchMock);
+    const payload = await getAuthSession();
+    expect(fetchMock).toHaveBeenCalledWith("/api/auth/session", expect.anything());
+    expect(payload.auth_enforced).toBe(true);
+  });
+
+  it("authLogin posts credentials as JSON", async () => {
+    const fetchMock = mockFetchSuccess({ user: { id: "u" } });
+    vi.stubGlobal("fetch", fetchMock);
+    await authLogin("a@b.co", "secret123");
+    const [, options] = fetchMock.mock.calls[0];
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body)).toEqual({ email: "a@b.co", password: "secret123" });
+  });
+});
+
+describe("401 session-expiry signal", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function stubWindowWithListener() {
+    const events = [];
+    vi.stubGlobal("window", {
+      dispatchEvent: (event) => events.push(event),
+    });
+    vi.stubGlobal("CustomEvent", class {
+      constructor(type, init) {
+        this.type = type;
+        this.detail = init?.detail;
+      }
+    });
+    return events;
+  }
+
+  it("a 401 from an authenticated route dispatches the expiry event", async () => {
+    const events = stubWindowWithListener();
+    vi.stubGlobal("fetch", mockFetchHttpError(401, "Not authenticated"));
+    await expect(getFeed("guy")).rejects.toThrow("(401)");
+    expect(events).toHaveLength(1);
+    expect(events[0].type).toBe(AUTH_EXPIRED_EVENT);
+  });
+
+  it("a 401 from an auth route does NOT dispatch (failed login ≠ expired session)", async () => {
+    const events = stubWindowWithListener();
+    vi.stubGlobal("fetch", mockFetchHttpError(401, "Invalid email or password"));
+    await expect(authLogin("a@b.co", "wrong")).rejects.toThrow("(401)");
+    expect(events).toHaveLength(0);
+  });
+
+  it("logout posts and resolves", async () => {
+    const fetchMock = mockFetchSuccess({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+    await authLogout();
+    expect(fetchMock).toHaveBeenCalledWith("/api/auth/logout", expect.objectContaining({ method: "POST" }));
+  });
+});

@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
+import { firstUnansweredItemId, onboardingState } from "@/context/onboardingFlow";
+import { useNavigate } from "react-router-dom";
 import { SlidersHorizontal, RefreshCw, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -9,6 +12,8 @@ import {
   getCalibrationResponses,
   applyMeCalibration,
   getMeCalibrationResponses,
+  saveMeCalibrationResponses,
+  completeMeOnboarding,
 } from "@/api/client";
 import PageHeader from "@/components/shared/PageHeader";
 import SectionCard from "@/components/shared/SectionCard";
@@ -38,7 +43,8 @@ const LEVEL_LABELS = {
 
 function ItemCard({ item, rating, onRate }) {
   return (
-    <div className="bg-surface-1 border border-border rounded-[10px] p-3">
+    // id: the resume anchor — "opens at the first unanswered item" (#52)
+    <div id={`cal-item-${item.id}`} className="bg-surface-1 border border-border rounded-[10px] p-3">
       <div className="text-sm text-foreground mb-1">{item.title}</div>
       <div className="text-xs text-text-dim mb-2">{SPORT_LABELS[item.sport] ?? item.sport}</div>
       <div className="flex gap-1.5 flex-wrap">
@@ -103,6 +109,14 @@ function PreviewPanel({ preview }) {
 
 export default function Calibration() {
   const { isBackendMode, activeProfileId, consumerSession, refreshProfiles, refreshFeed } = useApp();
+  const auth = useAuth();
+  const navigate = useNavigate();
+  // Onboarding context (PR 4, #52): while onboarding is incomplete this page
+  // IS the onboarding flow — it offers the skip path and, on apply, hands the
+  // user their first personalized feed.
+  const inOnboarding =
+    consumerSession && onboardingState(auth) !== "ACTIVE";
+  const [resumeAnchor, setResumeAnchor] = useState(null);
   const [items, setItems] = useState([]);
   const [version, setVersion] = useState(null);
   const [ratings, setRatings] = useState({});
@@ -126,12 +140,23 @@ export default function Calibration() {
         setItems(data.items);
         setVersion(data.version);
         setRatings(saved.ratings ?? {});
+        // Resume-awareness (#52): open at the first unanswered item when
+        // returning mid-calibration (same or different device).
+        if (consumerSession && Object.keys(saved.ratings ?? {}).length > 0) {
+          setResumeAnchor(firstUnansweredItemId(data.items, saved.ratings));
+        }
       })
       .catch((err) => setError(err.message))
       .finally(() => setIsLoading(false));
   }, [isBackendMode, activeProfileId, consumerSession]);
 
   const ratedCount = Object.keys(ratings).length;
+
+  useEffect(() => {
+    if (!resumeAnchor) return;
+    const el = document.getElementById(`cal-item-${resumeAnchor}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [resumeAnchor]);
 
   const handleRate = (id, rating) => {
     setApplied(false);
@@ -141,6 +166,22 @@ export default function Calibration() {
       else next[id] = rating;
       return next;
     });
+    // Server-side per-item persistence (#52): abandoning mid-calibration
+    // loses nothing; resume works cross-device. Fire-and-forget — a lost
+    // save is re-sent implicitly on the next rate or on apply.
+    if (consumerSession && rating !== null) {
+      saveMeCalibrationResponses({ [id]: rating }).catch(() => {});
+    }
+  };
+
+  const handleSkipOnboarding = async () => {
+    try {
+      await completeMeOnboarding();
+      await auth.refreshSession();
+    } catch {
+      // non-fatal — the guard will simply keep the user here
+    }
+    navigate("/", { replace: true });
   };
 
   const handlePreview = async () => {
@@ -164,6 +205,12 @@ export default function Calibration() {
       setApplied(true);
       refreshProfiles?.();
       refreshFeed?.();
+      if (inOnboarding) {
+        // Apply transitions the derived state machine to ACTIVE — hand the
+        // user their first personalized feed.
+        await auth.refreshSession();
+        navigate("/", { replace: true });
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -195,13 +242,29 @@ export default function Calibration() {
 
   return (
     <div className="max-w-4xl space-y-4">
+      {inOnboarding && (
+        <div className="flex items-center justify-between rounded-lg border border-border bg-surface-1 px-4 py-2.5">
+          <p className="text-xs text-text-secondary">
+            אפשר לעצור בכל שלב — התשובות נשמרות וממשיכים מכל מכשיר.
+          </p>
+          <button
+            type="button"
+            onClick={handleSkipOnboarding}
+            className="text-xs text-text-secondary hover:text-foreground underline underline-offset-4 transition-colors flex-shrink-0"
+          >
+            דלגו בינתיים
+          </button>
+        </div>
+      )}
       <PageHeader
         title="כיול העדפות"
         icon={SlidersHorizontal}
         subtitle={
           <>
-            דרג כותרות סינתטיות — המערכת תסיק פרופיל העדפות ותשמור אותו לפרופיל{" "}
-            <span className="text-signal-high">{activeProfileId}</span>
+            דרג כותרות סינתטיות — המערכת תסיק פרופיל העדפות ותשמור אותו{" "}
+            {consumerSession
+              ? <span className="text-signal-high">לפרופיל שלך</span>
+              : <span className="text-signal-high">לפרופיל {activeProfileId}</span>}
             {version != null && <span className="text-text-dim"> · גרסת מאגר {version}</span>}
           </>
         }

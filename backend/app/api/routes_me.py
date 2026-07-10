@@ -24,6 +24,7 @@ from app.api import routes_auth
 from app.api.routes_calibration import (
     CalibrationApplyRequest,
     CalibrationApplyResponse,
+    _validate_ratings,
     apply_calibration,
     list_calibration_responses,
 )
@@ -60,6 +61,12 @@ class MeFeedbackRequest(BaseModel):
 
 
 class MeCalibrationApplyRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+    ratings: Dict[str, str] = Field(default_factory=dict)
+
+
+class MeCalibrationResponsesRequest(BaseModel):
+    """Partial per-item rating upsert (onboarding resumability, issue #52)."""
     model_config = {"extra": "forbid"}
     ratings: Dict[str, str] = Field(default_factory=dict)
 
@@ -178,6 +185,25 @@ def me_calibration_responses(
     session: Session = Depends(get_session),
 ):
     return list_calibration_responses(user_id=user.id, session=session)
+
+
+@router.post("/calibration/responses")
+def me_save_calibration_responses(
+    payload: MeCalibrationResponsesRequest,
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Per-item rating persistence for the onboarding flow (issue #52).
+
+    ``save_responses`` is an upsert keyed on (user, item) — partial saves are
+    safe, mid-calibration abandonment loses nothing, and cross-device resume
+    works because the rated state is server-side. Applying inference remains a
+    separate explicit step (``/me/calibration/apply``)."""
+    from app.services.calibration_service import get_responses, save_responses
+
+    _validate_ratings(payload.ratings)
+    save_responses(session, user.id, payload.ratings)
+    return {"saved": len(payload.ratings), "answered": len(get_responses(session, user.id))}
 
 
 @router.post("/calibration/apply", response_model=CalibrationApplyResponse)

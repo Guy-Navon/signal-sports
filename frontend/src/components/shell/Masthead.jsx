@@ -1,10 +1,19 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { RefreshCw, Terminal, Rss } from "lucide-react";
+import { RefreshCw, Terminal, Rss, LogOut, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SignalMark from "@/components/shell/SignalMark";
 import DataModeBadge from "@/components/shell/DataModeBadge";
 import ProfileSwitcher from "@/components/shell/ProfileSwitcher";
+import { useAuth } from "@/context/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useScrolled } from "@/components/shell/useScrolled";
 import { PRODUCT_NAV_ITEMS, getOpsNavItems } from "@/components/shell/navConfig";
 
@@ -30,6 +39,35 @@ function InlineNavLink({ path, label, active }) {
 // a hairline only once the page scrolls — premium without dominating the
 // feed beneath it. Ops routes get the same masthead minus the inline product
 // links (they navigate via the OpsNav rail instead) plus a "back to feed" link.
+// Account menu (User Platform PR 3, #51): rendered only under real
+// enforcement with a signed-in user — local/bypass modes keep the masthead
+// pixel-identical to the pre-auth UI. The account page itself arrives in PR 7.
+function AccountMenu() {
+  const auth = useAuth();
+  if (!auth.authEnforced || !auth.user) return null;
+  const label = auth.user.email || auth.user.id;
+  return (
+    <DropdownMenu dir="rtl">
+      <DropdownMenuTrigger
+        aria-label="חשבון"
+        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-text-dim hover:text-foreground hover:bg-surface-2 transition-colors"
+      >
+        <UserRound size={15} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[200px]">
+        <DropdownMenuLabel dir="ltr" className="font-normal text-text-secondary truncate">
+          {label}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => auth.logout()} className="gap-2 cursor-pointer">
+          <LogOut size={14} />
+          התנתקות
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export default function Masthead({ area, isBackendMode, isLoading }) {
   const location = useLocation();
   const scrolled = useScrolled();
@@ -82,6 +120,7 @@ export default function Masthead({ area, isBackendMode, isLoading }) {
           )}
           <DataModeBadge isBackendMode={isBackendMode} />
           <ProfileSwitcher />
+          <AccountMenu />
           {area === "product" && (
             <Link
               to={consoleEntryPath}

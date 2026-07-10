@@ -1,6 +1,8 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-07-10 (consistency sweep — stale statements corrected; two active tracks).
+Last updated: 2026-07-10 (reliability fixes #59–#62 landed; awaiting #63 sign-off).
+
+**2026-07-10 — Reliability core fixes LANDED (#59–#62, PRs #66–#69); #63 sign-off pending one human product confirmation.** The golden-15 regression suite is in the tree (`backend/tests/test_golden_cases.py` — all 17 cases now positive, real-pipeline replay, both profiles); event-assertion semantics (#60), LLM-evidence circularity provenance (#61), and hint/keyword/taxonomy coverage (#62) are merged. Corpus results (311 articles, replay + persisted backfill with a DB backup at `backend/data/signal_sports.pre_reliability_backfill.backup.db`): title_win 19→4, finals_result 63→31, Guy pushes 13→7 (all seven trace to explicit overrides on verified facts), **zero casual_deni_fan decision changes**, zero newly-visible noise, C2/C8 cross-vendor parity. Snapshots: `docs/qa/reliability_baseline.json` (pre) / `docs/qa/reliability_post_fix.json` (post). §8/§10 known-defect callouts below describe the pre-fix state — the defect classes are now structurally controlled; residual imprecision (4 title_win rows, finals_result features) is documented in issue #63's evidence. **#52 (onboarding) stays blocked until #63 closes with the human confirmation.**
 
 **2026-07-09 (later) — Classification & Feed Reliability investigation completed; second active track opened; onboarding gated.** A 15-case trace-level investigation of real feed failures is committed as **`docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`** (canonical evidence — event-assertion semantics defects, LLM-evidence circularity for cross-sport clubs, deterministic-coverage gaps; architecture judged fundamentally sound). Execution home: **[Milestone 3](https://github.com/Guy-Navon/signal-sports/milestone/3) / Epic [#58](https://github.com/Guy-Navon/signal-sports/issues/58)**, issues #59–#65, sequencing principle regression-first (#59 golden fixtures before any fix). **There are now two active tracks that run in parallel:** User Platform (#50 next) and Reliability (#59 next). **Cross-track gate:** User Platform #52 (onboarding) is hard-blocked until the Reliability Sign-off issue [#63](https://github.com/Guy-Navon/signal-sports/issues/63) closes — onboarding/calibration and preference learning must not encode unreliable classification facts. All review checkpoints are now model-independent contracts written in the issue bodies (#52 product review, #54 security/regression review, #63 reliability sign-off) — no future review depends on any specific model or on past conversation history. See §13 for cold-start orientation.
 
@@ -473,7 +475,7 @@ The deterministic classifier is keyword-matching only — no NLP, no LLM. It alw
 - **Post-QA fix:** `_GRAND_SLAM_KW` expanded to include specific tournament names (roland garros, רולאן גארוס, wimbledon, וימבלדון, us open, australian open). "אלקאראז זוכה ברולאן גארוס" now correctly fires `grand_slam_winner`.
 - **Post-QA fix:** `source_sport_hint` parameter added — pre-computed URL category hint flows through `classify()` → `_detect_sport()` as the first check before all keyword logic.
 
-**Known classification defects (2026-07-09 investigation — tracked in Epic #58; do NOT treat these behaviors as intentional):**
+**Known classification defects (2026-07-09 investigation — FIXED by #60/#61/#62 on 2026-07-10; kept for history, see the header entry and issue #63 evidence):**
 - False `title_win`/`finals_result` from champion-vocabulary evidence: champion epithets ("האלופה", "אלופת איטליה"), competition names containing champion words ("אלוף האלופים", "ליגת האלופות"), and aspirational win phrases ("לזכות באליפות") currently validate as confirmed events (~15 of 17 persisted `title_win` rows were false). Issue #60.
 - LLM-echo sport circularity: for cross-sport club titles with no explicit evidence, a wrong LLM sport guess can be laundered into `entity_derived` evidence via post-merge enrichment and locked in. Issue #61.
 - Evidence-coverage gaps (Israel Hayom `/sport/israeli-soccer/` hint, football transfer-market vocabulary, taxonomy entries). Issue #62.
@@ -574,7 +576,7 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 - **Scheduler is opt-in and process-local (PR 13).** `INGESTION_SCHEDULER_ENABLED=false` by default — ingestion then runs only on `POST /api/ingest/run` / `run-now`. When enabled, an asyncio loop in the FastAPI lifespan ingests enabled sources every `INGESTION_SCHEDULER_INTERVAL_MINUTES`. Multi-replica deployments need a single scheduler worker or a distributed lock.
 - **No fuzzy dedup / clustering.** Deduplication is URL-only. The same story from Eurohoops and Walla appears as two separate articles. `cluster_id` field exists in the model but is never populated.
 - **Feedback learning is derived, not rule-mutating (by design — #34, live).** Feedback events drive bounded **learned** adjustments computed from the non-retracted event log at read time (activation at >=3 net consistent events, magnitude cap +/-1, decay, never an exclude); explicit topic/event rules and overrides are never silently mutated. See `docs/FEEDBACK_LEARNING.md` and §7.
-- **Known classification reliability defects (2026-07-09).** False `title_win`/`finals_result` events, LLM-echo sport circularity on cross-sport clubs, and evidence-coverage gaps produce wrong persisted facts — including false pushes for Guy. Tracked and sequenced in Epic #58 (Milestone 3); evidence in `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`. User Platform #52 (onboarding) is gated on the Reliability Sign-off (#63).
+- **Classification reliability defects (2026-07-09) — FIXED 2026-07-10** by #60 (event-assertion semantics), #61 (LLM-evidence provenance), #62 (coverage); protected by the golden-15 suite. Residual imprecision (4 title_win rows incl. epithet edge cases, finals_result feature contamination — all decision-neutral for both demo profiles) is documented in issue #63. #52 (onboarding) remains gated on #63's human product confirmation.
 - **User Platform PR 1 is landed; later surfaces remain future work.** Backend Auth Core (`users`, `auth_sessions`, `/api/auth/*`, current-user dependencies, CSRF middleware, fail-closed bypass config) is main-branch behavior. Existing consumer product flows still use legacy `{user_id}` routes until `/api/me/*` and frontend auth land in later PRs. Legacy/ops routes are not admin-gated yet.
 - **No push notifications.** `push` is a decision level in the engine; no device notification delivery.
 - **No body translation or summaries.** Only titles are translated. Article bodies are not ingested.
@@ -589,7 +591,7 @@ The translation module is preserved intact for post-MVP re-enablement when Engli
 
 > **Historical note:** an earlier version of this section pointed to the Signal Intelligence Architecture v2 roadmap — that initiative is **complete and closed** (Epic #27, Milestone 1; see `docs/INTELLIGENCE_ROADMAP.md` for its history). The authoritative execution order now lives in the two GitHub epics referenced below. The numbered list at the end of this section is a **non-authoritative operational backlog** kept for reference — verify each item against the epics and current code before acting.
 
-> **Two active tracks (2026-07-09).** (1) **User Platform** — real accounts, authentication, onboarding, and per-user data isolation wrapped around the existing FACTS → VISIBILITY → PREFERENCE → LEARNING pipeline; contract `docs/USER_PLATFORM.md`; canonical graph in Epic #48; next unblocked issue #50. (2) **Classification & Feed Reliability** — regression-first hardening of classification facts; evidence `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`; canonical graph in Epic #58; next unblocked issue #59. They run in parallel; the single cross-track gate is that **#52 (onboarding) is blocked until Reliability Sign-off #63 closes**. **Canonical next actions: Reliability #59 (primary), User Platform #50 (parallel); then follow the epic dependency graphs.**
+> **Two active tracks (2026-07-09).** (1) **User Platform** — real accounts, authentication, onboarding, and per-user data isolation wrapped around the existing FACTS → VISIBILITY → PREFERENCE → LEARNING pipeline; contract `docs/USER_PLATFORM.md`; canonical graph in Epic #48; next unblocked issue #50. (2) **Classification & Feed Reliability** — regression-first hardening of classification facts; evidence `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`; canonical graph in Epic #58; next unblocked issue #59. They run in parallel; the single cross-track gate is that **#52 (onboarding) is blocked until Reliability Sign-off #63 closes**. **Canonical next actions: close #63 (evidence posted; one human product confirmation pending), User Platform #50 (parallel); then follow the epic dependency graphs.**
 
 Non-authoritative operational backlog (historical numbering preserved):
 
@@ -787,8 +789,10 @@ see `docs/FRONTEND_DESIGN_SYSTEM.md`.
 2. **Classification & Feed Reliability** (Milestone 3, Epic #58, issues
    #59–#65) — regression-first hardening of classification facts, driven by
    the 15-case investigation `docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md`.
-   **The canonical dependency graph lives in Epic #58.** Next unblocked issue:
-   #59 (golden-15 fixtures — must land before any behavior-changing fix).
+   **The canonical dependency graph lives in Epic #58.** State 2026-07-10:
+   #59–#62 landed (PRs #66–#69, all 17 golden cases positive); #63 evidence
+   posted, awaiting one human product confirmation; #64 product decisions
+   open; #65 non-gating.
 
 **The single cross-track gate:** User Platform **#52 (onboarding) is
 hard-blocked until the Reliability Sign-off issue #63 closes** — onboarding

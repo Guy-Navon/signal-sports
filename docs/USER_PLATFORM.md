@@ -1,13 +1,15 @@
 # User Platform — Architecture Contract
 
-**Status: approved architecture (2026-07-09) — PR 1 / Issue #49 is complete on main.**
-PR #56 landed the backend Auth Core: `users` and `auth_sessions` tables,
-cookie-backed opaque sessions, `/api/auth/*`, current-user dependencies, CSRF
-checks, fail-closed insecure-bypass configuration, and the idempotent demo/admin
-startup ensure-step. The rest of the milestone is still in progress: no
-`/api/me/*` consumer surface, no frontend auth shell, no onboarding UX, no
-legacy/ops admin gating, and no account lifecycle endpoints yet. The lowest
-unblocked User Platform issue is #50.
+**Status: approved architecture (2026-07-09) — executed through PR 4 as of 2026-07-10.**
+Complete on main: Auth Core (#49, PR #56), the session-derived `/api/me/*`
+consumer surface (#50, PR #71), the frontend auth shell (#51, PR #72),
+fail-closed admin gating of the legacy `{user_id}`/ops surface with the
+AppContext consumer/QA split and ops view-as (#53, PR #73), and the onboarding
+flow (#52, PR #74 — **Product Review approved**). **In review: enforcement
+verification (#54, PR #75)** — transitional test bypass removed, explicit
+anonymous/user/admin identity fixtures — awaiting an independent
+security/regression review plus the owner's physical phone/Tailscale pass.
+Remaining after that: account lifecycle (#55). Epic #48 holds live status.
 
 **Execution home:**
 [GitHub Milestone 2 "User Platform"](https://github.com/Guy-Navon/signal-sports/milestone/2)

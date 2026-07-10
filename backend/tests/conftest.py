@@ -68,6 +68,22 @@ def anonymous_client(client):
     return client
 
 
+@pytest.fixture(autouse=True)
+def _keep_bare_client_anonymous(request):
+    """The shared bare client must actually BE anonymous (PR 6, #54).
+
+    TestClient retains Set-Cookie responses in its jar, so a login/signup
+    posted through `client` would silently authenticate every later request —
+    exactly the hidden-auth-state class this PR eliminates. Clear the jar
+    around every test; identity clients have their own jars and are unaffected.
+    """
+    if "client" in request.fixturenames:
+        request.getfixturevalue("client").cookies.clear()
+    yield
+    if "client" in request.fixturenames:
+        request.getfixturevalue("client").cookies.clear()
+
+
 _TEST_IDENTITY_PASSWORD = "test identity passphrase"
 
 

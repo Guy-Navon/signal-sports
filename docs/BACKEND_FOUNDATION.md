@@ -102,8 +102,8 @@ As of PR 6, the frontend is connected to the backend (PR 5) and the backend uses
 | Relevance scoring | `relevanceEngine.js` | `relevance_engine.py` |
 | Feed display | `AppContext` + `Feed.jsx` | `GET /api/feed/{user_id}` |
 | Debug display | `Debug.jsx` | `GET /api/debug/feed/{user_id}` |
-| Feedback | Context state (always) | SQLite via `feedback_events` table |
-| Calibration | `calibrationEngine.js` + `Calibration.jsx` | `GET /api/calibration/headlines` |
+| Feedback | Context state (always) | SQLite via `feedback_events` table; drives derived learned adjustments at scoring time (#34) |
+| Calibration | `Calibration.jsx` (thin backend client) | Calibration V2: `/api/calibration/items|preview|apply` + `/api/me/calibration/*` (#33, #52) |
 | Authentication | N/A in local mock mode | Email/password accounts, HttpOnly cookie sessions, `/api/auth/*`; the consumer product uses the session-derived `/api/me/*` surface; legacy `{user_id}` + ops routes are the admin/QA surface, fail-closed (`require_admin`) |
 
 In `backend` mode (`VITE_DATA_MODE=backend`), the frontend fetches profiles and feed from the API. In `local` mode (default), the frontend uses mock data and the local engine. Both modes expose identical context shape. See `docs/FRONTEND_BACKEND_INTEGRATION.md` for details.
@@ -119,8 +119,8 @@ In `backend` mode (`VITE_DATA_MODE=backend`), the frontend fetches profiles and 
 | Push notifications | Out of scope. |
 | LLM calls | Out of scope. |
 | Article clustering | Deferred — needs a real algorithm. |
-| Feedback → profile mutation | Feedback stored in SQLite (PR 6) but not yet applied; requires PR 7. |
-| Calibration inference | Frontend has the full inference engine; backend only serves the headlines. |
+| Feedback → profile mutation | **Done (issue #34, Intelligence v2):** feedback learning derives bounded learned adjustments from the event log at read time (explicit > learned > calibration); scoped `never_show` overrides exist. See `docs/FEEDBACK_LEARNING.md`. |
+| Calibration inference | **Done (issue #33, Calibration V2):** backend-owned versioned dataset + hierarchical inference + persistent apply; the frontend is a thin client. See `docs/CALIBRATION_V2.md`. |
 
 ## Topic Scope Guards (PR 4.1)
 

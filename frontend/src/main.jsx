@@ -12,6 +12,7 @@ import Preferences from '@/pages/Preferences';
 import Calibration from '@/pages/Calibration';
 import Sources from '@/pages/Sources';
 import Results from '@/pages/Results';
+import Account from '@/pages/Account';
 import Debug from '@/pages/Debug';
 import LlmQa from '@/pages/LlmQa';
 import Login from '@/pages/Login';
@@ -46,6 +47,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                   <Route path="preferences" element={<Preferences />} />
                   <Route path="calibration" element={<Calibration />} />
                   <Route path="results" element={<Results />} />
+                  <Route path="account" element={<Account />} />
                 </Route>
                 {/* Ops console: admin-only under a consumer session (#54);
                     local/bypass keep today's open console. */}

@@ -21,6 +21,9 @@ from app.calibration_v2 import (
     RATING_VALUES,
     infer_calibration_profile,
 )
+from app.core.security_deps import get_current_user
+from app.db.orm_models import UserRow
+from app.services.auth_service import log_admin_mutation
 from app.db.database import get_session
 from app.models.calibration import CalibrationHeadline
 from app.models.profile_v2 import EventAffinity, ProfileV2, ScopeAffinity
@@ -120,8 +123,11 @@ def preview_calibration(payload: CalibrationPreviewRequest):
 
 @router.post("/calibration/apply", response_model=CalibrationApplyResponse, dependencies=[Depends(require_admin)])
 def apply_calibration(
-    payload: CalibrationApplyRequest, session: Session = Depends(get_session)
+    payload: CalibrationApplyRequest,
+    session: Session = Depends(get_session),
+    acting_admin: UserRow | None = Depends(get_current_user),
 ):
+    log_admin_mutation(acting_admin, payload.user_id, "apply_calibration")  # #55
     _validate_ratings(payload.ratings)
     profile = profile_repository.get_by_id(session, payload.user_id)
     if profile is None:

@@ -16,6 +16,8 @@ Contract (docs/USER_PLATFORM.md, authorization boundary):
 
 from typing import Dict, List
 
+from fastapi import HTTPException, Request, Response
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -88,6 +90,17 @@ class OnboardingStateResponse(BaseModel):
     onboarding: routes_auth.OnboardingBootstrap
 
 
+class MePasswordRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+    current_password: str
+    new_password: str = Field(min_length=8)
+
+
+class MeDeleteAccountRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+    current_password: str
+
+
 # ── Profile ───────────────────────────────────────────────────────────────────
 
 @router.get("/profile", response_model=UserProfile)
@@ -106,7 +119,7 @@ def me_put_profile(
 ):
     # Delegation enforces payload.user_id == session identity (422 on any
     # mismatch) — a /me PUT can never rename or write another user's profile.
-    return put_profile(user_id=user.id, payload=payload, session=session)
+    return put_profile(user_id=user.id, payload=payload, session=session, acting_admin=None)
 
 
 # ── Feed ──────────────────────────────────────────────────────────────────────
@@ -130,7 +143,7 @@ def me_submit_feedback(
     request = FeedbackRequest(
         user_id=user.id, article_id=payload.article_id, action=payload.action
     )
-    return submit_feedback(request=request, session=session)
+    return submit_feedback(request=request, session=session, acting_admin=None)
 
 
 @router.get("/feedback", response_model=List[FeedbackEvent])
@@ -161,6 +174,7 @@ def me_reset_learning(
         user_id=user.id,
         payload=LearningResetRequest(**payload.model_dump()),
         session=session,
+        acting_admin=None,
     )
 
 
@@ -174,6 +188,7 @@ def me_never_show(
         user_id=user.id,
         payload=NeverShowRequest(article_id=payload.article_id),
         session=session,
+        acting_admin=None,
     )
 
 
@@ -218,6 +233,7 @@ def me_calibration_apply(
     response = apply_calibration(
         payload=CalibrationApplyRequest(user_id=user.id, ratings=payload.ratings),
         session=session,
+        acting_admin=None,
     )
     auth_service.complete_onboarding(session, user)
     return response
@@ -234,3 +250,60 @@ def me_complete_onboarding(
     user = auth_service.complete_onboarding(session, user)
     bootstrap = routes_auth._session_bootstrap(session, user)
     return OnboardingStateResponse(onboarding=bootstrap.onboarding)
+
+
+# ── Account lifecycle (User Platform PR 7, issue #55) ────────────────────────
+
+@router.post("/password")
+def me_change_password(
+    payload: MePasswordRequest,
+    request: Request,
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Change the account password. Requires the current password; on success
+    every OTHER session is revoked while the active one survives."""
+    from app.core.config import settings
+
+    raw_token = request.cookies.get(settings.auth_cookie_name)
+    try:
+        revoked = auth_service.change_password(
+            session, user,
+            current_password=payload.current_password,
+            new_password=payload.new_password,
+            keep_raw_token=raw_token or "",
+        )
+    except auth_service.InvalidPasswordError:
+        raise HTTPException(status_code=403, detail="Current password is incorrect")
+    return {"ok": True, "revoked_other_sessions": revoked}
+
+
+@router.delete("/account")
+def me_delete_account(
+    payload: MeDeleteAccountRequest,
+    response: Response,
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Delete the account and exactly its own personalization rows (hard
+    delete, irreversible). Requires the current password. Demo fixtures are
+    undeletable; the last remaining admin cannot self-delete."""
+    from app.core.config import settings
+
+    try:
+        auth_service.delete_account(
+            session, user, current_password=payload.current_password
+        )
+    except auth_service.UndeletableAccountError:
+        raise HTTPException(status_code=403, detail="Demo accounts cannot be deleted")
+    except auth_service.LastAdminError:
+        raise HTTPException(
+            status_code=409, detail="The last remaining admin cannot self-delete"
+        )
+    except auth_service.InvalidPasswordError:
+        raise HTTPException(status_code=403, detail="Current password is incorrect")
+    response.delete_cookie(
+        key=settings.auth_cookie_name, path="/",
+        secure=settings.auth_cookie_secure, httponly=True, samesite="lax",
+    )
+    return {"ok": True, "deleted": True}

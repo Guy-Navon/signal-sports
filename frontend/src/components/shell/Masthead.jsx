@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { RefreshCw, Terminal, Rss, LogOut, UserRound } from "lucide-react";
+import { RefreshCw, Terminal, Rss, LogOut, Settings2, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SignalMark from "@/components/shell/SignalMark";
 import DataModeBadge from "@/components/shell/DataModeBadge";
@@ -60,6 +60,12 @@ function AccountMenu() {
           {label}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild className="gap-2 cursor-pointer">
+          <Link to="/account">
+            <Settings2 size={14} />
+            החשבון שלי
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => auth.logout()} className="gap-2 cursor-pointer">
           <LogOut size={14} />
           התנתקות

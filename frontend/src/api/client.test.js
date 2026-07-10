@@ -679,3 +679,33 @@ describe("me-learning endpoints", () => {
     expect(url).toContain("/api/learning/guy");
   });
 });
+
+// ── Account lifecycle (User Platform PR 7, #55) ───────────────────────────────
+
+import { changeMePassword, deleteMeAccount } from "./client";
+
+describe("account lifecycle endpoints", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("password change posts both passwords to the session-derived route", async () => {
+    const fetchMock = mockFetchSuccess({ ok: true, revoked_other_sessions: 1 });
+    vi.stubGlobal("fetch", fetchMock);
+    await changeMePassword("old pass", "new long pass");
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toContain("/api/me/password");
+    expect(JSON.parse(options.body)).toEqual({
+      current_password: "old pass",
+      new_password: "new long pass",
+    });
+  });
+
+  it("account deletion is a DELETE with the current password, no user id", async () => {
+    const fetchMock = mockFetchSuccess({ ok: true, deleted: true });
+    vi.stubGlobal("fetch", fetchMock);
+    await deleteMeAccount("old pass");
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toContain("/api/me/account");
+    expect(options.method).toBe("DELETE");
+    expect(JSON.parse(options.body)).toEqual({ current_password: "old pass" });
+  });
+});

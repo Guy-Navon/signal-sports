@@ -280,3 +280,20 @@ export function saveMeCalibrationResponses(ratings) {
 export function completeMeOnboarding() {
   return apiFetch("/api/me/onboarding/complete", { method: "POST" });
 }
+
+/** Account lifecycle (User Platform PR 7, #55). */
+export function changeMePassword(currentPassword, newPassword) {
+  return apiFetch("/api/me/password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+}
+
+export function deleteMeAccount(currentPassword) {
+  return apiFetch("/api/me/account", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ current_password: currentPassword }),
+  });
+}

@@ -3,6 +3,9 @@ from app.core.security_deps import require_admin
 from typing import List
 from sqlalchemy.orm import Session
 
+from app.core.security_deps import get_current_user
+from app.db.orm_models import UserRow
+from app.services.auth_service import log_admin_mutation
 from app.db.database import get_session
 from app.models.profile import UserProfile
 from app.repositories import profile_repository
@@ -24,7 +27,12 @@ def get_profile(user_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/profiles/{user_id}", response_model=UserProfile, dependencies=[Depends(require_admin)])
-def put_profile(user_id: str, payload: UserProfile, session: Session = Depends(get_session)):
+def put_profile(
+    user_id: str,
+    payload: UserProfile,
+    session: Session = Depends(get_session),
+    acting_admin: UserRow | None = Depends(get_current_user),
+):
     """Profile mutation API (issue #32). Full-profile PUT; the pydantic
     models (incl. ProfileV2 affinity levels/targets/overrides) are the
     validation layer. The path user_id is authoritative — a mismatched
@@ -34,6 +42,7 @@ def put_profile(user_id: str, payload: UserProfile, session: Session = Depends(g
             status_code=422,
             detail=f"payload user_id {payload.user_id!r} does not match path {user_id!r}",
         )
+    log_admin_mutation(acting_admin, user_id, "put_profile")  # #55 breadcrumb
     existing = profile_repository.get_by_id(session, user_id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Profile '{user_id}' not found")

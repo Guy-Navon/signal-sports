@@ -57,9 +57,10 @@ class TestJarIsolation:
     def test_login_cookie_does_not_leak_between_clients(
         self, client, user_client, admin_client
     ):
-        # Each jar carries exactly its own identity (guarantee 5).
-        assert _whoami(user_client)["email"] == "fixture-user@test.local"
-        assert _whoami(admin_client)["email"] == "fixture-admin@test.local"
+        # Each jar carries exactly its own (fresh, unique) identity (guarantee 5).
+        assert _whoami(user_client)["email"] == user_client.identity_email
+        assert _whoami(admin_client)["email"] == admin_client.identity_email
+        assert user_client.identity_email != admin_client.identity_email
         assert settings.auth_cookie_name not in client.cookies
 
     def test_logout_affects_only_the_logged_out_session(
@@ -98,29 +99,88 @@ class TestBareClientCannotRetainAuthState:
         assert client.get("/api/me/profile").status_code == 401
 
 
-class TestFixtureLifecycleAndDeterminism:
-    def test_identity_recreated_after_deletion(self, _application, client):
-        # Guarantee 6: even if a cleanup deleted the fixture rows, the next
-        # identity request deterministically recreates and re-authenticates.
+class _CrossTestState:
+    """Ordered cross-test probes: an earlier test mutates its identity as
+    aggressively as possible; a later test proves the next fixture identity
+    inherited none of it (fresh unique user per test, #54)."""
+    user_id = None
+    admin_id = None
+
+
+class TestMutationsCannotLeakAcrossTests:
+    def test_a_mutate_user_identity_aggressively(self, client, user_client, admin_client):
+        uid = user_client.identity_user_id
+        _CrossTestState.user_id = uid
+        _CrossTestState.admin_id = admin_client.identity_user_id
+        # Mutate everything the review listed: role, password, onboarding,
+        # profile, feedback, calibration — all against THIS test's identity.
+        with SessionLocal() as session:
+            row = session.query(UserRow).filter(UserRow.id == uid).one()
+            row.role = "admin"                      # role escalation
+            row.password_hash = "poisoned"          # password mutation
+            row.onboarding_completed_at = "2020-01-01T00:00:00+00:00"
+            session.commit()
+        items = user_client.get("/api/calibration/items").json()
+        rating = items["rating_keys"][0]
+        assert user_client.post(
+            "/api/me/calibration/responses",
+            json={"ratings": {items["items"][0]["id"]: rating}},
+        ).status_code == 200
+        # Demote the admin identity too (admin-state mutation).
         with SessionLocal() as session:
             session.query(UserRow).filter(
-                UserRow.email == "fixture-admin@test.local"
-            ).delete(synchronize_session=False)
+                UserRow.id == admin_client.identity_user_id
+            ).update({"role": "user"}, synchronize_session=False)
             session.commit()
-        c = _identity_client(_application, "fixture-admin@test.local", "admin")
-        try:
-            assert _whoami(c)["role"] == "admin"
-            assert c.get("/api/profiles").status_code == 200
-        finally:
-            c.close()  # guarantee 7: explicit lifecycle
 
-    def test_stale_fixture_rows_do_not_grant_identity(self, _application, client):
-        # A pre-existing fixture ROW is inert without a login: a fresh client
+    def test_b_next_identities_inherit_nothing(self, client, user_client, admin_client):
+        # Fresh rows, fresh ids — none of test_a's mutations exist here.
+        assert user_client.identity_user_id != _CrossTestState.user_id
+        assert admin_client.identity_user_id != _CrossTestState.admin_id
+        me = _whoami(user_client)
+        assert me["role"] == "user"                      # user stays role=user
+        assert me["onboarding_completed_at"] is None     # onboarding fresh
+        assert _whoami(admin_client)["role"] == "admin"  # admin stays admin
+        assert admin_client.get("/api/profiles").status_code == 200
+        # feedback / calibration / learned state cannot leak between identities:
+        block = user_client.get("/api/auth/session").json()["onboarding"]
+        assert block["calibration"]["answered"] == 0
+        assert user_client.get("/api/me/feedback").json() == []
+        assert user_client.get("/api/me/learning").json()["features"] == []
+        # test_a's poisoned rows were disposed with their fixture (teardown).
+        with SessionLocal() as session:
+            assert session.query(UserRow).filter(
+                UserRow.id == _CrossTestState.user_id
+            ).count() == 0
+
+
+class TestFixtureLifecycleAndDeterminism:
+    def test_every_identity_is_unique_and_lifecycle_managed(self, _application, client):
+        # Guarantee 6+7: two identity clients never share a user row, and
+        # explicit close() is the disposal path (exercised via the helper).
+        a = _identity_client(_application, "user")
+        b = _identity_client(_application, "user")
+        try:
+            assert a.identity_user_id != b.identity_user_id
+            assert _whoami(a)["email"] == a.identity_email
+            assert _whoami(b)["email"] == b.identity_email
+        finally:
+            from tests.conftest import _dispose_identity
+            _dispose_identity(a)
+            _dispose_identity(b)
+        with SessionLocal() as session:
+            remaining = session.query(UserRow).filter(
+                UserRow.id.in_([a.identity_user_id, b.identity_user_id])
+            ).count()
+        assert remaining == 0  # deterministic cleanup removed both
+
+    def test_stale_identity_rows_do_not_grant_identity(self, _application, client):
+        # A pre-existing user ROW is inert without a login: a fresh client
         # holding no cookie is anonymous regardless of what rows exist.
         with SessionLocal() as session:
             try:
                 auth_service.create_user_with_profile(
-                    session, email="fixture-user@test.local",
+                    session, email="stale-row@test.local",
                     password=_TEST_IDENTITY_PASSWORD, role="user",
                 )
             except auth_service.DuplicateEmailError:

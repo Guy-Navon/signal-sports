@@ -45,16 +45,6 @@ def _cleanup():
         session.commit()
 
 
-def _login_cookie(client, email, role="user"):
-    with SessionLocal() as session:
-        auth_service.create_user_with_profile(
-            session, email=email, password=PASSWORD, role=role
-        )
-    response = client.post("/api/auth/login", json={"email": email, "password": PASSWORD})
-    assert response.status_code == 200, response.text
-    return {settings.auth_cookie_name: response.cookies.get(settings.auth_cookie_name)}
-
-
 # (method, path, body) — representative admin/QA-surface routes.
 ADMIN_SURFACE = [
     ("GET", "/api/profiles", None),
@@ -93,15 +83,13 @@ class TestAdminSurfaceFailClosed:
         assert response.status_code == 401, f"{method} {path}: {response.status_code}"
 
     @pytest.mark.parametrize("method,path,body", ADMIN_SURFACE)
-    def test_role_user_gets_403(self, client, method, path, body):
-        cookies = _login_cookie(client, "authz-user@example.com", role="user")
-        response = client.request(method, path, json=body, cookies=cookies)
+    def test_role_user_gets_403(self, user_client, method, path, body):
+        response = user_client.request(method, path, json=body)
         assert response.status_code == 403, f"{method} {path}: {response.status_code}"
 
     @pytest.mark.parametrize("method,path,body", ADMIN_SURFACE)
-    def test_admin_passes_the_gate(self, client, method, path, body):
-        cookies = _login_cookie(client, "authz-admin@example.com", role="admin")
-        response = client.request(method, path, json=body, cookies=cookies)
+    def test_admin_passes_the_gate(self, admin_client, method, path, body):
+        response = admin_client.request(method, path, json=body)
         # Past the auth gate the route may still 404/409/422 on the synthetic
         # body — anything but 401/403 proves the authorization decision.
         assert response.status_code not in (401, 403), (
@@ -116,30 +104,26 @@ class TestSessionSurface:
         assert response.status_code == 401, f"{method} {path}"
 
     @pytest.mark.parametrize("method,path,body", SESSION_SURFACE)
-    def test_any_signed_in_role_passes(self, client, method, path, body):
-        cookies = _login_cookie(client, "authz-member@example.com", role="user")
-        response = client.request(method, path, json=body, cookies=cookies)
+    def test_any_signed_in_role_passes(self, user_client, method, path, body):
+        response = user_client.request(method, path, json=body)
         assert response.status_code == 200, f"{method} {path}: {response.status_code}"
 
 
 class TestHorizontalIsolation:
-    def test_user_cannot_read_another_users_data_via_path_params(self, client):
-        cookies = _login_cookie(client, "authz-horizontal@example.com", role="user")
+    def test_user_cannot_read_another_users_data_via_path_params(self, user_client):
         for path in ("/api/profiles/guy", "/api/feed/guy", "/api/feedback/guy",
                      "/api/learning/guy", "/api/calibration/responses/guy"):
-            response = client.get(path, cookies=cookies)
+            response = user_client.get(path)
             assert response.status_code == 403, f"{path}: {response.status_code}"
 
-    def test_user_cannot_mutate_another_user_via_legacy_writes(self, client):
-        cookies = _login_cookie(client, "authz-writes@example.com", role="user")
-        response = client.post(
+    def test_user_cannot_mutate_another_user_via_legacy_writes(self, user_client):
+        response = user_client.post(
             "/api/feedback",
             json={"user_id": "guy", "article_id": "x", "action": "more_like_this"},
-            cookies=cookies,
         )
         assert response.status_code == 403
-        response = client.post(
-            "/api/calibration/apply", json={"user_id": "guy", "ratings": {}}, cookies=cookies
+        response = user_client.post(
+            "/api/calibration/apply", json={"user_id": "guy", "ratings": {}}
         )
         assert response.status_code == 403
 
@@ -162,10 +146,9 @@ class TestBypassRestoresOpenSurface:
 
 
 class TestDevRoutesDoubleGate:
-    def test_admin_without_dev_flag_still_blocked(self, client, monkeypatch):
+    def test_admin_without_dev_flag_still_blocked(self, admin_client, monkeypatch):
         monkeypatch.delenv("ALLOW_DEV_RESET", raising=False)
-        cookies = _login_cookie(client, "authz-dev@example.com", role="admin")
-        response = client.post("/api/dev/reset-rss-data", cookies=cookies)
+        response = admin_client.post("/api/dev/reset-rss-data")
         assert response.status_code == 403  # inner ALLOW_DEV_RESET gate
 
     def test_anonymous_blocked_before_dev_flag_is_consulted(self, client, monkeypatch):

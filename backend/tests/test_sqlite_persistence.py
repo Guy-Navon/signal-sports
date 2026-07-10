@@ -326,7 +326,7 @@ def test_feedback_persists_across_app_restart(admin_client):
     fresh_app = create_app()
     with TestClient(fresh_app):
         # The restarted instance is also enforced — authenticate explicitly.
-        fresh_admin = _identity_client(fresh_app, "fixture-admin@test.local", "admin")
+        fresh_admin = _identity_client(fresh_app, "admin")
         r2 = fresh_admin.get("/api/feedback/guy")
         assert r2.status_code == 200
         events = r2.json()

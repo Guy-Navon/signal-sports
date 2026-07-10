@@ -24,8 +24,12 @@ Tailscale Serve chain depend on it).
 The app runs in two modes via `VITE_DATA_MODE` (in `.env.local`):
 
 - `local` (default) — mock data + the in-browser relevance engine, no backend.
-- `backend` — fetches from the FastAPI backend (`VITE_API_BASE_URL`, default
-  `http://127.0.0.1:8000`).
+- `backend` — fetches from the FastAPI backend. `VITE_API_BASE_URL` defaults
+  to an **empty string**: normal behavior is same-origin relative paths
+  (`/api/...`, `/health`) forwarded to `http://127.0.0.1:8000` by the Vite
+  dev proxy (see `vite.config.js`). Setting `VITE_API_BASE_URL` explicitly is
+  an override/debug path only (direct cross-origin calls bypassing the proxy;
+  unsupported under cookie-auth enforcement).
 
 ```bash
 # local mode

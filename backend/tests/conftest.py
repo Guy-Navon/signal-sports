@@ -87,72 +87,82 @@ def _keep_bare_client_anonymous(request):
 _TEST_IDENTITY_PASSWORD = "test identity passphrase"
 
 
-def _identity_client(application, email, role):
+def _identity_client(application, role, email=None):
     """Build an authenticated identity client (own TestClient = own cookie jar).
 
-    HONESTY NOTE (#54 review, HIGH-3): identity CONSTRUCTION here uses direct
-    DB row creation (``create_user_with_profile`` service call) — the same
-    service the API signup route and the admin env-bootstrap use, but NOT the
-    HTTP paths themselves. That is deliberate fixture plumbing, not API
-    verification: the real signup flow is verified by test_auth_core /
-    test_me_api, and the admin env-bootstrap by test_auth_core. The LOGIN
-    however goes through the real ``POST /api/auth/login`` route, so every
-    identity client holds a genuine server-side session.
+    FRESH IDENTITY PER CALL (#54 review): every invocation creates a brand-new
+    unique user row, so no test can inherit another test's mutations to role,
+    password, onboarding, profile, feedback, calibration, or learned state.
 
-    Idempotent (per-file cleanups may have deleted the fixture user) and
-    function-scoped: hidden long-lived auth state is exactly what PR 6
-    removes. Callers get a live client; the fixtures below own its lifecycle.
+    HONESTY NOTE: identity CONSTRUCTION uses direct service-layer row creation
+    (``create_user_with_profile`` — the same service the API signup route and
+    the admin env-bootstrap use, but not the HTTP paths themselves). That is
+    deliberate fixture plumbing, not API verification: the real signup flow is
+    verified by test_auth_core / test_me_api, and the admin env-bootstrap by
+    test_auth_core. The LOGIN goes through the real ``POST /api/auth/login``
+    route, so every identity client holds a genuine server-side session.
     """
+    import uuid
     from app.db.database import SessionLocal
     from app.services import auth_service
+
+    email = email or f"fixture-{role}-{uuid.uuid4().hex[:10]}@test.local"
     with SessionLocal() as session:
-        try:
-            auth_service.create_user_with_profile(
-                session, email=email, password=_TEST_IDENTITY_PASSWORD, role=role,
-            )
-        except auth_service.DuplicateEmailError:
-            pass
+        user = auth_service.create_user_with_profile(
+            session, email=email, password=_TEST_IDENTITY_PASSWORD, role=role,
+        )
+        user_id = user.id
     auth_service.reset_rate_limiters()
     c = TestClient(application)
     response = c.post(
         "/api/auth/login", json={"email": email, "password": _TEST_IDENTITY_PASSWORD}
     )
     assert response.status_code == 200, f"identity login failed: {response.text}"
+    c.identity_user_id = user_id
+    c.identity_email = email
     return c
+
+
+def _dispose_identity(c):
+    """Deterministic teardown of everything the identity fixture created:
+    close the client, then delete the identity's own rows (sessions, feedback,
+    calibration responses, profile, user). Nothing else is touched."""
+    from app.db.database import SessionLocal
+    from app.db.orm_models import (
+        AuthSessionRow, CalibrationResponseRow, FeedbackRow, ProfileRow, UserRow,
+    )
+    c.close()
+    uid = getattr(c, "identity_user_id", None)
+    if uid is None:
+        return
+    with SessionLocal() as session:
+        session.query(AuthSessionRow).filter(AuthSessionRow.user_id == uid).delete(
+            synchronize_session=False)
+        session.query(FeedbackRow).filter(FeedbackRow.user_id == uid).delete(
+            synchronize_session=False)
+        session.query(CalibrationResponseRow).filter(
+            CalibrationResponseRow.user_id == uid).delete(synchronize_session=False)
+        session.query(ProfileRow).filter(ProfileRow.user_id == uid).delete(
+            synchronize_session=False)
+        session.query(UserRow).filter(UserRow.id == uid).delete(
+            synchronize_session=False)
+        session.commit()
 
 
 @pytest.fixture
 def user_client(_application, client):
-    """A real role=user session over the shared app (own cookie jar)."""
-    c = _identity_client(_application, "fixture-user@test.local", "user")
+    """A FRESH role=user identity + real login session (own cookie jar)."""
+    c = _identity_client(_application, "user")
     yield c
-    c.close()
+    _dispose_identity(c)
 
 
 @pytest.fixture
 def admin_client(_application, client):
-    """The admin QA session over the shared app (own cookie jar)."""
-    c = _identity_client(_application, "fixture-admin@test.local", "admin")
+    """A FRESH admin identity + real login session (own cookie jar)."""
+    c = _identity_client(_application, "admin")
     yield c
-    c.close()
-
-
-@pytest.fixture(autouse=True)
-def _mock_one_api_by_default(monkeypatch):
-    """Keep enabled ONE ingestion hermetic in tests unless a test overrides it."""
-    try:
-        from app.ingestion.adapters import one_adapter
-    except Exception:
-        return
-
-    class _Response:
-        def raise_for_status(self):
-            return None
-
-        def json(self):
-            return {"Data": {"Articles": {"Items": []}}}
-
-    monkeypatch.setattr(one_adapter.httpx, "get", lambda *args, **kwargs: _Response())
+    _dispose_identity(c)
 
 
 # IDs of seed articles used by feed/scoring tests (must survive the rss-only filter).

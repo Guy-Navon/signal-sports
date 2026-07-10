@@ -25,12 +25,8 @@ for having no role gate attached.
 import pytest
 
 from app.core import security_deps
-from app.core.config import settings
 from app.db.database import SessionLocal
 from app.db.orm_models import AuthSessionRow, ProfileRow, UserRow
-from app.services import auth_service
-
-PASSWORD = "correct horse battery"
 
 # ── The authorization inventory (the single declared expectation) ─────────────
 # Keys are "METHOD /path" exactly as registered.
@@ -170,20 +166,6 @@ def _fill(path):
     return path
 
 
-def _login_cookie(client, email, role):
-    with SessionLocal() as session:
-        try:
-            auth_service.create_user_with_profile(
-                session, email=email, password=PASSWORD, role=role
-            )
-        except auth_service.DuplicateEmailError:
-            pass
-    auth_service.reset_rate_limiters()
-    response = client.post("/api/auth/login", json={"email": email, "password": PASSWORD})
-    assert response.status_code == 200, response.text
-    return {settings.auth_cookie_name: response.cookies.get(settings.auth_cookie_name)}
-
-
 @pytest.fixture(autouse=True)
 def _enforced(client, monkeypatch):
     monkeypatch.setenv("ALLOW_INSECURE_AUTH_BYPASS", "false")
@@ -235,24 +217,22 @@ def _gated_routes(_application):
     ]
 
 
-def test_anonymous_denied_on_every_gated_route(client, _application):
+def test_anonymous_denied_on_every_gated_route(anonymous_client, _application):
     failures = []
     for key, _route in _gated_routes(_application):
         method, path = key.split(" ", 1)
-        response = client.request(method, _fill(path), json={})
+        response = anonymous_client.request(method, _fill(path), json={})
         if response.status_code != 401:
             failures.append(f"{key}: {response.status_code}")
     assert failures == [], "\n".join(failures)
 
 
-def test_role_user_matrix_on_every_gated_route(client, _application):
-    cookies = _login_cookie(client, "inv-user@test.local", "user")
-    client.cookies.clear()
+def test_role_user_matrix_on_every_gated_route(user_client, _application):
     failures = []
     for key, _route in _gated_routes(_application):
         method, path = key.split(" ", 1)
         cls = INVENTORY[key]
-        response = client.request(method, _fill(path), json={}, cookies=cookies)
+        response = user_client.request(method, _fill(path), json={})
         if cls in ("admin", "admin+env"):
             ok = response.status_code == 403
         else:  # me / session: past the gate; domain statuses acceptable
@@ -262,22 +242,20 @@ def test_role_user_matrix_on_every_gated_route(client, _application):
     assert failures == [], "\n".join(failures)
 
 
-def test_admin_passes_gate_on_every_admin_route(client, _application, monkeypatch):
+def test_admin_passes_gate_on_every_admin_route(admin_client, _application, monkeypatch):
     # Neuter destructive handlers: the dependency gate still runs (that's the
     # assertion); ingestion itself must not.
     from app.api import routes_ingest
     monkeypatch.setattr(routes_ingest, "run_ingestion", lambda *a, **k: [])
     monkeypatch.delenv("ALLOW_DEV_RESET", raising=False)
 
-    cookies = _login_cookie(client, "inv-admin@test.local", "admin")
-    client.cookies.clear()
     failures = []
     for key, _route in _gated_routes(_application):
         cls = INVENTORY[key]
         if cls not in ("admin", "admin+env"):
             continue
         method, path = key.split(" ", 1)
-        response = client.request(method, _fill(path), json={}, cookies=cookies)
+        response = admin_client.request(method, _fill(path), json={})
         if cls == "admin":
             ok = response.status_code not in (401, 403)
         else:
@@ -289,13 +267,13 @@ def test_admin_passes_gate_on_every_admin_route(client, _application, monkeypatc
     assert failures == [], "\n".join(failures)
 
 
-def test_admin_env_double_gate_opens_with_flag(client, _application, monkeypatch):
+def test_admin_env_double_gate_opens_with_flag(
+    anonymous_client, admin_client, _application, monkeypatch
+):
     """The inner env gate is real: with ALLOW_DEV_RESET=true an admin passes
     both gates on the benchmark route (422/other domain status — provider is
     disabled in tests), while anonymous still hits the outer 401."""
     monkeypatch.setenv("ALLOW_DEV_RESET", "true")
-    assert client.post("/api/dev/benchmark/llm-gating").status_code == 401
-    cookies = _login_cookie(client, "inv-admin2@test.local", "admin")
-    client.cookies.clear()
-    response = client.post("/api/dev/benchmark/llm-gating", cookies=cookies)
+    assert anonymous_client.post("/api/dev/benchmark/llm-gating").status_code == 401
+    response = admin_client.post("/api/dev/benchmark/llm-gating")
     assert response.status_code not in (401, 403)

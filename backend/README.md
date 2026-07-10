@@ -186,13 +186,13 @@ See `docs/RSS_INGESTION.md`, `docs/RSS_QUALITY_GUARDRAILS.md`, `docs/HEBREW_RSS_
 - **Authentication is live (User Platform).** Email/password accounts with HttpOnly cookie sessions (`/api/auth/*`); the consumer product uses the session-derived `/api/me/*` surface; explicit `{user_id}` and ops routes are the fail-closed admin/QA surface (`require_admin`; `ALLOW_INSECURE_AUTH_BYPASS=true` reopens them for local dev only). See `docs/USER_PLATFORM.md`.
 - **No clustering.** Articles are not grouped; `cluster_id` exists in the model only.
 - **`skipped_filtered` not persisted.** The count of URL/language-filtered items is returned in the live API response but not stored in `ingestion_runs` (would require a DB migration).
-- **Sport5 / ONE have no public RSS.** These sources require category page adapters or scraping — not yet implemented.
+- **Sport5 / ONE have no public RSS — both are implemented without it.** ONE is an active source through its public JSON article-list endpoints (`api.one.co.il` categories adapter). Sport5 is an implemented HTML-scraping pilot (`source_type="html_scrape"`), disabled by default; enable via the Sources page toggle or `PATCH /api/ingest/sources/sport5_sport`.
 
 ## Next steps
 
 1. LLM classification benchmark — Ollama + `qwen2.5:3b-instruct`; check `llm_avg_ms`, `llm_p95_ms`, and `sport=unknown` count
 2. Expand entity normalization map (`entity_normalizer.py`) based on benchmark findings
-3. Scheduled ingestion (APScheduler or cron endpoint)
+3. ~~Scheduled ingestion~~ — done (asyncio loop in the app lifespan; `INGESTION_SCHEDULER_ENABLED`, default off)
 4. Fuzzy title dedup / clustering
-5. Feedback → profile mutation (`never_show` → hidden event rule)
-6. Additional Hebrew sources (ONE via category page adapter — preferred; no public RSS)
+5. ~~Feedback → profile mutation~~ — done (issue #34: derived learned adjustments; scoped `never_show` overrides)
+6. ~~Additional Hebrew sources (ONE)~~ — done (ONE active via its public JSON article API)

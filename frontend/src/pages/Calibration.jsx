@@ -7,6 +7,8 @@ import {
   previewCalibration,
   applyCalibration,
   getCalibrationResponses,
+  applyMeCalibration,
+  getMeCalibrationResponses,
 } from "@/api/client";
 import PageHeader from "@/components/shared/PageHeader";
 import SectionCard from "@/components/shared/SectionCard";
@@ -100,7 +102,7 @@ function PreviewPanel({ preview }) {
 }
 
 export default function Calibration() {
-  const { isBackendMode, activeProfileId, refreshProfiles, refreshFeed } = useApp();
+  const { isBackendMode, activeProfileId, consumerSession, refreshProfiles, refreshFeed } = useApp();
   const [items, setItems] = useState([]);
   const [version, setVersion] = useState(null);
   const [ratings, setRatings] = useState({});
@@ -115,7 +117,10 @@ export default function Calibration() {
     setIsLoading(true);
     Promise.all([
       getCalibrationItems(),
-      getCalibrationResponses(activeProfileId).catch(() => ({ ratings: {} })),
+      (consumerSession
+        ? getMeCalibrationResponses()
+        : getCalibrationResponses(activeProfileId)
+      ).catch(() => ({ ratings: {} })),
     ])
       .then(([data, saved]) => {
         setItems(data.items);
@@ -124,7 +129,7 @@ export default function Calibration() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setIsLoading(false));
-  }, [isBackendMode, activeProfileId]);
+  }, [isBackendMode, activeProfileId, consumerSession]);
 
   const ratedCount = Object.keys(ratings).length;
 
@@ -151,7 +156,11 @@ export default function Calibration() {
     setIsApplying(true);
     setError(null);
     try {
-      await applyCalibration(activeProfileId, ratings);
+      if (consumerSession) {
+        await applyMeCalibration(ratings);
+      } else {
+        await applyCalibration(activeProfileId, ratings);
+      }
       setApplied(true);
       refreshProfiles?.();
       refreshFeed?.();

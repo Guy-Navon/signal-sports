@@ -26,11 +26,11 @@ _load_dotenv()
 # ── All remaining imports come AFTER dotenv is loaded ─────────────────────────
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.config import settings
-from app.core.security_deps import validate_auth_startup_config
+from app.core.security_deps import require_admin, validate_auth_startup_config
 from app.api import (
     routes_auth,
     routes_me,
@@ -117,10 +117,15 @@ def create_app() -> FastAPI:
     application.include_router(routes_feedback.router, prefix="/api", tags=["feedback"])
     application.include_router(routes_learning.router, prefix="/api", tags=["learning"])
     application.include_router(routes_calibration.router, prefix="/api", tags=["calibration"])
-    application.include_router(routes_ingest.router, prefix="/api", tags=["ingest"])
-    application.include_router(routes_translation.router, prefix="/api", tags=["translation"])
-    application.include_router(routes_classify.router, prefix="/api", tags=["classify"])
-    application.include_router(routes_dev.router, prefix="/api", tags=["dev"])
+    # Ops surface (User Platform PR 5, #53): admin-gated at the router level,
+    # fail-closed by default; ALLOW_INSECURE_AUTH_BYPASS restores the open
+    # behavior for local development. /api/dev/* keeps its ALLOW_DEV_RESET env
+    # gate INSIDE the routes — a deliberate double gate.
+    _admin_dep = [Depends(require_admin)]
+    application.include_router(routes_ingest.router, prefix="/api", tags=["ingest"], dependencies=_admin_dep)
+    application.include_router(routes_translation.router, prefix="/api", tags=["translation"], dependencies=_admin_dep)
+    application.include_router(routes_classify.router, prefix="/api", tags=["classify"], dependencies=_admin_dep)
+    application.include_router(routes_dev.router, prefix="/api", tags=["dev"], dependencies=_admin_dep)
 
     return application
 

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from app.core.security_deps import require_admin
 from typing import List
 from sqlalchemy.orm import Session
 
@@ -9,12 +10,12 @@ from app.repositories import profile_repository
 router = APIRouter()
 
 
-@router.get("/profiles", response_model=List[UserProfile])
+@router.get("/profiles", response_model=List[UserProfile], dependencies=[Depends(require_admin)])
 def list_profiles(session: Session = Depends(get_session)):
     return profile_repository.get_all(session)
 
 
-@router.get("/profiles/{user_id}", response_model=UserProfile)
+@router.get("/profiles/{user_id}", response_model=UserProfile, dependencies=[Depends(require_admin)])
 def get_profile(user_id: str, session: Session = Depends(get_session)):
     profile = profile_repository.get_by_id(session, user_id)
     if not profile:
@@ -22,7 +23,7 @@ def get_profile(user_id: str, session: Session = Depends(get_session)):
     return profile
 
 
-@router.put("/profiles/{user_id}", response_model=UserProfile)
+@router.put("/profiles/{user_id}", response_model=UserProfile, dependencies=[Depends(require_admin)])
 def put_profile(user_id: str, payload: UserProfile, session: Session = Depends(get_session)):
     """Profile mutation API (issue #32). Full-profile PUT; the pydantic
     models (incl. ProfileV2 affinity levels/targets/overrides) are the

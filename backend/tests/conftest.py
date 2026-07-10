@@ -18,7 +18,12 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_dir}/test.db"
 # - Auth env: tests must not inherit a developer's backend/.env auth settings.
 os.environ["CLASSIFICATION_PROVIDER"] = "disabled"
 os.environ["INGESTION_SCHEDULER_ENABLED"] = "false"
-os.environ["ALLOW_INSECURE_AUTH_BYPASS"] = "false"
+# TRANSITIONAL (User Platform PR 5 → PR 6 window, issue #53): the legacy/ops
+# surface is now admin-gated fail-closed; existing legacy test files keep
+# passing through the explicit bypass until PR 6 (#54) migrates them to
+# explicit identity fixtures and REMOVES this line. New authz tests monkeypatch
+# this env var to "false" to exercise real enforcement.
+os.environ["ALLOW_INSECURE_AUTH_BYPASS"] = "true"
 os.environ["AUTH_ADMIN_EMAIL"] = ""
 os.environ["AUTH_ADMIN_PASSWORD"] = ""
 os.environ["AUTH_COOKIE_SECURE"] = "false"

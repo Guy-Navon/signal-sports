@@ -11,6 +11,7 @@ Calibration V2 API (issue #33).
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from app.core.security_deps import require_admin, require_session
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -89,7 +90,7 @@ def _validate_ratings(ratings: Dict[str, str]) -> None:
             raise HTTPException(status_code=422, detail=f"unknown rating: {key}")
 
 
-@router.get("/calibration/items", response_model=CalibrationItemsResponse)
+@router.get("/calibration/items", response_model=CalibrationItemsResponse, dependencies=[Depends(require_session)])
 def list_calibration_items():
     return CalibrationItemsResponse(
         version=CALIBRATION_DATASET_VERSION,
@@ -105,7 +106,7 @@ def list_calibration_items():
     )
 
 
-@router.post("/calibration/preview", response_model=CalibrationPreviewResponse)
+@router.post("/calibration/preview", response_model=CalibrationPreviewResponse, dependencies=[Depends(require_session)])
 def preview_calibration(payload: CalibrationPreviewRequest):
     _validate_ratings(payload.ratings)
     inference = infer_calibration_profile(payload.ratings)
@@ -117,7 +118,7 @@ def preview_calibration(payload: CalibrationPreviewRequest):
     )
 
 
-@router.post("/calibration/apply", response_model=CalibrationApplyResponse)
+@router.post("/calibration/apply", response_model=CalibrationApplyResponse, dependencies=[Depends(require_admin)])
 def apply_calibration(
     payload: CalibrationApplyRequest, session: Session = Depends(get_session)
 ):
@@ -139,7 +140,7 @@ def apply_calibration(
     )
 
 
-@router.get("/calibration/responses/{user_id}")
+@router.get("/calibration/responses/{user_id}", dependencies=[Depends(require_admin)])
 def list_calibration_responses(user_id: str, session: Session = Depends(get_session)):
     return {
         "dataset_version": CALIBRATION_DATASET_VERSION,
@@ -147,7 +148,7 @@ def list_calibration_responses(user_id: str, session: Session = Depends(get_sess
     }
 
 
-@router.get("/calibration/headlines", response_model=List[CalibrationHeadline])
+@router.get("/calibration/headlines", response_model=List[CalibrationHeadline], dependencies=[Depends(require_admin)])
 def list_calibration_headlines():
     """DEPRECATED — legacy shape kept for compatibility, served from the
     same code-owned v2 dataset (the old 16-row table copy is no longer read)."""

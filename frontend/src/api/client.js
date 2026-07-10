@@ -218,3 +218,45 @@ export function authSignup({ email, password, displayName }) {
 export function authLogout() {
   return apiFetch("/api/auth/logout", { method: "POST" });
 }
+
+/** Consumer /api/me/* surface (User Platform PR 5, #53) — session-derived
+ * identity; the product uses these under enforcement instead of {user_id}. */
+export function getMeProfile() {
+  return apiFetch("/api/me/profile");
+}
+
+export function getMeFeed() {
+  return apiFetch("/api/me/feed");
+}
+
+export function submitMeFeedback(articleId, action) {
+  return apiFetch("/api/me/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ article_id: articleId, action }),
+  });
+}
+
+export function meNeverShow(articleId) {
+  return apiFetch("/api/me/never_show", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ article_id: articleId }),
+  });
+}
+
+export function applyMeCalibration(ratings) {
+  return apiFetch("/api/me/calibration/apply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ratings }),
+  });
+}
+
+export function getMeCalibrationResponses() {
+  return apiFetch("/api/me/calibration/responses");
+}
+
+export function completeMeOnboarding() {
+  return apiFetch("/api/me/onboarding/complete", { method: "POST" });
+}

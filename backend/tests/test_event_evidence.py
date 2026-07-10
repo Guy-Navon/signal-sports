@@ -130,3 +130,99 @@ class TestLLMEventEvidenceContract:
         )
         assert merged.event_type == "signing"
         assert merged.event_certainty == "weak"
+
+
+class TestChampionAssertionSemantics:
+    """Issue #60: championship VOCABULARY is not championship EVIDENCE."""
+
+    # -- The mandatory minimal pair -----------------------------------------
+    def test_minimal_pair_bare_construct_assertion_is_title_win(self):
+        # "New York champions of the NBA" — champion noun as bare predicate.
+        assert validate_event_evidence("title_win", "ניו יורק אלופת ה-NBA").valid
+
+    def test_minimal_pair_prefixed_epithet_is_not_title_win(self):
+        # "approaching the champion of Italy" — prepositional prefix = epithet.
+        ev = validate_event_evidence("title_win", "מתקרב לאלופת איטליה?")
+        assert not ev.valid and ev.event_type == "news"
+
+    # -- Epithets ------------------------------------------------------------
+    def test_definite_article_epithet_blocked(self):
+        # "the champion returned from training camp" (reigning champion).
+        ev = validate_event_evidence("title_win", "האלופה חזרה ממחנה האימון בפולין")
+        assert not ev.valid
+
+    def test_object_marker_epithet_blocked(self):
+        # "trying to smear the world champion" — direct-object reference.
+        ev = validate_event_evidence("title_win", "מנסים להכתים את אלופת העולם")
+        assert not ev.valid
+
+    def test_champion_kit_epithet_blocked(self):
+        # C11 subtitle: "in the champion's kit" must not be a title win.
+        ev = validate_event_evidence("title_win", "קפטן הצהובים ימשיך לעונה עשירית במדי האלופה")
+        assert not ev.valid
+
+    # -- Competition names containing champion vocabulary --------------------
+    def test_champions_league_name_is_not_title_win(self):
+        ev = validate_event_evidence("title_win", "ריאל מדריד תארח את ליברפול בליגת האלופות")
+        assert not ev.valid
+
+    def test_super_cup_name_is_not_title_win(self):
+        # "אלוף האלופים" is the Israeli Super Cup's NAME (golden C4).
+        ev = validate_event_evidence(
+            "title_win", "כמות הכרטיסים שמכרה מכבי תל אביב לאלוף האלופים בטרנר"
+        )
+        assert not ev.valid
+
+    # -- Aspirational win language -------------------------------------------
+    def test_aspirational_infinitive_blocked(self):
+        # "the best chance to win a championship" (golden C1) — the win verb
+        # is inside the infinitive "לזכות"; Hebrew word boundaries reject it.
+        ev = validate_event_evidence(
+            "title_win", "זו הקבוצה שנותנת לך את הסיכוי הטוב ביותר לזכות באליפות"
+        )
+        assert not ev.valid
+
+    def test_actual_win_verb_with_object_still_valid(self):
+        assert validate_event_evidence("title_win", "מכבי זכתה באליפות המדינה").valid
+
+    def test_trophy_lift_still_valid(self):
+        assert validate_event_evidence("title_win", "מכבי הניפה את הגביע").valid
+
+
+class TestFinalsResultRequiresResult:
+    """Issue #60: finals context without a result signal is not finals_result."""
+
+    def test_knockout_preview_is_not_finals_result(self):
+        ev = validate_event_evidence(
+            "finals_result", "רונאלדו נגד ספרד במוקד: כל מה שצריך לדעת על שמינית גמר המונדיאל"
+        )
+        assert not ev.valid
+
+    def test_legal_story_mentioning_final_is_not_finals_result(self):
+        ev = validate_event_evidence(
+            "finals_result", "ניסיון נוסף לגישור הפערים בעסקת הטיעון של גמר הגביע"
+        )
+        assert not ev.valid
+
+    def test_word_completely_does_not_match_final(self):
+        # "לגמרי" (completely) contains "גמר" but is not a finals word.
+        ev = validate_event_evidence("finals_result", "השחקן לגמרי ניצח את הביקורת")
+        assert not ev.valid
+
+    def test_finals_with_result_verb_is_valid(self):
+        assert validate_event_evidence(
+            "finals_result", "גמר NBA: סלטיקס מנצחים את הית' 4-1"
+        ).valid
+
+    def test_finals_with_score_is_valid(self):
+        assert validate_event_evidence(
+            "finals_result", "צרפת ברבע גמר אחרי 0:1 על פרגוואי"
+        ).valid
+
+
+class TestNegotiationPhraseGap:
+    """Issue #60 / golden C9: 'על סף סיכום' is negotiation evidence."""
+
+    def test_on_verge_of_agreement_is_negotiation(self):
+        ev = validate_event_evidence("negotiation", "זאק לידיי על סף סיכום בהפועל")
+        assert ev.valid and ev.event_type == "negotiation"

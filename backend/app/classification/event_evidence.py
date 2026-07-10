@@ -19,6 +19,8 @@ EVENT_CERTAINTIES = {"confirmed", "probable", "weak"}
 class Pattern:
     value: str
     word: bool = False
+    hword: bool = False   # Hebrew word: match only at a Hebrew word boundary
+    regex: bool = False   # value is a raw regular expression
 
 
 @dataclass(frozen=True)
@@ -43,9 +45,61 @@ def word(value: str) -> Pattern:
     return Pattern(value, word=True)
 
 
+def hword(value: str) -> Pattern:
+    return Pattern(value, hword=True)
+
+
+def regex(value: str) -> Pattern:
+    return Pattern(value, regex=True)
+
+
+_HEBREW_LETTERS = set("אבגדהוזחטיכךלמםנןסעפףצץקרשת")
+
+# Single prepositional/article prefix letters that may legitimately attach to a
+# Hebrew word (ב/ל/מ/כ/ה), optionally preceded by ו (and) or ש (that).
+_HEBREW_PREFIX_LETTERS = set("בלמכה")
+_HEBREW_CONJ_LETTERS = set("וש")
+
+
+def _is_hebrew_word_occurrence(text: str, idx: int, needle: str) -> bool:
+    """True when ``needle`` at ``idx`` is a standalone Hebrew word, allowing
+    only a legitimate prepositional prefix chain ([ו|ש] [ב|ל|מ|כ|ה]?).
+
+    Blocks substring hits inside larger words: "זכו" inside "לזכות" is blocked
+    by the trailing letter; "גמר" inside "נגמר" is blocked by the illegal
+    prefix; "גמר" inside "לגמרי" is blocked by the trailing letter; "בגמר" and
+    "ובגמר" are accepted.
+    """
+    end = idx + len(needle)
+    if end < len(text) and text[end] in _HEBREW_LETTERS:
+        return False
+    # Walk back over an allowed prefix chain.
+    i = idx
+    if i > 0 and text[i - 1] in _HEBREW_PREFIX_LETTERS:
+        i -= 1
+    if i > 0 and text[i - 1] in _HEBREW_CONJ_LETTERS:
+        i -= 1
+    return i == 0 or text[i - 1] not in _HEBREW_LETTERS
+
+
+def _find_hebrew_word(text: str, needle: str) -> bool:
+    start = 0
+    while True:
+        idx = text.find(needle, start)
+        if idx == -1:
+            return False
+        if _is_hebrew_word_occurrence(text, idx, needle):
+            return True
+        start = idx + 1
+
+
 def _contains(text: str, pattern: Pattern) -> bool:
+    if pattern.regex:
+        return bool(re.search(pattern.value, text))
     if pattern.word:
         return bool(re.search(r"\b" + re.escape(pattern.value) + r"\b", text))
+    if pattern.hword:
+        return _find_hebrew_word(text, pattern.value)
     return pattern.value in text
 
 
@@ -65,7 +119,8 @@ _NEGOTIATION = (
     phrase('במו"מ'), phrase('מו"מ'), phrase("במו״מ"), phrase("מו״מ"),
     phrase("במשא ומתן"), phrase("מגעים"), phrase("שיחות"),
     phrase("מתקרב"), phrase("מתקרבת"), phrase("סיכם"), phrase("סיכמה"),
-    phrase("על סף חתימה"), phrase("negotiations"), phrase("negotiation"),
+    phrase("על סף חתימה"), phrase("על סף סיכום"),  # on the verge of agreement (#60)
+    phrase("negotiations"), phrase("negotiation"),
     phrase("in talks"), phrase("advanced talks"), word("talks"),
 )
 
@@ -100,18 +155,24 @@ _RELEASE_BLOCKERS = (
     phrase("בית החולים"), phrase("hospital"), phrase("released from hospital"),
 )
 
-_TITLE_WIN_CHAMPION_NOUN = (
-    phrase("אלוף"), phrase("אלופה"), phrase("אלופת"), phrase("אלופות"),
-    phrase("הניפה"), phrase("הניף"), phrase("champion"), phrase("champions"),
+# ── title_win assertion semantics (issue #60) ────────────────────────────────
+# A championship WORD is not championship EVIDENCE. title_win is accepted only
+# for (a) a champion-noun ASSERTION (the noun used as a predicate, not as an
+# epithet for the reigning champion), (b) a trophy-lift verb, or (c) a
+# win-verb + championship-object compound at Hebrew word boundaries.
+
+# Trophy-lift verbs — an actual crowning moment; sufficient alone.
+_TITLE_WIN_TROPHY_VERBS = (
+    phrase("הניפה"), phrase("הניף"), phrase("הוכתרה כאלופה"), phrase("הוכתר כאלוף"),
 )
 _TITLE_WIN_VERB = (
-    phrase("זוכה"), phrase("זכה"), phrase("זכתה"), phrase("זכו"),
-    phrase("won"), phrase("wins"), phrase("win"), phrase("clinched"), phrase("clinches"),
+    hword("זוכה"), hword("זכה"), hword("זכתה"), hword("זכו"),
+    word("won"), word("wins"), word("win"), phrase("clinched"), phrase("clinches"),
 )
 _TITLE_WIN_OBJECT = (
-    phrase("בגביע"), phrase("הגביע"), phrase("גביע"),
-    phrase("בתואר"), phrase("תואר"), phrase("באליפות"),
-    phrase("title"), phrase("trophy"), phrase("championship"),
+    phrase("בגביע"), phrase("הגביע"), hword("גביע"),
+    phrase("בתואר"), hword("תואר"), phrase("באליפות"),
+    word("title"), word("trophy"), phrase("championship"),
 )
 _TITLE_WIN_BLOCKERS = _DEATH_ACCIDENT + _CANDIDATE + (
     phrase("wants the title"), phrase("want the title"),
@@ -119,15 +180,129 @@ _TITLE_WIN_BLOCKERS = _DEATH_ACCIDENT + _CANDIDATE + (
     phrase("title candidate"), phrase("title contender"),
 )
 
+# Hebrew champion nouns considered for the assertion analysis.
+_CHAMPION_NOUNS_HE = ("אלוף", "אלופה", "אלופת", "אלופות")
+_CHAMPION_NOUNS_EN = ("champion", "champions")
+
+# Words that mark the champion noun as an OBJECT/reference (epithet), not a
+# predicate assertion: "את אלופת העולם" (the object marker), "של האלופה", …
+_CHAMPION_EPITHET_PRECEDERS_HE = frozenset({
+    "את", "של", "על", "עם", "מול", "נגד", "אצל", "לקראת", "בפני", "כמו",
+    "אחרי", "לפני",
+})
+_CHAMPION_EPITHET_PRECEDERS_EN = frozenset({
+    "the", "of", "against", "vs", "with", "former", "defending", "reigning",
+})
+
+# Competition NAMES that contain champion vocabulary. Their spans are masked
+# before the assertion analysis — a competition's name is never title_win
+# evidence. Registered competitions come from the shared keyword table
+# (imported below); this tuple adds real competition names not (yet) in the
+# registry. It is a list of NAMES, not per-headline patches.
+_UNREGISTERED_CHAMPION_TERM_COMPETITIONS = (
+    "אלוף האלופים",   # Israeli Super Cup ("Champion of Champions")
+    "מגן האלופים",    # Community Shield style naming
+    "גביע האלופות",   # historical European Champions Cup naming
+)
+
+
+def _champion_term_competition_names() -> tuple[str, ...]:
+    """All known competition-name phrases containing a champion noun."""
+    try:  # deferred import — competition keywords live with the facts stage
+        from app.classification.facts import _COMPETITION_KEYWORDS
+        registered = tuple(
+            kw
+            for kws in _COMPETITION_KEYWORDS.values()
+            for kw in kws
+            if any(noun in kw for noun in _CHAMPION_NOUNS_HE + _CHAMPION_NOUNS_EN)
+        )
+    except ImportError:  # pragma: no cover — circular-import safety
+        registered = ()
+    return registered + _UNREGISTERED_CHAMPION_TERM_COMPETITIONS
+
+
+def _mask_competition_names(text: str) -> str:
+    """Blank out competition-name spans so their vocabulary cannot become
+    event evidence ("ליגת האלופות", "אלוף האלופים")."""
+    for name in _champion_term_competition_names():
+        idx = text.find(name)
+        while idx != -1:
+            text = text[:idx] + (" " * len(name)) + text[idx + len(name):]
+            idx = text.find(name, idx + 1)
+    return text
+
+
+def _preceding_word(text: str, idx: int) -> str:
+    """The whitespace-delimited token immediately before position ``idx``."""
+    left = text[:idx].rstrip()
+    if not left:
+        return ""
+    return left.split()[-1]
+
+
+def _has_champion_assertion(text: str) -> bool:
+    """True when a champion noun is used as a bare predicate assertion.
+
+    Valid:   "ניו יורק אלופת ה-NBA"  (X [is] champion of Y — a title win)
+    Invalid: "האלופה חזרה מהאימון"    (definite article → reigning-champion epithet)
+             "מתקרב לאלופת איטליה"    (prepositional prefix → epithet)
+             "מנסים להכתים את אלופת העולם" (object marker → epithet)
+    """
+    masked = _mask_competition_names(text)
+    for noun in _CHAMPION_NOUNS_HE:
+        start = 0
+        while True:
+            idx = masked.find(noun, start)
+            if idx == -1:
+                break
+            start = idx + 1
+            end = idx + len(noun)
+            # Whole bare word: no attached Hebrew letter on either side —
+            # any prefix (ה/ל/ב/מ/כ/ו/ש) marks a reference, not an assertion.
+            if idx > 0 and masked[idx - 1] in _HEBREW_LETTERS:
+                continue
+            if end < len(masked) and masked[end] in _HEBREW_LETTERS:
+                continue
+            if _preceding_word(masked, idx) in _CHAMPION_EPITHET_PRECEDERS_HE:
+                continue
+            return True
+    for noun in _CHAMPION_NOUNS_EN:
+        for m in re.finditer(r"\b" + noun + r"\b", masked):
+            if _preceding_word(masked, m.start()) in _CHAMPION_EPITHET_PRECEDERS_EN:
+                continue
+            return True
+    return False
+
+
+def _has_title_win_evidence(text: str) -> bool:
+    """The full title_win evidence contract (assertion OR trophy OR compound)."""
+    if _has_any(text, _TITLE_WIN_BLOCKERS):
+        return False
+    if _has_any(text, _TITLE_WIN_TROPHY_VERBS):
+        return True
+    if _has_champion_assertion(text):
+        return True
+    masked = _mask_competition_names(text)
+    return _has_any(masked, _TITLE_WIN_VERB) and _has_any(masked, _TITLE_WIN_OBJECT)
+
+
+# finals_result requires BOTH a finals context AND a result signal (issue #60):
+# a knockout-stage preview or feature mentioning "גמר" is not a finals result.
 _FINALS_CONTEXT = (
-    phrase("גמר"), phrase("finals"), phrase("final"), phrase("championship game"),
+    hword("גמר"), phrase("finals"), word("final"), phrase("championship game"),
     phrase("championship series"),
 )
 _RESULT_VERB = (
     phrase("ניצח"), phrase("ניצחה"), phrase("ניצחו"),
     phrase("הפסיד"), phrase("הפסידה"), phrase("הפסידו"),
+    phrase("הביס"), phrase("הביסה"),   # routed/crushed — a genuine result verb (#60)
     phrase("תוצאה"), phrase("beats"), phrase("beat"), phrase("defeats"),
-    phrase("defeat"), phrase("won"), phrase("loses"), phrase("lost"), phrase("victory"),
+    phrase("defeat"), word("won"), phrase("loses"), phrase("lost"), phrase("victory"),
+)
+_RESULT_SIGNAL = _RESULT_VERB + (
+    phrase("ניצחון"), phrase("הפסד"),
+    phrase("מנצח"),      # present-tense win forms (מנצח/מנצחת/מנצחים)
+    regex(r"\d+[:-]\d+"),  # an explicit score ("2:2", "4-1") is a result signal
 )
 _SCORE_OR_RESULT_CONTEXT = (
     phrase("תוצאה"), phrase("ניצחון"), phrase("הפסד"), phrase("result"),
@@ -173,15 +348,18 @@ EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
         ),),
         confirmed_any=(phrase("טרייד"), phrase("traded"), phrase("trade deal")),
     ),
+    # title_win is validated by _has_title_win_evidence() (assertion semantics,
+    # issue #60) — this entry exists so the event type is known to the table;
+    # required_any is replaced by the custom check in validate_event_evidence.
     "title_win": EventEvidenceRule(
-        required_any=(_TITLE_WIN_CHAMPION_NOUN,),
+        required_any=((),),
         blockers=_TITLE_WIN_BLOCKERS,
-        confirmed_any=_TITLE_WIN_CHAMPION_NOUN,
+        confirmed_any=_TITLE_WIN_TROPHY_VERBS + _TITLE_WIN_VERB,
     ),
     "finals_result": EventEvidenceRule(
-        required_any=(_FINALS_CONTEXT,),
+        required_any=(_FINALS_CONTEXT, _RESULT_SIGNAL),
         blockers=_TITLE_WIN_BLOCKERS,
-        confirmed_any=(phrase("גמר"), phrase("finals"), phrase("championship game")),
+        confirmed_any=(hword("גמר"), phrase("finals"), phrase("championship game")),
     ),
     "grand_slam_winner": EventEvidenceRule(
         required_any=(
@@ -237,16 +415,6 @@ _EVENT_SPORT_COMPATIBILITY: dict[str, frozenset[str]] = {
     "early_round_result": frozenset({"tennis"}),
 }
 
-# title_win can also be proven by a win verb plus a championship object. Keeping
-# this as an explicit extra rule prevents "wants/dreams of the title" from being
-# treated as evidence just because the word "title" appears.
-_TITLE_WIN_COMPOUND_RULE = EventEvidenceRule(
-    required_any=(_TITLE_WIN_VERB, _TITLE_WIN_OBJECT),
-    blockers=_TITLE_WIN_BLOCKERS,
-    confirmed_any=_TITLE_WIN_VERB + _TITLE_WIN_OBJECT,
-)
-
-
 def validate_event_evidence(
     event_type: str,
     text: str,
@@ -268,11 +436,17 @@ def validate_event_evidence(
     if rule is None:
         return EventEvidence("news", False, "confirmed")
 
-    valid = _rule_valid(rule, normalized)
-    if not valid and event_type == "title_win":
-        rule = _TITLE_WIN_COMPOUND_RULE
-        valid = _rule_valid(rule, normalized)
+    if event_type == "title_win":
+        # Assertion semantics (issue #60): champion-noun assertion, trophy
+        # verb, or win-verb + championship-object compound — never a champion
+        # word alone, an epithet, or a competition name.
+        if not _has_title_win_evidence(normalized):
+            return EventEvidence("news", False, "confirmed")
+        # Validity is now assertion-strict, so a rules-sourced title_win is
+        # confirmed by construction; LLM proposals remain weak per contract.
+        return EventEvidence("title_win", True, "weak" if source == "llm" else "confirmed")
 
+    valid = _rule_valid(rule, normalized)
     if not valid:
         return EventEvidence("news", False, "confirmed")
 

@@ -55,18 +55,27 @@ class _ReplayProvider:
 
     can_classify=True so the real gate logic runs; if the gate decides to call
     the LLM for a case with no recorded proposal, the replay is out of sync
-    with reality and the test must fail loudly rather than fall back.
+    with reality and the test must fail loudly rather than fall back — unless
+    the case explicitly opts in to the LLM-unavailable fallback path via
+    ``expect_uncovered_llm_call`` in the fixture.
     """
 
     can_classify = True
     last_failure_was_connect_error = False
     provider_id = "golden-replay"
 
-    def __init__(self, proposal):
+    def __init__(self, proposal, expect_uncovered_call=False):
         self._proposal = proposal
+        self._expect_uncovered_call = expect_uncovered_call
 
     def classify_title(self, title, language, subtitle=None):
         if self._proposal is None:
+            if self._expect_uncovered_call:
+                # The gate legitimately consults the LLM for this case but no
+                # proposal was recorded (the case predates the gate change).
+                # Returning None exercises the real LLM-unavailable fallback
+                # path (classified_by=rules_fallback_after_llm_failure).
+                return None
             raise AssertionError(
                 "gate called the LLM but the golden fixture has no recorded "
                 "proposal for this case — pipeline gating behavior changed"
@@ -78,7 +87,11 @@ def _run_case(case: dict, monkeypatch):
     cfg = get_source_config(case["source_id"])
     assert cfg is not None, f"unknown source {case['source_id']}"
     monkeypatch.setattr(
-        ingestion_service, "_LLM_PROVIDER", _ReplayProvider(case["llm_proposal"])
+        ingestion_service,
+        "_LLM_PROVIDER",
+        _ReplayProvider(
+            case["llm_proposal"], case.get("expect_uncovered_llm_call", False)
+        ),
     )
     item = RawSourceItem(
         source_id=case["source_id"],

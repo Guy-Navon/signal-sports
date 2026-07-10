@@ -4,8 +4,8 @@
   {
    "case": "C1",
    "article_id": "rss_33eef11e564e6ccbd36b",
-   "status": "failure",
-   "fix_owner": "#60",
+   "status": "positive",
+   "fix_owner": "#60 — landed (#60)",
    "source_id": "walla_sport",
    "url": "https://sports.walla.co.il/item/3852020",
    "title": "זה מה שישכנע את לברון? הפנייה הפומבית שהדהימה את ה-NBA",
@@ -20,12 +20,12 @@
     "entity_ids": [
      "player:lebron_james"
     ],
-    "event_type": "title_win",
+    "event_type": "news",
     "event_certainty": "confirmed",
-    "importance": "very_high",
+    "importance": "low",
     "primary_competition": "comp:nba",
     "classified_by": "rules",
-    "guy": "push",
+    "guy": "low_feed",
     "deni": "hidden"
    },
    "desired": {
@@ -120,12 +120,12 @@
     "entity_ids": [
      "team:maccabi_tlv_bb"
     ],
-    "event_type": "title_win",
+    "event_type": "news",
     "event_certainty": "confirmed",
-    "importance": "very_high",
+    "importance": "medium",
     "primary_competition": null,
     "classified_by": "llm+rules_guardrail",
-    "guy": "push",
+    "guy": "feed",
     "deni": "hidden"
    },
    "desired": {
@@ -189,8 +189,8 @@
   {
    "case": "C4",
    "article_id": "rss_e0a2baec61f2f442b009",
-   "status": "failure",
-   "fix_owner": "#60",
+   "status": "positive",
+   "fix_owner": "#60 — landed (#60)",
    "source_id": "walla_sport",
    "url": "https://sports.walla.co.il/item/3852012",
    "title": "כמות הכרטיסים שמכרה מכבי תל אביב לאלוף האלופים בטרנר",
@@ -205,12 +205,12 @@
     "entity_ids": [
      "team:maccabi_tlv_fc"
     ],
-    "event_type": "title_win",
-    "event_certainty": "confirmed",
-    "importance": "very_high",
+    "event_type": "negotiation",
+    "event_certainty": "probable",
+    "importance": "medium",
     "primary_competition": null,
     "classified_by": "rules",
-    "guy": "feed",
+    "guy": "hidden",
     "deni": "hidden"
    },
    "desired": {
@@ -227,8 +227,8 @@
   {
    "case": "C5ynet",
    "article_id": "rss_8c01ba5b97becd709976",
-   "status": "failure",
-   "fix_owner": "#60",
+   "status": "positive",
+   "fix_owner": "#60 — landed (#60)",
    "source_id": "ynet_sport",
    "url": "https://www.ynet.co.il/sport/worldsoccer/article/skvykf3mze",
    "title": "דיווח: אינטר שיפרה את ההצעה על ענאן חלאילי",
@@ -239,12 +239,12 @@
     "league": null,
     "entities": [],
     "entity_ids": [],
-    "event_type": "title_win",
-    "event_certainty": "confirmed",
-    "importance": "very_high",
+    "event_type": "negotiation",
+    "event_certainty": "probable",
+    "importance": "medium",
     "primary_competition": null,
     "classified_by": "rules",
-    "guy": "feed",
+    "guy": "hidden",
     "deni": "hidden"
    },
    "desired": {
@@ -298,8 +298,8 @@
   {
    "case": "C6",
    "article_id": "rss_b0b7e0ef69b37b780a80",
-   "status": "failure",
-   "fix_owner": "#60",
+   "status": "positive",
+   "fix_owner": "#60 — landed (#60)",
    "source_id": "walla_sport",
    "url": "https://sports.walla.co.il/item/3851988",
    "title": "הפועל ב\"ש מחפשת שני שחקני הגנה, מאמץ רב לסגור עם זרים",
@@ -314,12 +314,12 @@
     "entity_ids": [
      "team:hapoel_beer_sheva_fc"
     ],
-    "event_type": "title_win",
-    "event_certainty": "confirmed",
-    "importance": "very_high",
+    "event_type": "schedule",
+    "event_certainty": "probable",
+    "importance": "low",
     "primary_competition": null,
     "classified_by": "rules",
-    "guy": "feed",
+    "guy": "hidden",
     "deni": "hidden"
    },
    "desired": {
@@ -336,8 +336,8 @@
   {
    "case": "C7",
    "article_id": "rss_8241cfdb7c303cf65ce2",
-   "status": "failure",
-   "fix_owner": "#60",
+   "status": "positive",
+   "fix_owner": "#60 — landed (#60)",
    "source_id": "ynet_sport",
    "url": "https://www.ynet.co.il/sport/worldcup2026/article/rkyhbknmfg",
    "title": "מספיק עם הקונספירציות: אף אחד לא מסדר למסי את המונדיאל",
@@ -348,12 +348,12 @@
     "league": null,
     "entities": [],
     "entity_ids": [],
-    "event_type": "title_win",
+    "event_type": "news",
     "event_certainty": "confirmed",
-    "importance": "very_high",
+    "importance": "low",
     "primary_competition": null,
-    "classified_by": "rules",
-    "guy": "feed",
+    "classified_by": "rules_fallback_after_llm_failure",
+    "guy": "hidden",
     "deni": "hidden"
    },
    "desired": {
@@ -362,7 +362,8 @@
     "importance__not": "very_high",
     "guy": "hidden",
     "deni": "hidden"
-   }
+   },
+   "expect_uncovered_llm_call": true
   },
   {
    "case": "C8",
@@ -405,8 +406,8 @@
   {
    "case": "C9",
    "article_id": "rss_4f373fbfb598575654bb",
-   "status": "failure",
-   "fix_owner": "#60",
+   "status": "positive",
+   "fix_owner": "#60 — landed (#60)",
    "source_id": "sport5_sport",
    "url": "https://www.sport5.co.il/articles.aspx?FolderID=405&docID=551523",
    "title": "בחוזה עתק: זאק לידיי על סף סיכום בהפועל",
@@ -428,11 +429,11 @@
     "league": null,
     "entities": [],
     "entity_ids": [],
-    "event_type": "news",
-    "event_certainty": "confirmed",
+    "event_type": "negotiation",
+    "event_certainty": "probable",
     "importance": "medium",
     "primary_competition": null,
-    "classified_by": "llm+rules_guardrail",
+    "classified_by": "llm",
     "guy": "hidden",
     "deni": "hidden"
    },
@@ -542,7 +543,7 @@
      "team:ironi_ness_ziona"
     ],
     "event_type": "negotiation",
-    "event_certainty": "confirmed",
+    "event_certainty": "probable",
     "importance": "high",
     "primary_competition": "comp:euroleague",
     "classified_by": "rules",

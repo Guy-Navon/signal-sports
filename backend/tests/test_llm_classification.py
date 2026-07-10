@@ -304,7 +304,9 @@ class TestMergeWithGuardrails:
         rules = make_rules_result(event_type="finals_result", importance="very_high")
         llm = make_llm_result(sport="basketball", league="NBA", event_type="news",
                                confidence=0.88)
-        merged, by = merge_with_guardrails(llm, rules, "nba finals")
+        # Issue #60: finals_result needs a result signal alongside the finals
+        # context, so the guardrail evidence text carries one.
+        merged, by = merge_with_guardrails(llm, rules, "nba finals: celtics beat heat")
         assert merged.event_type == "finals_result"
         assert by == "llm+rules_guardrail"
 

@@ -18,7 +18,10 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
-from app.classification.event_evidence import EventEvidence, validate_event_evidence
+from app.classification.event_evidence import (
+    EventEvidence,
+    validate_event_evidence,
+)
 from app.taxonomy import (
     COMPETITIONS,
     EntityResolution,
@@ -577,6 +580,7 @@ _NEGOTIATION_KW = (
     "מתקרב", "מתקרבת",      # approaching / close to
     "סיכם", "סיכמה",         # finalised/agreed (often precedes signing)
     "על סף חתימה",           # on the verge of signing
+    "על סף סיכום",           # on the verge of agreement (#60, golden C9)
     "negotiations", "negotiation", "in talks", "advanced talks",
 )
 _NEGOTIATION_WORD_KW = ("talks",)
@@ -649,7 +653,7 @@ _SCHEDULE_KW = (
 )
 
 _RESULT_KW = (
-    "ניצח", "הפסיד", "תוצאה",
+    "ניצח", "הפסיד", "הביס", "תוצאה",
     "beats", "beat", "defeats", "defeat", "won", "loses", "lost", "victory",
 )
 _REGULAR_SEASON_KW = ("ליגה הרגילה", "regular season")
@@ -667,13 +671,9 @@ def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
     if sport == "tennis" and _has(text, *_GRAND_SLAM_KW) and _has(text, *_GRAND_SLAM_WIN_KW):
         proposals.append("grand_slam_winner")
 
-    # Finals / championship result
-    if _has(text, *_FINALS_KW):
-        proposals.append("finals_result")
-    if _has(text, *_TITLE_WIN_UNAMBIGUOUS_KW):
-        proposals.append("title_win")
-    if _has(text, *_WIN_VERB_HE) and _has(text, *_WIN_CHAMPIONSHIP_CTX_KW):
-        proposals.append("title_win")
+    # Transfer-cycle events are proposed BEFORE championship events (issue #60):
+    # a headline carrying both negotiation evidence and a champion epithet
+    # ("מתקרב לאלופת איטליה") is a transfer story, not a title win.
 
     # Release / roster cut. Checked before signing so "released" does not become
     # a generic transaction.
@@ -700,6 +700,15 @@ def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
     # Trade
     if _has(text, *_TRADE_KW) or any(_has_word(text, w) for w in _TRADE_WORD_KW):
         proposals.append("major_trade")
+
+    # Finals / championship result — proposals only; validation applies the
+    # assertion-semantics contract (event_evidence, issue #60).
+    if _has(text, *_FINALS_KW):
+        proposals.append("finals_result")
+    if _has(text, *_TITLE_WIN_UNAMBIGUOUS_KW):
+        proposals.append("title_win")
+    if _has(text, *_WIN_VERB_HE) and _has(text, *_WIN_CHAMPIONSHIP_CTX_KW):
+        proposals.append("title_win")
 
     # Playoff
     if _has(text, *_PLAYOFF_KW):
@@ -746,9 +755,12 @@ def _assign_importance(
     event_type: str,
     entities: list[str],
     league: Optional[str],
+    event_certainty: str = "confirmed",
 ) -> str:
     if event_type in _VERY_HIGH_EVENTS:
-        return "very_high"
+        # very_high is reserved for confirmed championship events (issue #60):
+        # a probable/weak title_win (subtitle-derived or LLM-only) is high.
+        return "very_high" if event_certainty == "confirmed" else "high"
 
     has_high_entity = any(e in _HIGH_ENTITIES for e in entities)
 
@@ -955,13 +967,21 @@ def classify(
     event_type = event_evidence.event_type
 
     # Event type gap: subtitle refines generic "news" to a more specific event type.
+    # A subtitle-derived event never carries "confirmed" certainty (issue #60):
+    # the title is the primary signal, so subtitle evidence caps at "probable".
     if event_type == "news" and sub_text:
         sub_event_evidence = _detect_event_evidence(sub_text, sport)
         if sub_event_evidence.event_type != "news":
+            if sub_event_evidence.certainty == "confirmed":
+                sub_event_evidence = EventEvidence(
+                    sub_event_evidence.event_type, True, "probable"
+                )
             event_evidence = sub_event_evidence
             event_type = sub_event_evidence.event_type
 
-    importance = _assign_importance(event_type, entities, league)
+    importance = _assign_importance(
+        event_type, entities, league, event_certainty=event_evidence.certainty
+    )
     confidence = _assign_confidence(sport, league, entities, event_type, source_id)
     tags = _collect_tags(sport, league, entities, event_type)
     if is_ambiguous_club:
@@ -990,12 +1010,18 @@ def has_maccabi_tel_aviv_phrase(text: str) -> bool:
     return _has_maccabi_tel_aviv_phrase(text)
 
 
-def compute_importance(event_type: str, entities: list[str], league: Optional[str]) -> str:
+def compute_importance(
+    event_type: str,
+    entities: list[str],
+    league: Optional[str],
+    event_certainty: str = "confirmed",
+) -> str:
     """Public wrapper for _assign_importance.
 
-    Use when entities change after initial classification (e.g., post-LLM entity injection).
+    Use when entities change after initial classification (e.g., post-LLM entity
+    injection) or when the final event certainty gates very_high (#60).
     """
-    return _assign_importance(event_type, entities, league)
+    return _assign_importance(event_type, entities, league, event_certainty)
 
 
 def enrich_maccabi_entity_after_sport_resolve(

@@ -205,8 +205,11 @@ class TestHebrewRegressions:
             source_id="walla_sport", language="he",
         )
         assert r.sport == "basketball"        # fixed from unknown
-        assert r.event_type == "finals_result"
-        assert r.importance == "very_high"
+        # Issue #60 assertion semantics: a Finals-MVP announcement carries a
+        # finals CONTEXT but reports no result — it is news, not finals_result,
+        # and therefore no longer auto-very_high (news + no tracked entity → low).
+        assert r.event_type == "news"
+        assert r.importance == "low"
         assert r.league == "NBA"              # membership-inferred (was: None, LLM-only)
 
     def test_hapoel_tlv_harper_still_ambiguous_without_llm(self):

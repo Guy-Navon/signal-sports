@@ -281,6 +281,16 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
           "Dubai Basketball",
           ("דובאי", "dubai", "dubai basketball", "dubai bc"),
           extra_memberships=("comp:euroleague",), guarded=True),
+    # ── EuroCup clubs relevant to Israeli coverage (issue #62) ────────────────
+    # Budućnost Podgorica — multi-sport club (football side exists) → guarded,
+    # consistent with the Partizan/Crvena Zvezda policy. Domestic league (ABA /
+    # Montenegrin) untracked; EuroCup membership only. Evidence: golden C15
+    # (Justin Smith signing) — the club was previously unresolvable.
+    _team("team:buducnost_bb", "basketball", "בודוצ'נוסט", "Buducnost",
+          "Buducnost",
+          ("בודוצ'נוסט", "בודוצנוסט", "buducnost", "budućnost",
+           "buducnost voli", "kk buducnost"),
+          extra_memberships=("comp:eurocup",), guarded=True),
 
     # ══ NBA teams (single-sport in Israeli coverage — unguarded) ══════════════
     _team("team:ny_knicks", "basketball", "ניו יורק ניקס", "New York Knicks",

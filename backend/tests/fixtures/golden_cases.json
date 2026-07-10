@@ -45,8 +45,8 @@
   {
    "case": "C2",
    "article_id": "rss_4966b592b253e1237912",
-   "status": "failure",
-   "fix_owner": "#61+#62",
+   "status": "positive",
+   "fix_owner": "#61+#62 — landed (#61+#62)",
    "source_id": "ynet_sport",
    "url": "https://www.ynet.co.il/sport/israelisoccer/article/jznrv8ntt",
    "title": "דן גלזר חתם במכבי ת\"א | נחשף ב-ynet",
@@ -64,15 +64,19 @@
     "reason": "Basketball player Danny Galzer signs with Maccabi Tel Aviv after negotiations."
    },
    "pinned": {
-    "sport": "basketball",
-    "league": null,
-    "entities": [],
-    "entity_ids": [],
+    "sport": "football",
+    "league": "Israeli Premier League",
+    "entities": [
+     "Maccabi Tel Aviv Football"
+    ],
+    "entity_ids": [
+     "team:maccabi_tlv_fc"
+    ],
     "event_type": "signing",
     "event_certainty": "confirmed",
-    "importance": "high",
+    "importance": "medium",
     "primary_competition": null,
-    "classified_by": "llm",
+    "classified_by": "rules",
     "guy": "hidden",
     "deni": "hidden"
    },
@@ -89,8 +93,8 @@
   {
    "case": "C2sib",
    "article_id": "rss_cb0b4c43ca530340e218",
-   "status": "failure",
-   "fix_owner": "#60+#61+#62",
+   "status": "positive",
+   "fix_owner": "#60+#61+#62 — landed (#61+#62)",
    "source_id": "ynet_sport",
    "url": "https://www.ynet.co.il/sport/israelisoccer/article/fyrqm5cp1",
    "title": "דן גלזר יוצג במכבי ת\"א ביממה הקרובה | נחשף ב-ynet",
@@ -108,15 +112,19 @@
     "reason": "Basketball player Danny Galzer released by Maccabi Tel Aviv after contract negotiations"
    },
    "pinned": {
-    "sport": "basketball",
-    "league": null,
-    "entities": [],
-    "entity_ids": [],
+    "sport": "football",
+    "league": "Israeli Premier League",
+    "entities": [
+     "Maccabi Tel Aviv Football"
+    ],
+    "entity_ids": [
+     "team:maccabi_tlv_fc"
+    ],
     "event_type": "news",
     "event_certainty": "confirmed",
-    "importance": "medium",
+    "importance": "low",
     "primary_competition": null,
-    "classified_by": "llm+rules_guardrail",
+    "classified_by": "rules",
     "guy": "hidden",
     "deni": "hidden"
    },
@@ -134,8 +142,8 @@
   {
    "case": "C3",
    "article_id": "rss_05c8c1cbe8e772816f61",
-   "status": "failure",
-   "fix_owner": "#62 (+#61 safety)",
+   "status": "positive",
+   "fix_owner": "#62 (+#61 safety) — landed (#61+#62)",
    "source_id": "israel_hayom_sport",
    "url": "https://www.israelhayom.co.il/sport/israeli-soccer/article/20929931",
    "title": "עם תפנית מפתיעה: הרכש הכפול של מכבי תל אביב, ושני הזרים שעל הפרק",
@@ -152,15 +160,19 @@
     "reason": "Major trades and new signings by Maccabi Tel Aviv basketball team."
    },
    "pinned": {
-    "sport": "basketball",
-    "league": null,
-    "entities": [],
-    "entity_ids": [],
+    "sport": "football",
+    "league": "Israeli Premier League",
+    "entities": [
+     "Maccabi Tel Aviv Football"
+    ],
+    "entity_ids": [
+     "team:maccabi_tlv_fc"
+    ],
     "event_type": "negotiation",
     "event_certainty": "probable",
-    "importance": "high",
+    "importance": "medium",
     "primary_competition": null,
-    "classified_by": "llm+rules_guardrail",
+    "classified_by": "rules",
     "guy": "hidden",
     "deni": "hidden"
    },

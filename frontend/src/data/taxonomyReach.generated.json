@@ -195,6 +195,14 @@
       ],
       "sport": "basketball"
     },
+    "team:buducnost_bb": {
+      "kind": "team",
+      "legacy_name": "Buducnost",
+      "memberships": [
+        "comp:eurocup"
+      ],
+      "sport": "basketball"
+    },
     "team:charlotte_hornets": {
       "kind": "team",
       "legacy_name": "Charlotte Hornets",
@@ -739,6 +747,7 @@
     "Bnei Herzliya": "team:bnei_herzliya",
     "Boston Celtics": "team:boston_celtics",
     "Brooklyn Nets": "team:brooklyn_nets",
+    "Buducnost": "team:buducnost_bb",
     "Charlotte Hornets": "team:charlotte_hornets",
     "Chicago Bulls": "team:chicago_bulls",
     "Cleveland Cavaliers": "team:cleveland_cavaliers",

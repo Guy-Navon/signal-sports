@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 SQLite persistence tests.
 
@@ -10,7 +12,7 @@ Verifies that:
 - Feedback events are persisted and readable
 - Feedback survives an app restart (same SQLite file, new app instance)
 
-All tests share the session-scoped `client` fixture from conftest.py, which
+All tests share the session-scoped `admin_client` fixture from conftest.py, which
 creates a temp SQLite DB and seeds it via the app lifespan.
 """
 import pytest
@@ -19,7 +21,7 @@ from fastapi.testclient import TestClient
 
 # ── Tables and seed data ─────────────────────────────────────────────────────
 
-def test_tables_exist(client):
+def test_tables_exist(admin_client):
     """Sanity: the seeded DB has rows in all core tables."""
     from app.db.database import SessionLocal
     from app.db.orm_models import ArticleRow, ProfileRow, SourceRow, CalibrationHeadlineRow
@@ -31,7 +33,7 @@ def test_tables_exist(client):
         assert session.query(CalibrationHeadlineRow).count() > 0
 
 
-def test_seed_loads_expected_article_count(client):
+def test_seed_loads_expected_article_count(admin_client):
     from app.db.database import SessionLocal
     from app.db.orm_models import ArticleRow
     from app.seed.seed_articles import SEED_ARTICLES
@@ -41,16 +43,21 @@ def test_seed_loads_expected_article_count(client):
         assert session.query(ArticleRow).count() >= len(SEED_ARTICLES)
 
 
-def test_seed_loads_expected_profile_count(client):
+def test_seed_loads_expected_profile_count(admin_client):
     from app.db.database import SessionLocal
     from app.db.orm_models import ProfileRow
     from app.seed.seed_profiles import SEED_PROFILES
 
     with SessionLocal() as session:
-        assert session.query(ProfileRow).count() == len(SEED_PROFILES)
+        # PR 6 (#54): explicit identity fixtures (…@test.local) legitimately
+        # add self_serve rows; the seed guarantee is about the seed profiles.
+        seeded = session.query(ProfileRow).filter(
+            ProfileRow.user_id.in_([p.user_id for p in SEED_PROFILES])
+        ).count()
+        assert seeded == len(SEED_PROFILES)
 
 
-def test_seeding_is_idempotent(client):
+def test_seeding_is_idempotent(admin_client):
     """Calling seed_all_if_empty a second time must not add rows."""
     from app.db.database import SessionLocal
     from app.db.orm_models import ArticleRow, ProfileRow
@@ -70,9 +77,9 @@ def test_seeding_is_idempotent(client):
 
 # ── Articles via API ──────────────────────────────────────────────────────────
 
-def test_articles_api_returns_rss_articles(rss_seeded):
+def test_articles_api_returns_rss_articles(rss_seeded, admin_client):
     """The /api/articles endpoint returns only rss_-prefixed articles, not raw seed articles."""
-    r = rss_seeded.get("/api/articles")
+    r = admin_client.get("/api/articles")
     assert r.status_code == 200
     data = r.json()
     assert len(data) > 0
@@ -85,9 +92,9 @@ def test_articles_api_returns_rss_articles(rss_seeded):
     assert "article_014" not in ids
 
 
-def test_article_response_shape_stable(client):
+def test_article_response_shape_stable(admin_client):
     """API response shape must include all expected fields."""
-    r = client.get("/api/articles/article_001")
+    r = admin_client.get("/api/articles/article_001")
     assert r.status_code == 200
     a = r.json()
     assert a["id"] == "article_001"
@@ -105,7 +112,7 @@ def test_article_response_shape_stable(client):
     assert "subtitle" in a
 
 
-def test_article_with_subtitle_persists_and_returns_subtitle(client):
+def test_article_with_subtitle_persists_and_returns_subtitle(admin_client):
     """Article created with subtitle is stored and returned via API."""
     from app.db.database import SessionLocal
     from app.repositories.article_repository import insert, get_by_id
@@ -128,13 +135,13 @@ def test_article_with_subtitle_persists_and_returns_subtitle(client):
     with SessionLocal() as session:
         insert(session, article)
 
-    r = client.get("/api/articles/rss_subtitle_test_001")
+    r = admin_client.get("/api/articles/rss_subtitle_test_001")
     assert r.status_code == 200
     a = r.json()
     assert a["subtitle"] == "The Israeli club closed a deal with a veteran EuroLeague point guard."
 
 
-def test_article_without_subtitle_returns_null_subtitle(client):
+def test_article_without_subtitle_returns_null_subtitle(admin_client):
     """Article created without subtitle returns subtitle=null from API."""
     from app.db.database import SessionLocal
     from app.repositories.article_repository import insert
@@ -157,13 +164,13 @@ def test_article_without_subtitle_returns_null_subtitle(client):
     with SessionLocal() as session:
         insert(session, article)
 
-    r = client.get("/api/articles/rss_subtitle_test_002")
+    r = admin_client.get("/api/articles/rss_subtitle_test_002")
     assert r.status_code == 200
     a = r.json()
     assert a["subtitle"] is None
 
 
-def test_repository_maps_subtitle_from_row(client):
+def test_repository_maps_subtitle_from_row(admin_client):
     """_row_to_article() must map subtitle from DB row to Article model."""
     from app.db.database import SessionLocal
     from app.repositories.article_repository import insert, get_by_id
@@ -193,8 +200,8 @@ def test_repository_maps_subtitle_from_row(client):
 
 # ── Profiles via API ──────────────────────────────────────────────────────────
 
-def test_profiles_api_returns_seeded_profiles(client):
-    r = client.get("/api/profiles")
+def test_profiles_api_returns_seeded_profiles(admin_client):
+    r = admin_client.get("/api/profiles")
     assert r.status_code == 200
     data = r.json()
     user_ids = {p["user_id"] for p in data}
@@ -202,9 +209,9 @@ def test_profiles_api_returns_seeded_profiles(client):
     assert "casual_deni_fan" in user_ids
 
 
-def test_profile_topics_survive_json_round_trip(client):
+def test_profile_topics_survive_json_round_trip(admin_client):
     """Topics stored as JSON must deserialize back with all nested fields intact."""
-    r = client.get("/api/profiles/guy")
+    r = admin_client.get("/api/profiles/guy")
     assert r.status_code == 200
     profile = r.json()
     assert len(profile["topics"]) > 0
@@ -221,23 +228,23 @@ def test_profile_topics_survive_json_round_trip(client):
 
 # ── Feed scoring via SQLite data ──────────────────────────────────────────────
 
-def test_feed_for_guy_not_empty(client):
-    r = client.get("/api/feed/guy")
+def test_feed_for_guy_not_empty(admin_client):
+    r = admin_client.get("/api/feed/guy")
     assert r.status_code == 200
     assert len(r.json()) > 0
 
 
-def test_maccabi_negotiation_is_push_from_sqlite(rss_seeded):
-    r = rss_seeded.get("/api/feed/guy")
+def test_maccabi_negotiation_is_push_from_sqlite(rss_seeded, admin_client):
+    r = admin_client.get("/api/feed/guy")
     feed = r.json()
     article = next((a for a in feed if a["article"]["id"] == "rss_article_001"), None)
     assert article is not None, "rss_article_001 (Maccabi negotiation) not in Guy's feed"
     assert article["decision"] == "push"
 
 
-def test_euroleague_real_madrid_is_high_feed_not_push(rss_seeded):
+def test_euroleague_real_madrid_is_high_feed_not_push(rss_seeded, admin_client):
     """rss_article_014 (Real Madrid EuroLeague): high_feed via euroleague topic, not push via maccabi."""
-    r = rss_seeded.get("/api/debug/feed/guy")
+    r = admin_client.get("/api/debug/feed/guy")
     debug = r.json()
     article = next((a for a in debug if a["article"]["id"] == "rss_article_014"), None)
     assert article is not None, "rss_article_014 not in debug feed"
@@ -248,24 +255,24 @@ def test_euroleague_real_madrid_is_high_feed_not_push(rss_seeded):
     )
 
 
-def test_debug_feed_includes_hidden_articles(client):
-    r = client.get("/api/debug/feed/guy")
+def test_debug_feed_includes_hidden_articles(admin_client):
+    r = admin_client.get("/api/debug/feed/guy")
     debug = r.json()
     decisions = {a["decision"] for a in debug}
     assert "hidden" in decisions
 
 
-def test_feed_has_fewer_items_than_debug(client):
-    feed = client.get("/api/feed/guy").json()
-    debug = client.get("/api/debug/feed/guy").json()
+def test_feed_has_fewer_items_than_debug(admin_client):
+    feed = admin_client.get("/api/feed/guy").json()
+    debug = admin_client.get("/api/debug/feed/guy").json()
     assert len(feed) < len(debug)
 
 
 # ── Feedback persistence ──────────────────────────────────────────────────────
 
-def test_feedback_persisted_to_sqlite(client):
+def test_feedback_persisted_to_sqlite(admin_client):
     """POST feedback → readable back via GET /api/feedback/{user_id}."""
-    r = client.post("/api/feedback", json={
+    r = admin_client.post("/api/feedback", json={
         "user_id": "guy",
         "article_id": "article_001",
         "action": "more_like_this",
@@ -273,15 +280,15 @@ def test_feedback_persisted_to_sqlite(client):
     assert r.status_code == 201
     feedback_id = r.json()["id"]
 
-    r2 = client.get("/api/feedback/guy")
+    r2 = admin_client.get("/api/feedback/guy")
     assert r2.status_code == 200
     events = r2.json()
     assert any(e["id"] == feedback_id for e in events)
 
 
-def test_feedback_readable_via_repository(client):
+def test_feedback_readable_via_repository(admin_client):
     """Feedback written via API is accessible directly through the repository."""
-    r = client.post("/api/feedback", json={
+    r = admin_client.post("/api/feedback", json={
         "user_id": "casual_deni_fan",
         "article_id": "article_007",
         "action": "always_notify",
@@ -298,14 +305,14 @@ def test_feedback_readable_via_repository(client):
     assert feedback_id in ids
 
 
-def test_feedback_persists_across_app_restart(client):
+def test_feedback_persists_across_app_restart(admin_client):
     """
     Simulate a backend restart: create a second app instance using the same
     SQLite file (same DATABASE_URL env var). Feedback written by the first
     instance must be visible to the second instance.
     """
-    # Write feedback via the session-scoped client
-    r = client.post("/api/feedback", json={
+    # Write feedback via the session-scoped admin_client
+    r = admin_client.post("/api/feedback", json={
         "user_id": "guy",
         "article_id": "article_002",
         "action": "never_show",
@@ -315,9 +322,12 @@ def test_feedback_persists_across_app_restart(client):
 
     # Simulate restart: fresh app instance (same DB file via env var)
     from app.main import create_app
+    from tests.conftest import _identity_client
     fresh_app = create_app()
-    with TestClient(fresh_app) as fresh_client:
-        r2 = fresh_client.get("/api/feedback/guy")
+    with TestClient(fresh_app):
+        # The restarted instance is also enforced — authenticate explicitly.
+        fresh_admin = _identity_client(fresh_app, "fixture-admin@test.local", "admin")
+        r2 = fresh_admin.get("/api/feedback/guy")
         assert r2.status_code == 200
         events = r2.json()
         assert any(e["id"] == feedback_id for e in events), (
@@ -327,9 +337,9 @@ def test_feedback_persists_across_app_restart(client):
 
 # ── Response shape stability ──────────────────────────────────────────────────
 
-def test_scored_article_response_shape(client):
+def test_scored_article_response_shape(admin_client):
     """ScoredArticle response must include article, decision, reasoning fields."""
-    r = client.get("/api/feed/guy")
+    r = admin_client.get("/api/feed/guy")
     assert r.status_code == 200
     items = r.json()
     assert len(items) > 0
@@ -347,8 +357,8 @@ def test_scored_article_response_shape(client):
     assert "event_type" in a
 
 
-def test_calibration_headlines_returned_from_sqlite(client):
-    r = client.get("/api/calibration/headlines")
+def test_calibration_headlines_returned_from_sqlite(admin_client):
+    r = admin_client.get("/api/calibration/headlines")
     assert r.status_code == 200
     headlines = r.json()
     assert len(headlines) > 0

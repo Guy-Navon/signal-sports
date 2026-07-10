@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 Tests for POST /api/dev/benchmark/llm-gating.
 
@@ -57,26 +59,26 @@ def _make_mock_provider(can_classify: bool = True, provider_id: str = "fake:benc
 
 
 class TestBenchmarkGuards:
-    def test_returns_403_when_dev_reset_disabled(self, client):
+    def test_returns_403_when_dev_reset_disabled(self, admin_client):
         """Benchmark endpoint returns 403 if ALLOW_DEV_RESET is not true."""
         with patch.dict("os.environ", {"ALLOW_DEV_RESET": "false"}):
-            r = client.post("/api/dev/benchmark/llm-gating")
+            r = admin_client.post("/api/dev/benchmark/llm-gating")
         assert r.status_code == 403
         assert "ALLOW_DEV_RESET" in r.json()["detail"]
 
-    def test_returns_422_when_provider_cannot_classify(self, client, monkeypatch):
+    def test_returns_422_when_provider_cannot_classify(self, admin_client, monkeypatch):
         """Benchmark returns 422 when the classification provider is disabled."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
         # Default test env has CLASSIFICATION_PROVIDER=disabled → can_classify=False
-        r = client.post("/api/dev/benchmark/llm-gating")
+        r = admin_client.post("/api/dev/benchmark/llm-gating")
         assert r.status_code == 422
         detail = r.json()["detail"]
         assert "cannot classify" in detail or "CLASSIFICATION_PROVIDER" in detail
 
-    def test_error_message_mentions_ollama(self, client, monkeypatch):
+    def test_error_message_mentions_ollama(self, admin_client, monkeypatch):
         """The provider error message should suggest CLASSIFICATION_PROVIDER=ollama."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
-        r = client.post("/api/dev/benchmark/llm-gating")
+        r = admin_client.post("/api/dev/benchmark/llm-gating")
         assert r.status_code == 422
         assert "ollama" in r.json()["detail"].lower()
 
@@ -102,7 +104,7 @@ class TestBenchmarkResponseShape:
             ])
         return _make_feed([])
 
-    def test_benchmark_returns_200_with_active_provider(self, client, monkeypatch):
+    def test_benchmark_returns_200_with_active_provider(self, admin_client, monkeypatch):
         """With ALLOW_DEV_RESET=true and an active mock provider, benchmark returns 200."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
         mock_provider = _make_mock_provider()
@@ -118,11 +120,11 @@ class TestBenchmarkResponseShape:
             patch("app.ingestion.ingestion_service._LLM_PROVIDER", mock_provider),
             patch("feedparser.parse", side_effect=feedparser_side_effect),
         ):
-            r = client.post("/api/dev/benchmark/llm-gating")
+            r = admin_client.post("/api/dev/benchmark/llm-gating")
 
         assert r.status_code == 200
 
-    def test_benchmark_response_has_required_top_level_fields(self, client, monkeypatch):
+    def test_benchmark_response_has_required_top_level_fields(self, admin_client, monkeypatch):
         """Response includes provider, sources, baseline, gated, comparison."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
         mock_provider = _make_mock_provider()
@@ -132,7 +134,7 @@ class TestBenchmarkResponseShape:
             patch("app.ingestion.ingestion_service._LLM_PROVIDER", mock_provider),
             patch("feedparser.parse", return_value=_make_feed([])),
         ):
-            r = client.post("/api/dev/benchmark/llm-gating")
+            r = admin_client.post("/api/dev/benchmark/llm-gating")
 
         assert r.status_code == 200
         body = r.json()
@@ -142,7 +144,7 @@ class TestBenchmarkResponseShape:
         assert "gated" in body
         assert "comparison" in body
 
-    def test_baseline_has_gating_disabled_flag(self, client, monkeypatch):
+    def test_baseline_has_gating_disabled_flag(self, admin_client, monkeypatch):
         """baseline.gating_enabled must be false."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
         mock_provider = _make_mock_provider()
@@ -152,11 +154,11 @@ class TestBenchmarkResponseShape:
             patch("app.ingestion.ingestion_service._LLM_PROVIDER", mock_provider),
             patch("feedparser.parse", return_value=_make_feed([])),
         ):
-            r = client.post("/api/dev/benchmark/llm-gating")
+            r = admin_client.post("/api/dev/benchmark/llm-gating")
 
         assert r.json()["baseline"]["gating_enabled"] is False
 
-    def test_gated_has_gating_enabled_flag(self, client, monkeypatch):
+    def test_gated_has_gating_enabled_flag(self, admin_client, monkeypatch):
         """gated.gating_enabled must be true."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
         mock_provider = _make_mock_provider()
@@ -166,11 +168,11 @@ class TestBenchmarkResponseShape:
             patch("app.ingestion.ingestion_service._LLM_PROVIDER", mock_provider),
             patch("feedparser.parse", return_value=_make_feed([])),
         ):
-            r = client.post("/api/dev/benchmark/llm-gating")
+            r = admin_client.post("/api/dev/benchmark/llm-gating")
 
         assert r.json()["gated"]["gating_enabled"] is True
 
-    def test_sources_list_contains_hebrew_broad_sources(self, client, monkeypatch):
+    def test_sources_list_contains_hebrew_broad_sources(self, admin_client, monkeypatch):
         """sources list includes all Hebrew broad sources."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
         mock_provider = _make_mock_provider()
@@ -180,7 +182,7 @@ class TestBenchmarkResponseShape:
             patch("app.ingestion.ingestion_service._LLM_PROVIDER", mock_provider),
             patch("feedparser.parse", return_value=_make_feed([])),
         ):
-            r = client.post("/api/dev/benchmark/llm-gating")
+            r = admin_client.post("/api/dev/benchmark/llm-gating")
 
         sources = r.json()["sources"]
         assert "walla_sport" in sources
@@ -188,7 +190,7 @@ class TestBenchmarkResponseShape:
         assert "ynet_sport" in sources
         assert "one_sport" in sources
 
-    def test_provider_string_in_response(self, client, monkeypatch):
+    def test_provider_string_in_response(self, admin_client, monkeypatch):
         """Response provider field reflects the mock provider_id."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
         monkeypatch.setenv("CLASSIFICATION_PROVIDER", "fake")
@@ -200,11 +202,11 @@ class TestBenchmarkResponseShape:
             patch("app.ingestion.ingestion_service._LLM_PROVIDER", mock_provider),
             patch("feedparser.parse", return_value=_make_feed([])),
         ):
-            r = client.post("/api/dev/benchmark/llm-gating")
+            r = admin_client.post("/api/dev/benchmark/llm-gating")
 
         assert r.json()["provider"] == "fake:benchmark-test"
 
-    def test_comparison_fields_present_per_source(self, client, monkeypatch):
+    def test_comparison_fields_present_per_source(self, admin_client, monkeypatch):
         """comparison includes skip_rate, llm_call_reduction, etc. per source."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
         mock_provider = _make_mock_provider()
@@ -217,7 +219,7 @@ class TestBenchmarkResponseShape:
             patch("app.ingestion.ingestion_service._LLM_PROVIDER", mock_provider),
             patch("feedparser.parse", return_value=_make_feed(entries)),
         ):
-            r = client.post("/api/dev/benchmark/llm-gating")
+            r = admin_client.post("/api/dev/benchmark/llm-gating")
 
         body = r.json()
         for src_id in body["sources"]:
@@ -229,7 +231,7 @@ class TestBenchmarkResponseShape:
                 assert "sport_unknown_delta" in comp
                 assert "passes_targets" in comp
 
-    def test_source_stats_have_sport_unknown_field(self, client, monkeypatch):
+    def test_source_stats_have_sport_unknown_field(self, admin_client, monkeypatch):
         """Each source in baseline and gated includes a sport_unknown count."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
         mock_provider = _make_mock_provider()
@@ -239,14 +241,14 @@ class TestBenchmarkResponseShape:
             patch("app.ingestion.ingestion_service._LLM_PROVIDER", mock_provider),
             patch("feedparser.parse", return_value=_make_feed([])),
         ):
-            r = client.post("/api/dev/benchmark/llm-gating")
+            r = admin_client.post("/api/dev/benchmark/llm-gating")
 
         body = r.json()
         for phase in ("baseline", "gated"):
             for src_id, stats in body[phase]["sources"].items():
                 assert "sport_unknown" in stats, f"{phase}.{src_id} missing sport_unknown"
 
-    def test_gated_baseline_uses_separate_ingest_runs(self, client, monkeypatch):
+    def test_gated_baseline_uses_separate_ingest_runs(self, admin_client, monkeypatch):
         """
         With a clear-league-in-title article, the gated run should show llm_skipped > 0
         for that article, while the baseline run shows llm_skipped = 0.
@@ -264,7 +266,7 @@ class TestBenchmarkResponseShape:
             patch("app.ingestion.ingestion_service._LLM_PROVIDER", mock_provider),
             patch("feedparser.parse", return_value=_make_feed(entries)),
         ):
-            r = client.post("/api/dev/benchmark/llm-gating")
+            r = admin_client.post("/api/dev/benchmark/llm-gating")
 
         body = r.json()
         if "walla_sport" in body["baseline"]["sources"]:
@@ -275,7 +277,7 @@ class TestBenchmarkResponseShape:
             # Gated: "NBA" keyword + resolved league → gate should skip
             assert gated_walla["llm_skipped"] >= 1
 
-    def test_benchmark_does_not_persist_result_to_response_body(self, client, monkeypatch):
+    def test_benchmark_does_not_persist_result_to_response_body(self, admin_client, monkeypatch):
         """The response body has no 'id' or 'persisted' field — results are not stored."""
         monkeypatch.setenv("ALLOW_DEV_RESET", "true")
         mock_provider = _make_mock_provider()
@@ -285,7 +287,7 @@ class TestBenchmarkResponseShape:
             patch("app.ingestion.ingestion_service._LLM_PROVIDER", mock_provider),
             patch("feedparser.parse", return_value=_make_feed([])),
         ):
-            r = client.post("/api/dev/benchmark/llm-gating")
+            r = admin_client.post("/api/dev/benchmark/llm-gating")
 
         body = r.json()
         assert "id" not in body
@@ -296,19 +298,19 @@ class TestBenchmarkResponseShape:
 
 
 class TestNormalIngestNotAffected:
-    def test_normal_ingest_run_still_uses_env_gating(self, client):
+    def test_normal_ingest_run_still_uses_env_gating(self, admin_client):
         """POST /api/ingest/run is not affected by the benchmark override — uses env default."""
         entries = [
             _make_entry("NBA: test", "https://walla.co.il/ingest-normal/1"),
         ]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            r = client.post("/api/ingest/run?source_id=walla_sport")
+            r = admin_client.post("/api/ingest/run?source_id=walla_sport")
         assert r.status_code == 200
         # No assertion on gating behavior — just confirm it doesn't crash
         walla = next(s for s in r.json()["sources"] if s["source_id"] == "walla_sport")
         assert "llm_skipped" in walla
 
-    def test_benchmark_endpoint_does_not_change_env_gating_flag(self, client, monkeypatch):
+    def test_benchmark_endpoint_does_not_change_env_gating_flag(self, admin_client, monkeypatch):
         """Running the benchmark must not mutate the module-level _GATING_ENABLED flag."""
         import app.classification.gating as gating_module
         before = gating_module._GATING_ENABLED
@@ -321,7 +323,7 @@ class TestNormalIngestNotAffected:
             patch("app.ingestion.ingestion_service._LLM_PROVIDER", mock_provider),
             patch("feedparser.parse", return_value=_make_feed([])),
         ):
-            client.post("/api/dev/benchmark/llm-gating")
+            admin_client.post("/api/dev/benchmark/llm-gating")
 
         assert gating_module._GATING_ENABLED == before, (
             "_GATING_ENABLED was mutated by benchmark — override must not change module state"

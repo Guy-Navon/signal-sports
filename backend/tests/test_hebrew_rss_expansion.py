@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 Tests for Hebrew RSS sources expansion — PR 10.
 
@@ -175,36 +177,36 @@ class TestIsraelHayomSportConfig:
 # ══════════════════════════════════════════════════════════════════════════════
 
 class TestSourcesApiWithExpansion:
-    def test_israel_hayom_sport_in_api_sources(self, client):
-        r = client.get("/api/ingest/sources")
+    def test_israel_hayom_sport_in_api_sources(self, admin_client):
+        r = admin_client.get("/api/ingest/sources")
         assert r.status_code == 200
         ids = {s["source_id"] for s in r.json()}
         assert "israel_hayom_sport" in ids
 
-    def test_walla_sport_still_in_api_sources(self, client):
-        r = client.get("/api/ingest/sources")
+    def test_walla_sport_still_in_api_sources(self, admin_client):
+        r = admin_client.get("/api/ingest/sources")
         ids = {s["source_id"] for s in r.json()}
         assert "walla_sport" in ids
 
-    def test_israel_hayom_sport_language_in_api(self, client):
-        r = client.get("/api/ingest/sources")
+    def test_israel_hayom_sport_language_in_api(self, admin_client):
+        r = admin_client.get("/api/ingest/sources")
         ih = next(s for s in r.json() if s["source_id"] == "israel_hayom_sport")
         assert ih["language"] == "he"
 
-    def test_israel_hayom_sport_display_name_in_api(self, client):
-        r = client.get("/api/ingest/sources")
+    def test_israel_hayom_sport_display_name_in_api(self, admin_client):
+        r = admin_client.get("/api/ingest/sources")
         ih = next(s for s in r.json() if s["source_id"] == "israel_hayom_sport")
         assert ih["display_name"] and len(ih["display_name"]) > 0
 
-    def test_one_sport_in_sources(self, client):
+    def test_one_sport_in_sources(self, admin_client):
         # ONE is now configured through public JSON article-list endpoints.
-        r = client.get("/api/ingest/sources")
+        r = admin_client.get("/api/ingest/sources")
         ids = {s["source_id"] for s in r.json()}
         assert "one_sport" in ids
 
-    def test_ynet_sport_in_sources(self, client):
+    def test_ynet_sport_in_sources(self, admin_client):
         # Ynet now has an official sport RSS feed.
-        r = client.get("/api/ingest/sources")
+        r = admin_client.get("/api/ingest/sources")
         ids = {s["source_id"] for s in r.json()}
         assert "ynet_sport" in ids
 
@@ -335,9 +337,9 @@ class TestIsraelHayomIngestionApi:
             ),
         ]
 
-    def test_ingestion_returns_ok(self, client):
+    def test_ingestion_returns_ok(self, admin_client):
         with patch("feedparser.parse", return_value=_make_feed(self._sport_entries())):
-            r = client.post("/api/ingest/run?source_id=israel_hayom_sport")
+            r = admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
         assert r.status_code == 200
         data = r.json()
         assert data["status"] in ("ok", "error")
@@ -345,27 +347,27 @@ class TestIsraelHayomIngestionApi:
         assert len(sources) == 1
         assert sources[0]["source_id"] == "israel_hayom_sport"
 
-    def test_sport_articles_inserted(self, client):
+    def test_sport_articles_inserted(self, admin_client):
         url = "https://www.israelhayom.co.il/sport/israeli-basketball/article/ih-insert-unique-1"
         entries = [_make_entry("מכבי תל אביב חתמה על שחקן חדש", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            r = client.post("/api/ingest/run?source_id=israel_hayom_sport")
+            r = admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
         assert r.json()["sources"][0]["inserted"] >= 1
 
-        r2 = client.get("/api/articles")
+        r2 = admin_client.get("/api/articles")
         urls = [a["url"] for a in r2.json()]
         assert url in urls
 
-    def test_non_sport_articles_filtered(self, client):
+    def test_non_sport_articles_filtered(self, admin_client):
         """Non-sport URLs from Israel Hayom must be filtered out (skipped_filtered > 0)."""
         mixed = self._sport_entries() + self._non_sport_entries()
         with patch("feedparser.parse", return_value=_make_feed(mixed)):
-            r = client.post("/api/ingest/run?source_id=israel_hayom_sport")
+            r = admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
         result = r.json()["sources"][0]
         assert result["fetched"] == 4
         assert result["skipped_filtered"] == 2
 
-    def test_only_sport_urls_reach_db(self, client):
+    def test_only_sport_urls_reach_db(self, admin_client):
         """Non-sport article URLs must not appear in the articles list."""
         sport_url = "https://www.israelhayom.co.il/sport/world-basketball/article/ih-filter-test-s"
         news_url = "https://www.israelhayom.co.il/news/politics/article/ih-filter-test-n"
@@ -374,64 +376,64 @@ class TestIsraelHayomIngestionApi:
             _make_entry("פוליטיקה", news_url),
         ]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=israel_hayom_sport")
+            admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
 
-        r = client.get("/api/articles")
+        r = admin_client.get("/api/articles")
         db_urls = {a["url"] for a in r.json()}
         assert sport_url in db_urls
         assert news_url not in db_urls
 
-    def test_hebrew_article_language_field(self, client):
+    def test_hebrew_article_language_field(self, admin_client):
         url = "https://www.israelhayom.co.il/sport/world-basketball/article/ih-lang-test-1"
         entries = [_make_entry("מכבי תל אביב הגיעה לשלב הגמר", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=israel_hayom_sport")
+            admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
 
-        r = client.get("/api/articles")
+        r = admin_client.get("/api/articles")
         article = next((a for a in r.json() if a["url"] == url), None)
         assert article is not None
         assert article["language"] == "he"
 
-    def test_hebrew_title_preserved(self, client):
+    def test_hebrew_title_preserved(self, admin_client):
         url = "https://www.israelhayom.co.il/sport/israeli-basketball/article/ih-title-test-1"
         hebrew_title = "מכבי תל אביב ניצחה בגמר ליגת העל בכדורסל"
         entries = [_make_entry(hebrew_title, url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=israel_hayom_sport")
+            admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
 
-        r = client.get("/api/articles")
+        r = admin_client.get("/api/articles")
         article = next((a for a in r.json() if a["url"] == url), None)
         assert article is not None
         assert article["title"] == hebrew_title
 
-    def test_original_title_is_null_in_api(self, client):
+    def test_original_title_is_null_in_api(self, admin_client):
         url = "https://www.israelhayom.co.il/sport/world-basketball/article/ih-orig-test-1"
         entries = [_make_entry("NBA: אבדיה ומכבי", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=israel_hayom_sport")
+            admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
 
-        r = client.get("/api/articles")
+        r = admin_client.get("/api/articles")
         article = next((a for a in r.json() if a["url"] == url), None)
         assert article is not None
         assert article["original_title"] is None
 
-    def test_dedup_skips_on_second_run(self, client):
+    def test_dedup_skips_on_second_run(self, admin_client):
         url = "https://www.israelhayom.co.il/sport/israeli-basketball/article/ih-dedup-unique-1"
         entries = [_make_entry("מכבי תל אביב במו״מ עם שחקן", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=israel_hayom_sport")
+            admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            r = client.post("/api/ingest/run?source_id=israel_hayom_sport")
+            r = admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
         second = r.json()["sources"][0]
         assert second["inserted"] == 0
         assert second["skipped_duplicate"] == second["fetched"]
 
-    def test_article_appears_in_debug_feed(self, client):
+    def test_article_appears_in_debug_feed(self, admin_client):
         url = "https://www.israelhayom.co.il/sport/world-basketball/article/ih-debug-test-1"
         entries = [_make_entry("NBA: מכבי לקראת גמר היורוליג", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=israel_hayom_sport")
-        r = client.get("/api/debug/feed/guy")
+            admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
+        r = admin_client.get("/api/debug/feed/guy")
         feed_urls = [item["article"]["url"] for item in r.json()]
         assert url in feed_urls
 
@@ -516,24 +518,24 @@ class TestIsraelHayomClassifierSmoke:
 # ══════════════════════════════════════════════════════════════════════════════
 
 class TestIsraelHayomFeedScoring:
-    def test_maccabi_basketball_article_visible_for_guy(self, client):
+    def test_maccabi_basketball_article_visible_for_guy(self, admin_client):
         url = "https://www.israelhayom.co.il/sport/israeli-basketball/article/ih-scoring-1"
         entries = [_make_entry("מכבי תל אביב הביסה בגמר ליגת העל בכדורסל", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=israel_hayom_sport")
+            admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
 
-        r = client.get("/api/debug/feed/guy")
+        r = admin_client.get("/api/debug/feed/guy")
         item = next((i for i in r.json() if i["article"]["url"] == url), None)
         assert item is not None
         assert item["decision"] in ("feed", "high_feed", "push")
 
-    def test_generic_football_article_hidden_for_guy(self, client):
+    def test_generic_football_article_hidden_for_guy(self, admin_client):
         url = "https://www.israelhayom.co.il/sport/world-soccer/article/ih-football-hidden-1"
         entries = [_make_entry('ליגת העל: מחזור חשוב ב"פרימיר ליג"', url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=israel_hayom_sport")
+            admin_client.post("/api/ingest/run?source_id=israel_hayom_sport")
 
-        r = client.get("/api/debug/feed/guy")
+        r = admin_client.get("/api/debug/feed/guy")
         item = next((i for i in r.json() if i["article"]["url"] == url), None)
         assert item is not None
         assert item["decision"] == "hidden"

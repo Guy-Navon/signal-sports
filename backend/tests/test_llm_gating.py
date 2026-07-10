@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 Tests for the selective LLM gating function.
 
@@ -501,20 +503,20 @@ class TestCounterAccumulation:
     def _make_feed(self, entries, bozo=False):
         return types.SimpleNamespace(entries=entries, bozo=bozo)
 
-    def test_gating_fields_present_in_api_response(self, client):
+    def test_gating_fields_present_in_api_response(self, admin_client):
         """SourceIngestResult response includes llm_skipped, llm_skip_reasons, llm_call_reasons."""
         entries = [
             self._make_entry("NBA: גולדן סטייט", "https://walla.co.il/fake/r1"),
         ]
         with patch("feedparser.parse", return_value=self._make_feed(entries)):
-            r = client.post("/api/ingest/run?source_id=walla_sport")
+            r = admin_client.post("/api/ingest/run?source_id=walla_sport")
         assert r.status_code == 200
         walla = next(s for s in r.json()["sources"] if s["source_id"] == "walla_sport")
         assert "llm_skipped" in walla
         assert "llm_skip_reasons" in walla
         assert "llm_call_reasons" in walla
 
-    def test_provider_disabled_does_not_increment_llm_skipped(self, client):
+    def test_provider_disabled_does_not_increment_llm_skipped(self, admin_client):
         """
         With CLASSIFICATION_PROVIDER=disabled (test default), no article is eligible for LLM.
         llm_skipped must stay 0 — provider-disabled is not the same as gating.
@@ -523,7 +525,7 @@ class TestCounterAccumulation:
             self._make_entry("NBA: משחק", "https://walla.co.il/fake/nba2"),
         ]
         with patch("feedparser.parse", return_value=self._make_feed(entries)):
-            r = client.post("/api/ingest/run?source_id=walla_sport")
+            r = admin_client.post("/api/ingest/run?source_id=walla_sport")
         assert r.status_code == 200
         walla = next(s for s in r.json()["sources"] if s["source_id"] == "walla_sport")
         assert walla["llm_skipped"] == 0
@@ -531,18 +533,18 @@ class TestCounterAccumulation:
         assert walla["llm_skip_reasons"] == {}
         assert walla["llm_call_reasons"] == {}
 
-    def test_non_hebrew_source_does_not_increment_llm_skipped(self, client):
+    def test_non_hebrew_source_does_not_increment_llm_skipped(self, admin_client):
         """Eurohoops is not a Hebrew broad source. Gating never fires; counters stay 0."""
-        r = client.post("/api/ingest/run?source_id=eurohoops")
+        r = admin_client.post("/api/ingest/run?source_id=eurohoops")
         assert r.status_code == 200
         src = next(s for s in r.json()["sources"] if s["source_id"] == "eurohoops")
         assert src["llm_skipped"] == 0
         assert src["llm_skip_reasons"] == {}
         assert src["llm_call_reasons"] == {}
 
-    def test_gating_reason_dicts_are_dicts_not_lists(self, client):
+    def test_gating_reason_dicts_are_dicts_not_lists(self, admin_client):
         """Reason maps must be dicts (JSON objects), not lists, even when empty."""
-        r = client.post("/api/ingest/run")
+        r = admin_client.post("/api/ingest/run")
         assert r.status_code == 200
         for src in r.json()["sources"]:
             assert isinstance(src.get("llm_skip_reasons", {}), dict)

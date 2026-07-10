@@ -189,8 +189,9 @@ wildcard, and no personal hostname anywhere in tracked files.
   `CSRF_ALLOWED_ORIGINS=https://<machine>.<tailnet>.ts.net` in local backend env
   (placeholder shown; never commit a real hostname). Tailscale Serve terminates HTTPS
   before Vite/uvicorn, so FastAPI sees an HTTP request to `127.0.0.1:8000` while the
-  browser sends the HTTPS tailnet Origin. Consumer `/api/me/*` routes, frontend auth,
-  onboarding UX, and legacy/ops route gating arrive in later User Platform PRs.
+  browser sends the HTTPS tailnet Origin. The consumer `/api/me/*` surface, the frontend
+  auth shell (login/signup, session guard), and fail-closed admin gating of the legacy/ops
+  surface are live; onboarding UX is review-gated (#52) and account lifecycle (#55) remains.
 - **This is single-user private testing, not production authentication.** Do not treat this
   setup as hardened for multi-user or public use.
 - **Never enable Tailscale Funnel** for this setup. Funnel republishes a Serve config to the

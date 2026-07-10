@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 Tests for the Hebrew RSS source (walla_sport) — PR 8.
 
@@ -75,13 +77,13 @@ class TestWallaSportConfig:
         ids = {c.source_id for c in get_enabled_sources()}
         assert "walla_sport" in ids
 
-    def test_ingest_sources_api_includes_walla(self, client):
-        r = client.get("/api/ingest/sources")
+    def test_ingest_sources_api_includes_walla(self, admin_client):
+        r = admin_client.get("/api/ingest/sources")
         ids = {s["source_id"] for s in r.json()}
         assert "walla_sport" in ids
 
-    def test_ingest_sources_api_walla_language(self, client):
-        r = client.get("/api/ingest/sources")
+    def test_ingest_sources_api_walla_language(self, admin_client):
+        r = admin_client.get("/api/ingest/sources")
         walla = next(s for s in r.json() if s["source_id"] == "walla_sport")
         assert walla["language"] == "he"
 
@@ -107,9 +109,9 @@ class TestHebrewIngestionAPI:
             ),
         ]
 
-    def test_walla_ingestion_returns_ok(self, client):
+    def test_walla_ingestion_returns_ok(self, admin_client):
         with patch("feedparser.parse", return_value=_make_feed(self._hebrew_entries())):
-            r = client.post("/api/ingest/run?source_id=walla_sport")
+            r = admin_client.post("/api/ingest/run?source_id=walla_sport")
         assert r.status_code == 200
         data = r.json()
         assert data["status"] in ("ok", "error")
@@ -117,68 +119,68 @@ class TestHebrewIngestionAPI:
         assert len(sources) == 1
         assert sources[0]["source_id"] == "walla_sport"
 
-    def test_hebrew_articles_inserted(self, client):
+    def test_hebrew_articles_inserted(self, admin_client):
         url = "https://sports.walla.co.il/item/he-insert-test-unique-1"
         entries = [_make_entry("מכבי תל אביב חתמה על שחקן חדש", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            r = client.post("/api/ingest/run?source_id=walla_sport")
+            r = admin_client.post("/api/ingest/run?source_id=walla_sport")
         assert r.json()["sources"][0]["inserted"] >= 1
 
-        r2 = client.get("/api/articles")
+        r2 = admin_client.get("/api/articles")
         urls = [a["url"] for a in r2.json()]
         assert url in urls
 
-    def test_hebrew_article_preserves_title(self, client):
+    def test_hebrew_article_preserves_title(self, admin_client):
         url = "https://sports.walla.co.il/item/he-title-test-999"
         hebrew_title = "מכבי תל אביב הביסה את הפועל חולון בגמר ליגת העל בכדורסל"
         entries = [_make_entry(hebrew_title, url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=walla_sport")
+            admin_client.post("/api/ingest/run?source_id=walla_sport")
 
-        r = client.get("/api/articles")
+        r = admin_client.get("/api/articles")
         article = next((a for a in r.json() if a["url"] == url), None)
         assert article is not None
         assert article["title"] == hebrew_title
 
-    def test_hebrew_article_language_is_he(self, client):
+    def test_hebrew_article_language_is_he(self, admin_client):
         url = "https://sports.walla.co.il/item/he-lang-test-999"
         entries = [_make_entry("דני אבדיה בטרייד לקבוצה חדשה", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=walla_sport")
+            admin_client.post("/api/ingest/run?source_id=walla_sport")
 
-        r = client.get("/api/articles")
+        r = admin_client.get("/api/articles")
         article = next((a for a in r.json() if a["url"] == url), None)
         assert article is not None
         assert article["language"] == "he"
 
-    def test_hebrew_article_original_title_is_none(self, client):
+    def test_hebrew_article_original_title_is_none(self, admin_client):
         url = "https://sports.walla.co.il/item/he-orig-title-test-999"
         entries = [_make_entry("כדורסל: מכבי ניצחה בגמר", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=walla_sport")
+            admin_client.post("/api/ingest/run?source_id=walla_sport")
 
-        r = client.get("/api/articles")
+        r = admin_client.get("/api/articles")
         article = next((a for a in r.json() if a["url"] == url), None)
         assert article is not None
         assert article["original_title"] is None
 
-    def test_hebrew_dedup_skips_on_second_run(self, client):
+    def test_hebrew_dedup_skips_on_second_run(self, admin_client):
         url = "https://sports.walla.co.il/item/he-dedup-test-unique"
         entries = [_make_entry("מכבי ת״א במו״מ עם גארד יורוליג", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=walla_sport")
+            admin_client.post("/api/ingest/run?source_id=walla_sport")
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            r = client.post("/api/ingest/run?source_id=walla_sport")
+            r = admin_client.post("/api/ingest/run?source_id=walla_sport")
         second = r.json()["sources"][0]
         assert second["inserted"] == 0
         assert second["skipped_duplicate"] == second["fetched"]
 
-    def test_hebrew_article_appears_in_debug_feed(self, client):
+    def test_hebrew_article_appears_in_debug_feed(self, admin_client):
         url = "https://sports.walla.co.il/item/he-debug-feed-test-999"
         entries = [_make_entry("הפועל ירושלים תשחק ביורוקאפ", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=walla_sport")
-        r = client.get("/api/debug/feed/guy")
+            admin_client.post("/api/ingest/run?source_id=walla_sport")
+        r = admin_client.get("/api/debug/feed/guy")
         feed_urls = [item["article"]["url"] for item in r.json()]
         assert url in feed_urls
 
@@ -592,31 +594,31 @@ class TestDisambiguationFeedScoring:
     """Feed scoring regression: football Maccabi articles must not reach Guy via
     the maccabi_tel_aviv_basketball topic; Kattash finals quotes must feed Guy."""
 
-    def test_maccabi_netanya_football_not_feed_for_guy(self, client):
+    def test_maccabi_netanya_football_not_feed_for_guy(self, admin_client):
         url = "https://sports.walla.co.il/item/he-netanya-football-8-2-unique"
         entries = [_make_entry(
             "הקשר שדחה את מכבי נתניה — קצר ביומן",
             url,
         )]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=walla_sport")
+            admin_client.post("/api/ingest/run?source_id=walla_sport")
 
-        r = client.get("/api/debug/feed/guy")
+        r = admin_client.get("/api/debug/feed/guy")
         item = next((i for i in r.json() if i["article"]["url"] == url), None)
         assert item is not None
         # Football article for Guy — must NOT reach feed via basketball topic
         assert item["decision"] not in ("feed", "high_feed", "push")
 
-    def test_kattash_finals_quote_feeds_guy(self, client):
+    def test_kattash_finals_quote_feeds_guy(self, admin_client):
         url = "https://sports.walla.co.il/item/he-kattash-finals-8-2-unique"
         entries = [_make_entry(
             'עודד קטש: "אנחנו לא פייבוריטים בגמר מול הפועל תל אביב"',
             url,
         )]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=walla_sport")
+            admin_client.post("/api/ingest/run?source_id=walla_sport")
 
-        r = client.get("/api/debug/feed/guy")
+        r = admin_client.get("/api/debug/feed/guy")
         item = next((i for i in r.json() if i["article"]["url"] == url), None)
         assert item is not None
         assert item["decision"] in ("feed", "high_feed", "push")
@@ -672,49 +674,49 @@ class TestHebrewClassifierEventTypes:
 # ══════════════════════════════════════════════════════════════════════════════
 
 class TestHebrewFeedScoringGuy:
-    def test_maccabi_finals_hebrew_scores_high_for_guy(self, client):
+    def test_maccabi_finals_hebrew_scores_high_for_guy(self, admin_client):
         url = "https://sports.walla.co.il/item/he-scoring-finals-unique"
         entries = [_make_entry(
             "מכבי תל אביב הביסה את הפועל חולון ועלתה לגמר",
             url,
         )]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=walla_sport")
+            admin_client.post("/api/ingest/run?source_id=walla_sport")
 
-        r = client.get("/api/debug/feed/guy")
+        r = admin_client.get("/api/debug/feed/guy")
         item = next((i for i in r.json() if i["article"]["url"] == url), None)
         assert item is not None
         assert item["decision"] in ("high_feed", "push", "feed")
 
-    def test_deni_trade_hebrew_scores_push_for_guy(self, client):
+    def test_deni_trade_hebrew_scores_push_for_guy(self, admin_client):
         url = "https://sports.walla.co.il/item/he-scoring-deni-trade-unique"
         entries = [_make_entry("דני אבדיה נסחר בטרייד לקבוצה חדשה", url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=walla_sport")
+            admin_client.post("/api/ingest/run?source_id=walla_sport")
 
-        r = client.get("/api/debug/feed/guy")
+        r = admin_client.get("/api/debug/feed/guy")
         item = next((i for i in r.json() if i["article"]["url"] == url), None)
         assert item is not None
         assert item["decision"] in ("push", "high_feed")
 
-    def test_generic_football_hebrew_hidden_for_guy(self, client):
+    def test_generic_football_hebrew_hidden_for_guy(self, admin_client):
         url = "https://sports.walla.co.il/item/he-scoring-football-hidden-unique"
         entries = [_make_entry('ליגת העל: בית"ר ירושלים ניצחה 2-0', url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=walla_sport")
+            admin_client.post("/api/ingest/run?source_id=walla_sport")
 
-        r = client.get("/api/debug/feed/guy")
+        r = admin_client.get("/api/debug/feed/guy")
         item = next((i for i in r.json() if i["article"]["url"] == url), None)
         assert item is not None
         assert item["decision"] == "hidden"
 
-    def test_hebrew_maccabi_signing_appears_in_feed_for_guy(self, client):
+    def test_hebrew_maccabi_signing_appears_in_feed_for_guy(self, admin_client):
         url = "https://sports.walla.co.il/item/he-scoring-maccabi-sign-unique"
         entries = [_make_entry('רשמי: מכבי ת"א החתימה גארד יורוליג', url)]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/run?source_id=walla_sport")
+            admin_client.post("/api/ingest/run?source_id=walla_sport")
 
-        r = client.get("/api/feed/guy")
+        r = admin_client.get("/api/feed/guy")
         feed_urls = [i["article"]["url"] for i in r.json()]
         assert url in feed_urls
 

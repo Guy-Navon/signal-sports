@@ -18,12 +18,14 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_dir}/test.db"
 # - Auth env: tests must not inherit a developer's backend/.env auth settings.
 os.environ["CLASSIFICATION_PROVIDER"] = "disabled"
 os.environ["INGESTION_SCHEDULER_ENABLED"] = "false"
-# TRANSITIONAL (User Platform PR 5 → PR 6 window, issue #53): the legacy/ops
-# surface is now admin-gated fail-closed; existing legacy test files keep
-# passing through the explicit bypass until PR 6 (#54) migrates them to
-# explicit identity fixtures and REMOVES this line. New authz tests monkeypatch
-# this env var to "false" to exercise real enforcement.
-os.environ["ALLOW_INSECURE_AUTH_BYPASS"] = "true"
+# Enforcement is REAL in tests (User Platform PR 6, #54): the transitional
+# PR-5 bypass line was removed. Tests pick an explicit identity:
+#   client        — the bare app client (no cookies; the anonymous identity)
+#   anonymous_client — alias of the same guarantee, for authz-denial tests
+#   user_client   — a real signed-up role=user session (own cookie jar)
+#   admin_client  — the env-bootstrapped admin session (own cookie jar)
+# Hidden authenticated state can never mask an authorization regression.
+os.environ["ALLOW_INSECURE_AUTH_BYPASS"] = "false"
 os.environ["AUTH_ADMIN_EMAIL"] = ""
 os.environ["AUTH_ADMIN_PASSWORD"] = ""
 os.environ["AUTH_COOKIE_SECURE"] = "false"
@@ -43,13 +45,65 @@ os.environ["CSRF_ALLOWED_ORIGINS"] = ",".join(
 
 
 @pytest.fixture(scope="session")
-def client():
+def _application():
     # Import app modules AFTER the DATABASE_URL env var is set above.
     from app.main import create_app
-    application = create_app()
+    return create_app()
+
+
+@pytest.fixture(scope="session")
+def client(_application):
+    """The bare app client — NO cookies, the anonymous identity.
+
+    One shared app instance; identity clients below are separate TestClient
+    instances (separate cookie jars) over the same app (PR 6, #54)."""
     # TestClient enters the lifespan: creates tables and seeds the test DB.
-    with TestClient(application) as c:
+    with TestClient(_application) as c:
         yield c
+
+
+@pytest.fixture(scope="session")
+def anonymous_client(client):
+    """Explicit name for authz-denial tests; same no-cookie guarantee."""
+    return client
+
+
+_TEST_IDENTITY_PASSWORD = "test identity passphrase"
+
+
+def _identity_client(application, email, role):
+    """Ensure the identity exists (idempotent — per-file cleanups may have
+    deleted it) and return a fresh TestClient with its own cookie jar holding
+    a live session. Function-scoped by design: hidden long-lived auth state is
+    exactly what PR 6 (#54) removes."""
+    from app.db.database import SessionLocal
+    from app.services import auth_service
+    with SessionLocal() as session:
+        try:
+            auth_service.create_user_with_profile(
+                session, email=email, password=_TEST_IDENTITY_PASSWORD, role=role,
+            )
+        except auth_service.DuplicateEmailError:
+            pass
+    auth_service.reset_rate_limiters()
+    c = TestClient(application)
+    response = c.post(
+        "/api/auth/login", json={"email": email, "password": _TEST_IDENTITY_PASSWORD}
+    )
+    assert response.status_code == 200, f"identity login failed: {response.text}"
+    return c
+
+
+@pytest.fixture
+def user_client(_application, client):
+    """A real role=user session over the shared app (own cookie jar)."""
+    return _identity_client(_application, "fixture-user@test.local", "user")
+
+
+@pytest.fixture
+def admin_client(_application, client):
+    """The admin QA session over the shared app (own cookie jar)."""
+    return _identity_client(_application, "fixture-admin@test.local", "admin")
 
 
 @pytest.fixture(autouse=True)

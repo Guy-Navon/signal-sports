@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 Issue #31 — per-run LLM dependency / classification quality metrics.
 
@@ -157,7 +159,7 @@ class TestComputeRunMetrics:
 
 
 class TestPersistenceRoundTrip:
-    def test_run_record_metrics_round_trip(self, client: TestClient):
+    def test_run_record_metrics_round_trip(self, admin_client: TestClient):
         from app.db.database import SessionLocal
         metrics = _compute()
         record = IngestionRunRecord(
@@ -181,7 +183,7 @@ class TestPersistenceRoundTrip:
         assert loaded.id == "run-metrics-rt"
         assert loaded.metrics == metrics
 
-    def test_old_run_without_metrics_loads_as_none(self, client: TestClient):
+    def test_old_run_without_metrics_loads_as_none(self, admin_client: TestClient):
         from app.db.database import SessionLocal
         record = IngestionRunRecord(
             id="run-pre-metrics",
@@ -204,7 +206,7 @@ class TestPersistenceRoundTrip:
 
 
 class TestQualityEndpoint:
-    def test_quality_endpoint_exposes_run_history(self, client: TestClient):
+    def test_quality_endpoint_exposes_run_history(self, admin_client: TestClient):
         from app.db.database import SessionLocal
         # Far-future started_at so the row is guaranteed inside the endpoint's
         # newest-20 window even when the full suite has inserted many runs.
@@ -221,7 +223,7 @@ class TestQualityEndpoint:
         )
         with SessionLocal() as session:
             ingestion_repository.insert(session, record)
-        resp = client.get("/api/ingest/quality")
+        resp = admin_client.get("/api/ingest/quality")
         assert resp.status_code == 200
         body = resp.json()
         assert "llm_dependency_runs" in body
@@ -229,13 +231,13 @@ class TestQualityEndpoint:
         assert run["metrics"]["schema_version"] == METRICS_SCHEMA_VERSION
         assert run["metrics"]["llm_call_rate"] is None  # empty run
 
-    def test_forced_backfill_writes_no_run_records(self, client: TestClient):
+    def test_forced_backfill_writes_no_run_records(self, admin_client: TestClient):
         # Denominator honesty: /api/classify/backfill must never create
         # ingestion_runs rows — its numbers are not gated-ingestion metrics.
         from app.db.database import SessionLocal
         with SessionLocal() as session:
             before = len(ingestion_repository.get_recent(session, limit=200))
-        resp = client.post("/api/classify/backfill?source_id=walla_sport")
+        resp = admin_client.post("/api/classify/backfill?source_id=walla_sport")
         assert resp.status_code in (200, 400, 409, 503)
         with SessionLocal() as session:
             after = len(ingestion_repository.get_recent(session, limit=200))
@@ -243,7 +245,7 @@ class TestQualityEndpoint:
 
 
 class TestEndToEndIngestion:
-    def test_normal_ingestion_run_persists_metrics(self, client: TestClient):
+    def test_normal_ingestion_run_persists_metrics(self, admin_client: TestClient):
         """A real (mocked-feed) gated ingestion run writes a run record whose
         metrics dict reflects the disabled-provider path: call_rate 0.0,
         deterministic accept 1.0, abstention measured."""
@@ -260,7 +262,7 @@ class TestEndToEndIngestion:
         )
         feed = types.SimpleNamespace(entries=[entry], bozo=False)
         with patch("feedparser.parse", return_value=feed):
-            resp = client.post("/api/ingest/run?source_id=eurohoops")
+            resp = admin_client.post("/api/ingest/run?source_id=eurohoops")
         assert resp.status_code == 200
         live = resp.json()["sources"][0]
         assert live["metrics"] is not None

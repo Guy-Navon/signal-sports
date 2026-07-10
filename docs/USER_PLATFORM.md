@@ -436,6 +436,18 @@ bypass semantics).
 
 ## Changelog
 
+- 2026-07-10 (User Platform execution) — PR #71 (#50): session-derived `/api/me/*`
+  consumer surface with delegation parity; the product-surface gating bullet moved to
+  PR 5 (documented issue-internal contradiction). PR #72 (#51): frontend auth shell
+  (AuthContext, login/signup, session guard, account menu). PR #73 (#53): fail-closed
+  admin gating of the legacy/ops surface, `require_session` product surface, AppContext
+  consumer/QA split, ProfileSwitcher → ops QA view-as. PR #74 (#52): onboarding state
+  machine + welcome + resumable calibration + intentionally-empty-feed CTA — **open,
+  product-review-gated**. PR 6 (#54): transitional test bypass removed; explicit
+  anonymous/user/admin identity fixtures; docs truth sweep — **open,
+  security/regression-review-gated**. Note: #52 was executed after #53 (order allowed
+  by the graph) so onboarding lands on the session user's own /me feed.
+
 - 2026-07-08 — Architecture approved (design revision pass: fail-closed
   `ALLOW_INSECURE_AUTH_BYPASS`; fixed 30-day session expiry; real FK on
   `auth_sessions.user_id`; IP-independent login rate limiting; explicit test identities;

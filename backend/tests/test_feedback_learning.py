@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 Issue #34 — feedback learning: trace-based attribution, bounded derived
 adjustments, decay, undo, signal hierarchy, scoped never_show.
@@ -319,44 +321,44 @@ class TestDismissal:
 # ── API round-trip ───────────────────────────────────────────────────────────
 
 class TestLearningApi:
-    def _submit(self, client, article_id, action, user_id="guy"):
-        resp = client.post("/api/feedback", json={
+    def _submit(self, admin_client, article_id, action, user_id="guy"):
+        resp = admin_client.post("/api/feedback", json={
             "user_id": user_id, "article_id": article_id, "action": action,
         })
         assert resp.status_code == 201
         return resp.json()
 
-    def test_feedback_captures_click_context(self, client: TestClient):
-        event = self._submit(client, "article_001", "more_like_this")
+    def test_feedback_captures_click_context(self, admin_client: TestClient):
+        event = self._submit(admin_client, "article_001", "more_like_this")
         assert event["context"] is not None
         assert event["context"]["attribution"] is not None
 
-    def test_learning_state_threshold_and_reset(self, client: TestClient):
+    def test_learning_state_threshold_and_reset(self, admin_client: TestClient):
         # 3 downvotes on the same tennis article shape → active feature
         for _ in range(3):
-            self._submit(client, "article_012", "less_like_this")
-        state = client.get("/api/learning/guy").json()
+            self._submit(admin_client, "article_012", "less_like_this")
+        state = admin_client.get("/api/learning/guy").json()
         assert len(state["features"]) >= 1
 
         # reset everything; derived state disappears exactly
-        resp = client.post("/api/learning/guy/reset", json={})
+        resp = admin_client.post("/api/learning/guy/reset", json={})
         assert resp.status_code == 200
         assert resp.json()["retracted_events"] >= 1
-        state_after = client.get("/api/learning/guy").json()
+        state_after = admin_client.get("/api/learning/guy").json()
         assert state_after["features"] == []
         assert state_after["active_scope_affinities"] == 0
 
-    def test_never_show_creates_scoped_explicit_override(self, client: TestClient):
-        before = client.get("/api/profiles/guy").json()
+    def test_never_show_creates_scoped_explicit_override(self, admin_client: TestClient):
+        before = admin_client.get("/api/profiles/guy").json()
         n_before = len(before["profile_v2"]["overrides"])
-        resp = client.post("/api/profiles/guy/never_show",
+        resp = admin_client.post("/api/profiles/guy/never_show",
                            json={"article_id": "article_001"})
         assert resp.status_code == 200
         body = resp.json()
         assert body["rule"]["kind"] == "never_show"
         # article_001 is a Maccabi article → most specific scope is the team
         assert body["rule"]["scope"] == "team"
-        after = client.get("/api/profiles/guy").json()
+        after = admin_client.get("/api/profiles/guy").json()
         assert len(after["profile_v2"]["overrides"]) == n_before + (1 if body["created"] else 0)
 
         # cleanup: remove the created override to keep the seed profile intact
@@ -365,9 +367,9 @@ class TestLearningApi:
             if not (o["kind"] == "never_show" and o["target_id"] == body["rule"]["target_id"]
                     and o["event_type"] == body["rule"]["event_type"])
         ]
-        client.put("/api/profiles/guy", json=after)
+        admin_client.put("/api/profiles/guy", json=after)
 
-    def test_dismissed_article_leaves_feed_immediately(self, client: TestClient):
+    def test_dismissed_article_leaves_feed_immediately(self, admin_client: TestClient):
         # dedicated profile-independent article via the calibration test trick
         from datetime import datetime, timezone as tz
         from app.db.database import SessionLocal
@@ -388,15 +390,15 @@ class TestLearningApi:
                     event_type="signing", importance="high",
                     confidence=0.9, tags=[], taxonomy_version=1,
                 ))
-        feed = client.get("/api/feed/guy").json()
+        feed = admin_client.get("/api/feed/guy").json()
         assert any(i["article"]["id"] == "rss_fl_dismiss" for i in feed)
 
-        self._submit(client, "rss_fl_dismiss", "not_interested")
-        feed_after = client.get("/api/feed/guy").json()
+        self._submit(admin_client, "rss_fl_dismiss", "not_interested")
+        feed_after = admin_client.get("/api/feed/guy").json()
         assert not any(i["article"]["id"] == "rss_fl_dismiss" for i in feed_after)
         # debug still shows it (dismissal is feed-only)
-        debug = client.get("/api/debug/feed/guy").json()
+        debug = admin_client.get("/api/debug/feed/guy").json()
         assert any(i["article"]["id"] == "rss_fl_dismiss" for i in debug)
 
         # cleanup: retract so later tests see the original feed
-        client.post("/api/learning/guy/reset", json={})
+        admin_client.post("/api/learning/guy/reset", json={})

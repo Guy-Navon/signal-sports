@@ -88,12 +88,12 @@ class TestBypassHasNoEffectOnMeSurface:
 
 
 class TestParityWithLegacyRoutes:
-    def test_profile_parity(self, client):
+    def test_profile_parity(self, client, admin_client):
         token = _signup(client, "parity-profile@example.com")
         me = client.get("/api/me/profile", cookies=_cookie(token))
         assert me.status_code == 200
         user_id = me.json()["user_id"]
-        legacy = client.get(f"/api/profiles/{user_id}")
+        legacy = admin_client.get(f"/api/profiles/{user_id}")
         assert legacy.status_code == 200
         assert me.json() == legacy.json()
 
@@ -108,34 +108,34 @@ class TestParityWithLegacyRoutes:
         assert v2["event_affinities"] == []
         assert v2["overrides"] == []
 
-    def test_feed_parity_and_empty_for_new_user(self, client):
+    def test_feed_parity_and_empty_for_new_user(self, client, admin_client):
         token = _signup(client, "parity-feed@example.com")
         me = client.get("/api/me/feed", cookies=_cookie(token))
         assert me.status_code == 200
         user_id = client.get("/api/me/profile", cookies=_cookie(token)).json()["user_id"]
-        legacy = client.get(f"/api/feed/{user_id}")
+        legacy = admin_client.get(f"/api/feed/{user_id}")
         assert me.json() == legacy.json()
         # Empty ProfileV2 ⇒ everything hidden ⇒ the uncalibrated feed is empty
         # (the onboarding prompt state) — an explicit product decision.
         assert me.json() == []
 
-    def test_feedback_and_learning_parity(self, client):
+    def test_feedback_and_learning_parity(self, client, admin_client):
         token = _signup(client, "parity-fb@example.com")
         user_id = client.get("/api/me/profile", cookies=_cookie(token)).json()["user_id"]
         me_fb = client.get("/api/me/feedback", cookies=_cookie(token))
         assert me_fb.status_code == 200
-        assert me_fb.json() == client.get(f"/api/feedback/{user_id}").json()
+        assert me_fb.json() == admin_client.get(f"/api/feedback/{user_id}").json()
         me_learning = client.get("/api/me/learning", cookies=_cookie(token))
         assert me_learning.status_code == 200
-        legacy_learning = client.get(f"/api/learning/{user_id}").json()
+        legacy_learning = admin_client.get(f"/api/learning/{user_id}").json()
         assert me_learning.json() == legacy_learning
 
-    def test_calibration_responses_parity(self, client):
+    def test_calibration_responses_parity(self, client, admin_client):
         token = _signup(client, "parity-cal@example.com")
         user_id = client.get("/api/me/profile", cookies=_cookie(token)).json()["user_id"]
         me = client.get("/api/me/calibration/responses", cookies=_cookie(token))
         assert me.status_code == 200
-        assert me.json() == client.get(f"/api/calibration/responses/{user_id}").json()
+        assert me.json() == admin_client.get(f"/api/calibration/responses/{user_id}").json()
 
 
 class TestIdentityCannotBeInjected:
@@ -157,14 +157,14 @@ class TestIdentityCannotBeInjected:
         )
         assert response.status_code == 422
 
-    def test_profile_put_cannot_rename_to_another_user(self, client):
+    def test_profile_put_cannot_rename_to_another_user(self, client, admin_client):
         token = _signup(client, "inject-put@example.com")
         profile = client.get("/api/me/profile", cookies=_cookie(token)).json()
         profile["user_id"] = "guy"  # attempt horizontal write via body identity
         response = client.put("/api/me/profile", json=profile, cookies=_cookie(token))
         assert response.status_code == 422
         # And guy's profile is untouched (permanent QA fixture).
-        assert client.get("/api/profiles/guy").json()["display_name"] != profile["display_name"]
+        assert admin_client.get("/api/profiles/guy").json()["display_name"] != profile["display_name"]
 
     def test_profile_put_with_own_id_succeeds(self, client):
         token = _signup(client, "own-put@example.com")

@@ -104,7 +104,7 @@ As of PR 6, the frontend is connected to the backend (PR 5) and the backend uses
 | Debug display | `Debug.jsx` | `GET /api/debug/feed/{user_id}` |
 | Feedback | Context state (always) | SQLite via `feedback_events` table |
 | Calibration | `calibrationEngine.js` + `Calibration.jsx` | `GET /api/calibration/headlines` |
-| Authentication | N/A in local mock mode | Backend Auth Core is landed: email/password accounts, HttpOnly cookie sessions, `/api/auth/*`; existing product routes still use legacy `{user_id}` until later User Platform PRs |
+| Authentication | N/A in local mock mode | Email/password accounts, HttpOnly cookie sessions, `/api/auth/*`; the consumer product uses the session-derived `/api/me/*` surface; legacy `{user_id}` + ops routes are the admin/QA surface, fail-closed (`require_admin`) |
 
 In `backend` mode (`VITE_DATA_MODE=backend`), the frontend fetches profiles and feed from the API. In `local` mode (default), the frontend uses mock data and the local engine. Both modes expose identical context shape. See `docs/FRONTEND_BACKEND_INTEGRATION.md` for details.
 
@@ -115,7 +115,7 @@ In `backend` mode (`VITE_DATA_MODE=backend`), the frontend fetches profiles and 
 | SQLite / database | **Done in PR 6.** See `docs/SQLITE_PERSISTENCE.md`. |
 | Frontend integration | **Done in PR 5.** See `docs/FRONTEND_BACKEND_INTEGRATION.md`. |
 | Real RSS/scraping | Deferred — SQLite now ready; first source adapter is PR 7. |
-| Authentication | Auth Core for User Platform PR 1 / Issue #49 is implemented; `/api/me/*`, frontend auth, onboarding UX, legacy/ops gating, and account lifecycle are later issues. |
+| Authentication | Auth Core (#49), `/api/me/*` (#50), frontend auth shell (#51), fail-closed legacy/ops admin gating (#53), and enforcement verification with explicit test identities (#54) are implemented; onboarding UX (#52) is review-gated and account lifecycle (#55) remains. |
 | Push notifications | Out of scope. |
 | LLM calls | Out of scope. |
 | Article clustering | Deferred — needs a real algorithm. |

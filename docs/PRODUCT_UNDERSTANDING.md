@@ -111,7 +111,7 @@ The following were explicitly out of scope when this document was first written.
 
 - ~~Real RSS or scraping from live sources~~ — **done.** Walla Sport + Israel Hayom Sport are live RSS sources; Sport5 is a working HTML-scraping pilot (disabled by default).
 - ~~Backend server, database, or API layer~~ — **done.** FastAPI + SQLite, `backend/app/`.
-- User authentication or accounts — **still not built.** Profiles remain statically seeded.
+- User authentication or accounts — **built (User Platform, 2026-07-10):** email/password accounts, cookie sessions, session-derived `/api/me/*`, fail-closed admin gating. The two seeded demo profiles remain permanent QA fixtures alongside real accounts.
 - Push notifications to devices — **still not built.** `push` is a decision level only; no device delivery.
 - ~~Natural language processing / LLM-based classification~~ — **done.** Deterministic classifier + optional LLM overlay (Gemini/Ollama) with 7 merge guardrails; see `docs/LLM_CLASSIFICATION.md`.
 - Natural language preference input (free text → structured profile) — **still not built.** This is Option 1 from the personalization section above; only Option 2 (synthetic headline calibration) has a working screen (`Calibration.jsx`) and Option 3 (feedback loop) records events but doesn't yet mutate profiles.

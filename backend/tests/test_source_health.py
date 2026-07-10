@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 PR 13 — source-health endpoint tests.
 
@@ -66,13 +68,13 @@ class TestFreshness:
 # ── Endpoint ──────────────────────────────────────────────────────────────────
 
 class TestSourceHealthEndpoint:
-    def _health(self, client, source_id: str) -> dict:
-        r = client.get("/api/ingest/source-health")
+    def _health(self, admin_client, source_id: str) -> dict:
+        r = admin_client.get("/api/ingest/source-health")
         assert r.status_code == 200
         return next(s for s in r.json() if s["source_id"] == source_id)
 
-    def test_all_configured_sources_present_with_stable_shape(self, client):
-        r = client.get("/api/ingest/source-health")
+    def test_all_configured_sources_present_with_stable_shape(self, admin_client):
+        r = admin_client.get("/api/ingest/source-health")
         body = r.json()
         source_ids = {s["source_id"] for s in body}
         assert {"walla_sport", "israel_hayom_sport", "ynet_sport", "one_sport",
@@ -87,17 +89,17 @@ class TestSourceHealthEndpoint:
             ):
                 assert key in s, f"missing {key} for {s['source_id']}"
 
-    def test_disabled_sources_report_disabled(self, client):
+    def test_disabled_sources_report_disabled(self, admin_client):
         for source_id in ("eurohoops", "sportando", "sport5_sport"):
-            assert self._health(client, source_id)["freshness"] == "disabled"
+            assert self._health(admin_client, source_id)["freshness"] == "disabled"
 
-    def test_sport5_metadata(self, client):
-        sport5 = self._health(client, "sport5_sport")
+    def test_sport5_metadata(self, admin_client):
+        sport5 = self._health(admin_client, "sport5_sport")
         assert sport5["source_type"] == "html_scrape"
         assert sport5["is_pilot"] is True
         assert sport5["enabled"] is False
 
-    def test_error_freshness_and_consecutive_failures(self, client):
+    def test_error_freshness_and_consecutive_failures(self, admin_client):
         # Negative minutes_ago = slightly in the future, guaranteeing these are
         # the newest runs for the source even though other tests in the shared
         # session insert run records of their own.
@@ -109,18 +111,18 @@ class TestSourceHealthEndpoint:
                 "israel_hayom_sport", status="error", minutes_ago=-2,
                 error_message="fetch failed again"))
 
-        health = self._health(client, "israel_hayom_sport")
+        health = self._health(admin_client, "israel_hayom_sport")
         assert health["freshness"] == "error"
         assert health["consecutive_failures"] >= 2
         assert health["last_status"] == "error"
         assert health["last_error_message"] == "fetch failed again"
 
-    def test_ok_run_resets_to_healthy_and_zero_failures(self, client):
+    def test_ok_run_resets_to_healthy_and_zero_failures(self, admin_client):
         with SessionLocal() as session:
             ingestion_repository.insert(session, _record(
                 "israel_hayom_sport", status="ok", minutes_ago=-3))
 
-        health = self._health(client, "israel_hayom_sport")
+        health = self._health(admin_client, "israel_hayom_sport")
         assert health["freshness"] == "healthy"
         assert health["consecutive_failures"] == 0
         assert health["last_status"] == "ok"

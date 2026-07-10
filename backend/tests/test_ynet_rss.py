@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 Tests for Ynet Sport RSS onboarding.
 
@@ -73,8 +75,8 @@ class TestYnetSourceConfig:
         assert "sportando" not in ids
         assert "eurohoops" not in ids
 
-    def test_ynet_sport_visible_in_sources_api(self, client):
-        response = client.get("/api/ingest/sources")
+    def test_ynet_sport_visible_in_sources_api(self, admin_client):
+        response = admin_client.get("/api/ingest/sources")
         assert response.status_code == 200
         ynet = next(s for s in response.json() if s["source_id"] == "ynet_sport")
         assert ynet["display_name"] == "ynet ספורט"
@@ -125,9 +127,9 @@ class TestYnetRssAdapter:
 
 
 class TestYnetIngestion:
-    def test_ingests_ynet_article_with_hebrew_fields_and_subtitle(self, client):
+    def test_ingests_ynet_article_with_hebrew_fields_and_subtitle(self, admin_client):
         with patch("feedparser.parse", return_value=_make_feed([_ynet_entry("ynet-insert-1")])):
-            response = client.post("/api/ingest/run?source_id=ynet_sport")
+            response = admin_client.post("/api/ingest/run?source_id=ynet_sport")
         assert response.status_code == 200
         result = response.json()["sources"][0]
         assert result["source_id"] == "ynet_sport"
@@ -136,7 +138,7 @@ class TestYnetIngestion:
         assert result["skipped_filtered"] == 0
         assert result["failed"] == 0
 
-        article_response = client.get("/api/articles")
+        article_response = admin_client.get("/api/articles")
         article = next(
             a for a in article_response.json()
             if a["url"] == "https://www.ynet.co.il/sport/israelibasketball/article/ynet-insert-1"
@@ -150,27 +152,27 @@ class TestYnetIngestion:
         assert "הגארד הגיע לארץ" in article["subtitle"]
         assert article["sport"] == "basketball"
 
-    def test_dedup_skips_second_ynet_run(self, client):
+    def test_dedup_skips_second_ynet_run(self, admin_client):
         entry = _ynet_entry("ynet-dedup-1")
         with patch("feedparser.parse", return_value=_make_feed([entry])):
-            client.post("/api/ingest/run?source_id=ynet_sport")
+            admin_client.post("/api/ingest/run?source_id=ynet_sport")
         with patch("feedparser.parse", return_value=_make_feed([entry])):
-            response = client.post("/api/ingest/run?source_id=ynet_sport")
+            response = admin_client.post("/api/ingest/run?source_id=ynet_sport")
 
         second = response.json()["sources"][0]
         assert second["inserted"] == 0
         assert second["skipped_duplicate"] == second["fetched"]
 
-    def test_ynet_article_appears_in_debug_feed(self, client):
+    def test_ynet_article_appears_in_debug_feed(self, admin_client):
         entry = _ynet_entry("ynet-debug-1")
         with patch("feedparser.parse", return_value=_make_feed([entry])):
-            client.post("/api/ingest/run?source_id=ynet_sport")
+            admin_client.post("/api/ingest/run?source_id=ynet_sport")
 
-        response = client.get("/api/debug/feed/guy")
+        response = admin_client.get("/api/debug/feed/guy")
         urls = [item["article"]["url"] for item in response.json()]
         assert "https://www.ynet.co.il/sport/israelibasketball/article/ynet-debug-1" in urls
 
-    def test_source_failure_isolated_in_run_all(self, client):
+    def test_source_failure_isolated_in_run_all(self, admin_client):
         class EmptyAdapter:
             def fetch(self):
                 return []
@@ -183,7 +185,7 @@ class TestYnetIngestion:
             return FailingAdapter() if cfg.source_id == "ynet_sport" else EmptyAdapter()
 
         with patch("app.ingestion.ingestion_service.build_adapter", side_effect=build):
-            response = client.post("/api/ingest/run")
+            response = admin_client.post("/api/ingest/run")
 
         assert response.status_code == 200
         sources = response.json()["sources"]
@@ -200,7 +202,7 @@ class TestYnetHebrewBroadClassification:
     def test_ynet_is_in_backfill_llm_eligible_set(self):
         assert "ynet_sport" in routes_classify._HEBREW_BROAD_SOURCES
 
-    def test_classify_status_reports_ynet(self, client):
-        response = client.get("/api/classify/status")
+    def test_classify_status_reports_ynet(self, admin_client):
+        response = admin_client.get("/api/classify/status")
         assert response.status_code == 200
         assert "ynet_sport" in response.json()["hebrew_broad_sources"]

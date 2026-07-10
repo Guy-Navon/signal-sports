@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 PR 13 — Sport5 / ערוץ הספורט scraping pilot tests.
 
@@ -139,13 +141,13 @@ class TestSubtitleExtraction:
         item = self._item(550553)
         assert item.summary is None
 
-    def test_published_at_flows_into_article(self, client):
+    def test_published_at_flows_into_article(self, admin_client):
         from app.db.database import SessionLocal
         from app.repositories.article_repository import get_by_id
         from app.ingestion.dedup import article_id_from_url
 
         with patch(HTTPX_GET, return_value=mock_response(FIXTURE_HTML)):
-            client.post("/api/ingest/run?source_id=sport5_sport")
+            admin_client.post("/api/ingest/run?source_id=sport5_sport")
 
         url = "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=550765"
         with SessionLocal() as session:
@@ -154,13 +156,13 @@ class TestSubtitleExtraction:
         # Card shows 01.07.26 - 21:40 Israel time (IDT, UTC+3) → 18:40 UTC.
         assert article.published_at.strftime("%Y-%m-%d %H:%M") == "2026-07-01 18:40"
 
-    def test_subtitle_flows_into_article(self, client):
+    def test_subtitle_flows_into_article(self, admin_client):
         from app.db.database import SessionLocal
         from app.repositories.article_repository import get_by_id
         from app.ingestion.dedup import article_id_from_url
 
         with patch(HTTPX_GET, return_value=mock_response(FIXTURE_HTML)):
-            client.post("/api/ingest/run?source_id=sport5_sport")
+            admin_client.post("/api/ingest/run?source_id=sport5_sport")
 
         url = "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=550765"
         with SessionLocal() as session:
@@ -274,10 +276,10 @@ class TestSport5SourceHint:
 # ── End-to-end ingestion via API ──────────────────────────────────────────────
 
 class TestSport5Ingestion:
-    def test_manual_run_inserts_and_dedups(self, client):
+    def test_manual_run_inserts_and_dedups(self, admin_client):
         with patch(HTTPX_GET, return_value=mock_response(FIXTURE_HTML)):
-            first = client.post("/api/ingest/run?source_id=sport5_sport")
-            second = client.post("/api/ingest/run?source_id=sport5_sport")
+            first = admin_client.post("/api/ingest/run?source_id=sport5_sport")
+            second = admin_client.post("/api/ingest/run?source_id=sport5_sport")
 
         assert first.status_code == 200
         result = first.json()["sources"][0]
@@ -292,31 +294,31 @@ class TestSport5Ingestion:
         assert result2["inserted"] == 0
         assert result2["skipped_duplicate"] == 5
 
-    def test_run_record_persisted(self, client):
-        runs = client.get("/api/ingest/runs?limit=50").json()
+    def test_run_record_persisted(self, admin_client):
+        runs = admin_client.get("/api/ingest/runs?limit=50").json()
         assert any(r["source_id"] == "sport5_sport" for r in runs)
 
-    def test_network_failure_run_does_not_crash(self, client):
+    def test_network_failure_run_does_not_crash(self, admin_client):
         with patch(HTTPX_GET, side_effect=httpx.ConnectError("refused")):
-            resp = client.post("/api/ingest/run?source_id=sport5_sport")
+            resp = admin_client.post("/api/ingest/run?source_id=sport5_sport")
         assert resp.status_code == 200
         result = resp.json()["sources"][0]
         assert result["fetched"] == 0
         assert result["failed"] == 0
 
-    def test_sources_endpoint_exposes_sport5_pilot(self, client):
-        sources = client.get("/api/ingest/sources").json()
+    def test_sources_endpoint_exposes_sport5_pilot(self, admin_client):
+        sources = admin_client.get("/api/ingest/sources").json()
         sport5 = next(s for s in sources if s["source_id"] == "sport5_sport")
         assert sport5["type"] == "html_scrape"
         assert sport5["is_pilot"] is True
         assert sport5["enabled"] is False
         assert sport5["display_name"] == "ערוץ הספורט"
 
-    def test_sport5_excluded_from_run_all(self, client):
+    def test_sport5_excluded_from_run_all(self, admin_client):
         # enabled=False → not part of POST /api/ingest/run without source_id.
         with patch(HTTPX_GET, return_value=mock_response(FIXTURE_HTML)), \
              patch("feedparser.parse", return_value=MagicMock(entries=[], bozo=False)):
-            resp = client.post("/api/ingest/run")
+            resp = admin_client.post("/api/ingest/run")
         source_ids = [s["source_id"] for s in resp.json()["sources"]]
         assert "sport5_sport" not in source_ids
 

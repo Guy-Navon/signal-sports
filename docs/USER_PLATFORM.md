@@ -1,15 +1,18 @@
 # User Platform — Architecture Contract
 
-**Status: approved architecture (2026-07-09) — executed through PR 4 as of 2026-07-10.**
-Complete on main: Auth Core (#49, PR #56), the session-derived `/api/me/*`
-consumer surface (#50, PR #71), the frontend auth shell (#51, PR #72),
-fail-closed admin gating of the legacy `{user_id}`/ops surface with the
-AppContext consumer/QA split and ops view-as (#53, PR #73), and the onboarding
-flow (#52, PR #74 — **Product Review approved**). **In review: enforcement
-verification (#54, PR #75)** — transitional test bypass removed, explicit
-anonymous/user/admin identity fixtures — awaiting an independent
-security/regression review plus the owner's physical phone/Tailscale pass.
-Remaining after that: account lifecycle (#55). Epic #48 holds live status.
+**Status: MILESTONE COMPLETE (2026-07-10).** All seven PRs are merged to main:
+Auth Core (#49, PR #56), the session-derived `/api/me/*` consumer surface
+(#50, PR #71), the frontend auth shell (#51, PR #72), fail-closed admin
+gating with the AppContext consumer/QA split and ops view-as (#53, PR #73),
+the onboarding flow (#52, PR #74 — Product Review approved), enforcement
+verification with fresh per-test explicit identities and the route-derived
+authorization inventory (#54, PR #75 — two independent-review rounds'
+findings corrected in full), and account lifecycle + hardening (#55, PR #76).
+The milestone acceptance journey (signup → session → onboarding → calibration
+→ personalized feed → feedback → logout → login → identical persisted state,
+plus password change, account deletion, admin view-as, and horizontal-
+isolation denials) is verified end-to-end. Recorded follow-up: the owner's
+physical phone/Tailscale pass (checklist in `docs/MOBILE_REMOTE_ACCESS.md`).
 
 **Execution home:**
 [GitHub Milestone 2 "User Platform"](https://github.com/Guy-Navon/signal-sports/milestone/2)
@@ -437,6 +440,15 @@ changes); **signal-real-data-qa** (demo diffs will require an admin session);
 bypass semantics).
 
 ## Changelog
+
+- 2026-07-10 (milestone completion) — #54 merged (PR #75) after two independent-review
+  rounds (consumer learning identity boundary, route-derived authz inventory with
+  coverage + dependency-truth guards, fresh unique per-test identities with 10 direct
+  isolation proofs, frontend ops-role boundary, README/doc truth). #55 merged (PR #76):
+  password change with other-session revocation, transactional account deletion
+  (demo-undeletable, last-admin guard), expired-session pruning on login,
+  admin-mutation breadcrumbs, product account page. Milestone acceptance journey
+  verified on a corpus copy (19 steps). Milestone 2 closed.
 
 - 2026-07-10 (User Platform execution) — PR #71 (#50): session-derived `/api/me/*`
   consumer surface with delegation parity; the product-surface gating bullet moved to

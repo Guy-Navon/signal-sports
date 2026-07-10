@@ -6,7 +6,7 @@ import SignalMark from "@/components/shell/SignalMark";
 import DataModeBadge from "@/components/shell/DataModeBadge";
 import ProfileSwitcher from "@/components/shell/ProfileSwitcher";
 import { useAuth } from "@/context/AuthContext";
-import { productShowsProfileSwitcher } from "@/context/dataRouting";
+import { canEnterOpsShell, productShowsProfileSwitcher } from "@/context/dataRouting";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,6 +83,8 @@ export default function Masthead({ area, isBackendMode, isLoading }) {
   };
   const showSwitcher =
     area === "ops" || productShowsProfileSwitcher(consumerView);
+  // #54 review (MEDIUM): consumer role=user must not see a console entry.
+  const showConsoleEntry = canEnterOpsShell(consumerView);
   const opsItems = getOpsNavItems(isBackendMode);
   const consoleEntryPath = opsItems[0]?.path || "/sources";
 
@@ -142,7 +144,7 @@ export default function Masthead({ area, isBackendMode, isLoading }) {
             </div>
           )}
           <AccountMenu />
-          {area === "product" && (
+          {area === "product" && showConsoleEntry && (
             <Link
               to={consoleEntryPath}
               title="קונסולה"

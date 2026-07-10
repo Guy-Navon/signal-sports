@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   backendFetchesBlocked,
+  canEnterOpsShell,
   canFetchQaSurface,
   isConsumerSession,
+  learningSurface,
   productDataSource,
   productShowsProfileSwitcher,
 } from "./dataRouting";
@@ -90,5 +92,43 @@ describe("backendFetchesBlocked", () => {
     expect(
       backendFetchesBlocked({ isBackendMode: true, authStatus: "ready", authEnforced: true, user: { id: "u" } }),
     ).toBe(false);
+  });
+});
+
+describe("learningSurface (#54 review HIGH-1)", () => {
+  it("consumer sessions read/reset ONLY the session account via /me — any role", () => {
+    expect(learningSurface(ENFORCED_USER)).toBe("me");
+    // An admin using the CONSUMER product sees the account's own state,
+    // never the QA view-as target.
+    expect(learningSurface(ENFORCED_ADMIN)).toBe("me");
+  });
+
+  it("QA view-as state cannot alter the consumer surface by construction", () => {
+    // The decision takes no view-as identity at all — whatever activeProfileId
+    // is, a consumer session resolves to the /me surface.
+    for (const viewAs of ["guy", "casual_deni_fan", "anything"]) {
+      void viewAs; // view-as is not even an input
+      expect(learningSurface(ENFORCED_USER)).toBe("me");
+    }
+  });
+
+  it("local/bypass keep the legacy explicit-target QA behavior", () => {
+    expect(learningSurface(LOCAL)).toBe("legacy");
+    expect(learningSurface(BYPASS)).toBe("legacy");
+  });
+});
+
+describe("canEnterOpsShell (#54 review MEDIUM)", () => {
+  it("local and bypass keep today's open console", () => {
+    expect(canEnterOpsShell(LOCAL)).toBe(true);
+    expect(canEnterOpsShell(BYPASS)).toBe(true);
+  });
+
+  it("consumer role=user is denied the ops shell", () => {
+    expect(canEnterOpsShell(ENFORCED_USER)).toBe(false);
+  });
+
+  it("admins enter the ops console (QA view-as remains available)", () => {
+    expect(canEnterOpsShell(ENFORCED_ADMIN)).toBe(true);
   });
 });

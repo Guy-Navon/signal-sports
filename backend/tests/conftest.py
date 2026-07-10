@@ -88,10 +88,21 @@ _TEST_IDENTITY_PASSWORD = "test identity passphrase"
 
 
 def _identity_client(application, email, role):
-    """Ensure the identity exists (idempotent — per-file cleanups may have
-    deleted it) and return a fresh TestClient with its own cookie jar holding
-    a live session. Function-scoped by design: hidden long-lived auth state is
-    exactly what PR 6 (#54) removes."""
+    """Build an authenticated identity client (own TestClient = own cookie jar).
+
+    HONESTY NOTE (#54 review, HIGH-3): identity CONSTRUCTION here uses direct
+    DB row creation (``create_user_with_profile`` service call) — the same
+    service the API signup route and the admin env-bootstrap use, but NOT the
+    HTTP paths themselves. That is deliberate fixture plumbing, not API
+    verification: the real signup flow is verified by test_auth_core /
+    test_me_api, and the admin env-bootstrap by test_auth_core. The LOGIN
+    however goes through the real ``POST /api/auth/login`` route, so every
+    identity client holds a genuine server-side session.
+
+    Idempotent (per-file cleanups may have deleted the fixture user) and
+    function-scoped: hidden long-lived auth state is exactly what PR 6
+    removes. Callers get a live client; the fixtures below own its lifecycle.
+    """
     from app.db.database import SessionLocal
     from app.services import auth_service
     with SessionLocal() as session:
@@ -113,13 +124,17 @@ def _identity_client(application, email, role):
 @pytest.fixture
 def user_client(_application, client):
     """A real role=user session over the shared app (own cookie jar)."""
-    return _identity_client(_application, "fixture-user@test.local", "user")
+    c = _identity_client(_application, "fixture-user@test.local", "user")
+    yield c
+    c.close()
 
 
 @pytest.fixture
 def admin_client(_application, client):
     """The admin QA session over the shared app (own cookie jar)."""
-    return _identity_client(_application, "fixture-admin@test.local", "admin")
+    c = _identity_client(_application, "fixture-admin@test.local", "admin")
+    yield c
+    c.close()
 
 
 @pytest.fixture(autouse=True)

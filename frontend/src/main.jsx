@@ -6,6 +6,7 @@ import { AppProvider } from '@/context/AppContext';
 import { AuthProvider } from '@/context/AuthContext';
 import AppShell from '@/components/shell/AppShell';
 import RequireSession from '@/components/shell/RequireSession';
+import RequireOpsRole from '@/components/shell/RequireOpsRole';
 import Feed from '@/pages/Feed';
 import Preferences from '@/pages/Preferences';
 import Calibration from '@/pages/Calibration';
@@ -46,10 +47,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                   <Route path="calibration" element={<Calibration />} />
                   <Route path="results" element={<Results />} />
                 </Route>
-                <Route element={<AppShell area="ops" />}>
-                  <Route path="sources" element={<Sources />} />
-                  <Route path="debug" element={<Debug />} />
-                  <Route path="llm-qa" element={<LlmQa />} />
+                {/* Ops console: admin-only under a consumer session (#54);
+                    local/bypass keep today's open console. */}
+                <Route element={<RequireOpsRole />}>
+                  <Route element={<AppShell area="ops" />}>
+                    <Route path="sources" element={<Sources />} />
+                    <Route path="debug" element={<Debug />} />
+                    <Route path="llm-qa" element={<LlmQa />} />
+                  </Route>
                 </Route>
               </Route>
               <Route path="*" element={<PageNotFound />} />

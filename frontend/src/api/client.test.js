@@ -647,3 +647,35 @@ describe("401 session-expiry signal", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/auth/logout", expect.objectContaining({ method: "POST" }));
   });
 });
+
+// ── Consumer learning surface (#54 review HIGH-1) ─────────────────────────────
+
+import { getMeLearningState, resetMeLearning, getLearningState as getLegacyLearningState } from "./client";
+
+describe("me-learning endpoints", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("consumer learning read is session-derived (/api/me/learning, no user id)", async () => {
+    const fetchMock = mockFetchSuccess({ features: [] });
+    vi.stubGlobal("fetch", fetchMock);
+    await getMeLearningState();
+    expect(fetchMock).toHaveBeenCalledWith("/api/me/learning", expect.anything());
+  });
+
+  it("consumer learning reset is session-derived (/api/me/learning/reset, no user id)", async () => {
+    const fetchMock = mockFetchSuccess({ retracted_events: 1 });
+    vi.stubGlobal("fetch", fetchMock);
+    await resetMeLearning({ kind: "scope", target_id: "comp:nba" });
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/me/learning/reset");
+    expect(JSON.parse(options.body)).not.toHaveProperty("user_id");
+  });
+
+  it("the ops/admin explicit-target learning path remains functional", async () => {
+    const fetchMock = mockFetchSuccess({ features: [] });
+    vi.stubGlobal("fetch", fetchMock);
+    await getLegacyLearningState("guy");
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toContain("/api/learning/guy");
+  });
+});

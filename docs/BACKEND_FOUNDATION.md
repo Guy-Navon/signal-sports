@@ -115,7 +115,7 @@ In `backend` mode (`VITE_DATA_MODE=backend`), the frontend fetches profiles and 
 | SQLite / database | **Done in PR 6.** See `docs/SQLITE_PERSISTENCE.md`. |
 | Frontend integration | **Done in PR 5.** See `docs/FRONTEND_BACKEND_INTEGRATION.md`. |
 | Real RSS/scraping | Deferred — SQLite now ready; first source adapter is PR 7. |
-| Authentication | Auth Core (#49), `/api/me/*` (#50), frontend auth shell (#51), fail-closed legacy/ops admin gating (#53), and enforcement verification with explicit test identities (#54) are implemented; onboarding UX (#52) is review-gated and account lifecycle (#55) remains. |
+| Authentication | Auth Core (#49), `/api/me/*` (#50), frontend auth shell (#51), fail-closed legacy/ops admin gating (#53), and enforcement verification with explicit test identities (#54) are implemented; onboarding UX (#52) is merged and Product Review approved; account lifecycle (#55) remains. |
 | Push notifications | Out of scope. |
 | LLM calls | Out of scope. |
 | Article clustering | Deferred — needs a real algorithm. |

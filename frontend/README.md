@@ -14,8 +14,10 @@ npm install
 npm run dev
 ```
 
-Opens on [http://localhost:5173](http://localhost:5173) (Vite picks the next free
-port if taken).
+Opens on [http://localhost:5173](http://localhost:5173) — the port is fixed
+(`strictPort: true` in `vite.config.js`): if 5173 is occupied, startup fails
+loudly instead of drifting to another port (the same-origin proxy and
+Tailscale Serve chain depend on it).
 
 ## Data modes
 

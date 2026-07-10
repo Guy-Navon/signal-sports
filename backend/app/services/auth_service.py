@@ -199,6 +199,20 @@ def create_user_with_profile(
     return user
 
 
+def complete_onboarding(session: Session, user: UserRow) -> UserRow:
+    """Stamp onboarding_completed_at exactly once (idempotent).
+
+    Called from the /me calibration-apply and onboarding-skip paths (issue #50).
+    The timestamp is the single source of the derived onboarding state machine
+    (docs/USER_PLATFORM.md) - it is never cleared or rewritten here.
+    """
+    if user.onboarding_completed_at is None:
+        user.onboarding_completed_at = iso(utc_now())
+        session.commit()
+        session.refresh(user)
+    return user
+
+
 def create_session(
     session: Session,
     user: UserRow,

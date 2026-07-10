@@ -277,3 +277,21 @@ class TestIblCoverageExpansion:
         bb = resolve_entities("הפועל חיפה", sport_context="basketball")
         assert [e.legacy_name for e in fc.resolved] == ["Hapoel Haifa Football"]
         assert [e.legacy_name for e in bb.resolved] == ["Hapoel Haifa Basketball"]
+
+
+class TestBuducnost62:
+    """Issue #62: Budućnost (EuroCup) — guarded multi-sport club."""
+
+    def test_resolves_with_basketball_evidence(self):
+        res = resolve_entities("ג'סטין סמית' חתם בבודוצ'נוסט", sport_context="basketball")
+        assert "Buducnost" in res.resolved_legacy_names
+
+    def test_abstains_without_sport_evidence(self):
+        # Guarded: the bare club name must not resolve without sport evidence.
+        res = resolve_entities("סמית' חתם בבודוצ'נוסט", sport_context=None)
+        assert "Buducnost" not in res.resolved_legacy_names
+
+    def test_membership_is_eurocup(self):
+        from app.taxonomy import entity_by_id
+        ent = entity_by_id("team:buducnost_bb")
+        assert ("comp:eurocup", None) in ent.memberships

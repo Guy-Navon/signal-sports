@@ -595,3 +595,19 @@ class TestSourceSportHintInClassifier:
             source_sport_hint=None,
         )
         assert r.sport == "basketball"
+
+
+class TestTransferFeeVocabulary62:
+    """Issue #62: transfer-fee vocabulary is football context evidence."""
+
+    def test_transfer_fee_resolves_ambiguous_maccabi_to_football(self):
+        # The golden C2 shape without a URL hint: ambiguous club title, the
+        # only sport signal is the transfer-fee phrase in the subtitle.
+        r = classify(
+            'דן גלזר חתם במכבי ת"א',
+            source_id="walla_sport", language="he",
+            subtitle="הוסכמו דמי המעבר לקייראט הקזחית, נסגרה סופית עסקת חזרתו",
+        )
+        assert r.sport == "football"
+        assert "Maccabi Tel Aviv Football" in r.entities
+        assert r.event_type == "signing"

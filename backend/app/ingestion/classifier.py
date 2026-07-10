@@ -139,6 +139,13 @@ _FOOTBALL_CTX_KW = (
     "שער",                               # goal (football-specific in sports context)
     "בלומפילד",                          # Bloomfield Stadium (football only)
     "ליגת העל",                           # Israeli Premier League (football)
+    # Transfer-fee vocabulary (issue #62): "דמי מעבר/דמי המעבר" is football-
+    # typical in Israeli coverage (basketball uses באי-אאוט/דמי שחרור). Corpus
+    # false-positive check: the only hits were the two misclassified football
+    # Glazer articles (golden C2/C2-sibling). Risk: a rare basketball transfer
+    # using the phrase would lean football — accepted; hint evidence (weight
+    # 100) still outranks this context keyword wherever a URL category exists.
+    "דמי מעבר", "דמי המעבר",
     "מונדיאל",                           # World Cup
     "fifa", "uefa",
     "champions league", "ליגת האלופות",

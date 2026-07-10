@@ -72,3 +72,41 @@ class TestYnetSourceSportHint:
     def test_livegame_url_returns_none(self):
         url = "https://livegame.ynet.co.il/games/527206"
         assert extract_source_sport_hint(YNET, url) is None
+
+
+class TestCoverageAudit62:
+    """Issue #62: corpus-audited category additions."""
+
+    def test_israel_hayom_israeli_soccer_is_football(self):
+        # The golden C3 root enabler: this category existed in the corpus
+        # (12 articles) but was unmapped.
+        assert extract_source_sport_hint(
+            "israel_hayom_sport",
+            "https://www.israelhayom.co.il/sport/israeli-soccer/article/20929931",
+        ) == "football"
+
+    def test_ynet_israeli_soccer_is_football(self):
+        # The golden C2/C2-sibling enabler (11 corpus articles, unmapped).
+        assert extract_source_sport_hint(
+            "ynet_sport",
+            "https://www.ynet.co.il/sport/israelisoccer/article/jznrv8ntt",
+        ) == "football"
+
+    def test_ynet_tennis_is_tennis(self):
+        assert extract_source_sport_hint(
+            "ynet_sport", "https://www.ynet.co.il/sport/tennis/article/abc123"
+        ) == "tennis"
+
+    def test_walla_item_urls_carry_no_hint(self):
+        # Documented finding: walla URLs have no category signal — ever.
+        assert extract_source_sport_hint(
+            "walla_sport", "https://sports.walla.co.il/item/3852013"
+        ) is None
+
+    def test_unverified_sport5_folders_stay_unmapped(self):
+        # Folders observed in the corpus but not verified against the live
+        # site are intentionally NOT mapped (conservative module contract).
+        assert extract_source_sport_hint(
+            "sport5_sport",
+            "https://www.sport5.co.il/articles.aspx?FolderID=11840&docID=1",
+        ) is None

@@ -226,3 +226,27 @@ class TestNegotiationPhraseGap:
     def test_on_verge_of_agreement_is_negotiation(self):
         ev = validate_event_evidence("negotiation", "זאק לידיי על סף סיכום בהפועל")
         assert ev.valid and ev.event_type == "negotiation"
+
+
+class TestMedalPlacementIsNotTitleWin:
+    """#63 product decision: silver/bronze placement is not a title victory."""
+
+    def test_bronze_medal_at_championship_is_not_title_win(self):
+        ev = validate_event_evidence(
+            "title_win",
+            "היסטוריה בכדורעף הישראלי: נבחרת העתודה זכתה במדליית הארד באליפות אירופה",
+        )
+        assert not ev.valid and ev.event_type == "news"
+
+    def test_silver_medal_is_not_title_win(self):
+        ev = validate_event_evidence("title_win", "הנבחרת זכתה במדליית כסף באליפות העולם")
+        assert not ev.valid
+
+    def test_gold_medal_at_championship_is_title_win(self):
+        # Gold at a championship IS winning it — deliberately not blocked.
+        assert validate_event_evidence(
+            "title_win", "הנבחרת זכתה במדליית הזהב באליפות אירופה"
+        ).valid
+
+    def test_plain_championship_win_still_valid(self):
+        assert validate_event_evidence("title_win", "מכבי זכתה באליפות המדינה").valid

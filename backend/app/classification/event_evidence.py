@@ -174,7 +174,18 @@ _TITLE_WIN_OBJECT = (
     phrase("בתואר"), hword("תואר"), phrase("באליפות"),
     word("title"), word("trophy"), phrase("championship"),
 )
-_TITLE_WIN_BLOCKERS = _DEATH_ACCIDENT + _CANDIDATE + (
+# Medal-placement blockers (#63 product decision): winning silver/bronze at a
+# championship is an achievement, not a title win. Gold is deliberately NOT
+# blocked — gold at a championship IS winning it. Class rule, not an
+# article-specific patch: "זכתה במדליית הארד באליפות" must not validate while
+# "זכתה במדליית הזהב באליפות" / "זכתה באליפות" still do.
+_MEDAL_PLACEMENT = (
+    phrase("מדליית ארד"), phrase("מדליית הארד"), phrase("מדלית ארד"),
+    phrase("מדליית כסף"), phrase("מדליית הכסף"), phrase("מדלית כסף"),
+    phrase("bronze medal"), phrase("silver medal"),
+)
+
+_TITLE_WIN_BLOCKERS = _DEATH_ACCIDENT + _CANDIDATE + _MEDAL_PLACEMENT + (
     phrase("wants the title"), phrase("want the title"),
     phrase("dreams of a title"), phrase("dreaming of a title"),
     phrase("title candidate"), phrase("title contender"),

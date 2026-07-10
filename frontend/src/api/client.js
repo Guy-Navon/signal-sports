@@ -257,6 +257,14 @@ export function getMeCalibrationResponses() {
   return apiFetch("/api/me/calibration/responses");
 }
 
+export function saveMeCalibrationResponses(ratings) {
+  return apiFetch("/api/me/calibration/responses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ratings }),
+  });
+}
+
 export function completeMeOnboarding() {
   return apiFetch("/api/me/onboarding/complete", { method: "POST" });
 }

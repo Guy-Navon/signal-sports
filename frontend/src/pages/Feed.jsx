@@ -15,6 +15,8 @@ import SectionHeading from "@/components/feed/SectionHeading";
 import EditionSkeleton from "@/components/feed/EditionSkeleton";
 import EmptyState from "@/components/shared/EmptyState";
 import EditionEmptyState from "@/components/feed/EditionEmptyState";
+import { useAuth } from "@/context/AuthContext";
+import { showCalibrateEmptyState } from "@/context/onboardingFlow";
 import MonoValue from "@/components/shared/MonoValue";
 import { composeEdition } from "@/components/feed/editionComposer";
 import { editionVariants, rowPresence } from "@/components/feed/motionPresets";
@@ -33,6 +35,10 @@ import {
 export default function Feed() {
   const { feedItems, debugItems, activeProfileId, activeProfile, isBackendMode, isLoading } =
     useApp();
+  const auth = useAuth();
+  // PR 4 (#52): uncalibrated consumer sessions get the calibrate CTA species
+  // instead of the generic quiet-sources moment.
+  const emptyStateVariant = showCalibrateEmptyState(auth) ? "calibrate" : "default";
   const [activeFilters, setActiveFilters] = useState(new Set(["all"]));
   const reduce = useReducedMotion();
   const v = useMemo(() => editionVariants(reduce), [reduce]);
@@ -103,7 +109,7 @@ export default function Feed() {
 
         {visibleItems.length === 0 ? (
           <motion.div variants={v.item}>
-            <EditionEmptyState />
+            <EditionEmptyState variant={emptyStateVariant} />
           </motion.div>
         ) : (
           <AnimatePresence mode="wait" initial={false}>

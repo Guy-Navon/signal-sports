@@ -62,9 +62,12 @@ describe("productShowsProfileSwitcher", () => {
     expect(productShowsProfileSwitcher(BYPASS)).toBe(true);
   });
 
-  it("leaves the product masthead under a consumer session (any role)", () => {
+  it("leaves the product masthead for a non-admin consumer session", () => {
     expect(productShowsProfileSwitcher(ENFORCED_USER)).toBe(false);
-    expect(productShowsProfileSwitcher(ENFORCED_ADMIN)).toBe(false);
+  });
+
+  it("stays in the product masthead for an admin consumer session", () => {
+    expect(productShowsProfileSwitcher(ENFORCED_ADMIN)).toBe(true);
   });
 });
 

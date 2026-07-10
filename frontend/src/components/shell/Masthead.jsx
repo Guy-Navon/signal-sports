@@ -79,9 +79,11 @@ export default function Masthead({ area, isBackendMode, isLoading }) {
   const location = useLocation();
   const scrolled = useScrolled();
   const auth = useAuth();
-  // PR 5 (#53): under a consumer session the ProfileSwitcher leaves the
-  // product masthead (the session IS the product identity) and remains on the
-  // ops console as the admin QA view-as control. Local/bypass: today's UI.
+  // PR 5 (#53) + admin product-page view-as follow-up: under a consumer
+  // session the ProfileSwitcher leaves the product masthead for non-admins
+  // (the session IS the product identity), but admins keep it on both the
+  // product page and the ops console as their "view any user" control.
+  // Local/bypass: today's UI.
   const consumerView = {
     isBackendMode,
     authEnforced: auth.authEnforced,
@@ -141,7 +143,7 @@ export default function Masthead({ area, isBackendMode, isLoading }) {
           <DataModeBadge isBackendMode={isBackendMode} />
           {showSwitcher && (
             <div className="flex items-center gap-1.5">
-              {area === "ops" && auth.authEnforced && auth.user && (
+              {auth.authEnforced && auth.user && (
                 <span className="hidden md:inline text-[10px] font-mono uppercase tracking-wider text-text-dim">
                   QA view-as
                 </span>

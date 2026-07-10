@@ -26,11 +26,14 @@ export function canFetchQaSurface(view) {
   return view.user?.role === "admin";
 }
 
-// Does the product masthead show the ProfileSwitcher? Only outside consumer
-// sessions (local/bypass keep today's UI). Ops always shows it — there it is
-// the admin "QA view-as" control, not a product identity.
+// Does the product masthead show the ProfileSwitcher? Local/bypass keep it
+// always (today's UI). Under a consumer session only admins get it — for an
+// admin it doubles as the product-page "view any user's feed" control, not
+// just the ops QA view-as control. Non-admin consumer sessions never see it:
+// their product feed is always their own (/api/me/feed).
 export function productShowsProfileSwitcher(view) {
-  return !isConsumerSession(view);
+  if (!isConsumerSession(view)) return true;
+  return view.user?.role === "admin";
 }
 
 // Should backend fetches wait? Under enforcement with no user yet (login

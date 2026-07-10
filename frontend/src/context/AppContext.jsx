@@ -55,6 +55,11 @@ export function AppProvider({ children }) {
   const qaSurfaceAllowed = canFetchQaSurface(authView);
   const fetchesBlocked = backendFetchesBlocked(authView);
   const consumerUserId = consumerSession ? auth.user.id : null;
+  // An admin consumer session may browse any user's feed from the product
+  // page (not just the ops console) via the same view-as target used there.
+  // Non-admin consumer sessions never get this — canFetchQaSurface is false
+  // for them, so this is precisely the admin case.
+  const adminViewAs = consumerSession && qaSurfaceAllowed;
 
   // The session user's own profile (product surface under enforcement).
   const [meProfile, setMeProfile] = useState(null);
@@ -94,16 +99,25 @@ export function AppProvider({ children }) {
       .catch(err => setApiError(err.message));
   }, [consumerSession, consumerUserId]);
 
+  // Default the view-as target to the admin's own profile on login, so the
+  // product feed starts out showing their own feed until they switch.
+  useEffect(() => {
+    if (adminViewAs && consumerUserId) setActiveProfileId(consumerUserId);
+  }, [adminViewAs, consumerUserId]);
+
   // ── Load feeds whenever identity or refresh tick changes ────────────────────
-  // Product feed: session identity (/api/me/feed) under a consumer session,
-  // legacy {user_id} otherwise. QA debug feed: view-as identity, fetched only
-  // when this client may touch the admin surface (bypass/local, or admin).
+  // Product feed: the view-as target ({user_id}) for admins (local/bypass
+  // behave the same way), the session identity (/api/me/feed) for non-admin
+  // consumer sessions. QA debug feed: view-as identity, fetched only when
+  // this client may touch the admin surface (bypass/local, or admin).
   useEffect(() => {
     if (!isBackendMode || fetchesBlocked) return;
     let cancelled = false;
     setIsLoading(true);
     setApiError(null);
-    const productFeedPromise = consumerSession ? getMeFeed() : getFeed(activeProfileId);
+    const productFeedPromise = consumerSession && !adminViewAs
+      ? getMeFeed()
+      : getFeed(activeProfileId);
     const debugFeedPromise = qaSurfaceAllowed
       ? getDebugFeed(activeProfileId)
       : Promise.resolve([]);
@@ -122,7 +136,7 @@ export function AppProvider({ children }) {
       });
     return () => { cancelled = true; };
   }, [isBackendMode, fetchesBlocked, consumerSession, consumerUserId,
-      qaSurfaceAllowed, activeProfileId, feedRefreshTick]);
+      qaSurfaceAllowed, adminViewAs, activeProfileId, feedRefreshTick]);
 
   // ── Local computed state (only used in local mode) ───────────────────────────
   const allProfiles = useMemo(() => ({
@@ -227,10 +241,10 @@ export function AppProvider({ children }) {
     return backendProfiles.map(p => ({ id: p.userId, label: p.displayName }));
   }, [backendProfiles]);
 
-  const activeProfile = consumerSession
+  const activeProfile = consumerSession && !adminViewAs
     ? meProfile
     : isBackendMode
-      ? (backendProfilesMap[activeProfileId] ?? null)
+      ? (backendProfilesMap[activeProfileId] ?? meProfile ?? null)
       : (allProfiles[activeProfileId] ?? null);
 
   const resolvedProfileList = isBackendMode ? backendProfileList : profileList;

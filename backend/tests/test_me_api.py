@@ -233,3 +233,62 @@ class TestOnboardingLifecycle:
         assert applied.status_code == 200
         block = self._onboarding(client, token)
         assert block["calibration"]["answered"] == 2
+
+
+class TestOnboardingCalibrationPersistence:
+    """Issue #52: per-item rating upserts make mid-calibration abandonment
+    lossless and cross-device resume server-side."""
+
+    def _items(self, client):
+        data = client.get("/api/calibration/items").json()
+        return data["items"], data["rating_keys"][0]
+
+    def test_anonymous_rejected(self, client):
+        assert client.post(
+            "/api/me/calibration/responses", json={"ratings": {}}
+        ).status_code == 401
+
+    def test_identity_cannot_be_injected(self, client):
+        token = _signup(client, "onb-inject@example.com")
+        response = client.post(
+            "/api/me/calibration/responses",
+            json={"user_id": "guy", "ratings": {}},
+            cookies=_cookie(token),
+        )
+        assert response.status_code == 422
+
+    def test_partial_upserts_accumulate_and_resume(self, client):
+        token = _signup(client, "onb-resume@example.com")
+        items, rating = self._items(client)
+        # First device: rate two items, abandon.
+        first = client.post(
+            "/api/me/calibration/responses",
+            json={"ratings": {items[0]["id"]: rating, items[1]["id"]: rating}},
+            cookies=_cookie(token),
+        )
+        assert first.status_code == 200
+        assert first.json()["answered"] == 2
+        # Second device (same session user): one more item — earlier answers kept.
+        second = client.post(
+            "/api/me/calibration/responses",
+            json={"ratings": {items[2]["id"]: rating}},
+            cookies=_cookie(token),
+        )
+        assert second.json()["answered"] == 3
+        saved = client.get("/api/me/calibration/responses", cookies=_cookie(token)).json()
+        assert set(saved["ratings"]) == {items[0]["id"], items[1]["id"], items[2]["id"]}
+        # The session onboarding block reflects CALIBRATING state (answered >= 1,
+        # not completed) — the derived state machine input.
+        block = client.get("/api/auth/session", cookies=_cookie(token)).json()["onboarding"]
+        assert block["completed"] is False
+        assert block["calibration"]["answered"] == 3
+
+    def test_invalid_rating_rejected(self, client):
+        token = _signup(client, "onb-invalid@example.com")
+        items, _ = self._items(client)
+        response = client.post(
+            "/api/me/calibration/responses",
+            json={"ratings": {items[0]["id"]: "not-a-rating"}},
+            cookies=_cookie(token),
+        )
+        assert response.status_code == 422

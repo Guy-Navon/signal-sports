@@ -14,6 +14,7 @@ import Results from '@/pages/Results';
 import Debug from '@/pages/Debug';
 import LlmQa from '@/pages/LlmQa';
 import Login from '@/pages/Login';
+import Onboarding from '@/pages/Onboarding';
 import Signup from '@/pages/Signup';
 import PageNotFound from '@/lib/PageNotFound';
 import { queryClientInstance } from '@/lib/query-client';
@@ -36,6 +37,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               {/* Session guard: pass-through in local/bypass; login-gate under
                   enforcement (User Platform PR 3). */}
               <Route element={<RequireSession />}>
+                {/* Welcome (PR 4, #52): a full-canvas product moment outside
+                    the shells, inside the session guard. */}
+                <Route path="welcome" element={<Onboarding />} />
                 <Route element={<AppShell area="product" />}>
                   <Route index element={<Feed />} />
                   <Route path="preferences" element={<Preferences />} />

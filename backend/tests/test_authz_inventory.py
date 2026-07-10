@@ -55,6 +55,8 @@ ME = {
     "POST /api/me/calibration/responses",
     "POST /api/me/calibration/apply",
     "POST /api/me/onboarding/complete",
+    "POST /api/me/password",
+    "DELETE /api/me/account",
 }
 
 SESSION = {

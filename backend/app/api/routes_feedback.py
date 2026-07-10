@@ -5,6 +5,9 @@ from typing import List
 import uuid
 from sqlalchemy.orm import Session
 
+from app.core.security_deps import get_current_user
+from app.db.orm_models import UserRow
+from app.services.auth_service import log_admin_mutation
 from app.db.database import get_session
 from app.models.feedback import FeedbackEvent, FeedbackRequest
 from app.repositories import feedback_repository, article_repository, profile_repository
@@ -22,12 +25,17 @@ VALID_ACTIONS = {
 
 
 @router.post("/feedback", response_model=FeedbackEvent, status_code=201, dependencies=[Depends(require_admin)])
-def submit_feedback(request: FeedbackRequest, session: Session = Depends(get_session)):
+def submit_feedback(
+    request: FeedbackRequest,
+    session: Session = Depends(get_session),
+    acting_admin: UserRow | None = Depends(get_current_user),
+):
     if request.action not in VALID_ACTIONS:
         raise HTTPException(
             status_code=422,
             detail=f"Invalid action '{request.action}'. Valid: {sorted(VALID_ACTIONS)}",
         )
+    log_admin_mutation(acting_admin, request.user_id, "submit_feedback")  # #55
     profile = profile_repository.get_by_id(session, request.user_id)
     if not profile:
         raise HTTPException(status_code=404, detail=f"Profile '{request.user_id}' not found")

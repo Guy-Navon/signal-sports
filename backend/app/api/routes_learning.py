@@ -17,6 +17,9 @@ from app.core.security_deps import require_admin
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.core.security_deps import get_current_user
+from app.db.orm_models import UserRow
+from app.services.auth_service import log_admin_mutation
 from app.db.database import get_session
 from app.models.profile_v2 import OverrideRule
 from app.repositories import article_repository, feedback_repository, profile_repository
@@ -88,10 +91,12 @@ def reset_learning(
     user_id: str,
     payload: LearningResetRequest,
     session: Session = Depends(get_session),
+    acting_admin: UserRow | None = Depends(get_current_user),
 ):
     """Tombstone the events behind one learned feature (or all learnable
     events when no feature is specified). Derivation is a pure function of
     the active log, so this restores prior state exactly."""
+    log_admin_mutation(acting_admin, user_id, "reset_learning")  # #55
     _profile, events, adjustments = _learning_state(session, user_id)
 
     if payload.kind is None:
@@ -120,10 +125,12 @@ def never_show(
     user_id: str,
     payload: NeverShowRequest,
     session: Session = Depends(get_session),
+    acting_admin: UserRow | None = Depends(get_current_user),
 ):
     """Create the EXPLICIT scoped never_show override for the most specific
     scope present on the article. Returns the created rule so the UI can
     say exactly what will be hidden."""
+    log_admin_mutation(acting_admin, user_id, "never_show")  # #55
     profile = profile_repository.get_by_id(session, user_id)
     if not profile:
         raise HTTPException(status_code=404, detail=f"Profile '{user_id}' not found")

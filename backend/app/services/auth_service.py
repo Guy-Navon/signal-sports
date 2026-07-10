@@ -40,6 +40,18 @@ class InvalidCredentialsError(AuthError):
     pass
 
 
+class InvalidPasswordError(AuthError):
+    """Current-password verification failed for a lifecycle operation."""
+
+
+class UndeletableAccountError(AuthError):
+    """Demo accounts are permanent QA fixtures and can never be deleted."""
+
+
+class LastAdminError(AuthError):
+    """The last remaining admin cannot self-delete."""
+
+
 class RateLimitExceeded(AuthError):
     pass
 
@@ -257,6 +269,7 @@ def login(
         raise InvalidCredentialsError("invalid email or password")
     if not verify_password(user.password_hash, password):
         raise InvalidCredentialsError("invalid email or password")
+    prune_expired_sessions(session)  # opportunistic cleanup (issue #55)
     raw_token, auth_session = create_session(session, user, user_agent=user_agent)
     return user, raw_token, auth_session
 
@@ -290,6 +303,99 @@ def revoke_session(session: Session, raw_token: Optional[str]) -> None:
     if row is not None:
         session.delete(row)
         session.commit()
+
+
+def prune_expired_sessions(session: Session) -> int:
+    """Delete session rows past their expiry (opportunistic, on login — #55)."""
+    now = iso(utc_now())
+    pruned = (
+        session.query(AuthSessionRow)
+        .filter(AuthSessionRow.expires_at <= now)
+        .delete(synchronize_session=False)
+    )
+    if pruned:
+        session.commit()
+    return pruned
+
+
+def revoke_other_sessions(session: Session, user_id: str, keep_token_hash: str) -> int:
+    """Revoke every session of ``user_id`` except the one identified by
+    ``keep_token_hash`` (password change keeps the active session — #55)."""
+    revoked = (
+        session.query(AuthSessionRow)
+        .filter(AuthSessionRow.user_id == user_id)
+        .filter(AuthSessionRow.token_hash != keep_token_hash)
+        .delete(synchronize_session=False)
+    )
+    session.commit()
+    return revoked
+
+
+def change_password(
+    session: Session,
+    user: UserRow,
+    *,
+    current_password: str,
+    new_password: str,
+    keep_raw_token: str,
+) -> int:
+    """Verify the current password, set the new one, and revoke all OTHER
+    sessions (the active session survives). Returns the revoke count (#55)."""
+    if not user.password_hash or not verify_password(user.password_hash, current_password):
+        raise InvalidPasswordError("current password is incorrect")
+    user.password_hash = hash_password(new_password)
+    session.commit()
+    return revoke_other_sessions(session, user.id, token_hash(keep_raw_token))
+
+
+def delete_account(session: Session, user: UserRow, *, current_password: str) -> None:
+    """Hard-delete the account and exactly its own personalization rows, in
+    one transaction (#55): feedback_events → calibration_responses → profiles
+    → users (auth_sessions cascade via the FK; deleted explicitly as well for
+    belt-and-braces under SQLite pragma configurations).
+
+    Guards: demo rows are permanent QA fixtures (undeletable — they also can
+    never hold a session, so this is defense in depth); the last remaining
+    admin cannot self-delete.
+    """
+    from app.db.orm_models import CalibrationResponseRow, FeedbackRow, ProfileRow
+
+    if user.role == "demo":
+        raise UndeletableAccountError("demo accounts are permanent QA fixtures")
+    if not user.password_hash or not verify_password(user.password_hash, current_password):
+        raise InvalidPasswordError("current password is incorrect")
+    if user.role == "admin":
+        admins = session.query(UserRow).filter(UserRow.role == "admin").count()
+        if admins <= 1:
+            raise LastAdminError("the last remaining admin cannot self-delete")
+
+    uid = user.id
+    session.query(FeedbackRow).filter(FeedbackRow.user_id == uid).delete(
+        synchronize_session=False)
+    session.query(CalibrationResponseRow).filter(
+        CalibrationResponseRow.user_id == uid).delete(synchronize_session=False)
+    session.query(ProfileRow).filter(ProfileRow.user_id == uid).delete(
+        synchronize_session=False)
+    session.query(AuthSessionRow).filter(AuthSessionRow.user_id == uid).delete(
+        synchronize_session=False)
+    session.query(UserRow).filter(UserRow.id == uid).delete(synchronize_session=False)
+    session.commit()
+
+
+def log_admin_mutation(admin: Optional[UserRow], target_user_id: str, action: str) -> None:
+    """Ops-hardening breadcrumb (#55): an admin mutating a NON-demo user via
+    the explicit {user_id} surface is unusual enough to leave a trace. Demo
+    fixtures are the intended QA targets — no log for them. ``admin`` is None
+    on the /me delegation path (self-mutation) and under the dev bypass."""
+    if not isinstance(admin, UserRow) or target_user_id in ("guy", "casual_deni_fan"):
+        # None on the /me delegation path and under the dev bypass; a Depends
+        # sentinel when a legacy handler is invoked directly (delegation).
+        return
+    logger.warning(
+        "ADMIN MUTATION: admin %s (%s) performed %r on non-demo user %r via the "
+        "explicit {user_id} surface",
+        admin.id, admin.email, action, target_user_id,
+    )
 
 
 def ensure_users_for_profiles(session: Session) -> int:

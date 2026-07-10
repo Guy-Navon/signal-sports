@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 Tests for PR 7.1 RSS quality guardrails:
 - URL pattern blocking
@@ -208,29 +210,29 @@ def _make_feed(entries, bozo=False):
 
 
 class TestSkippedFilteredInResponse:
-    def test_skipped_filtered_field_present(self, client):
+    def test_skipped_filtered_field_present(self, admin_client):
         entries = [_make_entry("Some article", "https://eurohoops.net/fake/filter-field-test")]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            r = client.post("/api/ingest/run?source_id=eurohoops")
+            r = admin_client.post("/api/ingest/run?source_id=eurohoops")
         result = r.json()["sources"][0]
         assert "skipped_filtered" in result
 
-    def test_skipped_filtered_is_zero_for_passing_url(self, client):
+    def test_skipped_filtered_is_zero_for_passing_url(self, admin_client):
         entries = [_make_entry("EuroLeague: Barca wins", "https://eurohoops.net/en/euroleague/barca-wins-test")]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            r = client.post("/api/ingest/run?source_id=eurohoops")
+            r = admin_client.post("/api/ingest/run?source_id=eurohoops")
         result = r.json()["sources"][0]
         # The URL passes through — skipped_filtered must be 0
         assert result["skipped_filtered"] == 0
 
-    def test_blocked_url_pattern_counts_as_filtered(self, client):
+    def test_blocked_url_pattern_counts_as_filtered(self, admin_client):
         # Inject a Turkish-path URL; Eurohoops config blocks /tr/
         entries = [
             _make_entry("Turkish article", "https://eurohoops.net/tr/haber/baska-makale"),
             _make_entry("English article", "https://eurohoops.net/fake/filter-passing-en-test"),
         ]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            r = client.post("/api/ingest/run?source_id=eurohoops")
+            r = admin_client.post("/api/ingest/run?source_id=eurohoops")
         result = r.json()["sources"][0]
         # Turkish article should be filtered out
         assert result["skipped_filtered"] >= 1

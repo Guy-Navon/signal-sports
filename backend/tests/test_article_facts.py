@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 ArticleFacts consistency-validation stage tests (issue #28).
 
@@ -321,7 +323,7 @@ class TestNoLLMParity:
 # ── Backfill + persistence (integration) ──────────────────────────────────────
 
 class TestBackfillAndPersistence:
-    def test_backfill_populates_facts_fields(self, client):
+    def test_backfill_populates_facts_fields(self, admin_client):
         """Backfill writes the new ArticleFacts columns. Uses the fake provider; on
         the rules-fallback branch (fake returns None for unknown titles) the facts
         are still derived from the deterministic result."""
@@ -347,7 +349,7 @@ class TestBackfillAndPersistence:
                 if get_by_id(session, art.id) is None:
                     insert(session, art)
 
-            resp = client.post("/api/classify/backfill?source_id=walla_sport&dry_run=false")
+            resp = admin_client.post("/api/classify/backfill?source_id=walla_sport&dry_run=false")
             assert resp.status_code == 200
 
             with SessionLocal() as session:
@@ -363,7 +365,7 @@ class TestBackfillAndPersistence:
         finally:
             os.environ["CLASSIFICATION_PROVIDER"] = "disabled"
 
-    def test_facts_round_trip_via_api(self, client):
+    def test_facts_round_trip_via_api(self, admin_client):
         """New columns round-trip through SQLite and appear in the article API payload,
         including a nested JSON classification_trace."""
         from app.db.database import SessionLocal
@@ -390,7 +392,7 @@ class TestBackfillAndPersistence:
         with SessionLocal() as session:
             insert(session, art)
 
-        r = client.get(f"/api/articles/{art.id}")
+        r = admin_client.get(f"/api/articles/{art.id}")
         assert r.status_code == 200
         a = r.json()
         assert a["primary_competition"] == "comp:euroleague"
@@ -399,10 +401,10 @@ class TestBackfillAndPersistence:
         assert a["classification_trace"] == trace
         assert a["taxonomy_version"] == TAXONOMY_VERSION
 
-    def test_facts_default_null_for_legacy_rows(self, client):
+    def test_facts_default_null_for_legacy_rows(self, admin_client):
         """A seed/legacy article (no facts written) returns null/empty facts, proving
         the soft migration and nullable columns are back-compatible."""
-        r = client.get("/api/articles/article_001")
+        r = admin_client.get("/api/articles/article_001")
         assert r.status_code == 200
         a = r.json()
         assert a["primary_competition"] is None

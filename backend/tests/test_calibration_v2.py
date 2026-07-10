@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 Issue #33 — Calibration V2: dataset coverage, hierarchical inference,
 support/contradiction handling, apply round-trip, version stamping.
@@ -252,32 +254,32 @@ GUY_LIKE_RATINGS = {
 
 
 class TestApiRoundTrip:
-    def test_items_endpoint_versioned(self, client: TestClient):
-        body = client.get("/api/calibration/items").json()
+    def test_items_endpoint_versioned(self, admin_client: TestClient):
+        body = admin_client.get("/api/calibration/items").json()
         assert body["version"] == CALIBRATION_DATASET_VERSION
         assert len(body["items"]) == 24
         assert set(body["rating_keys"]) == {
             "never_show", "not_interesting", "neutral", "interesting", "push"
         }
 
-    def test_preview_does_not_persist(self, client: TestClient):
-        resp = client.post("/api/calibration/preview", json={"ratings": GUY_LIKE_RATINGS})
+    def test_preview_does_not_persist(self, admin_client: TestClient):
+        resp = admin_client.post("/api/calibration/preview", json={"ratings": GUY_LIKE_RATINGS})
         assert resp.status_code == 200
         body = resp.json()
         assert body["dataset_version"] == CALIBRATION_DATASET_VERSION
         assert len(body["scope_affinities"]) > 0
         assert len(body["uncertainty"]) > 0
         # nothing saved
-        saved = client.get("/api/calibration/responses/casual_deni_fan").json()
+        saved = admin_client.get("/api/calibration/responses/casual_deni_fan").json()
         assert saved["ratings"] == {}
 
-    def test_preview_rejects_unknown_rating(self, client: TestClient):
-        resp = client.post("/api/calibration/preview",
+    def test_preview_rejects_unknown_rating(self, admin_client: TestClient):
+        resp = admin_client.post("/api/calibration/preview",
                            json={"ratings": {"cal2_nba_finals": "meh"}})
         assert resp.status_code == 422
 
-    def test_apply_persists_and_survives_reload(self, client: TestClient):
-        resp = client.post("/api/calibration/apply", json={
+    def test_apply_persists_and_survives_reload(self, admin_client: TestClient):
+        resp = admin_client.post("/api/calibration/apply", json={
             "user_id": "casual_deni_fan", "ratings": GUY_LIKE_RATINGS,
         })
         assert resp.status_code == 200
@@ -285,7 +287,7 @@ class TestApiRoundTrip:
         assert body["applied_scope_affinities"] > 0
 
         # fresh read: calibration-sourced entries present, explicit preserved
-        profile = client.get("/api/profiles/casual_deni_fan").json()
+        profile = admin_client.get("/api/profiles/casual_deni_fan").json()
         sources = {a["source"] for a in profile["profile_v2"]["scope_affinities"]}
         assert "calibration" in sources
         explicit = [a for a in profile["profile_v2"]["scope_affinities"]
@@ -295,21 +297,21 @@ class TestApiRoundTrip:
         assert len(profile["profile_v2"]["overrides"]) > 0
 
         # ratings persisted with version
-        saved = client.get("/api/calibration/responses/casual_deni_fan").json()
+        saved = admin_client.get("/api/calibration/responses/casual_deni_fan").json()
         assert saved["dataset_version"] == CALIBRATION_DATASET_VERSION
         assert saved["ratings"] == GUY_LIKE_RATINGS
 
-    def test_reapply_replaces_only_calibration_entries(self, client: TestClient):
-        before = client.get("/api/profiles/casual_deni_fan").json()
+    def test_reapply_replaces_only_calibration_entries(self, admin_client: TestClient):
+        before = admin_client.get("/api/profiles/casual_deni_fan").json()
         explicit_before = [a for a in before["profile_v2"]["scope_affinities"]
                            if a["source"] == "explicit"]
         # re-apply with a much smaller rating set
-        resp = client.post("/api/calibration/apply", json={
+        resp = admin_client.post("/api/calibration/apply", json={
             "user_id": "casual_deni_fan",
             "ratings": {"cal2_tn_gs_winner": "push", "cal2_tn_early_round": "never_show"},
         })
         assert resp.status_code == 200
-        after = client.get("/api/profiles/casual_deni_fan").json()
+        after = admin_client.get("/api/profiles/casual_deni_fan").json()
         explicit_after = [a for a in after["profile_v2"]["scope_affinities"]
                           if a["source"] == "explicit"]
         assert explicit_after == explicit_before
@@ -317,12 +319,12 @@ class TestApiRoundTrip:
                              if a["source"] == "calibration"]
         assert all(a["target_id"] == "tennis" for a in calibration_after)
 
-    def test_apply_unknown_profile_404(self, client: TestClient):
-        resp = client.post("/api/calibration/apply",
+    def test_apply_unknown_profile_404(self, admin_client: TestClient):
+        resp = admin_client.post("/api/calibration/apply",
                            json={"user_id": "nobody", "ratings": {}})
         assert resp.status_code == 404
 
-    def test_calibrated_feed_reflects_ratings(self, client: TestClient):
+    def test_calibrated_feed_reflects_ratings(self, admin_client: TestClient):
         """Acceptance: apply persists and a fresh session shows the
         calibrated feed — Guy-like ratings on the Deni-fan profile make NBA
         game results visible (hidden for the narrow explicit profile).
@@ -351,10 +353,10 @@ class TestApiRoundTrip:
                     confidence=0.9, tags=[], taxonomy_version=1,
                 ))
 
-        client.post("/api/calibration/apply", json={
+        admin_client.post("/api/calibration/apply", json={
             "user_id": "casual_deni_fan", "ratings": GUY_LIKE_RATINGS,
         })
-        feed = client.get("/api/feed/casual_deni_fan").json()
+        feed = admin_client.get("/api/feed/casual_deni_fan").json()
         nba_item = next(
             (i for i in feed if i["article"]["id"] == "rss_cal2_nba_game"), None
         )
@@ -363,13 +365,13 @@ class TestApiRoundTrip:
 
         # Cleanup: an empty-ratings apply removes all calibration-sourced
         # entries, restoring the explicit-only seed profile for later tests.
-        client.post("/api/calibration/apply",
+        admin_client.post("/api/calibration/apply",
                     json={"user_id": "casual_deni_fan", "ratings": {}})
-        restored = client.get("/api/profiles/casual_deni_fan").json()
+        restored = admin_client.get("/api/profiles/casual_deni_fan").json()
         assert all(a["source"] != "calibration"
                    for a in restored["profile_v2"]["scope_affinities"])
 
-    def test_legacy_headlines_endpoint_serves_v2_dataset(self, client: TestClient):
-        body = client.get("/api/calibration/headlines").json()
+    def test_legacy_headlines_endpoint_serves_v2_dataset(self, admin_client: TestClient):
+        body = admin_client.get("/api/calibration/headlines").json()
         assert len(body) == 24
         assert all("importance" in h and "sport" in h for h in body)

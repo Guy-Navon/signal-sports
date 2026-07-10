@@ -78,7 +78,7 @@ Valid `action` values for `POST /api/feedback`:
 - `mute_source`
 - `always_notify`
 
-Feedback is stored in SQLite (PR 6). It does not mutate profiles yet.
+Feedback is stored in SQLite and drives derived learned adjustments at scoring time (issue #34; see `docs/FEEDBACK_LEARNING.md`).
 
 ## Data model
 
@@ -178,21 +178,21 @@ See `docs/RSS_INGESTION.md`, `docs/RSS_QUALITY_GUARDRAILS.md`, `docs/HEBREW_RSS_
 
 ## Current limitations
 
-- **No scheduler.** Ingestion is triggered manually via `POST /api/ingest/run`.
+- **Scheduler is opt-in.** Ingestion runs manually via `POST /api/ingest/run` or on a loop with `INGESTION_SCHEDULER_ENABLED=true` (default false).
 - **LLM classification not benchmarked at scale.** The deterministic classifier runs by default (`CLASSIFICATION_PROVIDER=disabled`). LLM is opt-in; quality must be validated with Ollama + Qwen before relying on it. Timing fields are now instrumented in the `POST /api/ingest/run` response.
 - **No translation.** `translated_title` is always `None` for Hebrew RSS articles. The translation module is intact but disabled by default (`TRANSLATION_PROVIDER=disabled`). Post-MVP.
 - **No fuzzy dedup.** Duplicate headlines from different sources are not merged. URL-based dedup only.
-- **Feedback is stored but not applied.** `POST /api/feedback` records events in SQLite; they do not yet mutate profiles.
-- **No authentication.** All profiles are publicly accessible by user_id.
+- **Feedback drives derived learning (#34).** Events persist in SQLite and produce bounded learned adjustments at scoring time (explicit > learned > calibration); explicit rules are never silently mutated. See `docs/FEEDBACK_LEARNING.md`.
+- **Authentication is live (User Platform).** Email/password accounts with HttpOnly cookie sessions (`/api/auth/*`); the consumer product uses the session-derived `/api/me/*` surface; explicit `{user_id}` and ops routes are the fail-closed admin/QA surface (`require_admin`; `ALLOW_INSECURE_AUTH_BYPASS=true` reopens them for local dev only). See `docs/USER_PLATFORM.md`.
 - **No clustering.** Articles are not grouped; `cluster_id` exists in the model only.
 - **`skipped_filtered` not persisted.** The count of URL/language-filtered items is returned in the live API response but not stored in `ingestion_runs` (would require a DB migration).
-- **Sport5 / ONE have no public RSS.** These sources require category page adapters or scraping — not yet implemented.
+- **Sport5 / ONE have no public RSS — both are implemented without it.** ONE is an active source through its public JSON article-list endpoints (`api.one.co.il` categories adapter). Sport5 is an implemented HTML-scraping pilot (`source_type="html_scrape"`), disabled by default; enable via the Sources page toggle or `PATCH /api/ingest/sources/sport5_sport`.
 
 ## Next steps
 
 1. LLM classification benchmark — Ollama + `qwen2.5:3b-instruct`; check `llm_avg_ms`, `llm_p95_ms`, and `sport=unknown` count
 2. Expand entity normalization map (`entity_normalizer.py`) based on benchmark findings
-3. Scheduled ingestion (APScheduler or cron endpoint)
+3. ~~Scheduled ingestion~~ — done (asyncio loop in the app lifespan; `INGESTION_SCHEDULER_ENABLED`, default off)
 4. Fuzzy title dedup / clustering
-5. Feedback → profile mutation (`never_show` → hidden event rule)
-6. Additional Hebrew sources (ONE via category page adapter — preferred; no public RSS)
+5. ~~Feedback → profile mutation~~ — done (issue #34: derived learned adjustments; scoped `never_show` overrides)
+6. ~~Additional Hebrew sources (ONE)~~ — done (ONE active via its public JSON article API)

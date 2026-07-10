@@ -257,6 +257,18 @@ export function getMeCalibrationResponses() {
   return apiFetch("/api/me/calibration/responses");
 }
 
+export function getMeLearningState() {
+  return apiFetch("/api/me/learning");
+}
+
+export function resetMeLearning(feature = {}) {
+  return apiFetch("/api/me/learning/reset", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(feature),
+  });
+}
+
 export function saveMeCalibrationResponses(ratings) {
   return apiFetch("/api/me/calibration/responses", {
     method: "POST",

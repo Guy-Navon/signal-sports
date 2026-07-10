@@ -41,3 +41,22 @@ export function backendFetchesBlocked({ isBackendMode, authStatus, authEnforced,
   if (authStatus === "loading") return true;
   return Boolean(authEnforced && !user);
 }
+
+// Which surface serves the consumer Preferences learning panel?
+// Consumer sessions (ANY role — an admin using the consumer product reads the
+// authenticated account's own state, never the QA view-as target) use the
+// session-derived /me learning routes. Legacy explicit-target learning calls
+// are QA behavior and exist only outside consumer sessions (local/bypass).
+// The function deliberately takes no view-as identity: QA view-as state must
+// be UNABLE to influence the consumer surface by construction.
+export function learningSurface(view) {
+  return isConsumerSession(view) ? "me" : "legacy";
+}
+
+// May this visitor enter the frontend ops console shell? Local/bypass keep
+// today's open console; under a consumer session only admins enter. Defense
+// in depth only — the backend admin gates remain authoritative.
+export function canEnterOpsShell(view) {
+  if (!isConsumerSession(view)) return true;
+  return view.user?.role === "admin";
+}

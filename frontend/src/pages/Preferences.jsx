@@ -142,7 +142,7 @@ export default function Preferences() {
       )}
 
       {activeTab === "learned" && (
-        <LearnedAdjustmentsPanel userId={activeProfileId} isBackendMode={isBackendMode} />
+        <LearnedAdjustmentsPanel />
       )}
     </div>
   );

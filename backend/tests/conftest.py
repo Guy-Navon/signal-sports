@@ -18,12 +18,14 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_dir}/test.db"
 # - Auth env: tests must not inherit a developer's backend/.env auth settings.
 os.environ["CLASSIFICATION_PROVIDER"] = "disabled"
 os.environ["INGESTION_SCHEDULER_ENABLED"] = "false"
-# TRANSITIONAL (User Platform PR 5 → PR 6 window, issue #53): the legacy/ops
-# surface is now admin-gated fail-closed; existing legacy test files keep
-# passing through the explicit bypass until PR 6 (#54) migrates them to
-# explicit identity fixtures and REMOVES this line. New authz tests monkeypatch
-# this env var to "false" to exercise real enforcement.
-os.environ["ALLOW_INSECURE_AUTH_BYPASS"] = "true"
+# Enforcement is REAL in tests (User Platform PR 6, #54): the transitional
+# PR-5 bypass line was removed. Tests pick an explicit identity:
+#   client        — the bare app client (no cookies; the anonymous identity)
+#   anonymous_client — alias of the same guarantee, for authz-denial tests
+#   user_client   — a real signed-up role=user session (own cookie jar)
+#   admin_client  — the env-bootstrapped admin session (own cookie jar)
+# Hidden authenticated state can never mask an authorization regression.
+os.environ["ALLOW_INSECURE_AUTH_BYPASS"] = "false"
 os.environ["AUTH_ADMIN_EMAIL"] = ""
 os.environ["AUTH_ADMIN_PASSWORD"] = ""
 os.environ["AUTH_COOKIE_SECURE"] = "false"
@@ -43,31 +45,124 @@ os.environ["CSRF_ALLOWED_ORIGINS"] = ",".join(
 
 
 @pytest.fixture(scope="session")
-def client():
+def _application():
     # Import app modules AFTER the DATABASE_URL env var is set above.
     from app.main import create_app
-    application = create_app()
+    return create_app()
+
+
+@pytest.fixture(scope="session")
+def client(_application):
+    """The bare app client — NO cookies, the anonymous identity.
+
+    One shared app instance; identity clients below are separate TestClient
+    instances (separate cookie jars) over the same app (PR 6, #54)."""
     # TestClient enters the lifespan: creates tables and seeds the test DB.
-    with TestClient(application) as c:
+    with TestClient(_application) as c:
         yield c
 
 
+@pytest.fixture(scope="session")
+def anonymous_client(client):
+    """Explicit name for authz-denial tests; same no-cookie guarantee."""
+    return client
+
+
 @pytest.fixture(autouse=True)
-def _mock_one_api_by_default(monkeypatch):
-    """Keep enabled ONE ingestion hermetic in tests unless a test overrides it."""
-    try:
-        from app.ingestion.adapters import one_adapter
-    except Exception:
+def _keep_bare_client_anonymous(request):
+    """The shared bare client must actually BE anonymous (PR 6, #54).
+
+    TestClient retains Set-Cookie responses in its jar, so a login/signup
+    posted through `client` would silently authenticate every later request —
+    exactly the hidden-auth-state class this PR eliminates. Clear the jar
+    around every test; identity clients have their own jars and are unaffected.
+    """
+    if "client" in request.fixturenames:
+        request.getfixturevalue("client").cookies.clear()
+    yield
+    if "client" in request.fixturenames:
+        request.getfixturevalue("client").cookies.clear()
+
+
+_TEST_IDENTITY_PASSWORD = "test identity passphrase"
+
+
+def _identity_client(application, role, email=None):
+    """Build an authenticated identity client (own TestClient = own cookie jar).
+
+    FRESH IDENTITY PER CALL (#54 review): every invocation creates a brand-new
+    unique user row, so no test can inherit another test's mutations to role,
+    password, onboarding, profile, feedback, calibration, or learned state.
+
+    HONESTY NOTE: identity CONSTRUCTION uses direct service-layer row creation
+    (``create_user_with_profile`` — the same service the API signup route and
+    the admin env-bootstrap use, but not the HTTP paths themselves). That is
+    deliberate fixture plumbing, not API verification: the real signup flow is
+    verified by test_auth_core / test_me_api, and the admin env-bootstrap by
+    test_auth_core. The LOGIN goes through the real ``POST /api/auth/login``
+    route, so every identity client holds a genuine server-side session.
+    """
+    import uuid
+    from app.db.database import SessionLocal
+    from app.services import auth_service
+
+    email = email or f"fixture-{role}-{uuid.uuid4().hex[:10]}@test.local"
+    with SessionLocal() as session:
+        user = auth_service.create_user_with_profile(
+            session, email=email, password=_TEST_IDENTITY_PASSWORD, role=role,
+        )
+        user_id = user.id
+    auth_service.reset_rate_limiters()
+    c = TestClient(application)
+    response = c.post(
+        "/api/auth/login", json={"email": email, "password": _TEST_IDENTITY_PASSWORD}
+    )
+    assert response.status_code == 200, f"identity login failed: {response.text}"
+    c.identity_user_id = user_id
+    c.identity_email = email
+    return c
+
+
+def _dispose_identity(c):
+    """Deterministic teardown of everything the identity fixture created:
+    close the client, then delete the identity's own rows (sessions, feedback,
+    calibration responses, profile, user). Nothing else is touched."""
+    from app.db.database import SessionLocal
+    from app.db.orm_models import (
+        AuthSessionRow, CalibrationResponseRow, FeedbackRow, ProfileRow, UserRow,
+    )
+    c.close()
+    uid = getattr(c, "identity_user_id", None)
+    if uid is None:
         return
+    with SessionLocal() as session:
+        session.query(AuthSessionRow).filter(AuthSessionRow.user_id == uid).delete(
+            synchronize_session=False)
+        session.query(FeedbackRow).filter(FeedbackRow.user_id == uid).delete(
+            synchronize_session=False)
+        session.query(CalibrationResponseRow).filter(
+            CalibrationResponseRow.user_id == uid).delete(synchronize_session=False)
+        session.query(ProfileRow).filter(ProfileRow.user_id == uid).delete(
+            synchronize_session=False)
+        session.query(UserRow).filter(UserRow.id == uid).delete(
+            synchronize_session=False)
+        session.commit()
 
-    class _Response:
-        def raise_for_status(self):
-            return None
 
-        def json(self):
-            return {"Data": {"Articles": {"Items": []}}}
+@pytest.fixture
+def user_client(_application, client):
+    """A FRESH role=user identity + real login session (own cookie jar)."""
+    c = _identity_client(_application, "user")
+    yield c
+    _dispose_identity(c)
 
-    monkeypatch.setattr(one_adapter.httpx, "get", lambda *args, **kwargs: _Response())
+
+@pytest.fixture
+def admin_client(_application, client):
+    """A FRESH admin identity + real login session (own cookie jar)."""
+    c = _identity_client(_application, "admin")
+    yield c
+    _dispose_identity(c)
 
 
 # IDs of seed articles used by feed/scoring tests (must survive the rss-only filter).

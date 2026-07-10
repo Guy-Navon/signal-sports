@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 PR 13 — scheduler/lock API tests.
 
@@ -28,8 +30,8 @@ def _make_feed(entries):
 
 
 class TestSchedulerStatusEndpoint:
-    def test_status_shape_and_defaults(self, client):
-        r = client.get("/api/ingest/scheduler/status")
+    def test_status_shape_and_defaults(self, admin_client):
+        r = admin_client.get("/api/ingest/scheduler/status")
         assert r.status_code == 200
         body = r.json()
         # Stable shape — every field present
@@ -47,12 +49,12 @@ class TestSchedulerStatusEndpoint:
 
 
 class TestRunNowEndpoint:
-    def test_run_now_executes_ingestion(self, client):
+    def test_run_now_executes_ingestion(self, admin_client):
         entries = [_make_entry("NBA: משחק ניקס", "https://walla.co.il/fake/sched1")]
         with patch("feedparser.parse", return_value=_make_feed(entries)), \
              patch("app.ingestion.adapters.sport5_adapter.httpx.get",
                    side_effect=AssertionError("sport5 disabled — must not be fetched")):
-            r = client.post("/api/ingest/scheduler/run-now")
+            r = admin_client.post("/api/ingest/scheduler/run-now")
         assert r.status_code == 200
         body = r.json()
         assert body["trigger"] == "run_now"
@@ -61,11 +63,11 @@ class TestRunNowEndpoint:
         assert "walla_sport" in source_ids
         assert "sport5_sport" not in source_ids  # disabled pilot excluded
 
-    def test_run_now_conflict_while_lock_held(self, client):
+    def test_run_now_conflict_while_lock_held(self, admin_client):
         acquired = scheduler_state.lock.acquire(blocking=False)
         assert acquired
         try:
-            r = client.post("/api/ingest/scheduler/run-now")
+            r = admin_client.post("/api/ingest/scheduler/run-now")
             assert r.status_code == 409
             detail = r.json()["detail"]
             assert detail["error"] == "ingestion_already_running"
@@ -73,30 +75,30 @@ class TestRunNowEndpoint:
         finally:
             scheduler_state.lock.release()
 
-    def test_manual_run_conflict_while_lock_held(self, client):
+    def test_manual_run_conflict_while_lock_held(self, admin_client):
         acquired = scheduler_state.lock.acquire(blocking=False)
         assert acquired
         try:
-            r = client.post("/api/ingest/run?source_id=walla_sport")
+            r = admin_client.post("/api/ingest/run?source_id=walla_sport")
             assert r.status_code == 409
             assert r.json()["detail"]["error"] == "ingestion_already_running"
         finally:
             scheduler_state.lock.release()
 
-    def test_lock_released_after_runs(self, client):
+    def test_lock_released_after_runs(self, admin_client):
         """Manual run then run-now both succeed — the lock never leaks."""
         entries = [_make_entry("NBA: עוד משחק", "https://walla.co.il/fake/sched2")]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            first = client.post("/api/ingest/run?source_id=walla_sport")
-            second = client.post("/api/ingest/scheduler/run-now")
+            first = admin_client.post("/api/ingest/run?source_id=walla_sport")
+            second = admin_client.post("/api/ingest/scheduler/run-now")
         assert first.status_code == 200
         assert second.status_code == 200
 
-    def test_status_reflects_last_run(self, client):
+    def test_status_reflects_last_run(self, admin_client):
         entries = [_make_entry("NBA: משחק שלישי", "https://walla.co.il/fake/sched3")]
         with patch("feedparser.parse", return_value=_make_feed(entries)):
-            client.post("/api/ingest/scheduler/run-now")
-        body = client.get("/api/ingest/scheduler/status").json()
+            admin_client.post("/api/ingest/scheduler/run-now")
+        body = admin_client.get("/api/ingest/scheduler/status").json()
         assert body["last_status"] == "ok"
         assert body["last_started_at"] is not None
         assert body["last_finished_at"] is not None

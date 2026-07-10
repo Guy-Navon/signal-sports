@@ -137,9 +137,16 @@ canvas — while **ops routes keep `ProductNav`'s desktop rail unchanged**
 identity is a later PR, this one only changed how you arrive at/leave it).
 `Masthead` (replaces the old plain header) — wordmark at the inline-start
 edge, product nav inline (product routes only) or a "חזרה למוצר" link (ops),
-profile switcher + `DataModeBadge` + a console-entry icon (product only) at
-the inline-end edge; starts transparent over the atmosphere and gains
-`surface-glass` + a hairline only past a scroll threshold (`useScrolled.js`).
+then at the inline-end edge: `DataModeBadge`, the identity controls, and a
+console-entry icon (product, admins/bypass only); starts transparent over the
+atmosphere and gains `surface-glass` + a hairline only past a scroll
+threshold (`useScrolled.js`). **Identity controls (User Platform, 2026-07-10):**
+under an enforced consumer session the product masthead shows the ACCOUNT
+menu (email, logout — account identity is the product identity) and no
+profile switcher; the `ProfileSwitcher` now lives on the ops console as the
+admin **QA view-as** control. In local/bypass modes the pre-auth masthead
+(ProfileSwitcher in the product) renders unchanged — the historical
+description below reflects that original PR-B design.
 `SignalMark` — the wordmark's three-bar icon, same visual language as the
 Feed's SIGNAL strength instrument. `Atmosphere` — a fixed, decorative
 backdrop (soft floodlight mesh + one large half-court arc + a whisper of
@@ -149,7 +156,8 @@ only; **not rendered in the ops console**, which stays flat by design.
 tab bar (ops, unchanged). `DataModeBadge` shrank from a labeled pill to a
 dot + tooltip (ops-relevant info, not a consumer-facing label).
 `OpsNav` (console strip, unchanged) · `ProfileSwitcher` (Radix dropdown,
-sandbox "בדיקה" tag, unchanged) · `navConfig.js` (+ tests — area resolution,
+sandbox "בדיקה" tag; since User Platform #53 it renders in the product only
+for local/bypass modes and on the ops console as the admin QA view-as) · `navConfig.js` (+ tests — area resolution,
 llm-qa backend gate, mobile nav; unchanged, reused by the new shell).
 `AppShell` also wraps `<Outlet/>` in a Framer Motion opacity+y page
 transition keyed by pathname, reduced-motion aware.

@@ -1,3 +1,5 @@
+# PR 6 (#54): this file exercises the legacy {user_id}/ops surface, which is
+# admin-gated fail-closed — it runs under the explicit admin_client identity.
 """
 Tests for LLM classification module.
 
@@ -658,7 +660,7 @@ class TestNormalizeLeagueSportCompat:
 # ── Backfill endpoint ─────────────────────────────────────────────────────────
 
 class TestBackfill:
-    def test_backfill_updates_sport_league_event_type(self, client, rss_seeded):
+    def test_backfill_updates_sport_league_event_type(self, admin_client, rss_seeded):
         """Backfill with fake provider changes core classification fields on existing articles."""
         import os
         os.environ["CLASSIFICATION_PROVIDER"] = "fake"
@@ -692,7 +694,7 @@ class TestBackfill:
                 insert(session, test_article)
 
         # Run backfill with fake provider
-        resp = client.post("/api/classify/backfill?source_id=walla_sport&dry_run=false")
+        resp = admin_client.post("/api/classify/backfill?source_id=walla_sport&dry_run=false")
         assert resp.status_code == 200
         data = resp.json()
         assert data["processed"] >= 1
@@ -708,7 +710,7 @@ class TestBackfill:
         # Cleanup
         del os.environ["CLASSIFICATION_PROVIDER"]
 
-    def test_backfill_source_id_filter_applied_at_query(self, client, rss_seeded):
+    def test_backfill_source_id_filter_applied_at_query(self, admin_client, rss_seeded):
         """source_id filter is applied in the DB query, not in Python post-filter."""
         import os
         os.environ["CLASSIFICATION_PROVIDER"] = "fake"
@@ -742,7 +744,7 @@ class TestBackfill:
                 insert(session, euro_article)
 
         # Run backfill filtered to walla_sport only
-        resp = client.post("/api/classify/backfill?source_id=walla_sport&dry_run=true")
+        resp = admin_client.post("/api/classify/backfill?source_id=walla_sport&dry_run=true")
         assert resp.status_code == 200
 
         # The eurohoops article classified_by should be unchanged
@@ -753,7 +755,7 @@ class TestBackfill:
 
         del os.environ["CLASSIFICATION_PROVIDER"]
 
-    def test_backfill_dry_run_does_not_write(self, client, rss_seeded):
+    def test_backfill_dry_run_does_not_write(self, admin_client, rss_seeded):
         """dry_run=true returns counts but makes no DB changes."""
         import os
         os.environ["CLASSIFICATION_PROVIDER"] = "fake"
@@ -785,7 +787,7 @@ class TestBackfill:
             if get_by_id(session, dry_article.id) is None:
                 insert(session, dry_article)
 
-        resp = client.post("/api/classify/backfill?source_id=walla_sport&dry_run=true")
+        resp = admin_client.post("/api/classify/backfill?source_id=walla_sport&dry_run=true")
         assert resp.status_code == 200
         assert resp.json()["dry_run"] is True
 
@@ -797,7 +799,7 @@ class TestBackfill:
 
         del os.environ["CLASSIFICATION_PROVIDER"]
 
-    def test_backfill_skips_already_llm_classified_when_force_false(self, client, rss_seeded):
+    def test_backfill_skips_already_llm_classified_when_force_false(self, admin_client, rss_seeded):
         """Articles with classified_by=llm are skipped unless force=true."""
         import os
         os.environ["CLASSIFICATION_PROVIDER"] = "fake"
@@ -830,7 +832,7 @@ class TestBackfill:
             if get_by_id(session, already_llm.id) is None:
                 insert(session, already_llm)
 
-        resp = client.post("/api/classify/backfill?source_id=walla_sport&force=false&dry_run=true")
+        resp = admin_client.post("/api/classify/backfill?source_id=walla_sport&force=false&dry_run=true")
         assert resp.status_code == 200
         data = resp.json()
         assert data["skipped_already_classified"] >= 1

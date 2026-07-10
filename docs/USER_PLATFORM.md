@@ -1,13 +1,15 @@
 # User Platform — Architecture Contract
 
-**Status: approved architecture (2026-07-09) — PR 1 / Issue #49 is complete on main.**
-PR #56 landed the backend Auth Core: `users` and `auth_sessions` tables,
-cookie-backed opaque sessions, `/api/auth/*`, current-user dependencies, CSRF
-checks, fail-closed insecure-bypass configuration, and the idempotent demo/admin
-startup ensure-step. The rest of the milestone is still in progress: no
-`/api/me/*` consumer surface, no frontend auth shell, no onboarding UX, no
-legacy/ops admin gating, and no account lifecycle endpoints yet. The lowest
-unblocked User Platform issue is #50.
+**Status: approved architecture (2026-07-09) — executed through PR 4 as of 2026-07-10.**
+Complete on main: Auth Core (#49, PR #56), the session-derived `/api/me/*`
+consumer surface (#50, PR #71), the frontend auth shell (#51, PR #72),
+fail-closed admin gating of the legacy `{user_id}`/ops surface with the
+AppContext consumer/QA split and ops view-as (#53, PR #73), and the onboarding
+flow (#52, PR #74 — **Product Review approved**). **In review: enforcement
+verification (#54, PR #75)** — transitional test bypass removed, explicit
+anonymous/user/admin identity fixtures — awaiting an independent
+security/regression review plus the owner's physical phone/Tailscale pass.
+Remaining after that: account lifecycle (#55). Epic #48 holds live status.
 
 **Execution home:**
 [GitHub Milestone 2 "User Platform"](https://github.com/Guy-Navon/signal-sports/milestone/2)
@@ -435,6 +437,19 @@ changes); **signal-real-data-qa** (demo diffs will require an admin session);
 bypass semantics).
 
 ## Changelog
+
+- 2026-07-10 (User Platform execution) — PR #71 (#50): session-derived `/api/me/*`
+  consumer surface with delegation parity; the product-surface gating bullet moved to
+  PR 5 (documented issue-internal contradiction). PR #72 (#51): frontend auth shell
+  (AuthContext, login/signup, session guard, account menu). PR #73 (#53): fail-closed
+  admin gating of the legacy/ops surface, `require_session` product surface, AppContext
+  consumer/QA split, ProfileSwitcher → ops QA view-as. PR #74 (#52): onboarding state
+  machine + welcome + resumable calibration + intentionally-empty-feed CTA —
+  **merged; Product Review APPROVED by the product owner (2026-07-10)**.
+  PR #75 (#54): transitional test bypass removed; explicit anonymous/user/admin
+  identity fixtures; docs truth sweep — **open, awaiting independent
+  security/regression review + the owner's phone/Tailscale pass**. Note: #52 was executed after #53 (order allowed
+  by the graph) so onboarding lands on the session user's own /me feed.
 
 - 2026-07-08 — Architecture approved (design revision pass: fail-closed
   `ALLOW_INSECURE_AUTH_BYPASS`; fixed 30-day session expiry; real FK on

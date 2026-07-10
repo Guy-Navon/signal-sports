@@ -189,8 +189,10 @@ wildcard, and no personal hostname anywhere in tracked files.
   `CSRF_ALLOWED_ORIGINS=https://<machine>.<tailnet>.ts.net` in local backend env
   (placeholder shown; never commit a real hostname). Tailscale Serve terminates HTTPS
   before Vite/uvicorn, so FastAPI sees an HTTP request to `127.0.0.1:8000` while the
-  browser sends the HTTPS tailnet Origin. Consumer `/api/me/*` routes, frontend auth,
-  onboarding UX, and legacy/ops route gating arrive in later User Platform PRs.
+  browser sends the HTTPS tailnet Origin. The consumer `/api/me/*` surface, the frontend
+  auth shell (login/signup, session guard), fail-closed admin gating of the legacy/ops
+  surface, and the onboarding flow (#52, product-approved) are live; enforcement
+  verification (#54) is in independent review and account lifecycle (#55) remains.
 - **This is single-user private testing, not production authentication.** Do not treat this
   setup as hardened for multi-user or public use.
 - **Never enable Tailscale Funnel** for this setup. Funnel republishes a Serve config to the
@@ -308,9 +310,19 @@ These require an actual phone, an actual Tailscale account, and actual LTE conne
 this environment does not have. They are **not checked and not claimed** by this
 implementation:
 
-- [ ] Phone on the same Wi-Fi: Feed loads via `https://<machine>.<tailnet>.ts.net`
-- [ ] Phone on LTE (Wi-Fi off): Feed loads, profile switch works, a feedback action POSTs
-      successfully
+Updated for the User Platform consumer/admin split (#53): the product no longer has a
+ProfileSwitcher — it moved to the ops console as the admin QA view-as control. With
+enforcement on and `AUTH_COOKIE_SECURE=true` + the tailnet `CSRF_ALLOWED_ORIGINS` set:
+
+- [ ] Phone on the same Wi-Fi: `https://<machine>.<tailnet>.ts.net` loads and redirects to /login
+- [ ] Normal user: signup on the phone → welcome → calibrate (or skip) → feed; a feedback
+      action POSTs; logout → login → same profile and feed (persisted state)
+- [ ] Session survives a browser restart on the phone (cookie persistence over HTTPS)
+- [ ] Normal user is DENIED the admin/ops surfaces (no console entry works; direct
+      `/sources` data calls fail with 401/403)
+- [ ] Admin login on the phone: ops console loads; QA view-as switches between `guy` and
+      `casual_deni_fan` debug feeds
+- [ ] Phone on LTE (Wi-Fi off): the normal-user flow above still works end to end
 - [ ] Remote HMR: editing a frontend file hot-updates the page open on the phone
 - [ ] `netstat -ano | findstr :5173` shows only a `127.0.0.1` binding
 - [ ] `tailscale serve status` shows `443 → 127.0.0.1:5173` and no Funnel line

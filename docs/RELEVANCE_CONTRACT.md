@@ -51,6 +51,37 @@ Identity is entity_ids-first everywhere; legacy display strings are a
 compatibility path for pre-taxonomy rows only. sport=unknown articles can
 match only via explicit evidence (entities are cleared on abstention).
 
+## Unknown event type (issue #79 — decision-contract lock)
+
+`event_type="news"` is the abstention value (event semantic validation
+downgrades unsupported proposals to it). The contract, locked by
+`backend/tests/test_decision_contract.py`:
+
+- **Unknown event is NOT a negative signal.** Direct scope matches are
+  never event-gated: a followed sport, a followed team/player on the
+  article, and tier-1 explicit competition evidence all keep their base
+  visibility regardless of event type. The event-affinity delta simply
+  resolves to none (personalization precision drops; relevance does not).
+- **Unknown event gets no diffuse reach.** `news` is in neither reach
+  allowlist (tiers 3/4), so entity-only or membership-based spread to
+  followed competitions does not happen (#64 Q2 decision: keep it that way;
+  explicit sport/competition follows are the intended coverage floor).
+- **Promotion stays capped.** A broad sport follow (level 0) surfaces
+  unknown-event articles at `low_feed`; nothing about event uncertainty can
+  reach push (override-only, unchanged).
+
+## Event-preference precedence (issue #79 lock)
+
+Two orthogonal rules resolve event affinities, in this order:
+
+1. **Specificity**: a *scoped* entry for the base scope beats a *global*
+   entry — even when the scoped entry is calibration-derived and the global
+   one is explicit. Scoped calibration nuance intentionally refines broad
+   explicit gestures (the one place calibration outranks an explicit value,
+   and only across different targets).
+2. **Authority**: for the SAME `(scope_ref, event_type)` target,
+   source authority wins: explicit > learned > calibration.
+
 ## Push discipline
 
 Push requires an explicit rule: legacy `event_rules`/`entity_event_rules`

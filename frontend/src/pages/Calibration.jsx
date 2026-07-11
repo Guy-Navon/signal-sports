@@ -7,6 +7,7 @@ import { SlidersHorizontal, RefreshCw, AlertCircle, CheckCircle2, Sparkles } fro
 import { cn } from "@/lib/utils";
 import {
   getCalibrationItems,
+  getMeCalibrationItems,
   previewCalibration,
   applyCalibration,
   getCalibrationResponses,
@@ -130,7 +131,9 @@ export default function Calibration() {
     if (!isBackendMode) return;
     setIsLoading(true);
     Promise.all([
-      getCalibrationItems(),
+      // Interest-aware selection for consumers (#81: ~10-14 items scoped to
+      // explicit interests); the admin/ops path keeps the full dataset.
+      consumerSession ? getMeCalibrationItems() : getCalibrationItems(),
       (consumerSession
         ? getMeCalibrationResponses()
         : getCalibrationResponses(activeProfileId)

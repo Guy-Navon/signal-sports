@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SlidersHorizontal } from "lucide-react";
+import { Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { completeMeOnboarding } from "@/api/client";
 import { useApp } from "@/context/AppContext";
@@ -46,9 +46,9 @@ export default function Onboarding() {
           כתבה אומרת — ומציגה לך רק את מה ששווה את תשומת הלב שלך.
         </p>
         <p className="text-sm text-text-secondary leading-relaxed">
-          כדי שזה יעבוד, נציג לך כמה כותרות לדוגמה ותסמנו מה מעניין אתכם.
-          שתי דקות — והפיד שלך יתחיל לדבר בשפה שלך. אפשר לעצור באמצע ולחזור
-          מכל מכשיר; התשובות נשמרות.
+          מתחילים בלספר לנו אחרי מה אתם עוקבים — ענפים, ליגות, קבוצות ושחקנים.
+          אחר כך כמה כותרות קצרות יכיילו את הניואנסים. שתי דקות — והפיד שלך
+          יתחיל לדבר בשפה שלך. אפשר לעצור באמצע ולחזור מכל מכשיר.
         </p>
 
         {error && (
@@ -58,10 +58,10 @@ export default function Onboarding() {
         <div className="pt-2 space-y-3">
           <Button
             className="w-full gap-2"
-            onClick={() => navigate("/calibration")}
+            onClick={() => navigate("/interests")}
           >
-            <SlidersHorizontal size={15} />
-            לכיול הפיד שלי
+            <Compass size={15} />
+            בחרו מה מעניין אתכם
           </Button>
           <button
             type="button"
@@ -74,8 +74,8 @@ export default function Onboarding() {
         </div>
 
         <p className="text-xs text-text-dim leading-relaxed pt-2">
-          בלי כיול הפיד יישאר ריק בכוונה — אנחנו לא מציגים רעש גנרי. הכיול
-          יחכה לך בלחיצה אחת, ותמיד אפשר לחדד אותו מחדש.
+          בלי לבחור תחומי עניין הפיד יישאר ריק בכוונה — אנחנו לא מציגים רעש
+          גנרי. הבחירה והכיול יחכו לך בלחיצה אחת, ותמיד אפשר לחדד מחדש.
         </p>
       </div>
     </AuthScene>

@@ -10,6 +10,7 @@ import RequireOpsRole from '@/components/shell/RequireOpsRole';
 import Feed from '@/pages/Feed';
 import Preferences from '@/pages/Preferences';
 import Calibration from '@/pages/Calibration';
+import InterestSelection from '@/pages/InterestSelection';
 import Sources from '@/pages/Sources';
 import Results from '@/pages/Results';
 import Account from '@/pages/Account';
@@ -45,6 +46,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 <Route element={<AppShell area="product" />}>
                   <Route index element={<Feed />} />
                   <Route path="preferences" element={<Preferences />} />
+                  <Route path="interests" element={<InterestSelection />} />
                   <Route path="calibration" element={<Calibration />} />
                   <Route path="results" element={<Results />} />
                   <Route path="account" element={<Account />} />

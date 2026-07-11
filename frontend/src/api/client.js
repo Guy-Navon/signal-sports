@@ -281,6 +281,34 @@ export function completeMeOnboarding() {
   return apiFetch("/api/me/onboarding/complete", { method: "POST" });
 }
 
+/** Explicit interests (issues #77/#78/#81/#82, docs/INTERESTS.md). */
+export function getTaxonomyCatalog() {
+  return apiFetch("/api/taxonomy/catalog");
+}
+
+export function getMeInterests() {
+  return apiFetch("/api/me/interests");
+}
+
+export function putMeInterests({ follows, eventPreferences }) {
+  return apiFetch("/api/me/interests", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      follows,
+      event_preferences: eventPreferences ?? {},
+    }),
+  });
+}
+
+export function completeMeInterests() {
+  return apiFetch("/api/me/interests/complete", { method: "POST" });
+}
+
+export function getMeCalibrationItems() {
+  return apiFetch("/api/me/calibration/items");
+}
+
 /** Account lifecycle (User Platform PR 7, #55). */
 export function changeMePassword(currentPassword, newPassword) {
   return apiFetch("/api/me/password", {

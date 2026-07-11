@@ -122,12 +122,26 @@ export default function DebugArticleCard({ item }) {
               </p>
               <div className="space-y-0.5">
                 {item.score.contributions.map((c, i) => (
-                  <div key={i} className="flex flex-wrap gap-x-2 text-[11px] font-mono">
+                  <div key={i} className="flex flex-wrap items-center gap-x-2 text-[11px] font-mono">
                     <span className="text-text-dim">{c.step}</span>
                     <span className={c.effect === "hidden" || String(c.effect).startsWith("-") ? "text-signal-hidden" : "text-signal-high"}>
                       {c.effect}
                     </span>
                     <span className="text-text-secondary">{c.detail}</span>
+                    {/* Provenance (issue #84): which layer wrote the fired entry. */}
+                    {c.source && (
+                      <span className={cn(
+                        "px-1.5 py-px rounded-full border text-[10px] font-sans",
+                        c.source === "explicit"
+                          ? "border-signal-high/40 text-signal-high"
+                          : c.source === "learned"
+                            ? "border-signal-ai/40 text-signal-ai"
+                            : "border-border text-text-dim",
+                      )}>
+                        {c.source === "explicit" ? "בחירה מפורשת"
+                          : c.source === "learned" ? "נלמד" : "מכויל"}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

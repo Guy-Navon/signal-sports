@@ -62,6 +62,13 @@ _LEVEL_POINTS = {2: 3, 1: 2, 0: 1, -1: 0}
 
 _THRESHOLDS = ["hidden", "low_feed", "feed", "high_feed"]  # index = clamped score
 
+# Provenance labels for the Hebrew reasoning chain (issue #84).
+_SOURCE_LABELS_HE = {
+    "explicit": "בחירה מפורשת",
+    "calibration": "מכויל",
+    "learned": "נלמד",
+}
+
 
 def _threshold(score: int) -> str:
     return _THRESHOLDS[max(0, min(score, 3))]
@@ -170,8 +177,17 @@ def score_article_v2(
     contributions: List[dict] = []
     reasoning: List[str] = [f"פרופיל (v2): {profile.display_name}"]
 
-    def _contribute(step: str, scope: Optional[str], effect: str, detail: str) -> None:
-        contributions.append({"step": step, "scope": scope, "effect": effect, "detail": detail})
+    def _contribute(
+        step: str, scope: Optional[str], effect: str, detail: str,
+        source: Optional[str] = None,
+    ) -> None:
+        entry = {"step": step, "scope": scope, "effect": effect, "detail": detail}
+        if source is not None:
+            # Provenance (issue #84): which layer wrote the entry that fired —
+            # explicit interests, calibration, or learning. Additive field;
+            # the structured contribution stays the machine-readable contract.
+            entry["source"] = source
+        contributions.append(entry)
 
     def _result(decision: str, matched: Optional[str], rule: Optional[str]) -> DecisionResult:
         reasoning.append(f"החלטה סופית: {DECISION_LABELS[decision]}")
@@ -258,13 +274,16 @@ def score_article_v2(
     base = max(matches, key=lambda m: (m.points, -m.specificity))
     score = base.points
     level_name = AFFINITY_LEVEL_NAMES[base.affinity.level]
+    source_label = _SOURCE_LABELS_HE.get(base.affinity.source, base.affinity.source)
     reasoning.append(
         f"בסיס: עוקב ({level_name}) אחרי {base.detail} → {score} נק'"
+        f" ({source_label})"
     )
     _contribute(
         "base_scope", base.affinity.target_id, f"+{score}",
         f"{base.affinity.scope}:{base.detail} level={level_name}"
         + (f" match_kind={base.match_kind}" if base.match_kind else ""),
+        source=base.affinity.source,
     )
 
     # ── 3. Entity boost ──────────────────────────────────────────────────────
@@ -295,11 +314,22 @@ def score_article_v2(
         score += delta_entry.delta
         sign = "+" if delta_entry.delta > 0 else ""
         scope_txt = delta_entry.scope_ref or "גלובלי"
+        delta_source = _SOURCE_LABELS_HE.get(delta_entry.source, delta_entry.source)
         reasoning.append(
             f"העדפת אירוע ({article.event_type} @ {scope_txt}): {sign}{delta_entry.delta}"
+            f" ({delta_source})"
         )
         _contribute("event_affinity", delta_entry.scope_ref, f"{sign}{delta_entry.delta}",
-                    article.event_type)
+                    article.event_type, source=delta_entry.source)
+    elif article.event_type == "news":
+        # Unknown-event fallback (issue #84, contract in RELEVANCE_CONTRACT):
+        # event abstention is NOT a negative signal — the base scope stands,
+        # personalization precision simply drops. Make that explicit in the
+        # trace instead of silently skipping the step.
+        reasoning.append(
+            "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד"
+        )
+        _contribute("event_affinity", None, "0", "unknown_event_fallback")
 
     # ── 5. Importance interaction ────────────────────────────────────────────
     # very_high elevates only articles that are ALREADY visible (score ≥ 1) —

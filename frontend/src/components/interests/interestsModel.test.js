@@ -178,6 +178,36 @@ describe("parentSuggestions (suggest, never auto-create)", () => {
   });
 });
 
+describe("provenance display (issue #83)", () => {
+  const profileV2 = {
+    scope_affinities: [
+      { scope: "sport", target_id: "basketball", level: 0, source: "explicit" },
+      { scope: "competition", target_id: "comp:ibl", level: 1, source: "calibration" },
+      { scope: "player", target_id: "player:deni_avdija", level: 1, source: "learned" },
+      { scope: "competition", target_id: "comp:euroleague", level: -1, source: "explicit" },
+    ],
+  };
+
+  it("nonExplicitEntries returns derived entries + negative explicit levels", async () => {
+    const { nonExplicitEntries } = await import("./interestsModel");
+    const entries = nonExplicitEntries(profileV2);
+    expect(entries.map((e) => `${e.source}:${e.target_id}`)).toEqual([
+      "calibration:comp:ibl",
+      "learned:player:deni_avdija",
+      "explicit:comp:euroleague", // negative explicit — read-only, not managed
+    ]);
+  });
+
+  it("displayNameFor resolves Hebrew names per scope kind", async () => {
+    const { displayNameFor } = await import("./interestsModel");
+    expect(displayNameFor(catalog, "sport", "basketball")).toBe("כדורסל");
+    expect(displayNameFor(catalog, "competition", "comp:ibl")).toBe("ליגת ווינר סל");
+    expect(displayNameFor(catalog, "team", "team:hapoel_tlv_bb")).toBe("הפועל תל אביב");
+    expect(displayNameFor(catalog, "player", "player:deni_avdija")).toBe("דני אבדיה");
+    expect(displayNameFor(catalog, "competition", "comp:unknown")).toBe("comp:unknown");
+  });
+});
+
 describe("documentToState", () => {
   it("round-trips the GET document into picker state", () => {
     const state = documentToState({

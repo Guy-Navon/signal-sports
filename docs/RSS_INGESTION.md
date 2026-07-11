@@ -89,6 +89,15 @@ which is why this source is scraping-based and not RSS.
   timestamp fall back to ingest time.
 - Any network or parse failure is logged and skipped; `fetch()` never raises.
   A Sport5 outage cannot crash an ingestion run.
+- **Non-editorial page filter (issue #97):** because article anchors are matched
+  by URL shape, Sport5's footer legal/utility links (the "כללי"/General folder,
+  `FolderID=413` — Terms of Use / Privacy Policy, `docID=50633`) share that shape
+  and were being scraped as articles. They are filtered by a source-owned
+  `blocked_url_patterns=("folderid=413&",)` in the Sport5 config, applied by the
+  standard `_should_filter` step (counted as `skipped_filtered`). This blocks the
+  non-editorial folder only — editorial folders (e.g. `FolderID=274`) and any
+  article whose text merely mentions "תקנון"/terms are unaffected (it is a URL
+  filter, not a keyword filter).
 
 **Fragility note:** scraping depends on Sport5's markup and URL scheme. If the
 site changes, the adapter degrades to fetching 0 items (visible in source health

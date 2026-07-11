@@ -1,6 +1,8 @@
 # Signal Sports — Current Project State
 
-Last updated: 2026-07-10 (USER PLATFORM MILESTONE COMPLETE — #49–#55 all merged).
+Last updated: 2026-07-11 (EXPLICIT INTERESTS & ONBOARDING v2 MILESTONE COMPLETE — #77–#85 all merged).
+
+**2026-07-11 — EXPLICIT INTERESTS & ONBOARDING v2 MILESTONE COMPLETE (Milestone 4, #77–#85).** Onboarding now begins with **explicit interest selection** — the mental model is **EXPLICIT INTEREST SELECTION → CALIBRATION → CONTINUOUS LEARNING**, deterministic and taxonomy-backed (no LLM interprets a known catalog choice). All nine issues merged (#79 PR #86 decision-contract locks · #77 PR #87 interests API · #78 PR #88 taxonomy catalog · #80 PR #89 calibration dataset v3 · #81 PR #90 interest-aware selection · #82 PR #91 onboarding UX · #83 PR #92 editable interests in Preferences · #84 PR #93 decision provenance · #85 acceptance gate). **Zero scoring-engine changes** — explicit interests are ordinary `source="explicit"` ProfileV2 affinities via a kind-sensitive Follow/Star tier→level mapping (sport Follow=0/Star=+1; competition & team/player Follow=+1/Star=+2), scored by the frozen engine. New surface: `GET /api/taxonomy/catalog`, `GET/PUT /api/me/interests` + `/interests/complete`, `GET /api/me/calibration/items` (interest-aware ~10–14-item selection), `users.interests_completed_at`; calibration dataset v3 (73 items, coverage-driven over the selectable-scope list); source-labeled decision traces (explicit/calibration/learned) with an explicit unknown-event-fallback step. **Acceptance:** full journey (signup → interests → calibration → personalized feed → feedback → learned adjustment with provenance → logout/login → deletion) green; **corpus regression: guy/deni decision drift 0/311** vs the reliability snapshot (engine provably unchanged); push discipline held (guy 8 / deni 1 on the current 404-article corpus); unknown-event recall confirmed on real data (32 `news` articles visible for guy via explicit follows, 0 for the narrow Deni fan); docs truth sweep complete. Backend suite: **1774 passed / 1 skipped** (fixed a pre-existing session-scoped `rss_seeded` fixture fragility exposed by the acceptance test); frontend **396 passed**. #64 Q1/Q2 recorded (per-user floor via explicit selection; `news` stays out of reach allowlists) — **#64 left open for its Q3 (nickname resolution)**. Contract: `docs/INTERESTS.md`; execution home [Milestone 4](https://github.com/Guy-Navon/signal-sports/milestone/4).
 
 **2026-07-10 (final) — USER PLATFORM MILESTONE COMPLETE.** All seven issues merged (#49 PR #56 · #50 PR #71 · #51 PR #72 · #53 PR #73 · #52 PR #74, product-approved · #54 PR #75 after two independent-review rounds · #55 PR #76). Signal Sports is now a real multi-user product: email/password accounts, cookie sessions, session-derived `/api/me/*` consumer surface, onboarding (welcome → resumable calibration → personalized feed / intentionally-empty-feed CTA), fail-closed admin/QA surface with ops view-as, fresh-identity enforcement test architecture with a route-derived authorization inventory (45 routes, coverage + dependency-truth guards), and full account lifecycle (password change with other-session revocation, transactional deletion with demo/last-admin guards, session pruning, admin-mutation breadcrumbs). Acceptance journey verified end-to-end on a corpus copy; guy/deni drift 0/311; golden-17 green; corpus DB untouched. Backend suite: 1639 under real enforcement; frontend 373. **Recorded follow-up: the owner's physical phone/Tailscale pass** (`docs/MOBILE_REMOTE_ACCESS.md` checklist → record on issue #54's thread). Next tracks: Reliability leftovers #64 (product decisions) / #65 (non-gating), and the Mobile Access backlog (#16–#23).
 
@@ -330,6 +332,21 @@ The endpoint table above is a core summary, **not exhaustive** — Calibration V
 | `push` | Urgent — "stop and read this" |
 
 Push must be rare. If more than a handful of articles per day reach push, the engine is too aggressive.
+
+**2026-07-11 — Explicit Interests & Onboarding v2 (Milestone 4).** How a user's
+ProfileV2 gets POPULATED changed; how it is SCORED did not (engine frozen; the
+decision-contract locks in `backend/tests/test_decision_contract.py` prove the
+audited semantics by execution). Users declare interests explicitly via
+Follow/Star over the taxonomy catalog; each becomes a `source="explicit"`
+scope affinity (kind-sensitive tier→level: sport Follow=0/Star=+1; competition
+& team/player Follow=+1/Star=+2) plus optional global event-preference presets.
+Precedence is unchanged (`explicit > learned > calibration` same-target;
+scoped-beats-global by specificity). The unknown-event contract is now
+test-locked and trace-visible: `event_type="news"` never gates direct scope
+matches — a followed sport/team/player or tier-1 explicit competition evidence
+stays visible; only diffuse reach (membership/participant tiers) is event-gated.
+Contract: `docs/INTERESTS.md`. Writers of the model are summarised in
+`docs/PREFERENCE_MODEL_V2.md`.
 
 **2026-07-06 — Signal Intelligence Architecture v2, PR 3 (Relevance Visibility
 Contract, #29).** `league`/`league_group`-scope topics now match through a

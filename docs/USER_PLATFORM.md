@@ -76,6 +76,14 @@ today stops one caller reading another user's data by editing a path parameter).
   ProfileV2) created at signup. Onboarding state = one nullable timestamp + derivation.
   **Explicit product decision**: skipping calibration yields an intentionally empty feed
   with a strong persistent calibrate CTA — no generic fallback feed.
+  > **SUPERSEDED (2026-07-11, Explicit Interests & Onboarding v2, Milestone 4,
+  > issue #82):** onboarding now begins with **explicit interest selection**
+  > (signup → welcome → `/interests` → interest-aware calibration → feed), and
+  > **explicit follows alone produce a real feed** — the intentionally-empty
+  > feed now shows only when the user has neither follows NOR calibration
+  > answers. A new `users.interests_completed_at` timestamp tracks the interest
+  > stage separately from `onboarding_completed_at` (legacy users read as
+  > complete and are never re-funneled). See `docs/INTERESTS.md`.
 - **Frontend**: new `AuthContext` bootstrapped from `GET /api/auth/session`; login/signup/
   onboarding as product-side routes outside AppShell; the ProfileSwitcher leaves the
   consumer Masthead and becomes an admin "QA view-as" picker in the ops console;
@@ -201,9 +209,18 @@ all states derived** — no state enum to drift.
   minimal fallback would grow into a duplicate of Calibration V2. Skip exists as an escape
   (never trap the user), not as an equal path; the empty state doubles as the clearest
   possible explanation of what the product is. Calibration remains one tap away forever.
+  > **REFINED (Milestone 4, #82):** the "empty feed is the product thesis"
+  > principle stands, but the trigger changed. Explicit interest selection is
+  > the new first stage, and a user with explicit follows gets a **real
+  > personalized feed even without any calibration** (their follows score
+  > through the engine directly). The empty-feed CTA now appears only when the
+  > user skipped BOTH interest selection AND calibration — i.e. `answered == 0
+  > AND interests.selected == 0`. The state machine gains a `SELECTING_INTERESTS`
+  > stage; see `docs/INTERESTS.md`.
 - `GET /api/auth/session` returns
-  `{auth_enforced, user|null, onboarding: {completed, calibration: {answered, total}}}` —
-  the single frontend bootstrap.
+  `{auth_enforced, user|null, onboarding: {completed, calibration: {answered, total},
+  interests: {completed, selected}}}` — the single frontend bootstrap. (The
+  `interests` block was added in Milestone 4, #77.)
 - **Demo users** never enter this machine (they cannot log in).
 
 ## Demo / development / QA separation

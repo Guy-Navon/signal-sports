@@ -295,3 +295,105 @@ class TestBuducnost62:
         from app.taxonomy import entity_by_id
         ent = entity_by_id("team:buducnost_bb")
         assert ("comp:eurocup", None) in ent.memberships
+
+
+# ── Issue #64 R6 Q3 — nickname-based entity-resolution breadth ────────────────
+#
+# Product decision (owner, 2026-07-11): do NOT broaden nicknames. Every candidate
+# nickname on the real corpus is unsafe (reds), ambiguous within a single sport /
+# precision-violating (yellows), or redundant with a co-present full name
+# (greens, punctuation variants). The correct behaviour is abstention, which the
+# resolver already delivers because these nicknames are simply not aliases. This
+# suite LOCKS that abstention: it fails loudly if a future contributor registers
+# any of these nicknames and silently reopens the precision leak.
+#
+# Colour nicknames intentionally kept OUT of the registry, with the reason each
+# fails the alias-safety bar:
+#   הצהובים / צהובים  (yellows) — ambiguous within basketball itself (every
+#       Maccabi club is "yellow"); redundant (full "מכבי ת״א" co-present in
+#       nearly all corpus hits); bare "צהוב" collides with "כרטיס צהוב" (yellow
+#       card).
+#   האדומים / אדומים  (reds)    — every Hapoel club (Jerusalem/TLV/Holon/Haifa/
+#       Beer Sheva) AND Manchester United AND red-card contexts; multiple
+#       confirmed false positives on the real corpus.
+#   הירוקים          (greens)   — Maccabi Haifa (football) and Panathinaikos;
+#       cross-club, all redundant.
+
+# Nicknames that must never become aliases (the Q3 abstention contract).
+_UNSAFE_NICKNAMES: frozenset[str] = frozenset(
+    {
+        "הצהובים", "הצהובות", "צהובים", "צהוב",
+        "האדומים", "אדומים", "אדום",
+        "הירוקים", "ירוקים",
+    }
+)
+
+
+class TestNicknameAbstentionQ3:
+    def test_unsafe_nicknames_are_not_registered_as_aliases(self):
+        # The core lock: none of the tempting colour nicknames may exist in the
+        # alias index, in any sport. Adding one flips this test red.
+        from app.taxonomy.resolver import _ALIAS_INDEX
+        registered = {n for n in _UNSAFE_NICKNAMES if n.lower() in _ALIAS_INDEX}
+        assert registered == set(), f"unsafe nicknames leaked into the registry: {registered}"
+
+    def test_yellows_nickname_abstains_in_basketball_context(self):
+        # "הצהובים" must NOT resolve to Maccabi Tel Aviv even with basketball
+        # evidence — Maccabi Ramat Gan / Kiryat Gat are also "yellow" clubs, so a
+        # unique resolution would let one club capture another's articles.
+        res = resolve_entities("הצהובים מחפשים גארד ליורוליג", sport_context="basketball")
+        assert res.resolved == []
+
+    def test_yellow_card_is_not_a_team(self):
+        # bare "צהוב"/"צהובים" collides with "כרטיס צהוב" (yellow card) — a
+        # football context that must never inject a basketball club.
+        res = resolve_entities("השחקן קיבל כרטיס צהוב שני בדקה ה-80", sport_context="football")
+        assert res.resolved == []
+
+    def test_reds_nickname_does_not_capture_manchester_united(self):
+        # "האדומים" for Man United must not resolve to any Israeli Hapoel club.
+        res = resolve_entities(
+            "יונייטד סיכמה עם צ'לסי: אנדריי סנטוס בדרך לאולד טראפורד",
+            sport_context="football",
+        )
+        assert res.resolved == []
+
+    def test_reds_nickname_abstains_across_hapoel_clubs(self):
+        # "האדומים" is every Hapoel club at once — abstention, never a guess.
+        res = resolve_entities("האדומים חתמו על סנטר חדש", sport_context="basketball")
+        assert res.resolved == []
+
+    def test_real_corpus_tel_aviv_derby_headline_abstains(self):
+        # Real hidden-row corpus headline about the Madar/Blatt trade between the
+        # two Tel Aviv clubs. "התל-אביביות" + colour nicknames must NOT inject a
+        # Maccabi tag — the specific club is genuinely under-determined here.
+        res = resolve_entities(
+            "הטרייד הסוער בין התל-אביביות על מדר ובלאט טוב לכל הצדדים",
+            sport_context="basketball",
+        )
+        assert "Maccabi Tel Aviv Basketball" not in res.resolved_legacy_names
+        assert "Hapoel Tel Aviv Basketball" not in res.resolved_legacy_names
+
+    def test_greens_nickname_does_not_resolve(self):
+        # "הירוקים" (Maccabi Haifa / Panathinaikos) is cross-club — abstain.
+        res = resolve_entities("הירוקים ניצחו בדרבי", sport_context="football")
+        assert res.resolved == []
+
+    def test_full_name_still_resolves_when_nickname_co_occurs(self):
+        # Precision preserved AND recall unharmed: the full name in the same text
+        # resolves normally; the nickname neither helps nor hurts.
+        res = resolve_entities(
+            "המו\"מ בין מכבי ת\"א לים מדר חודש, הצהובים מנסים לסגור את העסקה",
+            sport_context="basketball",
+        )
+        assert res.resolved_legacy_names == ["Maccabi Tel Aviv Basketball"]
+
+    def test_same_sport_shared_alias_would_abstain(self):
+        # Documents the enabling invariant: the abstention machinery is NOT
+        # cross-sport only. If a nickname were ever registered as a shared alias
+        # of two SAME-sport clubs, the len>1 branch abstains. Proven here on the
+        # cross-sport pair, whose same-sport survivors (both Tel Aviv Maccabis
+        # under no sport filter) are reported ambiguous rather than guessed.
+        res = resolve_entities("מכבי תל אביב עם הודעה חשובה")
+        assert res.resolved == []
+        assert len(res.ambiguous) == 1

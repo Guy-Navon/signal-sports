@@ -3,6 +3,35 @@
 **Status: ACTIVE.** Supersedes `CALIBRATION_V0.md` and `CALIBRATION_APPLY.md`
 (kept for history — the frontend-only flow they describe was removed).
 
+## Dataset v3 (issue #80 — coverage-driven expansion)
+
+With explicit interest selection (#77, `docs/INTERESTS.md`), calibration's
+role narrowed to **nuance within declared interests** plus limited
+discovery. `CALIBRATION_DATASET_VERSION = 3`, **73 items** (65 baseline +
+8 entity-contrast). The contract is a measurable coverage specification —
+NOT an item count — enforced by `tests/test_calibration_coverage.py`,
+generated over the selectable-scope list (`taxonomy/policy.py`):
+
+- every selectable competition (all 15): ≥4 entity-less items spanning ≥3
+  event types and ≥2 importance levels;
+- entity contrast is no longer Maccabi/Deni-centric — 6 contrast entities:
+  Maccabi TLV bb, Hapoel TLV bb (`hapoel_vs_ibl`), Lakers
+  (`lakers_vs_nba`), Real Madrid bb (`real_vs_el`), Maccabi Haifa fc
+  (`haifa_vs_ligat`), Deni Avdija (`deni_vs_nba`);
+- football is competition-tagged (Ligat ha'Al / Leumit) with 2 sport-scoped
+  world-football probes kept for the sport baseline; the 4 tennis slams
+  each carry the slam-vs-early-round pattern; 2 sport-scoped tennis probes;
+- no items target non-selectable competitions (never calibrate what cannot
+  be followed);
+- event families (unioned through the engine's alias map) with ≥2 items
+  must span ≥2 scopes — event preference stays separable from scope
+  preference; single-item families are scope-local probes.
+
+Printable audit: `backend/scripts/calibration_coverage_report.py`. v2
+responses are ignored at read time (dataset-version filter); the estimator
+is unchanged. The v2 description below remains accurate for everything but
+the dataset shape.
+
 ## What changed
 
 Calibration v1 was frontend-only: a 43-headline JS dataset, JS inference, a

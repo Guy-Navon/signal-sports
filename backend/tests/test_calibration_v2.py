@@ -21,17 +21,23 @@ def _rate(**by_id) -> dict:
 
 class TestDatasetCoverage:
     def test_dataset_size_and_version(self):
-        assert len(CALIBRATION_ITEMS) == 24
-        assert CALIBRATION_DATASET_VERSION == 2
+        assert len(CALIBRATION_ITEMS) == 73
+        assert CALIBRATION_DATASET_VERSION == 3
 
     def test_every_competition_scope_has_two_baseline_items(self):
         """Competition support ≥2 must be reachable for every tagged
-        competition (entity-tagged items are excluded from baselines)."""
+        competition (entity-tagged items are excluded from baselines).
+        v3 (#80): the tagged set is exactly the selectable competitions
+        (tests/test_calibration_coverage.py raises the bar to ≥4)."""
+        from app.taxonomy.competitions import COMPETITIONS
+        from app.taxonomy.policy import competition_selectable
+
         counts: dict[str, int] = {}
         for i in CALIBRATION_ITEMS:
             if i.competition_id and not i.entity_ids:
                 counts[i.competition_id] = counts.get(i.competition_id, 0) + 1
-        assert set(counts) == {"comp:nba", "comp:euroleague", "comp:ibl", "comp:acb"}
+        selectable = {c for c in COMPETITIONS if competition_selectable(c)}
+        assert set(counts) == selectable
         assert all(n >= 2 for n in counts.values()), counts
 
     def test_sport_scoped_sports_have_two_items(self):
@@ -131,14 +137,18 @@ class TestEventDelta:
         assert interview.source == "calibration"
 
     def test_tennis_major_only_pattern(self):
+        """v3 (#80): slams are competition-tagged, so the major-only
+        pattern is inferred at the slam scope (comp:wimbledon)."""
         inf = infer_calibration_profile(_rate(
-            cal2_tn_gs_winner="push", cal2_tn_gs_final="interesting",
-            cal2_tn_early_round="never_show",
+            cal3_tn_wim_winner="push", cal2_tn_gs_final="interesting",
+            cal2_tn_early_round="never_show", cal3_tn_wim_schedule="never_show",
         ))
         gs = next(e for e in inf.event_affinities
-                  if e.scope_ref == "tennis" and e.event_type == "grand_slam_winner")
+                  if e.scope_ref == "comp:wimbledon"
+                  and e.event_type == "grand_slam_winner")
         early = next(e for e in inf.event_affinities
-                     if e.scope_ref == "tennis" and e.event_type == "early_round_result")
+                     if e.scope_ref == "comp:wimbledon"
+                     and e.event_type == "early_round_result")
         assert gs.delta > 0
         assert early.delta < 0
 
@@ -257,7 +267,7 @@ class TestApiRoundTrip:
     def test_items_endpoint_versioned(self, admin_client: TestClient):
         body = admin_client.get("/api/calibration/items").json()
         assert body["version"] == CALIBRATION_DATASET_VERSION
-        assert len(body["items"]) == 24
+        assert len(body["items"]) == len(CALIBRATION_ITEMS)
         assert set(body["rating_keys"]) == {
             "never_show", "not_interesting", "neutral", "interesting", "push"
         }
@@ -373,5 +383,5 @@ class TestApiRoundTrip:
 
     def test_legacy_headlines_endpoint_serves_v2_dataset(self, admin_client: TestClient):
         body = admin_client.get("/api/calibration/headlines").json()
-        assert len(body) == 24
+        assert len(body) == len(CALIBRATION_ITEMS)
         assert all("importance" in h and "sport" in h for h in body)

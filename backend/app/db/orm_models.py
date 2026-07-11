@@ -69,6 +69,9 @@ class UserRow(Base):
     role = Column(String, nullable=False, default="user")
     created_at = Column(String, nullable=False)
     onboarding_completed_at = Column(String, nullable=True)
+    # Interest-stage process state (issue #77) — soft-migrated; NULL for
+    # legacy users, who are treated as complete (never re-funneled).
+    interests_completed_at = Column(String, nullable=True)
     last_login_at = Column(String, nullable=True)
 
     sessions = relationship(

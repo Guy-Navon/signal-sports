@@ -32,6 +32,12 @@ from app.taxonomy.resolver import (
     resolve_mention,
 )
 from app.taxonomy.integrity import validate_registry
+from app.taxonomy.policy import (
+    NON_SELECTABLE_COMPETITIONS,
+    SELECTABLE_SPORTS,
+    competition_selectable,
+    scope_target_selectable,
+)
 
 TAXONOMY_VERSION = 1
 
@@ -51,4 +57,8 @@ __all__ = [
     "resolve_entities",
     "resolve_mention",
     "validate_registry",
+    "NON_SELECTABLE_COMPETITIONS",
+    "SELECTABLE_SPORTS",
+    "competition_selectable",
+    "scope_target_selectable",
 ]

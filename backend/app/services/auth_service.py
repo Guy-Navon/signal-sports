@@ -167,6 +167,7 @@ def public_user_payload(user: UserRow) -> dict:
         "role": user.role,
         "created_at": user.created_at,
         "onboarding_completed_at": user.onboarding_completed_at,
+        "interests_completed_at": user.interests_completed_at,
         "last_login_at": user.last_login_at,
     }
 

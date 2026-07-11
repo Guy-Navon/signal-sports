@@ -45,6 +45,8 @@ def _apply_migrations(eng) -> None:
         # Feedback learning (issue #34).
         ("feedback_events", "context",            "JSON"),
         ("feedback_events", "retracted",          "INTEGER DEFAULT 0"),
+        # Explicit interests stage (issue #77).
+        ("users", "interests_completed_at",       "TEXT"),
     ]
     with eng.connect() as conn:
         for table, col, col_type in migrations:

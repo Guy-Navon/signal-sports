@@ -44,6 +44,7 @@ class AuthUser(BaseModel):
     role: str
     created_at: str
     onboarding_completed_at: str | None
+    interests_completed_at: str | None = None
     last_login_at: str | None
 
 
@@ -60,9 +61,17 @@ class CalibrationBootstrap(BaseModel):
     total: int
 
 
+class InterestsBootstrap(BaseModel):
+    completed: bool
+    selected: int
+
+
 class OnboardingBootstrap(BaseModel):
     completed: bool
     calibration: CalibrationBootstrap
+    # Explicit interest stage (issue #77). Legacy users (onboarding done
+    # before the stage existed) read as completed — never re-funneled.
+    interests: InterestsBootstrap
 
 
 class SessionBootstrap(BaseModel):
@@ -109,16 +118,31 @@ def _calibration_answer_count(session: Session, user_id: str) -> int:
     return min(answered, len(CALIBRATION_ITEMS))
 
 
+def _interests_selected_count(session: Session, user_id: str) -> int:
+    from app.repositories import profile_repository
+    from app.services.interests_service import interests_document
+
+    profile = profile_repository.get_by_id(session, user_id)
+    if profile is None:
+        return 0
+    return interests_document(profile, completed=False).selected
+
+
 def _session_bootstrap(session: Session, user: UserRow | None) -> SessionBootstrap:
     onboarding = None
     if user is not None:
         from app.calibration_v2 import CALIBRATION_ITEMS
+        from app.services.interests_service import interests_completed
 
         onboarding = OnboardingBootstrap(
             completed=user.onboarding_completed_at is not None,
             calibration=CalibrationBootstrap(
                 answered=_calibration_answer_count(session, user.id),
                 total=len(CALIBRATION_ITEMS),
+            ),
+            interests=InterestsBootstrap(
+                completed=interests_completed(user),
+                selected=_interests_selected_count(session, user.id),
             ),
         )
     return SessionBootstrap(

@@ -55,6 +55,9 @@ ME = {
     "POST /api/me/calibration/responses",
     "POST /api/me/calibration/apply",
     "POST /api/me/onboarding/complete",
+    "GET /api/me/interests",
+    "PUT /api/me/interests",
+    "POST /api/me/interests/complete",
     "POST /api/me/password",
     "DELETE /api/me/account",
 }

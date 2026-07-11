@@ -30,6 +30,21 @@ never overrides an explicit one, and repeated real-feed feedback refines
 synthetic calibration answers (`effective_scope_affinities()`; the same
 authority resolution applies to duplicate event affinities in the scorer).
 
+## Writers of the model
+
+The scorer never cares WHO wrote an entry — provenance is data. Writers:
+
+- **Explicit interests** (issue #77, `docs/INTERESTS.md`): the Follow/Star
+  acquisition surface writes `source="explicit"` scope affinities (levels
+  0..+2 via the kind-sensitive tier mapping) and global explicit event
+  deltas (preset expansion). It manages ONLY that subset — negative
+  explicit levels, scoped explicit deltas, overrides, and everything
+  calibration/learned stay untouched on every PUT.
+- **Calibration** (issue #33): `source="calibration"` scope/event entries;
+  re-apply replaces only calibration-sourced entries.
+- **Learning** (issue #34): `source="learned"` entries derived at read time
+  from the feedback event log; never persisted into the profile row.
+
 ## The scorer (`app/services/preference_engine.py`)
 
 Layered, monotonic by construction; every step emits a structured

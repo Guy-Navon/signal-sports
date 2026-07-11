@@ -143,3 +143,32 @@ After any registry change: regenerate the frontend artifact with
 `backend/.venv/Scripts/python.exe backend/scripts/generate_taxonomy_export.py`
 and commit `frontend/src/data/taxonomyReach.generated.json`
 (`tests/test_taxonomy_export_freshness.py` fails loudly otherwise).
+
+## Nickname breadth audit (#64 R6 Q3 — 2026-07-11)
+
+Decision (product owner): **do not broaden nicknames.** Colloquial colour
+nicknames are kept OUT of the registry; abstention is the correct behaviour and
+is now test-locked (`TestNicknameAbstentionQ3` in `tests/test_entity_resolver.py`).
+
+Evidence from a read-only pass over the 404-article real corpus with the current
+classifier — per-candidate incremental recall (nickname is the *sole* club
+evidence, sport is resolvable, entity currently unresolved) vs precision cost:
+
+| Nickname | Corpus hits | Safe incremental | Why it fails the alias-safety bar |
+|---|---|---|---|
+| הצהובים / צהובים (yellows → Maccabi TLV) | ~16–23 | ~2 | Ambiguous *within basketball* — Maccabi Ramat Gan / Kiryat Gat are also "Maccabi/yellow", so a unique resolution lets one club capture another's articles; redundant (full "מכבי ת״א" co-present in nearly all hits); bare "צהוב" ⊂ "כרטיס צהוב" (yellow card). Registering on all yellow clubs → abstains → 0 value. |
+| האדומים / אדומים (reds → Hapoel) | ~20–22 | 0 | Every Hapoel club (Jerusalem/TLV/Holon/Haifa/Beer Sheva) **and** Manchester United **and** red-card contexts. Confirmed false positives on the real corpus ("יונייטד סיכמה עם צ'לסי", "בבלגיה חגגו", "יותר מליונל מסי"). |
+| הירוקים (greens → M. Haifa / Panathinaikos) | 5 | 0 | Cross-club, all redundant (full name co-present), football-only. |
+| Punctuation / transliteration normalization | — | 0 | The registry already enumerates ASCII **and** gershayim per abbreviated club (`'בית"ר ירושלים'` + `"בית״ר ירושלים"`, `'מכבי ת"א'` + `"מכבי ת״א"` + `"מכבי תא"`); a normalization layer resolves no additional real headline. |
+
+Architectural note: the resolver's abstention is **not** cross-sport only — the
+`len(candidates) > 1 → ambiguous` branch in `resolve_entities` is sport-agnostic,
+so a shared alias hosted on every club that bears it would abstain within a
+single sport too. The blocker for nicknames was never a missing mechanism; it is
+the ambiguity/redundancy of the specific nicknames above.
+
+Out of scope (a sport-resolution gap, not a nickname gap): ~15–20 hidden
+Guy-relevant off-court Israeli-club business/ownership stories (e.g. "רקנאטי
+רוכשת… מכבי ת״א") resolve `sport=unknown` → cross-sport-ambiguous → abstain. The
+alias already exists; the article's **sport** cannot be proven. Tracked
+separately from Q3.

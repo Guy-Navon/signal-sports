@@ -240,6 +240,35 @@ def me_complete_interests(
 
 # ── Calibration / onboarding ─────────────────────────────────────────────────
 
+@router.get("/calibration/items")
+def me_calibration_items(
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Interest-aware calibration selection (issue #81): ~10-14 items scoped
+    to the user's explicit interests + discovery probes, deterministic per
+    (user, dataset version). The admin GET /api/calibration/items keeps
+    serving the full dataset. Same response shape (items subset only)."""
+    from app.api.routes_calibration import CalibrationItemOut, CalibrationItemsResponse
+    from app.calibration_v2 import CALIBRATION_DATASET_VERSION, RATING_VALUES
+    from app.calibration_v2.selection import select_items
+
+    profile = get_profile(user_id=user.id, session=session)
+    selected = select_items(profile.profile_v2, user_id=user.id)
+    return CalibrationItemsResponse(
+        version=CALIBRATION_DATASET_VERSION,
+        rating_keys=list(RATING_VALUES),
+        items=[
+            CalibrationItemOut(
+                id=i.id, title=i.title, sport=i.sport,
+                competition_id=i.competition_id, entity_ids=list(i.entity_ids),
+                event_type=i.event_type, importance=i.importance,
+            )
+            for i in selected
+        ],
+    )
+
+
 @router.get("/calibration/responses")
 def me_calibration_responses(
     user: UserRow = Depends(require_user),

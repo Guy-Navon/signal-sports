@@ -32,6 +32,32 @@ responses are ignored at read time (dataset-version filter); the estimator
 is unchanged. The v2 description below remains accurate for everything but
 the dataset shape.
 
+## Interest-aware selection (issue #81)
+
+`GET /api/me/calibration/items` serves ~10–14 items selected by
+`calibration_v2/selection.py::select_items(profile_v2, user_id)` — the
+consumer onboarding/calibration surface. The admin
+`GET /api/calibration/items` keeps serving the full dataset.
+
+- Keys on **explicit** interests only (level ≥ 0, the managed Follow/Star
+  space) — calibration-derived scopes never steer the next calibration.
+- Followed/starred teams & players contribute their contrast items PLUS
+  the same-group baselines (pairs are never split — the estimator infers
+  entity levels only from complete pairs).
+- Followed competitions get up to 3 entity-less items spanning event types
+  (highest-importance, lowest-importance, one random distinct-event probe).
+- Followed sports get their sport-scoped probes, plus one competition's
+  items when the sport has no followed competition (sport-baseline
+  support ≥ 2).
+- 2–3 **discovery probes** from undeclared scopes (one per scope,
+  high-importance first) keep serendipity; a sparse-interest pad extends
+  probes up to the 10-item floor; a priority trim (entity pairs protected,
+  third-per-competition extras dropped first) enforces the 14-item cap.
+- **Deterministic** per (user_id, dataset_version) — resumability by
+  re-derivation, not stored state.
+- Zero-interest users (legacy accounts / skip-all) get a curated 14-item
+  default mirroring the v2-era shape (`_DEFAULT_ITEM_IDS`).
+
 ## What changed
 
 Calibration v1 was frontend-only: a 43-headline JS dataset, JS inference, a

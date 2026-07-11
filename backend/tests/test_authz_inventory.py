@@ -51,6 +51,7 @@ ME = {
     "GET /api/me/learning",
     "POST /api/me/learning/reset",
     "POST /api/me/never_show",
+    "GET /api/me/calibration/items",
     "GET /api/me/calibration/responses",
     "POST /api/me/calibration/responses",
     "POST /api/me/calibration/apply",

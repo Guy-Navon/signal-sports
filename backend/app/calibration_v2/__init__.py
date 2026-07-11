@@ -10,3 +10,4 @@ from app.calibration_v2.inference import (  # noqa: F401
     CalibrationInference,
     infer_calibration_profile,
 )
+from app.calibration_v2.selection import select_items  # noqa: F401

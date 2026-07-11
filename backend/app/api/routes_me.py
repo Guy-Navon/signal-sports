@@ -48,6 +48,7 @@ from app.models.feedback import FeedbackEvent, FeedbackRequest
 from app.models.profile import UserProfile
 from app.models.scoring import ScoredArticle
 from app.services import auth_service
+from app.services import interests_service
 
 router = APIRouter(prefix="/me")
 
@@ -190,6 +191,51 @@ def me_never_show(
         session=session,
         acting_admin=None,
     )
+
+
+# ── Explicit interests (issue #77, docs/INTERESTS.md) ────────────────────────
+
+@router.get("/interests", response_model=interests_service.InterestsDocument)
+def me_get_interests(
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    profile = get_profile(user_id=user.id, session=session)
+    return interests_service.interests_document(
+        profile, completed=interests_service.interests_completed(user)
+    )
+
+
+@router.put("/interests", response_model=interests_service.InterestsDocument)
+def me_put_interests(
+    payload: interests_service.InterestsPutRequest,
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Full replace of the managed explicit subset (Follow/Star scope
+    affinities + global event presets). Calibration/learned entries, scoped
+    explicit deltas, negative explicit levels, overrides and mutes all
+    survive (docs/INTERESTS.md). Declaring interests stamps the stage
+    complete (idempotent)."""
+    profile = get_profile(user_id=user.id, session=session)
+    try:
+        profile = interests_service.replace_managed_interests(session, profile, payload)
+    except interests_service.InterestsValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    interests_service.complete_interests(session, user)
+    return interests_service.interests_document(profile, completed=True)
+
+
+@router.post("/interests/complete", response_model=interests_service.InterestsDocument)
+def me_complete_interests(
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """The explicit skip path: stamp interests_completed_at (idempotent)
+    without writing any preference data."""
+    interests_service.complete_interests(session, user)
+    profile = get_profile(user_id=user.id, session=session)
+    return interests_service.interests_document(profile, completed=True)
 
 
 # ── Calibration / onboarding ─────────────────────────────────────────────────

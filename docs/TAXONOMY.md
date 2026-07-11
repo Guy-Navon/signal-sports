@@ -61,6 +61,16 @@ Location: `backend/app/taxonomy/`
   view for LLM mention normalization.
 - `entity_normalizer._BASKETBALL_CLUB_ENTITIES` — guard set: `guarded` entities
   plus basketball clubs sharing an alias with a football club.
+- `GET /api/taxonomy/catalog` (`api/routes_taxonomy.py`, issue #78) — the
+  interest-picker browse/search projection: sports → competitions (curated
+  order) → teams/people with he/en display names and search aliases. The
+  `selectable` flags come from `taxonomy/policy.py` — the SAME functions the
+  interests validation (#77) uses, defined once. Non-selectable today:
+  EPL / La Liga / Bundesliga / UCL (zero member clubs + `ALLOWED_LEAGUES`
+  gap — "abstention beats guessing": never offer a scope the classifier
+  cannot prove). Tennis Grand Slams are selectable competition-only.
+  Removing an id from `NON_SELECTABLE_COMPETITIONS` is the single switch
+  once taxonomy/classifier coverage lands.
 
 ## Extending the registry
 

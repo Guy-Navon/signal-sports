@@ -41,6 +41,7 @@ from app.api import (
     routes_feedback,
     routes_learning,
     routes_calibration,
+    routes_taxonomy,
     routes_ingest,
     routes_translation,
     routes_classify,
@@ -117,6 +118,7 @@ def create_app() -> FastAPI:
     application.include_router(routes_feedback.router, prefix="/api", tags=["feedback"])
     application.include_router(routes_learning.router, prefix="/api", tags=["learning"])
     application.include_router(routes_calibration.router, prefix="/api", tags=["calibration"])
+    application.include_router(routes_taxonomy.router, prefix="/api", tags=["taxonomy"])
     # Ops surface (User Platform PR 5, #53): admin-gated at the router level,
     # fail-closed by default; ALLOW_INSECURE_AUTH_BYPASS restores the open
     # behavior for local development. /api/dev/* keeps its ALLOW_DEV_RESET env

@@ -68,6 +68,7 @@ SESSION = {
     "GET /api/articles",
     "GET /api/articles/{article_id}",
     "GET /api/feed-engine",
+    "GET /api/taxonomy/catalog",
 }
 
 ADMIN = {

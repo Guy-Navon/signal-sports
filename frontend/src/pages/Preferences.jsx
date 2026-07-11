@@ -4,10 +4,19 @@ import { Settings, User, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TopicCard from "@/components/preferences/TopicCard";
 import LearnedAdjustmentsPanel from "@/components/preferences/LearnedAdjustmentsPanel";
+import InterestsManager from "@/components/interests/InterestsManager";
 import PageHeader from "@/components/shared/PageHeader";
 import DeskIntro from "@/components/shared/DeskIntro";
 
-const TABS = [
+// Consumer sessions manage explicit interests (issue #83) and no longer see
+// the legacy topics tab (that model stays for ops/local demo contexts).
+const CONSUMER_TABS = [
+  { id: "interests", label: "תחומי עניין" },
+  { id: "muted", label: "מושתק" },
+  { id: "learned", label: "נלמד" },
+];
+
+const LEGACY_TABS = [
   { id: "topics", label: "נושאים ועדיפויות" },
   { id: "entities", label: "ישויות במעקב" },
   { id: "muted", label: "מושתק" },
@@ -15,8 +24,12 @@ const TABS = [
 ];
 
 export default function Preferences() {
-  const { activeProfile, activeProfileId, updateProfile, isBackendMode } = useApp();
-  const [activeTab, setActiveTab] = useState("topics");
+  const {
+    activeProfile, activeProfileId, updateProfile, isBackendMode,
+    consumerSession, refreshProfiles, refreshFeed,
+  } = useApp();
+  const tabs = consumerSession ? CONSUMER_TABS : LEGACY_TABS;
+  const [activeTab, setActiveTab] = useState(tabs[0].id);
 
   const handleMuteSource = (sourceId) => {
     const updated = {
@@ -38,7 +51,11 @@ export default function Preferences() {
     updateProfile(activeProfileId, updated);
   };
 
-  const topicCount = activeProfile?.topics?.length || 0;
+  // Consumer profiles are built on explicit ProfileV2 follows (#83); the
+  // legacy topic counts describe ops/demo profiles only.
+  const explicitFollows = (activeProfile?.profileV2?.scope_affinities || [])
+    .filter((a) => a.source === "explicit" && a.level >= 0).length;
+  const topicCount = consumerSession ? explicitFollows : (activeProfile?.topics?.length || 0);
   const entityCount = activeProfile?.followedEntities?.length || 0;
   const mutedCount =
     (activeProfile?.mutedTopics?.length || 0) + (activeProfile?.mutedSources?.length || 0);
@@ -56,8 +73,17 @@ export default function Preferences() {
       />
 
       <DeskIntro kicker="מה המערכת יודעת">
-        הפרופיל שלך בנוי מ־<span className="text-foreground font-medium">{topicCount}</span> נושאים
-        במעקב, <span className="text-foreground font-medium">{entityCount}</span> ישויות ספציפיות
+        {consumerSession ? (
+          <>
+            הפרופיל שלך בנוי מ־<span className="text-foreground font-medium">{topicCount}</span>{" "}
+            תחומי עניין במעקב
+          </>
+        ) : (
+          <>
+            הפרופיל שלך בנוי מ־<span className="text-foreground font-medium">{topicCount}</span> נושאים
+            במעקב, <span className="text-foreground font-medium">{entityCount}</span> ישויות ספציפיות
+          </>
+        )}
         {mutedCount > 0 && (
           <>
             , ו־<span className="text-foreground font-medium">{mutedCount}</span> נושאים ומקורות
@@ -69,7 +95,7 @@ export default function Preferences() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -84,6 +110,15 @@ export default function Preferences() {
           </button>
         ))}
       </div>
+
+      {activeTab === "interests" && consumerSession && (
+        <InterestsManager
+          onSaved={() => {
+            refreshProfiles?.();
+            refreshFeed?.();
+          }}
+        />
+      )}
 
       {activeTab === "topics" && (
         <div>

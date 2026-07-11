@@ -61,6 +61,10 @@ export function normalizeProfileFromApi(p) {
     mutedSources: p.muted_sources ?? [],
     followedEntities: p.followed_entities ?? [],
     topics: (p.topics ?? []).map(normalizeTopicPreferenceFromApi),
+    // ProfileV2 affinity payload (issue #83 — provenance display in the
+    // Preferences interests tab). Kept in wire shape: consumers read
+    // scope_affinities/event_affinities fields directly.
+    profileV2: p.profile_v2 ?? null,
   };
 }
 

@@ -199,6 +199,45 @@ export const PRESET_STATES = [
   { id: "more", label: "יותר" },
 ];
 
+// ── Provenance display (issue #83) ────────────────────────────────────────────
+
+export const SOURCE_LABELS = { calibration: "מכויל", learned: "נלמד" };
+
+export const LEVEL_LABELS = {
+  "-2": "לא לראות בכלל",
+  "-1": "עניין נמוך",
+  0: "עניין בינוני",
+  1: "עניין גבוה",
+  2: "עניין מאוד גבוה",
+};
+
+// Scope affinities the interests surface does NOT manage: calibration- and
+// learning-derived entries, plus negative explicit levels (seed nuance).
+// Shown read-only with provenance labels — never silently editable as
+// explicit (docs/INTERESTS.md managed-subset contract).
+export function nonExplicitEntries(profileV2) {
+  return (profileV2?.scope_affinities || []).filter(
+    (a) => a.source !== "explicit" || a.level < 0,
+  );
+}
+
+export function displayNameFor(catalog, scope, targetId) {
+  if (scope === "sport") {
+    const sport = (catalog?.sports || []).find((s) => s.id === targetId);
+    return sport?.display_he || targetId;
+  }
+  if (scope === "competition") {
+    for (const sport of catalog?.sports || []) {
+      const comp = sport.competitions.find((c) => c.id === targetId);
+      if (comp) return comp.display_he;
+    }
+    return targetId;
+  }
+  const pool = scope === "team" ? catalog?.teams : catalog?.people;
+  const item = (pool || []).find((e) => e.id === targetId);
+  return item?.display_he || targetId;
+}
+
 // ── Document ↔ picker state ───────────────────────────────────────────────────
 
 export function documentToState(doc) {

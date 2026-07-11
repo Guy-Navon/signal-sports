@@ -176,13 +176,19 @@ _RSS_SEEDED_IDS = {
 }
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def rss_seeded(client):
     """Insert rss_-prefixed copies of key seed articles so the rss-only feed filter works.
 
     The feed and /api/articles endpoints now only return articles whose id starts with
     'rss_'. Seed articles (id='article_NNN') are excluded from those endpoints but remain
     in the DB for the single-article lookup tests and persistence checks.
+
+    Function-scoped and idempotent (pre-checks each row): a destructive test
+    like test_dev_reset that wipes rss_ articles cannot leave a LATER
+    consumer with an empty feed — every test that needs the seeded articles
+    re-ensures them. (Session scope silently broke once test ordering put a
+    consumer before the reset test.)
     """
     from app.db.database import SessionLocal
     from app.repositories.article_repository import insert, get_by_id

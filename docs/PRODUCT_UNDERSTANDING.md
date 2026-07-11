@@ -75,21 +75,35 @@ Push must be rare. It means "stop what you are doing and read this." If more tha
 
 ### How User Interests Are Collected
 
-User preferences should not require users to fill out structured forms. People do not think in JSON. Three paths must eventually exist:
+User preferences should not require users to fill out structured forms. People do not think in JSON.
 
-**Path 1: Natural Language Input**
+> **UPDATED MENTAL MODEL (2026-07-11, Explicit Interests & Onboarding v2,
+> Milestone 4).** The onboarding model is now **EXPLICIT INTEREST SELECTION →
+> CALIBRATION → CONTINUOUS LEARNING**. The first stage is deterministic and
+> taxonomy-backed: the user explicitly declares WHAT they follow (sports,
+> competitions, teams, players) by tapping catalog items — no LLM interprets a
+> known taxonomy choice. Calibration then tunes HOW MUCH and WHICH event types
+> within those interests, and feedback keeps refining. **Natural-language
+> free-text input (Path 1 below) is explicitly NOT the foundation of
+> onboarding** and remains unbuilt — a core architectural goal is to minimise
+> LLM dependency, and an explicitly selected taxonomy entity must never require
+> an LLM. See `docs/INTERESTS.md` for the acquisition contract.
+
+Historically three paths were envisioned:
+
+**Path 1: Natural Language Input** *(explicitly deprioritised as onboarding foundation, Milestone 4)*
 A user writes: "I care a lot about Maccabi Tel Aviv basketball, especially signings and negotiations. I broadly follow the NBA. I care about tennis only when a Grand Slam is won. Football is noise for me."
-The system converts this free text into a structured preference profile using an LLM.
+The system converts this free text into a structured preference profile using an LLM. This remains unbuilt and is no longer the intended primary path — explicit taxonomy-backed selection replaces it as the deterministic foundation.
 
-**Path 2: Synthetic Headline Calibration**
-The user is shown a set of pre-tagged synthetic headlines and rates them (push / interesting / not interesting / never show this). Because the headlines are already tagged with metadata internally, the system can infer preferences from the ratings.
+**Path 2: Synthetic Headline Calibration** *(now the SECOND stage, scoped to declared interests)*
+The user is shown pre-tagged synthetic headlines and rates them. Because the headlines are tagged internally, the system infers preferences from the ratings. Since Milestone 4 (#81) the served items are **interest-aware** — ~10–14 items scoped to what the user explicitly follows, calibrating nuance (signing vs candidate rumor, ordinary vs major result) rather than discovering the user's whole sports identity from zero.
 
 Example: if the user marks "Maccabi Tel Aviv signs a new guard" as push-worthy, the system learns negotiation/signing events for Maccabi basketball should be push. If they mark "Alcaraz wins Roland Garros" as interesting but "Alcaraz reaches third round" as not interesting, the system infers titles_only mode for tennis.
 
 **Path 3: Ongoing Feedback Loop**
-After onboarding, every item in the feed should support actions: "more like this," "never show this again," "mute this source," "this should have been push." These feedback events should update the user's profile over time.
+After onboarding, every item in the feed should support actions: "more like this," "never show this again," "mute this source," "this should have been push." These feedback events update the user's profile over time (bounded derived learned adjustments; explicit > learned > calibration).
 
-The key product insight is that a user should never need to manually edit JSON-style topic rules. The system should infer them from behavior.
+The key product insight is that a user should never need to manually edit JSON-style topic rules. The system infers them from explicit selection, calibration, and behavior — and, since Milestone 4, an explicit interest is stored as an ordinary `source="explicit"` ProfileV2 affinity (the user edits Follow/Star, never JSON).
 
 ## What the Current MVP Should Prove
 
@@ -114,7 +128,7 @@ The following were explicitly out of scope when this document was first written.
 - User authentication or accounts — **built (User Platform, 2026-07-10):** email/password accounts, cookie sessions, session-derived `/api/me/*`, fail-closed admin gating. The two seeded demo profiles remain permanent QA fixtures alongside real accounts.
 - Push notifications to devices — **still not built.** `push` is a decision level only; no device delivery.
 - ~~Natural language processing / LLM-based classification~~ — **done.** Deterministic classifier + optional LLM overlay (Gemini/Ollama) with 7 merge guardrails; see `docs/LLM_CLASSIFICATION.md`.
-- Natural language preference input (free text → structured profile) — **still not built.** This is Option 1 from the personalization section above. Option 2 (synthetic headline calibration) is fully built (backend-owned Calibration V2, #33, now also the onboarding flow, #52) and Option 3 (feedback loop) is live: feedback events drive bounded derived learned adjustments at scoring time (#34; explicit > learned > calibration).
+- Natural language preference input (free text → structured profile) — **intentionally not built, and no longer the intended primary path (Milestone 4).** Explicit taxonomy-backed interest selection (Follow/Star over the taxonomy catalog, #77/#78/#82) is the deterministic onboarding foundation instead — no LLM interprets a known taxonomy choice. Calibration (#33, now interest-aware, #81) is the second stage, and the feedback loop (#34; explicit > learned > calibration) keeps refining. Explicit interests are stored as ordinary `source="explicit"` ProfileV2 affinities.
 - Production deployment — **still not applicable.** Local dev only.
 - ~~Multi-language translation engine~~ — **built, but intentionally disabled.** `backend/app/translation/` is intact (Claude/Fake/Noop providers); `TRANSLATION_PROVIDER=disabled` is correct for the current Hebrew-only MVP. Re-enable when English sources (Eurohoops, Sportando) return.
 - Real clustering algorithm (TF-IDF, semantic similarity, time windowing) — **still not built.** Dedup is URL-only; `cluster_id` exists on the model but nothing populates it. This is the most-cited "still fake" gap across every audit pass.

@@ -100,6 +100,52 @@ class TestShouldFilter:
         assert _should_filter("https://eurohoops.net/tr/article", cfg) is True
 
 
+# ── Sport5 non-editorial (legal/utility) page filter (issue #97) ──────────────
+
+class TestSport5NonEditorialFilter:
+    """The Sport5 scraper identifies articles by URL shape (articles.aspx +
+    docID), which also matches the site's footer legal links. FolderID=413 is
+    the non-editorial "כללי"/General folder (Terms/Privacy); it must be filtered
+    while editorial folders (e.g. 274) stay accepted."""
+
+    def _cfg(self):
+        from app.ingestion.config import get_source_config
+        cfg = get_source_config("sport5_sport")
+        assert cfg is not None
+        return cfg
+
+    def test_offending_terms_of_service_page_is_filtered(self):
+        # The exact stored offender: rss_dce2f29c89ba7e9c6741.
+        url = "https://sport5.co.il/articles.aspx?FolderID=413&docID=50633"
+        assert _should_filter(url, self._cfg()) is True
+
+    def test_folderid_413_is_blocked_case_insensitively(self):
+        # Adapter emits absolute URLs with the site's original casing.
+        url = "https://www.sport5.co.il/articles.aspx?FolderID=413&docID=99999"
+        assert _should_filter(url, self._cfg()) is True
+
+    def test_editorial_basketball_folder_274_still_accepted(self):
+        url = "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=551169"
+        assert _should_filter(url, self._cfg()) is False
+
+    def test_other_editorial_folders_not_rejected(self):
+        # Only FolderID=413 is proven non-editorial; nearby folders stay accepted.
+        for folder in ("273", "405", "416", "11840"):
+            url = f"https://www.sport5.co.il/articles.aspx?FolderID={folder}&docID=551000"
+            assert _should_filter(url, self._cfg()) is False, folder
+
+    def test_exact_folder_match_does_not_catch_superstring_folder(self):
+        # "folderid=413&" must not match a hypothetical FolderID=4130.
+        url = "https://www.sport5.co.il/articles.aspx?FolderID=4130&docID=551000"
+        assert _should_filter(url, self._cfg()) is False
+
+    def test_article_mentioning_terms_in_url_slug_is_not_a_keyword_filter(self):
+        # The rule is URL-folder-based, not a "terms"/"תקנון" keyword filter — an
+        # editorial article about regulations must never be rejected.
+        url = "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=551500"
+        assert _should_filter(url, self._cfg()) is False
+
+
 # ── Classifier: EuroCup ───────────────────────────────────────────────────────
 
 class TestEuroCupClassification:
@@ -207,6 +253,48 @@ def _make_entry(title: str, link: str):
 
 def _make_feed(entries, bozo=False):
     return types.SimpleNamespace(entries=entries, bozo=bozo)
+
+
+_SPORT5_MIXED_HTML = """
+<html><body>
+  <div class="card">
+    <a href="/articles.aspx?FolderID=274&docID=999001">מכבי תל אביב ניצחה את הפועל ירושלים אתמול</a>
+  </div>
+  <footer>
+    <a href="/articles.aspx?FolderID=413&docID=50633">תנאי השימוש ומדיניות פרטיות אתר ספורט 5</a>
+  </footer>
+</body></html>
+"""
+
+
+class TestSport5RunAccounting:
+    """End-to-end (issue #97): the scraper yields BOTH the editorial and the
+    legal footer link (it cannot tell them apart), and the ingestion run must
+    filter the FolderID=413 legal page — counting it as skipped_filtered and
+    keeping it out of the corpus — while ingesting the editorial article."""
+
+    def _run(self, admin_client):
+        from unittest.mock import MagicMock
+        resp = MagicMock()
+        resp.text = _SPORT5_MIXED_HTML
+        resp.raise_for_status = lambda: None
+        with patch("app.ingestion.adapters.sport5_adapter.httpx.get", return_value=resp):
+            r = admin_client.post("/api/ingest/run?source_id=sport5_sport")
+        return r.json()["sources"][0]
+
+    def test_legal_page_filtered_editorial_ingested(self, admin_client):
+        result = self._run(admin_client)
+        # Adapter yielded both article-shaped anchors …
+        assert result["fetched"] == 2
+        # … and exactly the legal page was filtered.
+        assert result["skipped_filtered"] == 1
+        assert result["inserted"] == 1
+
+    def test_legal_page_absent_from_corpus(self, admin_client):
+        self._run(admin_client)
+        titles = [a["title"] for a in admin_client.get("/api/articles").json()]
+        assert "תנאי השימוש ומדיניות פרטיות אתר ספורט 5" not in titles
+        assert "מכבי תל אביב ניצחה את הפועל ירושלים אתמול" in titles
 
 
 class TestSkippedFilteredInResponse:

@@ -157,6 +157,16 @@ RSS_SOURCES: list[RSSSourceConfig] = [
         category_urls=(
             "https://www.sport5.co.il/liga.aspx?FolderID=273",  # basketball category
         ),
+        # FolderID=413 is Sport5's non-editorial "כללי" (General) folder — Terms of
+        # Use / Privacy Policy and other legal/utility pages. Those footer links use
+        # the same /articles.aspx?FolderID=…&docID=… shape the scraper treats as an
+        # article (see _ARTICLE_URL_MARKERS in sport5_adapter.py), so the ToS page
+        # (FolderID=413&docID=50633, "תנאי השימוש ומדיניות פרטיות אתר ספורט 5") was
+        # ingested as an article. Blocking the folder — not a title keyword — keeps
+        # editorial folders (274, …) and any article that merely mentions "תקנון"
+        # unaffected. The trailing "&" makes it an exact FolderID match (won't hit a
+        # hypothetical FolderID=4130). Issue #97.
+        blocked_url_patterns=("folderid=413&",),
         is_pilot=True,
     ),
 ]

@@ -107,7 +107,14 @@ Every decision must be explainable without reading code:
 - **Personalization trace**: v2 contribution chain
   `{step, scope, effect, detail}` incl. `scopes_considered` (rejected
   scopes); Hebrew reasoning lines; engine badge (`v2`/`legacy`/`js-local`)
-  on every Debug row.
+  on every Debug row. Since #84, `base_scope` and `event_affinity`
+  contributions carry an additive `source` field
+  (explicit | calibration | learned — the entry that actually FIRED after
+  authority resolution), the Hebrew lines carry the matching label
+  (בחירה מפורשת / מכויל / נלמד), and an `event_affinity` step with
+  `detail=unknown_event_fallback` makes event abstention explicit in the
+  trace. Structured contributions remain the machine-readable contract;
+  the narrative is presentation built from them.
 - **Shadow comparison**: `GET /api/debug/shadow/{user_id}`.
 - **Learning**: `GET /api/learning/{user_id}` explains every learned
   adjustment and its evidence.

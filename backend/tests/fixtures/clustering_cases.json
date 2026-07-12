@@ -1,0 +1,201 @@
+{
+  "_meta": {
+    "issue": "#99 (C1) — Milestone 5, Real Story Clustering v1",
+    "purpose": "FROZEN CONTRACT FIXTURES. The authoritative regression corpus for the deterministic clustering matcher (#100/C2). These cases MUST be sufficient to test C2 without any access to the local corpus DB.",
+    "provenance": "title / source / event_type / sport / entity_ids are VERBATIM from the real local corpus, captured during the 2026-07-11 clustering audit.",
+    "honesty_note": "published_at values are NORMALIZED, not original. The corpus DB was destroyed (issue #106) before absolute timestamps were exported; the audit recorded pairwise DELTAS. Timestamps here are synthesized so that every pairwise delta matches the measured delta exactly. Deltas are the contract; absolute wall-clock is not.",
+    "why_frozen": "A regression suite that queries a mutable, ungitted corpus DB is exactly the fragility that destroyed the corpus. These fixtures are committed data: reproducible, reviewable in a PR, immune to corpus churn or loss.",
+    "not_a_substitute_for": "The mutable-corpus QA at #102 (C4 / Checkpoint 2). Fixtures prove the CONTRACT; the corpus gate proves it on LIVE data. Both are required.",
+    "expectations": {
+      "cluster": "all listed articles must end up in ONE cluster",
+      "must_not_cluster": "the listed articles must NOT be joined; each stays separate (or in its own stated cluster)",
+      "excluded": "the listed articles must never even become clustering CANDIDATES"
+    }
+  },
+
+  "true_positive_groups": [
+    {
+      "id": "tp_greg_lee_signing",
+      "expect": "cluster",
+      "why": "Canonical 3-source signing. Shared discriminative tokens (גרג/לי/חולון). Tier A: shared proven entity.",
+      "articles": [
+        {"id": "f_gl_1", "source": "walla_sport", "title": "\"חלק מרכזי בשיטה בה נשחק\": גרג לי חתם בהפועל חולון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_holon"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T09:00:00Z"},
+        {"id": "f_gl_2", "source": "ynet_sport", "title": "זר חדש: גרג לי חתם רשמית בהפועל חולון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_holon"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T13:18:00Z"},
+        {"id": "f_gl_3", "source": "sport5_sport", "title": "רשמית: גרג לי חתם בהפועל חולון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_holon"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T10:00:00Z"}
+      ]
+    },
+    {
+      "id": "tp_recanati_federman_ownership",
+      "expect": "cluster",
+      "why": "FLAGSHIP CASE. 4 sources, event_type=news, and the walla member has sport=unknown AND entity_ids=[]. It must still cluster — via Tier C (>=2 discriminative tokens: רקנאטי / פדרמן / מניות). This case is the entire justification for including `news` in v1 and for entity being a CONFIRMER, never a hard gate.",
+      "articles": [
+        {"id": "f_rf_1", "source": "walla_sport", "title": "דרמה במכבי תל אביב: משפחת רקנאטי רוכשת את מניות משפחת פדרמן", "sport": "unknown", "event_type": "news", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-08T18:00:00Z"},
+        {"id": "f_rf_2", "source": "israel_hayom_sport", "title": "דרמה במכבי תל אביב: משפחת רקנאטי רוכשת את החלק של פדרמן", "sport": "basketball", "event_type": "news", "event_certainty": "probable", "entity_ids": ["team:maccabi_tlv_bb"], "primary_competition": null, "published_at": "2026-07-08T20:54:00Z"},
+        {"id": "f_rf_3", "source": "ynet_sport", "title": "תמורת 50 מיליון דולר: משפחת רקנאטי רוכשת את חלקה של משפחת פדרמן במכבי ת\"א", "sport": "basketball", "event_type": "news", "event_certainty": "probable", "entity_ids": ["team:maccabi_tlv_bb"], "primary_competition": null, "published_at": "2026-07-08T20:48:00Z"},
+        {"id": "f_rf_4", "source": "sport5_sport", "title": "דרמה: משפחת רקנאטי קנתה את מניות פדרמן", "sport": "basketball", "event_type": "news", "event_certainty": "probable", "entity_ids": ["team:maccabi_tlv_bb"], "primary_competition": null, "published_at": "2026-07-08T19:00:00Z"}
+      ]
+    },
+    {
+      "id": "tp_odiasi_extension",
+      "expect": "cluster",
+      "why": "Tier A — shared proven entity (Hapoel TLV BB) + discriminative token אודיאסי.",
+      "articles": [
+        {"id": "f_od_1", "source": "walla_sport", "title": "אודיאסי האריך חוזה בהפועל תל אביב: \"שותף לחזון הקבוצה\"", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_tlv_bb"], "primary_competition": "comp:ibl", "published_at": "2026-07-06T11:00:00Z"},
+        {"id": "f_od_2", "source": "ynet_sport", "title": "טאי אודיאסי האריך חוזה בהפועל תל אביב: \"אסיר תודה על ההזדמנות\"", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_tlv_bb"], "primary_competition": "comp:ibl", "published_at": "2026-07-06T13:42:00Z"}
+      ]
+    },
+    {
+      "id": "tp_blakeney_extension",
+      "expect": "cluster",
+      "why": "Discriminative token בלייקני. Note the sport5 title says only bare 'הפועל' (family name → no entity from that token alone) yet still clusters on the player token.",
+      "articles": [
+        {"id": "f_bl_1", "source": "walla_sport", "title": "בלייקני האריך חוזה בהפועל ת\"א עד 2029: \"המסע עוד ארוך\"", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_tlv_bb"], "primary_competition": "comp:ibl", "published_at": "2026-07-07T08:00:00Z"},
+        {"id": "f_bl_2", "source": "sport5_sport", "title": "שכרו בפנים: בלייקני האריך חוזה בהפועל", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-07T09:06:00Z"}
+      ]
+    },
+    {
+      "id": "tp_bryce_washington_signing",
+      "expect": "cluster",
+      "why": "Tier A. Also guards against the surname 'וושינגטון' being mistaken for the NBA team alias.",
+      "articles": [
+        {"id": "f_bw_1", "source": "walla_sport", "title": "חוזר לליגת העל: ברייס וושינגטון חתם במכבי רמת גן", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:maccabi_ramat_gan"], "primary_competition": "comp:ibl", "published_at": "2026-07-04T07:00:00Z"},
+        {"id": "f_bw_2", "source": "sport5_sport", "title": "רשמי: ברייס וושינגטון חתם במכבי רמת גן", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:maccabi_ramat_gan"], "primary_competition": "comp:ibl", "published_at": "2026-07-04T14:24:00Z"}
+      ]
+    },
+    {
+      "id": "tp_cacok_signing_transliteration",
+      "expect": "cluster",
+      "why": "TRANSLITERATION VARIANCE: קייקוק vs קאקוק — the player surname token does NOT match exactly. The cluster must still form, carried by Tier A (shared proven entity) plus the remaining shared tokens (דבונטה / חתם / הפועל ירושלים). Proves entity corroboration rescues spelling variance that exact-name matching would miss.",
+      "articles": [
+        {"id": "f_ck_1", "source": "walla_sport", "title": "דבונטה קייקוק חתם בהפועל ירושלים לשנתיים הקרובות", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_jlm_bb"], "primary_competition": "comp:eurocup", "published_at": "2026-07-03T10:00:00Z"},
+        {"id": "f_ck_2", "source": "ynet_sport", "title": "חיזוק לקו הקדמי: דבונטה קאקוק חתם בהפועל ירושלים", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_jlm_bb"], "primary_competition": "comp:eurocup", "published_at": "2026-07-03T12:54:00Z"}
+      ]
+    },
+    {
+      "id": "tp_dompris_real_madrid",
+      "expect": "cluster",
+      "why": "Football signing, entity_ids=[] on both. Tier B/C via discriminative token דומפריס. Deliberately paired with fp_formulaic_template below — the ynet title here is one half of the template trap.",
+      "articles": [
+        {"id": "f_dp_1", "source": "walla_sport", "title": "החתמה רביעית הקיץ: דנזל דומפריס חתם בריאל מדריד עד 2030", "sport": "football", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-02T09:00:00Z"},
+        {"id": "f_dp_2", "source": "ynet_sport", "title": "ממשיכה להתחזק: דומפריס חתם בריאל מדריד", "sport": "football", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-02T12:18:00Z"}
+      ]
+    },
+    {
+      "id": "tp_walker_leaving_maccabi",
+      "expect": "cluster",
+      "why": "event_type=news with a proven entity. Tier C (news) satisfied by discriminative token ווקר + entity corroboration.",
+      "articles": [
+        {"id": "f_wk_1", "source": "israel_hayom_sport", "title": "ייפרד ממכבי תל אביב? \"לוני ווקר ייפגש עם קבוצות NBA\"", "sport": "basketball", "event_type": "news", "event_certainty": "probable", "entity_ids": ["team:maccabi_tlv_bb"], "primary_competition": null, "published_at": "2026-07-09T15:00:00Z"},
+        {"id": "f_wk_2", "source": "sport5_sport", "title": "יעזוב את מכבי? ווקר ייפגש עם קבוצות NBA", "sport": "basketball", "event_type": "news", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-09T16:48:00Z"}
+      ]
+    },
+    {
+      "id": "tp_halaili_negotiation",
+      "expect": "cluster",
+      "why": "HALAILI SAGA, PART 1 of 3. The `negotiation` state clusters with itself ONLY.",
+      "articles": [
+        {"id": "f_hl_n1", "source": "walla_sport", "title": "זה מתקרב: אינטר שיפרה שוב את הצעתה על ענאן חלאילי", "sport": "football", "event_type": "negotiation", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-01T10:00:00Z"},
+        {"id": "f_hl_n2", "source": "ynet_sport", "title": "דיווח: אינטר שיפרה את ההצעה על ענאן חלאילי", "sport": "football", "event_type": "negotiation", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-01T15:18:00Z"}
+      ]
+    },
+    {
+      "id": "tp_halaili_signing_medical",
+      "expect": "cluster",
+      "why": "HALAILI SAGA, PART 2 of 3. The `signing` state clusters with itself ONLY — it must NEVER merge with tp_halaili_negotiation or fp_halaili_candidate_stays_separate, despite heavy token overlap (חלאילי / אינטר). This is the event-state contract.",
+      "articles": [
+        {"id": "f_hl_s1", "source": "walla_sport", "title": "לקראת חתימה באינטר: חלאילי עבר את הבדיקות הרפואיות", "sport": "football", "event_type": "signing", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-10T09:00:00Z"},
+        {"id": "f_hl_s2", "source": "ynet_sport", "title": "לקראת חתימה: ענאן חלאילי עבר את הבדיקות הרפואיות באינטר", "sport": "football", "event_type": "signing", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-10T10:42:00Z"}
+      ]
+    }
+  ],
+
+  "must_not_cluster": [
+    {
+      "id": "fp_formulaic_template",
+      "expect": "must_not_cluster",
+      "why": "THE DOMINANT FALSE-POSITIVE CLASS. Two COMPLETELY unrelated signings sharing the Hebrew headline template 'ממשיכה להתחזק: X חתם ב-Y'. Measured jaccard 0.33, 79.5h apart. Rejected by BOTH the time window (>24h) AND the discriminative-token gate (the only shared tokens are template words: ממשיכה/להתחזק/חתם). Naive Jaccard alone WOULD merge these — this case is why the rare-token invariant exists.",
+      "articles": [
+        {"id": "f_dp_2", "source": "ynet_sport", "title": "ממשיכה להתחזק: דומפריס חתם בריאל מדריד", "sport": "football", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-02T12:18:00Z"},
+        {"id": "f_ash_1", "source": "walla_sport", "title": "ממשיכה להתחזק: אוסמה חלאיילה חתם במ.ס. אשדוד", "sport": "football", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-05T19:48:00Z"}
+      ]
+    },
+    {
+      "id": "fp_youth_qf_vs_sf",
+      "expect": "must_not_cluster",
+      "why": "SAME TEAM, SAME COMPETITION, DIFFERENT EVENTS. Quarter-final vs semi-final of the same tournament run. Measured jaccard 0.60 (very high!), 48.6h apart. Rejected by the time window. Proves 'same team on the same story-line' is NOT 'same story'.",
+      "articles": [
+        {"id": "f_yt_1", "source": "ynet_sport", "title": "ענקיות: נבחרת העתודה לנשים ברבע גמר אליפות אירופה", "sport": "basketball", "event_type": "match_result", "event_certainty": "confirmed", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-06T18:00:00Z"},
+        {"id": "f_yt_2", "source": "walla_sport", "title": "היסטוריה: נבחרת העתודה לנשים בחצי גמר אליפות אירופה", "sport": "basketball", "event_type": "match_result", "event_certainty": "confirmed", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-08T18:36:00Z"}
+      ]
+    },
+    {
+      "id": "fp_halaili_candidate_stays_separate",
+      "expect": "must_not_cluster",
+      "why": "HALAILI SAGA, PART 3 of 3. 'Deal is stuck, Inter marked a replacement' (candidate) must NOT merge with the negotiation or signing clusters. Rumor / candidate / negotiation / signing are DISTINCT story developments — collapsing them would tell the user a deal is done when it is stuck. Strict same-event-state is what prevents this.",
+      "articles": [
+        {"id": "f_hl_c1", "source": "israel_hayom_sport", "title": "עסקת ענאן חלאילי תקועה: אינטר כבר סימנה מחליף", "sport": "football", "event_type": "candidate", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-04T08:00:00Z"},
+        {"id": "f_hl_n2", "source": "ynet_sport", "title": "דיווח: אינטר שיפרה את ההצעה על ענאן חלאילי", "sport": "football", "event_type": "negotiation", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-01T15:18:00Z"}
+      ]
+    },
+    {
+      "id": "fp_cross_sport_maccabi_tlv",
+      "expect": "must_not_cluster",
+      "why": "CROSS-SPORT HARD REJECT. Both articles resolve 'מכבי תל אביב' but to DIFFERENT proven sports (the registry's cross-sport twins). They share club tokens and the event state, and are hours apart — token evidence alone would merge them. Both sports proven and different => hard reject, regardless of any other evidence.",
+      "articles": [
+        {"id": "f_xs_1", "source": "walla_sport", "title": "מכבי תל אביב מחתימה גארד ליורוליג", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:maccabi_tlv_bb"], "primary_competition": "comp:euroleague", "published_at": "2026-07-07T10:00:00Z"},
+        {"id": "f_xs_2", "source": "ynet_sport", "title": "מכבי תל אביב מחתימה שוער חדש לליגת העל", "sport": "football", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:maccabi_tlv_fc"], "primary_competition": "comp:ligat_haal", "published_at": "2026-07-07T12:00:00Z"}
+      ]
+    },
+    {
+      "id": "fp_bare_family_names_no_entity",
+      "expect": "must_not_cluster",
+      "why": "GENERIC MACCABI/HAPOEL CONTROL. Bare family names ('מכבי', 'הפועל') resolve to NO entity (taxonomy abstention, locked by #64), so they can never supply Tier-A corroboration. With sport=unknown these fall to Tier C and have no discriminative shared token — only family words. Must abstain.",
+      "articles": [
+        {"id": "f_fam_1", "source": "walla_sport", "title": "מכבי פתחה את העונה בניצחון", "sport": "unknown", "event_type": "news", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-07T10:00:00Z"},
+        {"id": "f_fam_2", "source": "ynet_sport", "title": "הפועל פתחה את העונה בניצחון", "sport": "unknown", "event_type": "news", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-07T11:00:00Z"}
+      ]
+    },
+    {
+      "id": "fp_same_source_pair",
+      "expect": "must_not_cluster",
+      "why": "CROSS-SOURCE HARD GATE. Two articles from the SAME source about the same story must not cluster in v1 (same-source update chaining is a non-goal; the audit found zero same-source duplicate pairs in the real corpus). Everything else about this pair would otherwise pass.",
+      "articles": [
+        {"id": "f_ss_1", "source": "walla_sport", "title": "גרג לי חתם בהפועל חולון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_holon"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T09:00:00Z"},
+        {"id": "f_ss_2", "source": "walla_sport", "title": "רשמית: גרג לי חתם בהפועל חולון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_holon"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T11:00:00Z"}
+      ]
+    },
+    {
+      "id": "fp_transitive_chain",
+      "expect": "must_not_cluster",
+      "why": "ANTI-TRANSITIVE-CHAINING. A weak chain A~B, B~C where A and C are unrelated must not produce one 3-member cluster. B ('Maccabi and Hapoel both chase a guard') is topically adjacent to both. Coherence validation runs AFTER grouping: a late member must match the representative or >=2 existing members, and the cluster must stay globally compatible. Plain union-find WOULD merge all three — this is why it is insufficient.",
+      "articles": [
+        {"id": "f_tc_a", "source": "walla_sport", "title": "מכבי תל אביב מחתימה את הגארד האמריקאי ג'ונסון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:maccabi_tlv_bb"], "primary_competition": "comp:euroleague", "published_at": "2026-07-07T09:00:00Z"},
+        {"id": "f_tc_b", "source": "ynet_sport", "title": "מכבי תל אביב והפועל תל אביב מחתימות גארדים אמריקאים", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:maccabi_tlv_bb", "team:hapoel_tlv_bb"], "primary_competition": "comp:ibl", "published_at": "2026-07-07T11:00:00Z"},
+        {"id": "f_tc_c", "source": "sport5_sport", "title": "הפועל תל אביב מחתימה את הגארד האמריקאי וויליאמס", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_tlv_bb"], "primary_competition": "comp:ibl", "published_at": "2026-07-07T13:00:00Z"}
+      ],
+      "expected_outcome_detail": "f_tc_a and f_tc_c must NOT end up in the same cluster. Two separate clusters, or abstention, are both acceptable; a single 3-member cluster is a FAILURE."
+    }
+  ],
+
+  "excluded_from_candidacy": [
+    {
+      "id": "inplay_switzerland_colombia",
+      "expect": "excluded",
+      "why": "LIVE / IN-PLAY. Half-time snapshots ('מחצית') of a match in progress. These are excluded from clustering candidacy entirely in v1 — a half-time state and a full-time result are different facts, and chaining live updates is out of scope. Removing these is why the original 12-cluster projection became 10.",
+      "articles": [
+        {"id": "f_ip_sc1", "source": "walla_sport", "title": "שוויץ - קולומביה 0:0 (מחצית)", "sport": "football", "event_type": "news", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-09T19:45:00Z"},
+        {"id": "f_ip_sc2", "source": "israel_hayom_sport", "title": "חי מהמונדיאל: שווייץ - קולומביה 0:0", "sport": "football", "event_type": "news", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-09T19:57:00Z"},
+        {"id": "f_ip_sc3", "source": "ynet_sport", "title": "מחצית: שווייץ - קולומביה 0:0", "sport": "football", "event_type": "news", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-09T19:48:00Z"}
+      ]
+    },
+    {
+      "id": "inplay_spain_belgium",
+      "expect": "excluded",
+      "why": "LIVE / IN-PLAY (quarter-final, half-time). Same rule as above.",
+      "articles": [
+        {"id": "f_ip_sb1", "source": "israel_hayom_sport", "title": "חי מרבע גמר המונדיאל: ספרד - בלגיה 1:1", "sport": "football", "event_type": "finals_result", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-10T20:00:00Z"},
+        {"id": "f_ip_sb2", "source": "ynet_sport", "title": "חי מרבע הגמר, מחצית: ספרד - בלגיה 1:1", "sport": "football", "event_type": "finals_result", "event_certainty": "probable", "entity_ids": [], "primary_competition": null, "published_at": "2026-07-10T20:48:00Z"}
+      ]
+    }
+  ]
+}

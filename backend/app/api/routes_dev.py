@@ -13,6 +13,11 @@ from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.db.corpus_protection import (
+    active_database_url,
+    corpus_reset_opt_in,
+    is_protected_corpus_db,
+)
 from app.db.database import get_session
 from app.db.orm_models import ArticleRow, IngestionRunRow
 from app.ingestion.ingestion_service import run_ingestion, _LLM_PROVIDER, _HEBREW_BROAD_SOURCES
@@ -34,6 +39,51 @@ _BENCHMARK_SOURCES = sorted(_HEBREW_BROAD_SOURCES)
 
 def _dev_reset_enabled() -> bool:
     return os.environ.get("ALLOW_DEV_RESET", "false").lower() == "true"
+
+
+def _guard_corpus_db(operation: str, allow_with_opt_in: bool) -> None:
+    """Refuse a destructive operation that targets the real article corpus (issue #106).
+
+    The corpus is not in git and cannot be restored. ``ALLOW_DEV_RESET`` alone is
+    NOT sufficient authority to destroy it — that boolean is how the 404-article
+    corpus was lost on 2026-07-12.
+
+    Args:
+        operation: human name of the destructive operation, for the error message.
+        allow_with_opt_in: when True, the caller may proceed against the corpus if
+            ``ALLOW_CORPUS_DB_RESET=true`` is ALSO set (an explicit, corpus-specific
+            second decision). When False, the corpus is refused unconditionally —
+            used by the benchmark, which resets RSS data twice per run by design.
+    """
+    if not is_protected_corpus_db():
+        return
+
+    if allow_with_opt_in and corpus_reset_opt_in():
+        logger.warning(
+            "%s is proceeding against the REAL CORPUS DB (%s) — "
+            "ALLOW_CORPUS_DB_RESET=true was explicitly set.",
+            operation,
+            active_database_url(),
+        )
+        return
+
+    hint = (
+        "Point DATABASE_URL at a copy instead, e.g. "
+        "DATABASE_URL=sqlite:///./data/benchmark_copy.db"
+    )
+    if allow_with_opt_in:
+        hint = (
+            "If you really mean to destroy the corpus, set ALLOW_CORPUS_DB_RESET=true "
+            "(separate from ALLOW_DEV_RESET). Otherwise point DATABASE_URL at a copy."
+        )
+
+    raise HTTPException(
+        status_code=409,
+        detail=(
+            f"{operation} refused: DATABASE_URL points at the protected article corpus "
+            f"({active_database_url()}). The corpus is not in git and cannot be restored. {hint}"
+        ),
+    )
 
 
 def _reset_rss_data(session: Session) -> None:
@@ -109,6 +159,10 @@ def reset_rss_data(session: Session = Depends(get_session)) -> ResetRssDataResul
             detail="Dev reset is disabled. Set ALLOW_DEV_RESET=true in backend/.env to enable.",
         )
 
+    # Issue #106: the corpus needs a SECOND, corpus-specific opt-in — ALLOW_DEV_RESET
+    # alone must never be enough to destroy it.
+    _guard_corpus_db("reset-rss-data", allow_with_opt_in=True)
+
     deleted_articles = (
         session.query(ArticleRow)
         .filter(ArticleRow.id.like("rss_%"))
@@ -158,6 +212,11 @@ def run_llm_gating_benchmark(session: Session = Depends(get_session)) -> LLMGati
                 "(it resets RSS data between baseline and gated runs)."
             ),
         )
+
+    # Issue #106: the benchmark resets RSS data TWICE per run by design. It must
+    # never be pointed at the real corpus — hard refusal, no override. This is the
+    # landmine that would have fired when issue #65 (R7 LLM evaluation) ran.
+    _guard_corpus_db("LLM gating benchmark", allow_with_opt_in=False)
 
     if not _LLM_PROVIDER.can_classify:
         provider_env = os.environ.get("CLASSIFICATION_PROVIDER", "not set")

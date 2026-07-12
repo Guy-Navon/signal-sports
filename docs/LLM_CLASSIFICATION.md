@@ -693,7 +693,22 @@ Mocking only `google.genai` is insufficient — `import google.genai as genai` i
 
 A one-click benchmark is available on the Sources page (backend mode only).
 
-**Setup:** `ALLOW_DEV_RESET=true` + `CLASSIFICATION_PROVIDER=ollama` in `.env`, restart backend.
+> **⚠ CORPUS SAFETY (issue #106) — the benchmark DESTROYS RSS data.**
+> It resets RSS articles **twice per run, by design** (steps 1 and 4 below). On
+> 2026-07-12 the real 404-article corpus was wiped this way; it is not in git and
+> could not be restored.
+>
+> The benchmark is therefore **hard-refused (409) whenever `DATABASE_URL` resolves
+> to the real corpus (`data/signal_sports.db`). There is no override.** Run it
+> against a copy:
+> ```
+> cp data/signal_sports.db data/benchmark_copy.db
+> DATABASE_URL=sqlite:///./data/benchmark_copy.db
+> ```
+> This guard is what makes issue **#65 (R7 — LLM provider/prompt evaluation)** safe
+> to run; #65 must use a corpus copy.
+
+**Setup:** `ALLOW_DEV_RESET=true` + `CLASSIFICATION_PROVIDER=ollama` in `.env`, **`DATABASE_URL` pointed at a corpus copy**, restart backend.
 
 **Run:** Click "הרץ בנצ׳מרק מלא" in the "בנצ׳מרק LLM Gating" panel.
 
@@ -708,7 +723,9 @@ A one-click benchmark is available on the Sources page (backend mode only).
 
 The run-level override (`gating_enabled_override`) is threaded through `run_ingestion()` → `_run_source()` → `_normalise()` → `should_call_llm_for_article()`. Normal ingestion (via `POST /api/ingest/run`) passes `None` and uses the env default. The module-level `_GATING_ENABLED` flag is never mutated.
 
-**Endpoint:** `POST /api/dev/benchmark/llm-gating` — guarded by `ALLOW_DEV_RESET=true`, returns 422 when provider cannot classify. Results are not persisted.
+**Endpoint:** `POST /api/dev/benchmark/llm-gating` — guarded by `ALLOW_DEV_RESET=true`, **409 when `DATABASE_URL` is the protected corpus (no override — use a copy)**, 422 when provider cannot classify. Results are not persisted.
+
+**Related destructive route:** `POST /api/dev/reset-rss-data` — against the real corpus it additionally requires `ALLOW_CORPUS_DB_RESET=true`, a second corpus-specific opt-in separate from `ALLOW_DEV_RESET` (issue #106). See `backend/app/db/corpus_protection.py`.
 
 **Acceptance targets** (comparison rows show PASS/FAIL):
 - `skip_rate >= 0.40` — at least 40% of eligible articles should be gated

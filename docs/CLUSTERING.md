@@ -244,6 +244,31 @@ covers the two weakest evidence situations — and `news` is roughly half the co
 a large share of true positives. Entity *lowers the bar* (Tier A); its absence never raises a
 wall.
 
+#### The coverage paradox — a hard constraint on the window (established in #100)
+
+A story covered by **N sources has `df == N` for its own defining tokens**: "רקנאטי"
+appears in exactly the four articles about the Recanati takeover, and essentially nowhere
+else.
+
+So if the discriminative threshold falls **below** the cluster size, a story becomes
+unclusterable **because it is widely covered** — the more sources report it, the less likely
+we group it. Exactly backwards. This silently dropped the 4-source flagship cluster during
+implementation.
+
+Therefore:
+
+```
+df_ratio_max × window_size   >   max_cluster_size
+```
+
+Because `df_ratio_max` is a ratio, this is really a constraint on the **candidate window**: a
+lookback window that is too small **cannot support clustering at all** — DF there is not merely
+imprecise, it is *inverted*. `ClusteringConfig.min_window_for_valid_df()` computes the floor and
+`df_supports_full_size_cluster(n)` checks it. With the calibrated defaults
+(`df_ratio_max = 0.01`, `max_cluster_size = 6`) the window must hold **≥ 700** eligible articles.
+
+Never evaluate DF on a toy window; the statistic is meaningless below that floor.
+
 ### 7.4 Grouping and the coherence invariant
 
 Accepted pairs are grouped by connected components (union-find) — **but plain union-find is NOT
@@ -251,9 +276,9 @@ sufficient.** A weak chain `A~B`, `B~C` can drag unrelated `A` and `C` into one 
 
 **Coherence rules:**
 
-1. An initial accepted **pair** may form a cluster.
-2. A **late member must match the current representative, OR at least two existing members.**
-   One weak edge to one member is not enough to join.
+1. An initial accepted **pair** may form a cluster (the seed; its earlier member is the anchor).
+2. A **late member must match the ANCHOR, OR at least `min_member_matches_to_join` (2) existing
+   members.** One weak edge to one *peripheral* member is not enough to join.
 3. The resulting cluster must remain **globally compatible**: a single `event_state`, a
    compatible `sport`, and a total span within `max_cluster_time_span`.
 4. **Backfill applies final coherence validation *after* candidate grouping**, so transitive
@@ -261,8 +286,22 @@ sufficient.** A weak chain `A~B`, `B~C` can drag unrelated `A` and `C` into one 
 5. `max_cluster_size` guard: a cluster exceeding it is **flagged as a suspicious merge**, not
    silently accepted.
 
-If the precise formulation needs refinement during implementation (#100), **default to
-precision-first abstention.**
+> **CONTRACT CORRECTION (#100) — rule 2 originally said "match the current REPRESENTATIVE".
+> That was unsafe and is now wrong.**
+>
+> The representative is a **display** concept chosen by **fact completeness** (§9.1). A bridging
+> article is typically the *richest* one — it names both clubs, or both players — so it tends to
+> **win the representative ladder**. "Match the representative" would then be satisfied by
+> matching *the bridge itself*, admitting exactly the transitive chain the rule exists to block.
+> A test written for this reproduced the failure.
+>
+> Coherence needs a **structural** notion of centrality, not a factual one. The **anchor** is
+> that: earliest, part of the seed pair, chosen by publication order — a later, derivative bridge
+> can never become it. Keying rule 2 on the anchor blocks the chain **and** admits the genuine
+> 4th Recanati source, whose short headline matches the anchor strongly but falls just under the
+> jaccard floor against the two longer articles.
+
+When the evidence is ambiguous, **default to precision-first abstention.**
 
 ---
 

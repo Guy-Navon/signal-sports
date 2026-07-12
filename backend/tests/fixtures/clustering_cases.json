@@ -158,10 +158,11 @@
     {
       "id": "fp_same_source_pair",
       "expect": "must_not_cluster",
-      "why": "CROSS-SOURCE HARD GATE. Two articles from the SAME source about the same story must not cluster in v1 (same-source update chaining is a non-goal; the audit found zero same-source duplicate pairs in the real corpus). Everything else about this pair would otherwise pass.",
+      "why": "CROSS-SOURCE HARD GATE. Two articles from the SAME source about the same story must not cluster in v1 (same-source update chaining is a non-goal). CONSTRUCTED, not observed: the audit found ZERO same-source duplicate pairs in the real corpus, so no real pair exists to freeze. Deliberately given tokens unique to this case (סורקין) so it does not perturb the document frequencies of the real stories in this window. Everything except the source gate would otherwise pass.",
+      "constructed": true,
       "articles": [
-        {"id": "f_ss_1", "source": "walla_sport", "title": "גרג לי חתם בהפועל חולון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_holon"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T09:00:00Z"},
-        {"id": "f_ss_2", "source": "walla_sport", "title": "רשמית: גרג לי חתם בהפועל חולון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_holon"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T11:00:00Z"}
+        {"id": "f_ss_1", "source": "walla_sport", "title": "רומן סורקין חתם בהפועל גליל עליון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_galil_gilboa"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T09:00:00Z"},
+        {"id": "f_ss_2", "source": "walla_sport", "title": "רשמית: רומן סורקין חתם בהפועל גליל עליון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_galil_gilboa"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T11:00:00Z"}
       ]
     },
     {

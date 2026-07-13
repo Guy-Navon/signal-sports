@@ -26,6 +26,7 @@ from app.classification.gating import LLMGateDecision, should_call_llm_for_artic
 from app.classification.llm_result import LLMClassificationResult
 from app.classification.merge import merge_with_guardrails, normalize_league_sport_compatibility
 from app.classification.source_hints import extract_source_sport_hint
+from app.clustering.ingest_stage import run_clustering_stage
 from app.classification.service import get_llm_provider
 from app.classification.validation import LLM_MIN_CONFIDENCE
 from app.ingestion.adapters.base import RawSourceItem
@@ -362,6 +363,7 @@ def _run_source(
     inserted = 0
     skipped_filtered = 0
     skipped_duplicate = 0
+    inserted_ids: list[str] = []
     failed = 0
     errors: list[str] = []
 
@@ -458,12 +460,24 @@ def _run_source(
 
             article_repository.insert(session, article)
             inserted += 1
+            inserted_ids.append(article.id)
             quality_counters.observe(article)
         except Exception as exc:
             msg = f"Item error [{item.url}]: {exc}"
             logger.error(msg)
             errors.append(msg)
             failed += 1
+
+    # ── Story-clustering stage (issue #101) ───────────────────────────────────
+    # AFTER classification and insert — never inside _normalise(). It loads a bounded
+    # candidate window and calls the SAME cluster_articles() the backfill uses, so live
+    # and backfill cannot drift apart. Disabled by default (CLUSTERING_ENABLED).
+    # It never raises: a failure leaves the articles inserted but UNCLUSTERED and is
+    # reported on the run result — clustering is a quality stage and must not corrupt
+    # ingestion. URL dedup is untouched and remains a separate mechanism.
+    cluster_stage = run_clustering_stage(session, inserted_ids)
+    if cluster_stage.failed:
+        errors.append(f"Clustering stage failed: {cluster_stage.error}")
 
     finished_at = datetime.now(tz=timezone.utc)
     total_ms = (time.perf_counter() - _run_t0) * 1000
@@ -548,6 +562,13 @@ def _run_source(
         skipped_duplicate=skipped_duplicate,
         failed=failed,
         errors=errors,
+        clustering_ran=cluster_stage.ran,
+        clusters_created=cluster_stage.clusters_created,
+        articles_appended_to_clusters=cluster_stage.articles_appended,
+        articles_left_unclustered=cluster_stage.articles_unclustered,
+        clusters_removed=cluster_stage.clusters_removed,
+        clustering_failed=cluster_stage.failed,
+        clustering_error=cluster_stage.error,
         fetch_ms=round(_fetch_ms, 1) if _fetch_ms is not None else None,
         total_ms=round(total_ms, 1),
         llm_attempts=llm_attempts,

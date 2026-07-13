@@ -363,6 +363,43 @@ transaction. A new cluster forms only when it matches *unclustered* articles.
 **Recomputation / backfill:** recompute groups, then **reconcile to existing rows by maximum
 member overlap and preserve the existing id**. Only genuinely new groups mint new ids.
 
+### 8.1 The live ingestion stage (#101) — `app/clustering/ingest_stage.py`
+
+```
+fetch → source filtering → URL dedup → classification / Article Facts → insert → [CLUSTERING]
+```
+
+Never inside `_normalise()` / classification. The stage is a **thin adapter, not a second
+algorithm**: it loads a bounded candidate window and calls the **same** `cluster_articles()`
+that backfill (#102) calls, persisting through the **same** `reconcile_scope()`. Live and
+backfill cannot drift apart because there is only one implementation to drift.
+
+**Bounded recomputation.** The window spans the largest configured event-state lookback around
+the newly-inserted articles — **there is no minimum corpus size** (§7.3). It then **hydrates the
+full membership of every existing cluster the window touches**: a cluster whose members fall
+partly outside the time window must never be evaluated incompletely, or coherence would be
+judging a cluster it cannot see. Clusters wholly **outside** the scope are never touched, and
+ids are preserved by overlap reconciliation.
+
+**Rollout — `CLUSTERING_ENABLED`, default `false`.** This reuses the repository's existing
+env-flag mechanism (cf. `CLASSIFICATION_LLM_GATING`, `ALLOW_DEV_RESET`) rather than inventing a
+new one. **The live scheduler must not cluster the real corpus until the Checkpoint-2 gate
+(#102) passes on a frozen copy.**
+
+**Failure semantics — the article wins.** Clustering is a *quality-enhancement* stage and must
+never corrupt ingestion. Articles are committed **per item** by `article_repository.insert` —
+the existing run-accounting contract, in which one bad item is counted and the run continues.
+Clustering follows that same contract: on failure the stage **rolls back, the articles survive
+UNCLUSTERED**, and the failure is reported on the run result (`clustering_failed`,
+`clustering_error`). Rolling back a correctly classified and inserted article because
+*grouping* failed would be strictly worse. The stage commits **exactly once**, so a failure can
+never leave partially persisted clusters or edges.
+
+**Accounting** (live response only — no DB migration, following the `skipped_filtered`
+precedent): `clustering_ran`, `clusters_created`, `articles_appended_to_clusters`,
+`articles_left_unclustered`, `clusters_removed`, `clustering_failed`, `clustering_error`.
+These are **separate counters**: clustering is never conflated with URL dedup.
+
 ---
 
 ## 9. Presentation — corpus cluster vs. user-specific view

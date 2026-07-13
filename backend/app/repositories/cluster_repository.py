@@ -19,6 +19,7 @@ And two it must never violate:
     row are grouping keys (what the members had in common), not assertions.
 """
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -182,6 +183,100 @@ def persist_clusters(
     ]
     session.commit()
     return rows
+
+
+def reconcile_scope(
+    session: Session,
+    scope_article_ids: set[str],
+    proposals: list[ProposedCluster],
+    rule_version: int = 1,
+    commit: bool = True,
+) -> "ScopeReconciliation":
+    """Apply a matcher result to a BOUNDED SCOPE, atomically.
+
+    Shared by live ingestion (#101) and backfill (#102) so both paths have identical
+    persistence semantics — there is exactly one clustering implementation and exactly
+    one way it is written down.
+
+    Contract:
+      - clusters wholly outside ``scope_article_ids`` are NEVER touched;
+      - cluster ids are preserved through overlap reconciliation (no churn);
+      - an article inside the scope that the matcher no longer groups is unclustered;
+      - a cluster left below MIN_CLUSTER_SIZE is removed and its survivor unclustered;
+      - accepted edges only; no dangling edge rows;
+      - one commit at the end — a failure leaves NO partially persisted clusters.
+
+    Order matters: proposals are persisted FIRST (so overlap reconciliation can still see
+    the existing ``articles.cluster_id`` links and preserve ids), and only then are stale
+    memberships cleared.
+    """
+    before_ids = {
+        cid for (cid,) in session.query(ArticleRow.cluster_id)
+        .filter(ArticleRow.id.in_(scope_article_ids), ArticleRow.cluster_id.isnot(None))
+        .distinct()
+        .all()
+    }
+
+    rows = [
+        persist_cluster(session, p, rule_version=rule_version, commit=False)
+        for p in proposals
+    ]
+    kept_ids = {r.id for r in rows}
+    proposed_members = {m for p in proposals for m in p.member_ids}
+
+    # Articles in scope the matcher no longer groups → unclustered.
+    stale = (
+        session.query(ArticleRow)
+        .filter(
+            ArticleRow.id.in_(scope_article_ids),
+            ArticleRow.cluster_id.isnot(None),
+            ArticleRow.id.notin_(proposed_members) if proposed_members else True,
+        )
+        .all()
+    )
+    for art in stale:
+        art.cluster_id = None
+    session.flush()
+
+    # Clusters that were in scope but are no longer proposed, or fell below the minimum.
+    removed_ids: set[str] = set()
+    for cid in before_ids | kept_ids:
+        cluster = session.get(StoryClusterRow, cid)
+        if cluster is None:
+            continue
+        members = get_member_ids(session, cid)
+        if len(members) < MIN_CLUSTER_SIZE:
+            for art in get_members(session, cid):
+                art.cluster_id = None
+            session.query(ClusterEdgeRow).filter(
+                ClusterEdgeRow.cluster_id == cid
+            ).delete(synchronize_session=False)
+            session.delete(cluster)
+            removed_ids.add(cid)
+        else:
+            cluster.member_count = len(members)
+
+    if commit:
+        session.commit()
+
+    created = kept_ids - before_ids
+    retained = kept_ids & before_ids
+    return ScopeReconciliation(
+        created_cluster_ids=sorted(created),
+        retained_cluster_ids=sorted(retained),
+        removed_cluster_ids=sorted(removed_ids),
+        clustered_article_ids=sorted(proposed_members),
+        unclustered_article_ids=sorted(a.id for a in stale),
+    )
+
+
+@dataclass
+class ScopeReconciliation:
+    created_cluster_ids: list[str]
+    retained_cluster_ids: list[str]
+    removed_cluster_ids: list[str]
+    clustered_article_ids: list[str]
+    unclustered_article_ids: list[str]
 
 
 # ── Pruning safety (docs/CLUSTERING.md §14) ──────────────────────────────────

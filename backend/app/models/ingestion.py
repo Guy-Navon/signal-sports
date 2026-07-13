@@ -30,6 +30,16 @@ class SourceIngestResult(BaseModel):
     # Per-run LLM dependency / quality metrics (issue #31) — also persisted on
     # the ingestion_runs row. Computed only in the normal gated ingestion path.
     metrics: Optional[Dict] = None
+    # Story-clustering stage (issue #101). Live response only — NOT persisted, matching
+    # the skipped_filtered precedent (no DB migration). Deliberately separate counters:
+    # clustering must never be conflated with URL dedup, which is a different mechanism.
+    clustering_ran: bool = False
+    clusters_created: int = 0
+    articles_appended_to_clusters: int = 0
+    articles_left_unclustered: int = 0
+    clusters_removed: int = 0
+    clustering_failed: bool = False
+    clustering_error: Optional[str] = None
 
 
 class IngestRunResponse(BaseModel):

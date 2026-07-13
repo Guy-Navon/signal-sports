@@ -181,3 +181,77 @@ class IngestionRunRow(Base):
     error_message = Column(String, nullable=True)
     # LLM dependency / quality metrics dict (issue #31) — soft-migrated JSON.
     metrics = Column(JSON, nullable=True)
+
+
+class StoryClusterRow(Base):
+    """A corpus-level GROUPING RECORD — not a fact (issue #101, docs/CLUSTERING.md §4).
+
+    Deliberately carries NO cluster-level article facts: no unioned entity_ids, no max
+    importance, no merged event facts. Article facts stay authoritative on each member
+    article and are never rewritten by clustering. ``event_state`` and ``sport`` here are
+    GROUPING KEYS (what the members had in common), not assertions about the world.
+
+    Membership lives on the existing ``articles.cluster_id`` column — so this adds a new
+    table but requires NO migration to ``articles``.
+    """
+    __tablename__ = "story_clusters"
+
+    # Formation-time identity: "cluster_" + sha1(anchor_article_id)[:16].
+    # Assigned ONCE. Late arrivals append; the id NEVER churns (docs/CLUSTERING.md §8).
+    id = Column(String, primary_key=True)
+
+    # The founding member (earliest published_at, tie -> lowest article id).
+    #
+    # NULLABLE, and deliberately so (pruning-safety review, #101). The id above was minted
+    # from this article AT FORMATION and is now an immutable historical fact — the cluster
+    # does NOT depend on the anchor article continuing to exist. The feed horizon is ~36h
+    # but articles are retained longer for clustering/dedup/feedback/QA (docs/CLUSTERING.md
+    # §14); when a retention capability eventually prunes articles, this reference must be
+    # able to move (to the earliest surviving member) or be nulled WITHOUT the cluster id
+    # ever churning. A NOT NULL column keyed to a prunable row is a foot-gun.
+    #
+    # After a prune this is the OPERATIONAL anchor (earliest surviving member), which may
+    # differ from the article the id was originally derived from. That is fine and expected:
+    # id != f(current anchor) once pruning has occurred.
+    anchor_article_id = Column(String, nullable=True, index=True)
+
+    # The §9.1 ladder winner. MAY change when a stronger member arrives — that is fine and
+    # does not affect the id.
+    representative_article_id = Column(String, nullable=False)
+
+    event_state = Column(String, nullable=False)      # grouping key, not a fact
+    sport = Column(String, nullable=True)             # grouping key; NULL when unknown-sport
+
+    # ISO-8601 strings, matching every other datetime column in this schema.
+    formed_at = Column(String, nullable=False)
+    # OPERATIONAL/DEBUG metadata only. NEVER used for feed ordering — the per-user
+    # sort_at comes from the newest VISIBLE member (docs/CLUSTERING.md §9.3).
+    last_member_added_at = Column(String, nullable=False)
+
+    method = Column(String, nullable=False, default="deterministic")   # v1: always this
+    # Which rule generation produced this cluster. A rule change is an explicit,
+    # auditable recompute — never silent drift.
+    rule_version = Column(Integer, nullable=False, default=1)
+    member_count = Column(Integer, nullable=False, default=0)
+
+
+class ClusterEdgeRow(Base):
+    """ACCEPTED match evidence only (issue #101, docs/CLUSTERING.md §4).
+
+    Rejected candidates are deliberately NOT persisted: near-miss diagnostics are bounded
+    and computed ON DEMAND for QA/Debug. Persisting every rejection would be unbounded
+    write amplification with no proven need.
+    """
+    __tablename__ = "cluster_edges"
+
+    id = Column(String, primary_key=True)             # sha1(cluster_id|a|b) — idempotent
+    cluster_id = Column(String, nullable=False, index=True)
+    article_a = Column(String, nullable=False)
+    article_b = Column(String, nullable=False)
+
+    jaccard = Column(Float, nullable=False)
+    hours_apart = Column(Float, nullable=False)
+    rare_tokens = Column(JSON, nullable=False)        # the discriminative tokens that carried it
+    entity_overlap = Column(JSON, nullable=False)
+    competition_overlap = Column(JSON, nullable=False)
+    tier = Column(String, nullable=False)             # A | B | C

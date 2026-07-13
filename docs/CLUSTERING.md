@@ -86,7 +86,8 @@ Checkpoint-2 corpus gate.
 
 | Tunable | Meaning |
 |---|---|
-| `df_abs_floor`, `df_ratio_max` | discriminative-token thresholds (§7) |
+| `max_story_coverage`, `df_ratio_max` | discriminative-token thresholds (§7.3). `max_story_coverage` must be ≥ `max_cluster_size` — enforced in `ClusteringConfig` |
+| the generic-token list | what can never be evidence: sports vocabulary + club family names (§7.3) |
 | `min_rare_tokens` per tier | how much discriminative evidence each tier demands (§7.3) |
 | `jaccard_min` per tier | token-overlap floor per tier (§7.3) |
 | time window per event state | how far apart two members may be (§5.2) |

@@ -184,6 +184,103 @@ def persist_clusters(
     return rows
 
 
+# ── Pruning safety (docs/CLUSTERING.md §14) ──────────────────────────────────
+#
+# The feed horizon is ~36h, but articles are retained longer for clustering, URL dedup,
+# feedback provenance, Debug and QA. A retention capability is a SEPARATE, protected,
+# independently-specified feature — it is NOT implemented here.
+#
+# What IS implemented here is the cluster-side safety this schema needs so that such a
+# capability can exist later without corrupting clusters: given that an article is going
+# away, clean up the cluster state correctly and NEVER churn a cluster id.
+
+# A cluster of one is not a cluster. Below this, the cluster is removed and the survivor
+# is unclustered (its facts, feedback and URL-dedup identity are untouched).
+MIN_CLUSTER_SIZE = 2
+
+
+def on_article_deleted(session: Session, article_id: str, commit: bool = True) -> Optional[str]:
+    """Cluster-side cleanup for an article that is being (or has been) deleted.
+
+    Safe to call before or after the ``articles`` row itself is removed, and safe to call
+    for an article that was never clustered.
+
+    Guarantees:
+      - cluster ids NEVER churn;
+      - no dangling edge rows survive (every edge touching the article is removed);
+      - the anchor/representative are re-selected from SURVIVING members if they pointed
+        at the deleted article — the id is unaffected, because the id is a historical fact
+        minted at formation, not a live function of the anchor;
+      - a cluster left with fewer than MIN_CLUSTER_SIZE members is removed and its lone
+        survivor unclustered;
+      - URL dedup, Preference V2 and article FACTS are untouched — this function only ever
+        writes ``articles.cluster_id`` and the two cluster tables.
+
+    Returns the affected cluster id, or None.
+    """
+    art = session.get(ArticleRow, article_id)
+    cluster_id = art.cluster_id if art is not None else None
+    if cluster_id is None:
+        # The article may already be gone; fall back to the edge table.
+        edge = (
+            session.query(ClusterEdgeRow)
+            .filter(
+                (ClusterEdgeRow.article_a == article_id)
+                | (ClusterEdgeRow.article_b == article_id)
+            )
+            .first()
+        )
+        cluster_id = edge.cluster_id if edge is not None else None
+
+    # Drop every edge touching the article — no dangling references, ever.
+    session.query(ClusterEdgeRow).filter(
+        (ClusterEdgeRow.article_a == article_id)
+        | (ClusterEdgeRow.article_b == article_id)
+    ).delete(synchronize_session=False)
+
+    if art is not None:
+        art.cluster_id = None
+
+    if cluster_id is None:
+        if commit:
+            session.commit()
+        return None
+
+    cluster = session.get(StoryClusterRow, cluster_id)
+    if cluster is None:
+        if commit:
+            session.commit()
+        return None
+
+    survivors = [
+        a for a in get_members(session, cluster_id) if a.id != article_id
+    ]
+
+    if len(survivors) < MIN_CLUSTER_SIZE:
+        # Not a cluster any more. Remove it and unassign the lone survivor.
+        for a in survivors:
+            a.cluster_id = None
+        session.query(ClusterEdgeRow).filter(
+            ClusterEdgeRow.cluster_id == cluster_id
+        ).delete(synchronize_session=False)
+        session.delete(cluster)
+        if commit:
+            session.commit()
+        return cluster_id
+
+    # Re-select the OPERATIONAL anchor/representative from survivors. The id is untouched.
+    survivors.sort(key=lambda a: (a.published_at or "", a.id))
+    if cluster.anchor_article_id == article_id:
+        cluster.anchor_article_id = survivors[0].id
+    if cluster.representative_article_id == article_id:
+        cluster.representative_article_id = survivors[0].id
+    cluster.member_count = len(survivors)
+
+    if commit:
+        session.commit()
+    return cluster_id
+
+
 def clear_clusters(session: Session, commit: bool = True) -> int:
     """Drop all cluster rows/edges and unassign membership.
 

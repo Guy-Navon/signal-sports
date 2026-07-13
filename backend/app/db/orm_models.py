@@ -200,10 +200,20 @@ class StoryClusterRow(Base):
     # Assigned ONCE. Late arrivals append; the id NEVER churns (docs/CLUSTERING.md §8).
     id = Column(String, primary_key=True)
 
-    # The founding member (earliest published_at, tie -> lowest article id). The basis of
-    # the id, and therefore immutable for the life of the cluster. NOT the representative:
-    # the representative may change as better articles arrive; the anchor must not.
-    anchor_article_id = Column(String, nullable=False, index=True)
+    # The founding member (earliest published_at, tie -> lowest article id).
+    #
+    # NULLABLE, and deliberately so (pruning-safety review, #101). The id above was minted
+    # from this article AT FORMATION and is now an immutable historical fact — the cluster
+    # does NOT depend on the anchor article continuing to exist. The feed horizon is ~36h
+    # but articles are retained longer for clustering/dedup/feedback/QA (docs/CLUSTERING.md
+    # §14); when a retention capability eventually prunes articles, this reference must be
+    # able to move (to the earliest surviving member) or be nulled WITHOUT the cluster id
+    # ever churning. A NOT NULL column keyed to a prunable row is a foot-gun.
+    #
+    # After a prune this is the OPERATIONAL anchor (earliest surviving member), which may
+    # differ from the article the id was originally derived from. That is fine and expected:
+    # id != f(current anchor) once pruning has occurred.
+    anchor_article_id = Column(String, nullable=True, index=True)
 
     # The §9.1 ladder winner. MAY change when a stronger member arrives — that is fine and
     # does not affect the id.

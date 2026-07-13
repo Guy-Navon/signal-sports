@@ -56,74 +56,39 @@ def cases() -> dict:
     return _load()
 
 
-# ── Realistic DF denominator (test scaffolding, NOT contract data) ───────────
-#
-# Document frequency is MEANINGLESS in a 41-article window, and clustering's whole
-# precision mechanism is built on it. Two failures prove it:
-#
-#   - "רקנאטי"/"פדרמן" appear in df=4 documents (the 4 sources covering that story).
-#     With a tiny window that reads as "common" — so the MORE sources cover a story,
-#     the LESS likely it would cluster. Exactly backwards.
-#   - "העונה"/"פתחה"/"בניצחון" appear in df=2 and read as "rare" — so two unrelated
-#     "X opened the season with a win" headlines would merge.
-#
-# A real lookback window (24-48h across four Hebrew sports sources) holds HUNDREDS of
-# articles, which is what the recorded calibration (df_ratio_max=0.01) assumes: at
-# n≈400, "רקנאטי" (df=4 → ratio 0.0099) is discriminative and "העונה" (df≈50) is not.
-#
-# These filler articles exist ONLY to give DF that realistic denominator. They are
-# generic sports furniture, carry NO expectations, and are deliberately all from one
-# source so they can never cluster with each other (cross-source hard gate). They are
-# NOT part of the frozen contract — that is why they live here and not in the fixture
-# file.
+# Filler used ONLY by the small-window scaling tests. It is generic sports furniture
+# from a single source, so it can never cluster (cross-source gate) and can never be
+# evidence (every word is in the generic list). It is NOT needed for correctness —
+# the matcher works on the bare 41-article fixture window, which is the point.
 _FILLER_SOURCE = "filler_source"
-
-# Common Hebrew sports vocabulary. Every one of these MUST end up non-discriminative;
-# none of them may be the thing that carries a real match.
 _FILLER_PHRASES = [
     "הקבוצה פתחה את העונה בניצחון גדול",
     "השחקן חתם על חוזה חדש עם הקבוצה",
     "המאמן האריך חוזה לקראת העונה הבאה",
     "הקבוצה מחתימה את הגארד האמריקאי לקראת העונה",
     "ניצחון חשוב במשחק הליגה אתמול",
-    "הקבוצה מתל אביב סיימה את המשחק בתיקו",
-    "שחקן הליגה עבר בדיקות לקראת החתימה",
-    "מכבי והפועל נפגשות במשחק הליגה",
-    "הקבוצה הודיעה על צירוף שחקן חדש",
-    "משחק הליגה הסתיים בניצחון הקבוצה המארחת",
 ]
 
 
-def _background_window() -> list[ClusterInput]:
-    """Filler sized so the DF window satisfies ClusteringConfig.min_window_for_valid_df().
-
-    With df_ratio_max=0.01 and max_cluster_size=6 that means >= 700 eligible docs, so a
-    fully-covered 6-source story still clusters (its own tokens have df=6). Sizing this
-    at ~400 put the 4-source Recanati cluster exactly on the knife's edge (threshold
-    3.96 vs its df of 4) and silently dropped it — see the coverage-paradox note in
-    ClusteringConfig.
-    """
+def _filler(n: int) -> list[ClusterInput]:
     base = datetime.fromisoformat("2026-06-01T09:00:00+00:00")
-    out: list[ClusterInput] = []
-    for i in range(800):
-        phrase = _FILLER_PHRASES[i % len(_FILLER_PHRASES)]
-        out.append(ClusterInput(
-            id=f"bg_{i:03d}",
-            source=_FILLER_SOURCE,          # same source → filler never clusters
-            title=f"{phrase} מספר {i}",
+    return [
+        ClusterInput(
+            id=f"bg_{i:04d}",
+            source=_FILLER_SOURCE,
+            title=f"{_FILLER_PHRASES[i % len(_FILLER_PHRASES)]} מספר {i}",
             published_at=base,
             sport="basketball",
             event_type="news",
             event_certainty="probable",
-            entity_ids=(),
-            primary_competition=None,
-        ))
-    return out
+        )
+        for i in range(n)
+    ]
 
 
 @pytest.fixture(scope="module")
 def real_articles(cases) -> list[ClusterInput]:
-    """Only the frozen contract articles (no scaffolding)."""
+    """The frozen contract articles. 41 rows — a SMALL window, exactly like production."""
     seen: dict[str, ClusterInput] = {}
     for section in ("true_positive_groups", "must_not_cluster", "excluded_from_candidacy"):
         for case in cases[section]:
@@ -134,8 +99,13 @@ def real_articles(cases) -> list[ClusterInput]:
 
 @pytest.fixture(scope="module")
 def window(real_articles) -> list[ClusterInput]:
-    """Production-scale candidate window: the frozen fixtures + a realistic DF denominator."""
-    return real_articles + _background_window()
+    """The candidate window IS the bounded rolling corpus — no padding, no minimum size.
+
+    Signal Sports serves a ~36h feed. The matcher must be correct on a window of tens of
+    articles; it must never require accumulation. Precision here comes from the LEXICAL
+    generic-token exclusion, not from a statistical denominator.
+    """
+    return list(real_articles)
 
 
 @pytest.fixture(scope="module")
@@ -189,33 +159,130 @@ class TestTokenNormalization:
 # ── Discriminative-token evidence (the precision backbone) ────────────────────
 
 class TestDiscriminativeEvidence:
-    def test_absolute_floor_marks_rare_token(self):
-        df = DocumentFrequency.over([{"רקנאטי"}, {"אחר"}, {"אחר"}, {"אחר"}])
+    """Bounded-window rarity model. NO minimum corpus size anywhere."""
+
+    def test_story_specific_token_is_discriminative_in_a_tiny_window(self):
+        df = DocumentFrequency.over([{"רקנאטי"}, {"אחר"}, {"אחר"}])
         assert df.is_discriminative("רקנאטי", DEFAULT_CONFIG)
 
-    def test_common_token_is_not_discriminative_in_a_large_window(self):
-        # df=10 in a 100-doc window: fails the abs floor (3) AND the ratio (0.10 > 0.01).
-        docs = [{"חתם"} for _ in range(10)] + [{"x"} for _ in range(90)]
-        df = DocumentFrequency.over(docs)
-        assert df.df("חתם") == 10
-        assert not df.is_discriminative("חתם", DEFAULT_CONFIG)
+    def test_generic_token_is_never_discriminative_however_rare(self):
+        # THE small-window mechanism: "העונה" in 1 of 3 docs is statistically "rare",
+        # but it is lexically generic and can never be evidence.
+        df = DocumentFrequency.over([{"העונה"}, {"x"}, {"y"}])
+        assert df.df("העונה") == 1
+        assert not df.is_discriminative("העונה", DEFAULT_CONFIG)
 
-    def test_df_ratio_rescues_a_token_in_a_very_large_window(self):
-        # df=5 exceeds the abs floor, but ratio 5/1000 = 0.005 <= 0.01 → discriminative.
-        docs = [{"נדיר"} for _ in range(5)] + [{"x"} for _ in range(995)]
+    def test_bare_club_family_names_are_never_evidence(self):
+        df = DocumentFrequency.over([{"מכבי", "הפועל"}, {"x"}, {"y"}])
+        for fam in ("מכבי", "הפועל", "עירוני"):
+            assert not df.is_discriminative(fam, DEFAULT_CONFIG)
+
+    def test_prefixed_family_name_is_also_never_evidence(self):
+        # "בהפועל"/"במכבי" must not sneak past the family-name exclusion.
+        df = DocumentFrequency.over([{"בהפועל", "במכבי"}, {"x"}])
+        assert not df.is_discriminative("בהפועל", DEFAULT_CONFIG)
+        assert not df.is_discriminative("במכבי", DEFAULT_CONFIG)
+
+    def test_generic_sports_vocabulary_is_never_evidence(self):
+        df = DocumentFrequency.over([{"חתם", "הגארד", "האמריקאי", "מחתימה"}, {"x"}])
+        for tok in ("חתם", "הגארד", "האמריקאי", "מחתימה", "חוזה", "ניצחון"):
+            assert not df.is_discriminative(tok, DEFAULT_CONFIG), tok
+
+    def test_widely_covered_story_token_stays_discriminative(self):
+        """THE COVERAGE PARADOX. A token whose df equals the number of covering sources
+        must remain evidence — a story must not get LESS clusterable as more sources
+        report it."""
+        for n_sources in (2, 3, 4, 5, 6):
+            docs = [{"רקנאטי"} for _ in range(n_sources)] + [{"x"} for _ in range(10)]
+            df = DocumentFrequency.over(docs)
+            assert df.df("רקנאטי") == n_sources
+            assert df.is_discriminative("רקנאטי", DEFAULT_CONFIG), (
+                f"a {n_sources}-source story lost its own defining token"
+            )
+
+    def test_token_above_story_coverage_is_not_discriminative_in_a_small_window(self):
+        # df=8 > max_story_coverage(6); ratio 8/20 = 0.40 > 0.01 → not evidence.
+        docs = [{"נפוץ"} for _ in range(8)] + [{"x"} for _ in range(12)]
         df = DocumentFrequency.over(docs)
-        assert df.df("נדיר") > DEFAULT_CONFIG.df_abs_floor
-        assert df.df_ratio("נדיר") <= DEFAULT_CONFIG.df_ratio_max
+        assert not df.is_discriminative("נפוץ", DEFAULT_CONFIG)
+
+    def test_df_ratio_rescues_a_token_in_a_large_window(self):
+        # df=50 far exceeds max_story_coverage, but ratio 50/10000 = 0.005 <= 0.01.
+        docs = [{"נדיר"} for _ in range(50)] + [{"x"} for _ in range(9950)]
+        df = DocumentFrequency.over(docs)
+        assert df.df("נדיר") > DEFAULT_CONFIG.max_story_coverage
         assert df.is_discriminative("נדיר", DEFAULT_CONFIG)
 
-    def test_df_counts_each_document_once(self):
+    def test_df_ratio_uses_actual_window_size(self):
         df = DocumentFrequency.over([{"a"}, {"a"}, {"b"}])
-        assert df.df("a") == 2 and df.total_documents == 3
+        assert df.total_documents == 3
+        assert df.df_ratio("a") == pytest.approx(2 / 3)
 
-    def test_thresholds_are_tunable_not_hardcoded(self):
-        strict = ClusteringConfig(df_abs_floor=0, df_ratio_max=0.0)
-        df = DocumentFrequency.over([{"t"}, {"x"}, {"y"}])
-        assert not df.is_discriminative("t", strict)
+    def test_empty_window_does_not_divide_by_zero(self):
+        df = DocumentFrequency.over([])
+        assert df.df_ratio("a") == 0.0
+
+    def test_thresholds_are_tunable(self):
+        strict = ClusteringConfig(max_story_coverage=6, df_ratio_max=0.0)
+        df = DocumentFrequency.over([{"t"} for _ in range(9)] + [{"x"}])
+        assert not df.is_discriminative("t", strict)   # df=9 > 6, ratio rule disabled
+
+
+class TestNoMinimumCorpusSize:
+    """Signal Sports serves a bounded ~36h rolling feed. Clustering must never require
+    accumulation, and no minimum-window API may exist."""
+
+    def test_no_minimum_window_api_remains(self):
+        for gone in ("min_window_for_valid_df", "df_supports_full_size_cluster",
+                     "df_abs_floor"):
+            assert not hasattr(DEFAULT_CONFIG, gone), f"{gone} must not exist"
+
+    def test_max_story_coverage_must_admit_a_full_size_cluster(self):
+        # Guard the paradox as an assertion, not a corpus-size gate.
+        assert DEFAULT_CONFIG.max_story_coverage >= DEFAULT_CONFIG.max_cluster_size
+        with pytest.raises(ValueError):
+            ClusteringConfig(max_story_coverage=2, max_cluster_size=6)
+
+    @pytest.mark.parametrize("n_filler", [0, 20, 50, 100, 200])
+    def test_matcher_works_at_every_window_size(self, real_articles, n_filler):
+        """The fixture expectations hold at 41, 61, 91, 141 and 241 documents."""
+        res = cluster_articles(real_articles + _filler(n_filler), DEFAULT_CONFIG)
+
+        rf = next((c for c in res.clusters if "f_rf_1" in c.member_ids), None)
+        gl = next((c for c in res.clusters if "f_gl_1" in c.member_ids), None)
+        assert rf is not None and rf.size == 4, "4-source Recanati cluster lost"
+        assert gl is not None and gl.size == 3, "3-source Greg Lee cluster lost"
+
+        together = {frozenset(c.member_ids) for c in res.clusters}
+        assert not any({"f_dp_2", "f_ash_1"} <= m for m in together)   # template FP
+        assert not any({"f_fam_1", "f_fam_2"} <= m for m in together)  # family FP
+        assert not any({"f_tc_a", "f_tc_c"} <= m for m in together)    # chain FP
+
+    def test_unrelated_documents_entering_the_window_do_not_change_results(
+        self, real_articles
+    ):
+        """A rolling window churns constantly. Results for a story must not depend on
+        what unrelated news happens to be in the window alongside it."""
+        small = cluster_articles(real_articles + _filler(10), DEFAULT_CONFIG)
+        large = cluster_articles(real_articles + _filler(200), DEFAULT_CONFIG)
+
+        def shape(res):
+            return sorted(
+                tuple(sorted(c.member_ids)) for c in res.clusters
+                if not any(m.startswith("bg_") for m in c.member_ids)
+            )
+        assert shape(small) == shape(large)
+
+    def test_documents_leaving_the_window_do_not_change_results(self, real_articles):
+        with_filler = cluster_articles(real_articles + _filler(100), DEFAULT_CONFIG)
+        without = cluster_articles(real_articles, DEFAULT_CONFIG)
+
+        def shape(res):
+            return sorted(
+                tuple(sorted(c.member_ids)) for c in res.clusters
+                if not any(m.startswith("bg_") for m in c.member_ids)
+            )
+        assert shape(with_filler) == shape(without)
 
 
 # ── Event state / windows / in-play ──────────────────────────────────────────
@@ -567,39 +634,109 @@ class TestCoherenceDirectly:
         assert {m.id for m in coherent} == {"A", "B"}
 
 
-class TestCoveragePardox:
-    """A story covered by N sources has df == N for its OWN defining tokens. If the
-    discriminative threshold falls below the cluster size, a story becomes
-    unclusterable BECAUSE it is widely covered — exactly backwards. This silently
-    dropped the 4-source Recanati cluster during #100 and must never regress.
+class TestOneMemberPerSource:
+    """SOURCE UNIQUENESS is a CLUSTER invariant, not merely a pair gate.
+
+    The cross-source PAIR rule does not stop two same-source articles reaching one
+    cluster through a third: A(X)~B(Y) and C(X)~B(Y) are both legal pairs, yet union-find
+    would put A, B and C together — re-introducing the same-source chaining v1 forbids.
     """
 
-    def test_threshold_must_exceed_max_cluster_size(self):
-        cfg = DEFAULT_CONFIG
-        min_window = cfg.min_window_for_valid_df()
-        effective_threshold = cfg.df_ratio_max * min_window
-        assert effective_threshold > cfg.max_cluster_size
-
-    def test_small_window_is_flagged_as_unable_to_support_clustering(self):
-        cfg = DEFAULT_CONFIG
-        assert not cfg.df_supports_full_size_cluster(100)
-        assert cfg.df_supports_full_size_cluster(cfg.min_window_for_valid_df())
-
-    def test_the_test_window_satisfies_the_constraint(self, window):
-        eligible = [a for a in window
-                    if a.event_type not in ("interview",) and not is_in_play(a.title)]
-        assert DEFAULT_CONFIG.df_supports_full_size_cluster(len(eligible)), (
-            f"test window ({len(eligible)}) is too small for DF to be meaningful; "
-            f"need >= {DEFAULT_CONFIG.min_window_for_valid_df()}"
+    def _mk(self, _id, src, title, hour):
+        return ClusterInput(
+            id=_id, source=src, title=title, sport="basketball",
+            event_type="signing", event_certainty="confirmed",
+            entity_ids=("team:hapoel_holon",),
+            published_at=datetime.fromisoformat(f"2026-07-07T{hour:02d}:00:00+00:00"),
         )
 
-    def test_a_widely_covered_story_still_clusters(self, real_articles):
-        # The regression guard: the 4-source story's own tokens (df=4) must remain
-        # discriminative in a properly sized window.
-        window = real_articles + _background_window()
-        res = cluster_articles(window, DEFAULT_CONFIG)
-        rf = next((c for c in res.clusters if "f_rf_1" in c.member_ids), None)
-        assert rf is not None and rf.size == 4
+    @pytest.fixture
+    def bridged(self):
+        # A and C are BOTH from source X; B (source Y) matches each of them.
+        a = self._mk("A", "srcX", "רומן סורקין חתם בהפועל חולון", 9)
+        b = self._mk("B", "srcY", "רומן סורקין חתם רשמית בהפועל חולון", 10)
+        c = self._mk("C", "srcX", "רומן סורקין חתם בהפועל חולון היום", 11)
+        return cluster_articles([a, b, c], DEFAULT_CONFIG), (a, b, c)
+
+    def test_cluster_contains_only_one_of_the_two_same_source_articles(self, bridged):
+        res, _ = bridged
+        assert len(res.clusters) == 1
+        members = set(res.clusters[0].member_ids)
+        assert "B" in members
+        assert len(members & {"A", "C"}) == 1, (
+            f"both same-source articles entered the cluster: {members}"
+        )
+
+    def test_every_cluster_has_unique_sources(self, bridged):
+        res, arts = bridged
+        by_id = {a.id: a for a in arts}
+        for c in res.clusters:
+            sources = [by_id[m].source for m in c.member_ids]
+            assert len(set(sources)) == len(sources)
+
+    def test_selection_is_deterministic(self, bridged):
+        res, arts = bridged
+        for _ in range(3):
+            again = cluster_articles(list(arts), DEFAULT_CONFIG)
+            assert [c.member_ids for c in again.clusters] == \
+                   [c.member_ids for c in res.clusters]
+
+    def test_selection_is_independent_of_input_order(self, bridged):
+        res, arts = bridged
+        rev = cluster_articles(list(reversed(arts)), DEFAULT_CONFIG)
+        assert {frozenset(c.member_ids) for c in rev.clusters} == \
+               {frozenset(c.member_ids) for c in res.clusters}
+
+    def test_the_rejected_same_source_article_is_left_unclustered(self, bridged):
+        res, _ = bridged
+        clustered = res.clustered_article_ids
+        assert len({"A", "C"} - clustered) == 1, "the loser must remain unclustered"
+
+    def test_incumbent_is_not_evicted(self, bridged):
+        # We do NOT auto-replace the existing same-source member: the earlier article
+        # got in on at least as strong evidence, and swapping would make composition
+        # depend on arrival order.
+        res, _ = bridged
+        assert "A" in res.clusters[0].member_ids   # earliest same-source member kept
+
+    def test_coherence_cannot_be_bypassed_by_a_transitive_path(self):
+        """Direct check on the validator: even if the graph says all three connect,
+        the cluster invariant must reject the duplicate source."""
+        from app.clustering.coherence import validate_coherence
+        from app.clustering.contract import MatchEdge
+
+        a = self._mk("A", "srcX", "סורקין חתם", 9)
+        b = self._mk("B", "srcY", "סורקין חתם רשמית", 10)
+        c = self._mk("C", "srcX", "סורקין חתם היום", 11)
+        edges = [
+            MatchEdge("A", "B", 0.7, 1.0, ("סורקין",), (), (), "A"),
+            MatchEdge("B", "C", 0.7, 1.0, ("סורקין",), (), (), "A"),
+            MatchEdge("A", "C", 0.7, 2.0, ("סורקין",), (), (), "A"),
+        ]
+        coherent = validate_coherence([a, b, c], edges, DEFAULT_CONFIG)
+        sources = [m.source for m in coherent]
+        assert len(set(sources)) == len(sources), "source uniqueness bypassed"
+
+    def test_representative_change_cannot_admit_a_second_same_source_member(self):
+        from app.clustering.coherence import validate_coherence
+        from app.clustering.contract import MatchEdge
+
+        # C (srcX) is the FACT-RICHEST article, so it would win the representative
+        # ladder — it still must not join a cluster that already has srcX.
+        a = self._mk("A", "srcX", "סורקין חתם", 9)
+        b = self._mk("B", "srcY", "סורקין חתם רשמית", 10)
+        c = ClusterInput(
+            id="C", source="srcX", title="סורקין חתם היום", sport="basketball",
+            event_type="signing", event_certainty="confirmed",
+            entity_ids=("team:hapoel_holon",), primary_competition="comp:ibl",
+            published_at=datetime.fromisoformat("2026-07-07T11:00:00+00:00"),
+        )
+        edges = [
+            MatchEdge("A", "B", 0.7, 1.0, ("סורקין",), (), (), "A"),
+            MatchEdge("A", "C", 0.7, 2.0, ("סורקין",), (), (), "A"),
+        ]
+        coherent = validate_coherence([a, b, c], edges, DEFAULT_CONFIG)
+        assert {m.id for m in coherent} == {"A", "B"}
 
 
 class TestRejectionDiagnostics:

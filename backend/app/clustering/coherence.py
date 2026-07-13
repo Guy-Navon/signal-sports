@@ -117,9 +117,22 @@ def _connected_components(
 def _cluster_globally_compatible(
     members: list[ClusterInput], cfg: ClusteringConfig
 ) -> bool:
-    """One event_state, no cross-sport pair, and a bounded total time span."""
+    """One event_state, one member per source, no cross-sport pair, bounded time span.
+
+    SOURCE UNIQUENESS is a CLUSTER invariant, not merely a pair gate. The cross-source
+    pair rule alone does NOT prevent two articles from the same source ending up in one
+    cluster: A(src X) ~ B(src Y) and C(src X) ~ B(src Y) are both legal pairs, yet
+    union-find would put A, B and C together — quietly re-introducing the same-source
+    chaining that v1 declares a non-goal. Enforcing it here means no transitive path can
+    bypass it.
+    """
     if len({m.event_type for m in members}) != 1:
         return False
+
+    sources = [m.source for m in members]
+    if len(set(sources)) != len(sources):
+        return False
+
     for i, a in enumerate(members):
         for b in members[i + 1:]:
             if sports_hard_reject(a, b):
@@ -179,6 +192,14 @@ def validate_coherence(
         if len(members) >= cfg.max_cluster_size:
             # Suspicious-merge guard: stop admitting rather than silently growing.
             break
+
+        # ONE MEMBER PER SOURCE (v1 invariant). If this source is already represented,
+        # the candidate is rejected FROM THIS CLUSTER and left unclustered. We do NOT
+        # automatically evict the incumbent: the incumbent got here on earlier, at least
+        # as strong evidence, and silently swapping members would make the cluster's
+        # composition depend on arrival order. Deterministic by publication order.
+        if cand.source in {m.source for m in members}:
+            continue
 
         member_ids = {m.id for m in members}
         matches = adjacency[cand.id] & member_ids

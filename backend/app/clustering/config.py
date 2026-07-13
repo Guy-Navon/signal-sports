@@ -57,12 +57,26 @@ DEFAULT_TIME_WINDOW_HOURS: dict[str, float] = {
 class ClusteringConfig:
     # ── Discriminative-token evidence (the precision backbone) ────────────────
     # A token is DISCRIMINATIVE iff:
-    #     absolute_df <= df_abs_floor  OR  df_ratio <= df_ratio_max
-    # where df_ratio = docs_in_window_containing(token) / total_docs_in_window.
+    #     NOT generic(token)
+    #     AND ( token_df <= max_story_coverage  OR  token_df_ratio <= df_ratio_max )
+    # where token_df_ratio = token_df / max(actual_window_size, 1), computed over the
+    # CANDIDATE LOOKBACK WINDOW (docs/CLUSTERING.md §7.3).
     #
-    # df computed over the CANDIDATE LOOKBACK WINDOW, never a frozen global corpus,
-    # so the rule scales with volume (docs/CLUSTERING.md §7.3).
-    df_abs_floor: int = 3
+    # THE COVERAGE PARADOX: a story covered by N sources gives its OWN defining token a
+    # df of ~N ("רקנאטי" appears in exactly its 4 articles). An absolute floor BELOW the
+    # cluster size would make a story LESS clusterable the more sources reported it —
+    # exactly backwards. So the floor is keyed to story coverage, not to an arbitrary
+    # constant: a token appearing in at most one story's worth of documents is still
+    # story-specific by definition.
+    #
+    # THERE IS NO MINIMUM WINDOW OR CORPUS SIZE. Signal Sports operates on a bounded
+    # rolling feed (~36h). Precision on a small window comes from the LEXICAL
+    # generic-token exclusion (tokens.py), not from a statistical denominator — a
+    # denominator is meaningless when the corpus is a day and a half of news.
+    #
+    # df_ratio_max is a SECONDARY rescue for large windows only, where a genuinely
+    # common word can exceed max_story_coverage in absolute terms.
+    max_story_coverage: int = 6      # aligned with max_cluster_size (see __post_init__)
     df_ratio_max: float = 0.01
 
     # ── Tier thresholds ──────────────────────────────────────────────────────
@@ -99,27 +113,17 @@ class ClusteringConfig:
     def window_for(self, event_state: str) -> float:
         return self.time_window_hours.get(event_state, 24.0)
 
-    # ── The coverage paradox (a real constraint, learned the hard way) ────────
-    #
-    # A story covered by N sources has df == N for its OWN defining tokens
-    # ("רקנאטי" appears in exactly the 4 articles about the Recanati takeover).
-    # So if the discriminative threshold is BELOW the cluster size, a story becomes
-    # unclusterable *by virtue of being widely covered* — the more sources report it,
-    # the less likely we group it. Exactly backwards, and it silently broke the
-    # 4-source flagship cluster during #100.
-    #
-    # Therefore the effective threshold (df_ratio_max * window_size) MUST exceed
-    # max_cluster_size. Since df_ratio_max is a ratio, that is a constraint on the
-    # WINDOW: a lookback window that is too small cannot support clustering at all.
-    def min_window_for_valid_df(self) -> int:
-        """Smallest candidate window in which DF can support a full-size cluster."""
-        if self.df_ratio_max <= 0:
-            return 0
-        # strictly greater than max_cluster_size, so a max-size story still clusters
-        return int((self.max_cluster_size + 1) / self.df_ratio_max)
-
-    def df_supports_full_size_cluster(self, window_size: int) -> bool:
-        return window_size >= self.min_window_for_valid_df()
+    def __post_init__(self) -> None:
+        # The coverage-paradox guard, as an ASSERTION rather than a corpus-size gate:
+        # a full-size cluster's own defining token has df == max_cluster_size, so the
+        # absolute floor must admit it. If someone tunes max_story_coverage below
+        # max_cluster_size, the biggest stories silently stop clustering.
+        if self.max_story_coverage < self.max_cluster_size:
+            raise ValueError(
+                "max_story_coverage must be >= max_cluster_size, otherwise a story "
+                "becomes less clusterable the more sources cover it (the coverage "
+                f"paradox): {self.max_story_coverage} < {self.max_cluster_size}"
+            )
 
 
 DEFAULT_CONFIG = ClusteringConfig()

@@ -213,20 +213,54 @@ formulaic, and the audit found two entirely unrelated signings sharing
 
 ### 7.3 Discriminative-token evidence — **the precision backbone**
 
-Computed over the **candidate lookback window**, never a frozen global corpus, so the rule
-scales with volume:
+Signal Sports serves a **bounded rolling corpus** (the consumer feed horizon is roughly the
+last **36 hours**). The matcher must therefore be correct on a window of *tens* of articles.
+**There is no minimum corpus size and no accumulation prerequisite — anywhere.**
 
 ```
-df_ratio(token) = documents_in_lookback_containing(token) / total_documents_in_lookback
+token_df       = documents in the candidate lookback window containing the token
+token_df_ratio = token_df / max(actual_window_size, 1)
 
-token is DISCRIMINATIVE  ⇔  absolute_df(token) <= df_abs_floor
-                            OR df_ratio(token) <= df_ratio_max
+token_is_discriminative =
+      NOT generic(token)                       # stopword | headline template |
+                                               # generic sports vocabulary | club FAMILY name
+  AND ( token_df <= max_story_coverage
+        OR token_df_ratio <= df_ratio_max )
 ```
 
-**Invariant:** a match requires **shared discriminative tokens**.
-**Tunable:** `df_abs_floor`, `df_ratio_max`, and the per-tier minimum count.
-**Initial calibrated default:** `df_abs_floor = 3`, `df_ratio_max = 0.01` — the values that
-reproduced the audited behaviour with zero false positives.
+**Invariant:** a match requires **shared discriminative evidence** — *and a story-specific
+token must not become non-discriminative merely because multiple sources cover the same
+story.*
+
+**Tunable:** `max_story_coverage`, `df_ratio_max`, the per-tier minimum count, and the generic
+list. **Defaults:** `max_story_coverage = 6` (aligned with `max_cluster_size`),
+`df_ratio_max = 0.01`.
+
+#### The coverage paradox — and why the absolute floor is keyed to story coverage
+
+A story covered by **N sources gives its own defining token a `df` of ≈ N**: "רקנאטי" appears
+in exactly the four articles about the takeover. If the absolute floor sat **below** the
+cluster size, a story would become **less clusterable the more sources reported it** — exactly
+backwards. So the floor is **`max_story_coverage`**, aligned with `max_cluster_size`: *a token
+appearing in at most one story's worth of documents is still story-specific by definition.*
+`ClusteringConfig` refuses to construct with `max_story_coverage < max_cluster_size`.
+
+#### Where precision comes from on a small window
+
+**Lexically, not statistically.** In a 30-article window "העונה" appears twice and looks
+statistically "rare" — a denominator cannot save you. So rarity is established by an explicit
+**generic-token** exclusion (`tokens.py`): common sports vocabulary (`חתם`, `חוזה`, `הגארד`,
+`האמריקאי`, `ניצחון`, `העונה`, `משחק`, `ליגה`, …) and **club family names** (`מכבי`, `הפועל`,
+`עירוני`, `בית"ר`, including single-letter-prefixed forms like `בהפועל`) can contribute to
+*similarity* but can **never be the evidence a match is built on**. This is also what enforces
+the taxonomy's family-name abstention (#64) at the clustering layer.
+
+`df_ratio_max` is a **secondary rescue for large windows only**, where a genuinely common word
+can exceed `max_story_coverage` in absolute terms.
+
+> **Explicitly rejected:** denominator smoothing to an artificial reference corpus, and any
+> minimum-window / minimum-corpus gate. Both would make the product wait for data it will never
+> have.
 
 **Tiers:**
 
@@ -244,31 +278,6 @@ covers the two weakest evidence situations — and `news` is roughly half the co
 a large share of true positives. Entity *lowers the bar* (Tier A); its absence never raises a
 wall.
 
-#### The coverage paradox — a hard constraint on the window (established in #100)
-
-A story covered by **N sources has `df == N` for its own defining tokens**: "רקנאטי"
-appears in exactly the four articles about the Recanati takeover, and essentially nowhere
-else.
-
-So if the discriminative threshold falls **below** the cluster size, a story becomes
-unclusterable **because it is widely covered** — the more sources report it, the less likely
-we group it. Exactly backwards. This silently dropped the 4-source flagship cluster during
-implementation.
-
-Therefore:
-
-```
-df_ratio_max × window_size   >   max_cluster_size
-```
-
-Because `df_ratio_max` is a ratio, this is really a constraint on the **candidate window**: a
-lookback window that is too small **cannot support clustering at all** — DF there is not merely
-imprecise, it is *inverted*. `ClusteringConfig.min_window_for_valid_df()` computes the floor and
-`df_supports_full_size_cluster(n)` checks it. With the calibrated defaults
-(`df_ratio_max = 0.01`, `max_cluster_size = 6`) the window must hold **≥ 700** eligible articles.
-
-Never evaluate DF on a toy window; the statistic is meaningless below that floor.
-
 ### 7.4 Grouping and the coherence invariant
 
 Accepted pairs are grouped by connected components (union-find) — **but plain union-find is NOT
@@ -279,12 +288,34 @@ sufficient.** A weak chain `A~B`, `B~C` can drag unrelated `A` and `C` into one 
 1. An initial accepted **pair** may form a cluster (the seed; its earlier member is the anchor).
 2. A **late member must match the ANCHOR, OR at least `min_member_matches_to_join` (2) existing
    members.** One weak edge to one *peripheral* member is not enough to join.
-3. The resulting cluster must remain **globally compatible**: a single `event_state`, a
-   compatible `sport`, and a total span within `max_cluster_time_span`.
-4. **Backfill applies final coherence validation *after* candidate grouping**, so transitive
+3. **ONE MEMBER PER SOURCE** — see below.
+4. The resulting cluster must remain **globally compatible**: a single `event_state`, a
+   compatible `sport`, a total span within `max_cluster_time_span`, and unique sources.
+5. **Backfill applies final coherence validation *after* candidate grouping**, so transitive
    chains formed during batch processing are broken up rather than silently merged.
-5. `max_cluster_size` guard: a cluster exceeding it is **flagged as a suspicious merge**, not
+6. `max_cluster_size` guard: a cluster exceeding it is **flagged as a suspicious merge**, not
    silently accepted.
+
+#### Source uniqueness is a CLUSTER invariant, not merely a pair gate
+
+The cross-source **pair** rule does **not** prevent two articles from the same source landing in
+one cluster through a third:
+
+```
+A (source X) ~ B (source Y)        both legal pairs …
+C (source X) ~ B (source Y)        … yet union-find puts A, B and C together
+```
+
+That quietly re-introduces the same-source update chaining v1 declares a non-goal. So for v1:
+
+- a cluster may contain **at most one member per source**;
+- a candidate from a source already represented is **rejected from that cluster**;
+- the incumbent is **not** automatically replaced — it arrived earlier on at least as strong
+  evidence, and silently swapping members would make cluster composition depend on arrival order;
+- the rejected article is simply **left unclustered**;
+- **no transitive path may bypass this** — it is enforced in the cluster-compatibility check, not
+  only at pair level. Even the fact-richest article (which would win the representative ladder)
+  cannot join a cluster whose source it duplicates.
 
 > **CONTRACT CORRECTION (#100) — rule 2 originally said "match the current REPRESENTATIVE".
 > That was unsafe and is now wrong.**
@@ -439,8 +470,10 @@ Fixtures prove the **contract**; the corpus gate proves it on **live data**. Bot
 
 **The Checkpoint-2 QA process (defined now, executed at #102):**
 
-1. **Wait for adequate multi-source accumulation.** A corpus from a single ingest cycle has too
-   little cross-source same-story overlap to prove anything.
+1. **Have enough genuine cross-source examples for a meaningful manual precision review.**
+   This is an **evidence-quality** requirement, **not a corpus-size gate** — the matcher itself
+   has **no minimum window** (§7.3). We are not waiting for the *matcher* to work; we are waiting
+   for enough real duplicate stories to *judge* it.
 2. **Make a frozen COPY of the corpus database.** All matcher/backfill QA runs against **the
    copy**, never the live DB.
 3. **Record the snapshot header:** timestamp, total articles, per-source counts, event-type
@@ -452,6 +485,27 @@ Fixtures prove the **contract**; the corpus gate proves it on **live data**. Bot
 > **The live scheduler may keep rebuilding the corpus, but no clustering quality claim may use
 > the moving live DB as a stable baseline.** A number measured against a DB that changes under
 > you is not a measurement.
+
+---
+
+## 14. Article lifecycle — feed visibility ≠ physical deletion
+
+**Documented here, deliberately NOT implemented in #100 or #101.**
+
+The active consumer feed shows roughly the **last 36 hours**. That horizon is a *presentation*
+concern and must never be confused with storage:
+
+- **An article being too old for the feed does not mean it should be deleted.**
+- Several subsystems need **longer internal retention** than the feed horizon:
+  **clustering** (a late source can join a story hours later), **URL dedup** (a purged URL would
+  be re-ingested as "new"), **feedback provenance** (feedback rows reference article ids),
+  **Debug**, and **QA / decision replay**.
+- **Hard deletion / pruning is a separate lifecycle capability.** It must be independently
+  specified, safe, and protected — the corpus is not in git and cannot be restored (#106).
+
+Clustering's persistence contract must therefore **not assume the anchor article lives forever**
+merely because the cluster id was derived from it (see §8 and the #101 pruning-safety review).
+No retention scheduler or destructive cleanup exists in this milestone.
 
 ---
 

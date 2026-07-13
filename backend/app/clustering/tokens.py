@@ -50,7 +50,48 @@ _TEMPLATE_WORDS: frozenset[str] = frozenset("""
 ממשיכה להתחזק ממשיך להתחזק מתחזקת סיכום עדכון מיוחד בלעדית
 """.split())
 
+# GENERIC SPORTS VOCABULARY — the words every sports headline uses. They are NOT
+# dropped from the token set (they still contribute to jaccard, which measures overall
+# similarity), but they can NEVER be discriminative EVIDENCE on their own.
+#
+# This list is what lets clustering work on a SMALL ROLLING WINDOW. Precision cannot
+# come from a statistical denominator when the corpus is only the last ~36 hours: in a
+# 30-article window, "העונה" appears twice and would look "rare". Rarity must therefore
+# be established LEXICALLY (this list) rather than only statistically.
+#
+# It includes club FAMILY names: a bare "מכבי" / "הפועל" / 'בית"ר' / "עירוני" identifies
+# no specific club (taxonomy abstention, #64) and must never be sufficient evidence.
+_GENERIC_TOKENS: frozenset[str] = frozenset("""
+מכבי הפועל בית"ר בית״ר ביתר עירוני בני maccabi hapoel beitar ironi
+תל אביב אבייב
+
+עונה העונה עונת פתחה פתח פותחת נפתחה
+ניצחון ניצחונות ניצחה ניצח מנצחת מנצח הפסד הפסידה הפסיד תיקו
+משחק המשחק משחקים משחקי מפגש דרבי
+ליגה הליגה ליגת אליפות גביע הגביע
+קבוצה הקבוצה קבוצות קבוצת מועדון המועדון
+שחקן השחקן שחקנים שחקני כוכב הכוכב
+מאמן המאמן מאמנים אימון אימונים
+חוזה החוזה חוזים חתם חתמה חתמו חותם חותמת החתמה מחתימה מחתימות חתימה
+האריך מאריך הארכה מוארך
+גארד הגארד סנטר הסנטר פורוורד רכז שוער חלוץ בלם קשר
+אמריקאי האמריקאי אמריקאים זר הזר זרים
+רכש הרכש צירוף מצרף חיזוק חיזוקים
+עסקה העסקה עסקת מגעים משא ומתן
+דקה דקות שער שערים נקודות נקודה
+סיום הסתיים מסיימת מסיים
+יריבה יריב מארחת אורחת ביתי חוץ
+נבחרת הנבחרת כדורסל כדורגל טניס
+עונתי מקום טבלה
+""".split())
+
 _DROP: frozenset[str] = _STOPWORDS | _TEMPLATE_WORDS
+
+# Hebrew single-letter prefixes. "בהפועל" and "הפועל" must be treated as the same word
+# for the GENERIC check, otherwise a prefixed club-family name would sneak through as
+# "evidence". Applied only to the generic lookup — never to the token itself, so we do
+# not corrupt jaccard or invent tokens.
+_HEB_PREFIXES = ("ב", "ל", "מ", "ה", "ו", "ש", "כ")
 
 _MIN_TOKEN_LEN = 3
 
@@ -70,6 +111,21 @@ def tokenize(text: str) -> set[str]:
         tok for tok in normalize(text).split()
         if len(tok) >= _MIN_TOKEN_LEN and tok not in _DROP
     }
+
+
+def is_generic(token: str) -> bool:
+    """True for stopwords, headline templates, generic sports vocabulary, and club
+    FAMILY names — including single-letter-prefixed forms ("בהפועל" -> "הפועל").
+
+    A generic token may contribute to overall similarity (jaccard) but can NEVER be
+    the discriminative evidence a match is built on.
+    """
+    if token in _DROP or token in _GENERIC_TOKENS:
+        return True
+    if len(token) > _MIN_TOKEN_LEN and token[0] in _HEB_PREFIXES:
+        if token[1:] in _GENERIC_TOKENS or token[1:] in _DROP:
+            return True
+    return False
 
 
 def jaccard(a: set[str], b: set[str]) -> float:
@@ -108,13 +164,31 @@ class DocumentFrequency:
         return self.df(token) / self.total_documents
 
     def is_discriminative(self, token: str, cfg: ClusteringConfig) -> bool:
-        """absolute_df <= df_abs_floor OR df_ratio <= df_ratio_max.
+        """Bounded-window rarity model — works on a SMALL ROLLING CORPUS.
 
-        The absolute floor carries small windows (where a ratio is meaningless);
-        the ratio carries large ones (where a fixed count would be far too strict).
+            token_is_discriminative =
+                NOT generic(token)
+                AND ( token_df <= max_story_coverage
+                      OR token_df_ratio <= df_ratio_max )
+
+        THE COVERAGE PARADOX, and why the absolute rule is keyed to story coverage:
+        a story covered by N sources gives its OWN defining token a df of ~N — "רקנאטי"
+        appears in exactly the 4 articles about the takeover. If the absolute threshold
+        sat below the cluster size, a story would become LESS clusterable the more
+        sources reported it. Exactly backwards. So the floor is ``max_story_coverage``,
+        aligned with ``max_cluster_size``: a token appearing in at most one story's worth
+        of documents is, by definition, still story-specific.
+
+        This holds at ANY window size — there is NO minimum corpus requirement. Precision
+        on a small window comes from the LEXICAL generic-token exclusion, not from a
+        statistical denominator (which is meaningless when the corpus is the last ~36h).
+        ``df_ratio_max`` is a secondary rescue for LARGE windows, where a genuinely
+        common word can exceed ``max_story_coverage`` in absolute terms.
         """
+        if is_generic(token):
+            return False
         return (
-            self.df(token) <= cfg.df_abs_floor
+            self.df(token) <= cfg.max_story_coverage
             or self.df_ratio(token) <= cfg.df_ratio_max
         )
 

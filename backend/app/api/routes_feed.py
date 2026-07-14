@@ -24,7 +24,7 @@ def get_feed(user_id: str, session: Session = Depends(get_session)):
     events = feedback_repository.get_active_by_user(session, user_id)
     dismissed = dismissed_article_ids(events)
     articles = [a for a in articles if a.id not in dismissed]
-    return build_feed(articles, with_learned(profile, events), include_hidden=False)
+    return build_feed(articles, with_learned(profile, events), include_hidden=False, session=session)
 
 
 @router.get("/debug/feed/{user_id}", response_model=List[ScoredArticle], dependencies=[Depends(require_admin)])
@@ -34,7 +34,7 @@ def get_debug_feed(user_id: str, session: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail=f"Profile '{user_id}' not found")
     articles = article_repository.get_rss_articles(session)
     events = feedback_repository.get_active_by_user(session, user_id)
-    return build_feed(articles, with_learned(profile, events), include_hidden=True)
+    return build_feed(articles, with_learned(profile, events), include_hidden=True, session=session)
 
 
 @router.get("/debug/shadow/{user_id}", response_model=ShadowReport, dependencies=[Depends(require_admin)])

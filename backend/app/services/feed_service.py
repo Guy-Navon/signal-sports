@@ -22,6 +22,7 @@ def build_feed(
     include_hidden: bool = False,
     disabled_source_ids: Optional[Set[str]] = None,
     engine: Optional[str] = None,
+    session=None,
 ) -> List[ScoredArticle]:
     engine = engine or active_engine()
     # A profile with no v2 payload cannot be scored by the v2 engine — fall
@@ -43,6 +44,16 @@ def build_feed(
                 contributions=result.contributions,
                 engine=engine,
             ))
+
+    # Story-clustering collapse (#103). Runs AFTER Preference V2 has scored every article
+    # independently — it never touches a score, and article-level decisions are unchanged.
+    # With CLUSTERING_ENABLED=false (the production default) this is a no-op and the flat
+    # feed is returned completely untouched.
+    if session is not None:
+        from app.services.cluster_collapse import collapse_clusters, feed_sort_key
+        scored = collapse_clusters(scored, session, include_hidden=include_hidden)
+        scored.sort(key=feed_sort_key, reverse=True)
+        return scored
 
     # Sort: decision rank (desc), then published_at (desc)
     scored.sort(

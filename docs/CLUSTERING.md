@@ -1,5 +1,29 @@
 # Story Clustering — v1 Contract
 
+> ## ⚠️ STATUS: FULLY IMPLEMENTED — AND DARK-SHIPPED (`CLUSTERING_ENABLED=false`)
+>
+> Deterministic clustering v1 is **complete**: matcher, persistence, live ingestion stage,
+> backfill/QA tooling, feed/API collapse, frontend card and Debug evidence are all built,
+> merged and acceptance-tested (#99–#105, Milestone 5).
+>
+> **It is OFF in production by default, and that is deliberate.**
+>
+> **Why:** the corpus to date has produced too few accepted cross-source clusters to run a
+> meaningful zero-false-positive precision review. **That is an evidence-availability
+> condition on ROLLOUT — not unfinished implementation, and not a matcher defect.** Every
+> near-duplicate the matcher declined, it declined *correctly*.
+>
+> **No matcher safety gate was weakened to manufacture clusters, and none will be.** Relaxing
+> cross-sport rejection, strict same-event-state, unknown-sport strictness, discriminative-token
+> evidence, Jaccard floors, one-member-per-source or the coherence rules would convert a
+> *classification error* into a *false story cluster the user reads as truth* — strictly worse
+> than showing two cards.
+>
+> **Activation is gated by a separate issue: #116 — Clustering Production Activation Gate.**
+> Nothing may set `CLUSTERING_ENABLED=true` in production until that gate passes.
+>
+> This is an honest dark launch, not a fake rollout.
+
 **Status:** authoritative living contract for Milestone 5 (Real Story Clustering v1).
 **Issue:** #99 (C1). Locks the semantics for #100–#105.
 **Scope of this document:** what a cluster *is*, how membership is decided, how identity is

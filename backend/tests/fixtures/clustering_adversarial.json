@@ -3,8 +3,15 @@
   "purpose": "Adversarial regression data from the corpus-wide sweep (#134). The 4 must_not_cluster fixture negatives certify NOTHING: an evidence-primary mechanism scored 27/31 with ZERO fixture over-merges and 21 over-merges across 2922 real corpus pairs.",
   "frozen_at": "2026-07-14",
   "eligible_pairs_enumerated": 2922,
-  "adjudication": "EVERY entry is HAND-ADJUDICATED. An automated pass flagged 11 pairs as over-merges; manual review found THREE were genuine duplicates — including the Storonski pair that D2c exists to fix. Freezing those as negatives would have permanently locked in the bug. Nothing here is auto-classified.",
-  "rule": "must_not_merge: a mechanism that merges ANY of these does not pass D6. true_duplicates_from_sweep: a mechanism that FAILS to merge these is losing real stories. ambiguous: a product decision, not a matcher detail."
+  "adjudication": "EVERY entry is HAND-ADJUDICATED. An automated pass flagged 11 pairs as over-merges; manual review found THREE were genuine duplicates — including the Storonski pair that D2c exists to fix. Freezing those as negatives would have permanently locked in the bug. Nothing here is auto-classified. A reviewed pair is NEVER forced into merge / not-merge / ambiguous. The Diarra pair is the reason: it is a MATERIAL UPDATE on one thread, which is a distinct product class.",
+  "rule": "must_not_merge: a mechanism that merges ANY of these does not pass D6. true_duplicates_from_sweep: a mechanism that FAILS to merge these is losing real stories. ambiguous: a product decision, not a matcher detail.",
+  "adjudication_classes": {
+   "must_not_merge": "A FALSE edge. Merging any of these is an over-merge and fails D6.",
+   "true_duplicates_from_sweep": "A REAL story. Failing to merge these is lost coverage.",
+   "material_update_same_thread": "Same subject, same thread — and DELIBERATELY NOT COLLAPSED. Not an over-merge in the classification sense and not an undecided case: a product decision. Contradictory or materially changed reporting must stay separately visible. May later share a saga/thread id, but the cards are not interchangeable.",
+   "ambiguous": "Genuinely undecidable, reserved for cases with no defensible verdict yet. EMPTY by design — a pair belongs here only when we truly cannot decide, never as a parking space for a decision we have not made."
+  },
+  "ground_truth_rule": "AUTOMATED CANDIDATE GENERATION MAY SURFACE REVIEW TARGETS. IT MAY NEVER ASSIGN GROUND TRUTH. The Storonski case proves why: subtitle-only identity evidence made a GENUINE duplicate look like an over-merge, and freezing that verdict would have made #137 unsatisfiable by construction."
  },
  "must_not_merge": [
   {
@@ -474,10 +481,10 @@
    ]
   }
  ],
- "ambiguous": [
+ "material_update_same_thread": [
   {
-   "id": "ambiguous_diarra_hapoel",
-   "why": "DELIBERATELY NOT FROZEN EITHER WAY. Same subject (Timoko Diarra) and same event thread (his Hapoel TA move collapsing), 12h apart — but the two reports CONTRADICT each other: israel_hayom says the Reds have not given up, walla says he will not sign and is close to Kasimpasa. Whether contradictory updates on one thread are one story or two is a PRODUCT decision, not a matcher detail. It must be decided in D2b/#123, not silently frozen here.",
+   "id": "material_update_diarra_hapoel",
+   "why": "SAME SUBJECT, SAME ONGOING THREAD — AND MUST NOT COLLAPSE. Timoko Diarra's move to Hapoel TA, 12h apart, but the two reports CONTRADICT each other: israel_hayom says the Reds have not given up on him; walla says he will not sign and is close to Kasimpasa. This is NOT an undecided case — it is a DECIDED product policy. Same subject and same thread do not make two articles interchangeable. Contradictory or materially changed reporting must remain separately visible: a user who sees only one of these cards is told something false about the state of the world. Until Signal has an update-aware cluster UI that preserves chronology and conflicting claims, such pairs MUST NOT collapse through de-duplication. They may later share a saga/thread identifier, but they are NOT interchangeable cards, and canonical selection must not hide either report.",
    "metrics": {
     "jaccard": 0.061,
     "containment": 0.13,
@@ -520,7 +527,10 @@
      "primary_competition": null,
      "importance": "medium"
     }
-   ]
+   ],
+   "policy": "must_not_collapse_until_update_aware_ui",
+   "may_later_share": "saga_or_thread_identifier"
   }
- ]
+ ],
+ "ambiguous": []
 }

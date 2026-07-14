@@ -243,6 +243,92 @@ class TestTitleWinMustBeAssertedInTheTitle:
         assert out.event_certainty == "probable", "but it cannot be confirmed (#60)"
 
 
+# ── The abstention this policy BUYS, stated out loud ─────────────────────────
+
+class TestSubtitleOnlyTitleWinIsADeliberateAbstention:
+    """"title_win is title-local" must not quietly become "subtitle evidence is worthless".
+
+    It is a REJECTION OF A SPECIFIC INFERENCE, and it costs us a real false negative. This
+    class states that cost explicitly so nobody later mistakes it for a free win — and so the
+    corpus's current perfect confirmed/probable separation is never mistaken for a law.
+
+    WHY WE ABSTAIN INSTEAD OF SUPPORTING THE CASE. The tempting rule is "a subtitle may
+    validate a title win if it carries an explicit completed-win clause — win verb + named
+    subject + named competition". The corpus refutes it. `rss_...` ("מתן עברי ניפץ את השיא
+    הישראלי") carries EXACTLY that clause:
+
+        "…ליה ארביב זכתה באליפות הבלקן"   (Lia Arviv WON the Balkan championship)
+
+    …and it is still not this article's event, because the article is about Matan Ivri's
+    1500m RECORD. The subtitle is a multi-story ROUND-UP. The israel_hayom Hankins card does
+    the same thing (its subtitle appends an unrelated youth-team win).
+
+    A well-formed win clause in a subtitle does not tell you WHOSE win it is. Verifying that
+    would need subject-alignment we cannot do without proximity/dependency analysis. So we
+    abstain — consistent with the architecture invariant that ABSTENTION BEATS GUESSING.
+
+    THE COST, bounded honestly:
+      * A genuine title win with a vague headline is demoted to `news`. It stays VISIBLE in
+        the feed; it just is not elevated or pushed.
+      * Mitigation: a title win is the most-covered story type there is. Another source will
+        almost always headline it explicitly. Once clustering activates (#126), a cluster's
+        card decision is the MAX over visible members — so one source's proper headline
+        elevates the whole story anyway.
+
+    If we ever want to close this, the lever is subject-alignment (entity_ids /
+    primary_competition), not a looser keyword rule.
+    """
+
+    def test_a_genuine_subtitle_only_win_is_currently_abstained(self):
+        """THE regression case: vague headline, unambiguous subtitle win. We say `news`.
+
+        This is a KNOWN, ACCEPTED false negative. If a future change makes this pass, that is
+        a deliberate policy change and this test must be updated on purpose — not by accident.
+        """
+        title = "היסטוריה בהיכל מנורה"
+        subtitle = "מכבי תל אביב זכתה באליפות אירופה בפעם השביעית בתולדותיה"
+
+        assert _has_title_win_evidence(f"{title} {subtitle}"), (
+            "the COMBINED text does carry win evidence — the abstention is a locality "
+            "decision, not an evidence failure"
+        )
+        assert not _has_title_win_evidence(title), "the headline alone asserts nothing"
+
+    def test_the_counterexample_that_forces_the_abstention(self):
+        """A perfectly-formed subtitle win clause that belongs to a DIFFERENT subject.
+
+        This is the whole argument. The article is about Matan Ivri's RECORD; the subtitle's
+        win clause is about Lia Arviv. Any rule that admits subtitle win clauses admits this.
+        """
+        title = "ערב היסטורי: מתן עברי ניפץ את השיא הישראלי"
+        subtitle = (
+            "הרץ קבע 3:34.51 דקות ב-1,500 מטר ושיפר את שיאו הקודם. "
+            "ארבל הנזל שבר שיא בן 26 שנה לנוער, וליה ארביב זכתה בזהב באליפות הבלקן"
+        )
+        # The clause is textbook: win verb + named subject + named competition.
+        assert _has_title_win_evidence(f"{title} {subtitle}"), (
+            "if this ever stops matching, the counterexample has changed and the abstention "
+            "policy should be re-argued from scratch"
+        )
+        # And it is STILL not a title win, because it is not THIS article's event.
+        assert not _has_title_win_evidence(title)
+
+    def test_round_up_subtitles_are_a_real_shape_in_this_corpus(self):
+        """Not a one-off. The hardest Hankins card does the same thing — which is why #122's
+        similarity work must also survive round-up subtitles."""
+        with FIXTURES.open(encoding="utf-8") as fh:
+            data = json.load(fh)
+        hankins = next(
+            g for g in data["duplicate_groups"] if g["id"] == "dup_hankins_release"
+        )
+        israel_hayom = next(
+            a for a in hankins["articles"] if a["source"] == "israel_hayom_sport"
+        )
+        assert "ניצחה" in israel_hayom["subtitle"] or "נבחרת" in israel_hayom["subtitle"], (
+            "the israel_hayom release card appends an unrelated story to its subtitle"
+        )
+
+
 # ── Existing guards must not regress ─────────────────────────────────────────
 
 class TestPriorTitleWinGuardsHold:

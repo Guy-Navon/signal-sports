@@ -218,6 +218,18 @@ Rules and LLM event proposals both pass through `classification/event_evidence.p
 
 Why only this type: championship vocabulary is routinely an **epithet for a third party** in a subordinate clause — "מול אנגליה אלופת העולם" (against England, *the world champions*), "אלופת תורכמניסטן ארקדאג" (the team they will *face*). Structurally that is indistinguishable from a genuine assertion ("מכבי חיפה אלופת המדינה"); only its **position** separates them. #60 already built the title-first ladder but used it only to cap *certainty*, leaving the event valid — and on the live corpus that loophole left **8 of 10 stored `title_win` rows false** (a coach's message, a training camp, a broken running record, a cancelled transfer, an aspirational quote at `very_high`/push-eligible importance). Certainty had already separated the corpus perfectly (every genuine win was title-asserted/`confirmed`; every false one was subtitle-only/`probable`); the signal existed, it just was not enforced.
 
+**The abstention this buys — stated, not assumed.** Title-locality is a rejection of a *specific inference*, not a claim that subtitle evidence is worthless. It costs a real false negative: **a genuine title win under a vague headline is demoted to `news`.**
+
+We abstain deliberately. The tempting alternative — "a subtitle may validate a title win if it carries an explicit completed-win clause (win verb + named subject + named competition)" — is **refuted by the corpus**. The article `ערב היסטורי: מתן עברי ניפץ את השיא הישראלי` carries exactly that clause in its subtitle:
+
+> `…ליה ארביב זכתה באליפות הבלקן` — *Lia Arviv **won** the Balkan **championship***
+
+…and it is still not this article's event: the article is about Matan Ivri's 1500m **record**. The subtitle is a multi-story **round-up**. The israel_hayom Hankins card does the same (its subtitle appends an unrelated youth-team win). **A well-formed win clause in a subtitle does not tell you whose win it is.** Verifying that needs subject-alignment we cannot do without proximity/dependency analysis — so we abstain, consistent with the invariant that *abstention beats guessing*.
+
+The cost is bounded: the article stays **visible** (just not elevated or pushed), and a title win is the most-covered story type there is — another source will almost always headline it explicitly. Once clustering activates (#126), a cluster's card decision is the **MAX over visible members**, so one source's proper headline elevates the whole story. If we ever close this gap, the lever is **subject-alignment** (`entity_ids` / `primary_competition`), not a looser keyword rule. Locked by `TestSubtitleOnlyTitleWinIsADeliberateAbstention`.
+
+> ⚠️ The current corpus shows a *perfect* `confirmed`/`probable` separation on `title_win`. That is **evidence, not a law**. Do not build on it as a universal assumption.
+
 Three further `title_win` class rules landed with #125, each from a real feed false positive:
 - **A lift needs a trophy.** "הניף" alone means *lifted*; the crowd lifting the *players* at an opening training session is not a title win. Lift verb now requires a trophy object.
 - **An infinitive/wish is never a completed event.** The past-tense "הניף" is a substring of the infinitive "להניף" (*to* lift), so "מגיע לו להניף את גביע העולם" (he *deserves to* lift the World Cup) validated as an actual win. Aspiration blockers added.

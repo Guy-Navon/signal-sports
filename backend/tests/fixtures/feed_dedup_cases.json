@@ -72,22 +72,22 @@
   {
    "id": "dup_hankins_release",
    "expect": "merge",
-   "why": "event_type=release is NOT in CLUSTERABLE_EVENT_STATES — a straight gap in the v1 contract. Three high_feed cards for one release.",
+   "why": "FOUR release cards for ONE release, all in high_feed. Primary cause: event_type=release is NOT in CLUSTERABLE_EVENT_STATES — a straight gap in the v1 contract, so these can never cluster at any similarity. Note the israel_hayom card is the HARDEST of the four: its TITLE names no player ('נפרדה מאחד משחקניה' — 'parted with one of its players'); the discriminative token 'הנקינס' appears ONLY in the subtitle. Title-only matching would miss it, so this case also guards the title+subtitle evidence path.",
    "articles": [
     {
-     "id": "rss_e77e8a3d97dbc13d4244",
-     "source": "walla_sport",
-     "url": "https://sports.walla.co.il/item/3853100",
-     "title": "מכבי תל אביב נפרדה מזאק הנקינס: \"שותף חשוב בדאבל\"",
-     "subtitle": "הסנטר האמריקאי שיחק במדים הצהובים מאמצע דצמבר ושימש בעיקר כגיבוי לגבוהים: \"גורם משמעותי בחדר ההלבשה\"",
-     "published_at": "2026-07-13T09:34:00+00:00",
+     "id": "rss_4f41239da25850669807",
+     "source": "israel_hayom_sport",
+     "url": "https://www.israelhayom.co.il/sport/article/20970348",
+     "title": "בדרך לרכש כפול: מכבי תל אביב נפרדה מאחד משחקניה",
+     "subtitle": "הצהובים הודו לזאק הנקינס על תקופתו במועדון והוא לא ימשיך אחרי שהצטרף במהלך העונה • נבחרת העתודה של ישראל ניצחה את צ'כיה • טי ג'יי וורן ישחק ביורוליג • הסנטר שהפועל ירושלים סימנה חתם בקבוצה אחרת על חוזה היסטורי ולא יגיע הקיץ לישראל",
+     "published_at": "2026-07-13T06:35:16+00:00",
      "sport": "basketball",
      "event_type": "release",
      "event_certainty": "probable",
      "entity_ids": [
       "team:maccabi_tlv_bb"
      ],
-     "primary_competition": null,
+     "primary_competition": "comp:euroleague",
      "importance": "medium"
     },
     {
@@ -113,6 +113,22 @@
      "title": "לאחר עונה אחת: מכבי ת\"א נפרדה מהנקינס",
      "subtitle": "הצהובים הודיעו על פרידה מהסנטר בן ה-29 שלקח חלק באליפות האחרונה",
      "published_at": "2026-07-13T08:39:00+00:00",
+     "sport": "basketball",
+     "event_type": "release",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:maccabi_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_e77e8a3d97dbc13d4244",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3853100",
+     "title": "מכבי תל אביב נפרדה מזאק הנקינס: \"שותף חשוב בדאבל\"",
+     "subtitle": "הסנטר האמריקאי שיחק במדים הצהובים מאמצע דצמבר ושימש בעיקר כגיבוי לגבוהים: \"גורם משמעותי בחדר ההלבשה\"",
+     "published_at": "2026-07-13T09:34:00+00:00",
      "sport": "basketball",
      "event_type": "release",
      "event_certainty": "probable",

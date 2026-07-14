@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ArrowUpLeft, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ClusterSources from "./ClusterSources";
 import { getDecisionConfig } from "@/components/feed/decisionConfig";
 import SourceMeta from "@/components/feed/SourceMeta";
 import DeskVoice from "@/components/feed/DeskVoice";
@@ -65,6 +66,7 @@ export default function StreamRow({ item, showLevelDot = false }) {
               {item.subtitle}
             </p>
           )}
+          {isCluster && <ClusterSources item={item} />}
           <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs">
             {showLevelDot && (
               <span

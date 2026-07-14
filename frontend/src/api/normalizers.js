@@ -78,21 +78,79 @@ export function normalizeProfileFromApi(p) {
  * `matchedEventRule`) to stay consistent with the frontend engine's output shape
  * which Debug.jsx already reads via `item.score?.matchedRule`.
  */
+function normalizeClusterMemberFromApi(m) {
+  return {
+    articleId: m.article_id,
+    source: m.source,
+    sourceDisplayName: m.source_display_name ?? m.source,
+    title: m.title,
+    url: m.url,
+    publishedAt: m.published_at,
+    decision: m.decision,
+  };
+}
+
 export function normalizeScoredArticleFromApi(sa) {
   const article = normalizeArticleFromApi(sa.article);
+  const score = {
+    decision: sa.decision,
+    label: DECISION_LABELS_HE[sa.decision] ?? sa.decision,
+    matchedTopic: sa.matched_topic ?? null,
+    matchedRule: sa.matched_event_rule ?? null,
+    reasoning: sa.reasoning ?? [],
+    // Preference V2 structured trace + engine badge (issues #32/#35).
+    contributions: sa.contributions ?? null,
+    engine: sa.engine ?? null,
+  };
+
+  // Story clustering (#104). The backend attaches `cluster` to the DISPLAYED member only.
+  // We map it onto the pre-existing `type: "cluster"` item contract the UI already speaks,
+  // so LeadStory / StreamRow / BriefsDigest / Debug need no new item shape.
+  //
+  // Two decisions live here and must not be confused:
+  //   score.decision       = the CARD decision (MAX over this user's VISIBLE members)
+  //   articleScoreDecision = the DISPLAYED ARTICLE's own decision (unchanged by clustering)
+  // The card ranks by the former; Debug shows both.
+  const c = sa.cluster;
+  if (!c) return { ...article, type: "article", score };
+
+  const members = (c.members ?? []).map(normalizeClusterMemberFromApi);
+  const suppressedMembers = (c.suppressed_members ?? []).map(normalizeClusterMemberFromApi);
+
   return {
-    ...article,
-    type: "article",
+    ...article,                       // the displayed member's article fields (url, source, …)
+    type: "cluster",
+    clusterId: c.cluster_id,
+    clusterTitle: article.translatedTitle || article.title,
+    // Roles — may be three different articles (docs/CLUSTERING.md §9).
+    primaryArticleId: c.displayed_article_id,
+    representativeArticleId: c.representative_article_id ?? null,
+    priorityArticleId: c.priority_article_id,
+    displayedReason: c.displayed_reason,
+    // VISIBLE members only. Suppressed members never appear in the consumer payload.
+    sourceCount: c.source_count,
+    members,
+    articleIds: members.map(m => m.articleId),
+    sources: members.map(m => m.source),
+    sourceDisplayNames: members.map(m => m.sourceDisplayName),
+    // Debug-only; the backend leaves this empty for the consumer feed.
+    suppressedMembers,
+    // Update timestamp comes from the newest VISIBLE member — never a hidden one.
+    lastUpdatedAt: c.sort_at,
+    firstSeenAt: members.length
+      ? members[members.length - 1].publishedAt
+      : article.publishedAt,
+    ruleVersion: c.rule_version ?? null,
+    eventState: c.event_state ?? null,
+    // The CARD decision drives ranking and the level chip.
     score: {
-      decision: sa.decision,
-      label: DECISION_LABELS_HE[sa.decision] ?? sa.decision,
-      matchedTopic: sa.matched_topic ?? null,
-      matchedRule: sa.matched_event_rule ?? null,
-      reasoning: sa.reasoning ?? [],
-      // Preference V2 structured trace + engine badge (issues #32/#35).
-      contributions: sa.contributions ?? null,
-      engine: sa.engine ?? null,
+      ...score,
+      decision: c.decision,
+      label: DECISION_LABELS_HE[c.decision] ?? c.decision,
     },
+    // The displayed article's OWN decision — preserved so Debug can prove clustering
+    // caused no article-level drift.
+    articleScoreDecision: sa.decision,
   };
 }
 

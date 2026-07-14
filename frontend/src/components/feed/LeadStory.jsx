@@ -4,6 +4,7 @@ import { ArrowUpLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDecisionConfig } from "@/components/feed/decisionConfig";
 import SourceMeta from "@/components/feed/SourceMeta";
+import ClusterSources from "@/components/feed/ClusterSources";
 import DeskVoice from "@/components/feed/DeskVoice";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import { buildKicker } from "@/components/feed/storyLabels";
@@ -166,6 +167,8 @@ export default function LeadStory({ item }) {
           <div className="mt-2.5">
             <SourceMeta source={sourceLine} publishedAt={publishedAt} />
           </div>
+
+          {isCluster && <ClusterSources item={item} />}
 
           <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
             {url && (

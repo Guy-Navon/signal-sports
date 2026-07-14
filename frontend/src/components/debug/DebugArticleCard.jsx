@@ -5,6 +5,7 @@ import DecisionBadge from "@/components/feed/DecisionBadge";
 import ClassifiedByBadge from "@/components/debug/ClassifiedByBadge";
 import ReasoningTrace from "@/components/debug/ReasoningTrace";
 import FactsTracePanel from "@/components/debug/FactsTracePanel";
+import ClusterEvidence from "@/components/debug/ClusterEvidence";
 
 function MetaCell({ label, value }) {
   return (
@@ -149,6 +150,11 @@ export default function DebugArticleCard({ item }) {
           )}
         </div>
       )}
+
+      {/* Story-cluster evidence (#104): representative / displayed / priority /
+          suppressed members + rule version. Debug is the only surface that sees
+          suppressed members — they never reach the consumer payload. */}
+      {isCluster && expanded && <ClusterEvidence item={item} />}
     </div>
   );
 }

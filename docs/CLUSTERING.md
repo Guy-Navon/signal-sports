@@ -93,6 +93,38 @@ Two rules follow, and everything else in this document is downstream of them:
 
 ---
 
+> ## ⚠️ THE ARCHITECTURAL CONCLUSION (2026-07-14, #134)
+>
+> ### **Rare is not the same as story-identifying.**
+>
+> The v1 evidence model equates the two, and it is **exactly backwards on the cases that matter**.
+> `מדר` — the token that literally *names the subject* of the story — is **not** discriminative
+> (df=13, because saturation coverage inflates it). `יאללה` (*yalla*) **is** (df=2). So is `דולר`
+> (*dollar*), `פרק` (*chapter*), and the **coach's name**.
+>
+> Measured consequence: an evidence-primary matcher scored **27/31 with ZERO fixture
+> over-merges** — and **21 over-merges across 2,922 real corpus pairs**, merging Bryant's
+> contract extension with Otooru's on the strength of *"for three more years"*.
+>
+> **The Jaccard floor was silently doing all the precision work.** It is not a similarity
+> measure here; it is a crutch compensating for an evidence model that cannot tell a name from
+> a filler word. That is why removing it is catastrophic and why no threshold value repairs it.
+>
+> ### **Names are a strong identity signal — but shared identity without shared event semantics must not merge.**
+>
+> The same player appears in his farewell, his signing, his shirt number and his next fixture.
+> A shared name is necessary, never sufficient. Event state, timing and action must still agree.
+>
+> Tracked in **#135** (candidate-scoped evidence frequency), **#136** (story-identifying named
+> anchors), **#137** (transliteration normalization), **#138** (cross-source event-state
+> consistency). Full evidence: `docs/qa/CLUSTERING_122_ANALYSIS.md`.
+>
+> **The fixture negatives cannot certify a mechanism.** Only 4 of the 7 `must_not_cluster`
+> groups survive the hard gates. Precision must be measured by **corpus-wide pair enumeration**
+> against `tests/fixtures/clustering_adversarial.json` — hand-adjudicated, because an automated
+> sweep mislabelled **three genuine duplicates** as over-merges, and freezing those would have
+> locked the bug in permanently.
+
 ## 2. Invariants (immutable in v1)
 
 These are not tunable. Changing any of them is a new contract, not a config change.

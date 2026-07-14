@@ -11,3 +11,6 @@ google-genai>=1.0.0
 beautifulsoup4>=4.12.0
 tzdata>=2024.1
 argon2-cffi>=23.1.0
+# Pinned Hebrew language-frequency resource for anchor validation (#141). Offline,
+# deterministic, no model/GPU/network at runtime. Pinned exactly for reproducibility.
+wordfreq==3.1.1

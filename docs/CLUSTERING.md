@@ -520,9 +520,25 @@ Fixtures prove the **contract**; the corpus gate proves it on **live data**. Bot
 5. **Manually review every proposed cluster** — no aggregate-count-only sign-off.
 6. **Require zero confirmed false positives before #103 (feed wiring) begins.**
 
+Additionally, when a classification change is in play (as in #113), the review must
+**distinguish intended upstream fact corrections from unrelated reclassification drift**, and
+report them separately. An intended correction is not "drift", and drift must never be
+laundered as a correction.
+
 > **The live scheduler may keep rebuilding the corpus, but no clustering quality claim may use
 > the moving live DB as a stable baseline.** A number measured against a DB that changes under
 > you is not a measurement.
+
+> **NEVER run a full-corpus LLM reclassification as part of clustering QA.** It is
+> **nondeterministic** and introduces confounds that have no causal relationship to the change
+> under test. This is not hypothetical: during #113 a full reclassification reported **22**
+> `(sport, event)` changes, while the isolated, confound-free delta was **8** — the extra rows
+> were the LLM re-rolling its own verdicts, plus snapshot-era false positives from a rule that
+> had already been removed. Attribution used the isolated delta only.
+>
+> To measure a classification change: apply **only that change's rules** to the stored facts on
+> a **copy**, and report the delta. That answers "what did this change do?" — a full
+> reclassification answers a different, useless question.
 
 ---
 

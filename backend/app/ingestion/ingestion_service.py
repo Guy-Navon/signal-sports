@@ -21,7 +21,11 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.classification.facts import build_article_facts
-from app.classification.event_evidence import validate_event_evidence
+from app.classification.event_evidence import (
+    TITLE_LOCAL_EVENT_TYPES,
+    EventEvidence,
+    validate_event_evidence,
+)
 from app.classification.gating import LLMGateDecision, should_call_llm_for_article
 from app.classification.llm_result import LLMClassificationResult
 from app.classification.merge import merge_with_guardrails, normalize_league_sport_compatibility
@@ -81,6 +85,11 @@ def _apply_post_facts_event_validation(
     title-first (issue #60): an event whose evidence lives only in the
     subtitle never carries "confirmed" certainty, and a non-confirmed
     championship event never carries very_high importance.
+
+    For TITLE_LOCAL_EVENT_TYPES (#125) the title-first rule is STRONGER than a certainty
+    cap: subtitle-only evidence is rejected outright and the event falls back to `news`.
+    A championship word in a subtitle is normally an epithet for a third party, and the
+    live corpus proved the certainty cap alone was not enough to stop it.
     """
     evidence_text = f"{title_lower} {subtitle_lower}".strip()
     source = "llm" if final_result.event_certainty == "weak" else "rules"
@@ -90,18 +99,24 @@ def _apply_post_facts_event_validation(
         source=source,
         sport=facts.sport,
     )
+    certainty = event_evidence.certainty
+    if event_evidence.valid:
+        title_evidence = validate_event_evidence(
+            final_result.event_type,
+            title_lower,
+            source=source,
+            sport=facts.sport,
+        )
+        if not title_evidence.valid:
+            if final_result.event_type in TITLE_LOCAL_EVENT_TYPES:
+                # A title-local claim with NO title evidence is not that event at all (#125).
+                # Championship vocabulary in a subtitle is almost always an epithet for a
+                # third party ("מול אנגליה אלופת העולם"), not an announcement that anyone won.
+                event_evidence = EventEvidence("news", False, "confirmed")
+            else:
+                certainty = "probable"  # subtitle-only evidence caps at probable (#60)
     corrected = not event_evidence.valid
     if event_evidence.valid:
-        certainty = event_evidence.certainty
-        if certainty == "confirmed":
-            title_evidence = validate_event_evidence(
-                final_result.event_type,
-                title_lower,
-                source=source,
-                sport=facts.sport,
-            )
-            if not title_evidence.valid:
-                certainty = "probable"  # subtitle-only evidence caps at probable
         final_result.event_certainty = certainty
         recomputed = compute_importance(
             final_result.event_type, facts.entities, facts.league,

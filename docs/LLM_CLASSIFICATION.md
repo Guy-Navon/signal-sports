@@ -213,6 +213,17 @@ If rules detected a specific event type (signing, injury, negotiation, etc.) but
 **Guardrail 4b — Semantic event evidence contract:**
 Rules and LLM event proposals both pass through `classification/event_evidence.py`. Specific non-news events require positive evidence in title/subtitle context; on doubt the event falls back to `news` (or a validated rules event). This replaces the old title-only `title_win` keyword guardrail and generalizes it to signing, release, negotiation, candidate, schedule/result, tennis round results, and championship events. Examples: `title_win` needs champion/title-win evidence and blocks "wants/dreams of a title"; signing blocks candidate/negotiation language; release blocks hospital-release/negated-release language; schedule blocks match-result promotion.
 
+**Guardrail 4c — `title_win` is TITLE-LOCAL (#125):**
+`title_win` is the one event type whose claim must be asserted in the **title**. Subtitle-only evidence is *rejected* (falls back to `news`), not merely downgraded in certainty. Registered in `TITLE_LOCAL_EVENT_TYPES`; enforced in `_apply_post_facts_event_validation()`.
+
+Why only this type: championship vocabulary is routinely an **epithet for a third party** in a subordinate clause — "מול אנגליה אלופת העולם" (against England, *the world champions*), "אלופת תורכמניסטן ארקדאג" (the team they will *face*). Structurally that is indistinguishable from a genuine assertion ("מכבי חיפה אלופת המדינה"); only its **position** separates them. #60 already built the title-first ladder but used it only to cap *certainty*, leaving the event valid — and on the live corpus that loophole left **8 of 10 stored `title_win` rows false** (a coach's message, a training camp, a broken running record, a cancelled transfer, an aspirational quote at `very_high`/push-eligible importance). Certainty had already separated the corpus perfectly (every genuine win was title-asserted/`confirmed`; every false one was subtitle-only/`probable`); the signal existed, it just was not enforced.
+
+Three further `title_win` class rules landed with #125, each from a real feed false positive:
+- **A lift needs a trophy.** "הניף" alone means *lifted*; the crowd lifting the *players* at an opening training session is not a title win. Lift verb now requires a trophy object.
+- **An infinitive/wish is never a completed event.** The past-tense "הניף" is a substring of the infinitive "להניף" (*to* lift), so "מגיע לו להניף את גביע העולם" (he *deserves to* lift the World Cup) validated as an actual win. Aspiration blockers added.
+- **A cancelled thing did not happen.** Negation blockers (מבוטלת/בוטלה/נכשלה) added.
+- Plus a latent gap closed in the other direction: crowning matched only the *absolute* forms ("הוכתרה כאלופה"), so the ordinary *construct* form ("הוכתרה כאלופת יורוליג") — a real title win — was silently missed. Crowning is now verb × champion-noun, covering every inflection.
+
 **Guardrail 5 — Importance never downgraded:**
 If LLM `importance` rank is lower than rules `importance` rank → keep rules importance. Prevents LLM from downgrading a finals result or title win.
 

@@ -170,8 +170,32 @@ _RELEASE_BLOCKERS = (
 # win-verb + championship-object compound at Hebrew word boundaries.
 
 # Trophy-lift verbs — an actual crowning moment; sufficient alone.
-_TITLE_WIN_TROPHY_VERBS = (
-    phrase("הניפה"), phrase("הניף"), phrase("הוכתרה כאלופה"), phrase("הוכתר כאלוף"),
+# ── Trophy evidence (#125) ────────────────────────────────────────────────────
+# Split into two, because they are NOT the same strength of evidence.
+#
+# CROWNING stands alone — but only as a COMPOUND of a crowning verb AND a champion noun.
+#
+# The verb alone is not enough: "הוכתר כמלך הסלים" (crowned scoring king) is not a title. And
+# a fixed phrase list is not enough either: the old list held only the ABSOLUTE forms
+# ("הוכתרה כאלופה"), so the CONSTRUCT form — "הוכתרה כאלופת יורוליג", crowned champion-OF the
+# EuroLeague, a completely ordinary way to report a real title — matched nothing and was
+# silently missed. Verb × noun covers every inflection.
+_TITLE_WIN_CROWNING_VERB = (
+    phrase("הוכתר"), phrase("הוכתרה"), phrase("הוכתרו"),
+    phrase("crowned"),
+)
+
+# LIFTING is ambiguous ON ITS OWN and must NOT stand alone (#125). "הניף" simply means
+# "lifted" — and in the real feed the CROWD lifted the PLAYERS at an opening training
+# session ("הקהל … והניף את השחקנים"), which was classified as a title win. A lift is
+# title evidence only when what is lifted is a TROPHY.
+_TITLE_WIN_LIFT_VERB = (
+    phrase("הניפה"), phrase("הניף"), phrase("lifted"), phrase("lifts"),
+)
+_TITLE_WIN_TROPHY_OBJECT = (
+    hword("גביע"), phrase("הגביע"), phrase("בגביע"),
+    hword("תואר"), phrase("התואר"), phrase("בתואר"),
+    word("trophy"), word("cup"), word("title"),
 )
 _TITLE_WIN_VERB = (
     hword("זוכה"), hword("זכה"), hword("זכתה"), hword("זכו"),
@@ -193,10 +217,42 @@ _MEDAL_PLACEMENT = (
     phrase("bronze medal"), phrase("silver medal"),
 )
 
-_TITLE_WIN_BLOCKERS = _DEATH_ACCIDENT + _CANDIDATE + _MEDAL_PLACEMENT + (
-    phrase("wants the title"), phrase("want the title"),
-    phrase("dreams of a title"), phrase("dreaming of a title"),
-    phrase("title candidate"), phrase("title contender"),
+# ASPIRATION blockers (#125). A title that someone HOPES to win is not a title won.
+# The Hebrew infinitive is the trap: "להניף" (TO lift) contains "הניף" (lifted) as a
+# substring, so "מגיע לאחי הארי קיין להניף את גביע העולם" — *deserves* to lift the World
+# Cup, having won nothing — validated as an actual title win. An infinitive or a wish can
+# never be a completed event. Class rule, not a headline patch.
+_TITLE_WIN_ASPIRATION = (
+    phrase("להניף"),            # infinitive: "to lift"
+    phrase("מגיע ל"),           # "deserves to…"
+    phrase("ראוי ל"),           # "worthy of…"
+    phrase("מחכה לראות"),       # "waiting to see…"
+    phrase("חולם על"), phrase("חולמת על"),
+    phrase("שואף ל"), phrase("שואפת ל"),
+    phrase("יכול לזכות"), phrase("יכולה לזכות"),
+    phrase("deserves to"), phrase("hopes to"), phrase("aiming to"),
+    phrase("dreams of"), phrase("dreaming of"),
+)
+
+# NEGATION / CANCELLATION blockers (#125). A cancelled deal is not a title win — and the
+# real feed classified "עסקת ענאן חלאילי לאינטר מבוטלת" (the transfer is CANCELLED) as one,
+# because a champion epithet elsewhere in the subtitle supplied the "assertion".
+_TITLE_WIN_NEGATION = (
+    phrase("מבוטלת"), phrase("מבוטל"), phrase("בוטלה"), phrase("בוטל"),
+    phrase("נכשלה"), phrase("נכשל"),
+    phrase("לא זכה"), phrase("לא זכתה"), phrase("לא יזכה"), phrase("לא תזכה"),
+    phrase("cancelled"), phrase("canceled"), phrase("called off"),
+    phrase("failed to win"),
+)
+
+_TITLE_WIN_BLOCKERS = (
+    _DEATH_ACCIDENT + _CANDIDATE + _MEDAL_PLACEMENT
+    + _TITLE_WIN_ASPIRATION + _TITLE_WIN_NEGATION
+    + (
+        phrase("wants the title"), phrase("want the title"),
+        phrase("dreams of a title"), phrase("dreaming of a title"),
+        phrase("title candidate"), phrase("title contender"),
+    )
 )
 
 # Hebrew champion nouns considered for the assertion analysis.
@@ -208,6 +264,12 @@ _CHAMPION_NOUNS_EN = ("champion", "champions")
 _CHAMPION_EPITHET_PRECEDERS_HE = frozenset({
     "את", "של", "על", "עם", "מול", "נגד", "אצל", "לקראת", "בפני", "כמו",
     "אחרי", "לפני",
+    # ROLE NOUNS (#125). A champion noun that describes a PERSON'S ROLE at a club is an
+    # epithet about a THIRD PARTY, never an assertion that anyone just won:
+    # "נשיא אלופת איטליה" = "the president OF the champions of Italy". The real feed
+    # classified a CANCELLED transfer as a title win on exactly this construction.
+    "נשיא", "מאמן", "מאמנת", "בעלי", "בעל", "מנכ\"ל", "מנהל", "סוכן",
+    "כוכב", "כוכבת", "שחקן", "שחקנית", "קפטן", "אוהדי", "אוהד",
 })
 _CHAMPION_EPITHET_PRECEDERS_EN = frozenset({
     "the", "of", "against", "vs", "with", "former", "defending", "reigning",
@@ -259,6 +321,18 @@ def _preceding_word(text: str, idx: int) -> str:
     return left.split()[-1]
 
 
+def _has_champion_noun(text: str) -> bool:
+    """A champion noun appears at all (any inflection), competition names masked out.
+
+    Deliberately weaker than `_has_champion_assertion`: this is the OBJECT half of a
+    crowning compound ("הוכתרה כאלופת …"), where the verb already supplies the assertion.
+    """
+    masked = _mask_competition_names(text)
+    if any(noun in masked for noun in _CHAMPION_NOUNS_HE):
+        return True
+    return any(re.search(r"\b" + noun + r"\b", masked) for noun in _CHAMPION_NOUNS_EN)
+
+
 def _has_champion_assertion(text: str) -> bool:
     """True when a champion noun is used as a bare predicate assertion.
 
@@ -294,10 +368,19 @@ def _has_champion_assertion(text: str) -> bool:
 
 
 def _has_title_win_evidence(text: str) -> bool:
-    """The full title_win evidence contract (assertion OR trophy OR compound)."""
+    """The full title_win evidence contract: CROWNING or LIFT+TROPHY or ASSERTION or compound.
+
+    Every branch requires the subject to have ACTUALLY WON. A trophy noun alone is not
+    evidence, and neither is a lift (#125).
+    """
     if _has_any(text, _TITLE_WIN_BLOCKERS):
         return False
-    if _has_any(text, _TITLE_WIN_TROPHY_VERBS):
+    # Crowned AS A CHAMPION — any inflection, absolute or construct.
+    if _has_any(text, _TITLE_WIN_CROWNING_VERB) and _has_champion_noun(text):
+        return True
+    # Ambiguous alone: a lift is title evidence only when a TROPHY is what got lifted.
+    # "והניף את השחקנים" (the crowd lifted the players) is not a title win.
+    if _has_any(text, _TITLE_WIN_LIFT_VERB) and _has_any(text, _TITLE_WIN_TROPHY_OBJECT):
         return True
     if _has_champion_assertion(text):
         return True
@@ -327,6 +410,24 @@ _SCORE_OR_RESULT_CONTEXT = (
     phrase("תוצאה"), phrase("ניצחון"), phrase("הפסד"), phrase("result"),
     phrase("score"), phrase("victory"),
 )
+
+# ── Title-local event types (#125) ────────────────────────────────────────────
+# Event types whose claim must be asserted in the TITLE. Subtitle-only evidence is
+# REJECTED outright, not merely downgraded.
+#
+# Why title_win needs this and most event types do not: championship vocabulary is
+# routinely used as an EPITHET for a third party in a subordinate clause — "מול אנגליה
+# אלופת העולם" (against England, the world champions), "אלופת תורכמניסטן ארקדאג" (the
+# team they will face). Structurally that is indistinguishable from a genuine assertion
+# ("מכבי חיפה אלופת המדינה"); only its POSITION separates them. No newspaper buries "X
+# won the championship" in a subtitle clause while headlining a coach's message.
+#
+# #60 already built the title-first ladder, but only used it to cap CERTAINTY at
+# "probable" — leaving the event VALID. On the live corpus that loophole let five
+# subtitle-only epithets stand as title wins, while both genuine wins asserted it in the
+# title. Certainty separation was already perfect; it just was not enforced.
+TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset({"title_win"})
+
 
 EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
     "signing": EventEvidenceRule(
@@ -373,7 +474,7 @@ EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
     "title_win": EventEvidenceRule(
         required_any=((),),
         blockers=_TITLE_WIN_BLOCKERS,
-        confirmed_any=_TITLE_WIN_TROPHY_VERBS + _TITLE_WIN_VERB,
+        confirmed_any=_TITLE_WIN_CROWNING_VERB + _TITLE_WIN_VERB,
     ),
     "finals_result": EventEvidenceRule(
         required_any=(_FINALS_CONTEXT, _RESULT_SIGNAL),

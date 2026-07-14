@@ -13,6 +13,7 @@ from app.classification.entity_normalizer import normalize_llm_entities, prune_s
 from app.classification.event_evidence import validate_event_evidence
 from app.classification.llm_result import LLMClassificationResult
 from app.ingestion.classifier import ClassificationResult, _assign_confidence, _collect_tags
+from app.classification.sport_guards import committed_sport, is_unsupported_sport
 
 logger = logging.getLogger(__name__)
 
@@ -90,16 +91,56 @@ def merge_with_guardrails(
     if subtitle_lower:
         evidence_text = f"{title_lower} {subtitle_lower}"
 
+    # Guardrail 0 (issue #113): UNSUPPORTED DOMAIN → ABSTAIN.
+    # The taxonomy models basketball, football and tennis. It does not model MMA/UFC/boxing.
+    # Faced with a UFC report the LLM invented "football" (its own reason literally read
+    # "Football match result between Conor McGregor and Max Holloway in UFC"), and two
+    # sources then disagreed on the same fight. For a sport we do not model, the honest
+    # answer is "unknown" — abstention beats a wrong fact, and a wrong sport propagates all
+    # the way into visibility, preference matching and push. Runs FIRST: nothing downstream
+    # should get the chance to assert a sport we cannot support.
+    if is_unsupported_sport(evidence_text):
+        if sport != "unknown":
+            logger.warning(
+                "Guardrail 0: unsupported domain (MMA/UFC/boxing) — abstaining from sport %r",
+                sport,
+            )
+            guardrail_fired = True
+        sport = "unknown"
+        league = None
+
     # Guardrail 1: Football Maccabi clubs (deterministic, high precision)
     # Rules detected an explicit football Maccabi club keyword — LLM must not override.
-    if football_maccabi_detected and sport != "football":
+    elif football_maccabi_detected and sport != "football":
         sport = "football"
         league = rules.league
         guardrail_fired = True
         logger.debug("Guardrail 1 fired: football Maccabi detected, overriding LLM sport")
 
+    # Guardrail 1b (issue #113): COMMITTED SPORT VOCABULARY beats a contradicting LLM sport.
+    #
+    # "Deterministic evidence first" was NOT actually enforced for sport: guardrail 2 below
+    # only overrides the LLM when the LLM says *unknown*. If the rules resolved a sport and
+    # the LLM disagreed, the LLM silently won. That is how an article whose subtitle reads
+    # "נבחרת העתודה … נבחרה לחמישיית הטורניר" (unmistakably basketball) was classified
+    # FOOTBALL — and why two sources reported the same story with contradictory sports.
+    #
+    # Only UNAMBIGUOUS, single-sport vocabulary qualifies (see sport_guards.py). When both
+    # sports' vocabulary is present, committed_sport() returns None and we leave the
+    # decision alone — that is real ambiguity, and abstention beats picking a side.
+    if sport != "unknown":
+        proven = committed_sport(evidence_text)
+        if proven is not None and proven != sport:
+            logger.warning(
+                "Guardrail 1b: committed %s vocabulary overrides LLM sport %r",
+                proven, sport,
+            )
+            sport = proven
+            league = rules.league if rules.sport == proven else None
+            guardrail_fired = True
+
     # Guardrail 2: LLM says sport=unknown but rules found a sport — use rules
-    if sport == "unknown" and rules.sport != "unknown":
+    if sport == "unknown" and rules.sport != "unknown" and not is_unsupported_sport(evidence_text):
         sport = rules.sport
         guardrail_fired = True
 
@@ -155,7 +196,16 @@ def merge_with_guardrails(
     # Guardrail 7: Source URL category hint.
     # For sources with reliable URL category schemes (e.g. Israel Hayom /sport/israeli-basketball/),
     # the pre-computed hint is treated as near-authoritative and overrides the LLM sport.
-    if source_sport_hint and source_sport_hint != sport:
+    # NOTE (#113): a source hint must never resurrect a sport for an UNSUPPORTED domain.
+    # A UFC report filed under a section hint is still not a sport we model.
+    # A hint FILLS a gap; it never overrides committed contradictory evidence (#113).
+    _committed_here = committed_sport(evidence_text)
+    if (
+        source_sport_hint
+        and source_sport_hint != sport
+        and not is_unsupported_sport(evidence_text)
+        and not (_committed_here is not None and _committed_here != source_sport_hint)
+    ):
         logger.warning(
             "Guardrail 7: source URL category hint %r overrides LLM sport %r",
             source_sport_hint, sport,

@@ -18,6 +18,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+from app.classification.sport_guards import committed_sport, is_unsupported_sport
 from app.classification.event_evidence import (
     EventEvidence,
     validate_event_evidence,
@@ -261,7 +262,20 @@ _TENNIS_KW = (
 
 
 def _detect_sport(text: str, source_id: str, source_sport_hint: str | None = None) -> str:
-    # Source URL category hint (e.g. Israel Hayom /sport/israeli-basketball/) — highest priority.
+    # Unsupported domain (issue #113) — MMA/UFC/boxing are not modelled by the taxonomy.
+    # Abstain rather than guess: a wrong sport propagates into visibility, preference
+    # matching and push. Checked FIRST, ahead of even the source hint — a UFC report filed
+    # under a section hint is still not a sport we model.
+    if is_unsupported_sport(text):
+        return "unknown"
+    # Committed, unambiguous sport vocabulary (issue #113). Checked BEFORE the source hint:
+    # a hint may FILL a missing sport, but it must never override strong contradictory
+    # evidence in the text itself. A football report filed under a basketball section is
+    # still a football report, and the URL is the weaker signal.
+    _committed = committed_sport(text)
+    if _committed is not None:
+        return _committed
+    # Source URL category hint (e.g. Israel Hayom /sport/israeli-basketball/).
     if source_sport_hint:
         return source_sport_hint
     if source_id in _BASKETBALL_ONLY_SOURCES:

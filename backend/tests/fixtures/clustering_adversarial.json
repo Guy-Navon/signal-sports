@@ -1,0 +1,526 @@
+{
+ "_meta": {
+  "purpose": "Adversarial regression data from the corpus-wide sweep (#134). The 4 must_not_cluster fixture negatives certify NOTHING: an evidence-primary mechanism scored 27/31 with ZERO fixture over-merges and 21 over-merges across 2922 real corpus pairs.",
+  "frozen_at": "2026-07-14",
+  "eligible_pairs_enumerated": 2922,
+  "adjudication": "EVERY entry is HAND-ADJUDICATED. An automated pass flagged 11 pairs as over-merges; manual review found THREE were genuine duplicates — including the Storonski pair that D2c exists to fix. Freezing those as negatives would have permanently locked in the bug. Nothing here is auto-classified.",
+  "rule": "must_not_merge: a mechanism that merges ANY of these does not pass D6. true_duplicates_from_sweep: a mechanism that FAILS to merge these is losing real stories. ambiguous: a product decision, not a matcher detail."
+ },
+ "must_not_merge": [
+  {
+   "id": "adv_coach_as_bridge_bryant",
+   "why": "THE COACH AS A BRIDGE. Both mention Itoudis (Hapoel TA's coach). One is Storonski's arrival, the other is Bryant's contract extension. Different players, different events. A coach's name is a CLUB-level token, not a story-identifying anchor — required negative for D2b.",
+   "merged_by": [
+    "evidence_primary"
+   ],
+   "bad_evidence": [
+    "איטודיס"
+   ],
+   "metrics": {
+    "jaccard": 0.05,
+    "containment": 0.103,
+    "hours_apart": 17.3,
+    "tier": "A",
+    "discriminative_shared": [
+     "איטודיס"
+    ]
+   },
+   "articles": [
+    {
+     "id": "rss_3dcba41409729b96d7bf",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3852799",
+     "title": "הפועל ת\"א צפויה לצרף את סטורנסקי, גינת בדרך להארכת חוזה",
+     "subtitle": "הגארד הצ'כי (34, 2.01) ששיחק בשנים האחרונות בברצלונה צפוי להצטרף לקבוצה של איטודיס, לאחר שלפניו צורף גם אמיר קופי. הפורוורד הישראלי קרוב להארכת חוזה לארבע עונות תמורת שדרוג בשכרו",
+     "published_at": "2026-07-12T09:06:00+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_5df2fa77aa6ed96998d4",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/hk4mzzxemg",
+     "title": "נשאר אדום: אלייז'ה בראיינט האריך חוזה בהפועל ת\"א",
+     "subtitle": "אחרי עונת שיא ביורוליג בה נבחר לחמישיית העונה, הגארד חתם לשלוש שנים נוספות. המנהל המקצועי ג'ורג' חינאס: \"הוא נשאר איתנו כעוגן חשוב\". המאמן דימיטריס איטודיס: \"בתקווה שאחרי הניתוח הוא יחזור בריא וטוב יותר\"",
+     "published_at": "2026-07-11T15:49:22+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": "comp:euroleague",
+     "importance": "high"
+    }
+   ]
+  },
+  {
+   "id": "adv_coach_as_bridge_otooru",
+   "why": "THE COACH AS A BRIDGE, again. Storonski's arrival vs Otooru's extension.",
+   "merged_by": [
+    "evidence_primary"
+   ],
+   "bad_evidence": [
+    "איטודיס"
+   ],
+   "metrics": {
+    "jaccard": 0.019,
+    "containment": 0.042,
+    "hours_apart": 3.8,
+    "tier": "A",
+    "discriminative_shared": [
+     "איטודיס"
+    ]
+   },
+   "articles": [
+    {
+     "id": "rss_3dcba41409729b96d7bf",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3852799",
+     "title": "הפועל ת\"א צפויה לצרף את סטורנסקי, גינת בדרך להארכת חוזה",
+     "subtitle": "הגארד הצ'כי (34, 2.01) ששיחק בשנים האחרונות בברצלונה צפוי להצטרף לקבוצה של איטודיס, לאחר שלפניו צורף גם אמיר קופי. הפורוורד הישראלי קרוב להארכת חוזה לארבע עונות תמורת שדרוג בשכרו",
+     "published_at": "2026-07-12T09:06:00+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_03866087512d6236391b",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/hk0h8mw4me",
+     "title": "הצהרת כוונות: דן אוטורו האריך את חוזהו בהפועל ת\"א",
+     "subtitle": "הסנטר חתם לשלוש שנים נוספות. המנהל המקצועי ג'ורג' חינאס: \"הוכח שהוא אחד הטובים באירופה\". המאמן דימיטריס איטודיס: \"יש לו עוד מה לשדרג\"",
+     "published_at": "2026-07-12T12:56:55+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    }
+   ]
+  },
+  {
+   "id": "adv_same_club_different_player_1",
+   "why": "SAME CLUB, DIFFERENT PLAYER — the required D2b negative. Bryant's extension and Otooru's extension, both at Hapoel TA. The shared 'evidence' is לשלוש שנים נוספות ('for three more years') — a CONTRACT-EXTENSION TEMPLATE, not an identity. Every contract extension says it.",
+   "merged_by": [
+    "evidence_primary"
+   ],
+   "bad_evidence": [
+    "לשלוש",
+    "נוספות"
+   ],
+   "metrics": {
+    "jaccard": 0.115,
+    "containment": 0.25,
+    "hours_apart": 23.9,
+    "tier": "A",
+    "discriminative_shared": [
+     "לשלוש",
+     "נוספות"
+    ]
+   },
+   "articles": [
+    {
+     "id": "rss_5df2fa77aa6ed96998d4",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/hk4mzzxemg",
+     "title": "נשאר אדום: אלייז'ה בראיינט האריך חוזה בהפועל ת\"א",
+     "subtitle": "אחרי עונת שיא ביורוליג בה נבחר לחמישיית העונה, הגארד חתם לשלוש שנים נוספות. המנהל המקצועי ג'ורג' חינאס: \"הוא נשאר איתנו כעוגן חשוב\". המאמן דימיטריס איטודיס: \"בתקווה שאחרי הניתוח הוא יחזור בריא וטוב יותר\"",
+     "published_at": "2026-07-11T15:49:22+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": "comp:euroleague",
+     "importance": "high"
+    },
+    {
+     "id": "rss_221b84ffd80864da2744",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3852930",
+     "title": "אחרי בלייקני ובריאנט: גם דן אוטורו האריך חוזה בהפועל ת\"א",
+     "subtitle": "הסנטר סגר לשלוש שנים נוספות כבר ערב סדרת הפלייאוף מול ריאל מדריד, ורק כעת נחשפה החתימה: \"מרגיש מבורך להמשיך באדום\"",
+     "published_at": "2026-07-12T15:42:00+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    }
+   ]
+  },
+  {
+   "id": "adv_same_club_different_player_2",
+   "why": "SAME CLUB, DIFFERENT PLAYER. Bryant vs Otooru again, bridged by ביורוליג ('in the EuroLeague') — a competition word, not an identity.",
+   "merged_by": [
+    "evidence_primary"
+   ],
+   "bad_evidence": [
+    "ביורוליג"
+   ],
+   "metrics": {
+    "jaccard": 0.089,
+    "containment": 0.267,
+    "hours_apart": 22.8,
+    "tier": "A",
+    "discriminative_shared": [
+     "ביורוליג"
+    ]
+   },
+   "articles": [
+    {
+     "id": "rss_5df2fa77aa6ed96998d4",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/hk4mzzxemg",
+     "title": "נשאר אדום: אלייז'ה בראיינט האריך חוזה בהפועל ת\"א",
+     "subtitle": "אחרי עונת שיא ביורוליג בה נבחר לחמישיית העונה, הגארד חתם לשלוש שנים נוספות. המנהל המקצועי ג'ורג' חינאס: \"הוא נשאר איתנו כעוגן חשוב\". המאמן דימיטריס איטודיס: \"בתקווה שאחרי הניתוח הוא יחזור בריא וטוב יותר\"",
+     "published_at": "2026-07-11T15:49:22+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": "comp:euroleague",
+     "importance": "high"
+    },
+    {
+     "id": "rss_b4f0c3b48945bf84bdcc",
+     "source": "sport5_sport",
+     "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=551968",
+     "title": "ללא סעיף יציאה: אוטורו חתם על חוזה חדש",
+     "subtitle": "כפי שפורסם: כוכב הפועל ת\"א חתם עד 2029 לאחר עונת השיא ביורוליג",
+     "published_at": "2026-07-12T14:35:00+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": "comp:euroleague",
+     "importance": "high"
+    }
+   ]
+  },
+  {
+   "id": "adv_money_vocabulary_madar",
+   "why": "MONEY VOCABULARY. Madar's signing at Maccabi TA vs Moses Wright REJECTING Hapoel and Maccabi to sign at Olimpia. Completely different players and opposite outcomes, bridged by דולר ('dollar').",
+   "merged_by": [
+    "evidence_primary"
+   ],
+   "bad_evidence": [
+    "דולר"
+   ],
+   "metrics": {
+    "jaccard": 0.083,
+    "containment": 0.179,
+    "hours_apart": 23.4,
+    "tier": "A",
+    "discriminative_shared": [
+     "דולר"
+    ]
+   },
+   "articles": [
+    {
+     "id": "rss_2b094951a5d4cadffa96",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/4i89ozx77",
+     "title": "ים מדר חתם במכבי ת\"א: \"מבטיח לתת את הכל\" | נחשף ב-ynet",
+     "subtitle": "רעידת אדמה בכדורסל הישראלי: הרכז, שבחר לעזוב את הפועל ת\"א, השלים את המעבר ליריבה העירונית. ירוויח 6 מיליון דולר בשלוש השנים הקרובות: \"נרגש לפתוח פרק חדש\". עודד קטש: \"האיכויות שלו ברורות לכולם, במיוחד אחרי הפלייאוף האחרון\"",
+     "published_at": "2026-07-12T06:46:21+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:maccabi_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "high"
+    },
+    {
+     "id": "rss_7b3a5ad13cf2a7cf448b",
+     "source": "israel_hayom_sport",
+     "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/20969879",
+     "title": "כבר חתם על חוזה: כוכב היורוליג דחה את הפועל ומכבי תל אביב",
+     "subtitle": "מוזס רייט לא יגיע לישראל: על פי דיווח של באיטליה, סנטר ז'לגיריס קובנה חתם על חוזה לשנתיים באולימפיה מילאנו, במסגרתו ישתכר כ־3.5 מיליון דולר בסך הכל • אלו הסיבות",
+     "published_at": "2026-07-13T06:07:57+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:maccabi_tlv_bb"
+     ],
+     "primary_competition": "comp:euroleague",
+     "importance": "high"
+    }
+   ]
+  },
+  {
+   "id": "adv_money_vocabulary_diallo",
+   "why": "MONEY VOCABULARY. Alpha Diallo moving to the NBA vs Storonski joining Hapoel TA. Bridged by דולר ('dollar').",
+   "merged_by": [
+    "evidence_primary"
+   ],
+   "bad_evidence": [
+    "דולר"
+   ],
+   "metrics": {
+    "jaccard": 0.068,
+    "containment": 0.13,
+    "hours_apart": 13.7,
+    "tier": "A",
+    "discriminative_shared": [
+     "דולר"
+    ]
+   },
+   "articles": [
+    {
+     "id": "rss_38f3f0c40b97922f99d9",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3852994",
+     "title": "אחרי שסיכם בדובאי: שחקן ההגנה הטוב ביורוליג עובר ל-NBA",
+     "subtitle": "אלפא דיאלו יעבור מהיורוליג ל-NBA, לאחר שסיכם על חוזה לעונה אחת בדנבר נאגטס תמורת שכר של 1.4 מיליון דולר, כך על פי דיווח של שאמס צ'ראניה מ-ESPN.",
+     "published_at": "2026-07-12T21:20:00+00:00",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:dubai_bb"
+     ],
+     "primary_competition": "comp:nba",
+     "importance": "high"
+    },
+    {
+     "id": "rss_2e57fdfc5e7df0e75da4",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/b1zl06xvml",
+     "title": "הפועל ת\"א מתחזקת: רכז ברצלונה תומס סטורנסקי סיכם בקבוצה",
+     "subtitle": "הצ'כי בן ה-31 צפוי הגיע כמחליפו של כריס ג'ונס בקו האחורי, אחרי 4 עונות בבירת קטלוניה. ברזומה: 6 שנים ב-NBA. הוא צפוי להרוויח 1.5 מיליון דולר",
+     "published_at": "2026-07-12T07:36:18+00:00",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_bb",
+      "team:barcelona_bb"
+     ],
+     "primary_competition": "comp:nba",
+     "importance": "high"
+    }
+   ]
+  },
+  {
+   "id": "adv_formulaic_negotiation_template",
+   "why": "THE FORMULAIC TEMPLATE — the dominant FP class, and the ONLY pair that SURVIVES CONTAINMENT (C=0.31, the same value at which Madar becomes reachable). Aaron Wheeler negotiating with Eilat vs Hapoel Holon negotiating with two other players. Different clubs, different players. Shared 'evidence' is במו\"מ / בשיחות ('in negotiations') — which every negotiation story says. NO shared named subject. This is the pair that proves containment alone is not a sufficient mechanism.",
+   "merged_by": [
+    "evidence_primary",
+    "containment_0.30"
+   ],
+   "bad_evidence": [
+    "במו",
+    "בשיחות"
+   ],
+   "metrics": {
+    "jaccard": 0.109,
+    "containment": 0.312,
+    "hours_apart": 11.0,
+    "tier": "B",
+    "discriminative_shared": [
+     "במו",
+     "בשיחות"
+    ]
+   },
+   "articles": [
+    {
+     "id": "rss_e4313cc69ef10e6a7fe6",
+     "source": "sport5_sport",
+     "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=551974",
+     "title": "מצפון לדרום? ארון ווילר במו\"מ עם אילת",
+     "subtitle": "העולה החדשה בשיחות עם הפורוורד ששיחק בהפועל העמק אך נעדר מהפרקט מינואר",
+     "published_at": "2026-07-12T15:24:00+00:00",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "event_certainty": "confirmed",
+     "entity_ids": [],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_1362c392abbe46d3778d",
+     "source": "israel_hayom_sport",
+     "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/20968081",
+     "title": "כולל שם מוכר מליגת העל: הפועל חולון במו\"מ עם שני שחקנים",
+     "subtitle": "הסגולים בשיחות מתקדמות עם הגארד קולדל האריס ג'וניור ששיחק בעונה החולפת בפרומיתאס פטרס היוונית • במקביל, הם סימנו את הפורוורד המתאזרח סם איוריו שעשוי להצטרף אחרי שלוש עונות בהפועל באר שבע/דימונה",
+     "published_at": "2026-07-13T02:25:05+00:00",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:hapoel_holon"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    }
+   ]
+  }
+ ],
+ "true_duplicates_from_sweep": [
+  {
+   "id": "tp_storonski_chris_jones_replacement",
+   "why": "TRUE DUPLICATE, and the automated sweep called it an over-merge. Storonski IS Chris Jones's replacement — israel_hayom headlines the ROLE ('Chris Jones's replacement: EuroLeague star agreed with Hapoel TA') and names Storonski only in the subtitle. Note sport5 spells him סטרונסקי while ynet/israel_hayom spell him סטורנסקי — this is D2c's POSITIVE CONTROL. Any transliteration fix must merge these; any negative-freeze that blocks them is a bug.",
+   "articles": [
+    {
+     "id": "rss_a83af2c67927a5b63d97",
+     "source": "israel_hayom_sport",
+     "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/20960803",
+     "title": "המחליף של כריס ג'ונס: כוכב היורוליג סיכם בהפועל תל אביב",
+     "subtitle": "הקבוצה סגרה עם תומאש סטורנסקי בן ה-34 שיצטרף לקבוצה בחוזה לשנתיים וירוויח 1.5 מיליון דולר • בעונה החולפת שיחק בברצלונה והעמיד ממוצע של מעל 7 נקודות למשחק",
+     "published_at": "2026-07-12T05:43:59+00:00",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": "comp:euroleague",
+     "importance": "high"
+    },
+    {
+     "id": "rss_1c17cce6ffda5dd1a240",
+     "source": "sport5_sport",
+     "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=551929",
+     "title": "סטרונסקי סיכם בהפועל ת\"א: זה השכר שירוויח",
+     "subtitle": "כפי שנחשף באתר ערוץ הספורט: הגארד הצ`כי הוותיק של ברצלונה בדרך לקבוצה של דימיטריס איטודיס בחוזה לעונה עם אופציה, וצפוי לשמש כגארד השלישי ברוטציה. וגם: מטרת הרכש הבאה",
+     "published_at": "2026-07-12T08:29:07.564011+00:00",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_2e57fdfc5e7df0e75da4",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/b1zl06xvml",
+     "title": "הפועל ת\"א מתחזקת: רכז ברצלונה תומס סטורנסקי סיכם בקבוצה",
+     "subtitle": "הצ'כי בן ה-31 צפוי הגיע כמחליפו של כריס ג'ונס בקו האחורי, אחרי 4 עונות בבירת קטלוניה. ברזומה: 6 שנים ב-NBA. הוא צפוי להרוויח 1.5 מיליון דולר",
+     "published_at": "2026-07-12T07:36:18+00:00",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_bb",
+      "team:barcelona_bb"
+     ],
+     "primary_competition": "comp:nba",
+     "importance": "high"
+    }
+   ]
+  },
+  {
+   "id": "tp_balogun_red_card_decision",
+   "why": "TRUE DUPLICATE. One man alone cancelled Balogun's red card at the World Cup — the same Times investigation, reported by walla and ynet 3.5h apart. 8 shared discriminative tokens (באלוגון, לבטל, הכרטיס, האדום…). Correctly merged by containment; the automated sweep mislabelled it.",
+   "articles": [
+    {
+     "id": "rss_b66af0754738a99d79d4",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3852997",
+     "title": "לבדו: זה האיש שקיבל את ההחלטה הכי שערורייתית במונדיאל",
+     "subtitle": "אדם אחד בלבד קיבל את ההחלטה לבטל את הכרטיס האדום של פולארין באלוגון, כך על פי בדיקה של העיתונאי הבריטי מרטין זיגלר מ\"הטיימס\". בוועדת המשמעת של פיפ\"א ישנם 18 חברים, אך אף אחד מ-17 האחרים כלל לא דן בנושא.",
+     "published_at": "2026-07-13T04:34:00+00:00",
+     "sport": "football",
+     "event_type": "news",
+     "event_certainty": "confirmed",
+     "entity_ids": [],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_e85847b3732278b48da6",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/worldcup2026/article/ryclqab4ml",
+     "title": "הפרשה שמסעירה את המונדיאל: כך התקבלה ההחלטה השנויה במחלוקת בפיפ\"א",
+     "subtitle": "ללא הצבעה, ללא דיון משותף ובלי הסבר מפורט: ב\"טיימס\" הבריטי חושפים - כך קיבל אדם אחד בלבד את ההחלטה לבטל את הכרטיס האדום לפלוריאן באלוגון, אשר אפשרה לחלוץ נבחרת ארה\"ב לשחק מול בלגיה",
+     "published_at": "2026-07-13T01:06:33+00:00",
+     "sport": "football",
+     "event_type": "news",
+     "event_certainty": "confirmed",
+     "entity_ids": [],
+     "primary_competition": null,
+     "importance": "medium"
+    }
+   ]
+  }
+ ],
+ "ambiguous": [
+  {
+   "id": "ambiguous_diarra_hapoel",
+   "why": "DELIBERATELY NOT FROZEN EITHER WAY. Same subject (Timoko Diarra) and same event thread (his Hapoel TA move collapsing), 12h apart — but the two reports CONTRADICT each other: israel_hayom says the Reds have not given up, walla says he will not sign and is close to Kasimpasa. Whether contradictory updates on one thread are one story or two is a PRODUCT decision, not a matcher detail. It must be decided in D2b/#123, not silently frozen here.",
+   "metrics": {
+    "jaccard": 0.061,
+    "containment": 0.13,
+    "hours_apart": 12.0,
+    "tier": "A",
+    "discriminative_shared": [
+     "דיארה"
+    ]
+   },
+   "articles": [
+    {
+     "id": "rss_05af0853a22d35956113",
+     "source": "israel_hayom_sport",
+     "url": "https://www.israelhayom.co.il/sport/israeli-soccer/article/20960238",
+     "title": "עמדה במצוקה: אקס הפועל תל אביב מתרחק מהקבוצה",
+     "subtitle": "האדומים לא ירדו מטימוקו דיארה, אבל מנהלים מגעים גם מול מועמדים נוספים • יהב גורפינקל חזר ללרנקה בהתאם לחוזהו ומתרחק מהאדומים • וגם: שני השחקנים שעשויים לעזוב בהשאלה",
+     "published_at": "2026-07-12T04:22:42+00:00",
+     "sport": "football",
+     "event_type": "negotiation",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_fc"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_bcc9496e12e5b7d3c0f0",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3852942",
+     "title": "הפור נפל? דיווח: טיימוקו דיארה לא יחתום בהפועל תל אביב",
+     "subtitle": "הקשר ממאלי, שסיכם את תנאיו אצל האדומים לפני מספר שבועות, נמצא על סף חתימה בקאסימפשה הטורקית וצפוי להשלים את המעבר כבר השבוע",
+     "published_at": "2026-07-12T16:22:00+00:00",
+     "sport": "football",
+     "event_type": "negotiation",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_fc"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    }
+   ]
+  }
+ ]
+}

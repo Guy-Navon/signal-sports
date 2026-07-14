@@ -8,21 +8,40 @@
 >
 > **It is OFF in production by default, and that is deliberate.**
 >
-> **Why:** the corpus to date has produced too few accepted cross-source clusters to run a
-> meaningful zero-false-positive precision review. **That is an evidence-availability
-> condition on ROLLOUT — not unfinished implementation, and not a matcher defect.** Every
-> near-duplicate the matcher declined, it declined *correctly*.
+> ### ⚠️ CORRECTION (2026-07-14): the original activation verdict measured the wrong thing
 >
-> **No matcher safety gate was weakened to manufacture clusters, and none will be.** Relaxing
-> cross-sport rejection, strict same-event-state, unknown-sport strictness, discriminative-token
-> evidence, Jaccard floors, one-member-per-source or the coherence rules would convert a
-> *classification error* into a *false story cluster the user reads as truth* — strictly worse
-> than showing two cards.
+> This document previously said clustering stayed off because the corpus had *"too few accepted
+> clusters"* — an evidence-availability condition, with every declined near-duplicate declined
+> *correctly*. **That was wrong, and the real feed disproved it.**
 >
-> **Activation is gated by a separate issue: #116 — Clustering Production Activation Gate.**
-> Nothing may set `CLUSTERING_ENABLED=true` in production until that gate passes.
+> The Checkpoint-2 QA counted **accepted clusters on the corpus** (it found 1). It **never
+> counted duplicate harm in the ranked user feed.** A review of the real feed found it is *full*
+> of duplicates — **including THREE PUSH notifications for ONE signing** (Yam Madar → Maccabi,
+> from walla + sport5 + ynet).
 >
-> This is an honest dark launch, not a fake rollout.
+> **We were never short of evidence. We were counting the wrong noun.**
+>
+> And the misses were not caution — they were **defects with named root causes**:
+> - **`release` was never in `CLUSTERABLE_EVENT_STATES`** — a straight gap in this contract (#121).
+> - **The coverage paradox reappears at SAGA scale** (#122): the Madar saga has ~13 articles, so
+>   `מדר` exceeds `max_story_coverage = 6` and stops being discriminative. *The bigger the story,
+>   the less likely we group it* — the same bug fixed at cluster scale in #100, one level up.
+> - **Same-source duplicates** are excluded by design, and the real feed falsified that premise (#123).
+>
+> **The gate is therefore reframed:**
+> > **OLD:** "enough accepted clusters on the corpus to judge precision"
+> > **NEW:** "the ranked user feed shows each story once and pushes each story once — with zero
+> > over-merges"
+>
+> **Still non-negotiable:** no matcher threshold may be weakened to manufacture merges. Every
+> merge must trace to a **named root cause**. Relaxing cross-sport rejection, strict
+> same-event-state, unknown-sport strictness, discriminative-token evidence, Jaccard floors,
+> one-member-per-source or the coherence rules would convert a *classification error* into a
+> *false story cluster the user reads as truth* — strictly worse than showing two cards.
+>
+> **Activation is gated by #126** (Milestone 6 — Feed De-duplication & Clustering Activation;
+> #116 is superseded). `CLUSTERING_ENABLED=false` remains the production default until it passes.
+> Regression corpus: `backend/tests/fixtures/feed_dedup_cases.json`.
 
 **Status:** authoritative living contract for Milestone 5 (Real Story Clustering v1).
 **Issue:** #99 (C1). Locks the semantics for #100–#105.

@@ -27,28 +27,74 @@ from dataclasses import dataclass, field
 # signing are DISTINCT story developments: collapsing them would tell a user a
 # deal is done when it is stuck.
 CLUSTERABLE_EVENT_STATES: frozenset[str] = frozenset({
+    # ── Transfer cycle ────────────────────────────────────────────────────────
     "signing", "negotiation", "candidate", "rumor",
-    "injury", "match_result", "finals_result", "news",
+    # release / major_trade were MISSING (#121). A release is a real-world event that
+    # several sources report at once — exactly what clustering is for. Because it was in
+    # neither set, it fell through the event-state gate and could never cluster AT ANY
+    # SIMILARITY. In the real feed that produced FOUR near-identical high_feed cards for
+    # one Maccabi release.
+    "release", "major_trade",
+    # ── Injury ────────────────────────────────────────────────────────────────
+    "injury",
+    # ── Results ───────────────────────────────────────────────────────────────
+    # Also missing (#121): a result is the single most duplicated kind of story — every
+    # source reports the same scoreline. grand_slam_winner in particular is the Noskova
+    # case (ynet published the same Wimbledon result twice).
+    "match_result", "finals_result",
+    "title_win", "grand_slam_winner",
+    "playoff_result", "regular_season_result", "early_round_result",
+    # ── Generic ───────────────────────────────────────────────────────────────
+    "news",
 })
 
 # Never clustered: these are DIFFERENT PERSPECTIVES, not duplicates. Collapsing
 # them would hide exactly the editorial variety the product wants to preserve.
+# Never clustered: these are DIFFERENT PERSPECTIVES, not duplicates. Collapsing them would
+# hide exactly the editorial variety the product wants to preserve — two columnists on the
+# same transfer are two stories, not one.
 NEVER_CLUSTERED_EVENT_STATES: frozenset[str] = frozenset({
     "schedule", "preview", "interview", "analysis", "opinion",
 })
+
+
+def unclassified_event_states(known_event_types: frozenset[str]) -> frozenset[str]:
+    """Event types that are in NEITHER set — the silent-omission trap (#121).
+
+    An event type absent from both sets does not "default to safe": it falls through the
+    event-state gate and becomes **unclusterable at any similarity**, silently. That is how
+    `release` (4 duplicate cards) and `grand_slam_winner` (the Noskova pair) went unmergeable
+    for an entire milestone without anyone noticing.
+
+    Every event type the classifier can emit MUST be an explicit, deliberate member of exactly
+    one set. `test_every_event_type_is_explicitly_classified` enforces this, so the omission
+    cannot recur.
+    """
+    return frozenset(known_event_types) - CLUSTERABLE_EVENT_STATES - NEVER_CLUSTERED_EVENT_STATES
 
 # Per-state time windows, in hours (docs/CLUSTERING.md §5.2). The window is a
 # PRECISION instrument, not a convenience: it is what separates the youth
 # quarter-final from the semi-final (48.6h apart at jaccard 0.60 — a very strong
 # token match that is nevertheless a different event).
 DEFAULT_TIME_WINDOW_HOURS: dict[str, float] = {
+    # Transfer cycle — the news cycle around a move runs for about a day.
     "signing": 24.0,
+    "release": 24.0,          # a release is a transfer-cycle event, like a signing (#121)
+    "major_trade": 24.0,
     "negotiation": 24.0,
     "candidate": 24.0,
     "rumor": 24.0,
     "news": 24.0,
+    # Results — every source reports the same scoreline within hours, and a *different*
+    # match is a different event, so the window is deliberately tighter.
     "match_result": 12.0,
     "finals_result": 12.0,
+    "title_win": 12.0,
+    "grand_slam_winner": 12.0,
+    "playoff_result": 12.0,
+    "regular_season_result": 12.0,
+    "early_round_result": 12.0,
+    # Injuries are updated over a longer tail (diagnosis, prognosis, recovery).
     "injury": 48.0,
 }
 

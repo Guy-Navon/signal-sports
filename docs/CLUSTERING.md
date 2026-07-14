@@ -175,10 +175,30 @@ proven need.
 
 ### 5.1 Strict same-state only
 
-A pair may cluster **only if both articles share the same `event_type`**:
+A pair may cluster **only if both articles share the same `event_type`**.
 
-`signing~signing` · `negotiation~negotiation` · `candidate~candidate` · `rumor~rumor` ·
-`injury~injury` · `match_result~match_result` · `finals_result~finals_result` · `news~news`
+**Clusterable states** — the same real-world event, reported by several sources:
+
+| Group | States | Window |
+|---|---|---|
+| Transfer cycle | `signing` · `release` · `major_trade` · `negotiation` · `candidate` · `rumor` | 24h |
+| Results | `match_result` · `finals_result` · `title_win` · `grand_slam_winner` · `playoff_result` · `regular_season_result` · `early_round_result` | 12h |
+| Injury | `injury` | 48h |
+| Generic | `news` | 24h |
+
+> **⚠️ THE SILENT-OMISSION TRAP (fixed in #121).** An event type present in **neither**
+> `CLUSTERABLE_EVENT_STATES` **nor** `NEVER_CLUSTERED_EVENT_STATES` does **not** "default to
+> safe". It falls through the event-state gate and becomes **unclusterable at ANY similarity —
+> silently**.
+>
+> **Seven** event types were in that hole for an entire milestone: `release`, `major_trade`,
+> `title_win`, `grand_slam_winner`, `playoff_result`, `regular_season_result`,
+> `early_round_result`. In the real feed this produced **four near-identical cards for one
+> Maccabi release**, and it is also why the Noskova pair (`grand_slam_winner`) was unmergeable.
+>
+> **Every event type the classifier can emit MUST be an explicit, deliberate member of exactly
+> one set.** `test_every_event_type_is_explicitly_classified` enforces this, so the omission
+> cannot recur.
 
 **There is no cross-state compatibility in v1.** Rumor, candidate, negotiation, and signing are
 **distinct story developments**, not phases of one object. Collapsing them would tell a user a

@@ -1,0 +1,409 @@
+{
+ "_meta": {
+  "issue": "#116 (reframed) — production feed de-duplication + clustering activation",
+  "purpose": "FROZEN regression fixtures captured from Guy's REAL RANKED FEED on 2026-07-14. These are the actual duplicate-harm cases the user sees TODAY in the default configuration — including THREE PUSH notifications for ONE signing.",
+  "the_reframing": "Previous clustering QA measured ACCEPTED CLUSTERS on the corpus (it found 1, and we concluded 'insufficient evidence'). It NEVER measured DUPLICATE HARM IN THE RANKED USER FEED. The feed is full of duplicates. The new gate measures the HARM, not the clusters.",
+  "why_frozen": "The corpus is mutable and ungitted (see #106). These articles must survive corpus churn, so they are committed as data — never queried from the live DB.",
+  "expectations": {
+   "merge": "these articles are ONE story and must collapse to one card / one push",
+   "merge_intra_source": "same-source duplicate — must be handled by the intra-source dedup stage",
+   "not_title_win": "must NOT be classified as title_win"
+  },
+  "source_db_sha1": "e0e35cff4ce071db",
+  "corpus_rss": 257,
+  "captured_at": "2026-07-14"
+ },
+ "duplicate_groups": [
+  {
+   "id": "dup_madar_signing_push",
+   "expect": "merge",
+   "why": "THE headline harm: THREE PUSH notifications for ONE signing. Saga-scale coverage paradox — the Madar saga has ~13 articles, so its own defining token exceeds max_story_coverage=6 and stops being discriminative.",
+   "articles": [
+    {
+     "id": "rss_ff501392ec59403606ad",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3852382",
+     "title": "מכבי ת\"א הציגה את ים מדר: \"פותח פרק חדש. יאללה מכבי\"",
+     "subtitle": "המעבר הגדול של הכדורסל הישראלי נחתם סופית ורשמית: ים מדר הוא שחקן מכבי תל אביב.",
+     "published_at": "2026-07-12T09:33:00+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:maccabi_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "high"
+    },
+    {
+     "id": "rss_81f1e1469be5fd299749",
+     "source": "sport5_sport",
+     "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=550552",
+     "title": "היקר בתולדותיה: ים מדר חתם רשמית במכבי ת\"א",
+     "subtitle": "השכר ופרטי החוזה בפנים. המעבר הגדול של הקיץ הפך לרשמי: הגארד המצטיין שעזב את הפועל ת\"א, חצה את הכביש: \"מחכה לפגוש את הקהל. יאללה מכבי!\"",
+     "published_at": "2026-07-12T08:55:30.645544+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:maccabi_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "high"
+    },
+    {
+     "id": "rss_2b094951a5d4cadffa96",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/4i89ozx77",
+     "title": "ים מדר חתם במכבי ת\"א: \"מבטיח לתת את הכל\" | נחשף ב-ynet",
+     "subtitle": "רעידת אדמה בכדורסל הישראלי: הרכז, שבחר לעזוב את הפועל ת\"א, השלים את המעבר ליריבה העירונית. ירוויח 6 מיליון דולר בשלוש השנים הקרובות: \"נרגש לפתוח פרק חדש\". עודד קטש: \"האיכויות שלו ברורות לכולם, במיוחד אחרי הפלייאוף האחרון\"",
+     "published_at": "2026-07-12T06:46:21+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:maccabi_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "high"
+    }
+   ]
+  },
+  {
+   "id": "dup_hankins_release",
+   "expect": "merge",
+   "why": "event_type=release is NOT in CLUSTERABLE_EVENT_STATES — a straight gap in the v1 contract. Three high_feed cards for one release.",
+   "articles": [
+    {
+     "id": "rss_e77e8a3d97dbc13d4244",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3853100",
+     "title": "מכבי תל אביב נפרדה מזאק הנקינס: \"שותף חשוב בדאבל\"",
+     "subtitle": "הסנטר האמריקאי שיחק במדים הצהובים מאמצע דצמבר ושימש בעיקר כגיבוי לגבוהים: \"גורם משמעותי בחדר ההלבשה\"",
+     "published_at": "2026-07-13T09:34:00+00:00",
+     "sport": "basketball",
+     "event_type": "release",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:maccabi_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_0b6b88be571411e7dd99",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/bkyi9mzvml",
+     "title": "מכבי ת\"א נפרדה מזאק הנקינס: \"שותף חשוב לדאבל\"",
+     "subtitle": "הסנטר האמריקאי, שהצטרף באמצע דצמבר מגרנאדה הספרדית בחוזה עד תום העונה, היה חלק מהסגל שזכה באליפות ובגביע",
+     "published_at": "2026-07-13T07:07:59+00:00",
+     "sport": "basketball",
+     "event_type": "release",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:maccabi_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_75bc2c6119f80de8905d",
+     "source": "sport5_sport",
+     "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=552029",
+     "title": "לאחר עונה אחת: מכבי ת\"א נפרדה מהנקינס",
+     "subtitle": "הצהובים הודיעו על פרידה מהסנטר בן ה-29 שלקח חלק באליפות האחרונה",
+     "published_at": "2026-07-13T08:39:00+00:00",
+     "sport": "basketball",
+     "event_type": "release",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:maccabi_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    }
+   ]
+  },
+  {
+   "id": "dup_otooru_extension",
+   "expect": "merge",
+   "why": "Same contract extension, three sources; headlines diverge enough that Jaccard falls below the tier floor.",
+   "articles": [
+    {
+     "id": "rss_221b84ffd80864da2744",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3852930",
+     "title": "אחרי בלייקני ובריאנט: גם דן אוטורו האריך חוזה בהפועל ת\"א",
+     "subtitle": "הסנטר סגר לשלוש שנים נוספות כבר ערב סדרת הפלייאוף מול ריאל מדריד, ורק כעת נחשפה החתימה: \"מרגיש מבורך להמשיך באדום\"",
+     "published_at": "2026-07-12T15:42:00+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_03866087512d6236391b",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/hk0h8mw4me",
+     "title": "הצהרת כוונות: דן אוטורו האריך את חוזהו בהפועל ת\"א",
+     "subtitle": "הסנטר חתם לשלוש שנים נוספות. המנהל המקצועי ג'ורג' חינאס: \"הוכח שהוא אחד הטובים באירופה\". המאמן דימיטריס איטודיס: \"יש לו עוד מה לשדרג\"",
+     "published_at": "2026-07-12T12:56:55+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_b4f0c3b48945bf84bdcc",
+     "source": "sport5_sport",
+     "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=551968",
+     "title": "ללא סעיף יציאה: אוטורו חתם על חוזה חדש",
+     "subtitle": "כפי שפורסם: כוכב הפועל ת\"א חתם עד 2029 לאחר עונת השיא ביורוליג",
+     "published_at": "2026-07-12T14:35:00+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": "comp:euroleague",
+     "importance": "high"
+    }
+   ]
+  },
+  {
+   "id": "dup_storonski",
+   "expect": "merge",
+   "why": "MIXED event states (signing vs negotiation) AND transliteration variance (סטורנסקי / סטרונסקי).",
+   "articles": [
+    {
+     "id": "rss_3dcba41409729b96d7bf",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3852799",
+     "title": "הפועל ת\"א צפויה לצרף את סטורנסקי, גינת בדרך להארכת חוזה",
+     "subtitle": "הגארד הצ'כי (34, 2.01) ששיחק בשנים האחרונות בברצלונה צפוי להצטרף לקבוצה של איטודיס, לאחר שלפניו צורף גם אמיר קופי. הפורוורד הישראלי קרוב להארכת חוזה לארבע עונות תמורת שדרוג בשכרו",
+     "published_at": "2026-07-12T09:06:00+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_2e57fdfc5e7df0e75da4",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/b1zl06xvml",
+     "title": "הפועל ת\"א מתחזקת: רכז ברצלונה תומס סטורנסקי סיכם בקבוצה",
+     "subtitle": "הצ'כי בן ה-31 צפוי הגיע כמחליפו של כריס ג'ונס בקו האחורי, אחרי 4 עונות בבירת קטלוניה. ברזומה: 6 שנים ב-NBA. הוא צפוי להרוויח 1.5 מיליון דולר",
+     "published_at": "2026-07-12T07:36:18+00:00",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_bb",
+      "team:barcelona_bb"
+     ],
+     "primary_competition": "comp:nba",
+     "importance": "high"
+    },
+    {
+     "id": "rss_1c17cce6ffda5dd1a240",
+     "source": "sport5_sport",
+     "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=551929",
+     "title": "סטרונסקי סיכם בהפועל ת\"א: זה השכר שירוויח",
+     "subtitle": "כפי שנחשף באתר ערוץ הספורט: הגארד הצ`כי הוותיק של ברצלונה בדרך לקבוצה של דימיטריס איטודיס בחוזה לעונה עם אופציה, וצפוי לשמש כגארד השלישי ברוטציה. וגם: מטרת הרכש הבאה",
+     "published_at": "2026-07-12T08:29:07.564011+00:00",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    }
+   ]
+  },
+  {
+   "id": "dup_madar_farewell",
+   "expect": "merge",
+   "why": "Mixed states + one sport=unknown (stale pre-#113 facts). The #113 fixes make these consistent; the corpus was never backfilled.",
+   "articles": [
+    {
+     "id": "rss_b00872cb282e17b00a9b",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3852704",
+     "title": "אף מילה על הבעלים והמאמן: כך ים מדר נפרד מהפועל ת\"א",
+     "subtitle": "אחרי שחצה את הכביש, הכוכב פרסם סטורי פרידה מהשחקנים והאוהדים האדומים: \"תודה מכל הלב לחברים שלי לקבוצה, עוזב עם ראש מורם\"",
+     "published_at": "2026-07-11T23:04:00+00:00",
+     "sport": "unknown",
+     "event_type": "news",
+     "event_certainty": "confirmed",
+     "entity_ids": [],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_136180b819765f140420",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelibasketball/article/hyoojsxezx",
+     "title": "ים מדר נפרד מהפועל ת\"א: \"השנה לא הייתה קלה עבורי, עוזב בראש מורם\"",
+     "subtitle": "אחרי שחתם במכבי ת\"א, הרכז נפרד מהאדומים בפוסט: \"הודה לחבריו ולאוהדים בפוסט פרידה: \"המשכתם לתמוך בי גם כשהדברים לא תמיד הלכו כמו שרציתי\"",
+     "published_at": "2026-07-11T20:19:38+00:00",
+     "sport": "basketball",
+     "event_type": "signing",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:hapoel_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    },
+    {
+     "id": "rss_c822881b1744b3a03cd1",
+     "source": "sport5_sport",
+     "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=551888",
+     "title": "מדר: \"עוזב בראש מורם. השנה לא הייתה קלה\"",
+     "subtitle": "הגארד נפרד מהפועל בדרך למכבי: \"גם כשלא הלך כמו שרציתי, הקהל תמך בי\"",
+     "published_at": "2026-07-11T22:11:00+00:00",
+     "sport": "basketball",
+     "event_type": "news",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:hapoel_tlv_bb",
+      "team:maccabi_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "medium"
+    }
+   ]
+  },
+  {
+   "id": "dup_noskova_same_source",
+   "expect": "merge_intra_source",
+   "why": "SAME SOURCE (ynet) duplicate — excluded by the hard cross-source gate. Needs a dedicated intra-source dedup stage, NOT blanket same-source clustering.",
+   "articles": [
+    {
+     "id": "rss_975426d1a4d8877cf72c",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/article/skkvtklvgg",
+     "title": "אלופה בת 21: לינדה נוסקובה זכתה בווימבלדון",
+     "subtitle": "הצ'כית בת ה-21 גברה בדרבי על קרולינה מוחובה 2:6, 7:5, 3:6 וזכתה בגראנד סלאם הראשון בקריירה. היא איבדה חמש נקודות אליפות במערכה השנייה, אך התאוששה, ניצחה בשלישית וצפויה לעלות למקום השביעי בעולם",
+     "published_at": "2026-07-11T15:41:21+00:00",
+     "sport": "tennis",
+     "event_type": "grand_slam_winner",
+     "event_certainty": "probable",
+     "entity_ids": [],
+     "primary_competition": "comp:wimbledon",
+     "importance": "high"
+    },
+    {
+     "id": "rss_0291a5f683192506e30f",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/article/one527849",
+     "title": "לינדה נוסקובה זכתה בטורניר ווימבלדון",
+     "subtitle": "הטניסאית בת ה-21 רשמה הישג שיא מבחינתה וזכתה לראשונה בקריירה בטורניר הדשא היוקרתי באנגליה. היא עשתה זאת עם 2:6, 7:5, 3:6 על קרולינה מוחובה",
+     "published_at": "2026-07-11T13:56:22+00:00",
+     "sport": "tennis",
+     "event_type": "grand_slam_winner",
+     "event_certainty": "probable",
+     "entity_ids": [],
+     "primary_competition": "comp:wimbledon",
+     "importance": "high"
+    }
+   ]
+  }
+ ],
+ "title_win_false_positives": [
+  {
+   "id": "titlewin_cancelled_transfer",
+   "expect": "not_title_win",
+   "why": "A CANCELLED transfer is not a title win.",
+   "articles": [
+    {
+     "id": "rss_fd8b809cd673669f00d6",
+     "source": "israel_hayom_sport",
+     "url": "https://www.israelhayom.co.il/sport/world-soccer/article/20972457",
+     "title": "אכזבה עצומה: עסקת ענאן חלאילי לאינטר מבוטלת",
+     "subtitle": "העסקה הגדולה בתולדות הכדורגל הישראלי בוטלה בגלל תוצאות הבדיקות הרפואיות של הישראלי • נשיא אלופת איטליה: \"הוא נכשל במבחן הכושר של CONI, אנחנו לא יכולים לרשום אותו\"",
+     "published_at": "2026-07-13T10:16:26+00:00",
+     "sport": "football",
+     "event_type": "title_win",
+     "event_certainty": "probable",
+     "entity_ids": [],
+     "primary_competition": null,
+     "importance": "high"
+    }
+   ]
+  },
+  {
+   "id": "titlewin_opening_training",
+   "expect": "not_title_win",
+   "why": "A crowd at an opening TRAINING SESSION is not a title win.",
+   "articles": [
+    {
+     "id": "rss_d427d0822b85c6b8ec59",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/israelisoccer/article/by4o07wefl",
+     "title": "חגיגה אדומה: מאות אוהדים פוצצו את אימון הפתיחה של הפועל באר-שבע",
+     "subtitle": "כמיטב המסורת, הקהל של רן קוז'וך הדליק אבוקות, פרץ לכר הדשא בשכונת הפארק והניף את השחקנים. ז'ואו ויקטור זכה למירב תשומת הלב, ניב יהושע, מרקו וולף ואיתי רוטמן התקבלו בחום. דן ביטון ואליאל פרץ נעדרו",
+     "published_at": "2026-07-12T13:35:25+00:00",
+     "sport": "football",
+     "event_type": "title_win",
+     "event_certainty": "probable",
+     "entity_ids": [],
+     "primary_competition": null,
+     "importance": "high"
+    },
+    {
+     "id": "rss_8c0941df756af5352d0d",
+     "source": "walla_sport",
+     "url": "https://sports.walla.co.il/item/3852936",
+     "title": "מעל 1,000 אוהדים באימון הפתיחה הרשמי של הפועל באר שבע",
+     "subtitle": "ארבעה ימים לפני המשחק הרשמי הראשון שלה לעונת 2026/27, הפועל באר שבע ערכה הערב (ראשון) את אימון הפתיחה המסורתי, אליו הגיעו למעלה מ-1,000 אוהדים. כמיטב המסורת, האוהדים נכנסו למגרש והאימון הופסק.",
+     "published_at": "2026-07-12T15:58:00+00:00",
+     "sport": "football",
+     "event_type": "news",
+     "event_certainty": "confirmed",
+     "entity_ids": [
+      "team:hapoel_beer_sheva_fc"
+     ],
+     "primary_competition": null,
+     "importance": "low"
+    }
+   ]
+  },
+  {
+   "id": "titlewin_aspirational_kane",
+   "expect": "not_title_win",
+   "why": "ASPIRATIONAL — \"deserves to lift the World Cup\". He has not won anything.",
+   "articles": [
+    {
+     "id": "rss_f1817d90955225200979",
+     "source": "ynet_sport",
+     "url": "https://www.ynet.co.il/sport/worldcup2026/article/ryhm50011vgx",
+     "title": "\"מגיע לאחי הארי קיין להניף את גביע העולם\"",
+     "subtitle": "צ'רלי קיין, האח והסוכן של הארי קיין, מחכה לראות אותו מניף את גביע העולם, לא שוכח את \"יד האלוהים\" ומדבר אפילו על קבוצת הווטסאפ המשפחתית: \"מגיע לנו לחגוג אחרי 60 שנה. בנבחרת הזו אין אגו, יש אופי. עם הכוכבים לא זכינו להניף את הגביע.",
+     "published_at": "2026-07-13T05:00:18+00:00",
+     "sport": "football",
+     "event_type": "title_win",
+     "event_certainty": "confirmed",
+     "entity_ids": [],
+     "primary_competition": null,
+     "importance": "very_high"
+    }
+   ]
+  }
+ ]
+}

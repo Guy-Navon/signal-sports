@@ -27,7 +27,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.clustering.anchors import (  # noqa: E402
-    build_name_lexicon, extract_anchors, shared_anchors,
+    build_name_lexicon, generate_anchor_candidates, shared_anchor_candidates,
+    shared_anchors,
 )
 from app.clustering.candidate_scope import scoped_evidence  # noqa: E402
 from app.clustering.config import DEFAULT_CONFIG as CFG  # noqa: E402
@@ -123,7 +124,7 @@ def main():
             _lex_cache[k] = build_name_lexicon(candidate_population(a, arts, CFG))
         return _lex_cache[k]
 
-    ANC = {a.id: extract_anchors(a.title, a.subtitle, lex_for(a)) for a in arts}
+    ANC = {a.id: generate_anchor_candidates(a.title, a.subtitle, lex_for(a)) for a in arts}
     DF_GLOBAL = DocumentFrequency.over(TOK.values())
     truth = adjudicated_pairs()
 
@@ -187,7 +188,7 @@ def main():
     for (x, y), (verdict, case) in sorted(truth.items(), key=lambda kv: kv[1][0]):
         if x not in by_id or y not in by_id:
             continue
-        sa = shared_anchors(ANC[x], ANC[y])
+        sa = shared_anchor_candidates(ANC[x], ANC[y])   # CANDIDATE level = the recall ceiling
         mark = {"must_merge": "✅" if sa else "❌ NO ANCHOR",
                 "must_not_merge": "❌ ANCHOR!" if sa else "✅",
                 "material_update": "(shares)" if sa else "(none)"}[verdict]
@@ -212,20 +213,20 @@ def main():
         se = scoped_for(a)
         return jaccard(A, B) >= jm and len(se.df.discriminative_shared(A, B, CFG)) >= mr
 
-    def m136(a, b):
-        """#136 alone: a shared story-identifying anchor, Jaccard floor kept."""
-        A, B = TOK[a.id], TOK[b.id]
-        jm, _ = _tier_thresholds(select_tier(a, b), CFG)
-        return jaccard(A, B) >= jm and bool(shared_anchors(ANC[a.id], ANC[b.id]))
+    def m136_validated(a, b):
+        """#136 AS IT WILL SHIP: only VALIDATED anchors are merge evidence. With no Hebrew
+        validator yet, this abstains — which is the correct, safe behavior."""
+        return bool(shared_anchors(ANC[a.id], ANC[b.id]))
 
     def m136_no_jaccard(a, b):
-        """#136's real question: is a shared anchor enough to REPLACE the Jaccard crutch?"""
-        return bool(shared_anchors(ANC[a.id], ANC[b.id]))
+        """CANDIDATE level — the RECALL CEILING a validator would have to work with.
+        NOT shippable: this is what leaks אדום / שיא / הכל."""
+        return bool(shared_anchor_candidates(ANC[a.id], ANC[b.id]))
 
     def combined(a, b):
         """#135 + #136: a shared anchor AND candidate-scoped discriminative evidence.
         No Jaccard floor — the crutch is what we are trying to remove."""
-        if not shared_anchors(ANC[a.id], ANC[b.id]):
+        if not shared_anchor_candidates(ANC[a.id], ANC[b.id]):
             return False
         A, B = TOK[a.id], TOK[b.id]
         _, mr = _tier_thresholds(select_tier(a, b), CFG)
@@ -237,9 +238,9 @@ def main():
     for name, fn in (
         ("M0 baseline (production)", baseline),
         ("#135 candidate-scoped DF", m135),
-        ("#136 anchors (+ jaccard)", m136),
-        ("#136 anchors (NO jaccard)", m136_no_jaccard),
-        ("#135 + #136 combined", combined),
+        ("#136 VALIDATED anchors (ships)", m136_validated),
+        ("#136 candidates (recall ceiling)", m136_no_jaccard),
+        ("#135 + #136 candidates", combined),
     ):
         tp = fpn = mu = 0
         for (x, y), (verdict, _c) in truth.items():

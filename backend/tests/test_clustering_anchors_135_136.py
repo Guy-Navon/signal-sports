@@ -21,8 +21,10 @@ import pytest
 from app.clustering.anchors import (
     Anchor,
     build_name_lexicon,
-    extract_anchors,
+    generate_anchor_candidates,
+    shared_anchor_candidates,
     shared_anchors,
+    validate_anchors,
 )
 from app.clustering.candidate_scope import (
     CANDIDATE_GATES,
@@ -173,7 +175,7 @@ class TestTheAnchorContract:
     taxonomy growth only ever fills in `entity_id`."""
 
     def test_an_anchor_carries_every_contracted_field(self):
-        a = extract_anchors('מכבי ת"א נפרדה מזאק הנקינס')[0]
+        a = generate_anchor_candidates('מכבי ת"א נפרדה מזאק הנקינס')[0]
         assert isinstance(a, Anchor)
         for f in ("raw", "normalized", "anchor_type", "entity_id", "source",
                   "confidence", "evidence", "role"):
@@ -182,13 +184,13 @@ class TestTheAnchorContract:
     def test_an_anchor_does_NOT_require_taxonomy_resolution(self):
         """The whole reason this layer exists: the taxonomy resolves ZERO Israeli players
         (3/257 corpus articles carry any player entity — LeBron and Deni)."""
-        anchors = extract_anchors('ים מדר חתם במכבי ת"א')
+        anchors = generate_anchor_candidates('ים מדר חתם במכבי ת"א')
         assert anchors, "Madar must anchor even though the taxonomy has never heard of him"
         assert all(a.entity_id is None for a in anchors if "מדר" in a.normalized)
 
     def test_the_extraction_source_is_recorded(self):
         """#137 and #124 both need to know WHERE the evidence lived."""
-        anchors = extract_anchors("בדרך לרכש כפול: מכבי תל אביב נפרדה מאחד משחקניה",
+        anchors = generate_anchor_candidates("בדרך לרכש כפול: מכבי תל אביב נפרדה מאחד משחקניה",
                                   "הסנטר זאק הנקינס עוזב")
         assert any(a.source == "subtitle" for a in anchors)
 
@@ -215,9 +217,10 @@ class TestAnchorsRecoverTheDuplicateGroups:
         ih = next(a for a in arts if a.source == "israel_hayom_sport")
         ynet = next(a for a in arts if a.source == "ynet_sport")
         assert "הנקינס" not in ih.title
-        sa = shared_anchors(extract_anchors(ih.title, ih.subtitle, lex),
-                            extract_anchors(ynet.title, ynet.subtitle, lex))
-        assert sa, "the subtitle-only card must still share an anchor"
+        sa = shared_anchor_candidates(
+            generate_anchor_candidates(ih.title, ih.subtitle, lex),
+            generate_anchor_candidates(ynet.title, ynet.subtitle, lex))
+        assert sa, "the subtitle-only card must still share an anchor CANDIDATE"
 
     def test_a_lone_mention_anchors_via_the_candidate_population(self, cases):
         """sport5 writes 'נפרדה מהנקינס' — a LONE token, no bigram partner. Within-article
@@ -228,8 +231,8 @@ class TestAnchorsRecoverTheDuplicateGroups:
         the same candidate population. One idea, applied twice."""
         arts = _group(cases, "dup_hankins_release")
         sport5 = next(a for a in arts if a.source == "sport5_sport")
-        alone = extract_anchors(sport5.title, sport5.subtitle)          # no lexicon
-        with_pop = extract_anchors(sport5.title, sport5.subtitle,
+        alone = generate_anchor_candidates(sport5.title, sport5.subtitle)          # no lexicon
+        with_pop = generate_anchor_candidates(sport5.title, sport5.subtitle,
                                    build_name_lexicon(arts))            # with the population
         assert len(with_pop) > len(alone)
 
@@ -244,15 +247,18 @@ class TestTheRequiredNegatives:
         It never forms a bigram (של is vocabulary), so it arrives via the corroborated-single
         layer — which is exactly why role inference must run THERE too. It originally did not,
         and that was a real defect."""
-        a = extract_anchors("הפועל ת\"א צפויה לצרף את סטורנסקי",
+        a = generate_anchor_candidates("הפועל ת\"א צפויה לצרף את סטורנסקי",
                             "צפוי להצטרף לקבוצה של איטודיס")
-        b = extract_anchors("נשאר אדום: אלייז'ה בראיינט האריך חוזה",
+        b = generate_anchor_candidates("נשאר אדום: אלייז'ה בראיינט האריך חוזה",
                             "הקבוצה של איטודיס שמחה")
         lex = frozenset({"איטודיס"})
-        a = extract_anchors("הפועל ת\"א צפויה לצרף את סטורנסקי",
+        a = generate_anchor_candidates("הפועל ת\"א צפויה לצרף את סטורנסקי",
                             "צפוי להצטרף לקבוצה של איטודיס", lex)
-        b = extract_anchors("בראיינט האריך חוזה", "הקבוצה של איטודיס שמחה", lex)
-        assert not shared_anchors(a, b), "a coach is a club-level token, not a story anchor"
+        b = generate_anchor_candidates("בראיינט האריך חוזה", "הקבוצה של איטודיס שמחה", lex)
+        assert not shared_anchor_candidates(a, b), (
+            "a coach is a club-level token, not a story anchor — and the GENERATOR itself must "
+            "get this right, because role is grammatical context the validator cannot recover"
+        )
 
     def test_a_role_holder_is_not_story_identifying(self):
         coach = Anchor(raw="איטודיס", normalized="איטודיס", anchor_type="person",
@@ -270,16 +276,16 @@ class TestTheRequiredNegatives:
         """'יורוליג' is a KNOWN entity kind and is never what a story is about — every
         EuroLeague story shares it. Letting it act as an anchor merged Bryant's extension
         with Otooru's."""
-        a = extract_anchors("נשאר אדום: בראיינט האריך חוזה", "אחרי עונת שיא ביורוליג")
-        b = extract_anchors("ללא סעיף יציאה: אוטורו חתם על חוזה חדש",
+        a = generate_anchor_candidates("נשאר אדום: בראיינט האריך חוזה", "אחרי עונת שיא ביורוליג")
+        b = generate_anchor_candidates("ללא סעיף יציאה: אוטורו חתם על חוזה חדש",
                             "לאחר עונת השיא ביורוליג")
         assert "name:יורוליג" not in {k for x in a for k in x.keys()}
 
     def test_shared_template_language_without_a_named_subject(self):
         """The formulaic-negotiation pair — the ONLY one that survived containment."""
-        a = extract_anchors('מצפון לדרום? ארון ווילר במו"מ עם אילת')
-        b = extract_anchors('הפועל חולון במו"מ עם שני שחקנים')
-        assert not shared_anchors(a, b), "במו\"מ / בשיחות is not an identity"
+        a = generate_anchor_candidates('מצפון לדרום? ארון ווילר במו"מ עם אילת')
+        b = generate_anchor_candidates('הפועל חולון במו"מ עם שני שחקנים')
+        assert not shared_anchor_candidates(a, b), "במו\"מ / בשיחות is not an identity"
 
 
 class TestSharedIdentityIsNotEnough:
@@ -291,13 +297,15 @@ class TestSharedIdentityIsNotEnough:
     """
 
     def test_the_material_update_pair_really_does_share_an_anchor(self):
-        a = extract_anchors("עמדה במצוקה: אקס הפועל תל אביב מתרחק מהקבוצה",
+        a = generate_anchor_candidates("עמדה במצוקה: אקס הפועל תל אביב מתרחק מהקבוצה",
                             "האדומים לא ירדו מטימוקו דיארה")
-        b = extract_anchors("הפור נפל? דיווח: טיימוקו דיארה לא יחתום בהפועל תל אביב",
+        b = generate_anchor_candidates("הפור נפל? דיווח: טיימוקו דיארה לא יחתום בהפועל תל אביב",
                             "הקשר ממאלי נמצא על סף חתימה בקאסימפשה")
-        assert shared_anchors(a, b), (
+        assert shared_anchor_candidates(a, b), (
             "they DO share the subject — which is exactly why 'shared anchor' cannot be the "
-            "whole rule. Same subject, contradictory updates, must not collapse."
+            "whole rule. Same subject, contradictory updates, must not collapse. This is an "
+            "identity SUCCESS and a compatibility FAILURE; it belongs to the material-update "
+            "stage, not to anchor extraction."
         )
 
 
@@ -312,6 +320,35 @@ class TestTheKnownGap:
 
     Closing it needs a real Hebrew common-word resource. That is a decision, not a patch.
     """
+
+    def test_a_candidate_span_is_NOT_an_anchor(self):
+        """THE VALIDATION BOUNDARY. The generator may propose 'נשאר אדום'. It may NOT make
+        אדום clustering evidence."""
+        cands = generate_anchor_candidates("נשאר אדום: אלייז'ה בראיינט האריך חוזה")
+        assert cands, "the generator favours recall and proposes freely"
+        assert validate_anchors(cands) == (), (
+            "…and NOTHING heuristic is validated. אדום cannot over-merge — not because it was "
+            "added to a stoplist (that would fit this corpus and fail the next), but because "
+            "no validator has proven any of these spans name-like."
+        )
+
+    def test_the_validator_abstains_rather_than_guessing(self):
+        """Abstention beats incorrect clustering. Passing candidates through would turn the
+        frozen corpus green while leaving the abstraction broken."""
+        a = generate_anchor_candidates("נשאר אדום: אלייז'ה בראיינט האריך חוזה")
+        b = generate_anchor_candidates("גם דן אוטורו האריך חוזה", "נשאר אדום גם הוא")
+        assert shared_anchor_candidates(a, b), (
+            "the leak is REAL at candidate level: 'נשאר אדום' ('stayed red') is verb+adjective "
+            "and the generator proposes it as a name in BOTH articles"
+        )
+        assert shared_anchors(a, b) == (), "…and it CANNOT reach merge evidence"
+
+    def test_a_canonical_taxonomy_match_IS_validated(self):
+        """Canonical matches need no further inference — they are already proven."""
+        cands = generate_anchor_candidates("עודד קטש חתם במכבי תל אביב")
+        canonical = [c for c in cands if c.confidence == "canonical"]
+        assert canonical, "the taxonomy knows Kattash"
+        assert validate_anchors(cands) == tuple(canonical)
 
     def test_the_leak_is_in_the_BIGRAM_RULE_itself(self):
         """The defect, located precisely — and NOT where I first assumed.
@@ -328,7 +365,7 @@ class TestTheKnownGap:
         until this corpus passes is the same mistake as hand-adding four player names to the
         taxonomy. It needs a real lexical resource.
         """
-        anchors = extract_anchors("נשאר אדום: אלייז'ה בראיינט האריך חוזה")
+        anchors = generate_anchor_candidates("נשאר אדום: אלייז'ה בראיינט האריך חוזה")
         names = {a.normalized for a in anchors}
         assert "נשאר אדום" in names, (
             "EXPECTED FAILURE, recorded on purpose: an ordinary verb+adjective pair extracts "

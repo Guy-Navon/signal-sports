@@ -125,6 +125,49 @@ Two rules follow, and everything else in this document is downstream of them:
 > sweep mislabelled **three genuine duplicates** as over-merges, and freezing those would have
 > locked the bug in permanently.
 
+> ## THE THREE DISTINCTIONS (2026-07-15)
+>
+> ### **A candidate span is not an anchor.**
+> ### **A shared anchor is not a duplicate event.**
+> ### **A duplicate edge is not yet a safe cluster.**
+>
+> Each was learned by measurement, and each has its own stage.
+>
+> **1. A candidate span is not an anchor.** The high-recall generator proposes `נשאר אדום`
+> (*"stayed red"*) as a name, because its premise — *"two adjacent non-vocabulary tokens is a
+> name"* — holds only as far as the vocabulary is **complete**, and Hebrew is not a closed
+> vocabulary. Ordinary verbs, nouns and adjectives satisfy it. So generation favours **recall**
+> and **validation** favours **precision and may abstain**. Only **validated** anchors become
+> merge evidence. Today the only validator is a canonical taxonomy match — everything heuristic
+> abstains. Adding `אדום`/`שיא`/`הכל` to a stoplist would make the fixture pass **without
+> fixing the abstraction**.
+>
+> **2. A shared anchor is not a duplicate event.** The Diarra pair genuinely **does** share the
+> subject — and must **not** collapse, because the two reports **contradict** each other (one
+> says the club has not given up, the other says he is signing elsewhere). Identity agreement
+> cannot establish **interchangeability**. Corrections, reversals and materially changed status
+> must remain separately visible; canonical-card selection must never silently discard a
+> contradictory update.
+>
+> **3. A duplicate edge is not yet a safe cluster.** One false edge contaminates a whole
+> component. Pair recall is **not** the KPI — a three-article group needs one **connected, pure
+> component**, not three edges.
+>
+> ### The pipeline these imply
+>
+> | # | stage |
+> |---|---|
+> | 1 | existing semantic + temporal **hard gates** |
+> | 2 | **candidate-scoped evidence** (#135) |
+> | 3 | high-recall **anchor candidate generation** (#136) |
+> | 4 | conservative **Hebrew anchor validation** ← *the open gap* |
+> | 5 | **anchor normalization** (#137) |
+> | 6 | **event-state compatibility** |
+> | 7 | **material-update / claim compatibility** ← *new stage* |
+> | 8 | **edge creation** |
+> | 9 | **pure connected-component construction** |
+> | 10 | feed-level **canonical selection** + activation evaluation (#124/#126) |
+
 ## 2. Invariants (immutable in v1)
 
 These are not tunable. Changing any of them is a new contract, not a config change.

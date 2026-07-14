@@ -223,7 +223,7 @@ def build_name_lexicon(articles) -> frozenset[str]:
     return frozenset(lex)
 
 
-def extract_anchors(
+def generate_anchor_candidates(
     title: str, subtitle: str = "", lexicon: frozenset[str] | None = None
 ) -> tuple[Anchor, ...]:
     """Extract named anchors from an article, with layered evidence.
@@ -331,11 +331,66 @@ def _infer_role(words: list[str], i: int, text: str) -> str:
     return "unknown"
 
 
+# ── THE VALIDATION BOUNDARY ──────────────────────────────────────────────────
+# A CANDIDATE SPAN IS NOT AN ANCHOR.
+#
+# `generate_anchor_candidates` deliberately favours RECALL: it will happily propose
+# "נשאר אדום" ("stayed red"), because the bigram rule's premise — "two adjacent
+# non-vocabulary tokens is a name" — holds only to the extent that the vocabulary is COMPLETE,
+# and Hebrew is not a closed vocabulary. Ordinary verbs, nouns and adjectives satisfy it.
+#
+# So a candidate may NEVER become clustering evidence on its own. It must first be VALIDATED as
+# name-like by a resource that actually knows Hebrew. That validator does not exist yet
+# (tracked separately); until it does, this stage ABSTAINS on everything it cannot prove.
+#
+# Abstention beats incorrect clustering. Passing candidates straight through would make the
+# frozen corpus go green while leaving the abstraction broken — the fixture would pass and the
+# product would not.
+
+VALIDATION_ABSTAINED = "no_validator: only canonical taxonomy anchors are proven name-like"
+
+
+def validate_anchors(candidates: tuple[Anchor, ...]) -> tuple[Anchor, ...]:
+    """The precision half. May ABSTAIN, and currently abstains on almost everything.
+
+    Today the ONLY thing that proves a span is name-like is a canonical taxonomy match. Every
+    heuristic candidate — bigram or corroborated single — is UNVALIDATED and must not reach
+    merge evidence, no matter how confident the generator felt.
+
+    This is why `אדום` (red), `שיא` (record) and `הכל` (everything) cannot over-merge any more:
+    not because they were added to a stoplist (that would fit this corpus and fail the next),
+    but because NOTHING heuristic is trusted until a real validator says so.
+    """
+    return tuple(c for c in candidates if c.confidence == "canonical")
+
+
 def shared_anchors(a: tuple[Anchor, ...], b: tuple[Anchor, ...]) -> tuple[str, ...]:
-    """Story-identifying anchors shared by two articles.
+    """Story-identifying anchors shared by two articles — VALIDATED ANCHORS ONLY.
 
     Role-holders and opponents are excluded — a coach shared by two articles about DIFFERENT
     players is not evidence they are the same story.
+    """
+    a = validate_anchors(a)
+    b = validate_anchors(b)
+    ka: set[str] = set()
+    for x in a:
+        if x.is_story_identifying():
+            ka |= x.keys()
+    kb: set[str] = set()
+    for y in b:
+        if y.is_story_identifying():
+            kb |= y.keys()
+    return tuple(sorted(ka & kb))
+
+
+def shared_anchor_candidates(
+    a: tuple[Anchor, ...], b: tuple[Anchor, ...]
+) -> tuple[str, ...]:
+    """UNVALIDATED overlap. DIAGNOSTICS ONLY — never merge evidence.
+
+    Exists so #124 can measure what a validator would have to work with, and so the Hebrew
+    anchor-validation issue has a recall ceiling to aim at. Calling this from the matcher
+    would defeat the entire validation boundary.
     """
     ka: set[str] = set()
     for x in a:

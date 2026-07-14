@@ -1,0 +1,162 @@
+{
+ "snapshot_timestamp": "2026-07-13T23:59:59.010397+00:00",
+ "database": {
+  "path": "C:\\Users\\HOME\\Documents\\signal-sports\\backend\\data\\qa113.db",
+  "size_bytes": 1073152,
+  "mtime": "2026-07-13T23:59:58.430139+00:00"
+ },
+ "rule_version": 1,
+ "matcher_config": {
+  "max_story_coverage": 6,
+  "df_ratio_max": 0.01,
+  "tier_a": [
+   0.3,
+   1
+  ],
+  "tier_b": [
+   0.35,
+   1
+  ],
+  "tier_c": [
+   0.35,
+   2
+  ],
+  "max_cluster_size": 6,
+  "max_cluster_time_span_hours": 72.0,
+  "min_member_matches_to_join": 2,
+  "time_window_hours": {
+   "signing": 24.0,
+   "negotiation": 24.0,
+   "candidate": 24.0,
+   "rumor": 24.0,
+   "news": 24.0,
+   "match_result": 12.0,
+   "finals_result": 12.0,
+   "injury": 48.0
+  }
+ },
+ "corpus": {
+  "total_articles": 273,
+  "rss_articles": 257,
+  "per_source": {
+   "walla_sport": 118,
+   "israel_hayom_sport": 66,
+   "ynet_sport": 52,
+   "sport5_sport": 21
+  },
+  "sport_distribution": {
+   "football": 136,
+   "basketball": 77,
+   "unknown": 31,
+   "tennis": 13
+  },
+  "event_state_distribution": {
+   "news": 131,
+   "signing": 31,
+   "finals_result": 24,
+   "negotiation": 16,
+   "match_result": 14,
+   "schedule": 11,
+   "title_win": 10,
+   "injury": 6,
+   "release": 5,
+   "grand_slam_winner": 4,
+   "candidate": 4,
+   "playoff_result": 1
+  },
+  "time_range": {
+   "earliest": "2026-07-10T09:06:00+00:00",
+   "latest": "2026-07-13T14:33:00+00:00"
+  }
+ },
+ "clusters": {
+  "proposed_count": 1,
+  "member_count": 2,
+  "size_distribution": {
+   "2": 1
+  },
+  "created": [
+   "cluster_475745527e7506e4"
+  ],
+  "retained": [],
+  "changed": [],
+  "removed": [],
+  "ids_preserved": 0
+ },
+ "cards": {
+  "before": 273,
+  "after": 272
+ },
+ "articles": {
+  "newly_clustered": [
+   "rss_222c47f9df5e3fcaac66",
+   "rss_8650e192832bdedd80c9"
+  ],
+  "newly_unclustered": []
+ },
+ "near_miss_reasons": {
+  "event_state_incompatible": 12468,
+  "same_source": 8033,
+  "below_threshold": 2531,
+  "outside_time_window": 2320,
+  "cross_sport": 1443
+ },
+ "detail": [
+  {
+   "cluster_id": "cluster_475745527e7506e4",
+   "event_state": "finals_result",
+   "sport": "basketball",
+   "anchor": "rss_222c47f9df5e3fcaac66",
+   "representative": "rss_8650e192832bdedd80c9",
+   "rule_version": 1,
+   "members": [
+    {
+     "id": "rss_222c47f9df5e3fcaac66",
+     "source": "ynet_sport",
+     "title": "גל רביב: \"רצינו שזה יסתיים אחרת, אבל יש לנו במה להיות גאות\"",
+     "sport": "basketball",
+     "event_type": "finals_result",
+     "published_at": "2026-07-12T17:59:25+00:00"
+    },
+    {
+     "id": "rss_8650e192832bdedd80c9",
+     "source": "walla_sport",
+     "title": "גל רביב: \"רצינו שזה ייגמר אחרת, אבל יש לנו במה להיות גאות\"",
+     "sport": "basketball",
+     "event_type": "finals_result",
+     "published_at": "2026-07-12T20:31:00+00:00"
+    }
+   ],
+   "edges": [
+    {
+     "a": "rss_8650e192832bdedd80c9",
+     "b": "rss_222c47f9df5e3fcaac66",
+     "tier": "B",
+     "jaccard": 0.4375,
+     "hours_apart": 2.53,
+     "rare_tokens": [
+      "במה",
+      "גאות",
+      "האמא",
+      "הטורניר",
+      "הפנתיאון",
+      "כוכבת",
+      "לחמישיית",
+      "לנו",
+      "עשתה",
+      "רביב",
+      "רצינו",
+      "שזה"
+     ],
+     "entity_overlap": []
+    }
+   ]
+  }
+ ],
+ "mode": "APPLY",
+ "target_database": {
+  "path": "C:\\Users\\HOME\\Documents\\signal-sports\\backend\\data\\qa113.db",
+  "size_bytes": 1073152,
+  "mtime": "2026-07-13T23:59:58.430139+00:00"
+ }
+}

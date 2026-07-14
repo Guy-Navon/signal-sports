@@ -146,7 +146,15 @@ _SIGNING_COMPLETE = (
 
 _RELEASE_COMPLETE = (
     phrase("שוחרר"), phrase("שוחררה"), phrase("שוחררו"),
-    phrase("שחררה את"), phrase("שחרר את"), phrase("נפרדה מ"),
+    phrase("שחררה את"), phrase("שחרר את"),
+    # DEPARTURE forms. Only the FEMININE "נפרדה מ" was here (issue #113) — so
+    # "ים מדר נפרד מהפועל ת\"א" (masculine) slipped past the signing blocker, and a
+    # farewell article inherited event_type=signing from a subtitle that merely mentioned
+    # the already-completed transfer ("אחרי שחתם במכבי ת\"א"). A second source, whose
+    # subtitle lacked "חתם", classified the same story as news — a cross-source fact
+    # disagreement that made the pair unclusterable. A departure is not a signing.
+    phrase("נפרדה מ"), phrase("נפרד מ"), phrase("נפרדו מ"),
+    phrase("עוזב את"), phrase("עוזבת את"), phrase("פרידה מ"),
     phrase("released"), phrase("waived"), phrase("cut by"), phrase("roster cuts"),
 )
 

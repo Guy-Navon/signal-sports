@@ -187,6 +187,9 @@ def main() -> None:
     parser.add_argument("--db", required=True, help="target sqlite DB path")
     parser.add_argument("--apply", action="store_true",
                         help="WRITE to the target DB (default is dry-run)")
+    parser.add_argument("--i-know-this-is-the-live-corpus", action="store_true",
+                        help="#126 activation only: allow --apply against the protected "
+                             "live corpus (requires a fresh verified backup first)")
     parser.add_argument("--rule-version", type=int, default=1)
     parser.add_argument("--out", help="write the JSON report here")
     args = parser.parse_args()
@@ -197,15 +200,18 @@ def main() -> None:
 
     if args.apply:
         # Corpus protection (#106): the live corpus is not in git and cannot be restored.
+        # The #126 activation gate is the ONE sanctioned live write — behind the same
+        # explicit opt-in flag as the other guarded corpus writers, never by default.
         os.environ["DATABASE_URL"] = f"sqlite:///{db_path.as_posix()}"
         from app.db.corpus_protection import is_protected_corpus_db
 
-        if is_protected_corpus_db():
+        if is_protected_corpus_db() and not args.i_know_this_is_the_live_corpus:
             raise SystemExit(
                 f"REFUSED: --apply targets the protected live corpus ({db_path}).\n"
                 "Backfill must run against a COPY:\n"
                 "  cp data/signal_sports.db data/corpus_copy.db\n"
-                "  python scripts/backfill_clusters.py --db data/corpus_copy.db --apply"
+                "  python scripts/backfill_clusters.py --db data/corpus_copy.db --apply\n"
+                "(#126 activation only: add --i-know-this-is-the-live-corpus)"
             )
         target, scratch = db_path, None
         mode = "APPLY"

@@ -1,0 +1,861 @@
+{
+ "snapshot_timestamp": "2026-07-15T15:50:47.900300+00:00",
+ "database": {
+  "path": "C:\\Users\\HOME\\Documents\\signal-sports\\backend\\data\\signal_sports.db",
+  "size_bytes": 1179648,
+  "mtime": "2026-07-15T15:50:47.518142+00:00"
+ },
+ "rule_version": 1,
+ "matcher_config": {
+  "max_story_coverage": 6,
+  "df_ratio_max": 0.01,
+  "tier_a": [
+   0.3,
+   1
+  ],
+  "tier_b": [
+   0.35,
+   1
+  ],
+  "tier_c": [
+   0.35,
+   2
+  ],
+  "max_cluster_size": 6,
+  "max_cluster_time_span_hours": 72.0,
+  "min_member_matches_to_join": 2,
+  "time_window_hours": {
+   "signing": 24.0,
+   "release": 24.0,
+   "major_trade": 24.0,
+   "negotiation": 24.0,
+   "candidate": 24.0,
+   "rumor": 24.0,
+   "news": 24.0,
+   "match_result": 12.0,
+   "finals_result": 12.0,
+   "title_win": 12.0,
+   "grand_slam_winner": 12.0,
+   "playoff_result": 12.0,
+   "regular_season_result": 12.0,
+   "early_round_result": 12.0,
+   "injury": 48.0
+  }
+ },
+ "corpus": {
+  "total_articles": 273,
+  "rss_articles": 257,
+  "per_source": {
+   "walla_sport": 118,
+   "israel_hayom_sport": 66,
+   "ynet_sport": 52,
+   "sport5_sport": 21
+  },
+  "sport_distribution": {
+   "football": 139,
+   "basketball": 76,
+   "unknown": 29,
+   "tennis": 13
+  },
+  "event_state_distribution": {
+   "news": 136,
+   "signing": 30,
+   "finals_result": 24,
+   "negotiation": 17,
+   "match_result": 14,
+   "schedule": 10,
+   "release": 9,
+   "injury": 6,
+   "grand_slam_winner": 4,
+   "candidate": 4,
+   "title_win": 2,
+   "playoff_result": 1
+  },
+  "time_range": {
+   "earliest": "2026-07-10T09:06:00+00:00",
+   "latest": "2026-07-13T14:33:00+00:00"
+  }
+ },
+ "clusters": {
+  "proposed_count": 9,
+  "member_count": 26,
+  "size_distribution": {
+   "2": 4,
+   "3": 2,
+   "4": 3
+  },
+  "created": [
+   "cluster_411868bb2d78e83d",
+   "cluster_612cc7877d01a1fd",
+   "cluster_747be13e1ccfc1c3",
+   "cluster_8418f57b3706ae47",
+   "cluster_91f0d6b51d0580a6",
+   "cluster_a6fe30166857973a",
+   "cluster_beab4de5dcd62c9f",
+   "cluster_cfa91d63a4ad9cd9",
+   "cluster_da8356dbd4ebfadd"
+  ],
+  "retained": [],
+  "changed": [],
+  "removed": [],
+  "ids_preserved": 0
+ },
+ "cards": {
+  "before": 273,
+  "after": 256
+ },
+ "articles": {
+  "newly_clustered": [
+   "rss_0291a5f683192506e30f",
+   "rss_03866087512d6236391b",
+   "rss_0b6b88be571411e7dd99",
+   "rss_136180b819765f140420",
+   "rss_1c17cce6ffda5dd1a240",
+   "rss_221b84ffd80864da2744",
+   "rss_2b094951a5d4cadffa96",
+   "rss_2e57fdfc5e7df0e75da4",
+   "rss_3665a6788b516e76b959",
+   "rss_3dcba41409729b96d7bf",
+   "rss_4f41239da25850669807",
+   "rss_5df2fa77aa6ed96998d4",
+   "rss_75bc2c6119f80de8905d",
+   "rss_77b03413c3ee94215453",
+   "rss_81f1e1469be5fd299749",
+   "rss_975426d1a4d8877cf72c",
+   "rss_a83af2c67927a5b63d97",
+   "rss_b00872cb282e17b00a9b",
+   "rss_b163aeda6edffb63e6df",
+   "rss_b1aae4e7cc49b8b8a481",
+   "rss_b4f0c3b48945bf84bdcc",
+   "rss_c0c008be1ea9aa36df16",
+   "rss_c822881b1744b3a03cd1",
+   "rss_d68030c4d1318238076a",
+   "rss_e77e8a3d97dbc13d4244",
+   "rss_ff501392ec59403606ad"
+  ],
+  "newly_unclustered": []
+ },
+ "near_miss_reasons": {
+  "event_state_incompatible": 18332,
+  "intra_source_news_excluded": 7695,
+  "below_threshold": 2763,
+  "outside_time_window": 2155,
+  "cross_sport": 1521,
+  "outside_intra_source_window": 206,
+  "claim_reversal_mismatch": 115,
+  "below_intra_source_title_similarity": 81
+ },
+ "detail": [
+  {
+   "cluster_id": "cluster_411868bb2d78e83d",
+   "event_state": "release",
+   "sport": "basketball",
+   "anchor": "rss_4f41239da25850669807",
+   "representative": "rss_4f41239da25850669807",
+   "rule_version": 1,
+   "members": [
+    {
+     "id": "rss_0b6b88be571411e7dd99",
+     "source": "ynet_sport",
+     "title": "מכבי ת\"א נפרדה מזאק הנקינס: \"שותף חשוב לדאבל\"",
+     "sport": "basketball",
+     "event_type": "release",
+     "published_at": "2026-07-13T07:07:59+00:00"
+    },
+    {
+     "id": "rss_4f41239da25850669807",
+     "source": "israel_hayom_sport",
+     "title": "בדרך לרכש כפול: מכבי תל אביב נפרדה מאחד משחקניה",
+     "sport": "basketball",
+     "event_type": "release",
+     "published_at": "2026-07-13T06:35:16+00:00"
+    },
+    {
+     "id": "rss_75bc2c6119f80de8905d",
+     "source": "sport5_sport",
+     "title": "לאחר עונה אחת: מכבי ת\"א נפרדה מהנקינס",
+     "sport": "basketball",
+     "event_type": "release",
+     "published_at": "2026-07-13T08:39:00+00:00"
+    },
+    {
+     "id": "rss_e77e8a3d97dbc13d4244",
+     "source": "walla_sport",
+     "title": "מכבי תל אביב נפרדה מזאק הנקינס: \"שותף חשוב בדאבל\"",
+     "sport": "basketball",
+     "event_type": "release",
+     "published_at": "2026-07-13T09:34:00+00:00"
+    }
+   ],
+   "edges": [
+    {
+     "a": "rss_4f41239da25850669807",
+     "b": "rss_75bc2c6119f80de8905d",
+     "tier": "N",
+     "jaccard": 0.06,
+     "hours_apart": 2.06,
+     "rare_tokens": [
+      "הנקינס"
+     ],
+     "entity_overlap": [
+      "team:maccabi_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_4f41239da25850669807",
+     "b": "rss_0b6b88be571411e7dd99",
+     "tier": "N",
+     "jaccard": 0.1071,
+     "hours_apart": 0.55,
+     "rare_tokens": [
+      "translit:הנקנס",
+      "הנקינס",
+      "נקינס"
+     ],
+     "entity_overlap": [
+      "team:maccabi_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_e77e8a3d97dbc13d4244",
+     "b": "rss_4f41239da25850669807",
+     "tier": "N",
+     "jaccard": 0.1053,
+     "hours_apart": 2.98,
+     "rare_tokens": [
+      "translit:הנקנס",
+      "הנקינס",
+      "נקינס"
+     ],
+     "entity_overlap": [
+      "team:maccabi_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_0b6b88be571411e7dd99",
+     "b": "rss_75bc2c6119f80de8905d",
+     "tier": "N",
+     "jaccard": 0.129,
+     "hours_apart": 1.52,
+     "rare_tokens": [
+      "הנקינס"
+     ],
+     "entity_overlap": [
+      "team:maccabi_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_e77e8a3d97dbc13d4244",
+     "b": "rss_75bc2c6119f80de8905d",
+     "tier": "N",
+     "jaccard": 0.0909,
+     "hours_apart": 0.92,
+     "rare_tokens": [
+      "הנקינס"
+     ],
+     "entity_overlap": [
+      "team:maccabi_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_e77e8a3d97dbc13d4244",
+     "b": "rss_0b6b88be571411e7dd99",
+     "tier": "N",
+     "jaccard": 0.25,
+     "hours_apart": 2.43,
+     "rare_tokens": [
+      "translit:הנקנס",
+      "הנקינס",
+      "נקינס"
+     ],
+     "entity_overlap": [
+      "team:maccabi_tlv_bb"
+     ]
+    }
+   ]
+  },
+  {
+   "cluster_id": "cluster_612cc7877d01a1fd",
+   "event_state": "grand_slam_winner",
+   "sport": "tennis",
+   "anchor": "rss_0291a5f683192506e30f",
+   "representative": "rss_975426d1a4d8877cf72c",
+   "rule_version": 1,
+   "members": [
+    {
+     "id": "rss_0291a5f683192506e30f",
+     "source": "ynet_sport",
+     "title": "לינדה נוסקובה זכתה בטורניר ווימבלדון",
+     "sport": "tennis",
+     "event_type": "grand_slam_winner",
+     "published_at": "2026-07-11T13:56:22+00:00"
+    },
+    {
+     "id": "rss_975426d1a4d8877cf72c",
+     "source": "ynet_sport",
+     "title": "אלופה בת 21: לינדה נוסקובה זכתה בווימבלדון",
+     "sport": "tennis",
+     "event_type": "grand_slam_winner",
+     "published_at": "2026-07-11T15:41:21+00:00"
+    }
+   ],
+   "edges": [
+    {
+     "a": "rss_975426d1a4d8877cf72c",
+     "b": "rss_0291a5f683192506e30f",
+     "tier": "I",
+     "jaccard": 0.4286,
+     "hours_apart": 1.75,
+     "rare_tokens": [
+      "בקריירה",
+      "וזכתה",
+      "זכתה",
+      "לינדה",
+      "מוחובה",
+      "נוסקובה",
+      "קרולינה"
+     ],
+     "entity_overlap": []
+    }
+   ]
+  },
+  {
+   "cluster_id": "cluster_747be13e1ccfc1c3",
+   "event_state": "release",
+   "sport": "basketball",
+   "anchor": "rss_d68030c4d1318238076a",
+   "representative": "rss_c822881b1744b3a03cd1",
+   "rule_version": 1,
+   "members": [
+    {
+     "id": "rss_136180b819765f140420",
+     "source": "ynet_sport",
+     "title": "ים מדר נפרד מהפועל ת\"א: \"השנה לא הייתה קלה עבורי, עוזב בראש מורם\"",
+     "sport": "basketball",
+     "event_type": "release",
+     "published_at": "2026-07-11T20:19:38+00:00"
+    },
+    {
+     "id": "rss_b00872cb282e17b00a9b",
+     "source": "walla_sport",
+     "title": "אף מילה על הבעלים והמאמן: כך ים מדר נפרד מהפועל ת\"א",
+     "sport": "unknown",
+     "event_type": "release",
+     "published_at": "2026-07-11T23:04:00+00:00"
+    },
+    {
+     "id": "rss_c822881b1744b3a03cd1",
+     "source": "sport5_sport",
+     "title": "מדר: \"עוזב בראש מורם. השנה לא הייתה קלה\"",
+     "sport": "basketball",
+     "event_type": "release",
+     "published_at": "2026-07-11T22:11:00+00:00"
+    },
+    {
+     "id": "rss_d68030c4d1318238076a",
+     "source": "israel_hayom_sport",
+     "title": "לקראת הצגתו במכבי תל אביב: מילות הפרידה של ים מדר מהפועל",
+     "sport": "basketball",
+     "event_type": "release",
+     "published_at": "2026-07-11T20:05:57+00:00"
+    }
+   ],
+   "edges": [
+    {
+     "a": "rss_b00872cb282e17b00a9b",
+     "b": "rss_d68030c4d1318238076a",
+     "tier": "N",
+     "jaccard": 0.1154,
+     "hours_apart": 2.97,
+     "rare_tokens": [
+      "translit:מדר",
+      "מדר"
+     ],
+     "entity_overlap": []
+    },
+    {
+     "a": "rss_d68030c4d1318238076a",
+     "b": "rss_136180b819765f140420",
+     "tier": "N",
+     "jaccard": 0.1346,
+     "hours_apart": 0.23,
+     "rare_tokens": [
+      "translit:מדר",
+      "מדר"
+     ],
+     "entity_overlap": []
+    },
+    {
+     "a": "rss_136180b819765f140420",
+     "b": "rss_c822881b1744b3a03cd1",
+     "tier": "A",
+     "jaccard": 0.3125,
+     "hours_apart": 1.86,
+     "rare_tokens": [
+      "בראש",
+      "השנה",
+      "כמו",
+      "מורם",
+      "נפרד",
+      "עוזב",
+      "קלה",
+      "שרציתי"
+     ],
+     "entity_overlap": [
+      "team:hapoel_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_b00872cb282e17b00a9b",
+     "b": "rss_136180b819765f140420",
+     "tier": "N",
+     "jaccard": 0.1395,
+     "hours_apart": 2.74,
+     "rare_tokens": [
+      "translit:מדר",
+      "מדר"
+     ],
+     "entity_overlap": []
+    },
+    {
+     "a": "rss_d68030c4d1318238076a",
+     "b": "rss_c822881b1744b3a03cd1",
+     "tier": "N",
+     "jaccard": 0.1087,
+     "hours_apart": 2.08,
+     "rare_tokens": [
+      "translit:מדר",
+      "מדר"
+     ],
+     "entity_overlap": [
+      "team:maccabi_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_b00872cb282e17b00a9b",
+     "b": "rss_c822881b1744b3a03cd1",
+     "tier": "N",
+     "jaccard": 0.1389,
+     "hours_apart": 0.88,
+     "rare_tokens": [
+      "translit:מדר",
+      "מדר"
+     ],
+     "entity_overlap": []
+    }
+   ]
+  },
+  {
+   "cluster_id": "cluster_8418f57b3706ae47",
+   "event_state": "signing",
+   "sport": "basketball",
+   "anchor": "rss_2b094951a5d4cadffa96",
+   "representative": "rss_81f1e1469be5fd299749",
+   "rule_version": 1,
+   "members": [
+    {
+     "id": "rss_2b094951a5d4cadffa96",
+     "source": "ynet_sport",
+     "title": "ים מדר חתם במכבי ת\"א: \"מבטיח לתת את הכל\" | נחשף ב-ynet",
+     "sport": "basketball",
+     "event_type": "signing",
+     "published_at": "2026-07-12T06:46:21+00:00"
+    },
+    {
+     "id": "rss_81f1e1469be5fd299749",
+     "source": "sport5_sport",
+     "title": "היקר בתולדותיה: ים מדר חתם רשמית במכבי ת\"א",
+     "sport": "basketball",
+     "event_type": "signing",
+     "published_at": "2026-07-12T08:55:30.645544+00:00"
+    },
+    {
+     "id": "rss_ff501392ec59403606ad",
+     "source": "walla_sport",
+     "title": "מכבי ת\"א הציגה את ים מדר: \"פותח פרק חדש. יאללה מכבי\"",
+     "sport": "basketball",
+     "event_type": "signing",
+     "published_at": "2026-07-12T09:33:00+00:00"
+    }
+   ],
+   "edges": [
+    {
+     "a": "rss_ff501392ec59403606ad",
+     "b": "rss_2b094951a5d4cadffa96",
+     "tier": "N",
+     "jaccard": 0.1042,
+     "hours_apart": 2.78,
+     "rare_tokens": [
+      "translit:מדר",
+      "מדר"
+     ],
+     "entity_overlap": [
+      "team:maccabi_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_2b094951a5d4cadffa96",
+     "b": "rss_81f1e1469be5fd299749",
+     "tier": "N",
+     "jaccard": 0.0877,
+     "hours_apart": 2.15,
+     "rare_tokens": [
+      "translit:מדר",
+      "מדר"
+     ],
+     "entity_overlap": [
+      "team:maccabi_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_ff501392ec59403606ad",
+     "b": "rss_81f1e1469be5fd299749",
+     "tier": "N",
+     "jaccard": 0.1389,
+     "hours_apart": 0.62,
+     "rare_tokens": [
+      "translit:מדר",
+      "מדר"
+     ],
+     "entity_overlap": [
+      "team:maccabi_tlv_bb"
+     ]
+    }
+   ]
+  },
+  {
+   "cluster_id": "cluster_91f0d6b51d0580a6",
+   "event_state": "signing",
+   "sport": "basketball",
+   "anchor": "rss_03866087512d6236391b",
+   "representative": "rss_b4f0c3b48945bf84bdcc",
+   "rule_version": 1,
+   "members": [
+    {
+     "id": "rss_03866087512d6236391b",
+     "source": "ynet_sport",
+     "title": "הצהרת כוונות: דן אוטורו האריך את חוזהו בהפועל ת\"א",
+     "sport": "basketball",
+     "event_type": "signing",
+     "published_at": "2026-07-12T12:56:55+00:00"
+    },
+    {
+     "id": "rss_221b84ffd80864da2744",
+     "source": "walla_sport",
+     "title": "אחרי בלייקני ובריאנט: גם דן אוטורו האריך חוזה בהפועל ת\"א",
+     "sport": "basketball",
+     "event_type": "signing",
+     "published_at": "2026-07-12T15:42:00+00:00"
+    },
+    {
+     "id": "rss_b4f0c3b48945bf84bdcc",
+     "source": "sport5_sport",
+     "title": "ללא סעיף יציאה: אוטורו חתם על חוזה חדש",
+     "sport": "basketball",
+     "event_type": "signing",
+     "published_at": "2026-07-12T14:35:00+00:00"
+    }
+   ],
+   "edges": [
+    {
+     "a": "rss_221b84ffd80864da2744",
+     "b": "rss_03866087512d6236391b",
+     "tier": "N",
+     "jaccard": 0.1707,
+     "hours_apart": 2.75,
+     "rare_tokens": [
+      "translit:אטר",
+      "אוטורו"
+     ],
+     "entity_overlap": [
+      "team:hapoel_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_03866087512d6236391b",
+     "b": "rss_b4f0c3b48945bf84bdcc",
+     "tier": "N",
+     "jaccard": 0.0541,
+     "hours_apart": 1.63,
+     "rare_tokens": [
+      "translit:אטר",
+      "אוטורו"
+     ],
+     "entity_overlap": [
+      "team:hapoel_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_221b84ffd80864da2744",
+     "b": "rss_b4f0c3b48945bf84bdcc",
+     "tier": "N",
+     "jaccard": 0.0541,
+     "hours_apart": 1.12,
+     "rare_tokens": [
+      "translit:אטר",
+      "אוטורו"
+     ],
+     "entity_overlap": [
+      "team:hapoel_tlv_bb"
+     ]
+    }
+   ]
+  },
+  {
+   "cluster_id": "cluster_a6fe30166857973a",
+   "event_state": "injury",
+   "sport": "football",
+   "anchor": "rss_77b03413c3ee94215453",
+   "representative": "rss_3665a6788b516e76b959",
+   "rule_version": 1,
+   "members": [
+    {
+     "id": "rss_3665a6788b516e76b959",
+     "source": "israel_hayom_sport",
+     "title": "\"קונור מקגרגור לא יצר קשר עין, משהו היה לא בסדר\"",
+     "sport": "football",
+     "event_type": "injury",
+     "published_at": "2026-07-12T03:11:08+00:00"
+    },
+    {
+     "id": "rss_77b03413c3ee94215453",
+     "source": "ynet_sport",
+     "title": "זה נגמר בדמעות: קונור מגרגור הפסיד תוך פחות מדקה בקאמבק שלו ל-UFC",
+     "sport": "unknown",
+     "event_type": "injury",
+     "published_at": "2026-07-12T03:09:02+00:00"
+    }
+   ],
+   "edges": [
+    {
+     "a": "rss_3665a6788b516e76b959",
+     "b": "rss_77b03413c3ee94215453",
+     "tier": "N",
+     "jaccard": 0.0484,
+     "hours_apart": 0.04,
+     "rare_tokens": [
+      "translit:קנר",
+      "קונור"
+     ],
+     "entity_overlap": []
+    }
+   ]
+  },
+  {
+   "cluster_id": "cluster_beab4de5dcd62c9f",
+   "event_state": "signing",
+   "sport": "basketball",
+   "anchor": "rss_5df2fa77aa6ed96998d4",
+   "representative": "rss_5df2fa77aa6ed96998d4",
+   "rule_version": 1,
+   "members": [
+    {
+     "id": "rss_5df2fa77aa6ed96998d4",
+     "source": "ynet_sport",
+     "title": "נשאר אדום: אלייז'ה בראיינט האריך חוזה בהפועל ת\"א",
+     "sport": "basketball",
+     "event_type": "signing",
+     "published_at": "2026-07-11T15:49:22+00:00"
+    },
+    {
+     "id": "rss_c0c008be1ea9aa36df16",
+     "source": "sport5_sport",
+     "title": "בראיינט האריך חוזה: זה שכרו יוצא הדופן",
+     "sport": "basketball",
+     "event_type": "signing",
+     "published_at": "2026-07-11T17:27:00+00:00"
+    }
+   ],
+   "edges": [
+    {
+     "a": "rss_5df2fa77aa6ed96998d4",
+     "b": "rss_c0c008be1ea9aa36df16",
+     "tier": "N",
+     "jaccard": 0.1333,
+     "hours_apart": 1.63,
+     "rare_tokens": [
+      "translit:בראנט",
+      "בראיינט",
+      "ראיינט"
+     ],
+     "entity_overlap": []
+    }
+   ]
+  },
+  {
+   "cluster_id": "cluster_cfa91d63a4ad9cd9",
+   "event_state": "title_win",
+   "sport": "tennis",
+   "anchor": "rss_b163aeda6edffb63e6df",
+   "representative": "rss_b1aae4e7cc49b8b8a481",
+   "rule_version": 1,
+   "members": [
+    {
+     "id": "rss_b163aeda6edffb63e6df",
+     "source": "ynet_sport",
+     "title": "סינר שוב אלוף ווימבלדון: ניצח את זברב והגן על התואר",
+     "sport": "tennis",
+     "event_type": "title_win",
+     "published_at": "2026-07-12T16:59:07+00:00"
+    },
+    {
+     "id": "rss_b1aae4e7cc49b8b8a481",
+     "source": "walla_sport",
+     "title": "מכסח דשא: יאניק סינר אלוף ווימבלדון בפעם השנייה ברציפות",
+     "sport": "tennis",
+     "event_type": "title_win",
+     "published_at": "2026-07-12T19:57:00+00:00"
+    }
+   ],
+   "edges": [
+    {
+     "a": "rss_b1aae4e7cc49b8b8a481",
+     "b": "rss_b163aeda6edffb63e6df",
+     "tier": "N",
+     "jaccard": 0.1333,
+     "hours_apart": 2.96,
+     "rare_tokens": [
+      "translit:זברב",
+      "translit:סנר",
+      "זברב",
+      "סינר"
+     ],
+     "entity_overlap": []
+    }
+   ]
+  },
+  {
+   "cluster_id": "cluster_da8356dbd4ebfadd",
+   "event_state": "negotiation",
+   "sport": "basketball",
+   "anchor": "rss_a83af2c67927a5b63d97",
+   "representative": "rss_2e57fdfc5e7df0e75da4",
+   "rule_version": 1,
+   "members": [
+    {
+     "id": "rss_1c17cce6ffda5dd1a240",
+     "source": "sport5_sport",
+     "title": "סטרונסקי סיכם בהפועל ת\"א: זה השכר שירוויח",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "published_at": "2026-07-12T08:29:07.564011+00:00"
+    },
+    {
+     "id": "rss_2e57fdfc5e7df0e75da4",
+     "source": "ynet_sport",
+     "title": "הפועל ת\"א מתחזקת: רכז ברצלונה תומס סטורנסקי סיכם בקבוצה",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "published_at": "2026-07-12T07:36:18+00:00"
+    },
+    {
+     "id": "rss_3dcba41409729b96d7bf",
+     "source": "walla_sport",
+     "title": "הפועל ת\"א צפויה לצרף את סטורנסקי, גינת בדרך להארכת חוזה",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "published_at": "2026-07-12T09:06:00+00:00"
+    },
+    {
+     "id": "rss_a83af2c67927a5b63d97",
+     "source": "israel_hayom_sport",
+     "title": "המחליף של כריס ג'ונס: כוכב היורוליג סיכם בהפועל תל אביב",
+     "sport": "basketball",
+     "event_type": "negotiation",
+     "published_at": "2026-07-12T05:43:59+00:00"
+    }
+   ],
+   "edges": [
+    {
+     "a": "rss_3dcba41409729b96d7bf",
+     "b": "rss_a83af2c67927a5b63d97",
+     "tier": "N",
+     "jaccard": 0.0556,
+     "hours_apart": 3.37,
+     "rare_tokens": [
+      "translit:סטרנסק",
+      "סטורנסקי"
+     ],
+     "entity_overlap": [
+      "team:hapoel_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_3dcba41409729b96d7bf",
+     "b": "rss_1c17cce6ffda5dd1a240",
+     "tier": "N",
+     "jaccard": 0.0741,
+     "hours_apart": 0.61,
+     "rare_tokens": [
+      "translit:סטרנסק"
+     ],
+     "entity_overlap": [
+      "team:hapoel_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_1c17cce6ffda5dd1a240",
+     "b": "rss_2e57fdfc5e7df0e75da4",
+     "tier": "N",
+     "jaccard": 0.04,
+     "hours_apart": 0.88,
+     "rare_tokens": [
+      "translit:סטרנסק"
+     ],
+     "entity_overlap": [
+      "team:hapoel_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_a83af2c67927a5b63d97",
+     "b": "rss_1c17cce6ffda5dd1a240",
+     "tier": "N",
+     "jaccard": 0.0755,
+     "hours_apart": 2.75,
+     "rare_tokens": [
+      "translit:סטרנסק"
+     ],
+     "entity_overlap": [
+      "team:hapoel_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_3dcba41409729b96d7bf",
+     "b": "rss_2e57fdfc5e7df0e75da4",
+     "tier": "N",
+     "jaccard": 0.0833,
+     "hours_apart": 1.5,
+     "rare_tokens": [
+      "translit:סטרנסק",
+      "סטורנסקי"
+     ],
+     "entity_overlap": [
+      "team:hapoel_tlv_bb"
+     ]
+    },
+    {
+     "a": "rss_a83af2c67927a5b63d97",
+     "b": "rss_2e57fdfc5e7df0e75da4",
+     "tier": "N",
+     "jaccard": 0.1333,
+     "hours_apart": 1.87,
+     "rare_tokens": [
+      "translit:ונס",
+      "translit:סטרנסק",
+      "ונס",
+      "סטורנסקי"
+     ],
+     "entity_overlap": [
+      "team:hapoel_tlv_bb"
+     ]
+    }
+   ]
+  }
+ ],
+ "mode": "APPLY",
+ "target_database": {
+  "path": "C:\\Users\\HOME\\Documents\\signal-sports\\backend\\data\\signal_sports.db",
+  "size_bytes": 1179648,
+  "mtime": "2026-07-15T15:50:47.518142+00:00"
+ }
+}

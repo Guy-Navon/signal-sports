@@ -1,12 +1,24 @@
 # Story Clustering — v1 Contract
 
-> ## ⚠️ STATUS: FULLY IMPLEMENTED — AND DARK-SHIPPED (`CLUSTERING_ENABLED=false`)
+> ## ✅ STATUS: ACTIVE IN PRODUCTION (`CLUSTERING_ENABLED=true`, #126, 2026-07-15)
 >
-> Deterministic clustering v1 is **complete**: matcher, persistence, live ingestion stage,
-> backfill/QA tooling, feed/API collapse, frontend card and Debug evidence are all built,
-> merged and acceptance-tested (#99–#105, Milestone 5).
+> Milestone 6 (Feed De-duplication & Clustering Activation) is **closed**. The #126 gate
+> passed on the frozen corpus AND the live corpus: 25/26 must-merge, **0 over-merges, 0
+> impure components, 0 material updates hidden**, every persisted component manually
+> reviewed as a genuine single story, and the ranked Guy feed showing **each story once
+> and pushing each story at most once** (52→39 cards, pushes 5→3, the Madar signing
+> 3 pushes→1). Evidence: `docs/qa/FEED_DEDUP_124_REPORT.md`,
+> `docs/qa/feed_live_final_ranked_guy_126_20260715.json`, and the activation artifacts in
+> `docs/qa/*_126_20260715.*`. The flag lives in `backend/.env`.
 >
-> **It is OFF in production by default, and that is deliberate.**
+> The Milestone 6 pipeline on top of v1: candidate-scoped evidence (#135) → validated
+> anchors (#141, V1 lexical-frequency; §7.7) → transliteration skeletons (#137) →
+> event-state consistency upstream (#138) → claim compatibility (#142, §7.6) →
+> intra-source republish stage (#123, §7.5) → tier-N subject evidence → coherence.
+>
+> The original dark-ship rationale below is kept for history.
+>
+> **It was OFF in production by default until #126, and that was deliberate.**
 >
 > ### ⚠️ CORRECTION (2026-07-14): the original activation verdict measured the wrong thing
 >

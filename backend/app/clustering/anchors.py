@@ -22,8 +22,10 @@ the taxonomy resolves **zero** Israeli players (3/257 corpus articles carry any 
 LeBron and Deni). Registering the four names by hand would fit this corpus and fail the next.
 When the taxonomy *does* know the entity we reuse its id; otherwise we carry the surface form.
 
-This module is DIAGNOSTIC ONLY. It is not wired into `match_pair`, and #136 may not change
-default clustering behavior — only #126 may.
+Since #141/#126 this module is LIVE: `generate_candidates` feeds the ingestion-time
+enrichment stage, whose validated output `match_pair` reads as tier-N subject evidence
+(docs/CLUSTERING.md §7.7). The legacy `generate_anchor_candidates`/`shared_anchors`
+surface remains diagnostic.
 """
 
 from __future__ import annotations

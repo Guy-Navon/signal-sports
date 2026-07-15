@@ -335,7 +335,9 @@ Staged, cheapest-and-most-decisive first. A pair must pass **every** stage.
 
 ### 7.1 Hard gates (any failure ⇒ reject immediately)
 
-1. different `source`;
+1. different `source` — **same-source pairs never reach this matcher**; since #123 they are
+   routed to the dedicated intra-source republish stage (§7.5) instead, under a much stricter
+   contract;
 2. same `event_type` (§5.1), and it is a clusterable state;
 3. neither article is live/in-play (§5.3);
 4. within the event-state time window (§5.2);
@@ -472,6 +474,80 @@ That quietly re-introduces the same-source update chaining v1 declares a non-goa
 > jaccard floor against the two longer articles.
 
 When the evidence is ambiguous, **default to precision-first abstention.**
+
+> **#123 REVISION — source uniqueness is now "unless PROVEN republish", and nothing more.**
+> A same-source pair may co-exist in a cluster **iff that exact pair carries a tier-I
+> intra-source edge** (§7.5) — the near-republish proven under the stricter dedicated contract.
+> Same-source co-membership **by transitivity remains banned**: two same-source articles never
+> directly proven to be republishes of each other cannot share a cluster, no matter what
+> connects them. The admission rule requires a tier-I edge to **every** same-source incumbent.
+
+### 7.5 Intra-source near-republish dedup (#123) — `app/clustering/intra_source.py`
+
+The cross-source gate's premise ("the audit found zero same-source duplicate pairs") was
+falsified by the live feed: ynet published the same Wimbledon result twice, 1h45m apart
+(Noskova). The fix is **not** blanket same-source clustering — it is a dedicated stage with a
+separate, stricter contract:
+
+- **TITLE similarity is the republish signal.** Measured on the frozen corpus: the true
+  republish scores `title_jaccard 0.43 / title_containment 0.60 / 7 shared discriminative
+  tokens`, while the worst same-source negatives — two *different matches* under the same
+  highlights template (`"צפו בתקציר: …"`) — top out at `0.25 / 0.43 / 1`, and reaction-piece
+  traps (McGregor, Sinner) share up to **14** discriminative *subtitle* tokens at title jaccard
+  ≤ 0.17. Full-text similarity is a trap in both directions; the bar is
+  `title_jaccard ≥ 0.40 AND title_containment ≥ 0.55`.
+- **`news` is excluded outright** (v1): the catch-all state is where columns, roundups and
+  different-angle pieces live — no frozen case needs it and it is where a same-newsroom merge
+  is least safe.
+- Same event state (a rumour → confirmation sequence is two states), `≤ 6h` window, and the
+  same candidate-eligibility as cross-source matching (a live-blog half-time snapshot is
+  excluded before any rule runs).
+- **Similarity alone is never sufficient**: ≥ 2 shared discriminative tokens (§7.3), the same
+  precision backbone as cross-source matching.
+- Edges carry **tier `I`** so Debug/QA can always distinguish a republish collapse from a
+  cross-source story match.
+
+**Canonical selection** is not re-invented: intra-source edges feed the same components and the
+same §9.1 representative ladder (fact completeness → certainty → recency → stable id). Written
+rationale: the survivor is the most informative telling; on equal facts the more certain, then
+the **newer** one — a republish supersedes its earlier, thinner telling. The deduped sibling
+remains listed as an alternate under the card (§9.2), never silently deleted, so a materially
+different update is doubly protected: a changed headline fails the containment bar, and even a
+collapsed member stays reachable.
+
+### 7.6 Claim compatibility (#142) — `app/clustering/claims.py`
+
+> **A shared anchor is not a duplicate event — and neither is a shared thread.**
+
+The Diarra pair is the frozen proof (`material_update_same_thread`): same subject, same
+transfer thread, 12h apart — and the reports **contradict** each other (israel_hayom: the Reds
+are still pursuing him; walla: he will not sign). A user shown only one card is told something
+false. Such pairs must remain separately visible.
+
+The v1 rule is deterministic and narrow — no claim NLU:
+
+- a bounded list of **outcome-reversal markers** (`"לא יחתום"`, `"בוטלה"`, `"ירד מהפרק"`, …) —
+  the #125 negation/cancellation law applied at pair level;
+- **title only** — corpus-audited: the israel_hayom member of the frozen Hankins must-merge
+  group carries `"לא יגיע"` in its *subtitle* about a different player (incidental secondary
+  claim), while every genuine reversal (Diarra, the cancelled Halaili deal) states it in the
+  headline;
+- a **conditional guard**: `"אם לא יחתום עד שלישי"` is deadline reporting inside an open
+  negotiation, not a reversal;
+- **asymmetry is the signal**: one side reverses → material update → **no duplicate edge**,
+  through any evidence path (lexical, intra-source, or the validated-anchor path when #141
+  wires it — the gate runs at stage 2.5, before similarity). Both sides reversing is two
+  sources reporting the same collapse — genuine duplicates, still eligible;
+- missing a reversal is SAFE (the pair still faces every other gate); falsely detecting one
+  would block a genuine merge, which is why the list is title-only, guarded, and frozen-
+  corpus-audited (live-corpus blast radius: exactly the Diarra and Halaili-cancellation
+  reports).
+
+Additionally decided under #142: **shared validated anchor + the catch-all `news` state is not
+sufficient for a duplicate edge** — `news`-state pairs require corroboration from the existing
+lexical matcher signal (Tier C). This binds the #141 anchor-edge wiring; no claim-fingerprint
+architecture is built unless a frozen must-merge `news` pair fails without it. Thread/saga
+identifiers for material updates are deliberately out of v1.
 
 ---
 
@@ -704,6 +780,8 @@ No retention scheduler or destructive cleanup exists in this milestone.
 ## 13. Non-goals (v1)
 
 Embeddings · vector DB · paid APIs · **any LLM call** · cross-state story-line merging ·
-same-source update chaining · cluster-level authoritative facts · cluster-level feedback / read /
+same-source update **chaining** (the narrow republish dedup of §7.5 is in since #123; an
+evolving-coverage chain — half-time → full-time, rumour → confirmation — remains out) ·
+cluster-level authoritative facts · cluster-level feedback / read /
 mute semantics · source ranking · manual override machinery · Preference V2 changes · frozen-JS-
 engine changes · a cleanup migration for historical rows.

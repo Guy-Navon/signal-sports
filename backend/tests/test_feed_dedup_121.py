@@ -207,11 +207,16 @@ class TestNoskovaIsNowEligible:
         assert {a["event_type"] for a in g["articles"]} == {"grand_slam_winner"}
         assert is_clusterable_state("grand_slam_winner")
 
-    def test_still_blocked_by_the_cross_source_gate(self, cases):
-        """This case is same-source, so it correctly does NOT merge here — it is #123's job.
-        D1 only removes the event-state blocker."""
+    def test_now_merges_via_the_intra_source_stage(self, cases):
+        """The loop closes: D1 removed the event-state blocker, #123 added the dedicated
+        intra-source republish stage — the pair this class documented as unreachable now
+        collapses to one cluster (via a tier-I edge, never the cross-source gate)."""
+        from app.clustering.intra_source import TIER_INTRA_SOURCE
+
         g = _group(cases, "dup_noskova_same_source")
         arts = [_to_input(a) for a in g["articles"]]
         assert len({a.source for a in arts}) == 1
         res = cluster_articles(arts, DEFAULT_CONFIG)
-        assert res.clusters == []
+        assert len(res.clusters) == 1
+        assert len(res.clusters[0].member_ids) == 2
+        assert all(e.tier == TIER_INTRA_SOURCE for e in res.edges)

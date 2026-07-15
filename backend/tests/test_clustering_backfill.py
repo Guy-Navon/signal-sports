@@ -222,11 +222,13 @@ class TestSnapshotReport:
         assert r["cards"]["after"] == 2
 
     def test_near_miss_reasons_are_bounded_and_named(self, db):
+        from app.clustering.intra_source import IntraRejection
         from app.clustering.matcher import Rejection
         out = db.parent / "r3.json"
         _run(db, "--apply", "--out", str(out))
         r = json.loads(out.read_text(encoding="utf-8"))
         allowed = {v for k, v in vars(Rejection).items() if not k.startswith("_")}
+        allowed |= {v for k, v in vars(IntraRejection).items() if not k.startswith("_")}
         assert set(r["near_miss_reasons"]) <= allowed
 
     def test_second_run_reports_ids_preserved_not_recreated(self, db):

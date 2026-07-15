@@ -734,6 +734,44 @@ and the IBL/NBA keyword mappings are unchanged and now pinned by
 
 ---
 
+## 11. Cross-Source Event-State Consistency (#138, 2026-07-15)
+
+Duplicate coverage of the same event was receiving incompatible event states across
+sources (Madar farewell: `signing` / `news` / `news` / `schedule`; Storonski: `signing`
+vs `negotiation` ×3), which made the pairs unclusterable at the strict same-state gate.
+The gate is correct; the defect was upstream, in classification. Two class fixes:
+
+### 11a. Proposal lists must mirror the validation tables
+
+The #113 fix taught **validation** the masculine departure form `"נפרד מ"`, but the
+classifier's **proposal** list `_RELEASE_KW` still knew only the feminine `"נפרדה מ"` —
+so a masculine farewell was never proposed as `release`, validated nothing, and fell to
+`news`, while another source's form became `release`. Added to `_RELEASE_KW` (and, for
+the construct/definite forms, switched validation from the contiguous phrase
+`"פרידה מ"` to `hword("פרידה")`): `"נפרד מ"`, `"נפרדו מ"`, `"עוזב את"`, `"עוזבת את"`,
+`"פרידה"` — covering `"מילות הפרידה"` / `"פוסט פרידה"`. The bare-`"עזב"` exclusion
+(section 10c) still holds: every new form carries the object marker or is the specific
+farewell noun.
+
+### 11b. Anticipated completion is not completion
+
+`"צפוי לצרף"` / `"צפויה לצרף"` / `"צפוי להצטרף"` / `"צפויה להצטרף"` (expected to
+add/join) are now **negotiation** evidence — the #125 aspiration law applied to
+transfers. Because signing lists negotiation evidence as blockers, a completed-
+transaction keyword in a *secondary clause* (`"גינת בדרך להארכת חוזה"`) can no longer
+promote an anticipated deal to `signing/confirmed`. A completed join (`"הצטרף רשמית"`)
+and a bare contract extension (`"גינת האריך חוזה"`) remain `signing` — locked by
+negative tests.
+
+Frozen-case convergence after the fix: Madar farewell ×4 → `release/probable`;
+Storonski ×4 → `negotiation/probable`. Stored rows are corrected through the guarded
+`scripts/apply_138_corrections.py` (dry-run by default, #106 corpus protection, scoped
+by construction to rows containing the change's patterns — 6 rows in scope, 5 changed,
+zero unrelated). Regression tests: `TestMadarFarewellConvergence138`,
+`TestStoronskiConvergence138` in `test_fact_consistency_113.py`.
+
+---
+
 ## Next Steps
 
 - **Re-run LLM gating benchmark** — Quality fixes on branch `feature/selective-llm-gating` are now in place. Re-run the benchmark from the Sources page to measure skip rate and quality after fixes.

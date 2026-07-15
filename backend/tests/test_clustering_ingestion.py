@@ -136,12 +136,34 @@ class TestLiveClustering:
         assert len(repo.get_all_clusters(session)) == 1
         assert session.query(ClusterEdgeRow).count() == 1
 
-    def test_same_source_second_article_stays_unclustered(self, session):
+    def test_same_source_republish_joins_via_the_intra_source_stage(self, session):
+        # #123: x1/x3 are the same walla story republished (near-identical titles,
+        # 2h apart) — a proven tier-I pair, so BOTH may share the cluster with ynet's
+        # x2. One story told three times is one card.
         _add(session, "x1", source="walla_sport", title="רומן סורקין חתם בהפועל גליל",
              entity_ids=["team:hapoel_galil_gilboa"])
         _add(session, "x2", source="ynet_sport", title="רומן סורקין חתם רשמית בהפועל גליל",
              hours=1, entity_ids=["team:hapoel_galil_gilboa"])
         _add(session, "x3", source="walla_sport", title="רומן סורקין חתם בהפועל גליל היום",
+             hours=2, entity_ids=["team:hapoel_galil_gilboa"])
+        session.commit()
+
+        run_clustering_stage(session, ["x1", "x2", "x3"])
+
+        cid = session.get(ArticleRow, "x2").cluster_id
+        members = repo.get_member_ids(session, cid)
+        assert set(members) == {"x1", "x2", "x3"}
+
+    def test_same_source_different_angle_stays_unclustered(self, session):
+        # The #123 invariant that SURVIVES: a same-source article without a directly
+        # proven republish edge never enters — the money follow-up is a second ANGLE,
+        # and no transitive path through ynet's x2 can admit it.
+        _add(session, "x1", source="walla_sport", title="רומן סורקין חתם בהפועל גליל",
+             entity_ids=["team:hapoel_galil_gilboa"])
+        _add(session, "x2", source="ynet_sport", title="רומן סורקין חתם רשמית בהפועל גליל",
+             hours=1, entity_ids=["team:hapoel_galil_gilboa"])
+        _add(session, "x3", source="walla_sport",
+             title="הצד הכלכלי של המעבר: כמה ירוויח סורקין בהפועל גליל",
              hours=2, entity_ids=["team:hapoel_galil_gilboa"])
         session.commit()
 

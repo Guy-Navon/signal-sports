@@ -158,11 +158,12 @@
     {
       "id": "fp_same_source_pair",
       "expect": "must_not_cluster",
-      "why": "CROSS-SOURCE HARD GATE. Two articles from the SAME source about the same story must not cluster in v1 (same-source update chaining is a non-goal). CONSTRUCTED, not observed: the audit found ZERO same-source duplicate pairs in the real corpus, so no real pair exists to freeze. Deliberately given tokens unique to this case (סורקין) so it does not perturb the document frequencies of the real stories in this window. Everything except the source gate would otherwise pass.",
+      "why": "SAME-SOURCE, DIFFERENT ANGLE. Revised under #123: the original constructed pair ('רשמית: …' republish shape) certified the old BLANKET same-source ban, which the real feed falsified (Noskova) and the dedicated intra-source stage now handles — a true republish from one source is SUPPOSED to merge. What must still never merge is one newsroom's second ANGLE on the same story: the signing report and the money/salary follow-up are two pieces of editorial coverage, not one card. CONSTRUCTED, not observed. Tokens unique to this case (סורקין) so it does not perturb the document frequencies of the real stories in this window.",
       "constructed": true,
+      "revised_by": "#123 — the republish-shaped negative moved to the intra-source POSITIVE contract (dup_noskova_same_source in feed_dedup_cases.json)",
       "articles": [
         {"id": "f_ss_1", "source": "walla_sport", "title": "רומן סורקין חתם בהפועל גליל עליון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_galil_gilboa"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T09:00:00Z"},
-        {"id": "f_ss_2", "source": "walla_sport", "title": "רשמית: רומן סורקין חתם בהפועל גליל עליון", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_galil_gilboa"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T11:00:00Z"}
+        {"id": "f_ss_2", "source": "walla_sport", "title": "הצד הכלכלי של המעבר: כמה ירוויח רומן סורקין מהחוזה בגליל", "sport": "basketball", "event_type": "signing", "event_certainty": "confirmed", "entity_ids": ["team:hapoel_galil_gilboa"], "primary_competition": "comp:ibl", "published_at": "2026-07-05T11:00:00Z"}
       ]
     },
     {

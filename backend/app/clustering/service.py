@@ -23,6 +23,7 @@ from app.clustering.contract import (
     RejectionReason,
 )
 from app.clustering.event_states import is_clusterable_state, is_in_play
+from app.clustering.intra_source import intra_source_match
 from app.clustering.matcher import match_pair
 from app.clustering.tokens import DocumentFrequency, tokenize
 
@@ -73,10 +74,20 @@ def cluster_articles(
         return result
 
     tokens = {a.id: tokenize(f"{a.title} {a.subtitle}".strip()) for a in eligible}
+    title_tokens = {a.id: tokenize(a.title) for a in eligible}
     df = DocumentFrequency.over(tokens[a.id] for a in eligible)
 
     for a, b in combinations(eligible, 2):
-        edge, rejection = match_pair(a, b, tokens[a.id], tokens[b.id], df, cfg)
+        if a.source == b.source:
+            # Same-source pairs never reach the cross-source matcher (its hard
+            # gate is untouched); they are evaluated under the much stricter
+            # intra-source near-republish contract (#123) instead.
+            edge, rejection = intra_source_match(
+                a, b, title_tokens[a.id], title_tokens[b.id],
+                tokens[a.id], tokens[b.id], df, cfg,
+            )
+        else:
+            edge, rejection = match_pair(a, b, tokens[a.id], tokens[b.id], df, cfg)
         if edge is not None:
             result.edges.append(edge)
         elif collect_rejections and rejection is not None:

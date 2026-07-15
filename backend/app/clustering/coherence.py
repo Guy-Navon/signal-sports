@@ -29,6 +29,7 @@ from typing import Optional
 from app.clustering.config import ClusteringConfig
 from app.clustering.contract import ClusterInput, MatchEdge, ProposedCluster
 from app.clustering.event_states import hours_apart
+from app.clustering.intra_source import TIER_INTRA_SOURCE
 from app.clustering.matcher import sports_hard_reject
 
 
@@ -115,9 +116,12 @@ def _connected_components(
 
 
 def _cluster_globally_compatible(
-    members: list[ClusterInput], cfg: ClusteringConfig
+    members: list[ClusterInput],
+    cfg: ClusteringConfig,
+    intra_pairs: frozenset[frozenset] = frozenset(),
 ) -> bool:
-    """One event_state, one member per source, no cross-sport pair, bounded time span.
+    """One event_state, source uniqueness (unless PROVEN republish), no cross-sport
+    pair, bounded time span.
 
     SOURCE UNIQUENESS is a CLUSTER invariant, not merely a pair gate. The cross-source
     pair rule alone does NOT prevent two articles from the same source ending up in one
@@ -125,13 +129,21 @@ def _cluster_globally_compatible(
     union-find would put A, B and C together — quietly re-introducing the same-source
     chaining that v1 declares a non-goal. Enforcing it here means no transitive path can
     bypass it.
+
+    #123 REVISION, deliberately narrow: a same-source pair is admissible IFF that exact
+    pair carries a tier-I intra-source edge — the near-republish proven under the
+    stricter dedicated contract (intra_source.py). ``intra_pairs`` holds those proven
+    pairs as id-frozensets. Same-source co-membership by TRANSITIVITY remains banned:
+    two same-source articles that were never directly proven to be republishes of each
+    other cannot share a cluster, no matter what connects them.
     """
     if len({m.event_type for m in members}) != 1:
         return False
 
-    sources = [m.source for m in members]
-    if len(set(sources)) != len(sources):
-        return False
+    for i, a in enumerate(members):
+        for b in members[i + 1:]:
+            if a.source == b.source and frozenset((a.id, b.id)) not in intra_pairs:
+                return False
 
     for i, a in enumerate(members):
         for b in members[i + 1:]:
@@ -167,6 +179,15 @@ def validate_coherence(
             adjacency[e.article_a].add(e.article_b)
             adjacency[e.article_b].add(e.article_a)
 
+    # Pairs proven under the intra-source republish contract (#123) — the ONLY
+    # legal form of same-source co-membership.
+    intra_pairs = frozenset(
+        frozenset((e.article_a, e.article_b))
+        for e in edges
+        if e.tier == TIER_INTRA_SOURCE
+        and e.article_a in by_id and e.article_b in by_id
+    )
+
     # Seed: the edge whose endpoints are earliest — deterministic and stable.
     seed_edge = min(
         (e for e in edges if e.article_a in by_id and e.article_b in by_id),
@@ -180,7 +201,7 @@ def validate_coherence(
         return None
 
     members = [by_id[seed_edge.article_a], by_id[seed_edge.article_b]]
-    if not _cluster_globally_compatible(members, cfg):
+    if not _cluster_globally_compatible(members, cfg, intra_pairs):
         return None
 
     remaining = sorted(
@@ -193,12 +214,18 @@ def validate_coherence(
             # Suspicious-merge guard: stop admitting rather than silently growing.
             break
 
-        # ONE MEMBER PER SOURCE (v1 invariant). If this source is already represented,
-        # the candidate is rejected FROM THIS CLUSTER and left unclustered. We do NOT
-        # automatically evict the incumbent: the incumbent got here on earlier, at least
-        # as strong evidence, and silently swapping members would make the cluster's
-        # composition depend on arrival order. Deterministic by publication order.
-        if cand.source in {m.source for m in members}:
+        # ONE MEMBER PER SOURCE (v1 invariant, #123-revised). If this source is already
+        # represented, the candidate is admissible ONLY when it carries a proven tier-I
+        # republish edge to EVERY same-source incumbent — otherwise it is rejected FROM
+        # THIS CLUSTER and left unclustered. We do NOT automatically evict the
+        # incumbent: the incumbent got here on earlier, at least as strong evidence,
+        # and silently swapping members would make the cluster's composition depend on
+        # arrival order. Deterministic by publication order.
+        same_source_incumbents = [m for m in members if m.source == cand.source]
+        if any(
+            frozenset((cand.id, m.id)) not in intra_pairs
+            for m in same_source_incumbents
+        ):
             continue
 
         member_ids = {m.id for m in members}
@@ -232,7 +259,7 @@ def validate_coherence(
             continue
 
         trial = members + [cand]
-        if not _cluster_globally_compatible(trial, cfg):
+        if not _cluster_globally_compatible(trial, cfg, intra_pairs):
             continue
         members = trial
 

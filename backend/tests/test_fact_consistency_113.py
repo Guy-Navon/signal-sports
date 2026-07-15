@@ -136,6 +136,122 @@ class TestYamMadarEventConsistency:
         assert r.event_type == "signing"
 
 
+# ── Case 2b (#138): cross-source event-state CONVERGENCE on the frozen cases ─
+#
+# #113 stopped the farewell being a signing; #138 finishes the job: all sources
+# covering the SAME event must land on the SAME state, or the clustering
+# event-state gate (correctly strict) can never see them as one story.
+
+class TestMadarFarewellConvergence138:
+    """All four frozen farewell articles → release. The defect was proposal/validation
+    drift: validation learned the masculine 'נפרד מ' under #113, but the proposal list
+    only knew the feminine — so release validated but was never proposed."""
+
+    CASES = [
+        # (source_id, title, subtitle)
+        ("walla_sport",
+         'אף מילה על הבעלים והמאמן: כך ים מדר נפרד מהפועל ת"א',
+         'אחרי שחצה את הכביש, הכוכב פרסם סטורי פרידה מהשחקנים והאוהדים האדומים'),
+        ("ynet_sport",
+         'ים מדר נפרד מהפועל ת"א: "השנה לא הייתה קלה עבורי, עוזב בראש מורם"',
+         'אחרי שחתם במכבי ת"א, הרכז נפרד מהאדומים בפוסט'),
+        ("sport5_sport",
+         'מדר: "עוזב בראש מורם. השנה לא הייתה קלה"',
+         'הגארד נפרד מהפועל בדרך למכבי'),
+        # The israel_hayom form is the hard one: the departure fact is carried by the
+        # CONSTRUCT form "מילות הפרידה" (no contiguous "פרידה מ"), the subtitle mentions
+        # the already-completed Maccabi signing ("שחתם אצל הצהובים"), and the title
+        # opens with "לקראת" — three different wrong answers on offer.
+        ("israel_hayom_sport",
+         'לקראת הצגתו במכבי תל אביב: מילות הפרידה של ים מדר מהפועל',
+         'הרכז שחתם אצל הצהובים יבצע את המעבר הדרמטי ביותר בכדורסל הישראלי'),
+    ]
+
+    def test_all_four_sources_converge_on_release(self):
+        results = [
+            classify(t, source_id=s, language="he", subtitle=sub,
+                     source_sport_hint="basketball").event_type
+            for s, t, sub in self.CASES
+        ]
+        assert results == ["release"] * 4, results
+
+    def test_farewell_is_not_schedule_despite_leading_likrat(self):
+        # "לקראת הצגתו" is anticipation of an unveiling, not a fixture preview.
+        s, t, sub = self.CASES[3]
+        r = classify(t, source_id=s, language="he", subtitle=sub,
+                     source_sport_hint="basketball")
+        assert r.event_type == "release"
+
+    def test_a_genuine_match_preview_is_still_schedule(self):
+        # The fix must not steal real previews: no departure token → schedule intact.
+        r = classify("לקראת המשחק מול הפועל: כל הפרטים על ההרכב",
+                     source_id="walla_sport", language="he",
+                     source_sport_hint="basketball")
+        assert r.event_type == "schedule"
+
+    def test_hankins_release_unchanged(self):
+        r = classify("לאחר עונה אחת: מכבי ת\"א נפרדה מהנקינס",
+                     source_id="sport5_sport", language="he",
+                     source_sport_hint="basketball")
+        assert r.event_type == "release"
+
+    def test_hospital_release_blocker_still_holds(self):
+        r = classify("השחקן שוחרר מבית החולים אחרי הפציעה",
+                     source_id="walla_sport", language="he",
+                     source_sport_hint="basketball")
+        assert r.event_type != "release"
+
+
+class TestStoronskiConvergence138:
+    """All four frozen Storonski articles → negotiation. 'סיכם' (agreed terms) was
+    already negotiation evidence; the walla headline leaked to signing through a
+    SECONDARY clause ('גינת בדרך להארכת חוזה') because 'צפויה לצרף' — anticipated
+    completion — carried no evidence weight of its own."""
+
+    CASES = [
+        ("walla_sport",
+         'הפועל ת"א צפויה לצרף את סטורנסקי, גינת בדרך להארכת חוזה',
+         'הגארד הצ\'כי ששיחק בשנים האחרונות בברצלונה צפוי להצטרף לקבוצה'),
+        ("israel_hayom_sport",
+         'המחליף של כריס ג\'ונס: כוכב היורוליג סיכם בהפועל תל אביב',
+         'הקבוצה סגרה עם תומאש סטורנסקי בן ה-34 שיצטרף לקבוצה בחוזה לשנתיים'),
+        ("ynet_sport",
+         'הפועל ת"א מתחזקת: רכז ברצלונה תומס סטורנסקי סיכם בקבוצה',
+         'הצ\'כי בן ה-31 צפוי הגיע כמחליפו של כריס ג\'ונס בקו האחורי'),
+        ("sport5_sport",
+         'סטרונסקי סיכם בהפועל ת"א: זה השכר שירוויח',
+         'הגארד הצ\'כי הוותיק של ברצלונה בדרך לקבוצה'),
+    ]
+
+    def test_all_four_sources_converge_on_negotiation(self):
+        results = [
+            classify(t, source_id=s, language="he", subtitle=sub,
+                     source_sport_hint="basketball").event_type
+            for s, t, sub in self.CASES
+        ]
+        assert results == ["negotiation"] * 4, results
+
+    def test_anticipated_join_does_not_become_signing(self):
+        r = classify("הקבוצה צפויה לצרף את הרכז בימים הקרובים",
+                     source_id="walla_sport", language="he",
+                     source_sport_hint="basketball")
+        assert r.event_type == "negotiation"
+
+    def test_a_completed_join_is_still_a_signing(self):
+        # "הצטרף רשמית" is a done deal — the anticipation rule must not demote it.
+        r = classify("רשמי: הגארד הצטרף למכבי תל אביב",
+                     source_id="walla_sport", language="he",
+                     source_sport_hint="basketball")
+        assert r.event_type == "signing"
+
+    def test_contract_extension_alone_is_still_a_signing(self):
+        # The Ginat clause class: an extension WITHOUT anticipation wording stays signing.
+        r = classify("גינת האריך חוזה בהפועל תל אביב",
+                     source_id="walla_sport", language="he",
+                     source_sport_hint="basketball")
+        assert r.event_type == "signing"
+
+
 # ── Case 3: McGregor — unsupported domain must abstain ───────────────────────
 
 class TestUnsupportedDomainAbstains:

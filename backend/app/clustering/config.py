@@ -152,6 +152,23 @@ class ClusteringConfig:
     # Global bound on a cluster's total time span, independent of pairwise windows.
     max_cluster_time_span_hours: float = 72.0
 
+    # ── Intra-source near-republish dedup (#123) ─────────────────────────────
+    # A SEPARATE mechanism from cross-source clustering, with a separate, much
+    # stricter contract: one newsroom re-publishing the same story, not two
+    # independent reports. Measured on the frozen corpus (docs/CLUSTERING.md §13):
+    # the one true republish (Noskova) scores title_j=0.43 / title_cont=0.60 /
+    # 7 shared discriminative tokens, while the worst same-source NEGATIVES — two
+    # different matches under the same highlights template ("צפו בתקציר: …") —
+    # top out at title_j=0.25 / title_cont=0.43 / 1 discriminative token, and the
+    # reaction-piece traps (McGregor, Sinner) share up to 14 discriminative
+    # SUBTITLE tokens but almost no TITLE overlap. Hence: the bar is on TITLE
+    # similarity (the republish signal), discriminative evidence corroborates,
+    # and `news` state is excluded outright in v1.
+    intra_source_window_hours: float = 6.0
+    intra_source_title_jaccard_min: float = 0.40
+    intra_source_title_containment_min: float = 0.55
+    intra_source_min_rare_tokens: int = 2
+
     time_window_hours: dict[str, float] = field(
         default_factory=lambda: dict(DEFAULT_TIME_WINDOW_HOURS)
     )

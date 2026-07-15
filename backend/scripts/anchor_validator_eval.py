@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import sqlite3
 import sys
 import time
@@ -128,6 +129,14 @@ def main():
         ("V2 local model", LocalModelValidator()),
         ("V3 hybrid", HybridValidator()),
     ]
+    # Deterministic-only mode: the model-bound validators are excluded. Used when the
+    # local model is operationally disqualified (the #141 report records the measured
+    # evidence: ~10s per trivial generate call on the deployment hardware, near-zero
+    # throughput across multi-hour attempts). OPERATIONAL FAILURE MODE is a first-class
+    # comparison axis — a validator that cannot complete its own evaluation on the
+    # hardware it would ship to has answered the operational question.
+    if os.environ.get("ANCHOR_EVAL_DETERMINISTIC_ONLY", "").strip() == "1":
+        validators = validators[:2]
 
     p("\n" + "=" * 100)
     p("AVAILABILITY + FAIL-CLOSED")
@@ -256,13 +265,18 @@ def main():
     p("\n" + "=" * 100)
     p("OPERATIONAL")
     p("=" * 100)
-    v2 = dict(validators)["V2 local model"]
-    v3 = dict(validators)["V3 hybrid"]
     p(f"  candidate records / article   : {total/len(arts):.1f}")
-    p(f"  V2 model calls made           : {v2.calls}")
-    p(f"  V2 calls for a FULL pass      : ~{total} (one per candidate)")
-    p(f"  V3 escalations to the model   : {v3.escalations}  "
-      f"(the deterministic resource decided everything else)")
+    by_name = dict(validators)
+    if "V2 local model" in by_name:
+        v2 = by_name["V2 local model"]
+        v3 = by_name["V3 hybrid"]
+        p(f"  V2 model calls made           : {v2.calls}")
+        p(f"  V2 calls for a FULL pass      : ~{total} (one per candidate)")
+        p(f"  V3 escalations to the model   : {v3.escalations}  "
+          f"(the deterministic resource decided everything else)")
+    else:
+        p("  model-bound validators EXCLUDED (ANCHOR_EVAL_DETERMINISTIC_ONLY=1) —")
+        p("  operationally disqualified on this hardware; see the #141 report.")
     p("\n  DETERMINISM — same candidate, 3 runs:")
     probe = next(c for cs in CANDS.values() for c in cs if c.normalized == "מדר")
     for name, v in validators:

@@ -602,6 +602,11 @@ _NEGOTIATION_KW = (
     "סיכם", "סיכמה",         # finalised/agreed (often precedes signing)
     "על סף חתימה",           # on the verge of signing
     "על סף סיכום",           # on the verge of agreement (#60, golden C9)
+    # Anticipated completion is not completion (#138) — the #125 aspiration law applied
+    # to transfers. "צפויה לצרף את X" (expected to add X) reports a deal in progress;
+    # without these the signing keyword in a secondary clause wins and one source lands
+    # on signing while the others land on negotiation for the SAME event (Storonski).
+    "צפוי לצרף", "צפויה לצרף", "צפוי להצטרף", "צפויה להצטרף",
     "negotiations", "negotiation", "in talks", "advanced talks",
 )
 _NEGOTIATION_WORD_KW = ("talks",)
@@ -632,7 +637,16 @@ _TRADE_WORD_KW = ("trade",)
 
 _RELEASE_KW = (
     "שוחרר", "שוחררה", "שוחררו",
-    "שחררה את", "שחרר את", "נפרדה מ",
+    "שחררה את", "שחרר את",
+    # Departure forms — the proposal list must mirror the validation table (#138).
+    # The #113 fix taught VALIDATION the masculine "נפרד מ", but this proposal list
+    # still knew only the feminine — so a masculine farewell was never PROPOSED as a
+    # release, validated nothing, and fell through to news while another source's
+    # feminine/explicit form became release: a cross-source event-state split on the
+    # SAME event. "פרידה" covers the construct/definite forms ("מילות הפרידה",
+    # "פוסט פרידה") that the contiguous "פרידה מ" phrase missed.
+    "נפרדה מ", "נפרד מ", "נפרדו מ",
+    "עוזב את", "עוזבת את", "פרידה",
     "released", "waived", "cut by", "roster cuts",
 )
 

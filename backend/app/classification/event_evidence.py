@@ -120,6 +120,11 @@ _NEGOTIATION = (
     phrase("במשא ומתן"), phrase("מגעים"), phrase("שיחות"),
     phrase("מתקרב"), phrase("מתקרבת"), phrase("סיכם"), phrase("סיכמה"),
     phrase("על סף חתימה"), phrase("על סף סיכום"),  # on the verge of agreement (#60)
+    # Anticipated completion is not completion (#138): "expected to add/join" is a deal
+    # in progress. Doubles as a signing BLOCKER (signing lists _NEGOTIATION as blockers),
+    # so a secondary clause's completed-transaction keyword cannot promote the article.
+    phrase("צפוי לצרף"), phrase("צפויה לצרף"),
+    phrase("צפוי להצטרף"), phrase("צפויה להצטרף"),
     phrase("negotiations"), phrase("negotiation"),
     phrase("in talks"), phrase("advanced talks"), word("talks"),
 )
@@ -154,7 +159,10 @@ _RELEASE_COMPLETE = (
     # subtitle lacked "חתם", classified the same story as news — a cross-source fact
     # disagreement that made the pair unclusterable. A departure is not a signing.
     phrase("נפרדה מ"), phrase("נפרד מ"), phrase("נפרדו מ"),
-    phrase("עוזב את"), phrase("עוזבת את"), phrase("פרידה מ"),
+    # hword, not the contiguous phrase "פרידה מ" (#138): the construct/definite forms —
+    # "מילות הפרידה של ים מדר מהפועל", "פוסט פרידה" — carry the same departure fact
+    # without the preposition attached. hword still rejects substrings of larger words.
+    phrase("עוזב את"), phrase("עוזבת את"), hword("פרידה"),
     phrase("released"), phrase("waived"), phrase("cut by"), phrase("roster cuts"),
 )
 

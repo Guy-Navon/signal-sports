@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from typing import Optional, Sequence
 
 from app.clustering.anchor_contract import AnchorValidator
+from app.clustering.anchor_normalization import transliteration_skeleton
 from app.clustering.anchors import _candidate_forms, build_name_lexicon, generate_candidates
 
 
@@ -27,12 +28,20 @@ def _match_keys(anchor: str) -> frozenset[str]:
     """All forms an anchor may match on. Hebrew glues prepositions onto names, so sport5's
     'מהנקינס' must match ynet's 'הנקינס'. A stripped form is an ADDITIONAL key, never a
     replacement — stripping in place corrupts real names whose first letter is a prefix letter
-    (הנקינס → נקינס). Canonical taxonomy ids are matched verbatim."""
+    (הנקינס → נקינס). Canonical taxonomy ids are matched verbatim.
+
+    #137: the transliteration skeleton joins as a NAMESPACED key ("translit:…"), so
+    variant spellings of one foreign name (סטורנסקי / סטרונסקי — vav metathesis) meet on
+    their shared skeleton. The namespace means a skeleton can only ever match another
+    skeleton — an aggressive normalized form can never collide with somebody's RAW name.
+    Scope holds by construction: only VALIDATED anchors reach this function, so
+    normalization cannot convert an unvalidated candidate into trusted evidence."""
     if anchor.startswith(("player:", "coach:", "team:", "comp:")):
         return frozenset({anchor})
     keys = {anchor}
     for part in anchor.split():
         keys.update(_candidate_forms(part))
+    keys.add(f"translit:{transliteration_skeleton(anchor)}")
     return frozenset(keys)
 
 
@@ -115,6 +124,30 @@ def accepted_anchor_keys(stored: Optional[list]) -> frozenset[str]:
     return frozenset(keys)
 
 
-def shared_stored_anchors(a: Optional[list], b: Optional[list]) -> frozenset[str]:
+def shared_stored_anchors(a, b) -> frozenset[str]:
     """Story anchors two articles share, from PERSISTED records. Deterministic and cheap."""
     return accepted_anchor_keys(a) & accepted_anchor_keys(b)
+
+
+def hard_gate_population(anchor, peers: Sequence, cfg) -> list:
+    """The candidate population an article's anchors are corroborated against.
+
+    Exactly the peers pair evaluation will compare against — the hard-gate-compatible
+    window (#135's candidate scoping). Shared by the ingestion stage and the guarded
+    backfill so the two can never drift.
+    """
+    from app.clustering.event_states import (
+        is_clusterable_state, is_in_play, states_compatible, within_time_window,
+    )
+    from app.clustering.matcher import sports_hard_reject
+
+    if not is_clusterable_state(anchor.event_type):
+        return []
+    return [
+        p for p in peers
+        if is_clusterable_state(p.event_type)
+        and states_compatible(p.event_type, anchor.event_type)
+        and not is_in_play(p.title, p.subtitle)
+        and within_time_window(p.published_at, anchor.published_at, anchor.event_type, cfg)
+        and not sports_hard_reject(p, anchor)
+    ]

@@ -87,6 +87,7 @@ def _to_input(row: ArticleRow) -> Optional[ClusterInput]:
         entity_ids=tuple(row.entity_ids or ()),
         primary_competition=row.primary_competition,
         subtitle=row.subtitle or "",
+        story_anchors=tuple(row.story_anchors or ()),
     )
 
 
@@ -139,6 +140,79 @@ def load_candidate_window(
             by_id.setdefault(r.id, r)
 
     return list(by_id.values())
+
+
+@dataclass
+class AnchorStageResult:
+    ran: bool = False
+    enriched: int = 0
+    skipped_current: int = 0        # already at the current validator version
+    anchors_persisted: int = 0
+    failed: bool = False
+    error: Optional[str] = None
+
+
+def run_anchor_enrichment_stage(
+    session: Session,
+    new_article_ids: list[str],
+    cfg: ClusteringConfig = DEFAULT_CONFIG,
+) -> AnchorStageResult:
+    """Persist validated story anchors for freshly inserted articles (#141).
+
+    ALWAYS ON — this is fact enrichment, not clustering behaviour: validation runs
+    ONCE here (deterministic, offline wordfreq lookups; no model, no network) and
+    pair evaluation only ever READS the persisted result. `CLUSTERING_ENABLED`
+    governs grouping, not enrichment, so anchors are already in place whenever #126
+    flips the flag.
+
+    Fail-safe on two levels: if the frequency resource is missing the validator
+    abstains per candidate (canonical taxonomy anchors still persist), and a stage
+    failure is reported, never propagated — ingestion must not be corrupted by an
+    enrichment stage.
+    """
+    from app.clustering.anchor_enrichment import (
+        enrich_article_anchors, hard_gate_population,
+    )
+    from app.clustering.anchor_validators import LexicalFrequencyValidator
+
+    result = AnchorStageResult()
+    if not new_article_ids:
+        return result
+    try:
+        validator = LexicalFrequencyValidator()
+        version = validator.validator_version
+
+        rows = load_candidate_window(session, new_article_ids, cfg)
+        inputs = {r.id: _to_input(r) for r in rows}
+        peers = [ci for ci in inputs.values() if ci is not None]
+
+        new_rows = [r for r in rows if r.id in set(new_article_ids)]
+        for row in new_rows:
+            if row.anchor_validator_version == version:
+                result.skipped_current += 1
+                continue
+            anchor = inputs.get(row.id)
+            if anchor is None:
+                continue
+            population = hard_gate_population(anchor, peers, cfg)
+            stored, _ = enrich_article_anchors(
+                row.title or "", row.subtitle or "", validator,
+                article_id=row.id, population=population,
+            )
+            row.story_anchors = [sa.to_json() for sa in stored]
+            row.anchor_validator_version = version
+            result.enriched += 1
+            result.anchors_persisted += len(stored)
+        session.commit()
+        result.ran = True
+        return result
+    except Exception as exc:                              # pragma: no cover - defensive
+        session.rollback()
+        logger.error("Anchor enrichment failed (articles kept, unenriched): %s", exc)
+        result.ran = True
+        result.failed = True
+        result.error = str(exc)
+        return result
 
 
 def run_clustering_stage(

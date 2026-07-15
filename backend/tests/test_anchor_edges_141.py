@@ -110,6 +110,22 @@ class TestAnchorRescue:
         # The raw skeleton string itself is NOT a key — only the namespaced form.
         assert "דארה" not in keys
 
+    def test_variant_spelling_is_corroborated_by_the_population_skeleton(self):
+        """The sport5 Storonski failure mode (#137 at the GENERATION stage): the
+        variant spelling has no bigram partner in its own headline, and the
+        population lexicon only knows the OTHER spelling. The skeleton makes the
+        lone mention recognisable — and it still faces full validation."""
+        from app.clustering.anchor_enrichment import enrich_article_anchors
+        from app.clustering.anchor_validators import LexicalFrequencyValidator
+
+        ynet = _art("y", "רכז ברצלונה תומס סטורנסקי סיכם בקבוצה", source="ynet_sport",
+                    event="negotiation")
+        stored, _ = enrich_article_anchors(
+            'סטרונסקי סיכם בהפועל ת"א: זה השכר שירוויח', "",
+            LexicalFrequencyValidator(), article_id="s5", population=[ynet],
+        )
+        assert "סטרונסקי" in {a.anchor for a in stored}
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # The gates an anchor can never bypass

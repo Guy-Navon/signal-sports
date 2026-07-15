@@ -212,6 +212,9 @@ class LocalModelValidator:
         self.base_url = base_url or os.getenv(
             "CLASSIFICATION_OLLAMA_BASE_URL", "http://localhost:11434"
         )
+        # Env-tunable so an evaluation can bound its worst case; a slow call FAILS
+        # CLOSED to abstention either way.
+        self.timeout = float(os.getenv("ANCHOR_MODEL_TIMEOUT", "15"))
         self.validator_version = f"{self.model}@t0"
         self.calls = 0
 
@@ -242,7 +245,7 @@ class LocalModelValidator:
                     "format": "json",
                     "options": {"temperature": 0, "seed": 7},
                 },
-                timeout=30.0,
+                timeout=self.timeout,
             )
             raw = json.loads(r.json()["response"])
             d = str(raw.get("decision", "abstain")).lower()

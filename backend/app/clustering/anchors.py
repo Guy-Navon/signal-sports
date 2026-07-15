@@ -33,6 +33,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from app.clustering.anchor_contract import AnchorCandidate
+from app.clustering.anchor_normalization import transliteration_skeleton as _skeleton
 from app.clustering.tokens import is_generic, normalize
 
 # ── The vocabulary a name is NOT ─────────────────────────────────────────────
@@ -221,6 +222,13 @@ def build_name_lexicon(articles) -> frozenset[str]:
                 for w in (w1, w2):
                     for f in _candidate_forms(w):
                         lex.add(f)
+                    # #137 at the GENERATION stage: the population also establishes a
+                    # name's transliteration SKELETON, so a variant spelling of an
+                    # established name ("סטרונסקי" when the window knows "סטורנסקי")
+                    # is recognisable as a corroborated lone mention. Namespaced so a
+                    # skeleton can only ever match a skeleton lookup — never a raw
+                    # surface form. The candidate still faces full validation.
+                    lex.add(f"translit:{_skeleton(w)}")
     return frozenset(lex)
 
 
@@ -293,7 +301,11 @@ def generate_candidates(
         for i, w in enumerate(words):
             if _is_vocabulary_any_form(w):
                 continue
-            if not any(f in corroborated for f in _candidate_forms(w)):
+            surface_hit = any(f in corroborated for f in _candidate_forms(w))
+            skeleton_hit = (
+                f"translit:{_skeleton(w)}" in corroborated
+            )
+            if not (surface_hit or skeleton_hit):
                 continue
             key = (w, src, i)
             if key in seen:

@@ -254,7 +254,7 @@
   {
    "id": "dup_madar_farewell",
    "expect": "merge",
-   "why": "Mixed states + one sport=unknown (stale pre-#113 facts). The #113 fixes make these consistent; the corpus was never backfilled.",
+   "why": "Mixed states + one sport=unknown (stale pre-#113 facts). The #113 fixes make these consistent; the corpus was never backfilled. REVISED under #138 (2026-07-15): the israel_hayom farewell piece was added as a FOURTH member — it was always the same farewell story, but at freeze time the classifier had it as `schedule` (unclusterable), so it could not be frozen as a member. #138 diagnosed and corrected exactly that misclassification (-> release/probable); the group now records the full story. The stored event_type fields below reflect the STALE pre-#138 corpus values deliberately — fixtures freeze what was observed.",
    "articles": [
     {
      "id": "rss_b00872cb282e17b00a9b",
@@ -302,6 +302,23 @@
      ],
      "primary_competition": null,
      "importance": "medium"
+    },
+    {
+     "id": "rss_d68030c4d1318238076a",
+     "source": "israel_hayom_sport",
+     "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/20958876",
+     "title": "לקראת הצגתו במכבי תל אביב: מילות הפרידה של ים מדר מהפועל",
+     "subtitle": "הרכז שחתם אצל הצהובים יבצע את המעבר הדרמטי ביותר בכדורסל הישראלי אחרי שנחשב לסמל של האדומים • \"עוזב עם ראש מורם, גאה בדרך שעברתי ובעיקר עם אמונה גדולה במה שעוד מחכה בהמשך\"",
+     "published_at": "2026-07-11T20:05:57+00:00",
+     "sport": "basketball",
+     "event_type": "schedule",
+     "event_certainty": "probable",
+     "entity_ids": [
+      "team:maccabi_tlv_bb"
+     ],
+     "primary_competition": null,
+     "importance": "low",
+     "added_by": "#138 — same farewell story; frozen as `schedule` at freeze time (the exact misclassification #138 fixed), so it could not be a member until the states converged"
     }
    ]
   },

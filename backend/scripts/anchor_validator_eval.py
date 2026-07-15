@@ -137,7 +137,16 @@ def main():
 
     results = {}
     for name, v in validators:
-        model_bound = isinstance(v, LocalModelValidator)
+        # MODEL-BOUND validators (V2 AND V3) run on the adjudicated truth-pair scope
+        # only. A full-corpus V3 pass proved operationally unviable on this hardware
+        # (hours of serialized local-model calls), and the closeout plan's retention
+        # rule makes the consequence explicit rather than silent: V3 retention REQUIRES
+        # proving 0 impure components at FULL corpus scope — unmeasured means unproven,
+        # so V3 fails retention by default and ships (at most) behind a default-off
+        # flag. The scoped run still yields every axis the comparison needs: span
+        # precision/recall, truth-pair recovery/over-merge behaviour, escalation rate,
+        # determinism, fail-closed.
+        model_bound = isinstance(v, (LocalModelValidator, HybridValidator))
         scope = ({i for pr in truth for i in pr} if model_bound else set(CANDS))
         t0 = time.perf_counter()
         dec = {}

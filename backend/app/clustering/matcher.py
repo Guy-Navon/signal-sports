@@ -20,6 +20,7 @@ missed cluster is cosmetic; a wrong merge tells the user something false.
 
 from typing import Optional
 
+from app.clustering.claims import claims_compatible
 from app.clustering.config import ClusteringConfig
 from app.clustering.contract import ClusterInput, MatchEdge, RejectionReason
 from app.clustering.event_states import (
@@ -37,6 +38,7 @@ class Rejection:
     SAME_SOURCE = "same_source"
     NOT_CLUSTERABLE_STATE = "not_clusterable_state"
     EVENT_STATE_INCOMPATIBLE = "event_state_incompatible"
+    CLAIM_REVERSAL_MISMATCH = "claim_reversal_mismatch"
     IN_PLAY = "in_play"
     OUTSIDE_TIME_WINDOW = "outside_time_window"
     CROSS_SPORT = "cross_sport"
@@ -139,6 +141,13 @@ def match_pair(
         return reject(Rejection.NOT_CLUSTERABLE_STATE, f"{a.event_type}/{b.event_type}")
     if not states_compatible(a.event_type, b.event_type):
         return reject(Rejection.EVENT_STATE_INCOMPATIBLE, f"{a.event_type}/{b.event_type}")
+
+    # 2.5 claim compatibility (#142): a MATERIAL UPDATE — one side reverses the
+    # outcome the other still reports — must never become a duplicate edge, no
+    # matter how strong the token or anchor evidence. Diarra is the frozen proof.
+    compatible, detail = claims_compatible(a, b)
+    if not compatible:
+        return reject(Rejection.CLAIM_REVERSAL_MISMATCH, detail)
 
     # 3. in-play exclusion
     if is_in_play(a.title, a.subtitle) or is_in_play(b.title, b.subtitle):

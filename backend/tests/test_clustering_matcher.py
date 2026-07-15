@@ -652,10 +652,15 @@ class TestOneMemberPerSource:
 
     @pytest.fixture
     def bridged(self):
-        # A and C are BOTH from source X; B (source Y) matches each of them.
+        # A and C are BOTH from source X; B (source Y) matches each of them. C is a
+        # DIFFERENT-ANGLE piece (the money follow-up), not a republish of A — so under
+        # the #123 revision there is no tier-I edge between A and C, and same-source
+        # co-membership remains banned exactly as before. (A true republish C would now
+        # legitimately join via the intra-source contract — that behaviour is locked in
+        # test_intra_source_123.py, not here.)
         a = self._mk("A", "srcX", "רומן סורקין חתם בהפועל חולון", 9)
         b = self._mk("B", "srcY", "רומן סורקין חתם רשמית בהפועל חולון", 10)
-        c = self._mk("C", "srcX", "רומן סורקין חתם בהפועל חולון היום", 11)
+        c = self._mk("C", "srcX", "הצד הכלכלי של המעבר: כמה ירוויח סורקין בהפועל חולון", 11)
         return cluster_articles([a, b, c], DEFAULT_CONFIG), (a, b, c)
 
     def test_cluster_contains_only_one_of_the_two_same_source_articles(self, bridged):
@@ -744,7 +749,9 @@ class TestRejectionDiagnostics:
         assert cluster_articles(window, DEFAULT_CONFIG).rejections == []
 
     def test_rejection_reasons_are_bounded_and_named(self, result):
+        from app.clustering.intra_source import IntraRejection
         allowed = {v for k, v in vars(Rejection).items() if not k.startswith("_")}
+        allowed |= {v for k, v in vars(IntraRejection).items() if not k.startswith("_")}
         assert result.rejections, "expected some near-misses in this window"
         for r in result.rejections:
             assert r.reason in allowed

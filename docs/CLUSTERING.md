@@ -549,6 +549,38 @@ lexical matcher signal (Tier C). This binds the #141 anchor-edge wiring; no clai
 architecture is built unless a frozen must-merge `news` pair fails without it. Thread/saga
 identifiers for material updates are deliberately out of v1.
 
+### 7.7 Validated-anchor evidence (#141 + #137) — tier N
+
+> Rare is not story-identifying. A candidate span is not an anchor. A shared anchor is not a
+> duplicate event. A duplicate edge is not yet a safe cluster.
+
+The Hebrew-morphology failure mode — true duplicates whose formulaic token sets sit below every
+jaccard floor (#122/#132 refutation) — is answered by **persisted, validated story anchors**:
+
+- **Validation runs ONCE, at ingestion** (`run_anchor_enrichment_stage`, always on — fact
+  enrichment, not clustering behaviour). The selected validator is V1, the pinned offline
+  Hebrew language-frequency resource (`wordfreq==3.1.1`): *rare in the corpus is not rare in
+  the language* — `מדר` (zipf 3.25) is a name; `אדום` (4.99) is a word; the band between is
+  abstention. Span precision 1.00 / recall 0.68 on the adjudicated ground truth; deterministic;
+  fails closed to canonical-taxonomy-only anchors. Full selection evidence:
+  `docs/qa/ANCHOR_VALIDATOR_141_REPORT.md`.
+- **Pair evaluation READS persisted anchors only** — never a model or analyzer per pair.
+- **Tier N is a rescue, never a relabel, and never sufficient by itself.** It fires only after
+  EVERY hard gate (incl. §7.6 claim compatibility) has passed, and only when:
+  - the state is **person-centric** (`ANCHOR_EVIDENCE_STATES`: transfer cycle, injury,
+    personal titles). In RESULT states the story is the MATCH — players, coaches and team
+    words recur across every game, preview and colour piece, and the #124 manual review found
+    exactly those false merges. Result states keep the lexical tiers; `news` is excluded by
+    §7.6;
+  - the shared anchor is **title-borne on at least one side** — a story's subject gets
+    headlined by someone; incidental mentions (the two unrelated negotiation roundups sharing
+    a subtitle club name at jaccard 0.016) live in subordinate clauses.
+- **#137 transliteration skeletons** (collapse doubled matres, drop non-initial ו/י) join both
+  the anchor match keys and the generation-stage population corroboration, as namespaced
+  `translit:` keys that can only match each other — `סטורנסקי`/`סטרונסקי` are one validated
+  identity, with zero collisions across the adjudicated names. Normalization operates on
+  validated anchors only, by construction: an unvalidated candidate has no keys at all.
+
 ---
 
 ## 8. Cluster identity — stable at formation

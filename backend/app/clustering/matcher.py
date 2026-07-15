@@ -20,6 +20,7 @@ missed cluster is cosmetic; a wrong merge tells the user something false.
 
 from typing import Optional
 
+from app.clustering.anchor_enrichment import shared_subject_anchors
 from app.clustering.claims import claims_compatible
 from app.clustering.config import ClusteringConfig
 from app.clustering.contract import ClusterInput, MatchEdge, RejectionReason
@@ -49,6 +50,29 @@ class Rejection:
 TIER_A = "A"
 TIER_B = "B"
 TIER_C = "C"
+#: Validated-anchor evidence (#141). A pair that passes EVERY hard gate (cross-source,
+#: same clusterable non-news state, claim compatibility, in-play, window, sport) but
+#: falls below the lexical floors may still be a duplicate when both articles carry the
+#: same PERSISTED, VALIDATED story anchor — the Hebrew-morphology failure mode that
+#: bag-of-words jaccard provably cannot see (#122/#132 refutation). The anchor is never
+#: sufficient by itself: it is the LAST stage, after every other gate has passed, and
+#: `news`-state pairs are excluded outright (#142 — shared identity + the catch-all
+#: state is not enough; they keep the Tier-C lexical requirement).
+TIER_ANCHOR = "N"
+
+#: The states where a NAMED anchor identifies the story (#124 manual review).
+#: A person/club anchor is the story's subject in the transfer cycle and personal
+#: events — Madar IS the farewell, Hankins IS the release. In RESULT states the
+#: story is the MATCH: Bellingham recurs in every England game and every colour
+#: piece, the coach recurs in every round, the team word recurs from preview to
+#: result to reaction. The manual review found exactly those merges (a criticism
+#: story + a near-miss anecdote on the shared player; a youth-final PREVIEW +
+#: RESULT + REACTION on the shared team word) — so result states keep the lexical
+#: tiers, where the scoreline and match vocabulary do identify the event.
+ANCHOR_EVIDENCE_STATES = frozenset({
+    "signing", "release", "negotiation", "candidate", "rumor", "major_trade",
+    "injury", "grand_slam_winner", "title_win",
+})
 
 _PROVEN_SPORTS = frozenset({"basketball", "football", "tennis"})
 
@@ -169,26 +193,50 @@ def match_pair(
     tier = select_tier(a, b)
     jac_min, min_rare = _tier_thresholds(tier, cfg)
 
+    def edge(final_tier: str, evidence: tuple[str, ...]) -> tuple[MatchEdge, None]:
+        return MatchEdge(
+            article_a=a.id,
+            article_b=b.id,
+            jaccard=round(jac, 4),
+            hours_apart=round(delta, 2),
+            rare_tokens=evidence,
+            entity_overlap=entity_overlap(a, b),
+            competition_overlap=competition_overlap(a, b),
+            tier=final_tier,
+        ), None
+
+    def anchor_rescue() -> tuple[str, ...]:
+        """Shared PERSISTED validated anchors (#141) — read-only, no model, no analyzer.
+
+        Empty unless the state is PERSON-CENTRIC (`ANCHOR_EVIDENCE_STATES`): `news`
+        keeps the lexical requirement by decision (#142), and result states are
+        match-identified, not person-identified (#124 manual review). The shared
+        anchor must also be TITLE-borne on at least one side — a story's subject
+        gets headlined; incidental mentions do not.
+        """
+        if a.event_type not in ANCHOR_EVIDENCE_STATES:
+            return ()
+        return tuple(sorted(shared_subject_anchors(
+            list(a.story_anchors), list(b.story_anchors)
+        )))
+
     jac = jaccard(tokens_a, tokens_b)
     if jac < jac_min:
+        anchors = anchor_rescue()
+        if anchors:
+            return edge(TIER_ANCHOR, anchors)
         return reject(Rejection.BELOW_JACCARD, f"tier {tier}: {jac:.2f} < {jac_min:.2f}")
 
     rare = df.discriminative_shared(tokens_a, tokens_b, cfg)
     if len(rare) < min_rare:
         # THE precision backbone. Formulaic Hebrew headlines share template words;
         # they must not share EVIDENCE.
+        anchors = anchor_rescue()
+        if anchors:
+            return edge(TIER_ANCHOR, anchors)
         return reject(
             Rejection.NO_DISCRIMINATIVE_EVIDENCE,
             f"tier {tier}: {len(rare)} < {min_rare}",
         )
 
-    return MatchEdge(
-        article_a=a.id,
-        article_b=b.id,
-        jaccard=round(jac, 4),
-        hours_apart=round(delta, 2),
-        rare_tokens=rare,
-        entity_overlap=entity_overlap(a, b),
-        competition_overlap=competition_overlap(a, b),
-        tier=tier,
-    ), None
+    return edge(tier, rare)

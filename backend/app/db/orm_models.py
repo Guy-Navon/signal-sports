@@ -41,6 +41,11 @@ class ArticleRow(Base):
     entity_ids = Column(JSON, nullable=True)
     classification_trace = Column(JSON, nullable=True)
     taxonomy_version = Column(Integer, nullable=True)
+    # Validated story anchors (#141) — computed ONCE at ingestion/enrichment and persisted, so
+    # pairwise clustering reads accepted anchors only and never invokes a model per pair. JSON
+    # list of {anchor, role, source, validator_id, reason_code}. nullable for existing rows.
+    story_anchors = Column(JSON, nullable=True)
+    anchor_validator_version = Column(String, nullable=True)
 
 
 class ProfileRow(Base):

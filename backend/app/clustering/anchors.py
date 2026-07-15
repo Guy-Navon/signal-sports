@@ -32,6 +32,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
+from app.clustering.anchor_contract import AnchorCandidate
+from app.clustering.anchor_normalization import transliteration_skeleton as _skeleton
 from app.clustering.tokens import is_generic, normalize
 
 # ── The vocabulary a name is NOT ─────────────────────────────────────────────
@@ -220,7 +222,109 @@ def build_name_lexicon(articles) -> frozenset[str]:
                 for w in (w1, w2):
                     for f in _candidate_forms(w):
                         lex.add(f)
+                    # #137 at the GENERATION stage: the population also establishes a
+                    # name's transliteration SKELETON, so a variant spelling of an
+                    # established name ("סטרונסקי" when the window knows "סטורנסקי")
+                    # is recognisable as a corroborated lone mention. Namespaced so a
+                    # skeleton can only ever match a skeleton lookup — never a raw
+                    # surface form. The candidate still faces full validation.
+                    lex.add(f"translit:{_skeleton(w)}")
     return frozenset(lex)
+
+
+def generate_candidates(
+    title: str,
+    subtitle: str = "",
+    lexicon: frozenset[str] | None = None,
+    article_id: str = "",
+    candidate_set_id: str = "",
+) -> tuple[AnchorCandidate, ...]:
+    """HIGH-RECALL generation, emitting the FULL structured record (#141 interface correction).
+
+    Every candidate carries the grammatical context that was true where it was found — token
+    offsets, left/right context, the positional pattern, the inferred role, and the exact rule
+    that produced it. The validator must never have to reconstruct that from a bare string.
+
+    Position is destroyed by isolation: hand a validator "איטודיס" and the fact that it sat in
+    "הקבוצה של איטודיס" — a possessive marking a ROLE-HOLDER — is simply gone.
+    """
+    out: list[AnchorCandidate] = []
+    seen: set[tuple[str, str, int]] = set()
+    ctx = 3
+
+    for text, src in ((title, "title"), (subtitle, "subtitle")):
+        if not text:
+            continue
+        words = _tokens_with_positions(text)
+
+        for ent in _resolve(text):
+            kind = getattr(ent, "kind", "unknown")
+            out.append(AnchorCandidate(
+                raw=getattr(ent, "display_he", ent.id), normalized=ent.id,
+                source=src, token_start=-1, token_end=-1,
+                left_context=(), right_context=(),
+                pattern="taxonomy_match",
+                role="role_holder" if kind == "coach" else "unknown",
+                entity_id=ent.id, taxonomy_kind=kind, population_corroborated=False,
+                generation_rule="canonical_taxonomy", confidence="canonical",
+                article_id=article_id, candidate_set_id=candidate_set_id,
+                anchor_type="person" if kind in ("player", "coach") else "club",
+            ))
+
+        bigram_names: set[str] = set()
+        for i in range(len(words) - 1):
+            w1, w2 = words[i], words[i + 1]
+            if _is_vocabulary_any_form(w1) or _is_vocabulary_any_form(w2):
+                continue
+            if len(w1) < 2 or len(w2) < 2:
+                continue
+            bigram_names.add(w1)
+            bigram_names.add(w2)
+            key = (f"{w1} {w2}", src, i)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(AnchorCandidate(
+                raw=f"{w1} {w2}", normalized=f"{w1} {w2}", source=src,
+                token_start=i, token_end=i + 2,
+                left_context=tuple(words[max(0, i - ctx):i]),
+                right_context=tuple(words[i + 2:i + 2 + ctx]),
+                pattern="two_adjacent_non_vocabulary_tokens",
+                role=_infer_role(words, i, text),
+                entity_id=None, taxonomy_kind=None, population_corroborated=False,
+                generation_rule="name_bigram", confidence="strong",
+                article_id=article_id, candidate_set_id=candidate_set_id,
+                anchor_type="person",
+            ))
+
+        corroborated = set(bigram_names) | set(lexicon or ())
+        for i, w in enumerate(words):
+            if _is_vocabulary_any_form(w):
+                continue
+            surface_hit = any(f in corroborated for f in _candidate_forms(w))
+            skeleton_hit = (
+                f"translit:{_skeleton(w)}" in corroborated
+            )
+            if not (surface_hit or skeleton_hit):
+                continue
+            key = (w, src, i)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(AnchorCandidate(
+                raw=w, normalized=w, source=src, token_start=i, token_end=i + 1,
+                left_context=tuple(words[max(0, i - ctx):i]),
+                right_context=tuple(words[i + 1:i + 1 + ctx]),
+                pattern="lone_mention_known_to_population",
+                role=_infer_role(words, i, text),
+                entity_id=None, taxonomy_kind=None,
+                population_corroborated=bool(lexicon and any(
+                    f in lexicon for f in _candidate_forms(w))),
+                generation_rule="corroborated_single", confidence="weak",
+                article_id=article_id, candidate_set_id=candidate_set_id,
+                anchor_type="person",
+            ))
+    return tuple(out)
 
 
 def generate_anchor_candidates(

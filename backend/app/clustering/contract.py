@@ -47,6 +47,12 @@ class ClusterInput:
     entity_ids: tuple[str, ...] = ()            # resolved taxonomy entity ids ([] is normal!)
     primary_competition: Optional[str] = None   # comp:* id
     subtitle: str = ""
+    # Validated story anchors (#141) — PERSISTED enrichment output, an existing
+    # article fact like everything above. Tuple of {anchor, role, source,
+    # validator_id, reason_code} dicts (see anchor_enrichment.StoredAnchor).
+    # The matcher READS these; it never generates or validates anchors itself,
+    # and never calls a model per pair.
+    story_anchors: tuple = ()
 
 
 @dataclass(frozen=True)

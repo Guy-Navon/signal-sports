@@ -30,7 +30,7 @@ from app.classification.gating import LLMGateDecision, should_call_llm_for_artic
 from app.classification.llm_result import LLMClassificationResult
 from app.classification.merge import merge_with_guardrails, normalize_league_sport_compatibility
 from app.classification.source_hints import extract_source_sport_hint
-from app.clustering.ingest_stage import run_clustering_stage
+from app.clustering.ingest_stage import run_anchor_enrichment_stage, run_clustering_stage
 from app.classification.service import get_llm_provider
 from app.classification.validation import LLM_MIN_CONFIDENCE
 from app.ingestion.adapters.base import RawSourceItem
@@ -490,6 +490,13 @@ def _run_source(
     # It never raises: a failure leaves the articles inserted but UNCLUSTERED and is
     # reported on the run result — clustering is a quality stage and must not corrupt
     # ingestion. URL dedup is untouched and remains a separate mechanism.
+    # Validated-anchor enrichment (#141) runs FIRST and ALWAYS: it persists article
+    # facts (story_anchors) that pair evaluation only ever reads. Deterministic and
+    # offline; fails safe like the clustering stage below.
+    anchor_stage = run_anchor_enrichment_stage(session, inserted_ids)
+    if anchor_stage.failed:
+        errors.append(f"Anchor enrichment stage failed: {anchor_stage.error}")
+
     cluster_stage = run_clustering_stage(session, inserted_ids)
     if cluster_stage.failed:
         errors.append(f"Clustering stage failed: {cluster_stage.error}")

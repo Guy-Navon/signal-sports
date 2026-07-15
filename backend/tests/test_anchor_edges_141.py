@@ -173,6 +173,67 @@ class TestAnchorIsNeverSufficient:
         assert rejection.reason == Rejection.SAME_SOURCE
 
 
+class TestResultStatesAreMatchIdentified:
+    """The #124 manual-review false-merge classes, frozen as negatives. In result
+    states the story is the MATCH — a shared player, coach or team word must never
+    be merge evidence (Bellingham recurs in every England story; the youth-final
+    team word bridged PREVIEW + RESULT + REACTION)."""
+
+    def test_shared_player_does_not_merge_two_different_colour_stories(self):
+        # The real trap: Tuchel-criticism story vs the almost-missed-the-match
+        # anecdote, both match_result, both carrying the shared star.
+        a = _art("c1", 'אנגליה סוערת: טוכל ביקר את שחקניו, בלינגהאם הגיב',
+                 source="walla_sport", event="match_result", sport="football",
+                 anchors=[_anchor("בלינגהאם")])
+        b = _art("c2", "כוכב נבחרת אנגליה כמעט פספס את חצי הגמר - וניצל בזכות אימו",
+                 subtitle="ג'וד בלינגהאם כמעט נשאר בבית המלון",
+                 source="israel_hayom_sport", event="match_result", sport="football",
+                 hours=1.6, anchors=[_anchor("בלינגהאם", role="subject")])
+        edge, rejection = _match(a, b)
+        assert edge is None, "a person anchor must not merge result-state stories"
+
+    def test_team_word_does_not_chain_preview_result_reaction(self):
+        prev = _art("p1", 'נבחרת העתודה תבוא "להסתכל בלבן של העיניים" לפייבוריטית',
+                    source="walla_sport", event="finals_result", sport="basketball",
+                    anchors=[_anchor("העתודה")])
+        res = _art("p2", "נבחרת ישראל הפסידה לצרפת בגמר אליפות אירופה לעתודה",
+                   source="israel_hayom_sport", event="finals_result",
+                   sport="basketball", hours=3.0, anchors=[_anchor("העתודה")])
+        edge, rejection = _match(prev, res)
+        assert edge is None
+
+    def test_subtitle_only_incidental_mention_is_not_subject_evidence(self):
+        # The roundup trap: two unrelated negotiation roundups sharing an
+        # incidental club mention in both SUBTITLES (jaccard 0.016 in the wild).
+        a = _art("r1", "אחרי הפיצוץ עם אינטר: מועדוני הענק שבעקבות חלאילי",
+                 subtitle="גם אסטון וילה בתמונה", source="israel_hayom_sport",
+                 event="negotiation", sport="football",
+                 anchors=[StoredAnchor("אסטון", "unknown", "subtitle",
+                                       "lexical_frequency", "rare_in_language")])
+        b = _art("r2", "טילמאנס בדרך למנצ'סטר יונייטד, ברצלונה מכחישה",
+                 subtitle="אסטון וילה מחכה להחלטה", source="walla_sport",
+                 event="negotiation", sport="football", hours=2.0,
+                 anchors=[StoredAnchor("אסטון", "unknown", "subtitle",
+                                       "lexical_frequency", "rare_in_language")])
+        edge, rejection = _match(a, b)
+        assert edge is None, "subtitle-only-on-both-sides is incidental, not subject"
+
+    def test_title_on_one_side_still_carries_the_hardest_hankins_member(self):
+        # israel_hayom names the player only in its SUBTITLE — but its peer
+        # headlines him. Title-ness on ONE side suffices.
+        a = _art("h1", "בדרך לרכש כפול: מכבי תל אביב נפרדה מאחד משחקניה",
+                 subtitle="זאק הנקינס מסיים את דרכו במועדון",
+                 source="israel_hayom_sport", event="release",
+                 anchors=[StoredAnchor("הנקינס", "subject", "subtitle",
+                                       "lexical_frequency", "rare_in_language")])
+        b = _art("h2", "לאחר עונה אחת: מכבי ת\"א נפרדה מהנקינס",
+                 source="sport5_sport", event="release", hours=1.0,
+                 anchors=[_anchor("הנקינס")])
+        edge, rejection = _match(a, b)
+        assert edge is not None, rejection
+        assert edge.tier == TIER_ANCHOR
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Ingestion enrichment stage — validation runs ONCE, persisted, idempotent
 # ══════════════════════════════════════════════════════════════════════════════

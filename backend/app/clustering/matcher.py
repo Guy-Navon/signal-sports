@@ -20,7 +20,7 @@ missed cluster is cosmetic; a wrong merge tells the user something false.
 
 from typing import Optional
 
-from app.clustering.anchor_enrichment import shared_stored_anchors
+from app.clustering.anchor_enrichment import shared_subject_anchors
 from app.clustering.claims import claims_compatible
 from app.clustering.config import ClusteringConfig
 from app.clustering.contract import ClusterInput, MatchEdge, RejectionReason
@@ -59,6 +59,20 @@ TIER_C = "C"
 #: `news`-state pairs are excluded outright (#142 — shared identity + the catch-all
 #: state is not enough; they keep the Tier-C lexical requirement).
 TIER_ANCHOR = "N"
+
+#: The states where a NAMED anchor identifies the story (#124 manual review).
+#: A person/club anchor is the story's subject in the transfer cycle and personal
+#: events — Madar IS the farewell, Hankins IS the release. In RESULT states the
+#: story is the MATCH: Bellingham recurs in every England game and every colour
+#: piece, the coach recurs in every round, the team word recurs from preview to
+#: result to reaction. The manual review found exactly those merges (a criticism
+#: story + a near-miss anecdote on the shared player; a youth-final PREVIEW +
+#: RESULT + REACTION on the shared team word) — so result states keep the lexical
+#: tiers, where the scoreline and match vocabulary do identify the event.
+ANCHOR_EVIDENCE_STATES = frozenset({
+    "signing", "release", "negotiation", "candidate", "rumor", "major_trade",
+    "injury", "grand_slam_winner", "title_win",
+})
 
 _PROVEN_SPORTS = frozenset({"basketball", "football", "tennis"})
 
@@ -194,12 +208,15 @@ def match_pair(
     def anchor_rescue() -> tuple[str, ...]:
         """Shared PERSISTED validated anchors (#141) — read-only, no model, no analyzer.
 
-        Empty for `news`-state pairs by decision (#142): the catch-all state must keep
-        the lexical corroboration requirement.
+        Empty unless the state is PERSON-CENTRIC (`ANCHOR_EVIDENCE_STATES`): `news`
+        keeps the lexical requirement by decision (#142), and result states are
+        match-identified, not person-identified (#124 manual review). The shared
+        anchor must also be TITLE-borne on at least one side — a story's subject
+        gets headlined; incidental mentions do not.
         """
-        if a.event_type == "news":
+        if a.event_type not in ANCHOR_EVIDENCE_STATES:
             return ()
-        return tuple(sorted(shared_stored_anchors(
+        return tuple(sorted(shared_subject_anchors(
             list(a.story_anchors), list(b.story_anchors)
         )))
 

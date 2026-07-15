@@ -129,6 +129,35 @@ def shared_stored_anchors(a, b) -> frozenset[str]:
     return accepted_anchor_keys(a) & accepted_anchor_keys(b)
 
 
+def _keys_with_titleness(stored) -> dict[str, bool]:
+    """key -> "this key is backed by a TITLE-borne anchor on this side"."""
+    out: dict[str, bool] = {}
+    for x in stored or ():
+        d = x.to_json() if isinstance(x, StoredAnchor) else (x if isinstance(x, dict) else None)
+        if not d or not d.get("anchor"):
+            continue
+        title_borne = d.get("source") == "title"
+        for k in _match_keys(d["anchor"]):
+            out[k] = out.get(k, False) or title_borne
+    return out
+
+
+def shared_subject_anchors(a, b) -> frozenset[str]:
+    """Shared anchors that are TITLE-borne on at least one side.
+
+    The manual component review (#124) found the counterexample class: two
+    unrelated multi-club negotiation ROUNDUPS merged on an incidental club
+    mention ("אסטון") that appeared only in both SUBTITLES, at jaccard 0.016.
+    A story's actual subject gets HEADLINED by at least one newsroom;
+    incidental mentions live in subordinate clauses. Requiring title-ness on
+    one side keeps every frozen must-merge (the hardest Hankins member names
+    the player only in its subtitle — but its PEERS headline him) and kills
+    the roundup bridge structurally, with no threshold.
+    """
+    ka, kb = _keys_with_titleness(a), _keys_with_titleness(b)
+    return frozenset(k for k in ka.keys() & kb.keys() if ka[k] or kb[k])
+
+
 def hard_gate_population(anchor, peers: Sequence, cfg) -> list:
     """The candidate population an article's anchors are corroborated against.
 

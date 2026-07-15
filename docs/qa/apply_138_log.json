@@ -1,0 +1,67 @@
+[
+ {
+  "id": "rss_3dcba41409729b96d7bf",
+  "source": "walla_sport",
+  "title": "הפועל ת\"א צפויה לצרף את סטורנסקי, גינת בדרך להארכת חוזה",
+  "before": [
+   "signing",
+   "confirmed"
+  ],
+  "after": [
+   "negotiation",
+   "probable"
+  ]
+ },
+ {
+  "id": "rss_b00872cb282e17b00a9b",
+  "source": "walla_sport",
+  "title": "אף מילה על הבעלים והמאמן: כך ים מדר נפרד מהפועל ת\"א",
+  "before": [
+   "news",
+   "confirmed"
+  ],
+  "after": [
+   "release",
+   "probable"
+  ]
+ },
+ {
+  "id": "rss_d68030c4d1318238076a",
+  "source": "israel_hayom_sport",
+  "title": "לקראת הצגתו במכבי תל אביב: מילות הפרידה של ים מדר מהפועל",
+  "before": [
+   "schedule",
+   "probable"
+  ],
+  "after": [
+   "release",
+   "probable"
+  ]
+ },
+ {
+  "id": "rss_136180b819765f140420",
+  "source": "ynet_sport",
+  "title": "ים מדר נפרד מהפועל ת\"א: \"השנה לא הייתה קלה עבורי, עוזב בראש מורם\"",
+  "before": [
+   "signing",
+   "probable"
+  ],
+  "after": [
+   "release",
+   "probable"
+  ]
+ },
+ {
+  "id": "rss_c822881b1744b3a03cd1",
+  "source": "sport5_sport",
+  "title": "מדר: \"עוזב בראש מורם. השנה לא הייתה קלה\"",
+  "before": [
+   "news",
+   "confirmed"
+  ],
+  "after": [
+   "release",
+   "probable"
+  ]
+ }
+]

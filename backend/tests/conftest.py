@@ -17,7 +17,15 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_dir}/test.db"
 #   session-scoped TestClient lifespan (PR 13).
 # - Auth env: tests must not inherit a developer's backend/.env auth settings.
 os.environ["CLASSIFICATION_PROVIDER"] = "disabled"
-os.environ["INGESTION_SCHEDULER_ENABLED"] = "false"
+# Hermetic behavior flags (M7-4, #150): tests must never inherit the
+# developer's real backend/.env (app.main._load_dotenv runs at import with
+# override=False, so anything unset HERE leaks from there). The production
+# CLUSTERING_ENABLED=true was leaking into test ingestion paths and writing
+# clusters nondeterministically. Tests that exercise a flag monkeypatch it.
+os.environ["CLUSTERING_ENABLED"] = "false"
+os.environ["SCHEDULER_ENABLED"] = "false"
+os.environ["TELEGRAM_NOTIFICATIONS_ENABLED"] = "false"
+os.environ["RETENTION_CLEANUP_ENABLED"] = "false"
 # Enforcement is REAL in tests (User Platform PR 6, #54): the transitional
 # PR-5 bypass line was removed. Tests pick an explicit identity:
 #   client        — the bare app client (no cookies; the anonymous identity)

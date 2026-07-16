@@ -8,12 +8,13 @@ from pydantic import BaseModel
 
 from app.db.database import get_session
 from app.ingestion.config import RSS_SOURCES, get_source_config
+from sqlalchemy import text as sa_text
+
 from app.ingestion.orchestration import (
     TRIGGER_MANUAL,
     TRIGGER_RUN_NOW,
     orchestrate_cycle,
 )
-from app.ingestion.scheduler import scheduler_state
 from app.ingestion.source_state import get_effective_enabled_map
 from app.models.ingestion import (
     IngestQualityResponse,
@@ -110,7 +111,6 @@ def run_ingest(
     (manual, run-now, or scheduled — in ANY process) is active.
     """
     outcome = orchestrate_cycle(TRIGGER_MANUAL, source_id=source_id)
-    _mirror_to_legacy_state(outcome, trigger="manual")
     if outcome.skipped:
         raise HTTPException(status_code=409, detail=_ingestion_busy_detail(outcome.active_run))
     results = outcome.source_results
@@ -118,44 +118,60 @@ def run_ingest(
     return IngestRunResponse(status=overall_status, sources=results)
 
 
-def _mirror_to_legacy_state(outcome, trigger: str) -> None:
-    """Keep the in-memory scheduler_state coherent for GET /ingest/scheduler/status
-    until M7-4 replaces that endpoint with the durable cycle data."""
-    if outcome.skipped:
-        return
-    scheduler_state.last_started_at = outcome.started_at
-    scheduler_state.last_finished_at = outcome.finished_at
-    scheduler_state.last_status = "ok" if outcome.status in (
-        "succeeded", "succeeded_with_warnings") else "error"
-    scheduler_state.last_error = outcome.error_summary
-    scheduler_state.last_result_summary = [
-        {
-            "source_id": r.source_id,
-            "fetched": r.fetched,
-            "inserted": r.inserted,
-            "skipped_duplicate": r.skipped_duplicate,
-            "skipped_filtered": r.skipped_filtered,
-            "failed": r.failed,
-        }
-        for r in outcome.source_results
-    ]
-
-
 @router.get("/ingest/scheduler/status", response_model=SchedulerStatusResponse)
-def get_scheduler_status():
-    """Live scheduler + ingestion-lock state (PR 13). Not persisted."""
-    s = scheduler_state
+def get_scheduler_status(session: Session = Depends(get_session)):
+    """LEGACY-shaped scheduler status, now computed from DURABLE state
+    (M7-4, #150). The old in-memory mirror reflected only the API process and
+    is gone; this endpoint keeps its response shape for the existing frontend
+    while reading the same cycle/lease/worker rows as /api/scheduler/health.
+    New consumers should prefer /api/scheduler/health."""
+    from datetime import timedelta as _td
+
+    from app.ingestion.orchestration import current_lease
+    from app.worker import read_scheduler_config
+
+    cfg = read_scheduler_config()
+    lease = current_lease(session)
+    worker = session.execute(sa_text(
+        "SELECT state, last_seen_at FROM worker_status WHERE id = 1"
+    )).fetchone()
+
+    last = session.execute(sa_text(
+        "SELECT started_at, finished_at, status, error_summary, source_results, trigger "
+        "FROM scheduler_cycles WHERE status NOT IN ('skipped_active_run') "
+        "ORDER BY requested_at DESC LIMIT 1"
+    )).fetchone()
+
+    def _dt(iso):
+        return datetime.fromisoformat(iso) if iso else None
+
+    next_run = None
+    if cfg.enabled and worker and worker[1] and worker[0] not in (None, "stopped"):
+        next_run = _dt(worker[1]) + _td(seconds=cfg.interval_seconds)
+
+    last_status = "never_run"
+    summary = None
+    if last:
+        last_status = "ok" if last[2] in ("succeeded", "succeeded_with_warnings") \
+            else ("skipped" if last[2] == "skipped_active_run" else "error")
+        if last[4]:
+            import json as _json
+            parsed = _json.loads(last[4]) if isinstance(last[4], str) else last[4]
+            summary = [{k: s.get(k) for k in ("source_id", "fetched", "inserted",
+                                              "skipped_duplicate", "skipped_filtered",
+                                              "failed")} for s in parsed]
+
     return SchedulerStatusResponse(
-        enabled=s.enabled,
-        running=s.running,
-        interval_minutes=s.interval_minutes,
-        next_run_at=s.next_run_at,
-        last_started_at=s.last_started_at,
-        last_finished_at=s.last_finished_at,
-        last_status=s.last_status,
-        last_error=s.last_error,
-        active_run=s.active_run,
-        last_result_summary=s.last_result_summary,
+        enabled=cfg.enabled,
+        running=bool(worker and worker[0] not in (None, "stopped")),
+        interval_minutes=max(1, cfg.interval_seconds // 60),
+        next_run_at=next_run,
+        last_started_at=_dt(last[0]) if last else None,
+        last_finished_at=_dt(last[1]) if last else None,
+        last_status=last_status,
+        last_error=last[3] if last else None,
+        active_run=lease,
+        last_result_summary=summary,
     )
 
 
@@ -167,7 +183,6 @@ def scheduler_run_now():
     (M7-1, #147); returns 409 if another run — in any process — is active.
     """
     outcome = orchestrate_cycle(TRIGGER_RUN_NOW)
-    _mirror_to_legacy_state(outcome, trigger="run_now")
     if outcome.skipped:
         raise HTTPException(status_code=409, detail=_ingestion_busy_detail(outcome.active_run))
     return RunNowResponse(
@@ -213,8 +228,9 @@ def get_source_health(session: Session = Depends(get_session)):
     Freshness: healthy (successful run within 2x scheduler interval) | stale |
     never_run | disabled | error (latest run failed).
     """
+    from app.worker import read_scheduler_config
     now = datetime.now(tz=timezone.utc)
-    interval = scheduler_state.interval_minutes
+    interval = max(1, read_scheduler_config().interval_seconds // 60)
     enabled_map = get_effective_enabled_map(session)
     health: list[SourceHealthInfo] = []
 

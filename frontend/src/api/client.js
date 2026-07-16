@@ -177,6 +177,24 @@ export function getSourceHealth() {
   return apiFetch("/api/ingest/source-health");
 }
 
+// ── M7-4/#150 + M7-8/#154: durable scheduler/notification observability ──────
+
+export function getSchedulerHealth() {
+  return apiFetch("/api/scheduler/health");
+}
+
+export function getSchedulerCycles(limit = 10) {
+  return apiFetch(`/api/scheduler/cycles?limit=${limit}`);
+}
+
+export function getNotificationsHealth() {
+  return apiFetch("/api/notifications/health");
+}
+
+export function getNotificationEvents(limit = 10) {
+  return apiFetch(`/api/notifications/events?limit=${limit}`);
+}
+
 // Enable/disable a source at runtime (persisted override; wins over config default).
 export function setSourceEnabled(sourceId, enabled) {
   return apiFetch(`/api/ingest/sources/${encodeURIComponent(sourceId)}`, {

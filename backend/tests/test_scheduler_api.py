@@ -15,8 +15,6 @@ from unittest.mock import patch
 
 import pytest
 
-from app.ingestion.scheduler import scheduler_state
-
 
 def _make_entry(title: str, link: str):
     return types.SimpleNamespace(

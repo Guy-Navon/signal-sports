@@ -95,6 +95,11 @@ ADMIN = {
     "GET /api/ingest/scheduler/status",
     "POST /api/ingest/scheduler/run-now",
     "GET /api/ingest/source-health",
+    # M7-4/#150 + M7-8/#154 — durable scheduler/notification observability.
+    "GET /api/scheduler/health",
+    "GET /api/scheduler/cycles",
+    "GET /api/notifications/health",
+    "GET /api/notifications/events",
     "GET /api/translations/status",
     "POST /api/translations/backfill",
     "GET /api/classify/status",

@@ -43,6 +43,7 @@ from app.api import (
     routes_calibration,
     routes_taxonomy,
     routes_ingest,
+    routes_scheduler,
     routes_translation,
     routes_classify,
     routes_dev,
@@ -126,6 +127,7 @@ def create_app() -> FastAPI:
     # gate INSIDE the routes — a deliberate double gate.
     _admin_dep = [Depends(require_admin)]
     application.include_router(routes_ingest.router, prefix="/api", tags=["ingest"], dependencies=_admin_dep)
+    application.include_router(routes_scheduler.router, prefix="/api", tags=["scheduler"], dependencies=_admin_dep)
     application.include_router(routes_translation.router, prefix="/api", tags=["translation"], dependencies=_admin_dep)
     application.include_router(routes_classify.router, prefix="/api", tags=["classify"], dependencies=_admin_dep)
     application.include_router(routes_dev.router, prefix="/api", tags=["dev"], dependencies=_admin_dep)

@@ -142,7 +142,11 @@ class TestPlanning:
         assert _events(session) == []
         assert summary["ignored_non_push"] >= 0   # counted, not planned
 
-    def test_clustered_story_records_full_component_membership(self, session):
+    def test_clustered_story_records_full_component_membership(self, session, monkeypatch):
+        # Production reality: clustering is ACTIVE (#126). The conftest pins the
+        # flag false for hermeticity; this test exercises the collapsed-card
+        # path, so it turns the flag on explicitly.
+        monkeypatch.setenv("CLUSTERING_ENABLED", "true")
         from app.db.orm_models import StoryClusterRow
         set_watermark(session, PROFILE, POLICY)
         cid = "cluster_t152_madar"

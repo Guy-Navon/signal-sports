@@ -26,6 +26,17 @@ os.environ["CLUSTERING_ENABLED"] = "false"
 os.environ["SCHEDULER_ENABLED"] = "false"
 os.environ["TELEGRAM_NOTIFICATIONS_ENABLED"] = "false"
 os.environ["RETENTION_CLEANUP_ENABLED"] = "false"
+# CRITICAL SECRET ISOLATION: pin the Telegram secrets EMPTY. Pinning only the
+# ENABLE flag is not enough — a test that legitimately enables notifications
+# (planner tests set TELEGRAM_NOTIFICATIONS_ENABLED=true to exercise planning)
+# would otherwise inherit the developer's REAL token/chat id (main._load_dotenv
+# loads them at import) and the real TelegramSender would deliver an actual
+# message to the real chat. Empty secrets force TelegramSender.configured()
+# False, so the network is never touched; tests that need a configured sender
+# inject a FakeSender explicitly. (Invariant: the suite never sends real
+# Telegram messages, and no real secret is ever present in a test process.)
+os.environ["TELEGRAM_BOT_TOKEN"] = ""
+os.environ["TELEGRAM_CHAT_ID"] = ""
 # Enforcement is REAL in tests (User Platform PR 6, #54): the transitional
 # PR-5 bypass line was removed. Tests pick an explicit identity:
 #   client        — the bare app client (no cookies; the anonymous identity)

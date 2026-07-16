@@ -74,9 +74,18 @@ class IngestionRunRecord(BaseModel):
 
 
 class SchedulerStatusResponse(BaseModel):
-    """Live scheduler + ingestion-lock state (PR 13). Not persisted."""
-    enabled: bool
-    running: bool                                   # scheduler loop alive
+    """Live scheduler + ingestion-lock state (PR 13; M7-4 durable rewrite).
+
+    Three distinct signals — ``enabled`` is the SCHEDULER_ENABLED config INTENT
+    as seen by the API process (NOT proof of ticking; false during the
+    controlled soak); ``worker_running``/``automatic_ingestion_active`` are the
+    durable runtime truth from the dedicated worker's heartbeat. UIs must show
+    ``automatic_ingestion_active`` as the headline, never ``enabled``.
+    """
+    enabled: bool                                   # config intent (API process env)
+    running: bool                                   # legacy: worker state != stopped (not freshness-checked)
+    worker_running: bool = False                    # dedicated worker alive + fresh heartbeat
+    automatic_ingestion_active: bool = False        # the true "auto ingestion is happening" signal
     interval_minutes: int
     next_run_at: Optional[datetime] = None
     last_started_at: Optional[datetime] = None

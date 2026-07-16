@@ -252,6 +252,34 @@ class TestSenderSecrecy:
         assert result.status == tg.UNKNOWN
         assert "SECRET_TOKEN_123" not in (result.error_class or "")
 
+    def test_conftest_pins_telegram_secrets_empty(self):
+        """The suite must NEVER carry a real bot token/chat id: a test that
+        enables notifications (planner tests do) would otherwise construct a
+        configured real TelegramSender and deliver an actual message to the
+        real chat. conftest pins both empty, so the default sender is never
+        configured and the network is never touched by the suite."""
+        import os
+
+        assert os.getenv("TELEGRAM_BOT_TOKEN") == ""
+        assert os.getenv("TELEGRAM_CHAT_ID") == ""
+        assert tg.TelegramSender().configured() is False
+
+    def test_enabled_but_unconfigured_dispatch_never_touches_network(self, monkeypatch):
+        """With notifications ENABLED but no secrets (the exact planner-test
+        posture), dispatch reports not_configured and makes no send call."""
+        monkeypatch.setenv("TELEGRAM_NOTIFICATIONS_ENABLED", "true")
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "")
+        monkeypatch.setenv("TELEGRAM_CHAT_ID", "")
+
+        def _boom(*a, **k):                     # any network attempt is a bug
+            raise AssertionError("dispatch attempted a real network send")
+
+        monkeypatch.setattr("httpx.post", _boom)
+        from app.db.database import SessionLocal, init_db
+        init_db()
+        with SessionLocal() as s:
+            assert dispatch_pending(s) == {"skipped": "not_configured"}
+
     def test_httpx_request_url_logging_is_capped(self, caplog):
         """httpx logs the full request URL (token included) at INFO; importing
         the adapter must cap the httpx/httpcore loggers so that line can never

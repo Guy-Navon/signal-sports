@@ -174,6 +174,53 @@ def current_lease(session) -> Optional[dict]:
     return {"cycle_id": row[0], "heartbeat_at": row[1], "owner": row[2]}
 
 
+def _max_run_seconds() -> int:
+    try:
+        v = int(os.getenv("SCHEDULER_MAX_RUN_SECONDS", "900"))
+        return v if v > 0 else 900
+    except ValueError:
+        return 900
+
+
+def worker_liveness(session) -> dict:
+    """Is the DEDICATED WORKER process alive and ticking?
+
+    Derived purely from the durable ``worker_status`` heartbeat the worker
+    writes on every tick (including idle ticks) — NOT from any process's
+    ``SCHEDULER_ENABLED`` env. In the two-process topology (API + worker) the
+    API's own env flag says nothing about whether the worker is running, so
+    this durable signal is the authoritative "automatic ingestion is actually
+    happening" answer that every status surface must use instead of the
+    serving process's config intent.
+
+    ``running`` is true only when the worker claims an active loop state
+    (``starting``/``idle``, never ``stopped``) AND its last heartbeat is within
+    one interval + one max-run allowance — a crashed worker leaves a stale
+    ``idle`` row, which must read as NOT running.
+    """
+    row = session.execute(text(
+        "SELECT state, last_seen_at, interval_seconds FROM worker_status WHERE id = 1"
+    )).fetchone()
+    if not row:
+        return {"present": False, "running": False, "state": None,
+                "last_seen_at": None, "heartbeat_age_seconds": None,
+                "interval_seconds": None, "allowance_seconds": None}
+    state, last_seen, interval = row[0], row[1], row[2]
+    age = None
+    if last_seen:
+        try:
+            age = (_now() - datetime.fromisoformat(last_seen)).total_seconds()
+        except ValueError:
+            age = None
+    interval = interval or 300
+    allowance = interval + _max_run_seconds()
+    running = (state in ("starting", "idle")
+               and age is not None and age <= allowance)
+    return {"present": True, "running": running, "state": state,
+            "last_seen_at": last_seen, "heartbeat_age_seconds": age,
+            "interval_seconds": interval, "allowance_seconds": allowance}
+
+
 # ── Heartbeat thread ──────────────────────────────────────────────────────────
 
 class _HeartbeatThread(threading.Thread):

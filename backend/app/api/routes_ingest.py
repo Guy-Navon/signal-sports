@@ -127,14 +127,13 @@ def get_scheduler_status(session: Session = Depends(get_session)):
     New consumers should prefer /api/scheduler/health."""
     from datetime import timedelta as _td
 
-    from app.ingestion.orchestration import current_lease
+    from app.ingestion.orchestration import current_lease, worker_liveness
     from app.worker import read_scheduler_config
 
     cfg = read_scheduler_config()
     lease = current_lease(session)
-    worker = session.execute(sa_text(
-        "SELECT state, last_seen_at FROM worker_status WHERE id = 1"
-    )).fetchone()
+    # Runtime truth from the durable worker heartbeat, not the API process env.
+    live = worker_liveness(session)
 
     last = session.execute(sa_text(
         "SELECT started_at, finished_at, status, error_summary, source_results, trigger "
@@ -145,9 +144,11 @@ def get_scheduler_status(session: Session = Depends(get_session)):
     def _dt(iso):
         return datetime.fromisoformat(iso) if iso else None
 
+    # Next run is knowable whenever the worker is genuinely running — gate on
+    # the worker heartbeat, never on this process's SCHEDULER_ENABLED env.
     next_run = None
-    if cfg.enabled and worker and worker[1] and worker[0] not in (None, "stopped"):
-        next_run = _dt(worker[1]) + _td(seconds=cfg.interval_seconds)
+    if live["running"] and live["last_seen_at"]:
+        next_run = _dt(live["last_seen_at"]) + _td(seconds=live["interval_seconds"])
 
     last_status = "never_run"
     summary = None
@@ -157,13 +158,17 @@ def get_scheduler_status(session: Session = Depends(get_session)):
         if last[4]:
             import json as _json
             parsed = _json.loads(last[4]) if isinstance(last[4], str) else last[4]
+            # A cycle can carry JSON-null source_results (json.loads -> None);
+            # guard like /api/scheduler/health does, never iterate None.
             summary = [{k: s.get(k) for k in ("source_id", "fetched", "inserted",
                                               "skipped_duplicate", "skipped_filtered",
-                                              "failed")} for s in parsed]
+                                              "failed")} for s in (parsed or [])]
 
     return SchedulerStatusResponse(
         enabled=cfg.enabled,
-        running=bool(worker and worker[0] not in (None, "stopped")),
+        running=bool(live["state"] not in (None, "stopped")),
+        worker_running=live["running"],
+        automatic_ingestion_active=live["running"],
         interval_minutes=max(1, cfg.interval_seconds // 60),
         next_run_at=next_run,
         last_started_at=_dt(last[0]) if last else None,

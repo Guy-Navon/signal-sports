@@ -110,12 +110,17 @@ export default function SchedulerPanel({ isBackendMode, onFeedRefresh }) {
         {status && (
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
             <span className="text-text-dim">
-              תזמון:{" "}
-              <span className={status.enabled ? "text-signal-high" : "text-text-secondary"}>
-                {status.enabled ? `פעיל — כל ${status.intervalMinutes} דקות` : "כבוי"}
-              </span>
+              ייבוא אוטומטי:{" "}
+              {status.automaticIngestionActive ? (
+                <span className="text-signal-high">פעיל — עובד ייעודי, כל {status.intervalMinutes} דקות</span>
+              ) : status.enabled ? (
+                // config intent on, but no live dedicated worker — degraded
+                <span className="text-signal-hidden">מופעל בהגדרות אך אין עובד פעיל</span>
+              ) : (
+                <span className="text-text-secondary">כבוי</span>
+              )}
             </span>
-            {status.enabled && status.nextRunAt && (
+            {status.automaticIngestionActive && status.nextRunAt && (
               <span className="text-text-dim">
                 ריצה הבאה: <span className="text-text-secondary">{formatDateTime(status.nextRunAt)}</span>
               </span>

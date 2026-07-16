@@ -80,11 +80,44 @@ class TestSchedulerHealth:
         assert r.status_code == 200
         body = r.json()
         assert body["scheduler_enabled"] is True
+        assert body["worker_running"] is True
+        assert body["automatic_ingestion_active"] is True
         assert body["stale"] is False
         assert body["consecutive_failures"] == 0
         assert body["last_successful_cycle"]["id"] == "cycle_h1"
         assert body["next_expected_run_at"] is not None
         assert body["ingestion_degraded"] is False
+
+    def test_worker_alive_while_api_env_flag_off(self, admin_client, session,
+                                                 monkeypatch):
+        """THE TWO-PROCESS TOPOLOGY CONTRACT (regression for the misleading
+        'Scheduling: disabled' label). The API process has SCHEDULER_ENABLED
+        unset/false — that is config intent only — while the dedicated worker
+        is alive with a fresh heartbeat. Automatic ingestion IS happening, so
+        the runtime signals must say so even though scheduler_enabled is False."""
+        monkeypatch.setenv("SCHEDULER_ENABLED", "false")
+        _seed_worker(session, "idle", seconds_ago=5)
+        _seed_cycle(session, "cycle_live", "succeeded", minutes_ago=2)
+        body = admin_client.get("/api/scheduler/health").json()
+        assert body["scheduler_enabled"] is False          # config intent (API env)
+        assert body["worker_running"] is True              # durable runtime truth
+        assert body["automatic_ingestion_active"] is True  # the headline signal
+        assert body["next_expected_run_at"] is not None    # knowable from heartbeat
+        assert body["stale"] is False                      # a live worker is not stale
+        assert body["ingestion_degraded"] is False
+
+    def test_enabled_intent_but_no_worker_is_stale(self, admin_client, session,
+                                                   monkeypatch):
+        """The other direction: an operator set SCHEDULER_ENABLED=true but never
+        launched the worker. No fresh heartbeat exists — that is a degraded,
+        stale condition, not a healthy one."""
+        monkeypatch.setenv("SCHEDULER_ENABLED", "true")
+        # no _seed_worker → no heartbeat row
+        body = admin_client.get("/api/scheduler/health").json()
+        assert body["worker_running"] is False
+        assert body["automatic_ingestion_active"] is False
+        assert body["stale"] is True
+        assert "no dedicated worker" in body["stale_reason"]
 
     def test_dead_worker_is_stale_with_a_reason(self, admin_client, session, monkeypatch):
         monkeypatch.setenv("SCHEDULER_ENABLED", "true")
@@ -184,8 +217,23 @@ class TestCycleHistoryAndEvents:
         body = admin_client.get("/api/ingest/scheduler/status").json()
         assert body["enabled"] is True
         assert body["running"] is True                    # worker alive
+        assert body["worker_running"] is True
+        assert body["automatic_ingestion_active"] is True
         assert body["last_status"] == "ok"
         assert body["last_result_summary"][0]["source_id"] == "walla_sport"
+        assert body["next_run_at"] is not None
+
+    def test_legacy_status_worker_alive_while_api_flag_off(self, admin_client,
+                                                           session, monkeypatch):
+        """Legacy-shaped status must also report the worker's runtime truth when
+        the API env flag is off — this is the exact payload the ops header reads."""
+        monkeypatch.setenv("SCHEDULER_ENABLED", "false")
+        _seed_worker(session, "idle", seconds_ago=5)
+        _seed_cycle(session, "cycle_leg2", "succeeded", minutes_ago=2)
+        body = admin_client.get("/api/ingest/scheduler/status").json()
+        assert body["enabled"] is False                   # config intent only
+        assert body["worker_running"] is True
+        assert body["automatic_ingestion_active"] is True
         assert body["next_run_at"] is not None
 
 

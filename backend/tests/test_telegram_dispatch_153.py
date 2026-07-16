@@ -251,3 +251,18 @@ class TestSenderSecrecy:
         result = tg.TelegramSender().send("hello")
         assert result.status == tg.UNKNOWN
         assert "SECRET_TOKEN_123" not in (result.error_class or "")
+
+    def test_httpx_request_url_logging_is_capped(self, caplog):
+        """httpx logs the full request URL (token included) at INFO; importing
+        the adapter must cap the httpx/httpcore loggers so that line can never
+        be emitted even when root logging runs at INFO (as the worker does)."""
+        import logging as _logging
+
+        for name in ("httpx", "httpcore"):
+            assert _logging.getLogger(name).getEffectiveLevel() >= _logging.WARNING
+
+        with caplog.at_level(_logging.INFO):
+            _logging.getLogger("httpx").info(
+                "HTTP Request: POST https://api.telegram.org/botSECRET_TOKEN_123/sendMessage"
+            )
+        assert not any("SECRET_TOKEN_123" in r.getMessage() for r in caplog.records)

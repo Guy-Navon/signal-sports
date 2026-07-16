@@ -41,6 +41,14 @@ from typing import Optional, Protocol
 
 logger = logging.getLogger(__name__)
 
+# httpx logs every request URL at INFO ("HTTP Request: POST https://api.
+# telegram.org/bot<TOKEN>/sendMessage …") and the bot token is IN the URL path.
+# The worker configures root logging at INFO, so without this cap the first
+# real send would print the token to the console/log. Capped at import so the
+# guarantee holds in every process that can send (worker, API manual run).
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 SENT = "sent"
 FAILED_RETRYABLE = "failed_retryable"
 FAILED_FINAL = "failed_final"

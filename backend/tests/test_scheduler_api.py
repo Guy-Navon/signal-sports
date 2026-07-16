@@ -63,27 +63,38 @@ class TestRunNowEndpoint:
         assert "walla_sport" in source_ids
         assert "sport5_sport" not in source_ids  # disabled pilot excluded
 
-    def test_run_now_conflict_while_lock_held(self, admin_client):
-        acquired = scheduler_state.lock.acquire(blocking=False)
-        assert acquired
+    def test_run_now_conflict_while_guard_held(self, admin_client):
+        # The guard is the DURABLE lease (M7-1, #147) — hold it the way another
+        # PROCESS (the scheduler worker) would, and both endpoints must 409.
+        from app.db.database import SessionLocal
+        from app.ingestion.orchestration import _release_lease, _try_acquire_lease
+        with SessionLocal() as s:
+            acquired, _ = _try_acquire_lease(s, "cycle_other_process")
+            assert acquired
         try:
             r = admin_client.post("/api/ingest/scheduler/run-now")
             assert r.status_code == 409
             detail = r.json()["detail"]
             assert detail["error"] == "ingestion_already_running"
             assert "message" in detail
+            assert detail["active_run"]["cycle_id"] == "cycle_other_process"
         finally:
-            scheduler_state.lock.release()
+            with SessionLocal() as s:
+                _release_lease(s, "cycle_other_process")
 
-    def test_manual_run_conflict_while_lock_held(self, admin_client):
-        acquired = scheduler_state.lock.acquire(blocking=False)
-        assert acquired
+    def test_manual_run_conflict_while_guard_held(self, admin_client):
+        from app.db.database import SessionLocal
+        from app.ingestion.orchestration import _release_lease, _try_acquire_lease
+        with SessionLocal() as s:
+            acquired, _ = _try_acquire_lease(s, "cycle_other_process")
+            assert acquired
         try:
             r = admin_client.post("/api/ingest/run?source_id=walla_sport")
             assert r.status_code == 409
             assert r.json()["detail"]["error"] == "ingestion_already_running"
         finally:
-            scheduler_state.lock.release()
+            with SessionLocal() as s:
+                _release_lease(s, "cycle_other_process")
 
     def test_lock_released_after_runs(self, admin_client):
         """Manual run then run-now both succeed — the lock never leaks."""

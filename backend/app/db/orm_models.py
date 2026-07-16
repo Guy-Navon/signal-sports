@@ -186,6 +186,60 @@ class IngestionRunRow(Base):
     error_message = Column(String, nullable=True)
     # LLM dependency / quality metrics dict (issue #31) — soft-migrated JSON.
     metrics = Column(JSON, nullable=True)
+    # Parent orchestration cycle (M7-1, #147). Nullable: pre-M7 rows have none.
+    cycle_id = Column(String, nullable=True, index=True)
+
+
+class SchedulerCycleRow(Base):
+    """One ORCHESTRATED ingestion cycle (M7-1, #147) — the durable run record.
+
+    A cycle is the parent of the per-source ``ingestion_runs`` rows it produced
+    (children link back via ``cycle_id``); there is deliberately no third
+    competing concept. Every trigger — scheduled, startup_catchup, manual,
+    run_now — produces exactly one cycle row, including triggers that were
+    SKIPPED because another run was active (those record why they did not run).
+    """
+    __tablename__ = "scheduler_cycles"
+
+    id = Column(String, primary_key=True)             # "cycle_" + uuid4 hex
+    trigger = Column(String, nullable=False)          # scheduled | startup_catchup | manual | run_now
+    requested_at = Column(String, nullable=False)     # ISO-8601, when the trigger fired
+    started_at = Column(String, nullable=True)        # None for skipped cycles
+    finished_at = Column(String, nullable=True)
+    # running | succeeded | succeeded_with_warnings | failed | skipped_active_run | abandoned
+    status = Column(String, nullable=False, index=True)
+    # Sanitized one-line error summary; never a stack trace, never a secret.
+    error_summary = Column(String, nullable=True)
+    # Per-source result summaries (source_id, counts, error) — JSON list.
+    source_results = Column(JSON, nullable=True)
+    # Filled by later milestone stages; nullable until those stages exist/run.
+    notification_summary = Column(JSON, nullable=True)   # M7-6/M7-7 planning + dispatch
+    cleanup_summary = Column(JSON, nullable=True)        # M7-3 retention
+    # Diagnosing duplicate schedulers: which process ran this cycle.
+    process_identity = Column(String, nullable=True)     # "pid=… host=…"
+    # Config fingerprint needed to explain behavior (interval, flags) — JSON.
+    config_snapshot = Column(JSON, nullable=True)
+
+
+class SchedulerLeaseRow(Base):
+    """THE single-flight guard (M7-1, #147) — one durable row, id always 1.
+
+    HONEST SINGLE-NODE CONTRACT: SQLite serializes writers, so a conditional
+    UPDATE on this row is atomic across PROCESSES on this machine sharing this
+    database file. That is the whole guarantee — this is not a distributed
+    lock and must never be described as one.
+
+    Acquisition: one atomic UPDATE that succeeds only when the lease is free
+    OR the holder's heartbeat is older than the stale cutoff (dead-process
+    takeover). The previous holder's cycle is then marked ``abandoned``.
+    A process-local mutex would not survive process boundaries; this does.
+    """
+    __tablename__ = "scheduler_lease"
+
+    id = Column(Integer, primary_key=True)            # always 1
+    active_cycle_id = Column(String, nullable=True)   # NULL == free
+    heartbeat_at = Column(String, nullable=True)      # ISO-8601, refreshed during a run
+    owner = Column(String, nullable=True)             # process identity of the holder
 
 
 class StoryClusterRow(Base):

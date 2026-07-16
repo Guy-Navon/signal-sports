@@ -8,12 +8,13 @@ from pydantic import BaseModel
 
 from app.db.database import get_session
 from app.ingestion.config import RSS_SOURCES, get_source_config
-from app.ingestion.ingestion_service import run_ingestion
-from app.ingestion.source_state import get_effective_enabled_map
-from app.ingestion.scheduler import (
-    run_ingestion_guarded,
-    scheduler_state,
+from app.ingestion.orchestration import (
+    TRIGGER_MANUAL,
+    TRIGGER_RUN_NOW,
+    orchestrate_cycle,
 )
+from app.ingestion.scheduler import scheduler_state
+from app.ingestion.source_state import get_effective_enabled_map
 from app.models.ingestion import (
     IngestQualityResponse,
     IngestRunResponse,
@@ -30,12 +31,17 @@ from app.repositories.article_repository import get_rss_articles
 router = APIRouter()
 
 
-def _ingestion_busy_detail() -> dict:
-    """Structured 409 body — identical shape for every lock-guarded endpoint."""
+def _ingestion_busy_detail(active_run: Optional[dict]) -> dict:
+    """Structured 409 body — identical shape for every guard-protected endpoint.
+
+    ``active_run`` now comes from the DURABLE lease (M7-1, #147): the cycle id,
+    heartbeat and owning process of whoever holds the single-flight guard —
+    which may be a different process (the scheduler worker), not just this one.
+    """
     return {
         "error": "ingestion_already_running",
         "message": "ייבוא פעיל כרגע",
-        "active_run": scheduler_state.active_run,
+        "active_run": active_run,
     }
 
 
@@ -95,32 +101,44 @@ def set_source_enabled(
 @router.post("/ingest/run", response_model=IngestRunResponse)
 def run_ingest(
     source_id: Optional[str] = Query(default=None, description="Run a single source by ID; omit for all enabled sources"),
-    session: Session = Depends(get_session),
 ):
     """Fetch, classify, deduplicate, and insert articles from configured sources.
 
-    Returns a per-source summary of fetched / inserted / skipped_filtered / skipped_duplicate / failed counts.
-    Returns 409 if another ingestion run (manual, run-now, or scheduled) is active.
+    Runs through the canonical orchestration service (M7-1, #147): the durable
+    DB-backed single-flight guard, a persistent cycle record, and the exact same
+    stage ordering as scheduled runs. Returns 409 if another ingestion run
+    (manual, run-now, or scheduled — in ANY process) is active.
     """
-    if not scheduler_state.lock.acquire(blocking=False):
-        raise HTTPException(status_code=409, detail=_ingestion_busy_detail())
-    started = datetime.now(tz=timezone.utc)
-    scheduler_state.active_run = {"trigger": "manual", "started_at": started.isoformat()}
-    scheduler_state.last_started_at = started
-    try:
-        results = run_ingestion(session, source_id=source_id)
-        scheduler_state.last_status = "ok"
-        scheduler_state.last_error = None
-    except Exception as exc:
-        scheduler_state.last_status = "error"
-        scheduler_state.last_error = str(exc)
-        raise
-    finally:
-        scheduler_state.last_finished_at = datetime.now(tz=timezone.utc)
-        scheduler_state.active_run = None
-        scheduler_state.lock.release()
+    outcome = orchestrate_cycle(TRIGGER_MANUAL, source_id=source_id)
+    _mirror_to_legacy_state(outcome, trigger="manual")
+    if outcome.skipped:
+        raise HTTPException(status_code=409, detail=_ingestion_busy_detail(outcome.active_run))
+    results = outcome.source_results
     overall_status = "ok" if all(r.failed == 0 or r.inserted > 0 for r in results) else "error"
     return IngestRunResponse(status=overall_status, sources=results)
+
+
+def _mirror_to_legacy_state(outcome, trigger: str) -> None:
+    """Keep the in-memory scheduler_state coherent for GET /ingest/scheduler/status
+    until M7-4 replaces that endpoint with the durable cycle data."""
+    if outcome.skipped:
+        return
+    scheduler_state.last_started_at = outcome.started_at
+    scheduler_state.last_finished_at = outcome.finished_at
+    scheduler_state.last_status = "ok" if outcome.status in (
+        "succeeded", "succeeded_with_warnings") else "error"
+    scheduler_state.last_error = outcome.error_summary
+    scheduler_state.last_result_summary = [
+        {
+            "source_id": r.source_id,
+            "fetched": r.fetched,
+            "inserted": r.inserted,
+            "skipped_duplicate": r.skipped_duplicate,
+            "skipped_filtered": r.skipped_filtered,
+            "failed": r.failed,
+        }
+        for r in outcome.source_results
+    ]
 
 
 @router.get("/ingest/scheduler/status", response_model=SchedulerStatusResponse)
@@ -143,20 +161,31 @@ def get_scheduler_status():
 
 @router.post("/ingest/scheduler/run-now", response_model=RunNowResponse)
 def scheduler_run_now():
-    """Trigger an ingestion run immediately through the internal service path.
+    """Trigger an ingestion run immediately through the canonical orchestration.
 
-    Uses the same process-level lock as manual and scheduled ingestion;
-    returns 409 if another run is active.
+    Uses the same durable single-flight guard as manual and scheduled ingestion
+    (M7-1, #147); returns 409 if another run — in any process — is active.
     """
-    summary = run_ingestion_guarded(scheduler_state, trigger="run_now")
-    if summary is None:
-        raise HTTPException(status_code=409, detail=_ingestion_busy_detail())
+    outcome = orchestrate_cycle(TRIGGER_RUN_NOW)
+    _mirror_to_legacy_state(outcome, trigger="run_now")
+    if outcome.skipped:
+        raise HTTPException(status_code=409, detail=_ingestion_busy_detail(outcome.active_run))
     return RunNowResponse(
         trigger="run_now",
-        started_at=scheduler_state.last_started_at,
-        finished_at=scheduler_state.last_finished_at,
-        status=scheduler_state.last_status,
-        sources=summary,
+        started_at=outcome.started_at,
+        finished_at=outcome.finished_at,
+        status="ok" if outcome.status in ("succeeded", "succeeded_with_warnings") else "error",
+        sources=[
+            {
+                "source_id": r.source_id,
+                "fetched": r.fetched,
+                "inserted": r.inserted,
+                "skipped_duplicate": r.skipped_duplicate,
+                "skipped_filtered": r.skipped_filtered,
+                "failed": r.failed,
+            }
+            for r in outcome.source_results
+        ],
     )
 
 

@@ -81,6 +81,59 @@ The soak report will summarize attempts/successes/skips/durations/inserts/cluste
 effects from `scheduler_cycles` at closure. Already banked during Phase B: one
 process restart ×2, one manual-overlap coalesce, two honest failures.
 
+## Pre-activation defects found & fixed (during Phase C)
+
+Three defects were caught before Telegram activation and are frozen with tests.
+
+**D-C1 — httpx would log the token-bearing URL (PR #166, merged).** httpx logs
+every request URL at INFO and the bot token is IN the Bot API URL path; the
+worker runs root logging at INFO, so the first real send would have printed the
+token. Fixed by capping httpx/httpcore at WARNING at adapter import. Test-locked.
+
+**D-C2 — status contract reported API config-intent, not worker reality (PR #167,
+merged).** The ops header said "Scheduling: disabled" while the worker was alive
+and ticking, because both status endpoints derived enabled/next-run/stale from
+the API process's `SCHEDULER_ENABLED` env. Worse, stale detection was gated on
+that flag, so a dead worker would have read healthy. Fixed with a durable
+`worker_liveness()` heartbeat read and three separated signals
+(`scheduler_enabled` intent · `worker_running` · `automatic_ingestion_active`).
+
+**D-C3 — the test suite could send REAL Telegram messages (PR #167, merged) —
+the headline pre-activation defect.** conftest pinned the ENABLE flag but not the
+secrets; `app.main._load_dotenv()` loads the developer `.env` at import, so once
+a real token existed locally it leaked into every test process. A planner test
+that enables notifications then constructed a configured real `TelegramSender`
+and **delivered two identical fixture messages to Guy's chat** (the failing test
+ran once in the full suite + once isolated for diagnosis).
+
+Containment evidence (all verified 2026-07-17):
+
+1. **Tests cannot load Telegram creds from `backend/.env`.** conftest sets
+   `TELEGRAM_BOT_TOKEN=""`/`TELEGRAM_CHAT_ID=""` BEFORE app import; `_load_dotenv`
+   uses `override=False`, so the empty pins win over the real `.env`. Proven by
+   `test_conftest_pins_telegram_secrets_empty` (runs inside the suite, which
+   loads the real `.env` at import, and still sees empty + `configured()` False).
+2. **Test config forces:** notifications disabled by default; empty token/chat id;
+   delivery tests inject a `FakeSender`; and an autouse `_block_real_telegram`
+   tripwire raises on ANY `api.telegram.org` call — no real network delivery.
+3. **Zero real sends after PR #167:** full backend suite re-run **2335 passed /
+   1 skipped WITH the network tripwire active** — any real Telegram attempt would
+   have failed the run; none did.
+4. **Isolated test DB:** conftest points `DATABASE_URL` at a temp `test.db` before
+   any app import; the live corpus was never opened by tests — the live DB shows
+   **0 rows with test ids** (`rss_t152%`) and **0** test-origin scheduler cycles.
+5. **Live notification/outbox tables still empty:** `notification_events`,
+   `notification_story_members`, `notification_watermarks` all **0**.
+6. **Soak worker unchanged:** `pid=7800` (launcher parent `pid=31508`), start
+   **2026-07-16 18:53:51**, uninterrupted — 79 succeeded cycles, no `abandoned`,
+   no stuck `running` (the only 2 `failed` are the pre-fix Phase B cycles from
+   earlier worker PIDs 6952/30432, already documented above).
+7. **Token hygiene:** Guy revoked the original exposed token at BotFather; the
+   fresh token validates via a read-only `getMe` (`@signalsportnotify_bot`). No
+   Telegram-token pattern exists in the tracked tree, the full **276-commit**
+   history, `docs/qa/` artifacts, logs, or the GitHub issue comments — the token
+   value exists only in the git-ignored `backend/.env`.
+
 ## Phase C/D — BLOCKED on the human-only steps
 
 Everything is prepared; Guy's actions (docs/NOTIFICATIONS.md §One-time setup):

@@ -8,16 +8,30 @@ DATABASE_URL: str = os.environ.get("DATABASE_URL", "sqlite:///./data/signal_spor
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False},
+    # M7 topology (#147/#155): TWO writer processes (API + scheduler worker)
+    # plus the lease-heartbeat thread share this SQLite file. The driver-level
+    # busy timeout makes a writer WAIT for the lock instead of failing with
+    # "database is locked" — the Phase-B acceptance run caught exactly that
+    # failure mid-cycle with the sqlite3 default (5s) under ollama-paced load.
+    connect_args={"check_same_thread": False, "timeout": 30},
 )
 
 
 @event.listens_for(engine, "connect")
-def _enable_sqlite_foreign_keys(dbapi_connection, connection_record) -> None:
+def _configure_sqlite(dbapi_connection, connection_record) -> None:
     if not DATABASE_URL.startswith("sqlite"):
         return
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
+    # WAL is the canonical journal mode for single-node multi-process SQLite:
+    # readers never block the writer and vice versa, which removes the routine
+    # SQLITE_BUSY class for this topology. Persistent side effect, documented
+    # in docs/SCHEDULER.md: the database gains -wal/-shm sidecar files, and
+    # FILE-COPY BACKUPS MUST CHECKPOINT FIRST (PRAGMA wal_checkpoint(FULL))
+    # or use the sqlite3 backup API — a bare copy of the .db can miss the
+    # most recent writes still living in the -wal file.
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA busy_timeout=30000")
     cursor.close()
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)

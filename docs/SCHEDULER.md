@@ -107,6 +107,26 @@ no third competing concept.
 | Retry/restart | Article identity (`rss_`+sha1(url), per-article commit) makes re-ingestion idempotent — no duplicate articles, clusters, or (M7-5) notifications. |
 | Classification/validator unavailable | Existing fail-closed behavior preserved (rules fallback / anchor abstention). |
 
+## SQLite posture (WAL + busy timeout)
+
+The M7 topology is two writer processes (API + worker) plus the lease-heartbeat
+thread on one SQLite file. The Phase-B acceptance run caught a mid-cycle
+`database is locked` failure under this contention with the sqlite3 default
+5-second wait — the fix (#155) is the canonical single-node posture:
+
+- `PRAGMA journal_mode=WAL` — readers and the writer no longer block each other;
+- driver `timeout=30` + `PRAGMA busy_timeout=30000` — a writer waits for the
+  lock instead of failing.
+
+**Backup consequence (important):** with WAL, the newest writes may live in the
+`-wal` sidecar file. A bare file copy of `signal_sports.db` can be behind.
+Backups must either checkpoint first or use the sqlite3 backup API:
+
+```powershell
+cd backend
+.venv\Scripts\python.exe scripts\backup_db.py    # checkpointed, verified copy
+```
+
 ## Rollback
 
 - **Disable the scheduler without breaking manual ingestion:** set

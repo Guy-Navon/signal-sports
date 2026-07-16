@@ -212,8 +212,12 @@ export function formatDuration(ms) {
 
 export function normalizeSchedulerStatusFromApi(s) {
   return {
+    // config INTENT as seen by the API process — NOT proof anything is ticking
     enabled: s.enabled ?? false,
     running: s.running ?? false,
+    // durable runtime truth from the dedicated worker heartbeat (M7-4)
+    workerRunning: s.worker_running ?? false,
+    automaticIngestionActive: s.automatic_ingestion_active ?? s.worker_running ?? false,
     intervalMinutes: s.interval_minutes ?? 15,
     nextRunAt: s.next_run_at ?? null,
     lastStartedAt: s.last_started_at ?? null,

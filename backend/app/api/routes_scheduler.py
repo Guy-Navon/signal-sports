@@ -20,7 +20,11 @@ from sqlalchemy.orm import Session
 
 from app.core.security_deps import require_admin
 from app.db.database import get_session
-from app.ingestion.orchestration import current_lease, stale_after_seconds
+from app.ingestion.orchestration import (
+    current_lease,
+    stale_after_seconds,
+    worker_liveness,
+)
 
 router = APIRouter()
 
@@ -52,7 +56,20 @@ def _scheduler_config() -> dict:
 # ── Scheduler health ──────────────────────────────────────────────────────────
 
 class SchedulerHealthResponse(BaseModel):
+    # THREE DISTINCT SIGNALS — do not conflate (M7-4 status contract):
+    #  1. scheduler_enabled: the SCHEDULER_ENABLED config INTENT as read by THIS
+    #     (API) serving process. The API never runs an in-process scheduler, so
+    #     this is config intent only, NOT proof anything is ticking. It is false
+    #     during the controlled soak (activation authority reserved for M7-10)
+    #     even while the worker runs.
+    #  2. worker_running: the dedicated worker process is alive with a fresh
+    #     heartbeat — durable, independent of any process env.
+    #  3. automatic_ingestion_active: automatic ingestion is genuinely happening
+    #     (currently == worker_running). THIS is the headline signal a UI should
+    #     show, never scheduler_enabled.
     scheduler_enabled: bool
+    worker_running: bool
+    automatic_ingestion_active: bool
     interval_seconds: int
     worker_state: Optional[str] = None           # starting | idle | stopped | None
     worker_last_seen_at: Optional[str] = None
@@ -126,12 +143,14 @@ def _notification_block(session: Session) -> dict:
 def scheduler_health(session: Session = Depends(get_session)):
     cfg = _scheduler_config()
 
-    worker = session.execute(text(
-        "SELECT state, last_seen_at FROM worker_status WHERE id = 1"
-    )).fetchone()
-    worker_state = worker[0] if worker else None
-    worker_seen = worker[1] if worker else None
-    heartbeat_age = _age_seconds(worker_seen)
+    # Runtime reality comes from the durable worker heartbeat, never from this
+    # (API) process's SCHEDULER_ENABLED env.
+    live = worker_liveness(session)
+    worker_state = live["state"]
+    worker_seen = live["last_seen_at"]
+    heartbeat_age = live["heartbeat_age_seconds"]
+    worker_running = live["running"]
+    worker_interval = live["interval_seconds"] or cfg["interval_seconds"]
 
     lease = current_lease(session)
 
@@ -159,14 +178,18 @@ def scheduler_health(session: Session = Depends(get_session)):
             break
 
     # Stale: defined relative to cadence + max run duration, never a magic
-    # constant. The scheduler is stale when it is ENABLED and either the worker
-    # heartbeat or the last success is older than one interval + one max run.
-    allowance = cfg["interval_seconds"] + cfg["max_run_seconds"]
+    # constant, and keyed to the WORKER (durable heartbeat) — NOT to this API
+    # process's SCHEDULER_ENABLED env. Two distinct degraded conditions:
+    #   (a) the worker claims an active loop but its heartbeat/last-success has
+    #       gone cold — the worker died or wedged;
+    #   (b) config intent says scheduling should be on, yet no live worker
+    #       exists — an operator enabled it but never launched the worker.
+    allowance = (worker_interval or cfg["interval_seconds"]) + cfg["max_run_seconds"]
     stale = False
     stale_reason = None
-    if cfg["enabled"]:
+    if worker_state in ("starting", "idle"):
         if heartbeat_age is None:
-            stale, stale_reason = True, "worker has never reported a heartbeat"
+            stale, stale_reason = True, "worker reports active but has no heartbeat timestamp"
         elif heartbeat_age > allowance:
             stale, stale_reason = True, (
                 f"worker heartbeat is {heartbeat_age:.0f}s old "
@@ -174,11 +197,14 @@ def scheduler_health(session: Session = Depends(get_session)):
         elif success_age is not None and success_age > 3 * allowance:
             stale, stale_reason = True, (
                 f"last successful cycle is {success_age:.0f}s old")
+    elif cfg["enabled"] and not worker_running:
+        stale, stale_reason = True, (
+            "SCHEDULER_ENABLED is set but no dedicated worker heartbeat is fresh")
 
     next_expected = None
-    if cfg["enabled"] and worker_seen and worker_state not in (None, "stopped"):
+    if worker_running and worker_seen:
         next_expected = (datetime.fromisoformat(worker_seen)
-                         + timedelta(seconds=cfg["interval_seconds"])).isoformat()
+                         + timedelta(seconds=worker_interval)).isoformat()
 
     failures = []
     if last_attempted:
@@ -195,6 +221,8 @@ def scheduler_health(session: Session = Depends(get_session)):
 
     return SchedulerHealthResponse(
         scheduler_enabled=cfg["enabled"],
+        worker_running=worker_running,
+        automatic_ingestion_active=worker_running,
         interval_seconds=cfg["interval_seconds"],
         worker_state=worker_state,
         worker_last_seen_at=worker_seen,

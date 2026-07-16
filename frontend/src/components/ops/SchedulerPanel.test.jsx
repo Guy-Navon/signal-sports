@@ -65,6 +65,8 @@ describe("normalizeSchedulerStatusFromApi", () => {
     const s = normalizeSchedulerStatusFromApi({
       enabled: true,
       running: true,
+      worker_running: true,
+      automatic_ingestion_active: true,
       interval_minutes: 10,
       next_run_at: "2026-07-01T12:00:00+00:00",
       last_started_at: "2026-07-01T11:50:00+00:00",
@@ -75,6 +77,8 @@ describe("normalizeSchedulerStatusFromApi", () => {
       last_result_summary: [{ source_id: "walla_sport", inserted: 3 }],
     });
     expect(s.enabled).toBe(true);
+    expect(s.workerRunning).toBe(true);
+    expect(s.automaticIngestionActive).toBe(true);
     expect(s.intervalMinutes).toBe(10);
     expect(s.nextRunAt).toBe("2026-07-01T12:00:00+00:00");
     expect(s.lastStatus).toBe("ok");
@@ -86,11 +90,30 @@ describe("normalizeSchedulerStatusFromApi", () => {
     const s = normalizeSchedulerStatusFromApi({});
     expect(s.enabled).toBe(false);
     expect(s.running).toBe(false);
+    expect(s.workerRunning).toBe(false);
+    expect(s.automaticIngestionActive).toBe(false);
     expect(s.intervalMinutes).toBe(15);
     expect(s.nextRunAt).toBeNull();
     expect(s.lastStatus).toBe("never_run");
     expect(s.activeRun).toBeNull();
     expect(s.lastResultSummary).toBeNull();
+  });
+
+  it("surfaces automatic ingestion active even when the API env flag is off", () => {
+    // The two-process topology: worker alive, API's SCHEDULER_ENABLED false.
+    const s = normalizeSchedulerStatusFromApi({
+      enabled: false,
+      running: true,
+      worker_running: true,
+      automatic_ingestion_active: true,
+    });
+    expect(s.enabled).toBe(false);
+    expect(s.automaticIngestionActive).toBe(true);
+  });
+
+  it("derives automaticIngestionActive from worker_running when the field is absent", () => {
+    const s = normalizeSchedulerStatusFromApi({ enabled: false, worker_running: true });
+    expect(s.automaticIngestionActive).toBe(true);
   });
 });
 

@@ -280,6 +280,8 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
     status = STATUS_FAILED
     error_summary: Optional[str] = None
     results: list = []
+    notification_summary: Optional[dict] = None
+    stage_warnings: list[str] = []
     try:
         with SessionLocal() as session:
             _insert_cycle(session, cycle_id, trigger, requested_at,
@@ -295,10 +297,22 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
             )
             session.commit()
 
+        # ── Notification planning (M7-6, #152) ────────────────────────────────
+        # AFTER clustering (must see today's components), BEFORE cleanup (M7-3;
+        # planning must observe the full window before anything is deleted).
+        # A planner failure degrades the cycle — it never rolls back ingestion.
+        try:
+            from app.notifications.planner import plan_cycle_notifications
+            with SessionLocal() as session:
+                notification_summary = plan_cycle_notifications(session)
+        except Exception as exc:
+            notification_summary = {"error": f"{type(exc).__name__}: {str(exc)[:200]}"}
+            stage_warnings.append(f"notification planning failed: {exc}")
+            logger.exception("Cycle %s: notification planning failed", cycle_id)
+
         # Stage placeholders (contract order — see module docstring):
-        #   M7-6 notification planning → M7-7 dispatch → M7-3 retention cleanup.
-        # Each will degrade to succeeded_with_warnings on failure, never rollback
-        # ingestion.
+        #   M7-7 dispatch → M7-3 retention cleanup. Each degrades to
+        #   succeeded_with_warnings on failure, never rolling back ingestion.
 
         any_errors = any(r.errors for r in results)
         any_inserted = any(r.inserted for r in results)
@@ -306,10 +320,11 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
             status = STATUS_FAILED
             error_summary = next(
                 (e[:300] for r in results for e in r.errors), None)
-        elif any_errors:
+        elif any_errors or stage_warnings:
             status = STATUS_WARNINGS
             error_summary = next(
-                (e[:300] for r in results for e in r.errors), None)
+                (e[:300] for r in results for e in r.errors),
+                stage_warnings[0][:300] if stage_warnings else None)
         else:
             status = STATUS_SUCCEEDED
     except Exception as exc:
@@ -328,6 +343,7 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
                     row.finished_at = _iso(finished_at)
                     row.error_summary = error_summary
                     row.source_results = _summarize(results)
+                    row.notification_summary = notification_summary
                     session.commit()
         except Exception:                          # pragma: no cover - defensive
             logger.exception("Cycle %s: failed to finalize the cycle row", cycle_id)

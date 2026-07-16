@@ -1,72 +1,39 @@
 """
-Scheduled ingestion loop + process-level ingestion lock (PR 13).
+Legacy in-process scheduler shims (PR 13 → retired by M7-2, #148).
 
-Design:
-- A plain asyncio.Task started in the FastAPI lifespan (no APScheduler).
-  The blocking sync ingestion runs in a worker thread via anyio.to_thread so
-  the event loop is never blocked.
-- Disabled by default (INGESTION_SCHEDULER_ENABLED=false). When disabled,
-  start_scheduler() returns None and the app behaves exactly as before PR 13.
-- scheduler_state.lock is THE process-level ingestion lock, shared by:
-    1. the scheduled loop
-    2. POST /api/ingest/run (manual)
-    3. POST /api/ingest/scheduler/run-now
-  A busy lock produces a structured 409 for the endpoints and a "skipped"
-  status for a scheduled tick. No two ingestion runs can overlap in-process.
-- Deployment note: the lock and the loop are process-local. In a multi-replica
-  deployment only one worker should run the scheduler, or a distributed lock /
-  external scheduler is required.
+The scheduled ingestion LOOP no longer lives here — or anywhere in the API
+process. The in-process lifespan scheduler was retired because its lifetime
+was coupled to request-serving reloads (`uvicorn --reload` and every extra
+worker would each have started their own polling loop). Scheduled ingestion is
+the dedicated worker process: ``python -m app.worker`` (see app/worker.py),
+coordinating with manual API triggers through the durable single-flight lease
+in app/ingestion/orchestration.py (M7-1).
 
-Env vars (read at call time so tests can monkeypatch):
-    INGESTION_SCHEDULER_ENABLED=false
-    INGESTION_SCHEDULER_INTERVAL_MINUTES=15
-    INGESTION_SCHEDULER_INITIAL_DELAY_SECONDS=30
+What remains here, deliberately and temporarily:
+- ``SchedulerState`` + ``scheduler_state`` — the in-memory mirror behind the
+  legacy ``GET /api/ingest/scheduler/status`` endpoint. It reflects THIS API
+  process only (a worker-process run is invisible to it); M7-4 replaces the
+  endpoint with the durable cycle data and this mirror dies with it.
+- ``run_ingestion_guarded`` — a thin shim over the canonical orchestration
+  that keeps the mirror coherent.
 """
 
-import asyncio
-import contextlib
 import logging
-import os
-import threading
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_INTERVAL_MINUTES = 15
-_DEFAULT_INITIAL_DELAY_SECONDS = 30
-
-
-def _read_scheduler_env() -> tuple[bool, int, int]:
-    """Read scheduler env vars. Called at start time (not import) for testability."""
-    enabled = os.getenv("INGESTION_SCHEDULER_ENABLED", "false").lower() == "true"
-    try:
-        interval = int(os.getenv("INGESTION_SCHEDULER_INTERVAL_MINUTES",
-                                 str(_DEFAULT_INTERVAL_MINUTES)))
-    except ValueError:
-        interval = _DEFAULT_INTERVAL_MINUTES
-    try:
-        initial_delay = int(os.getenv("INGESTION_SCHEDULER_INITIAL_DELAY_SECONDS",
-                                      str(_DEFAULT_INITIAL_DELAY_SECONDS)))
-    except ValueError:
-        initial_delay = _DEFAULT_INITIAL_DELAY_SECONDS
-    if interval < 1:
-        interval = _DEFAULT_INTERVAL_MINUTES
-    if initial_delay < 0:
-        initial_delay = _DEFAULT_INITIAL_DELAY_SECONDS
-    return enabled, interval, initial_delay
-
 
 @dataclass
 class SchedulerState:
-    """Mutable scheduler + ingestion-lock state (module singleton)."""
+    """In-memory mirror for the LEGACY status endpoint only (see module doc)."""
 
-    lock: threading.Lock = field(default_factory=threading.Lock)
     enabled: bool = False
-    interval_minutes: int = _DEFAULT_INTERVAL_MINUTES
-    running: bool = False                       # scheduler loop alive
-    active_run: Optional[dict] = None           # {"trigger": ..., "started_at": iso}
+    interval_minutes: int = 15
+    running: bool = False
+    active_run: Optional[dict] = None
     next_run_at: Optional[datetime] = None
     last_started_at: Optional[datetime] = None
     last_finished_at: Optional[datetime] = None
@@ -131,46 +98,8 @@ def run_ingestion_guarded(
     return summary
 
 
-async def _scheduler_loop(state: SchedulerState, interval_minutes: int,
-                          initial_delay_seconds: int) -> None:
-    import anyio
-
-    state.next_run_at = datetime.now(tz=timezone.utc) + timedelta(
-        seconds=initial_delay_seconds
-    )
-    await asyncio.sleep(initial_delay_seconds)
-    while True:
-        state.next_run_at = datetime.now(tz=timezone.utc) + timedelta(
-            minutes=interval_minutes
-        )
-        await anyio.to_thread.run_sync(run_ingestion_guarded, state, "scheduled")
-        await asyncio.sleep(interval_minutes * 60)
-
-
-def start_scheduler(state: SchedulerState) -> Optional[asyncio.Task]:
-    """Start the scheduled ingestion loop if enabled. Returns None when disabled."""
-    enabled, interval, initial_delay = _read_scheduler_env()
-    state.enabled = enabled
-    state.interval_minutes = interval
-    if not enabled:
-        state.running = False
-        return None
-
-    state.running = True
-    logger.info(
-        "Ingestion scheduler enabled: every %d min (initial delay %ds)",
-        interval, initial_delay,
-    )
-    # Called from the FastAPI lifespan, where an event loop is running.
-    return asyncio.create_task(_scheduler_loop(state, interval, initial_delay))
-
-
-async def stop_scheduler(state: SchedulerState, task: Optional[asyncio.Task]) -> None:
-    """Cancel the scheduler task on app shutdown. Safe to call with None."""
-    state.running = False
-    state.next_run_at = None
-    if task is None:
-        return
-    task.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await task
+# The asyncio loop machinery (_scheduler_loop / start_scheduler / stop_scheduler)
+# and the INGESTION_SCHEDULER_* env vars were REMOVED by M7-2 (#148), not kept as
+# dead default-off code: leaving a second loop-starter in the tree is exactly the
+# dual-scheduler hazard the retirement exists to prevent. The worker process is
+# the only thing that polls.

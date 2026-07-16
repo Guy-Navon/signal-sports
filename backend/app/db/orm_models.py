@@ -1,4 +1,6 @@
-from sqlalchemy import Column, String, Text, Float, Boolean, JSON, Integer, ForeignKey
+from sqlalchemy import (
+    Column, String, Text, Float, Boolean, JSON, Integer, ForeignKey, UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -219,6 +221,91 @@ class SchedulerCycleRow(Base):
     process_identity = Column(String, nullable=True)     # "pid=… host=…"
     # Config fingerprint needed to explain behavior (interval, flags) — JSON.
     config_snapshot = Column(JSON, nullable=True)
+
+
+class NotificationEventRow(Base):
+    """One story-level notification event for one profile (M7-5, #151).
+
+    The event id IS the stable story identity for notification purposes.
+    What makes it stable is not this row — it is the LINEAGE below: creating
+    an event requires inserting every current component member into
+    ``notification_story_members``, whose DB UNIQUE constraint is the actual
+    duplicate-prevention mechanism. Cluster ids may churn (anchor change,
+    component merge, backfill — reconcile_scope preserves ids only through
+    overlap); article ids never do (``rss_`` + sha1(url)). So the lineage is
+    keyed on article ids, and the event survives every realistic component
+    evolution.
+    """
+    __tablename__ = "notification_events"
+
+    id = Column(String, primary_key=True)              # "notif_" + uuid4 hex
+    profile_id = Column(String, nullable=False, index=True)
+    policy_version = Column(String, nullable=False)
+    # pending | claimed | sent | failed_retryable | failed_final | unknown
+    # | suppressed_watermark  (planted at activation; never dispatched)
+    status = Column(String, nullable=False, index=True)
+    created_at = Column(String, nullable=False)
+
+    # Story snapshot AT CREATION (a later canonical change must not re-notify,
+    # and the message links what the feed showed when the decision was made).
+    cluster_id_at_creation = Column(String, nullable=True)   # None: unclustered story
+    canonical_article_id = Column(String, nullable=False)
+    canonical_headline = Column(String, nullable=False)
+    source = Column(String, nullable=False)
+    url = Column(String, nullable=False)
+    tier = Column(String, nullable=False)                    # "push" for the pilot
+    decision_provenance = Column(JSON, nullable=True)
+
+    # Delivery lifecycle (M7-7 fills these).
+    claimed_at = Column(String, nullable=True)
+    attempt_count = Column(Integer, nullable=False, default=0)
+    last_attempt_at = Column(String, nullable=True)
+    final_at = Column(String, nullable=True)
+    provider = Column(String, nullable=True)                 # "telegram"
+    provider_message_id = Column(String, nullable=True)
+    last_error_class = Column(String, nullable=True)         # sanitized class, never a payload
+    # Lineage notes: later component merges/expansions recorded for audit.
+    lineage_notes = Column(JSON, nullable=True)
+
+
+class NotificationStoryMemberRow(Base):
+    """THE uniqueness mechanism (M7-5, #151): an article id may belong to at
+    most one notified story per (profile, policy version) — enforced by the
+    database, not by application ``exists()`` checks.
+
+    Rows are durable and independent of the ``articles`` table (no FK): they
+    are the notification system's MEMORY, and retention deleting an old
+    article must not erase the fact that its story was already notified.
+    """
+    __tablename__ = "notification_story_members"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(String, nullable=False)
+    policy_version = Column(String, nullable=False)
+    article_id = Column(String, nullable=False)
+    event_id = Column(String, nullable=False, index=True)
+    added_at = Column(String, nullable=False)
+    # Why this member is in the lineage: "creation" | "expansion" | "merge"
+    reason = Column(String, nullable=False, default="creation")
+
+    __table_args__ = (
+        UniqueConstraint("profile_id", "policy_version", "article_id",
+                         name="uq_notification_story_member"),
+    )
+
+
+class NotificationWatermarkRow(Base):
+    """Activation watermark (M7-5, #151): enabling Telegram must not flood
+    every historically PUSH-eligible story. Set once per (profile, policy)
+    by the guarded activation initialization; the planner refuses to plan
+    for a profile with no watermark.
+    """
+    __tablename__ = "notification_watermarks"
+
+    profile_id = Column(String, primary_key=True)
+    policy_version = Column(String, primary_key=True)
+    activated_at = Column(String, nullable=False)
+    suppressed_story_count = Column(Integer, nullable=False, default=0)
 
 
 class WorkerStatusRow(Base):

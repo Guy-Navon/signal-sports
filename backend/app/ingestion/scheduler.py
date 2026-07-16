@@ -97,43 +97,38 @@ def run_ingestion_guarded(
     trigger: str,
     source_id: Optional[str] = None,
 ) -> Optional[list[dict[str, Any]]]:
-    """Run ingestion under the process-level lock.
+    """Run ingestion through the canonical orchestration (M7-1, #147).
 
-    Returns the per-source summary list, or None if another run is active
-    (lock busy). Sync by design — callable from endpoints and from the
-    scheduler loop's worker thread alike. The lock is always released.
+    Since #147 the guard is the DURABLE database lease in
+    ``app.ingestion.orchestration`` — not the process-local lock (which could
+    never see a run in another process). This wrapper keeps the in-memory
+    ``SchedulerState`` mirror coherent for the legacy status endpoint until
+    M7-4 replaces it with the durable cycle data.
+
+    Returns the per-source summary list, or None if another run is active.
     """
-    if not state.lock.acquire(blocking=False):
+    # Imported here (not at module top) so importing scheduler.py never pulls
+    # the ingestion stack before .env is loaded.
+    from app.ingestion.orchestration import orchestrate_cycle
+
+    outcome = orchestrate_cycle(trigger, source_id=source_id)
+    if outcome.skipped:
         if trigger == "scheduled":
             state.last_status = "skipped"
             logger.info("Scheduled ingestion tick skipped — another run is active")
         return None
 
-    # Imported here (not at module top) so importing scheduler.py never pulls
-    # the LLM provider/ingestion stack before .env is loaded.
-    from app.db.database import SessionLocal
-    from app.ingestion.ingestion_service import run_ingestion
-
-    started = datetime.now(tz=timezone.utc)
-    state.active_run = {"trigger": trigger, "started_at": started.isoformat()}
-    state.last_started_at = started
-    try:
-        with SessionLocal() as session:
-            results = run_ingestion(session, source_id=source_id)
-        summary = _summarize_results(results)
+    state.last_started_at = outcome.started_at
+    state.last_finished_at = outcome.finished_at
+    summary = _summarize_results(outcome.source_results)
+    if outcome.status in ("succeeded", "succeeded_with_warnings"):
         state.last_status = "ok"
         state.last_error = None
         state.last_result_summary = summary
-        return summary
-    except Exception as exc:
-        logger.exception("Ingestion run (%s) failed", trigger)
+    else:
         state.last_status = "error"
-        state.last_error = str(exc)
-        return []
-    finally:
-        state.last_finished_at = datetime.now(tz=timezone.utc)
-        state.active_run = None
-        state.lock.release()
+        state.last_error = outcome.error_summary
+    return summary
 
 
 async def _scheduler_loop(state: SchedulerState, interval_minutes: int,

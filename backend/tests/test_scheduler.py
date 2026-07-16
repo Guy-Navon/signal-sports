@@ -72,7 +72,26 @@ def _fake_result(source_id="walla_sport", inserted=3):
         skipped_duplicate=2,
         skipped_filtered=0,
         failed=0,
+        errors=[],
     )
+
+
+def _hold_lease(cycle_id="cycle_test_holder"):
+    """Hold the DURABLE single-flight lease (M7-1, #147) — the guard is the
+    database lease now, not the process-local lock."""
+    from app.db.database import SessionLocal
+    from app.ingestion.orchestration import _try_acquire_lease
+    with SessionLocal() as s:
+        acquired, _ = _try_acquire_lease(s, cycle_id)
+        assert acquired
+    return cycle_id
+
+
+def _free_lease(cycle_id):
+    from app.db.database import SessionLocal
+    from app.ingestion.orchestration import _release_lease
+    with SessionLocal() as s:
+        _release_lease(s, cycle_id)
 
 
 RUN_INGESTION = "app.ingestion.ingestion_service.run_ingestion"
@@ -96,42 +115,40 @@ class TestRunIngestionGuarded:
         assert state.last_error is None
         assert state.last_started_at is not None
         assert state.last_finished_at is not None
-        assert state.active_run is None
-        assert state.lock.acquire(blocking=False)  # lock was released
-        state.lock.release()
 
-    def test_error_path_sets_error_status_and_releases_lock(self, client):
+    def test_error_path_sets_error_status_and_releases_guard(self, client):
+        from app.db.database import SessionLocal
+        from app.ingestion.orchestration import current_lease
         state = SchedulerState()
         with patch(RUN_INGESTION, side_effect=RuntimeError("boom")):
             summary = run_ingestion_guarded(state, trigger="scheduled")
 
         assert summary == []
         assert state.last_status == "error"
-        assert state.last_error == "boom"
-        assert state.active_run is None
-        assert state.lock.acquire(blocking=False)
-        state.lock.release()
+        assert "boom" in state.last_error
+        with SessionLocal() as s:
+            assert current_lease(s) is None      # the DURABLE guard was released
 
-    def test_busy_lock_returns_none(self):
+    def test_busy_guard_returns_none(self, client):
         state = SchedulerState()
-        state.lock.acquire()
+        holder = _hold_lease()
         try:
             summary = run_ingestion_guarded(state, trigger="run_now")
             assert summary is None
             # State untouched except nothing started
             assert state.last_started_at is None
         finally:
-            state.lock.release()
+            _free_lease(holder)
 
-    def test_busy_lock_scheduled_tick_marks_skipped(self):
+    def test_busy_guard_scheduled_tick_marks_skipped(self, client):
         state = SchedulerState()
-        state.lock.acquire()
+        holder = _hold_lease()
         try:
             summary = run_ingestion_guarded(state, trigger="scheduled")
             assert summary is None
             assert state.last_status == "skipped"
         finally:
-            state.lock.release()
+            _free_lease(holder)
 
     def test_source_id_forwarded(self, client):
         state = SchedulerState()

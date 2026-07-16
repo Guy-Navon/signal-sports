@@ -103,6 +103,33 @@ def _keep_bare_client_anonymous(request):
         request.getfixturevalue("client").cookies.clear()
 
 
+@pytest.fixture(autouse=True)
+def _block_real_telegram(monkeypatch):
+    """Belt-and-suspenders containment for the PR #167 isolation defect: NO
+    test may reach api.telegram.org. Even though the secrets are pinned empty
+    (so TelegramSender is never configured), this trips loudly if any future
+    code path attempts a real Telegram HTTP call — the suite must never touch
+    the network. Tests that exercise delivery inject a FakeSender or patch httpx
+    themselves; those overrides layer on top and this only fires on an
+    UNINTENDED real call."""
+    import httpx
+
+    real_post, real_get = httpx.post, httpx.get
+
+    def _guard(real):
+        def wrapper(url, *a, **k):
+            if "api.telegram.org" in str(url):
+                raise AssertionError(
+                    "BLOCKED: a test attempted a REAL Telegram API call "
+                    f"({url!r}). Tests must never reach the network.")
+            return real(url, *a, **k)
+        return wrapper
+
+    monkeypatch.setattr(httpx, "post", _guard(real_post))
+    monkeypatch.setattr(httpx, "get", _guard(real_get))
+    yield
+
+
 _TEST_IDENTITY_PASSWORD = "test identity passphrase"
 
 

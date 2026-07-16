@@ -64,6 +64,14 @@ def _apply_migrations(eng) -> None:
         # Validated story anchors (issue #141) — persisted at ingestion; pair eval reads only.
         ("articles", "story_anchors",             "JSON"),
         ("articles", "anchor_validator_version",  "TEXT"),
+        # Parent orchestration cycle for per-source run rows (M7-1, #147).
+        # CAUGHT BY THE #155 PHASE-B ACCEPTANCE RUN: the ORM column existed but
+        # this soft-migration entry was missing, so the LIVE database (whose
+        # table predates M7) rejected the insert mid-cycle. Tests create fresh
+        # schemas via create_all and can never catch a missing ALTER — the
+        # migration-coverage regression test in test_orchestration_147.py now
+        # locks this class.
+        ("ingestion_runs", "cycle_id",            "TEXT"),
     ]
     with eng.connect() as conn:
         for table, col, col_type in migrations:

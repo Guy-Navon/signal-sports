@@ -67,7 +67,10 @@ survived, status `failed` with a sanitized error, lease released, worker continu
   all durable with process identity.
 
 Current live feed state (service-level capture, post-ingestion):
-52 cards / 5 pushes / 9 cluster cards. Pushes rose 3 → 5 purely from genuinely new
+52 cards / 5 pushes / 9 cluster cards — captured in
+`docs/qa/feed_live_phaseB_ranked_guy_155_20260716.json` (the capture briefly
+overwrote the frozen M6 artifact `feed_live_final_ranked_guy_126_20260715.json`
+in the working tree; the M6 baseline was restored from git untouched). Pushes rose 3 → 5 purely from genuinely new
 real articles — exactly the historical-PUSH backlog the M7-10 activation watermark
 exists to suppress.
 

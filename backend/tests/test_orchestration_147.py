@@ -236,6 +236,51 @@ class TestOrchestration:
 # The endpoints share the guard
 # ══════════════════════════════════════════════════════════════════════════════
 
+class TestMigrationCoverage:
+    def test_every_orm_column_reaches_a_legacy_database(self):
+        """THE CLASS LOCK for the #155 Phase-B finding: tests create fresh
+        schemas via create_all, so a missing soft-migration ALTER for a column
+        added to an EXISTING table is invisible here and fatal on the live DB
+        (ingestion_runs.cycle_id failed exactly that way mid-cycle).
+
+        This test builds a LEGACY-shaped table (without the new columns), runs
+        the soft migrations against it, and asserts the ORM's view of the world
+        exists on disk afterwards — for every table the migration list touches.
+        """
+        import sqlite3
+        import tempfile
+        from pathlib import Path
+
+        from sqlalchemy import create_engine, inspect
+
+        from app.db import database as db_module
+        from app.db.orm_models import Base
+
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "legacy.db"
+            # A legacy ingestion_runs WITHOUT the M7 column:
+            conn = sqlite3.connect(path)
+            conn.execute(
+                "CREATE TABLE ingestion_runs (id TEXT PRIMARY KEY, source_id TEXT, "
+                "started_at TEXT, finished_at TEXT, status TEXT, fetched_count INT, "
+                "inserted_count INT, skipped_duplicate_count INT, failed_count INT, "
+                "error_message TEXT)")
+            conn.commit()
+            conn.close()
+
+            eng = create_engine(f"sqlite:///{path.as_posix()}")
+            Base.metadata.create_all(bind=eng)      # creates only MISSING tables
+            db_module._apply_migrations(eng)
+
+            on_disk = {c["name"] for c in inspect(eng).get_columns("ingestion_runs")}
+            orm = {c.name for c in Base.metadata.tables["ingestion_runs"].columns}
+            missing = orm - on_disk
+            assert missing == set(), (
+                f"ORM columns missing from a legacy database after migrations: "
+                f"{missing} — add them to _apply_migrations")
+            eng.dispose()
+
+
 class TestEndpointsShareTheGuard:
     def test_manual_endpoint_409_when_lease_held_elsewhere(self, admin_client, session):
         _try_acquire_lease(session, "cycle_worker_process")

@@ -213,7 +213,10 @@ class TestOrchestrationIntegration:
         ), {"c": out.cycle_id}).fetchone()
         import json
         summary = json.loads(row[0])
-        assert len(summary["created"]) == 1
+        assert len(summary["planning"]["created"]) == 1
+        # Dispatch ran as its own stage (M7-7); Telegram is unconfigured in
+        # tests, so delivery reports unavailable WITHOUT degrading the cycle.
+        assert summary["dispatch"] == {"skipped": "not_configured"}
 
     def test_planner_failure_degrades_cycle_not_ingestion(self, session, monkeypatch):
         import types

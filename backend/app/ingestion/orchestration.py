@@ -301,18 +301,39 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
         # AFTER clustering (must see today's components), BEFORE cleanup (M7-3;
         # planning must observe the full window before anything is deleted).
         # A planner failure degrades the cycle — it never rolls back ingestion.
+        planning_summary: Optional[dict] = None
+        dispatch_summary: Optional[dict] = None
         try:
             from app.notifications.planner import plan_cycle_notifications
             with SessionLocal() as session:
-                notification_summary = plan_cycle_notifications(session)
+                planning_summary = plan_cycle_notifications(session)
         except Exception as exc:
-            notification_summary = {"error": f"{type(exc).__name__}: {str(exc)[:200]}"}
+            planning_summary = {"error": f"{type(exc).__name__}: {str(exc)[:200]}"}
             stage_warnings.append(f"notification planning failed: {exc}")
             logger.exception("Cycle %s: notification planning failed", cycle_id)
 
-        # Stage placeholders (contract order — see module docstring):
-        #   M7-7 dispatch → M7-3 retention cleanup. Each degrades to
-        #   succeeded_with_warnings on failure, never rolling back ingestion.
+        # ── Notification dispatch (M7-7, #153) ────────────────────────────────
+        # Delivery NEVER participates in the ingestion transaction: its own
+        # sessions, its own failure class. A Telegram outage degrades the cycle
+        # at most to succeeded_with_warnings and never blocks ingestion.
+        try:
+            from app.notifications.dispatcher import dispatch_pending
+            with SessionLocal() as session:
+                dispatch_summary = dispatch_pending(session)
+            if dispatch_summary.get("unknown") or dispatch_summary.get("failed_final"):
+                stage_warnings.append(
+                    f"notification delivery degraded: {dispatch_summary}")
+        except Exception as exc:
+            dispatch_summary = {"error": f"{type(exc).__name__}: {str(exc)[:200]}"}
+            stage_warnings.append(f"notification dispatch failed: {exc}")
+            logger.exception("Cycle %s: notification dispatch failed", cycle_id)
+
+        notification_summary = {"planning": planning_summary,
+                                "dispatch": dispatch_summary}
+
+        # Stage placeholder (contract order — see module docstring):
+        #   M7-3 retention cleanup runs LAST; a cleanup failure degrades the
+        #   cycle, never invalidating successful ingestion.
 
         any_errors = any(r.errors for r in results)
         any_inserted = any(r.inserted for r in results)

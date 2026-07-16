@@ -308,3 +308,35 @@ export function formatPercent(ratio) {
   if (ratio == null) return "—";
   return `${(ratio * 100).toFixed(1)}%`;
 }
+
+// ── M7-8 (#154): notification observability helpers (pure; node-tested) ──────
+
+export const NOTIFICATION_STATUS_LABELS = {
+  pending: { label: "ממתין", className: "text-signal-feed" },
+  claimed: { label: "בשליחה (בדיקה ידנית אם נתקע)", className: "text-signal-push" },
+  sent: { label: "נשלח", className: "text-signal-high" },
+  failed_retryable: { label: "נכשל — ינוסה שוב", className: "text-signal-push" },
+  failed_final: { label: "נכשל סופית", className: "text-signal-hidden" },
+  unknown: { label: "לא ידוע — לא יישלח שוב", className: "text-signal-hidden" },
+  suppressed_watermark: { label: "הודחק (לפני הפעלה)", className: "text-text-dim" },
+};
+
+// Events requiring a human decision: unknown outcomes (never auto-resent) and
+// stuck claims (crash between claim and result).
+export function manualReviewEvents(events) {
+  return (events || []).filter(
+    (e) => e.status === "unknown" || e.status === "claimed"
+  );
+}
+
+// The health axis for the panel header: enabled without configuration is a
+// misconfiguration state the operator must see.
+export function notificationsStateLabel(health) {
+  if (!health) return { label: "—", degraded: false };
+  if (!health.enabled) return { label: "כבוי", degraded: false };
+  if (!health.configured) return { label: "פעיל (חסרה תצורה)", degraded: true };
+  if (health.unknown > 0 || health.consecutive_delivery_failures > 0) {
+    return { label: "פעיל — דורש בדיקה", degraded: true };
+  }
+  return { label: "פעיל", degraded: false };
+}

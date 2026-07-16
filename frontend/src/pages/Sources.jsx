@@ -2,6 +2,7 @@ import React from "react";
 import { useApp } from "@/context/AppContext";
 import { Database } from "lucide-react";
 import IngestionPanel from "@/components/ops/IngestionPanel";
+import NotificationsPanel from "@/components/ops/NotificationsPanel";
 import SchedulerPanel from "@/components/ops/SchedulerPanel";
 import BenchmarkPanel from "@/components/ops/BenchmarkPanel";
 import SourceToggleCard from "@/components/ops/SourceToggleCard";
@@ -29,6 +30,7 @@ export default function Sources() {
 
       {/* Ops panels (backend mode surfaces live data; local shows the explanation) */}
       <SchedulerPanel isBackendMode={isBackendMode} onFeedRefresh={refreshFeed} />
+      <NotificationsPanel isBackendMode={isBackendMode} />
       <IngestionPanel isBackendMode={isBackendMode} onFeedRefresh={refreshFeed} />
       <BenchmarkPanel isBackendMode={isBackendMode} />
 

@@ -58,6 +58,13 @@ def session(client, monkeypatch):
         for table in ("notification_story_members", "notification_events",
                       "notification_watermarks"):
             s.execute(text(f"DELETE FROM {table}"))
+        # DETERMINISTIC CORPUS: earlier test files leave rss_ rows (fake feeds)
+        # behind in the shared test DB; the planner reads the REAL feed, so
+        # leftovers would perturb exact-count assertions. The seeded article_0xx
+        # scoring fixtures are untouched.
+        s.execute(text("DELETE FROM articles WHERE id LIKE 'rss_%'"))
+        s.execute(text("DELETE FROM cluster_edges"))
+        s.execute(text("DELETE FROM story_clusters"))
         s.commit()
         yield s
         s.rollback()

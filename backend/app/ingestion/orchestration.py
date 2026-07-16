@@ -280,6 +280,8 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
     status = STATUS_FAILED
     error_summary: Optional[str] = None
     results: list = []
+    notification_summary: Optional[dict] = None
+    stage_warnings: list[str] = []
     try:
         with SessionLocal() as session:
             _insert_cycle(session, cycle_id, trigger, requested_at,
@@ -295,10 +297,43 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
             )
             session.commit()
 
-        # Stage placeholders (contract order — see module docstring):
-        #   M7-6 notification planning → M7-7 dispatch → M7-3 retention cleanup.
-        # Each will degrade to succeeded_with_warnings on failure, never rollback
-        # ingestion.
+        # ── Notification planning (M7-6, #152) ────────────────────────────────
+        # AFTER clustering (must see today's components), BEFORE cleanup (M7-3;
+        # planning must observe the full window before anything is deleted).
+        # A planner failure degrades the cycle — it never rolls back ingestion.
+        planning_summary: Optional[dict] = None
+        dispatch_summary: Optional[dict] = None
+        try:
+            from app.notifications.planner import plan_cycle_notifications
+            with SessionLocal() as session:
+                planning_summary = plan_cycle_notifications(session)
+        except Exception as exc:
+            planning_summary = {"error": f"{type(exc).__name__}: {str(exc)[:200]}"}
+            stage_warnings.append(f"notification planning failed: {exc}")
+            logger.exception("Cycle %s: notification planning failed", cycle_id)
+
+        # ── Notification dispatch (M7-7, #153) ────────────────────────────────
+        # Delivery NEVER participates in the ingestion transaction: its own
+        # sessions, its own failure class. A Telegram outage degrades the cycle
+        # at most to succeeded_with_warnings and never blocks ingestion.
+        try:
+            from app.notifications.dispatcher import dispatch_pending
+            with SessionLocal() as session:
+                dispatch_summary = dispatch_pending(session)
+            if dispatch_summary.get("unknown") or dispatch_summary.get("failed_final"):
+                stage_warnings.append(
+                    f"notification delivery degraded: {dispatch_summary}")
+        except Exception as exc:
+            dispatch_summary = {"error": f"{type(exc).__name__}: {str(exc)[:200]}"}
+            stage_warnings.append(f"notification dispatch failed: {exc}")
+            logger.exception("Cycle %s: notification dispatch failed", cycle_id)
+
+        notification_summary = {"planning": planning_summary,
+                                "dispatch": dispatch_summary}
+
+        # Stage placeholder (contract order — see module docstring):
+        #   M7-3 retention cleanup runs LAST; a cleanup failure degrades the
+        #   cycle, never invalidating successful ingestion.
 
         any_errors = any(r.errors for r in results)
         any_inserted = any(r.inserted for r in results)
@@ -306,10 +341,11 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
             status = STATUS_FAILED
             error_summary = next(
                 (e[:300] for r in results for e in r.errors), None)
-        elif any_errors:
+        elif any_errors or stage_warnings:
             status = STATUS_WARNINGS
             error_summary = next(
-                (e[:300] for r in results for e in r.errors), None)
+                (e[:300] for r in results for e in r.errors),
+                stage_warnings[0][:300] if stage_warnings else None)
         else:
             status = STATUS_SUCCEEDED
     except Exception as exc:
@@ -328,6 +364,7 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
                     row.finished_at = _iso(finished_at)
                     row.error_summary = error_summary
                     row.source_results = _summarize(results)
+                    row.notification_summary = notification_summary
                     session.commit()
         except Exception:                          # pragma: no cover - defensive
             logger.exception("Cycle %s: failed to finalize the cycle row", cycle_id)

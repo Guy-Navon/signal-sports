@@ -221,6 +221,22 @@ class SchedulerCycleRow(Base):
     config_snapshot = Column(JSON, nullable=True)
 
 
+class WorkerStatusRow(Base):
+    """The scheduler worker's alive signal (M7-2, #148) — one row, id always 1.
+
+    Distinct from the run lease: the lease says "a cycle is mutating the
+    corpus"; this says "the worker PROCESS exists", refreshed on idle ticks
+    too, so health (M7-4) can tell a dead worker from a quiet one.
+    """
+    __tablename__ = "worker_status"
+
+    id = Column(Integer, primary_key=True)            # always 1
+    last_seen_at = Column(String, nullable=True)      # ISO-8601
+    state = Column(String, nullable=True)             # starting | idle | stopped
+    owner = Column(String, nullable=True)             # process identity
+    interval_seconds = Column(Integer, nullable=True)
+
+
 class SchedulerLeaseRow(Base):
     """THE single-flight guard (M7-1, #147) — one durable row, id always 1.
 

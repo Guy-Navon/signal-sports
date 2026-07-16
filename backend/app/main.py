@@ -62,7 +62,6 @@ def create_app() -> FastAPI:
         from app.db.database import init_db, SessionLocal
         from app.repositories.seed_runner import seed_all_if_empty
         from app.services.auth_service import bootstrap_admin, ensure_users_for_profiles
-        from app.ingestion.scheduler import scheduler_state, start_scheduler, stop_scheduler
 
         validate_auth_startup_config()
         _ensure_db_dir(settings.database_url)
@@ -77,13 +76,15 @@ def create_app() -> FastAPI:
                 password=os.environ.get("AUTH_ADMIN_PASSWORD"),
             )
 
-        # Scheduled ingestion (PR 13) — disabled by default; returns None when
-        # INGESTION_SCHEDULER_ENABLED != true, leaving behavior identical to before.
-        scheduler_task = start_scheduler(scheduler_state)
+        # NO scheduler here — deliberately (M7-2, #148). The in-process lifespan
+        # scheduler (PR 13) was retired because its lifetime was coupled to
+        # request-serving reloads: `uvicorn --reload` and every extra worker
+        # would each start their own polling loop. Scheduled ingestion lives in
+        # the DEDICATED worker process (`python -m app.worker`), which shares
+        # the durable single-flight lease (M7-1) with the manual API triggers.
+        # A second polling loop is now impossible by construction.
 
         yield
-
-        await stop_scheduler(scheduler_state, scheduler_task)
 
     application = FastAPI(
         title=settings.app_name,

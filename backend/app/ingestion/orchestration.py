@@ -281,6 +281,7 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
     error_summary: Optional[str] = None
     results: list = []
     notification_summary: Optional[dict] = None
+    cleanup_summary: Optional[dict] = None
     stage_warnings: list[str] = []
     try:
         with SessionLocal() as session:
@@ -331,9 +332,20 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
         notification_summary = {"planning": planning_summary,
                                 "dispatch": dispatch_summary}
 
-        # Stage placeholder (contract order — see module docstring):
-        #   M7-3 retention cleanup runs LAST; a cleanup failure degrades the
-        #   cycle, never invalidating successful ingestion.
+        # ── Retention cleanup (M7-3, #149) — LAST, after planning saw the full
+        # window. Guarded by RETENTION_CLEANUP_ENABLED; a cleanup failure
+        # degrades the cycle, never invalidating successful ingestion.
+        try:
+            from app.ingestion.retention import cleanup_articles, cleanup_enabled
+            if cleanup_enabled():
+                with SessionLocal() as session:
+                    cleanup_summary = cleanup_articles(session)
+            else:
+                cleanup_summary = {"skipped": "disabled"}
+        except Exception as exc:
+            cleanup_summary = {"error": f"{type(exc).__name__}: {str(exc)[:200]}"}
+            stage_warnings.append(f"retention cleanup failed: {exc}")
+            logger.exception("Cycle %s: retention cleanup failed", cycle_id)
 
         any_errors = any(r.errors for r in results)
         any_inserted = any(r.inserted for r in results)
@@ -365,6 +377,7 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
                     row.error_summary = error_summary
                     row.source_results = _summarize(results)
                     row.notification_summary = notification_summary
+                    row.cleanup_summary = cleanup_summary
                     session.commit()
         except Exception:                          # pragma: no cover - defensive
             logger.exception("Cycle %s: failed to finalize the cycle row", cycle_id)

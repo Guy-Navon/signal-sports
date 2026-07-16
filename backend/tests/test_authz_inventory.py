@@ -251,9 +251,15 @@ def test_role_user_matrix_on_every_gated_route(user_client, _application):
 
 def test_admin_passes_gate_on_every_admin_route(admin_client, _application, monkeypatch):
     # Neuter destructive handlers: the dependency gate still runs (that's the
-    # assertion); ingestion itself must not.
+    # assertion); ingestion itself must not. Since M7-1 (#147) the ingest
+    # endpoints call the orchestration service, so that is what gets stubbed.
     from app.api import routes_ingest
-    monkeypatch.setattr(routes_ingest, "run_ingestion", lambda *a, **k: [])
+    from app.ingestion.orchestration import CycleResult
+
+    def _stub_cycle(trigger, source_id=None):
+        return CycleResult(cycle_id="cycle_authz_stub", status="succeeded")
+
+    monkeypatch.setattr(routes_ingest, "orchestrate_cycle", _stub_cycle)
     monkeypatch.delenv("ALLOW_DEV_RESET", raising=False)
 
     failures = []

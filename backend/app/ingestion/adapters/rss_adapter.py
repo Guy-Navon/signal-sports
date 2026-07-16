@@ -1,4 +1,5 @@
 import logging
+import socket
 import time as _time
 from datetime import datetime, timezone
 from typing import Optional
@@ -9,6 +10,11 @@ from app.ingestion.adapters.base import RawSourceItem, SourceAdapter
 from app.ingestion.subtitle import extract_subtitle
 
 logger = logging.getLogger(__name__)
+
+# Bounded fetch (M7-3, #149). feedparser fetches through urllib with NO default
+# timeout — a hung feed would hang the whole ingestion cycle. The scraping
+# adapters already bound their fetches at 10s; RSS gets the same bound.
+_FETCH_TIMEOUT_SECONDS = 10.0
 
 
 class RSSSourceAdapter(SourceAdapter):
@@ -25,11 +31,18 @@ class RSSSourceAdapter(SourceAdapter):
         self.language = language
 
     def fetch(self) -> list[RawSourceItem]:
+        # The socket default bounds urllib inside feedparser; other HTTP users
+        # (httpx: LLM, Telegram, scraping adapters) set explicit timeouts and
+        # are unaffected. Restored in all paths.
+        previous_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(_FETCH_TIMEOUT_SECONDS)
         try:
             feed = feedparser.parse(self.feed_url)
         except Exception as exc:
             logger.error("RSS fetch failed for %s (%s): %s", self.source_id, self.feed_url, exc)
             return []
+        finally:
+            socket.setdefaulttimeout(previous_timeout)
 
         if getattr(feed, "bozo", False) and not feed.entries:
             logger.warning(

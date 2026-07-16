@@ -107,7 +107,11 @@ trigger another message.
 `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` live only in the git-ignored
 `backend/.env`. The token appears in the Bot API URL — therefore the URL is
 never logged, exceptions are reduced to class names, and no API/health/ops
-surface returns either value (test-locked).
+surface returns either value (test-locked). The `httpx` and `httpcore`
+loggers are additionally capped at WARNING when the adapter is imported:
+httpx logs every request URL at INFO, and the worker runs root logging at
+INFO, so without the cap the first real send would print the token
+(test-locked in `test_telegram_dispatch_153.py`).
 
 ## One-time setup (Guy's human-only steps)
 

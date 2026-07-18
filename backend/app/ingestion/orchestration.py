@@ -379,6 +379,27 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
         notification_summary = {"planning": planning_summary,
                                 "dispatch": dispatch_summary}
 
+        # ── Results sync (issue #178) ─────────────────────────────────────────
+        # Fetch/upsert game results through the provider abstraction. Guarded by
+        # RESULTS_SYNC_ENABLED and throttled (force=False) so cycles never hammer
+        # the provider; a failure degrades the cycle, never invalidating
+        # ingestion. Its own session — the provider must not sit inside the
+        # ingestion transaction.
+        try:
+            from app.results import settings as results_settings
+            from app.results.sync_service import sync_results
+            if results_settings.sync_enabled():
+                with SessionLocal() as session:
+                    results_summary = sync_results(session, force=False)
+                if results_summary.get("status") == "error":
+                    stage_warnings.append(
+                        f"results sync degraded: {results_summary.get('errors')}")
+                logger.info("Cycle %s: results sync %s", cycle_id,
+                            results_summary.get("status", results_summary.get("skipped")))
+        except Exception as exc:
+            stage_warnings.append(f"results sync failed: {exc}")
+            logger.exception("Cycle %s: results sync failed", cycle_id)
+
         # ── Retention cleanup (M7-3, #149) — LAST, after planning saw the full
         # window. Guarded by RETENTION_CLEANUP_ENABLED; a cleanup failure
         # degrades the cycle, never invalidating successful ingestion.

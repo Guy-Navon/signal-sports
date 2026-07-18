@@ -41,6 +41,7 @@ from app.api.routes_learning import (
     reset_learning,
 )
 from app.api.routes_profiles import get_profile, put_profile
+from app.api.routes_results import ResultsResponse, get_results_for_user
 from app.core.security_deps import require_user
 from app.db.database import get_session
 from app.db.orm_models import UserRow
@@ -131,6 +132,19 @@ def me_get_feed(
     session: Session = Depends(get_session),
 ):
     return get_feed(user_id=user.id, session=session)
+
+
+# ── Results (issue #178) ──────────────────────────────────────────────────────
+
+@router.get("/results", response_model=ResultsResponse)
+def me_get_results(
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Personalized game results for the session user. Thin wrapper over the
+    same handler the admin /results/{user_id} route uses — identical relevance
+    and isolation, identity taken only from the session."""
+    return get_results_for_user(user_id=user.id, session=session, limit=200)
 
 
 # ── Feedback ──────────────────────────────────────────────────────────────────

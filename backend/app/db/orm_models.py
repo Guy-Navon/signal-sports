@@ -400,6 +400,70 @@ class StoryClusterRow(Base):
     member_count = Column(Integer, nullable=False, default=0)
 
 
+class GameResultRow(Base):
+    """A normalized, project-owned sports game/result (issue #178).
+
+    Provider-agnostic by design: a ``ResultsProvider`` adapter maps its raw
+    payload into this shape, so API routes and the UI never see provider
+    field names. IDENTITY is ``(provider, external_id)`` — the primary key is
+    ``game_`` + sha1(provider|external_id), so repeated syncs UPDATE the same
+    row (score/status/start_time drift) and never create duplicates.
+
+    Relevance is NOT stored here — it is a per-user decision computed at read
+    time from ProfileV2 affinities (docs/RESULTS.md). This table is corpus
+    data shared across all users, exactly like ``articles``.
+    """
+    __tablename__ = "game_results"
+
+    id = Column(String, primary_key=True)             # "game_" + sha1(provider|external_id)[:24]
+    provider = Column(String, nullable=False)         # "thesportsdb" | "fake"
+    external_id = Column(String, nullable=False)      # provider event id — stable identity
+
+    competition_id = Column(String, nullable=False, index=True)  # comp:* (project taxonomy)
+    sport = Column(String, nullable=False)
+    season = Column(String, nullable=True)
+    stage = Column(String, nullable=True)             # round/stage label (e.g. "Final", "12")
+
+    # scheduled | live | final | postponed | cancelled | unknown
+    status = Column(String, nullable=False, default="unknown")
+    # Normalized kickoff/tipoff as ISO-8601 UTC (same string convention as the
+    # rest of the schema). Nullable when the provider gives no usable time.
+    start_time = Column(String, nullable=True, index=True)
+
+    # Team display comes from the provider; team IDENTITY (for followed-team
+    # relevance) is resolved against the taxonomy at sync time. NULL id = the
+    # provider team is not in our taxonomy (the game can still be relevant via
+    # a followed competition).
+    home_team_name = Column(String, nullable=False)
+    away_team_name = Column(String, nullable=False)
+    home_team_id = Column(String, nullable=True, index=True)   # team:* or NULL
+    away_team_id = Column(String, nullable=True, index=True)   # team:* or NULL
+    home_score = Column(Integer, nullable=True)
+    away_score = Column(Integer, nullable=True)
+
+    last_synced_at = Column(String, nullable=False)   # ISO-8601, refreshed every upsert
+
+    __table_args__ = (
+        UniqueConstraint("provider", "external_id", name="uq_game_result_identity"),
+    )
+
+
+class ResultsSyncStateRow(Base):
+    """Single-row results-sync bookkeeping (issue #178), id always 1.
+
+    Powers throttling (``last_attempt_at`` gates the scheduler stage so opening
+    the page never triggers provider calls and cycles don't hammer the API) and
+    ops observability (last status + summary). Mirrors the WorkerStatus pattern.
+    """
+    __tablename__ = "results_sync_state"
+
+    id = Column(Integer, primary_key=True)            # always 1
+    last_attempt_at = Column(String, nullable=True)
+    last_success_at = Column(String, nullable=True)
+    last_status = Column(String, nullable=True)       # ok | error | partial
+    last_summary = Column(JSON, nullable=True)
+
+
 class ClusterEdgeRow(Base):
     """ACCEPTED match evidence only (issue #101, docs/CLUSTERING.md §4).
 

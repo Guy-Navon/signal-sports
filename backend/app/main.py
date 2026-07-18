@@ -38,6 +38,7 @@ from app.api import (
     routes_profiles,
     routes_articles,
     routes_feed,
+    routes_results,
     routes_feedback,
     routes_learning,
     routes_calibration,
@@ -117,6 +118,10 @@ def create_app() -> FastAPI:
     application.include_router(routes_profiles.router, prefix="/api", tags=["profiles"])
     application.include_router(routes_articles.router, prefix="/api", tags=["articles"])
     application.include_router(routes_feed.router, prefix="/api", tags=["feed"])
+    # Results (issue #178): per-route auth like the feed router — the read
+    # routes self-gate (require_admin / require_user via /me), the sync route
+    # is admin-only. Registered without a router-level dependency.
+    application.include_router(routes_results.router, prefix="/api", tags=["results"])
     application.include_router(routes_feedback.router, prefix="/api", tags=["feedback"])
     application.include_router(routes_learning.router, prefix="/api", tags=["learning"])
     application.include_router(routes_calibration.router, prefix="/api", tags=["calibration"])

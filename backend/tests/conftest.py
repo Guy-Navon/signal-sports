@@ -32,6 +32,11 @@ os.environ["RETENTION_CLEANUP_ENABLED"] = "false"
 # vanish from every feed-shaped test. Tests that exercise the freshness
 # window monkeypatch the flag explicitly.
 os.environ["FEED_FRESHNESS_ENABLED"] = "false"
+# Results feature (issue #178): pin the provider to the offline fake and keep
+# the scheduler sync stage off, so no test can reach TheSportsDB over the
+# network. Tests inject a FakeResultsProvider explicitly where they sync.
+os.environ["RESULTS_PROVIDER"] = "fake"
+os.environ["RESULTS_SYNC_ENABLED"] = "false"
 # CRITICAL SECRET ISOLATION: pin the Telegram secrets EMPTY. Pinning only the
 # ENABLE flag is not enough — a test that legitimately enables notifications
 # (planner tests set TELEGRAM_NOTIFICATIONS_ENABLED=true to exercise planning)

@@ -1,7 +1,48 @@
 # M7-9 (#155) — End-to-End Acceptance & Soak Report
 
-**Status: Phases A–B COMPLETE. Soak RUNNING. Phases C–D blocked on Guy's
-one-time Telegram setup (the milestone's designed human pause point).**
+**Status: Phases A–C COMPLETE. Soak COMPLETE (44.8h — see
+`M7_SOAK_REPORT_155.md`). ACTIVATED 2026-07-18 12:43:48Z under the M7-10
+controlled sequence. Awaiting the first genuinely new PUSH story for the
+article-to-phone proof + Guy's receipt confirmation.**
+
+## Activation record (M7-10, executed 2026-07-18, Fable checkpoint)
+
+Sequence, in order, each verified before the next:
+
+1. **Fable checkpoint review** of the lineage/identity mechanism (outbox
+   member-lineage + DB uniqueness + merge-to-oldest policy) — approved.
+2. **Verified backup** `data/backups/pre_m7_activation_20260718.db` (544=544).
+3. **Watermark tooling merged** (PR #169): `scripts/init_notification_watermark.py`
+   (guarded, dry-run default) + `planner.enumerate_push_stories()` extraction so
+   the script and the per-cycle planner share ONE push-enumeration. Full suite
+   2339 passed.
+4. **Dry-run** against the live corpus: 7 current PUSH stories enumerated
+   (75 non-push ignored) — incl. the Yam Madar 3-member cluster.
+5. **Applied**: watermark `(guy, v1)` at **2026-07-18T12:43:48Z**; 7 stories
+   planted as `suppressed_watermark` with full lineage (9 lineage rows).
+6. **Production defaults flipped in `backend/.env`** (activation authority:
+   this step only): `SCHEDULER_ENABLED=true`, `SCHEDULER_INTERVAL_SECONDS=300`,
+   `TELEGRAM_NOTIFICATIONS_ENABLED=true`, `TELEGRAM_REQUEST_TIMEOUT_SECONDS=20`
+   (the 20s chosen from the Phase C observation of transient 15–60s hangs vs
+   the 10s default, biasing away from avoidable `unknown` outcomes).
+7. **Worker + API restarted** on the new defaults (lease checked idle first).
+   The worker correctly SKIPPED startup catch-up (last success was <1 interval
+   old — the old worker ticked until the kill) and fired its first scheduled
+   tick exactly on cadence.
+8. **Post-activation proof, first full cycle** (`cycle_2c25b367ce…`, scheduled,
+   succeeded): planning `{push_stories: 7, created: [], already_notified: 7,
+   ignored_non_push: 75, no_watermark: false}`, dispatch `{attempted: 0,
+   sent: 0}` — **the historical-flood suppression held in production; zero
+   messages sent on activation.**
+9. **Health surface**: `scheduler_enabled=true · worker_running=true ·
+   automatic_ingestion_active=true · stale=false · notifications
+   {enabled=true, configured=true, pending=0, sent=0, suppressed_watermark=7,
+   degraded=false}`.
+
+Remaining for closure: the first genuinely new PUSH story travels
+source→scheduler→feed→one Telegram message (article-to-phone proof), the
+no-second-push proofs against that notified story, Phase F regression, docs
+sweep, Guy's receipt confirmation.
 
 All timestamps UTC, 2026-07-16.
 

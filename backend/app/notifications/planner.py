@@ -81,15 +81,19 @@ def _effective_decision(scored) -> str:
     return scored.cluster.decision if scored.cluster is not None else scored.decision
 
 
-def plan_cycle_notifications(session: Session) -> dict:
-    """Plan notification events for newly PUSH-eligible stories. Returns the
-    cycle summary persisted on the scheduler cycle record."""
-    if not telegram_enabled():
-        return {"skipped": "telegram_disabled"}
+def enumerate_push_stories(session: Session,
+                           profile_id: str) -> Optional[tuple[list, int]]:
+    """Canonical enumeration of the profile's CURRENT push-tier stories.
 
-    profile_id = pilot_profile_id()
-    policy = policy_version()
+    THE single implementation of "which stories are PUSH right now" — used by
+    the per-cycle planner below AND by the M7-10 guarded activation
+    initialization (scripts/init_notification_watermark.py). Both must see the
+    exact same stories or the watermark would not suppress what the planner
+    plans; extracting this function is what prevents a second ruleset.
 
+    Returns (snapshots, ignored_non_push_count), or None if the profile does
+    not exist. Read-only: builds the production feed, mutates nothing.
+    """
     from app.repositories import (
         article_repository,
         feedback_repository,
@@ -100,8 +104,7 @@ def plan_cycle_notifications(session: Session) -> dict:
 
     profile = profile_repository.get_by_id(session, profile_id)
     if profile is None:
-        logger.error("notification planner: profile %r not found", profile_id)
-        return {"error": f"profile_not_found:{profile_id}"}
+        return None
 
     articles = article_repository.get_rss_articles(session)
     events = feedback_repository.get_active_by_user(session, profile_id)
@@ -110,23 +113,13 @@ def plan_cycle_notifications(session: Session) -> dict:
     feed = build_feed(articles, with_learned(profile, events),
                       include_hidden=False, session=session)
 
-    summary = {
-        "profile": profile_id,
-        "policy_version": policy,
-        "push_stories": 0,
-        "created": [],                 # event ids
-        "already_notified": 0,
-        "ignored_non_push": 0,
-        "no_watermark": False,
-    }
-
+    snapshots: list[StorySnapshot] = []
+    ignored_non_push = 0
     for scored in feed:
         if _effective_decision(scored) != "push":
-            summary["ignored_non_push"] += 1
+            ignored_non_push += 1
             continue
-        summary["push_stories"] += 1
-
-        snapshot = StorySnapshot(
+        snapshots.append(StorySnapshot(
             member_article_ids=_story_members(session, scored),
             cluster_id=scored.cluster.cluster_id if scored.cluster else None,
             canonical_article_id=scored.article.id,
@@ -137,12 +130,41 @@ def plan_cycle_notifications(session: Session) -> dict:
             url=scored.article.url,
             tier="push",
             decision_provenance={
-                "card_decision": _effective_decision(scored),
+                "card_decision": "push",
                 "displayed_article_id": scored.article.id,
                 "displayed_reason": (scored.cluster.displayed_reason
                                      if scored.cluster else "unclustered"),
             },
-        )
+        ))
+    return snapshots, ignored_non_push
+
+
+def plan_cycle_notifications(session: Session) -> dict:
+    """Plan notification events for newly PUSH-eligible stories. Returns the
+    cycle summary persisted on the scheduler cycle record."""
+    if not telegram_enabled():
+        return {"skipped": "telegram_disabled"}
+
+    profile_id = pilot_profile_id()
+    policy = policy_version()
+
+    enumerated = enumerate_push_stories(session, profile_id)
+    if enumerated is None:
+        logger.error("notification planner: profile %r not found", profile_id)
+        return {"error": f"profile_not_found:{profile_id}"}
+    snapshots, ignored_non_push = enumerated
+
+    summary = {
+        "profile": profile_id,
+        "policy_version": policy,
+        "push_stories": len(snapshots),
+        "created": [],                 # event ids
+        "already_notified": 0,
+        "ignored_non_push": ignored_non_push,
+        "no_watermark": False,
+    }
+
+    for snapshot in snapshots:
         out = plan_story(session, profile_id=profile_id, policy_version=policy,
                          story=snapshot)
         if out.outcome == CREATED:

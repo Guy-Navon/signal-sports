@@ -73,8 +73,18 @@ planner section above. 13: verified live post-activation (below). 14: backend
 
 - `backend/.env`: `FEED_FRESHNESS_ENABLED=true`, `FEED_MAX_AGE_HOURS=36`
   (flipped 2026-07-18 after PR #177 merged).
-- API + dedicated worker restarted; first post-activation scheduler cycle
-  verified clean (see `CURRENT_PROJECT_STATE.md` activation record).
+- API + dedicated worker restarted (this also consolidated accidental
+  duplicate API/worker process pairs down to one each; the single-flight
+  lease had kept the duplicates safe).
+- Live verification via the real API (admin session): Guy **21 cards, oldest
+  35.5h, 0 over 36h**; Casual Deni Fan **5 cards, 0 over 36h**; Debug feed
+  intact at 567 articles.
+- First post-activation scheduler cycle (`cycle_539cc66c…`, 19:35 UTC):
+  **succeeded**, planning `push_stories=2` (was 8 pre-activation — the 6
+  expired watermarked stories are now structurally out of the surface),
+  `created=[]`, `already_notified=2`, `ignored_non_push=19` (was 77),
+  dispatch `attempted=0 / sent=0`. Zero expired notification events; lineage
+  and watermark rows untouched (`sent=2, suppressed_watermark=7`).
 - **Rollback:** set `FEED_FRESHNESS_ENABLED=false` in `backend/.env`, restart
   API + worker. No data is written or deleted by the window in either
   direction; the flag flip is the entire rollback.

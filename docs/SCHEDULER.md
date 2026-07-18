@@ -1,8 +1,10 @@
 # Automated Ingestion Scheduler — Milestone 7 Contract
 
 **Status:** authoritative living contract for scheduled ingestion (M7-1 #147, M7-2 #148).
-**Activation authority:** `SCHEDULER_ENABLED` defaults to **false**; only the M7-10 gate
-(#156) may enable it in the production-like environment.
+**ACTIVE IN PRODUCTION since 2026-07-18 (M7-10 #156):** the production `backend/.env`
+runs `SCHEDULER_ENABLED=true` at `SCHEDULER_INTERVAL_SECONDS=300`. The `.env.example`
+default stays false so a fresh checkout never polls by accident. Activation evidence:
+`docs/qa/M7_SOAK_REPORT_155.md` (44.8h soak) + `docs/qa/M7_ACCEPTANCE_155.md`.
 
 ## Topology
 

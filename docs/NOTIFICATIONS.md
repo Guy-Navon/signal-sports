@@ -1,9 +1,14 @@
 # Telegram Push Pilot — Notification Contract (Milestone 7)
 
 **Status:** authoritative living contract for M7-5/#151 (story identity + outbox),
-M7-6/#152 (planner), M7-7/#153 (delivery). **Activation authority:**
-`TELEGRAM_NOTIFICATIONS_ENABLED` defaults to **false**; only the M7-10 gate (#156) may
-enable it, and enabling requires the guarded watermark initialization first.
+M7-6/#152 (planner), M7-7/#153 (delivery).
+**ACTIVE IN PRODUCTION since 2026-07-18 (M7-10 #156):** the guarded watermark
+initialization (`scripts/init_notification_watermark.py`) ran at 2026-07-18T12:43:48Z
+suppressing the 7 historical PUSH stories, then the production `backend/.env` enabled
+`TELEGRAM_NOTIFICATIONS_ENABLED=true` with `TELEGRAM_REQUEST_TIMEOUT_SECONDS=20`.
+The `.env.example` default stays false; enabling without a watermark is fail-closed.
+First deliveries: controlled probe (Telegram message 5) and a genuine Israel Hayom
+story (message 6), both exactly once — see `docs/qa/M7_ACCEPTANCE_155.md`.
 
 ## The delivery-semantics statement (exact required language)
 

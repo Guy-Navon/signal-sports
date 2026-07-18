@@ -1,9 +1,78 @@
 # M7-9 (#155) — End-to-End Acceptance & Soak Report
 
-**Status: Phases A–C COMPLETE. Soak COMPLETE (44.8h — see
-`M7_SOAK_REPORT_155.md`). ACTIVATED 2026-07-18 12:43:48Z under the M7-10
-controlled sequence. Awaiting the first genuinely new PUSH story for the
-article-to-phone proof + Guy's receipt confirmation.**
+**Status: COMPLETE — all phases (A–F) executed with live evidence.
+Activated 2026-07-18 12:43:48Z; article-to-phone proven twice (controlled
+probe + genuine story); no-second-push proven four ways; rollback verified;
+Guy confirmed receipt. All timestamps UTC.**
+
+## Phase D — Production notification journey ✅ (2026-07-18)
+
+**Article-to-phone, twice — controlled and genuine, clearly distinguished:**
+
+1. **Controlled probe** (inserted into the corpus at 12:50:45Z, explicitly
+   marked «בדיקת M7 … (הודעת ניסיון)», URL tagged `m7_acceptance_probe=1`):
+   scheduled cycle `cycle_4763b19a…` (12:54:34Z) planned it through the
+   canonical feed path — `push_stories: 8, created: [notif_282ed3b9…],
+   already_notified: 7` — and dispatched **one** message, Telegram
+   `message_id=5`, final 12:54:37.48Z (**insertion→phone < 4 minutes**).
+   **Guy confirmed receipt on his phone.**
+2. **Genuine story** («"יכולתי להיות הרבה יותר טוב במכבי תל אביב, אם לא
+   הפציעה"», Israel Hayom `/article/21008048`, published 15:16:03Z): inserted
+   by scheduled cycle `cycle_1b3729ac…` at 17:33:25Z with **no manual action of
+   any kind**, planned `created: [notif_c66087f0…], already_notified: 8`,
+   dispatched **one** message, Telegram `message_id=6`, final 17:34:00.71Z.
+   This is the full autonomous product journey on real news.
+
+**No-second-push, proven live four ways** (both sent events stayed at
+`attempt_count=1`, `sent` count stayed 2, throughout):
+
+- **Repeated planning:** cycles 17:39/17:44 → `push=9, created=[],
+  already_notified=9, dispatch attempted=0`.
+- **Worker + API restart:** post-restart cycle 17:49:31 → identical.
+- **Manual run:** HTTP `run-now` (`cycle_257d05f2…`, API process) → identical.
+- **Cluster expansion (production matcher):** a controlled second walla
+  article for the notified probe story was clustered through the REAL
+  ingest-stage path (worker stopped for the choreography; merge into
+  `cluster_5889dc8d…` by the intra-source republish contract). The next cycle
+  (17:57:24) attached the new member to the existing sent event's lineage —
+  `notification_story_members` row `reason="expansion"` at 17:57:26 — created
+  **no** event and sent **no** message. The DB uniqueness did the work.
+
+## Phase E — Delivery failure semantics ✅
+
+Locked by `test_telegram_dispatch_153.py` (FakeSender): definite rejection →
+bounded retry/final; ambiguous timeout → `unknown`, never auto-resent,
+restart-safe; crash-after-claim stays `claimed`. Live corroboration: the
+rollback drill (below) proves Telegram-off leaves ingestion healthy. No real
+chat was ever used for failure testing.
+
+## Rollback verification ✅ (executed live, 2026-07-18 ~18:05–18:13Z)
+
+1. **Telegram off without scheduler** + **scheduler off without breaking
+   manual**, in one drill: worker stopped, `TELEGRAM_NOTIFICATIONS_ENABLED=
+   false`, API restarted → HTTP `run-now` succeeded (`cycle_a31f7609…`),
+   ingestion full, planning/dispatch `{"skipped": "telegram_disabled"}`,
+   outbox untouched (2 sent + 7 suppressed).
+2. **Restore:** flag back to true, worker restarted → next scheduled cycle
+   (`cycle_f1165f7f…`, 18:12:34Z) resumed planning: `push=8,
+   already_notified=8, created=[], attempted=0`.
+3. **Audit is append-only:** the two synthetic probe articles were then
+   removed from the corpus (guarded script) — all **12** lineage rows and all
+   9 events survived article deletion, demonstrating the lineage's
+   retention-independence by construction.
+
+## Phase F — Regression ✅ (at closure)
+
+- Backend **2339 passed / 1 skipped**; frontend **423 passed**.
+- Guy feed (service-level): 84 cards / **8 push** / 10 cluster cards — the 8
+  pushes are exactly the 7 watermark-suppressed stories + the genuine notified
+  story; zero probe leakage after cleanup.
+- `casual_deni_fan`: 7 cards, all `high_feed`, **0 push**, untouched by any
+  notification machinery (run/notification tables provably do not mutate feed
+  decisions — also structurally: the planner only reads the feed).
+- Scheduler-disabled mode preserves manual behavior and Telegram-disabled mode
+  preserves scheduled ingestion — both proven live in the rollback drill and
+  test-locked.
 
 ## Activation record (M7-10, executed 2026-07-18, Fable checkpoint)
 

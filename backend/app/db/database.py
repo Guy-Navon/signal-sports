@@ -64,6 +64,8 @@ def _apply_migrations(eng) -> None:
         # Validated story anchors (issue #141) — persisted at ingestion; pair eval reads only.
         ("articles", "story_anchors",             "JSON"),
         ("articles", "anchor_validator_version",  "TEXT"),
+        # Timestamp provenance audit (M8-4, #174).
+        ("articles", "published_at_meta",         "JSON"),
         # Parent orchestration cycle for per-source run rows (M7-1, #147).
         # CAUGHT BY THE #155 PHASE-B ACCEPTANCE RUN: the ORM column existed but
         # this soft-migration entry was missing, so the LIVE database (whose

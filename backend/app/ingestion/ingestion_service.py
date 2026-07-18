@@ -15,7 +15,7 @@ import logging
 import math
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -173,6 +173,34 @@ def _should_filter(url: str, cfg: RSSSourceConfig) -> bool:
 
 # ── Normalisation ─────────────────────────────────────────────────────────────
 
+def _normalise_published_at(
+    source_published_at: Optional[datetime],
+) -> tuple[datetime, Optional[dict]]:
+    """Timestamp policy (M8-4, #174) — publication time is the freshness clock,
+    so its quality is guarded at the door:
+
+    - source gave a timestamp within tolerance → use it, meta None
+      (NULL provenance == source-provided; pre-M8 rows read the same way);
+    - source gave NO timestamp → bounded ingest-time fallback. The value is
+      FIXED at insert, so the article ages out of the freshness window
+      normally — the fallback can never keep an article fresh indefinitely;
+    - timestamp more than FUTURE_TOLERANCE_MINUTES ahead of ingest time →
+      clamped to ingest time, raw value retained for audit. Small skew
+      (scheduled-publish quirks, clock drift) passes through untouched.
+    """
+    from app.services.freshness import FUTURE_TOLERANCE_MINUTES
+
+    now = datetime.now(tz=timezone.utc)
+    if source_published_at is None:
+        return now, {"provenance": "ingest_fallback"}
+    published = (source_published_at.replace(tzinfo=timezone.utc)
+                 if source_published_at.tzinfo is None
+                 else source_published_at.astimezone(timezone.utc))
+    if published > now + timedelta(minutes=FUTURE_TOLERANCE_MINUTES):
+        return now, {"provenance": "clamped_future",
+                     "raw": source_published_at.isoformat()}
+    return published, None
+
 def _normalise(
     item: RawSourceItem,
     cfg: RSSSourceConfig,
@@ -189,7 +217,7 @@ def _normalise(
     llm_available=False skips the LLM path for this article (used when the
     per-run circuit breaker has fired due to an Ollama connection error).
     """
-    published_at = item.published_at or datetime.now(tz=timezone.utc)
+    published_at, published_at_meta = _normalise_published_at(item.published_at)
 
     detected_lang = detect_language(item.url, item.title, cfg.language)
 
@@ -341,6 +369,7 @@ def _normalise(
         translated_title=translated_title,
         language=detected_lang,
         published_at=published_at,
+        published_at_meta=published_at_meta,
         sport=facts.sport,
         league=facts.league,
         entities=facts.entities,

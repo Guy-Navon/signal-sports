@@ -77,6 +77,12 @@ Telegram cannot send the backlog, and the suppression itself is auditable.
   canonical path behind `GET /api/feed/guy` (learned profile, dismissed
   filtering, `include_hidden=False`, cluster collapse) and reads story-level
   card decisions. No second ruleset.
+- **Freshness is inherited, not reimplemented** (M8, #173): `build_feed`
+  applies the shared 36h window (`docs/FEED_FRESHNESS.md`), so expired
+  stories never create events, restarting the planner cannot notify about
+  old PUSH stories, and an expired canonical replaced by a fresh duplicate
+  stays already-notified (lineage covers expired members). There is no
+  Telegram-specific age rule — a source-guard test locks this.
 - Identity snapshots use **full component membership from the DB** (not just
   the card's visible members) so hidden members can never resurface as a
   "new" story.

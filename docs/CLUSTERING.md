@@ -803,9 +803,13 @@ laundered as a correction.
 ## 14. Article lifecycle — feed visibility ≠ physical deletion
 
 **Documented here, deliberately NOT implemented in #100 or #101.**
+**Update 2026-07-18 (Milestone 8, #170): the feed horizon is now REAL** — a shared 36-hour
+freshness predicate filters `build_feed`'s consumer input, so collapse sees in-window members
+only. The authoritative contract is `docs/FEED_FRESHNESS.md`; retention (M7-3) remains a
+separate, still-disabled capability.
 
-The active consumer feed shows roughly the **last 36 hours**. That horizon is a *presentation*
-concern and must never be confused with storage:
+The active consumer feed shows the **last 36 hours** (`FEED_MAX_AGE_HOURS`). That horizon is a
+*presentation* concern and must never be confused with storage:
 
 - **An article being too old for the feed does not mean it should be deleted.**
 - Several subsystems need **longer internal retention** than the feed horizon:

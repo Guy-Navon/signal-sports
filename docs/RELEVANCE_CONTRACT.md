@@ -14,6 +14,8 @@ RAW ITEM (RSS)
     competitions, canonical entity_ids, conflicts, full trace persisted)     [docs/ARTICLE_FACTS.md]
   → event semantic validation (event_evidence.py; corrected → news)
   → PERSISTED ARTICLE (facts + classification_trace)
+  → freshness window (consumer feeds only: published_at within
+    FEED_MAX_AGE_HOURS=36; expired articles never scored, Debug unaffected)  [docs/FEED_FRESHNESS.md]
   → visibility matching (four-tier competition matching, entity_ids-first)   [docs/RELEVANCE_VISIBILITY_CONTRACT.md]
   → preference scoring (ProfileV2 affinity layers, contribution trace)       [docs/PREFERENCE_MODEL_V2.md]
   → learned adjustments (derived from feedback events at read time)          [docs/FEEDBACK_LEARNING.md]

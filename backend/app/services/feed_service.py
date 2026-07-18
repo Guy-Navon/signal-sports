@@ -3,6 +3,7 @@ from typing import List, Optional, Set
 from app.models.article import Article
 from app.models.profile import UserProfile
 from app.models.scoring import ScoredArticle
+from app.services.freshness import fresh_only
 from app.services.preference_engine import score_article_v2
 from app.services.relevance_engine import score_article, DECISION_RANK
 
@@ -24,6 +25,15 @@ def build_feed(
     engine: Optional[str] = None,
     session=None,
 ) -> List[ScoredArticle]:
+    # Freshness (M8-2, #172): the consumer feed shows only in-window articles.
+    # Applied HERE, before scoring, so expired articles are never scored, never
+    # count toward tiers, never enter cluster cards (canonical selection sees
+    # in-window members only) and never reach the Telegram planner — which
+    # consumes this exact function. Debug (include_hidden=True) keeps showing
+    # everything, expired included, by contract.
+    if not include_hidden:
+        articles = fresh_only(articles)
+
     engine = engine or active_engine()
     # A profile with no v2 payload cannot be scored by the v2 engine — fall
     # back to legacy rather than hiding everything (safe-migration behavior).

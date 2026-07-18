@@ -1,0 +1,120 @@
+{
+  "db": "data/qa_freshness_m8_frozen.db",
+  "now_utc": "2026-07-18T19:28:28.127423+00:00",
+  "cutoff_utc": "2026-07-17T07:28:28.127423+00:00",
+  "profiles": {
+    "guy": {
+      "visible_cards_before": 85,
+      "visible_cards_after": 21,
+      "oldest_visible_before_h": 202.4,
+      "oldest_visible_after_h": 35.4,
+      "removed_over_36h": 64,
+      "removed_per_tier": {
+        "push": 6,
+        "high_feed": 20,
+        "feed": 31,
+        "low_feed": 7
+      },
+      "removed_per_source": {
+        "israel_hayom_sport": 26,
+        "ynet_sport": 11,
+        "sport5_sport": 16,
+        "walla_sport": 11
+      },
+      "canonical_replaced": [],
+      "clusters_hidden_all_expired": 10,
+      "clusters_retained_mixed_age": 0,
+      "decision_drift_fresh": [],
+      "fresh_cards_lost": [],
+      "push_stories_before": 8,
+      "push_stories_after": 2,
+      "expired_push_suppressed": [
+        {
+          "canonical": "rss_0c9d0229a4765f7e160c",
+          "headline": "חוזר לאירופה: אקס מכבי תל אביב חתם בקבוצה חדשה",
+          "members": [
+            "rss_0c9d0229a4765f7e160c"
+          ]
+        },
+        {
+          "canonical": "rss_ad67dfa049f180097888",
+          "headline": "\"במכבי תל אביב האמינו שיגיע, המשפחה שלו טרפה הכל\"",
+          "members": [
+            "rss_ad67dfa049f180097888"
+          ]
+        },
+        {
+          "canonical": "rss_4ccde3af1a05659e3400",
+          "headline": "סעיף היציאה פג, הסאגה עוד לא: לוני ווקר יעזוב?",
+          "members": [
+            "rss_4ccde3af1a05659e3400"
+          ]
+        },
+        {
+          "canonical": "rss_7b3a5ad13cf2a7cf448b",
+          "headline": "כבר חתם על חוזה: כוכב היורוליג דחה את הפועל ומכבי תל אביב",
+          "members": [
+            "rss_7b3a5ad13cf2a7cf448b"
+          ]
+        },
+        {
+          "canonical": "rss_81f1e1469be5fd299749",
+          "headline": "היקר בתולדותיה: ים מדר חתם רשמית במכבי ת\"א",
+          "members": [
+            "rss_2b094951a5d4cadffa96",
+            "rss_81f1e1469be5fd299749",
+            "rss_ff501392ec59403606ad"
+          ]
+        },
+        {
+          "canonical": "rss_bffe4c28befd8c4f44bb",
+          "headline": "אחרי כוכב פנאתינייקוס: הקבוצה שמנסה לגנוב את אקס מכבי תל אביב",
+          "members": [
+            "rss_bffe4c28befd8c4f44bb"
+          ]
+        }
+      ],
+      "after_age_distribution": {
+        "0-12h": 5,
+        "24-36h": 13,
+        "12-24h": 3
+      },
+      "after_tier_distribution": {
+        "push": 2,
+        "high_feed": 4,
+        "feed": 10,
+        "low_feed": 5
+      }
+    },
+    "casual_deni_fan": {
+      "visible_cards_before": 7,
+      "visible_cards_after": 5,
+      "oldest_visible_before_h": 169.9,
+      "oldest_visible_after_h": 35.4,
+      "removed_over_36h": 2,
+      "removed_per_tier": {
+        "high_feed": 2
+      },
+      "removed_per_source": {
+        "walla_sport": 1,
+        "israel_hayom_sport": 1
+      },
+      "canonical_replaced": [],
+      "clusters_hidden_all_expired": 0,
+      "clusters_retained_mixed_age": 0,
+      "decision_drift_fresh": [],
+      "fresh_cards_lost": [],
+      "push_stories_before": 0,
+      "push_stories_after": 0,
+      "expired_push_suppressed": [],
+      "after_age_distribution": {
+        "0-12h": 1,
+        "12-24h": 1,
+        "24-36h": 3
+      },
+      "after_tier_distribution": {
+        "high_feed": 5
+      }
+    }
+  }
+}

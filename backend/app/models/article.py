@@ -13,6 +13,11 @@ class Article(BaseModel):
     translated_title: Optional[str] = None
     language: str = "he"
     published_at: datetime
+    # Timestamp provenance (M8-4, #174). None == source-provided publication
+    # time (also all pre-M8 rows). {"provenance": "ingest_fallback"} when the
+    # source gave no timestamp; {"provenance": "clamped_future", "raw": iso}
+    # when a far-future source timestamp was clamped to ingest time.
+    published_at_meta: Optional[dict] = None
     sport: str
     league: Optional[str] = None
     entities: List[str] = []

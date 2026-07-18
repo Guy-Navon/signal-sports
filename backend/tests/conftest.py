@@ -26,6 +26,12 @@ os.environ["CLUSTERING_ENABLED"] = "false"
 os.environ["SCHEDULER_ENABLED"] = "false"
 os.environ["TELEGRAM_NOTIFICATIONS_ENABLED"] = "false"
 os.environ["RETENTION_CLEANUP_ENABLED"] = "false"
+# Feed freshness (M8, #171): pinned OFF for hermeticity — the production .env
+# runs FEED_FRESHNESS_ENABLED=true after M8-5 activation, and seeded/fixture
+# articles carry fixed historical published_at values that would silently
+# vanish from every feed-shaped test. Tests that exercise the freshness
+# window monkeypatch the flag explicitly.
+os.environ["FEED_FRESHNESS_ENABLED"] = "false"
 # CRITICAL SECRET ISOLATION: pin the Telegram secrets EMPTY. Pinning only the
 # ENABLE flag is not enough — a test that legitimately enables notifications
 # (planner tests set TELEGRAM_NOTIFICATIONS_ENABLED=true to exercise planning)

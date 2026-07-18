@@ -21,6 +21,9 @@ class ArticleRow(Base):
     language = Column(String, nullable=False, default="he")
     # Stored as ISO-8601 string for reliable round-trip with timezone info
     published_at = Column(String, nullable=False)
+    # Timestamp provenance audit (M8-4, #174) — soft migration; NULL means
+    # source-provided (and is all pre-M8 rows can honestly claim).
+    published_at_meta = Column(JSON, nullable=True)
     sport = Column(String, nullable=False)
     league = Column(String, nullable=True)
     entities = Column(JSON, nullable=False)

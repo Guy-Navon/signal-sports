@@ -248,7 +248,8 @@ Each `RawSourceItem` is mapped to an `Article` via the classifier:
 | `classification_provider` | Which provider classified this article: `rules`, `ollama:llama3.2:3b`, `fake` (PR 11) |
 | `classification_reason` | LLM's one-sentence explanation of the classification (PR 11) |
 | `classification_confidence` | LLM's self-assessed confidence 0.0–1.0; separate from deterministic `confidence` (PR 11) |
-| `published_at`   | From RSS entry; falls back to `datetime.now(UTC)` |
+| `published_at`   | Normalized source publication time, UTC. Missing → bounded ingest-time fallback; >15 min future → clamped to ingest time (M8-4, #174). This is the feed-freshness clock — see `docs/FEED_FRESHNESS.md` |
+| `published_at_meta` | Timestamp provenance audit (M8-4): `NULL` = source-provided; `{"provenance": "ingest_fallback"}`; `{"provenance": "clamped_future", "raw": iso}` |
 
 ---
 

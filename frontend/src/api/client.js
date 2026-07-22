@@ -61,6 +61,24 @@ export function getDebugFeed(userId) {
   return apiFetch(`/api/debug/feed/${userId}`);
 }
 
+/** Personalized results (issue #178). Consumer surface uses /api/me/results
+ * (session identity); getResults(userId) is the admin/QA view-as route. */
+export function getMeResults() {
+  return apiFetch("/api/me/results");
+}
+
+export function getResults(userId) {
+  return apiFetch(`/api/results/${encodeURIComponent(userId)}`);
+}
+
+export function syncResults() {
+  return apiFetch("/api/results/sync", { method: "POST" });
+}
+
+export function getResultsSyncState() {
+  return apiFetch("/api/results/sync/state");
+}
+
 export function submitFeedback(payload) {
   return apiFetch("/api/feedback", {
     method: "POST",

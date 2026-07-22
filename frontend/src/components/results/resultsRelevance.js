@@ -7,11 +7,18 @@
 
 // Minimal display→id maps for the local mock corpus (data, not per-user logic).
 const LEAGUE_TO_COMP = {
+  // Basketball
   NBA: "comp:nba",
   EuroLeague: "comp:euroleague",
   EuroCup: "comp:eurocup",
   "Israeli Basketball League": "comp:ibl",
   "Spanish ACB": "comp:acb",
+  // Football
+  "Israeli Premier League": "comp:ligat_haal",
+  "Premier League": "comp:epl",
+  "La Liga": "comp:la_liga",
+  Bundesliga: "comp:bundesliga",
+  "UEFA Champions League": "comp:ucl",
 };
 
 const ENTITY_TO_TEAM = {

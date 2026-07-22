@@ -8,8 +8,11 @@ disagrees, this wins for results behavior.
 
 A **preference-filtered history of real game results** — scores, competition,
 date/time, and status — for the teams, players, and competitions a user already
-follows. It is deliberately **not** a generic scoreboard: a user who follows
-nothing sees nothing, and unrelated games never appear.
+follows, **across sports** (basketball and football today). It is deliberately
+**not** a generic scoreboard: a user who follows nothing sees nothing, and
+unrelated games never appear. The whole pipeline (relevance, resolution,
+grouping, rendering) is sport-agnostic — adding a sport is a config + id-mapping
+change, not new logic. Draws are a first-class outcome (no false winner emphasis).
 
 Relevance is derived from the **same ProfileV2 affinity model as the feed**
 (`docs/PREFERENCE_MODEL_V2.md`, `docs/RELEVANCE_CONTRACT.md`). There is no
@@ -60,13 +63,25 @@ The source is isolated behind `app/results/providers/`:
 
 ### Tracked competitions → provider league ids (verified live 2026-07)
 
-| Competition | comp id | TheSportsDB league |
-|---|---|---|
-| NBA | `comp:nba` | 4387 |
-| EuroLeague | `comp:euroleague` | 4546 |
-| EuroCup | `comp:eurocup` | 4547 |
-| Israeli Basketball Premier League | `comp:ibl` | 4474 |
-| Spanish ACB | `comp:acb` | 4408 |
+| Sport | Competition | comp id | TheSportsDB league |
+|---|---|---|---|
+| Basketball | NBA | `comp:nba` | 4387 |
+| Basketball | EuroLeague | `comp:euroleague` | 4546 |
+| Basketball | EuroCup | `comp:eurocup` | 4547 |
+| Basketball | Israeli Basketball Premier League | `comp:ibl` | 4474 |
+| Basketball | Spanish ACB | `comp:acb` | 4408 |
+| Football | Israeli Premier League | `comp:ligat_haal` | 4644 |
+| Football | English Premier League | `comp:epl` | 4328 |
+| Football | Spanish La Liga | `comp:la_liga` | 4335 |
+| Football | German Bundesliga | `comp:bundesliga` | 4331 |
+| Football | UEFA Champions League | `comp:ucl` | 4480 |
+
+TheSportsDB labels football as sport "Soccer"; the normalizer trusts the
+**taxonomy** competition's sport (`football`), so `NormalizedGame.sport` stays
+consistent with the rest of the system. Tennis is intentionally out of scope —
+it is tournament-shaped (no persistent home/away teams with a running score), so
+it does not fit the `game_results` model. `TestScopeCoverage` asserts every
+tracked competition has a mapped league id (no silent "no league id" errors).
 
 ### History window (bounded — no unbounded crawl)
 
@@ -139,12 +154,15 @@ surface available (safe with an empty corpus). Rollback = flip
 
 ## 9. Tests
 
-- Backend `tests/test_results_178.py` (39): payload normalization, stable
+- Backend `tests/test_results_178.py` (45): payload normalization, stable
   identity + idempotent upsert, score/status drift, duplicate prevention, team
   resolver, followed-team / followed-league / followed-player-team relevance,
   unrelated-game exclusion, profile isolation (incl. two real login sessions),
-  chronological ordering, sync bookkeeping/throttle/error capture, and the API
-  auth matrix + response contract.
+  chronological ordering, sync bookkeeping/throttle/error capture, the API
+  auth matrix + response contract, and the **cross-sport** path (football
+  normalization taking the taxonomy sport, football-follow → football results,
+  football draw has no winner, basketball profiles never see football, and
+  every tracked competition maps to a provider league id).
 - Frontend `src/components/results/*.test.js` (26): normalization, timezone/day
   formatting, grouping, and relevance/isolation (deriveFollows, filter,
   preference-change).

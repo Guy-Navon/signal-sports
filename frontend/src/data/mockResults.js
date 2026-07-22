@@ -86,4 +86,36 @@ export const mockResults = [
     away: side("team:virtus_bologna", "וירטוס בולוניה", "Virtus Bologna", null, false),
     winner: null, relevance_reason: "",
   },
+  // ── Football (different sport, same card model) ──────────────────────────────
+  {
+    id: "game_mock_il_hai_bei",
+    competition_id: "comp:ligat_haal", competition_he: "ליגת העל",
+    competition_en: "Israeli Premier League",
+    sport: "football", season: "2025-2026", stage: "עונה סדירה",
+    status: "final", start_time: "2026-04-09T18:15:00+00:00",
+    home: side("team:maccabi_haifa_fc", "מכבי חיפה", "Maccabi Haifa", 2, true),
+    away: side("team:beitar_jlm_fc", 'בית"ר ירושלים', "Beitar Jerusalem", 1, false),
+    winner: "home", relevance_reason: "",
+  },
+  {
+    id: "game_mock_il_hap_mac_draw",
+    competition_id: "comp:ligat_haal", competition_he: "ליגת העל",
+    competition_en: "Israeli Premier League",
+    sport: "football", season: "2025-2026", stage: "עונה סדירה",
+    status: "final", start_time: "2026-04-08T18:15:00+00:00",
+    home: side("team:hapoel_tlv_fc", "הפועל תל אביב", "Hapoel Tel Aviv", 1, false),
+    away: side("team:maccabi_tlv_fc", "מכבי תל אביב", "Maccabi Tel Aviv", 1, false),
+    winner: "draw", relevance_reason: "",
+  },
+  {
+    id: "game_mock_epl_mci_ars",
+    competition_id: "comp:epl", competition_he: "הפרמייר ליג",
+    competition_en: "Premier League",
+    sport: "football", season: "2025-2026", stage: "עונה סדירה",
+    status: "final", start_time: "2026-04-07T19:00:00+00:00",
+    // Clubs the taxonomy does not track → provider-name (English) shown in both.
+    home: side(null, "Manchester City", "Manchester City", 3, true),
+    away: side(null, "Arsenal", "Arsenal", 2, false),
+    winner: "home", relevance_reason: "",
+  },
 ];

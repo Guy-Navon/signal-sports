@@ -30,11 +30,19 @@ logger = logging.getLogger(__name__)
 
 # Competition id -> TheSportsDB league id (verified live, 2026-07).
 LEAGUE_IDS: dict[str, str] = {
+    # Basketball
     "comp:nba": "4387",
     "comp:euroleague": "4546",
     "comp:eurocup": "4547",
     "comp:ibl": "4474",
     "comp:acb": "4408",
+    # Football (TheSportsDB labels the sport "Soccer"; our taxonomy sport is
+    # "football" and normalize_event trusts the taxonomy, so it stays consistent)
+    "comp:ligat_haal": "4644",
+    "comp:epl": "4328",
+    "comp:la_liga": "4335",
+    "comp:bundesliga": "4331",
+    "comp:ucl": "4480",
 }
 
 _RETRYABLE_STATUS = {429, 500, 502, 503, 504}

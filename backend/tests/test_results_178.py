@@ -96,6 +96,32 @@ class TestNormalization:
         raw = {**RAW_FINAL, "strPostponed": "yes", "strStatus": "FT"}
         assert normalize_event(raw, "comp:nba").status == st.POSTPONED
 
+    def test_football_event_takes_taxonomy_sport(self):
+        # TheSportsDB labels football "Soccer"; the taxonomy competition is the
+        # authority, so the normalized sport is "football".
+        raw = {**RAW_FINAL, "strSport": "Soccer",
+               "strHomeTeam": "Maccabi Haifa", "strAwayTeam": "Beitar Jerusalem",
+               "intHomeScore": "2", "intAwayScore": "1"}
+        g = normalize_event(raw, "comp:ligat_haal")
+        assert g.sport == "football"
+        assert g.status == st.FINAL
+        assert g.home_team_id == "team:maccabi_haifa_fc"
+
+
+class TestScopeCoverage:
+    def test_every_tracked_competition_has_a_provider_league_id(self):
+        # A tracked competition without a mapped league id would silently error
+        # every sync ("no provider league id mapped"). Guard against that drift.
+        from app.results.providers.thesportsdb import LEAGUE_IDS
+        for comp_id in settings.tracked_competitions():
+            assert comp_id in LEAGUE_IDS, f"{comp_id} tracked but not mapped"
+
+    def test_default_scope_covers_both_sports(self):
+        from app.taxonomy.competitions import COMPETITIONS
+        sports = {COMPETITIONS[c].sport for c in settings.tracked_competitions()
+                  if c in COMPETITIONS}
+        assert {"basketball", "football"} <= sports
+
 
 class TestStatusAndTime:
     def test_parse_status_structural_fallback(self):
@@ -398,6 +424,45 @@ class TestResultsApi:
         assert after["has_preferences"] is True
         comps = {g["competition_id"] for g in after["games"]}
         assert comps == {"comp:nba"}      # preference change changed visible results
+
+    def test_football_follow_sees_football_results(self, user_client):
+        """A football competition follow surfaces football results — the feature
+        is not basketball-only. Fake corpus carries Israeli-league games."""
+        _seed_results_for_api()
+        put = user_client.put("/api/me/interests", json={
+            "follows": [{"scope": "competition", "target_id": "comp:ligat_haal",
+                         "starred": False}],
+            "event_preferences": {},
+        })
+        assert put.status_code == 200
+        body = user_client.get("/api/me/results").json()
+        assert body["has_preferences"] is True
+        comps = {g["competition_id"] for g in body["games"]}
+        sports = {g["sport"] for g in body["games"]}
+        assert comps == {"comp:ligat_haal"}     # only the followed football league
+        assert sports == {"football"}           # a different sport than basketball
+
+    def test_football_draw_has_no_winner(self, user_client):
+        """A football draw is a first-class outcome: winner is 'draw', neither
+        side flagged the winner (no false emphasis on the card)."""
+        _seed_results_for_api()
+        user_client.put("/api/me/interests", json={
+            "follows": [{"scope": "competition", "target_id": "comp:ligat_haal",
+                         "starred": False}], "event_preferences": {}})
+        games = user_client.get("/api/me/results").json()["games"]
+        draw = next(g for g in games if g["home"]["score"] == g["away"]["score"]
+                    and g["status"] == st.FINAL)
+        assert draw["winner"] == "draw"
+        assert draw["home"]["is_winner"] is False
+        assert draw["away"]["is_winner"] is False
+
+    def test_basketball_profile_never_sees_football(self, admin_client):
+        """Cross-sport isolation: Guy follows no football competition/team, so no
+        football game reaches him."""
+        _seed_results_for_api()
+        games = admin_client.get("/api/results/guy").json()["games"]
+        assert games
+        assert all(g["sport"] == "basketball" for g in games)
 
     def test_isolation_between_two_users(self, _application):
         """Two real user sessions with different follows never see each other's

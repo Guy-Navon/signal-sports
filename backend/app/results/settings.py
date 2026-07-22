@@ -69,11 +69,18 @@ def http_max_retries() -> int:
 # ── Scope ─────────────────────────────────────────────────────────────────────
 
 _DEFAULT_COMPETITIONS = (
+    # Basketball (Israeli + top European + continental cups)
     "comp:nba",
     "comp:euroleague",
     "comp:eurocup",
     "comp:ibl",
     "comp:acb",
+    # Football (the same shape: Israeli + top European leagues + continental cup)
+    "comp:ligat_haal",
+    "comp:epl",
+    "comp:la_liga",
+    "comp:bundesliga",
+    "comp:ucl",
 )
 
 
@@ -87,9 +94,10 @@ def tracked_competitions() -> list[str]:
 
 
 def default_seasons(now: datetime | None = None) -> list[str]:
-    """The two most recent season labels ("YYYY-YYYY"). Basketball seasons run
-    ~Oct–Jun, so before ~August the current-year season is the just-finished
-    one. Bounded on purpose — we never crawl full historical archives."""
+    """The two most recent season labels ("YYYY-YYYY"). Both sports we track run
+    roughly Aug/Oct–May/Jun, so before ~August the current-year season is the
+    just-finished one. Bounded on purpose — we never crawl full historical
+    archives."""
     now = now or datetime.now(tz=timezone.utc)
     y, m = now.year, now.month
     if m >= 8:

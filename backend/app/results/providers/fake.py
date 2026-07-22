@@ -6,6 +6,11 @@ test suite. The dataset is intentionally shaped for relevance/isolation
 coverage: a followed-team game, a followed-league game, a followed-player's-team
 game, and a game relevant to NEITHER demo profile (Spanish ACB, which Guy
 explicitly de-prioritizes).
+
+It also carries a few FOOTBALL games (a different sport, same home/away+score
+model) so the cross-sport path is exercised: a resolvable Israeli-league game, a
+draw (no winner emphasis), and a top-European game whose clubs the taxonomy does
+not know (provider-name fallback; relevant only via a followed competition).
 """
 from __future__ import annotations
 
@@ -63,6 +68,23 @@ FAKE_GAMES: list[NormalizedGame] = [
        home_team_name="AS Monaco", away_team_name="Virtus Bologna",
        home_team_id="team:monaco_bb", away_team_id="team:virtus_bologna",
        home_score=None, away_score=None, stage="Regular Season"),
+    # ── Football (different sport, same model) ────────────────────────────────
+    _g(external_id="il-haifa-beitar-1", competition_id="comp:ligat_haal",
+       sport="football", status=st.FINAL, start_time="2026-04-09T18:15:00+00:00",
+       home_team_name="Maccabi Haifa", away_team_name="Beitar Jerusalem",
+       home_team_id="team:maccabi_haifa_fc", away_team_id="team:beitar_jlm_fc",
+       home_score=2, away_score=1, stage="Regular Season"),
+    _g(external_id="il-hapoel-maccabi-draw-1", competition_id="comp:ligat_haal",
+       sport="football", status=st.FINAL, start_time="2026-04-08T18:15:00+00:00",
+       home_team_name="Hapoel Tel Aviv", away_team_name="Maccabi Tel Aviv",
+       home_team_id="team:hapoel_tlv_fc", away_team_id="team:maccabi_tlv_fc",
+       home_score=1, away_score=1, stage="Regular Season"),
+    _g(external_id="epl-city-arsenal-1", competition_id="comp:epl",
+       sport="football", status=st.FINAL, start_time="2026-04-07T19:00:00+00:00",
+       # Clubs the taxonomy does not track → team_id None, provider-name fallback.
+       home_team_name="Manchester City", away_team_name="Arsenal",
+       home_team_id=None, away_team_id=None,
+       home_score=3, away_score=2, stage="Regular Season"),
 ]
 
 

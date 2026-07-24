@@ -183,21 +183,77 @@ mode; backend mode continues to use same-origin API routes.
 
 Final validation on 2026-07-24:
 
-- frontend: 423 tests passed, lint passed, typecheck passed, build passed;
+- frontend: 424 tests passed, lint passed, typecheck passed, build passed;
 - backend integration contracts: 180 tests passed (auth/session, acceptance
   journey, identity isolation, `/api/me`, interests, calibration, clustered
   feed, and feedback learning);
-- build: largest chunk 216.26 kB, app entry 143.20 kB; no size warning;
+- build: largest chunk 216.26 kB, app entry 144.25 kB; no size warning;
 - backend changes: none.
 
-Review images:
+## Automated visual review
+
+The final review set is generated from the running React application with:
+
+```bash
+cd frontend
+npm run capture:visual
+```
+
+`frontend/scripts/capture-signal-ledger.mjs` uses the installed Chrome binary
+through the Chrome DevTools Protocol; it adds no browser-test dependency. The
+harness starts an isolated Vite server on port 5175, uses CDP device-metric
+emulation at device-scale factor 1, waits for fonts and route data, asserts
+that the document does not overflow horizontally, verifies each PNG's IHDR
+dimensions, and removes its temporary browser profile and backend database.
+
+Backend-mode captures start the local FastAPI app on port 8000 with enforced
+auth, a disposable SQLite database, reserved `example.com` fixture identities,
+and scheduler/Telegram notifications disabled. The login form is empty and no
+password, cookie, token, or private address appears in the images.
+
+| Evidence | Exact viewport | Data mode |
+|---|---:|---|
+| [Feed, desktop](frontend-screenshots/signal-ledger-final/feed-desktop-1440.png) | 1440 × 1000 | local fixtures |
+| [Feed, tablet](frontend-screenshots/signal-ledger-final/feed-tablet-1024.png) | 1024 × 900 | local fixtures |
+| [Feed, mobile 390](frontend-screenshots/signal-ledger-final/feed-mobile-390.png) | 390 × 844 | local fixtures |
+| [Feed, mobile 375](frontend-screenshots/signal-ledger-final/feed-mobile-375.png) | 375 × 812 | local fixtures |
+| [Feed, mobile 320](frontend-screenshots/signal-ledger-final/feed-mobile-320.png) | 320 × 640 | local fixtures |
+| [Expanded cluster, desktop](frontend-screenshots/signal-ledger-final/feed-cluster-expanded-desktop.png) | 1440 × 1000 | local fixtures |
+| [Expanded cluster, mobile](frontend-screenshots/signal-ledger-final/feed-cluster-expanded-mobile.png) | 390 × 844 | local fixtures |
+| [Login](frontend-screenshots/signal-ledger-final/login-desktop.png) | 1440 × 1000 | FastAPI |
+| [Onboarding interests](frontend-screenshots/signal-ledger-final/onboarding-interests-desktop.png) | 1440 × 1000 | FastAPI |
+| [Onboarding calibration](frontend-screenshots/signal-ledger-final/onboarding-calibration-mobile.png) | 390 × 844 | FastAPI |
+| [Preferences](frontend-screenshots/signal-ledger-final/preferences-desktop.png) | 1440 × 1000 | FastAPI |
+| [Account](frontend-screenshots/signal-ledger-final/account-mobile.png) | 390 × 844 | FastAPI |
+| [Operations sources](frontend-screenshots/signal-ledger-final/ops-sources-desktop.png) | 1440 × 1000 | FastAPI |
+| [Operations debug](frontend-screenshots/signal-ledger-final/ops-debug-desktop.png) | 1440 × 1000 | local fixtures |
+| [Empty feed](frontend-screenshots/signal-ledger-final/empty-feed-mobile.png) | 390 × 844 | FastAPI |
+| [Backend error](frontend-screenshots/signal-ledger-final/error-state-desktop.png) | 1440 × 1000 | FastAPI failure path |
+| [Not found](frontend-screenshots/signal-ledger-final/not-found-mobile.png) | 390 × 844 | local fixtures |
+
+The local debug fixture is intentional: a newly seeded backend database has no
+live-ingested `rss_` corpus, so its real debug feed is correctly empty. Sources
+remains a backend integration capture; debug uses the supported local relevance
+fixtures to exercise the populated console without manufacturing backend data.
+
+Every final PNG was opened and inspected after the final generation. The
+review covered overflow, Hebrew/RTL order and wrapping, fixed mobile navigation,
+responsive visibility, metadata contrast, cluster expansion, empty/error
+states, and desktop/mobile spacing. It found and corrected three material
+evidence defects:
+
+- local cluster scoring did not populate the visible-member presentation
+  contract, leaving the expansion control unreachable in fixture mode;
+- the first expanded-cluster captures toggled a below-fold component without
+  scrolling it into evidence;
+- a retained route scroll position clipped the top of the account capture.
+
+Useful historical comparisons remain available:
 
 - [Before — desktop feed](frontend-screenshots/before-feed-desktop.png)
 - [Before — mobile feed](frontend-screenshots/before-feed-mobile.png)
-- [After — desktop feed](frontend-screenshots/after-feed-desktop.png)
-- [After — mobile feed](frontend-screenshots/after-feed-mobile.png)
-- [After — preferences](frontend-screenshots/after-preferences-desktop.png)
-- [After — operations console](frontend-screenshots/after-ops-desktop.png)
+- [Earlier after — desktop feed](frontend-screenshots/after-feed-desktop.png)
+- [Earlier after — mobile feed](frontend-screenshots/after-feed-mobile.png)
 
 ## Known limitations
 
@@ -205,12 +261,13 @@ Review images:
   it does not fabricate live scores.
 - No article-image field exists in the current normalized feed contract, so the
   design deliberately relies on type and reporting context.
-- Full auth/onboarding persistence still requires a running backend configured
-  for enforced auth. Local mode validates presentation and existing pure-flow
-  tests; it does not substitute mock production accounts.
-- Headless Chromium on Windows enforces a 500px minimum native window. The
-  mobile screenshots use that width; CSS and static inspection cover the 320px
-  lower bound.
+- Full auth/onboarding persistence requires a running backend configured for
+  enforced auth. The automated review starts that isolated backend for login,
+  onboarding, preferences, account, and empty-feed evidence; local mode remains
+  the deterministic presentation and populated-debug fixture.
+- Native Windows window sizing is not used as mobile evidence. CDP viewport
+  emulation captures and dimension-checks real 390px, 375px, and 320px
+  viewports at device-scale factor 1.
 
 ## Migration and rollback
 

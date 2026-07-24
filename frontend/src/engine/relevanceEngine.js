@@ -657,30 +657,73 @@ export function scoreAllArticles(articles, profile, options = {}) {
  */
 export function scoreCluster(cluster, articles, profile, options = {}) {
   const clusterArticles = articles.filter(a => cluster.articleIds.includes(a.id));
-
-  let bestDecision = "hidden";
-  let bestReasoning = [];
-  let bestMatchedTopic = null;
-  let bestMatchedRule = null;
-
-  for (const article of clusterArticles) {
-    const s = scoreArticle(article, profile, options);
-    if (DECISION_RANK[s.decision] > DECISION_RANK[bestDecision]) {
-      bestDecision = s.decision;
-      bestReasoning = s.reasoning;
-      bestMatchedTopic = s.matchedTopic;
-      bestMatchedRule = s.matchedRule;
-    }
-  }
+  const evaluated = clusterArticles.map(article => ({
+    article,
+    score: scoreArticle(article, profile, options),
+  }));
+  const visible = evaluated.filter(
+    ({ score }) => DECISION_RANK[score.decision] > DECISION_RANK.hidden,
+  );
+  const best = evaluated.reduce(
+    (current, candidate) =>
+      DECISION_RANK[candidate.score.decision] >
+      DECISION_RANK[current.score.decision]
+        ? candidate
+        : current,
+    {
+      article: clusterArticles[0] ?? {},
+      score: {
+        decision: "hidden",
+        reasoning: [],
+        matchedTopic: null,
+        matchedRule: null,
+      },
+    },
+  );
+  const displayed =
+    visible.find(({ article }) => article.id === cluster.primaryArticleId) ??
+    visible[0] ??
+    best;
+  const members = visible.map(({ article, score }) => ({
+    articleId: article.id,
+    source: article.source,
+    sourceDisplayName: article.sourceDisplayName,
+    title: article.translatedTitle || article.title,
+    url: article.url,
+    publishedAt: article.publishedAt,
+    decision: score.decision,
+  }));
+  const newestVisible = members.reduce(
+    (newest, member) =>
+      !newest || new Date(member.publishedAt) > new Date(newest.publishedAt)
+        ? member
+        : newest,
+    null,
+  );
 
   return {
+    ...displayed.article,
     ...cluster,
+    primaryArticleId: displayed.article.id ?? cluster.primaryArticleId,
+    representativeArticleId: cluster.primaryArticleId,
+    priorityArticleId: best.article.id ?? cluster.primaryArticleId,
+    displayedReason:
+      displayed.article.id === cluster.primaryArticleId
+        ? "representative_visible"
+        : "representative_hidden_fallback",
+    sourceCount: members.length,
+    members,
+    sources: members.map(member => member.source),
+    sourceDisplayNames: members.map(member => member.sourceDisplayName),
+    lastUpdatedAt: newestVisible?.publishedAt ?? cluster.lastUpdatedAt,
+    firstSeenAt: members.at(-1)?.publishedAt ?? cluster.firstSeenAt,
+    articleScoreDecision: displayed.score.decision,
     score: {
-      decision: bestDecision,
-      label: DECISION_LABELS_HE[bestDecision],
-      reasoning: bestReasoning,
-      matchedTopic: bestMatchedTopic,
-      matchedRule: bestMatchedRule
+      decision: best.score.decision,
+      label: DECISION_LABELS_HE[best.score.decision],
+      reasoning: best.score.reasoning,
+      matchedTopic: best.score.matchedTopic,
+      matchedRule: best.score.matchedRule
     }
   };
 }

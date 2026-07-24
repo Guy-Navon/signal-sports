@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { scoreArticle, doesTopicMatchArticle, DECISION_RANK } from "./relevanceEngine";
+import {
+  scoreArticle,
+  scoreCluster,
+  doesTopicMatchArticle,
+  DECISION_RANK,
+} from "./relevanceEngine";
 import { userProfiles } from "../data/userProfiles";
-import { mockArticles } from "../data/mockArticles";
+import { mockArticles, mockClusters } from "../data/mockArticles";
 
 const guy = userProfiles.guy;
 const denieFan = userProfiles.casual_deni_fan;
@@ -11,6 +16,22 @@ function getArticle(id) {
   if (!article) throw new Error(`Article ${id} not found in mockArticles`);
   return article;
 }
+
+describe("local cluster presentation contract", () => {
+  it("exposes visible member reports to the shared cluster UI", () => {
+    const result = scoreCluster(mockClusters[0], mockArticles, guy);
+
+    expect(result.sourceCount).toBe(3);
+    expect(result.members).toHaveLength(3);
+    expect(result.primaryArticleId).toBe("article_001");
+    expect(result.members.map(member => member.articleId)).toEqual([
+      "article_001",
+      "article_002",
+      "article_003",
+    ]);
+    expect(result.members.every(member => member.decision !== "hidden")).toBe(true);
+  });
+});
 
 // ─────────────────────────────────────────────────────────────────
 // Maccabi Tel Aviv Basketball

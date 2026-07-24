@@ -10,7 +10,8 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "capture:visual": "node scripts/capture-signal-ledger.mjs"
   },
   "dependencies": {
     "@fontsource-variable/heebo": "^5.2.8",

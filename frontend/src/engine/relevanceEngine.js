@@ -454,6 +454,7 @@ function participantInferredCompetition(article) {
     ? teamMembershipsForEntityIds(article.entityIds || [])
     : teamMembershipsForLegacyNames(article.entities || []);
   if (teams.size < 2) return null;
+  /** @type {Set<string> | null} */
   let shared = null;
   for (const memberships of teams.values()) {
     const set = new Set(memberships);

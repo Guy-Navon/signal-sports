@@ -18,7 +18,12 @@ export default function Sources() {
 
   return (
     <div className="max-w-4xl space-y-5">
-      <PageHeader title="מקורות" icon={Database} subtitle={`${enabledCount}/${sources.length} מקורות פעילים`} />
+      <PageHeader
+        title="מקורות"
+        icon={Database}
+        kicker="SIGNAL / OPERATIONS CONSOLE"
+        subtitle={`${enabledCount}/${sources.length} מקורות פעילים`}
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

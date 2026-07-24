@@ -6,12 +6,12 @@ export default function SectionCard({ title = null, icon: Icon = null, actions =
   return (
     <section
       className={cn(
-        "bg-surface-1 border border-border rounded-[10px] elevation-1 overflow-hidden",
+        "ledger-panel overflow-hidden",
         className
       )}
     >
       {(title || actions) && (
-        <header className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
+        <header className="flex items-center justify-between gap-3 border-b border-foreground/15 px-4 py-3">
           <div className="flex items-center gap-2 min-w-0">
             {Icon && <Icon size={15} className="text-text-secondary flex-shrink-0" />}
             <h2 className="text-sm font-semibold text-foreground truncate">{title}</h2>

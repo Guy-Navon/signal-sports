@@ -3,18 +3,16 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { getMobileNavItems } from "@/components/shell/navConfig";
 
-// Product: a floating glass pill, detached from the screen edge — the feed
-// keeps the canvas, navigation becomes a light touch rather than a bar.
-// Ops: the current edge-to-edge tab bar, unchanged (console shell redesign
-// is a later PR).
+// Mobile navigation is an edge-to-edge newsroom dock. It deliberately avoids
+// the floating-pill pattern so the full viewport width remains predictable.
 export default function MobileNav({ area, isBackendMode }) {
   const location = useLocation();
   const items = getMobileNavItems(area, isBackendMode);
 
   if (area === "product") {
     return (
-      <nav className="md:hidden fixed bottom-4 inset-x-4 z-50">
-        <div className="surface-glass border border-border rounded-full shadow-lg flex items-center justify-between px-2 py-1.5">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-foreground bg-foreground text-background md:hidden">
+        <div className="mx-auto flex h-[4.25rem] max-w-lg items-stretch">
           {items.map(({ path, label, icon: Icon }) => {
             const active = location.pathname === path;
             return (
@@ -22,15 +20,13 @@ export default function MobileNav({ area, isBackendMode }) {
                 key={path}
                 to={path}
                 className={cn(
-                  "relative flex flex-col items-center gap-0.5 flex-1 py-1.5 rounded-full transition-colors",
-                  active ? "text-signal-high" : "text-text-dim"
+                  "relative flex flex-1 flex-col items-center justify-center gap-1 transition-colors",
+                  active ? "bg-background text-foreground" : "text-background/55"
                 )}
               >
-                {active && (
-                  <span className="absolute top-0.5 w-1 h-1 rounded-full bg-signal-high" />
-                )}
-                <Icon size={17} />
-                <span className="text-[9px] leading-none">{label}</span>
+                {active && <span className="absolute inset-x-0 top-0 h-[3px] bg-signal-push" />}
+                <Icon size={18} />
+                <span className="text-[10px] font-medium leading-none">{label}</span>
               </Link>
             );
           })}
@@ -40,7 +36,7 @@ export default function MobileNav({ area, isBackendMode }) {
   }
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 surface-glass border-t border-border z-50">
+    <nav className="surface-glass fixed inset-x-0 bottom-0 z-50 border-t border-border md:hidden">
       <div className="flex">
         {items.map(({ path, label, icon: Icon }) => {
           const active = location.pathname === path;

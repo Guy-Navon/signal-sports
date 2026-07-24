@@ -45,7 +45,7 @@ const LEVEL_LABELS = {
 function ItemCard({ item, rating, onRate }) {
   return (
     // id: the resume anchor — "opens at the first unanswered item" (#52)
-    <div id={`cal-item-${item.id}`} className="bg-surface-1 border border-border rounded-[10px] p-3">
+    <div id={`cal-item-${item.id}`} className="border border-foreground/20 bg-surface-1 p-4">
       <div className="text-sm text-foreground mb-1">{item.title}</div>
       <div className="text-xs text-text-dim mb-2">{SPORT_LABELS[item.sport] ?? item.sport}</div>
       <div className="flex gap-1.5 flex-wrap">
@@ -229,7 +229,7 @@ export default function Calibration() {
 
   if (!isBackendMode) {
     return (
-      <div className="max-w-4xl space-y-4">
+      <div className="product-page space-y-5">
         <PageHeader title="כיול העדפות" icon={SlidersHorizontal} subtitle="דרג כותרות סינתטיות כדי שנלמד מה מעניין אותך" />
         <SectionCard title="כיול העדפות" icon={SlidersHorizontal}>
           <p className="text-xs text-text-secondary">
@@ -244,9 +244,9 @@ export default function Calibration() {
   }
 
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="product-page space-y-5">
       {inOnboarding && (
-        <div className="flex items-center justify-between rounded-lg border border-border bg-surface-1 px-4 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-foreground/20 bg-surface-1 px-4 py-2.5">
           <p className="text-xs text-text-secondary">
             אפשר לעצור בכל שלב — התשובות נשמרות וממשיכים מכל מכשיר.
           </p>

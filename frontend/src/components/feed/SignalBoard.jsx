@@ -1,39 +1,30 @@
 import React, { useMemo } from "react";
-import { Sparkles } from "lucide-react";
+import { ScanSearch, Radio } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
-import SignalSpectrum from "@/components/feed/SignalSpectrum";
-import TopicFilters from "@/components/feed/TopicFilters";
 import MonoValue from "@/components/shared/MonoValue";
 
-function BoardLabel({ children }) {
-  return (
-    <p className="text-[10.5px] font-semibold tracking-[0.14em] text-text-dim mb-3">{children}</p>
-  );
+function storyTitle(item) {
+  return item.type === "cluster"
+    ? item.clusterTitle
+    : item.translatedTitle || item.title;
 }
 
-// "לוח הסיגנל" — the desk's side board on wide screens: the spectrum, topic
-// filters, and a few quiet desk facts. Derived entirely from data already on
-// the page; deliberately prose-and-lines, not stat cards.
-export default function SignalBoard({
-  counts,
-  activeFilters,
-  onToggle,
-  onReset,
-  items,
-  scanned = 0,
-}) {
+// The desktop desk index is a reading aid, not a second set of controls. It
+// shows the top three items in order and explains the size/freshness of the
+// reporting pool without turning those facts into generic stat cards.
+export default function SignalBoard({ items, scanned = 0 }) {
   const facts = useMemo(() => {
     const sources = new Set();
     let latest = null;
     for (const item of items) {
       if (item.type === "cluster") {
-        (item.sourceDisplayNames || []).forEach((s) => sources.add(s));
+        (item.sourceDisplayNames || []).forEach((source) => sources.add(source));
       } else if (item.sourceDisplayName) {
         sources.add(item.sourceDisplayName);
       }
-      const t = new Date(item.publishedAt || item.firstSeenAt || 0).getTime();
-      if (t && (!latest || t > latest)) latest = t;
+      const timestamp = new Date(item.publishedAt || item.firstSeenAt || 0).getTime();
+      if (timestamp && (!latest || timestamp > latest)) latest = timestamp;
     }
     let latestAgo = null;
     if (latest) {
@@ -47,41 +38,47 @@ export default function SignalBoard({
   }, [items]);
 
   return (
-    <div className="border-s border-border/50 ps-7">
-      <BoardLabel>לוח הסיגנל</BoardLabel>
-      <SignalSpectrum
-        counts={counts}
-        activeFilters={activeFilters}
-        onToggle={onToggle}
-        vertical
-      />
+    <div className="border-t-4 border-foreground">
+      <div className="flex items-center justify-between border-b border-foreground/20 py-2">
+        <p className="eyebrow text-foreground">DESK INDEX / סדר קריאה</p>
+        <Radio size={13} className="text-signal-push" />
+      </div>
 
-      <div className="my-6 h-px bg-border/50" aria-hidden />
+      <ol>
+        {items.slice(0, 3).map((item, index) => (
+          <li
+            key={item.id}
+            className="grid grid-cols-[1.6rem_1fr] gap-2 border-b border-foreground/15 py-3"
+          >
+            <span className="font-mono text-[10px] font-bold text-signal-push">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <p className="line-clamp-3 text-xs font-medium leading-relaxed text-foreground">
+              {storyTitle(item)}
+            </p>
+          </li>
+        ))}
+      </ol>
 
-      <BoardLabel>סינון מהיר</BoardLabel>
-      <TopicFilters
-        activeFilters={activeFilters}
-        onToggle={onToggle}
-        onReset={onReset}
-        vertical
-      />
-
-      <div className="my-6 h-px bg-border/50" aria-hidden />
-
-      <div className="space-y-2 text-xs text-text-dim leading-relaxed">
-        <p className="flex items-center gap-1.5">
-          <Sparkles size={11} className="text-signal-ai flex-shrink-0" />
-          <span>
-            המערכת סרקה <MonoValue className="text-text-secondary">{scanned}</MonoValue> כתבות
-            {facts.sourceCount > 0 && (
-              <>
-                {" "}
-                מ־<MonoValue className="text-text-secondary">{facts.sourceCount}</MonoValue> מקורות
-              </>
-            )}
-          </span>
+      <div className="mt-5 bg-foreground p-4 text-background">
+        <div className="flex items-center gap-2">
+          <ScanSearch size={14} className="text-signal-high" />
+          <p className="font-mono text-[9px] font-bold tracking-[0.14em] text-background/50">
+            LIVE INTAKE
+          </p>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-background/70">
+          נסרקו <MonoValue className="font-bold text-background">{scanned}</MonoValue> כתבות
+          {facts.sourceCount > 0 && (
+            <>
+              {" "}מ־<MonoValue className="font-bold text-background">{facts.sourceCount}</MonoValue> מקורות
+            </>
+          )}
+          .
         </p>
-        {facts.latestAgo && <p>עדכון אחרון: {facts.latestAgo}</p>}
+        {facts.latestAgo && (
+          <p className="mt-1 text-xs text-background/48">הדיווח האחרון {facts.latestAgo}</p>
+        )}
       </div>
     </div>
   );

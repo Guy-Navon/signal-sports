@@ -31,20 +31,20 @@ export default function ClusterSources({ item }) {
   if (!shouldShowSources(item)) return null;
 
   return (
-    <div className="mt-2">
+    <div className="mt-3 border-s-2 border-signal-feed/35 ps-3">
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
         data-testid="cluster-sources-toggle"
         className={cn(
-          "inline-flex items-center gap-1.5 text-xs font-medium",
-          "text-muted-foreground hover:text-foreground transition-colors"
+          "inline-flex items-center gap-2 text-xs font-semibold",
+          "text-signal-feed hover:text-foreground transition-colors"
         )}
       >
         <span
           data-testid="cluster-source-count"
-          className="rounded-full bg-surface-2 px-2 py-0.5 tabular-nums"
+          className="bg-signal-feed/10 px-2 py-0.5 font-mono tabular-nums"
         >
           {sourceCount} מקורות
         </span>
@@ -52,7 +52,7 @@ export default function ClusterSources({ item }) {
       </button>
 
       {open && (
-        <ul data-testid="cluster-sources-list" className="mt-2 space-y-1.5 border-r-2 border-surface-2 pr-3">
+        <ul data-testid="cluster-sources-list" className="mt-3 space-y-2.5 border-t border-foreground/15 pt-3">
           {alternates.map(m => (
             <li key={m.articleId} className="text-xs leading-snug">
               <a

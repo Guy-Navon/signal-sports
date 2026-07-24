@@ -3,13 +3,13 @@ import { cn } from "@/lib/utils";
 
 export default function EmptyState({ icon: Icon = null, title, hint = null, action = null, className = "" }) {
   return (
-    <div className={cn("flex flex-col items-center justify-center text-center py-16 px-4", className)}>
+    <div className={cn("ledger-panel flex flex-col items-center justify-center px-5 py-14 text-center", className)}>
       {Icon && (
-        <div className="w-12 h-12 rounded-full bg-surface-2 border border-border flex items-center justify-center mb-4">
-          <Icon size={20} className="text-text-dim" />
+        <div className="mb-4 flex h-12 w-12 items-center justify-center bg-foreground text-background">
+          <Icon size={20} />
         </div>
       )}
-      <p className="text-base font-medium text-foreground">{title}</p>
+      <p className="font-display text-xl font-bold text-foreground">{title}</p>
       {hint && <p className="text-sm text-text-secondary mt-1 max-w-sm">{hint}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>

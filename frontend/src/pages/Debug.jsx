@@ -75,6 +75,7 @@ export default function Debug() {
       <PageHeader
         title="פאנל דיבאג"
         icon={Bug}
+        kicker="SIGNAL / OPERATIONS CONSOLE"
         subtitle={
           <>
             פרופיל פעיל: <span className="text-signal-high">{activeProfile?.displayName}</span> ·{" "}

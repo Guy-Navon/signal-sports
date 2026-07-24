@@ -20,23 +20,32 @@ export default function EditionHeader({ profileName = "", total = 0, scanned = 0
   const dateLine = hebrewToday();
 
   return (
-    <header className="flex items-end justify-between gap-4 flex-wrap">
-      <div>
-        <p className="text-[11px] tracking-[0.08em] text-text-dim flex items-center flex-wrap gap-x-1.5">
-          {dateLine && <span>{dateLine}</span>}
-          {dateLine && <span aria-hidden>·</span>}
-          <span>
-            <MonoValue className="text-text-secondary">{total}</MonoValue> סיפורים במהדורה
-          </span>
-          {scanned > total && (
-            <span className="xl:hidden">
-              מתוך <MonoValue>{scanned}</MonoValue> שנסרקו
-            </span>
+    <header className="editorial-rule-heavy grid gap-4 pt-3 sm:grid-cols-[1fr_auto] sm:items-end">
+      <div className="min-w-0">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="index-label">01</span>
+          <span className="eyebrow">PERSONAL EDITION / המהדורה האישית</span>
+        </div>
+        <h1 className="font-display text-[2rem] font-bold leading-[0.98] tracking-[-0.025em] text-foreground sm:text-[2.75rem] lg:text-[3.45rem]">
+          {profileName ? (
+            <>
+              המהדורה של <span className="text-signal-push">{profileName}</span>
+            </>
+          ) : (
+            "המהדורה שלך"
           )}
-        </p>
-        <h1 className="mt-1 font-display font-bold text-[1.3rem] md:text-[1.8rem] text-foreground leading-tight">
-          {profileName ? `המהדורה של ${profileName}` : "המהדורה שלך"}
         </h1>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-s border-foreground/20 ps-3 text-[11px] text-text-secondary sm:max-w-[15rem] sm:block sm:text-end">
+        {dateLine && <p className="font-medium text-foreground">{dateLine}</p>}
+        <p>
+          <MonoValue className="font-bold text-foreground">{total}</MonoValue> סיפורים נבחרו
+        </p>
+        {scanned > total && (
+          <p>
+            מתוך <MonoValue>{scanned}</MonoValue> כתבות שנסרקו
+          </p>
+        )}
       </div>
     </header>
   );

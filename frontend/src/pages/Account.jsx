@@ -89,7 +89,7 @@ export default function Account() {
   }
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="product-page space-y-8">
       <DeskIntro kicker="החשבון שלך">ניהול ההתחברות והחשבון — ההעדפות עצמן גרות בעמוד ההעדפות.</DeskIntro>
 
       <section className="space-y-2">

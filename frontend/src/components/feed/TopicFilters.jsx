@@ -18,11 +18,11 @@ export default function TopicFilters({
       className={cn(
         vertical
           ? "flex flex-col items-start gap-2 text-xs"
-          : "flex items-center flex-wrap gap-x-4 gap-y-1 text-xs",
+          : "flex flex-wrap items-center gap-x-4 gap-y-1 text-xs",
         className
       )}
     >
-      {!vertical && <span className="text-text-dim">סינון:</span>}
+      {!vertical && <span className="font-mono text-[9px] font-bold tracking-[0.12em] text-text-dim">FILTER</span>}
       {TOPIC_CHIPS.map((chip) => {
         const active = activeFilters.has(chip.id);
         return (

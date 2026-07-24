@@ -21,7 +21,13 @@ export default function AppShell({ area = "product" }) {
   const reduce = useReducedMotion();
 
   return (
-    <div className="min-h-screen flex flex-col relative">
+    <div
+      className={
+        area === "product"
+          ? "product-shell min-h-screen flex flex-col relative"
+          : "ops-shell min-h-screen flex flex-col relative"
+      }
+    >
       {area === "product" ? <Atmosphere /> : <OpsGrid />}
 
       <Masthead area={area} isBackendMode={isBackendMode} isLoading={isLoading} />
@@ -36,14 +42,14 @@ export default function AppShell({ area = "product" }) {
         />
       )}
 
-      <div className="flex-1 flex w-full max-w-screen-2xl mx-auto">
+      <div className="flex-1 flex w-full max-w-[1600px] mx-auto">
         {area === "ops" && <ProductNav isBackendMode={isBackendMode} />}
         <main className="flex-1 min-w-0">
           <div
             className={
               area === "product"
-                ? "w-full px-4 py-6 pb-20 md:pb-10"
-                : "mx-auto w-full max-w-7xl px-4 py-6 pb-24 md:pb-10"
+                ? "w-full px-4 pt-5 pb-24 sm:px-6 lg:px-8 lg:pt-8 lg:pb-12"
+                : "mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 md:pb-10"
             }
           >
             {area === "ops" && <OpsNav isBackendMode={isBackendMode} />}

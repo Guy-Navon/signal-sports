@@ -29,7 +29,7 @@ export default function SignalSpectrum({
 
   return (
     <div className={className}>
-      <div className="flex h-1.5 rounded-full overflow-hidden gap-[3px]" role="group" aria-label="ספקטרום הסיגנל">
+      <div className="flex h-2 overflow-hidden gap-[2px]" role="group" aria-label="ספקטרום הסיגנל">
         {present.map((seg, i) => {
           const active = activeFilters.has(seg.id);
           const dimmed = anyLevelActive && !active;
@@ -47,7 +47,7 @@ export default function SignalSpectrum({
               // recomposition. RTL-only app: segments grow from the right edge.
               style={{ flexGrow: counts[seg.id], transformOrigin: "100% 50%" }}
               className={cn(
-                "min-w-[16px] rounded-full transition-all duration-500",
+                "min-w-[16px] transition-all duration-500",
                 seg.bar,
                 dimmed && "opacity-25",
                 active && "shadow-[0_0_8px_currentColor]"
@@ -62,7 +62,7 @@ export default function SignalSpectrum({
           "mt-2.5",
           vertical
             ? "flex flex-col gap-2"
-            : "flex items-center flex-wrap gap-x-4 gap-y-1"
+            : "flex flex-wrap items-center gap-x-4 gap-y-1"
         )}
       >
         {present.map((seg) => {
@@ -84,7 +84,7 @@ export default function SignalSpectrum({
                 <span
                   aria-hidden
                   className={cn(
-                    "inline-block w-1.5 h-1.5 rounded-full",
+                    "inline-block h-1.5 w-1.5",
                     seg.dot,
                     seg.pulse && "animate-pulse-soft"
                   )}

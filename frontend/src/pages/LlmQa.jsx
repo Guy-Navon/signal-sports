@@ -652,6 +652,7 @@ export default function LlmQa() {
       <PageHeader
         title="בדיקת סיווג LLM"
         icon={FlaskConical}
+        kicker="SIGNAL / OPERATIONS CONSOLE"
         subtitle="עמוד QA — לא עמוד מוצרי"
       >
         {loading && <span className="text-xs text-text-dim animate-pulse">טוען...</span>}

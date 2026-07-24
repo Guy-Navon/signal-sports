@@ -1,4 +1,4 @@
-/* Court Vision design tokens — see docs/CURRENT_PROJECT_STATE.md (frontend redesign) */
+/* Signal Ledger — editorial newsroom tokens and global interaction rules. */
 @import "@fontsource-variable/heebo";
 @import "@fontsource/frank-ruhl-libre/500.css";
 @import "@fontsource/frank-ruhl-libre/700.css";
@@ -9,133 +9,244 @@
 
 @layer base {
   :root {
-    /* shadcn core tokens (Court Vision values) */
-    --background: 224 50% 4%;
-    --foreground: 210 30% 96%;
-    --card: 224 45% 7%;
-    --card-foreground: 210 30% 96%;
-    --popover: 224 40% 9%;
-    --popover-foreground: 210 30% 96%;
-    --primary: 158 84% 45%;
-    --primary-foreground: 224 50% 4%;
-    --secondary: 222 30% 14%;
-    --secondary-foreground: 210 30% 96%;
-    --muted: 222 30% 12%;
-    --muted-foreground: 215 15% 65%;
-    --accent: 222 30% 14%;
-    --accent-foreground: 210 30% 96%;
-    --destructive: 0 65% 55%;
-    --destructive-foreground: 210 30% 96%;
-    --border: 222 30% 14%;
-    --input: 222 30% 14%;
-    --ring: 158 84% 45%;
-    --radius: 0.875rem;
+    --background: 43 25% 94%;
+    --foreground: 166 24% 8%;
+    --card: 42 30% 97%;
+    --card-foreground: 166 24% 8%;
+    --popover: 42 33% 98%;
+    --popover-foreground: 166 24% 8%;
+    --primary: 7 79% 52%;
+    --primary-foreground: 42 33% 98%;
+    --secondary: 42 17% 86%;
+    --secondary-foreground: 166 24% 8%;
+    --muted: 42 17% 88%;
+    --muted-foreground: 165 7% 38%;
+    --accent: 158 36% 87%;
+    --accent-foreground: 158 77% 22%;
+    --destructive: 2 69% 45%;
+    --destructive-foreground: 42 33% 98%;
+    --border: 165 13% 73%;
+    --input: 165 12% 69%;
+    --ring: 7 79% 52%;
+    --radius: 0.3rem;
 
-    /* surface elevation ladder */
-    --surface-0: 224 50% 4%;
-    --surface-1: 224 45% 7%;
-    --surface-2: 224 40% 10%;
-    --surface-3: 224 35% 13%;
+    --surface-0: 43 25% 94%;
+    --surface-1: 42 30% 97%;
+    --surface-2: 42 18% 89%;
+    --surface-3: 41 15% 82%;
 
-    /* text tiers */
-    --text-primary: 210 30% 96%;
-    --text-secondary: 215 15% 65%;
-    --text-dim: 215 12% 45%;
+    --text-primary: 166 24% 8%;
+    --text-secondary: 165 8% 34%;
+    --text-dim: 165 6% 48%;
 
-    /* signal system — decision levels are the brand.
-       Gold is reserved for push; red for errors/hidden; cyan for AI moments only. */
-    --signal-push: 43 90% 55%;
-    --signal-high: 158 84% 45%;
-    --signal-feed: 217 60% 60%;
-    --signal-low: 215 12% 45%;
-    --signal-hidden: 0 65% 55%;
-    --signal-ai: 190 90% 55%;
+    --signal-push: 7 79% 52%;
+    --signal-high: 158 77% 27%;
+    --signal-feed: 218 74% 47%;
+    --signal-low: 165 6% 48%;
+    --signal-hidden: 2 69% 45%;
+    --signal-ai: 188 76% 30%;
 
-    /* typography */
     --font-body: "Heebo Variable", "Heebo", system-ui, -apple-system, sans-serif;
     --font-heading: var(--font-body);
     --font-display: "Frank Ruhl Libre", "Heebo Variable", "Heebo", serif;
     --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, monospace;
 
-    /* motion */
     --motion-fast: 120ms;
-    --motion-base: 240ms;
+    --motion-base: 220ms;
     --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   html {
     @apply bg-background;
     scrollbar-gutter: stable;
+    text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground font-body antialiased;
+    min-width: 320px;
+    overflow-x: hidden;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button {
+    touch-action: manipulation;
   }
 
   ::selection {
-    background-color: hsl(var(--signal-high) / 0.25);
+    color: hsl(var(--primary-foreground));
+    background: hsl(var(--signal-push));
   }
 
-  /* Themed keyboard focus — replaces the default blue browser ring with the
-     same --ring token shadcn components already use, so keyboard nav reads
-     as considered rather than left to the browser default. */
   :focus-visible {
-    outline: 2px solid hsl(var(--ring) / 0.6);
-    outline-offset: 2px;
-    border-radius: 2px;
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
   }
 
-  /* Thin, dark scrollbar instead of the OS default — a small premium tell. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--surface-3)) transparent;
+    scrollbar-color: hsl(var(--foreground) / 0.28) transparent;
   }
+
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
+
   ::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--surface-3));
+    border: 3px solid hsl(var(--background));
     border-radius: 999px;
-    border: 2px solid hsl(var(--background));
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--signal-feed) / 0.4);
+    background: hsl(var(--foreground) / 0.28);
   }
 }
 
 @layer components {
-  /* glass surface — sticky header and mobile tab bar only */
+  .product-shell {
+    isolation: isolate;
+    background:
+      linear-gradient(90deg, hsl(var(--foreground) / 0.025) 1px, transparent 1px)
+        50% 0 / min(7.5vw, 112px) 100%,
+      hsl(var(--background));
+  }
+
+  .product-shell::before {
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    content: "";
+    pointer-events: none;
+    opacity: 0.55;
+    background:
+      radial-gradient(circle at 18% 7%, hsl(var(--signal-high) / 0.07), transparent 23rem),
+      radial-gradient(circle at 86% 38%, hsl(var(--signal-push) / 0.045), transparent 28rem);
+  }
+
+  .ops-shell {
+    --background: 222 38% 7%;
+    --foreground: 210 25% 95%;
+    --card: 222 34% 10%;
+    --card-foreground: 210 25% 95%;
+    --popover: 222 31% 12%;
+    --popover-foreground: 210 25% 95%;
+    --primary: 158 74% 42%;
+    --primary-foreground: 222 38% 7%;
+    --secondary: 221 24% 16%;
+    --secondary-foreground: 210 25% 95%;
+    --muted: 221 24% 14%;
+    --muted-foreground: 215 13% 65%;
+    --accent: 221 24% 17%;
+    --accent-foreground: 210 25% 95%;
+    --border: 221 22% 20%;
+    --input: 221 22% 24%;
+    --ring: 158 74% 42%;
+    --surface-0: 222 38% 7%;
+    --surface-1: 222 34% 10%;
+    --surface-2: 221 27% 14%;
+    --surface-3: 221 24% 18%;
+    --text-primary: 210 25% 95%;
+    --text-secondary: 215 13% 65%;
+    --text-dim: 215 10% 48%;
+    --signal-push: 42 89% 56%;
+    --signal-high: 158 74% 42%;
+    --signal-feed: 215 78% 66%;
+    --signal-low: 215 10% 48%;
+    --signal-hidden: 2 68% 58%;
+    --signal-ai: 188 82% 54%;
+    color: hsl(var(--foreground));
+    background: hsl(var(--background));
+  }
+
   .surface-glass {
-    background-color: hsl(var(--surface-1) / 0.72);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: hsl(var(--background) / 0.92);
+    border-color: hsl(var(--foreground) / 0.14);
+    backdrop-filter: blur(18px) saturate(1.2);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
   }
 
-  /* elevation via background-step + hairline + shadow, never bright borders */
   .elevation-1 {
-    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.4), 0 8px 24px hsl(0 0% 0% / 0.25);
+    box-shadow: 0 1px 0 hsl(var(--foreground) / 0.08), 0 16px 40px hsl(var(--foreground) / 0.055);
   }
 
-  /* gold glow — push only, defined once, never ad-hoc */
   .glow-push {
-    box-shadow: 0 0 24px hsl(var(--signal-push) / 0.08), inset 0 0 0 1px hsl(var(--signal-push) / 0.15);
+    box-shadow: inset 4px 0 0 hsl(var(--signal-push));
   }
 
-  /* hide horizontal scrollbar on filter/chip rows */
+  .editorial-rule {
+    border-block-start: 1px solid hsl(var(--foreground) / 0.78);
+  }
+
+  .editorial-rule-heavy {
+    border-block-start: 4px solid hsl(var(--foreground));
+  }
+
+  .eyebrow {
+    @apply font-mono text-[10px] font-semibold uppercase tracking-[0.15em];
+    color: hsl(var(--text-secondary));
+  }
+
+  .index-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75rem;
+    height: 1.2rem;
+    padding-inline: 0.35rem;
+    color: hsl(var(--primary-foreground));
+    background: hsl(var(--foreground));
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .product-page {
+    width: min(100%, 68rem);
+    margin-inline: auto;
+  }
+
+  .product-page > :first-child {
+    scroll-margin-top: 6rem;
+  }
+
+  .ledger-panel {
+    border: 1px solid hsl(var(--foreground) / 0.18);
+    border-block-start: 4px solid hsl(var(--foreground));
+    background: hsl(var(--surface-1) / 0.72);
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  html {
+    scrollbar-gutter: auto;
+  }
+
+  .product-shell {
+    background:
+      linear-gradient(90deg, hsl(var(--foreground) / 0.018) 1px, transparent 1px)
+        50% 0 / 4rem 100%,
+      hsl(var(--background));
+  }
+
+  .product-page {
+    width: 100%;
   }
 }
 
@@ -143,9 +254,9 @@
   *,
   *::before,
   *::after {
+    scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }

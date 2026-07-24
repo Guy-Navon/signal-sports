@@ -1,6 +1,5 @@
 import React from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { ArrowUpLeft } from "lucide-react";
+import { ArrowUpLeft, Radio, Layers3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDecisionConfig } from "@/components/feed/decisionConfig";
 import SourceMeta from "@/components/feed/SourceMeta";
@@ -9,63 +8,25 @@ import DeskVoice from "@/components/feed/DeskVoice";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import { buildKicker } from "@/components/feed/storyLabels";
 
-// Signal-strength instrument: four ascending bars, filled to the story's
-// strength (decisionConfig). A quiet sports-tech accent, not a widget.
-function SignalStrength({ decision, tone }) {
+function SignalStrength({ decision, barClass }) {
   const strength = getDecisionConfig(decision).strength;
   return (
-    <div className="flex flex-col items-center gap-1.5" aria-hidden>
-      <div className="flex items-end gap-[3px]">
-        {[1, 2, 3, 4].map((i) => (
-          <span
-            key={i}
-            className={cn(
-              "w-[4px] rounded-full transition-colors",
-              i <= strength ? tone.bar : "bg-surface-3"
-            )}
-            style={{ height: `${6 + i * 5}px` }}
-          />
-        ))}
-      </div>
-      <span className="text-[9px] tracking-[0.18em] text-text-dim font-mono">SIGNAL</span>
+    <div className="flex items-end gap-1" aria-label={`עוצמת סיגנל ${strength} מתוך 4`}>
+      {[1, 2, 3, 4].map((i) => (
+        <span
+          key={i}
+          className={cn("w-2", i <= strength ? barClass : "bg-background/20")}
+          style={{ height: `${10 + i * 7}px` }}
+        />
+      ))}
     </div>
   );
 }
 
-// Half-court geometry that draws itself in on mount — identity, not clip-art.
-// Anchored to the inline-end of the hero band at whisper opacity.
-function CourtLines({ reduce }) {
-  const draw = reduce
-    ? {}
-    : {
-        initial: { pathLength: 0, opacity: 0 },
-        animate: { pathLength: 1, opacity: 1 },
-        transition: { duration: 1.6, ease: "easeOut", delay: 0.3 },
-      };
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 420 420"
-      fill="none"
-      className="absolute top-1/2 -translate-y-1/2 end-[-60px] h-[130%] w-auto pointer-events-none text-foreground opacity-[0.055] rtl:-scale-x-100"
-    >
-      {/* three-point arc */}
-      <motion.path d="M 420 30 A 195 195 0 0 0 420 390" stroke="currentColor" strokeWidth="1.5" {...draw} />
-      {/* key / paint */}
-      <motion.path d="M 420 145 H 300 V 275 H 420" stroke="currentColor" strokeWidth="1.2" {...draw} />
-      {/* free-throw circle */}
-      <motion.circle cx="300" cy="210" r="46" stroke="currentColor" strokeWidth="1.2" {...draw} />
-      {/* rim + backboard hint */}
-      <motion.path d="M 420 190 V 230 M 404 210 a 8 8 0 1 0 -0.1 0" stroke="currentColor" strokeWidth="1.2" {...draw} />
-    </svg>
-  );
-}
-
-// The lead story: the edition's front-page moment, composed as a full-width
-// hero band — layered signal mesh, court geometry, serif headline, the desk's
-// voice, and a signal-strength instrument. No card, no border.
+// The lead is a real front page: headline and action on paper, live context
+// in an ink-black desk column. No imagery is required for the hierarchy to
+// survive missing or inconsistent article media.
 export default function LeadStory({ item }) {
-  const reduce = useReducedMotion();
   const decision = item.score?.decision || "high_feed";
   const isPush = decision === "push";
   const isCluster = item.type === "cluster";
@@ -76,123 +37,107 @@ export default function LeadStory({ item }) {
   const sourceLine = isCluster
     ? (item.sourceDisplayNames || []).join(" · ")
     : item.sourceDisplayName;
-
-  const tone = isPush
-    ? {
-        mesh: `radial-gradient(ellipse 55% 90% at 18% 0%, hsl(var(--signal-push) / 0.13), transparent 62%),
-               radial-gradient(ellipse 40% 70% at 85% 100%, hsl(var(--signal-ai) / 0.05), transparent 60%)`,
-        kicker: "text-signal-push",
-        bar: "bg-signal-push",
-        button:
-          "border-signal-push/40 text-signal-push hover:bg-signal-push/10 hover:border-signal-push/60 hover:shadow-[0_0_18px_hsl(var(--signal-push)/0.15)]",
-        underline: "hover:decoration-signal-push/40",
-        rule: "from-signal-push/50",
-      }
-    : {
-        mesh: `radial-gradient(ellipse 55% 90% at 18% 0%, hsl(var(--signal-high) / 0.09), transparent 62%),
-               radial-gradient(ellipse 40% 70% at 85% 100%, hsl(var(--signal-ai) / 0.04), transparent 60%)`,
-        kicker: "text-signal-high",
-        bar: "bg-signal-high",
-        button:
-          "border-signal-high/40 text-signal-high hover:bg-signal-high/10 hover:border-signal-high/60 hover:shadow-[0_0_18px_hsl(var(--signal-high)/0.15)]",
-        underline: "hover:decoration-signal-high/40",
-        rule: "from-signal-high/50",
-      };
+  const sourceCount = isCluster ? item.sourceCount || item.sourceDisplayNames?.length || 0 : 1;
 
   return (
     <section
       aria-label="הסיפור המרכזי"
-      className="relative -mx-4 px-4 pt-7 pb-8 md:pt-9 md:pb-10 overflow-hidden"
+      className="editorial-rule-heavy grid min-w-0 border-b border-foreground bg-surface-1/75 lg:grid-cols-[minmax(0,1fr)_250px]"
     >
-      {/* Atmosphere: layered signal mesh (breathes for push) + court geometry */}
-      <div
-        aria-hidden
-        className={cn("absolute inset-0 pointer-events-none", isPush && "animate-breathe")}
-        style={{ background: tone.mesh }}
-      />
-      <CourtLines reduce={reduce} />
-      {/* Hairline that fades out toward the inline-end — grounds the band */}
-      <div
-        aria-hidden
-        className={cn("absolute bottom-0 inset-x-4 h-px bg-gradient-to-l to-transparent", tone.rule)}
-      />
-
-      <div className="relative flex items-start justify-between gap-6">
-        <div className="min-w-0 max-w-4xl">
-          <div className={cn("flex items-center gap-2 text-xs font-semibold tracking-wide", tone.kicker)}>
-            {isPush && (
-              <span className="relative flex h-2 w-2" aria-hidden>
-                <span className="absolute inline-flex h-full w-full rounded-full bg-signal-push opacity-60 animate-ping" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-signal-push" />
-              </span>
-            )}
-            <span>
-              הסיפור המרכזי
-              {kicker && ` · ${kicker}`}
-            </span>
-          </div>
-
-          <h2
+      <div className="min-w-0 p-5 sm:p-7 lg:p-9">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
             className={cn(
-              "mt-3 font-display font-bold text-foreground text-balance",
-              "text-[1.4rem] leading-[1.3] md:text-[2.6rem] md:leading-[1.16] xl:text-[2.9rem]",
-              "tracking-[-0.01em]"
+              "inline-flex items-center gap-1.5 px-2 py-1 font-mono text-[10px] font-bold tracking-[0.12em]",
+              isPush
+                ? "bg-signal-push text-white"
+                : "bg-signal-high text-white"
             )}
           >
-            {url ? (
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "transition-colors underline decoration-transparent decoration-2 underline-offset-[10px]",
-                  tone.underline
-                )}
-              >
-                {title}
-              </a>
-            ) : (
-              title
-            )}
-          </h2>
-
-          {item.subtitle && (
-            <p className="mt-3.5 text-[0.95rem] md:text-[1.05rem] text-text-secondary leading-relaxed max-w-2xl line-clamp-3">
-              {item.subtitle}
-            </p>
-          )}
-
-          <DeskVoice reasoning={item.score?.reasoning} variant="full" className="mt-4" />
-
-          <div className="mt-2.5">
-            <SourceMeta source={sourceLine} publishedAt={publishedAt} />
-          </div>
-
-          {isCluster && <ClusterSources item={item} />}
-
-          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
-            {url && (
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all",
-                  tone.button
-                )}
-              >
-                קרא את הכתבה
-                <ArrowUpLeft size={14} />
-              </a>
-            )}
-            <FeedbackControls articleId={item.id} variant="text" />
-          </div>
+            <Radio size={11} className={isPush ? "animate-pulse" : ""} />
+            {isPush ? "TOP SIGNAL / דחוף" : "TOP STORY / במוקד"}
+          </span>
+          {kicker && <span className="eyebrow">{kicker}</span>}
         </div>
 
-        <div className="hidden md:flex flex-col items-center pt-1 flex-shrink-0">
-          <SignalStrength decision={decision} tone={tone} />
+        <h2 className="mt-4 max-w-5xl text-balance font-display text-[2rem] font-bold leading-[1.04] tracking-[-0.025em] text-foreground sm:text-[3rem] lg:text-[3.65rem]">
+          {url ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="decoration-2 underline-offset-[10px] transition-colors hover:text-signal-push hover:underline"
+            >
+              {title}
+            </a>
+          ) : (
+            title
+          )}
+        </h2>
+
+        {item.subtitle && (
+          <p className="mt-4 max-w-3xl text-[0.98rem] leading-relaxed text-text-secondary sm:text-[1.08rem]">
+            {item.subtitle}
+          </p>
+        )}
+
+        <DeskVoice reasoning={item.score?.reasoning} variant="full" className="mt-5 max-w-3xl" />
+
+        <div className="mt-4">
+          <SourceMeta source={sourceLine} publishedAt={publishedAt} />
+        </div>
+
+        {isCluster && <ClusterSources item={item} />}
+
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 border border-foreground bg-foreground px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-signal-push hover:text-white"
+            >
+              קראו את הכתבה
+              <ArrowUpLeft size={15} />
+            </a>
+          )}
+          <FeedbackControls articleId={item.id} variant="text" />
         </div>
       </div>
+
+      <aside className="flex min-w-0 flex-col justify-between gap-7 bg-foreground p-5 text-background sm:p-6 lg:p-7">
+        <div>
+          <p className="font-mono text-[9px] font-bold tracking-[0.2em] text-background/45">
+            SIGNAL STRENGTH
+          </p>
+          <div className="mt-3 flex items-end justify-between gap-4">
+            <SignalStrength
+              decision={decision}
+              barClass={isPush ? "bg-signal-push" : "bg-signal-high"}
+            />
+            <span className="font-display text-4xl font-bold leading-none">
+              {getDecisionConfig(decision).strength}
+              <span className="text-base text-background/40">/4</span>
+            </span>
+          </div>
+        </div>
+
+        <div className="border-t border-background/20 pt-4">
+          <p className="font-mono text-[9px] font-bold tracking-[0.2em] text-background/45">
+            COVERAGE
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <Layers3 size={16} className="text-signal-high" />
+            <p className="text-sm font-medium">
+              {isCluster ? `${sourceCount} דיווחים בסיפור מתפתח` : "דיווח מקור יחיד"}
+            </p>
+          </div>
+        </div>
+
+        <p className="border-t border-background/20 pt-4 text-xs leading-relaxed text-background/58">
+          סדר המהדורה נקבע לפי ההעדפות והכיול שלך, לא לפי סדר הפרסום.
+        </p>
+      </aside>
     </section>
   );
 }

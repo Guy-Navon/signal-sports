@@ -23,50 +23,47 @@ function InlineNavLink({ path, label, active }) {
     <Link
       to={path}
       className={cn(
-        "relative px-1 py-1 text-sm transition-colors",
-        active ? "text-foreground font-medium" : "text-text-secondary hover:text-foreground"
+        "relative flex h-16 items-center px-3 text-[13px] font-medium transition-colors",
+        active
+          ? "bg-background text-foreground"
+          : "text-background/65 hover:bg-background/10 hover:text-background"
       )}
     >
       {label}
-      {active && (
-        <span className="absolute -bottom-[13px] inset-x-0 h-0.5 rounded-full bg-signal-high" />
-      )}
+      {active && <span className="absolute inset-x-0 bottom-0 h-[3px] bg-signal-push" />}
     </Link>
   );
 }
 
-// The masthead: wordmark, inline product navigation, profile + data-mode +
-// console entry. Starts transparent over the atmosphere and gains glass +
-// a hairline only once the page scrolls — premium without dominating the
-// feed beneath it. Ops routes get the same masthead minus the inline product
-// links (they navigate via the OpsNav rail instead) plus a "back to feed" link.
-// Account menu (User Platform PR 3, #51): rendered only under real
-// enforcement with a signed-in user — local/bypass modes keep the masthead
-// pixel-identical to the pre-auth UI. The account page itself arrives in PR 7.
-function AccountMenu() {
+function AccountMenu({ inverted = false }) {
   const auth = useAuth();
   if (!auth.authEnforced || !auth.user) return null;
-  const label = auth.user.email || auth.user.id;
+
   return (
     <DropdownMenu dir="rtl">
       <DropdownMenuTrigger
         aria-label="חשבון"
-        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-text-dim hover:text-foreground hover:bg-surface-2 transition-colors"
+        className={cn(
+          "inline-flex h-9 w-9 items-center justify-center border transition-colors",
+          inverted
+            ? "border-background/20 text-background/70 hover:border-background/55 hover:text-background"
+            : "border-border text-text-secondary hover:border-foreground/40 hover:text-foreground"
+        )}
       >
         <UserRound size={15} />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[200px]">
-        <DropdownMenuLabel dir="ltr" className="font-normal text-text-secondary truncate">
-          {label}
+      <DropdownMenuContent align="end" className="min-w-[210px]">
+        <DropdownMenuLabel dir="ltr" className="truncate font-normal text-text-secondary">
+          {auth.user.email || auth.user.id}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild className="gap-2 cursor-pointer">
+        <DropdownMenuItem asChild className="cursor-pointer gap-2">
           <Link to="/account">
             <Settings2 size={14} />
             החשבון שלי
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => auth.logout()} className="gap-2 cursor-pointer">
+        <DropdownMenuItem onSelect={() => auth.logout()} className="cursor-pointer gap-2">
           <LogOut size={14} />
           התנתקות
         </DropdownMenuItem>
@@ -79,41 +76,47 @@ export default function Masthead({ area, isBackendMode, isLoading }) {
   const location = useLocation();
   const scrolled = useScrolled();
   const auth = useAuth();
-  // PR 5 (#53) + admin product-page view-as follow-up: under a consumer
-  // session the ProfileSwitcher leaves the product masthead for non-admins
-  // (the session IS the product identity), but admins keep it on both the
-  // product page and the ops console as their "view any user" control.
-  // Local/bypass: today's UI.
   const consumerView = {
     isBackendMode,
     authEnforced: auth.authEnforced,
     user: auth.user,
   };
-  const showSwitcher =
-    area === "ops" || productShowsProfileSwitcher(consumerView);
-  // #54 review (MEDIUM): consumer role=user must not see a console entry.
+  const showSwitcher = area === "ops" || productShowsProfileSwitcher(consumerView);
   const showConsoleEntry = canEnterOpsShell(consumerView);
   const opsItems = getOpsNavItems(isBackendMode);
   const consoleEntryPath = opsItems[0]?.path || "/sources";
+  const product = area === "product";
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 transition-colors duration-300",
-        scrolled ? "surface-glass border-b border-border" : "bg-transparent border-b border-transparent"
+        "sticky top-0 z-50 border-b transition-shadow duration-300",
+        product
+          ? "border-foreground bg-foreground text-background"
+          : "surface-glass border-border",
+        scrolled && "shadow-[0_10px_30px_hsl(var(--foreground)/0.08)]"
       )}
     >
-      <div className="max-w-screen-2xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-6 min-w-0">
-          <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-3 md:gap-6">
+          <Link
+            to="/"
+            className={cn(
+              "flex flex-shrink-0 items-center gap-2",
+              product ? "text-background" : "text-foreground"
+            )}
+          >
             <SignalMark />
-            <span className="font-display font-bold text-foreground text-[1.05rem] tracking-tight">
-              סיגנל
+            <span className="flex items-baseline gap-2">
+              <span className="font-display text-xl font-bold leading-none tracking-tight">סיגנל</span>
+              <span className="hidden font-mono text-[8px] font-bold tracking-[0.2em] opacity-50 sm:inline">
+                SPORTS DESK
+              </span>
             </span>
           </Link>
 
-          {area === "product" && (
-            <nav className="hidden md:flex items-center gap-5">
+          {product && (
+            <nav className="hidden h-16 items-center border-s border-background/15 ps-3 md:flex">
               {PRODUCT_NAV_ITEMS.map((item) => (
                 <InlineNavLink
                   key={item.path}
@@ -125,10 +128,10 @@ export default function Masthead({ area, isBackendMode, isLoading }) {
             </nav>
           )}
 
-          {area === "ops" && (
+          {!product && (
             <Link
               to="/"
-              className="hidden md:inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-foreground transition-colors"
+              className="hidden items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-foreground md:inline-flex"
             >
               <Rss size={13} />
               חזרה למוצר
@@ -136,28 +139,39 @@ export default function Masthead({ area, isBackendMode, isLoading }) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-shrink-0 items-center gap-2">
           {isBackendMode && isLoading && (
-            <RefreshCw size={12} className="text-signal-high animate-spin" />
+            <RefreshCw
+              size={12}
+              className={cn("animate-spin", product ? "text-background/60" : "text-signal-high")}
+            />
           )}
-          <DataModeBadge isBackendMode={isBackendMode} />
+          <DataModeBadge
+            isBackendMode={isBackendMode}
+            className={cn(product && "hidden text-background/60 sm:inline-flex")}
+          />
           {showSwitcher && (
             <div className="flex items-center gap-1.5">
               {auth.authEnforced && auth.user && (
-                <span className="hidden md:inline text-[10px] font-mono uppercase tracking-wider text-text-dim">
-                  QA view-as
+                <span
+                  className={cn(
+                    "hidden font-mono text-[9px] uppercase tracking-wider md:inline",
+                    product ? "text-background/45" : "text-text-dim"
+                  )}
+                >
+                  QA
                 </span>
               )}
-              <ProfileSwitcher />
+              <ProfileSwitcher inverted={product} />
             </div>
           )}
-          <AccountMenu />
-          {area === "product" && showConsoleEntry && (
+          <AccountMenu inverted={product} />
+          {product && showConsoleEntry && (
             <Link
               to={consoleEntryPath}
               title="קונסולה"
               aria-label="כניסה לקונסולה"
-              className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-lg text-text-dim hover:text-foreground hover:bg-surface-2 transition-colors"
+              className="hidden h-9 w-9 items-center justify-center border border-background/20 text-background/60 transition-colors hover:border-background/55 hover:text-background md:inline-flex"
             >
               <Terminal size={15} />
             </Link>

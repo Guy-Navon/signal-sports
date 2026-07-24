@@ -38,17 +38,17 @@ export default function FeedbackControls({ articleId, variant = "icons", classNa
   }
 
   const suppressPopover = showSuppress && (
-    <div className="absolute z-10 mt-1 end-0 bg-surface-2 border border-border rounded-[10px] shadow-lg p-1.5 flex flex-col gap-1 min-w-[170px]">
+    <div className="absolute end-0 z-10 mt-1 flex min-w-[180px] flex-col gap-1 border border-foreground/25 bg-popover p-1.5 shadow-lg">
       <button
         onClick={() => handle("less_like_this")}
-        className="text-xs text-start px-2 py-1.5 rounded-md text-text-secondary hover:bg-surface-3 transition-colors"
+        className="px-2 py-1.5 text-start text-xs text-text-secondary transition-colors hover:bg-surface-3"
       >
         פחות כאלה
       </button>
       {isBackendMode && (
         <button
           onClick={handleNeverShow}
-          className="text-xs text-start px-2 py-1.5 rounded-md text-signal-hidden hover:bg-signal-hidden/10 transition-colors"
+          className="px-2 py-1.5 text-start text-xs text-signal-hidden transition-colors hover:bg-signal-hidden/10"
         >
           אל תראה לי יותר כאלה (חסימה)
         </button>
@@ -61,7 +61,7 @@ export default function FeedbackControls({ articleId, variant = "icons", classNa
       <div className={cn("relative flex items-center gap-1 text-xs", className)}>
         <button
           onClick={() => handle("more_like_this")}
-          className="px-2 py-1 rounded-md text-text-secondary hover:text-signal-high hover:bg-signal-high/10 transition-colors"
+          className="border-b border-transparent px-2 py-1 text-text-secondary transition-colors hover:border-signal-high hover:text-signal-high"
         >
           עוד כמו זה
         </button>
@@ -70,7 +70,7 @@ export default function FeedbackControls({ articleId, variant = "icons", classNa
         </span>
         <button
           onClick={() => setShowSuppress((v) => !v)}
-          className="px-2 py-1 rounded-md text-text-secondary hover:text-signal-hidden hover:bg-signal-hidden/10 transition-colors"
+          className="border-b border-transparent px-2 py-1 text-text-secondary transition-colors hover:border-signal-hidden hover:text-signal-hidden"
         >
           פחות מזה
         </button>

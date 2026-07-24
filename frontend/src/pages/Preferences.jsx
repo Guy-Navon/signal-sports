@@ -61,7 +61,7 @@ export default function Preferences() {
     (activeProfile?.mutedTopics?.length || 0) + (activeProfile?.mutedSources?.length || 0);
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="product-page space-y-6">
       <PageHeader
         title="העדפות"
         icon={Settings}
@@ -94,16 +94,16 @@ export default function Preferences() {
       </DeskIntro>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border">
+      <div className="scrollbar-hide flex max-w-full gap-0 overflow-x-auto border-y border-foreground/25">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+              "whitespace-nowrap border-e border-foreground/15 px-4 py-2.5 text-sm font-medium transition-colors",
               activeTab === tab.id
-                ? "text-signal-high border-signal-high"
-                : "text-text-dim border-transparent hover:text-text-secondary"
+                ? "bg-foreground text-background"
+                : "text-text-secondary hover:bg-surface-2 hover:text-foreground"
             )}
           >
             {tab.label}

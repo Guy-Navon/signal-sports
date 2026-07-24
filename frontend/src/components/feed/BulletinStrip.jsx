@@ -2,6 +2,7 @@ import React from "react";
 import { ArrowUpLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SourceMeta from "@/components/feed/SourceMeta";
+import ClusterSources from "@/components/feed/ClusterSources";
 import DeskVoice from "@/components/feed/DeskVoice";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import { buildKicker } from "@/components/feed/storyLabels";
@@ -21,10 +22,8 @@ export default function BulletinStrip({ item }) {
   return (
     <article
       className={cn(
-        "relative py-4 px-5 -mx-1 group rounded-xl",
-        // Gold bleed from the inline-start edge (RTL-only app: start = right).
-        "bg-gradient-to-l from-signal-push/[0.07] via-signal-push/[0.02] to-transparent",
-        "transition-colors hover:from-signal-push/[0.1]"
+        "group relative border-s-4 border-signal-push bg-surface-1/75 px-4 py-4 sm:px-5",
+        "transition-colors hover:bg-signal-push/[0.055]"
       )}
     >
       <div className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-signal-push">
@@ -35,7 +34,7 @@ export default function BulletinStrip({ item }) {
         <span>מבזק{kicker ? ` · ${kicker}` : ""}</span>
       </div>
 
-      <h3 className="mt-1.5 font-display font-bold text-foreground text-balance text-base md:text-[1.35rem] leading-snug tracking-[-0.005em]">
+      <h3 className="mt-1.5 text-balance font-display text-lg font-bold leading-snug tracking-[-0.005em] text-foreground md:text-[1.4rem]">
         {url ? (
           <a
             href={url}
@@ -57,6 +56,7 @@ export default function BulletinStrip({ item }) {
       )}
 
       <DeskVoice reasoning={item.score?.reasoning} variant="line" className="mt-2" />
+      {isCluster && <ClusterSources item={item} />}
 
       <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
         <SourceMeta source={sourceLine} publishedAt={item.publishedAt || item.firstSeenAt} />

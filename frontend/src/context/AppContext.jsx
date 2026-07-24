@@ -183,8 +183,8 @@ export function AppProvider({ children }) {
     return [...clusterItems, ...standaloneItems].sort((a, b) => {
       const rankDiff = DECISION_RANK[b.score?.decision || "hidden"] - DECISION_RANK[a.score?.decision || "hidden"];
       if (rankDiff !== 0) return rankDiff;
-      const aDate = new Date(a.publishedAt || a.firstSeenAt);
-      const bDate = new Date(b.publishedAt || b.firstSeenAt);
+      const aDate = new Date(a.publishedAt || a.firstSeenAt).getTime();
+      const bDate = new Date(b.publishedAt || b.firstSeenAt).getTime();
       return bDate - aDate;
     });
   }, [scoredClusters, scoredArticles, clusteredArticleIds]);

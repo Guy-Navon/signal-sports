@@ -67,15 +67,15 @@ export default function NotificationsPanel({ isBackendMode }) {
     <SectionCard
       title="התראות טלגרם (פיילוט)"
       icon={Bell}
-      action={
-        <button type="button" onClick={load} className={consoleButton}
+      actions={
+        <button type="button" onClick={load} className={consoleButton("ghost")}
                 data-testid="notifications-refresh">
           <RefreshCw className="w-3.5 h-3.5" />
           רענון
         </button>
       }
     >
-      {error && <div className={consoleAlert}>{error}</div>}
+      {error && <div className={consoleAlert("error")}>{error}</div>}
 
       {health && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm" data-testid="notifications-health">

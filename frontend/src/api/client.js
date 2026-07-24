@@ -147,6 +147,9 @@ export function getClassifyStatus() {
   return apiFetch("/api/classify/status");
 }
 
+/**
+ * @param {{sourceId?: string, limit?: number, dryRun?: boolean, force?: boolean}} options
+ */
 export function classifyBackfill({ sourceId, limit, dryRun = false, force = false } = {}) {
   const params = new URLSearchParams();
   if (sourceId) params.set("source_id", sourceId);

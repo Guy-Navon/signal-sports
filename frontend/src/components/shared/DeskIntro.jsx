@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 // (no card), the same way the Feed's kickers do. Product pages only.
 export default function DeskIntro({ kicker, children, className = "" }) {
   return (
-    <p className={cn("text-sm leading-relaxed", className)}>
+    <p className={cn("border-s-4 border-signal-push ps-4 text-sm leading-relaxed", className)}>
       {kicker && (
-        <span className="text-[11px] font-semibold tracking-wide text-signal-ai me-2">
+        <span className="me-2 font-mono text-[10px] font-bold tracking-[0.12em] text-signal-push">
           {kicker} ·
         </span>
       )}

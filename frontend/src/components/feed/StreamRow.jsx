@@ -41,11 +41,11 @@ export default function StreamRow({ item, showLevelDot = false }) {
   return (
     <article
       className={cn(
-        "group relative py-3.5 -mx-3 px-3 rounded-xl transition-colors",
-        "hover:bg-surface-1/50"
+        "group relative px-2 py-4 transition-colors sm:px-3",
+        "hover:bg-surface-1/65"
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:gap-3">
         <div className="min-w-0">
           <h3 className={cn("leading-[1.4] text-foreground", titleClass)}>
             {url ? (
@@ -67,7 +67,7 @@ export default function StreamRow({ item, showLevelDot = false }) {
             </p>
           )}
           {isCluster && <ClusterSources item={item} />}
-          <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs">
+          <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
             {showLevelDot && (
               <span
                 className={cn("inline-block w-1.5 h-1.5 rounded-full flex-shrink-0", config.dot)}
@@ -87,8 +87,8 @@ export default function StreamRow({ item, showLevelDot = false }) {
 
         <div
           className={cn(
-            "flex items-center gap-0.5 flex-shrink-0 pt-0.5 transition-opacity",
-            "opacity-70 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100"
+            "flex flex-shrink-0 items-center gap-0.5 pt-0.5 transition-opacity",
+            "opacity-75 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100"
           )}
         >
           {hasDetail && (

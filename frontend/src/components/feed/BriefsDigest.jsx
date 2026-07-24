@@ -27,8 +27,8 @@ function BriefRow({ item }) {
     : item.sourceDisplayName;
 
   return (
-    <div className="group flex items-center justify-between gap-3 py-1.5 min-w-0">
-      <p className="min-w-0 truncate text-[13px] text-text-secondary leading-relaxed">
+    <div className="group grid min-w-0 gap-1 border-b border-foreground/10 py-2.5 last:border-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3">
+      <p className="min-w-0 text-[13px] leading-relaxed text-text-secondary sm:truncate">
         {url ? (
           <a href={url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
             {title}
@@ -37,8 +37,8 @@ function BriefRow({ item }) {
           title
         )}
       </p>
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <span className="text-[11px] text-text-dim">
+      <div className="flex min-w-0 items-center gap-1.5 sm:flex-shrink-0">
+        <span className="truncate text-[11px] text-text-dim">
           {source} · {timeAgo(item.publishedAt || item.firstSeenAt)}
         </span>
         <FeedbackControls
@@ -77,7 +77,7 @@ export default function BriefsDigest({ items }) {
       </SectionHeading>
       <div
         className={cn(
-          "rounded-2xl bg-surface-1/35 px-5 py-3",
+          "ledger-panel px-4 py-2 sm:px-5",
           "md:grid md:grid-cols-2 md:gap-x-10"
         )}
       >

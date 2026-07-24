@@ -9,6 +9,26 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (
+            id.includes('/react/') ||
+            id.includes('/react-dom/') ||
+            id.includes('/react-router') ||
+            id.includes('@tanstack/react-query')
+          ) return 'react-vendor';
+          if (id.includes('framer-motion')) return 'motion-vendor';
+          if (id.includes('lucide-react')) return 'icons-vendor';
+          if (id.includes('@radix-ui')) return 'ui-vendor';
+          if (id.includes('date-fns')) return 'date-vendor';
+          return undefined;
+        },
+      },
+    },
+  },
   server: {
     host: "127.0.0.1",
     port: 5173,

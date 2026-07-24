@@ -97,9 +97,9 @@ export default function InterestSelection() {
   }
 
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="product-page space-y-5">
       {inOnboarding && (
-        <div className="flex items-center justify-between rounded-lg border border-border bg-surface-1 px-4 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-foreground/20 bg-surface-1 px-4 py-2.5">
           <p className="text-xs text-text-secondary">
             שלב {stepIndex + 1} מתוך {STEPS.length} · אפשר לדלג — הכול ניתן לעריכה
             אחר כך בהעדפות.

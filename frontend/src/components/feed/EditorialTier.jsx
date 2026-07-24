@@ -4,13 +4,14 @@ import { cn } from "@/lib/utils";
 import SourceMeta from "@/components/feed/SourceMeta";
 import DeskVoice from "@/components/feed/DeskVoice";
 import FeedbackControls from "@/components/feed/FeedbackControls";
+import ClusterSources from "@/components/feed/ClusterSources";
 import SectionHeading from "@/components/feed/SectionHeading";
 import { buildKicker } from "@/components/feed/storyLabels";
 
 // "במוקד" — the high_feed tier. Asymmetric editorial blocks: the first
 // story spans the full width at a larger scale, the rest sit in a two-column
 // grid. Typography and whitespace do the hierarchy; no boxes.
-function EditorialBlock({ item, major = false, variants = undefined }) {
+function EditorialBlock({ item, major = false, index = 0, variants = undefined }) {
   const isCluster = item.type === "cluster";
   const title = isCluster ? item.clusterTitle : item.translatedTitle || item.title;
   const url = isCluster ? null : item.url;
@@ -23,13 +24,17 @@ function EditorialBlock({ item, major = false, variants = undefined }) {
     <motion.article
       variants={variants}
       className={cn(
-        "group min-w-0 transition-transform duration-200 hover:-translate-y-px",
+        "group min-w-0 border-t border-foreground/30 pt-3 transition-transform duration-200 hover:-translate-y-px",
+        major && "border-t-4 border-foreground pt-4",
         major && "md:col-span-2"
       )}
     >
-      {kicker && (
-        <p className="text-[11px] font-semibold tracking-wide text-signal-high">{kicker}</p>
-      )}
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[10px] font-bold text-signal-push">
+          {String(index + 2).padStart(2, "0")}
+        </span>
+        {kicker && <p className="eyebrow">{kicker}</p>}
+      </div>
 
       <h3
         className={cn(
@@ -69,6 +74,7 @@ function EditorialBlock({ item, major = false, variants = undefined }) {
         variant={major ? "full" : "line"}
         className="mt-2.5"
       />
+      {isCluster && <ClusterSources item={item} />}
 
       <div className="mt-2.5 flex items-center justify-between gap-3">
         <SourceMeta source={sourceLine} publishedAt={item.publishedAt || item.firstSeenAt} />
@@ -88,9 +94,15 @@ export default function EditorialTier({ items, variants = undefined, headingVari
       <motion.div variants={headingVariants}>
         <SectionHeading className="mb-6">במוקד</SectionHeading>
       </motion.div>
-      <div className="grid gap-x-10 gap-y-9 md:grid-cols-2">
+      <div className="grid gap-x-10 gap-y-8 md:grid-cols-2">
         {items.map((item, i) => (
-          <EditorialBlock key={item.id} item={item} major={i === 0} variants={variants} />
+          <EditorialBlock
+            key={item.id}
+            item={item}
+            major={i === 0}
+            index={i}
+            variants={variants}
+          />
         ))}
       </div>
     </section>

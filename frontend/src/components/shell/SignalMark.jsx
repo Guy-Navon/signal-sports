@@ -6,10 +6,11 @@ import { cn } from "@/lib/utils";
 // the brand mark and the product's relevance indicator are the same idea.
 export default function SignalMark({ className = "" }) {
   return (
-    <span className={cn("inline-flex items-end gap-[2.5px]", className)} aria-hidden>
-      <span className="w-[3px] h-[8px] rounded-full bg-signal-feed" />
-      <span className="w-[3px] h-[13px] rounded-full bg-signal-high animate-breathe" />
-      <span className="w-[3px] h-[10px] rounded-full bg-signal-feed" />
+    <span className={cn("inline-flex h-5 items-end gap-[2px]", className)} aria-hidden>
+      <span className="h-[7px] w-[3px] bg-signal-feed" />
+      <span className="h-[12px] w-[3px] bg-signal-high" />
+      <span className="h-[17px] w-[3px] bg-signal-push" />
+      <span className="h-[10px] w-[3px] bg-background/70" />
     </span>
   );
 }

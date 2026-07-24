@@ -29,8 +29,8 @@ import {
 // The Feed as an edition: the ranked visible items are partitioned into
 // editorial tiers (lead "הסיפור המרכזי" / bulletins / "במוקד" / "עוד מהפיד" /
 // "קריאה נוספת") so the page's *shape* encodes relevance. Desktop composition:
-// the lead is a full-width hero band; below it the editorial column runs
-// beside a sticky "לוח הסיגנל" board (xl+). Filtering collapses the edition
+// the lead is a full-width front page; below it the editorial column runs
+// beside a sticky desk index (lg+). Filtering collapses the edition
 // into a flat level-annotated list; clearing it recomposes the edition.
 export default function Feed() {
   const { feedItems, debugItems, activeProfileId, activeProfile, isBackendMode, isLoading } =
@@ -68,14 +68,14 @@ export default function Feed() {
   // Loading state (backend mode, first fetch)
   if (isBackendMode && isLoading && visibleItems.length === 0) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="mx-auto max-w-[1320px]">
         <EditionSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="mx-auto max-w-[1320px] min-w-0 overflow-hidden">
       {/* Keyed by profile: switching readers re-composes and re-reveals the edition. */}
       <motion.div
         key={activeProfileId || "none"}
@@ -91,19 +91,23 @@ export default function Feed() {
           />
         </motion.div>
 
-        {/* Spectrum + topic filters above the fold on small screens; the
-            signal board owns them on xl. */}
-        <motion.div variants={v.item} className="mt-5 xl:hidden">
+        {/* The edition meter is always above the fold: hierarchy is a primary
+            navigation surface, not a wide-screen-only dashboard. */}
+        <motion.div
+          variants={v.item}
+          className="mt-5 border-y border-foreground/25 py-3 md:flex md:items-start md:justify-between md:gap-8"
+        >
           <SignalSpectrum
             counts={decisionCounts}
             activeFilters={activeFilters}
             onToggle={toggleFilter}
+            className="md:min-w-[360px] md:flex-1"
           />
           <TopicFilters
             activeFilters={activeFilters}
             onToggle={toggleFilter}
             onReset={resetFilters}
-            className="mt-3"
+            className="mt-3 md:mt-0 md:max-w-[44%] md:justify-end"
           />
         </motion.div>
 
@@ -123,7 +127,7 @@ export default function Feed() {
               >
                 {/* Full-width hero band */}
                 {edition.lead && (
-                  <motion.div variants={v.headline} className="mt-4 md:mt-5">
+                  <motion.div variants={v.headline} className="mt-4 md:mt-6">
                     <LeadStory item={edition.lead} />
                   </motion.div>
                 )}
@@ -137,7 +141,7 @@ export default function Feed() {
                 )}
 
                 {/* Editorial column + signal board (xl) */}
-                <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_280px] xl:gap-14 mt-10 md:mt-12">
+                <div className="mt-9 lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-12 xl:gap-16">
                   <div className="min-w-0">
                     {edition.editorial.length > 0 && (
                       <EditorialTier
@@ -169,13 +173,9 @@ export default function Feed() {
                     )}
                   </div>
 
-                  <motion.aside variants={v.item} className="hidden xl:block">
-                    <div className="sticky top-20">
+                  <motion.aside variants={v.item} className="hidden lg:block">
+                    <div className="sticky top-24">
                       <SignalBoard
-                        counts={decisionCounts}
-                        activeFilters={activeFilters}
-                        onToggle={toggleFilter}
-                        onReset={resetFilters}
                         items={visibleItems}
                         scanned={debugItems.length}
                       />
@@ -194,19 +194,6 @@ export default function Feed() {
                 {/* On xl the spectrum lives in the signal board, which belongs
                     to the edition view — surface it here so levels can still
                     be toggled while filtering. */}
-                <div className="hidden xl:block mb-6">
-                  <SignalSpectrum
-                    counts={decisionCounts}
-                    activeFilters={activeFilters}
-                    onToggle={toggleFilter}
-                  />
-                  <TopicFilters
-                    activeFilters={activeFilters}
-                    onToggle={toggleFilter}
-                    onReset={resetFilters}
-                    className="mt-3"
-                  />
-                </div>
                 <SectionHeading
                   count={filteredItems.length}
                   className="mb-3"

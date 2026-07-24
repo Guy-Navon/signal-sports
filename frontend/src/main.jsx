@@ -7,21 +7,37 @@ import { AuthProvider } from '@/context/AuthContext';
 import AppShell from '@/components/shell/AppShell';
 import RequireSession from '@/components/shell/RequireSession';
 import RequireOpsRole from '@/components/shell/RequireOpsRole';
-import Feed from '@/pages/Feed';
-import Preferences from '@/pages/Preferences';
-import Calibration from '@/pages/Calibration';
-import InterestSelection from '@/pages/InterestSelection';
-import Sources from '@/pages/Sources';
-import Results from '@/pages/Results';
-import Account from '@/pages/Account';
-import Debug from '@/pages/Debug';
-import LlmQa from '@/pages/LlmQa';
-import Login from '@/pages/Login';
-import Onboarding from '@/pages/Onboarding';
-import Signup from '@/pages/Signup';
-import PageNotFound from '@/lib/PageNotFound';
 import { queryClientInstance } from '@/lib/query-client';
 import './index.css';
+
+// Route-level splitting keeps the consumer feed independent from heavy QA and
+// ops tooling. Every route retains the same URL and guard contract.
+const Feed = React.lazy(() => import('@/pages/Feed'));
+const Preferences = React.lazy(() => import('@/pages/Preferences'));
+const Calibration = React.lazy(() => import('@/pages/Calibration'));
+const InterestSelection = React.lazy(() => import('@/pages/InterestSelection'));
+const Sources = React.lazy(() => import('@/pages/Sources'));
+const Results = React.lazy(() => import('@/pages/Results'));
+const Account = React.lazy(() => import('@/pages/Account'));
+const Debug = React.lazy(() => import('@/pages/Debug'));
+const LlmQa = React.lazy(() => import('@/pages/LlmQa'));
+const Login = React.lazy(() => import('@/pages/Login'));
+const Onboarding = React.lazy(() => import('@/pages/Onboarding'));
+const Signup = React.lazy(() => import('@/pages/Signup'));
+const PageNotFound = React.lazy(() => import('@/lib/PageNotFound'));
+
+function RouteFallback() {
+  return (
+    <div className="grid min-h-[45vh] place-items-center bg-background text-foreground" aria-busy="true">
+      <div className="flex items-center gap-3">
+        <span className="h-2 w-2 animate-pulse bg-signal-push" />
+        <span className="font-mono text-[10px] font-bold tracking-[0.14em] text-text-secondary">
+          SIGNAL / LOADING
+        </span>
+      </div>
+    </div>
+  );
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -31,7 +47,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           {/* AppProvider consumes AuthContext for the consumer/QA data split
               (User Platform PR 5, #53) — it must sit below AuthProvider. */}
           <AppProvider>
-            <Routes>
+            <React.Suspense fallback={<RouteFallback />}>
+              <Routes>
               {/* Auth pages: product-styled routes OUTSIDE both AppShell groups
                   (PageNotFound precedent). Redirect away in local/bypass modes. */}
               <Route path="login" element={<Login />} />
@@ -62,7 +79,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 </Route>
               </Route>
               <Route path="*" element={<PageNotFound />} />
-            </Routes>
+              </Routes>
+            </React.Suspense>
           </AppProvider>
         </AuthProvider>
       </BrowserRouter>

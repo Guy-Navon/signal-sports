@@ -1,20 +1,28 @@
 import React from "react";
-import { Clock } from "lucide-react";
-import SignalMark from "@/components/shell/SignalMark";
+import { Clock, Trophy } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 
 export default function Results() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-md mx-auto">
-      <SignalMark className="scale-150 mb-5" />
-      <p className="text-[11px] font-semibold tracking-wide text-signal-high flex items-center gap-1.5">
-        <Clock size={12} />
-        בקרוב
-      </p>
-      <h1 className="font-display text-2xl font-bold text-foreground mt-2">תוצאות</h1>
-      <p className="text-sm text-text-secondary leading-relaxed mt-4">
-        תוצאות מעניינות בלבד, בלי להציף אותך במשחקים שלא מעניינים אותך — כרטיסייה נפרדת שתסנן חכם,
-        רק קבוצות וליגות שמעניינות אותך, בלי כל שאר הרעש.
-      </p>
+    <div className="product-page">
+      <PageHeader
+        title="תוצאות"
+        icon={Trophy}
+        subtitle="לוח התוצאות האישי יכלול רק קבוצות, שחקנים ותחרויות שנמצאים במעקב."
+      />
+      <section className="ledger-panel grid min-h-[22rem] place-items-center p-8 text-center">
+        <div className="max-w-md">
+          <span className="mx-auto inline-flex h-12 w-12 items-center justify-center bg-foreground text-background">
+            <Clock size={20} />
+          </span>
+          <p className="eyebrow mt-5 text-signal-push">COMING NEXT / בקרוב</p>
+          <h2 className="mt-2 font-display text-3xl font-bold text-foreground">לוח בלי רעש</h2>
+          <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+            תוצאות מעניינות בלבד, בלי להציף אותך במשחקים שלא מעניינים אותך. עד שהלוח
+            יחובר לנתוני אמת, המסך נשאר שקוף לגבי הסטטוס ולא מציג תוצאות מדומות.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }

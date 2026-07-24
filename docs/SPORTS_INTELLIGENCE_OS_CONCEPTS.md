@@ -520,10 +520,11 @@ The review found and fixed:
 - `npm test -- --run` — passed; 23 files and 423 tests.
 - `npm run build` — passed; the existing production bundle warning above
   500kB remains unchanged.
-- `npm run typecheck` — the existing production baseline still fails in
-  untouched `frontend/src` files (`ImportMeta.env`, ops component prop names,
-  and pre-existing API/context shape errors). No error points to the isolated
-  concept laboratory.
+- `npm run typecheck` — reports exactly 11 errors on this concept branch and
+  exactly the same 11 errors on `main`; the error-set delta is zero. The errors
+  are confined to untouched `frontend/src` files (`ImportMeta.env`, ops
+  component prop names, and existing API/context shape errors). No typed source
+  or TypeScript configuration file differs from `main`.
 
 ## Accessibility and reduced motion
 

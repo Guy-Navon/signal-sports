@@ -10,7 +10,8 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "capture:concepts": "node scripts/capture-sports-intelligence-concepts.mjs"
   },
   "dependencies": {
     "@fontsource-variable/heebo": "^5.2.8",

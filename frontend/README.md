@@ -1,72 +1,60 @@
-# Signal Sports — Frontend
+# Signal Sports — frontend
 
-A personalized, Hebrew-first sports news intelligence feed that surfaces only the
-stories worth a specific user's attention. React 18 + Vite 6, JavaScript/JSX.
+A personalized, Hebrew-first sports newsroom built with React 18, Vite 6, and
+the Signal Ledger design system.
 
-The UI runs on the **"Court Vision" design system** — a premium dark, RTL-first
-product with a signal-rail decision system and a product-vs-console split.
-See [`../docs/FRONTEND_DESIGN_SYSTEM.md`](../docs/FRONTEND_DESIGN_SYSTEM.md).
+See [`../docs/FRONTEND_DESIGN_SYSTEM.md`](../docs/FRONTEND_DESIGN_SYSTEM.md)
+for the architecture, tokens, responsive/RTL rules, component boundaries,
+validation baseline, and rollback notes.
 
-## Getting started
+## Run locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Opens on [http://localhost:5173](http://localhost:5173) — the port is fixed
-(`strictPort: true` in `vite.config.js`): if 5173 is occupied, startup fails
-loudly instead of drifting to another port (the same-origin proxy and
-Tailscale Serve chain depend on it).
+Vite uses `http://127.0.0.1:5173` with a strict port because same-origin API
+proxying and private remote access depend on that address.
 
-## Data modes
+Data modes are selected with `VITE_DATA_MODE`:
 
-The app runs in two modes via `VITE_DATA_MODE` (in `.env.local`):
+- `local` (default): repository fixtures plus the in-browser relevance engine;
+- `backend`: the real FastAPI API through same-origin `/api/*` and `/health`.
 
-- `local` (default) — mock data + the in-browser relevance engine, no backend.
-- `backend` — fetches from the FastAPI backend. `VITE_API_BASE_URL` defaults
-  to an **empty string**: normal behavior is same-origin relative paths
-  (`/api/...`, `/health`) forwarded to `http://127.0.0.1:8000` by the Vite
-  dev proxy (see `vite.config.js`). Setting `VITE_API_BASE_URL` explicitly is
-  an override/debug path only (direct cross-origin calls bypassing the proxy;
-  unsupported under cookie-auth enforcement).
+`VITE_API_BASE_URL` is an explicit debugging override only. Cookie-authenticated
+product use should stay same-origin.
+
+## Quality commands
 
 ```bash
-# local mode
-VITE_DATA_MODE=local npm run dev
-# backend mode (start the backend first — see ../backend)
-VITE_DATA_MODE=backend npm run dev
+npm run test
+npm run lint
+npm run typecheck
+npm run build
 ```
-
-## Scripts
-
-- `npm run dev` — start the dev server
-- `npm run build` — production build
-- `npm run preview` — preview the production build
-- `npm run test` — Vitest (node environment; engine, API, and config/module tests)
-- `npm run lint` — ESLint
-- `npm run typecheck` — `tsc` over `jsconfig.json` (checkJs)
 
 ## Structure
 
-```
+```text
 src/
+├── api/              API client and response normalizers
 ├── components/
-│   ├── ui/           shadcn/Radix primitives
-│   ├── shared/       EmptyState, ErrorState, LoadingSkeleton, StatCard, …
-│   ├── shell/        AppShell, ProductNav, OpsNav, DataModeBadge, ProfileSwitcher
-│   ├── feed/         ArticleCard, SignalRail, DecisionBadge, RelevanceReason, …
-│   ├── ops/          SchedulerPanel, IngestionPanel, BenchmarkPanel, HealthCard
-│   ├── debug/        DebugArticleCard, ProfileComparisonTable, ReasoningTrace
-│   └── preferences/  TopicCard
-├── context/          AppContext — the single data layer (frozen)
-├── api/              client + normalizers (frozen contract)
-├── engine/           relevance/calibration engines (local mode; frozen)
-├── data/             mock data (frozen)
-├── pages/            Feed, Preferences, Calibration, Results, Sources, Debug, LlmQa
-├── index.css         design tokens
-└── main.jsx          routes (product / ops AppShell groups)
+│   ├── feed/         edition hierarchy, clusters, attribution, feedback
+│   ├── interests/    taxonomy-backed interest selection
+│   ├── preferences/  explicit and learned preference presentation
+│   ├── shell/        product/ops shells and navigation
+│   ├── shared/       ledger panels, headers, loading/empty/error states
+│   ├── ops/          scheduler, ingestion, notification, source tooling
+│   ├── debug/        classification and reasoning diagnostics
+│   └── ui/           Radix/shadcn primitives
+├── context/          auth and product identity/data routing
+├── data/             local development fixtures
+├── engine/           local relevance behavior and taxonomy reach
+├── pages/            route-level product, auth, and ops screens
+├── index.css         Signal Ledger semantic tokens and global recipes
+└── main.jsx          guarded routes and route-level code splitting
 ```
 
-`context/`, `api/`, `engine/`, and `data/` are the data contract — UI components
-never modify them. The `useApp()` hook is the only bridge between pages and data.
+The frontend presentation must not re-decide ranking, visibility, clustering,
+push policy, or authorization. Those remain backend/data-contract concerns.

@@ -1,330 +1,220 @@
-# Signal Sports — Frontend Design System ("Court Vision")
+# Signal Sports frontend — Signal Ledger
 
-Last updated: 2026-07-04 — this is the **complete** picture of the frontend
-redesign, now finished and merged to `main` at commit `7e029bc`: Court Vision
-(PRs 1–6) turned the Base44-generated QA dashboard into a premium,
-Hebrew-first, RTL-first dark product, and five further PRs (**A** "The
-Edition", **B** "atmosphere + brand shell", **C** "product pages", **D** "ops
-shell variant", **E** "signature details") rebuilt the product identity from
-the ground up under the approved **"המערכת / The Desk"** design concept — a
-codename for the visual direction only, the product name is still Signal
-Sports / סיגנל. Section 1 covers the design language, section 4 has the full,
-current component inventory organized by the PR that introduced each part.
+Last updated: 2026-07-24 on `experiment/frontend-reinvention`.
 
-This document is the reference for the design system: the tokens, the component
-inventory, the product-vs-console split, and the hard RTL rules. Read it before
-adding any new UI. `docs/CURRENT_PROJECT_STATE.md` has the equivalent summary
-for the whole project (backend + frontend); this file is the frontend-only
-deep reference.
+Signal Ledger is the experimental frontend architecture and visual system for
+Signal Sports. It replaces the dark “Court Vision” product skin while keeping
+the existing API, ranking, clustering, authorization, onboarding, feedback, and
+learning contracts intact.
 
----
+The core idea is **a personalized newsroom ledger**: warm editorial paper,
+black ink, compact live telemetry, and a small number of high-signal colours.
+It should feel like a sports publication whose front page is assembled for one
+reader, not a dashboard whose cards happen to contain articles.
 
-## 1. Design language
+## Product principles
 
-**"The more a story matters to *you*, the more light it emits."** Relevance is
-the brand. On a calm near-black navy canvas, relevance is encoded as **light and
-shape**, never as loud card borders or badge rows.
+1. **Content is the layout.** `push`, `high_feed`, `feed`, and `low_feed`
+   produce different compositions, type scales, density, and reading order.
+2. **Personalization is explicit.** The edition names the reader, shows how
+   many stories were selected from the scanned pool, and explains “למה אצלך”
+   using real backend reasoning.
+3. **A cluster is one evolving story.** The canonical headline owns the visual
+   slot. Visible member reports expand behind it through `ClusterSources`;
+   suppressed members never enter the consumer payload.
+4. **Paper for product, instruments for operations.** Consumer routes use the
+   warm ledger canvas. Admin and diagnostic routes keep a dense dark console
+   theme under `.ops-shell`.
+5. **No image dependency.** The hierarchy survives absent, broken, duplicated,
+   or low-quality article imagery. No synthetic sports imagery is used.
 
-Since PR A the Feed is **"The Edition" (המהדורה)**: the ranked visible items are
-partitioned per reader into five visual species — the lead story, framed as
-**"הסיפור המרכזי"** (serif display headline directly on the canvas,
-signal-tinted aura + court-line arc, breathing gold for push), **מבזק**
-bulletin strips (remaining push — the general push-level label is **"לא
-לפספס"**), the asymmetric **"במוקד"** tier (high_feed), typographic **"עוד
-מהפיד"** rows (feed), and the collapsed **"קריאה נוספת"** digest (low_feed).
-These are display copy only (PR A.2) — the underlying decision ids (`push`,
-`high_feed`, `feed`, `low_feed`, `hidden`) are unchanged. Decision badges and
-the old signal-rail edge bar are gone from the product feed — position, type
-scale, and light do that work (`DecisionBadge` survives as a console
-affordance in Debug/LLM-QA/Preferences, using its own label set). Two
-readers' editions differ in *shape*, not just ordering.
+## Tokens and typography
 
-Two visual areas share one token system:
+All semantic tokens live in `frontend/src/index.css` and are mapped through
+`tailwind.config.js`.
 
-- **Product** (Feed, Preferences, Calibration, Results) — editorial, green
-  accents, serif display headlines. The flagship experience.
-- **Console** (Sources, Debug, LLM QA) — a polished developer instrument panel:
-  denser, steel-blue actions, monospace values. Reached via the "קונסולה" nav
-  group; ops routes render `AppShell area="ops"` which adds the `OpsNav` strip.
-
-The split is deliberate: the consumer feed must never feel like a dashboard, and
-the dev tools must feel like a first-class console rather than the whole app.
-
----
-
-## 2. Stack
-
-- **React 18 + Vite 6**, JavaScript/JSX (checkJs via `jsconfig.json` — no TS).
-- **Tailwind 3.4 + shadcn/ui + Radix** primitives (`src/components/ui/`). The
-  redesign is the *first real adoption* of these primitives — earlier code was
-  hand-rolled Tailwind.
-- **Fonts** (self-hosted, `@fontsource`): **Frank Ruhl Libre** (Hebrew serif
-  display) + **Heebo** (UI/body). System mono for numerics.
-- **Motion**: `framer-motion` (first adopted in PR A, Feed only): staggered
-  edition entrance, blur headline reveal, `AnimatePresence`/`layout` filter
-  recomposition. Variants live in `components/feed/motionPresets.js`, are
-  **y-axis-only** (sidesteps RTL mirroring), and every factory takes the result
-  of `useReducedMotion()`. CSS keyframes (`fade-up`, `shimmer`, `pulse-soft`,
-  `breathe`) remain for micro/looping effects; prefer CSS unless a layout
-  animation genuinely requires framer.
-
----
-
-## 3. Tokens
-
-All tokens live in **`src/index.css`** as HSL custom properties and are exposed
-to Tailwind in **`tailwind.config.js`**. **Feature components must use semantic
-tokens — never raw Tailwind palette colours** (`gray-*`, `blue-*`, `amber-*`…).
-
-### Surfaces (elevation ladder)
-| Token | Use |
+| System | Product use |
 |---|---|
-| `--background` / `bg-background` | app canvas (near-black navy) |
-| `surface-1` | cards, panels |
-| `surface-2` | elevated / hover / inset cells |
-| `surface-3` | chips, inputs, strongest inset |
-| `--border` | hairline (subtle, replaces visible gray borders) |
+| `background` | warm paper canvas |
+| `foreground` | near-black ink, masthead, hard rules |
+| `surface-1..3` | paper elevation and controls |
+| `signal-push` | live/urgent red; top signal only |
+| `signal-high` | strong personalized relevance and healthy state |
+| `signal-feed` | regular feed and cluster reporting |
+| `signal-low` | low-priority reading |
+| `signal-ai` | system reasoning |
+| `signal-hidden` | errors, suppression, destructive actions |
 
-Recipes (in `index.css` `@layer components`): `.surface-glass` (sticky header +
-mobile tab bar only), `.elevation-1` (background-step + hairline + shadow),
-`.glow-push` (gold inner hairline + soft glow — **push only, never ad-hoc**).
+Frank Ruhl Libre carries large Hebrew editorial headlines. Heebo carries body,
+navigation, controls, and dense metadata. Mono is reserved for sequence
+numbers, counts, system labels, and English newsroom annotations.
 
-### Text
-`text-foreground` (primary) · `text-text-secondary` · `text-text-dim` (muted).
+Radii are intentionally small. The product uses hard rules, start-edge colour
+bars, and paper/ink contrast instead of stacks of rounded cards. Reusable
+recipes are `.editorial-rule-heavy`, `.ledger-panel`, `.eyebrow`,
+`.index-label`, `.product-page`, `.product-shell`, and `.ops-shell`.
 
-### Signal system (decision levels = the brand)
-| Token | Meaning | Where |
-|---|---|---|
-| `signal-push` (gold) | push / attention | **push cards + critical alerts + console warnings only** |
-| `signal-high` (electric green) | high_feed | also: primary product actions, active nav, healthy status |
-| `signal-feed` (steel blue) | feed | also: the console action colour |
-| `signal-low` (dim gray) | low_feed | — |
-| `signal-hidden` / `--destructive` (red) | hidden | also: errors, destructive actions |
-| `signal-ai` (cyan) | AI/intelligence moments | relevance-reason spark, guardrail badge, disagreement, pilot |
+## Route and shell structure
 
-**Colour discipline:** gold is scarce (push only) — this is why the feed reads as
-gold at the top (push stories sort first) then transitions to green/blue as
-relevance drops. Red is errors/hidden only.
+Routes remain unchanged:
 
-### Type scale
-Display serif (Frank Ruhl Libre 500/700 — the 800 weight tried in PR A was
-dropped in the A.1 polish pass, it read as too dramatic) carries story
-headlines: the lead scales 1.4rem→2.9rem responsive, bulletin/editorial
-headlines ~1.2–1.75rem, both weight 700. **Section labels are Heebo, not
-serif** — "במוקד", "עוד מהפיד", "קריאה נוספת" render as small (11px), tracked,
-semibold Heebo labels with a hairline rule (`SectionHeading`); serif is
-reserved for story headlines only and must **not** be used below ~1.1rem (the
-high-contrast face reads thin/grey there). Heebo semibold for stream-row
-headlines (~1.05rem) and all UI/body text. Kickers/meta 10–12.5px. Numerics
-use `MonoValue`.
+| Area | Routes |
+|---|---|
+| Public auth | `/login`, `/signup` |
+| Session welcome | `/welcome` |
+| Product | `/`, `/preferences`, `/interests`, `/calibration`, `/results`, `/account` |
+| Admin/QA | `/sources`, `/debug`, `/llm-qa` |
 
----
+`RequireSession` and `RequireOpsRole` continue to enforce the same boundaries.
+`AppProvider` remains below `AuthProvider`, so consumer `/api/me/*` routing and
+admin view-as behavior are unchanged.
 
-## 4. Component inventory
+`AppShell area="product"` supplies:
 
-### `components/shared/` — cross-area primitives
-`EmptyState` · `ErrorState` (strip + page variants) · `LoadingSkeleton`
-(card/row/stat shimmer) · `StatCard` (mono-izes only numeric values — Hebrew
-text stays in body font) · `PageHeader` (serif title + optional icon + actions
-slot) · `SectionCard` (titled console panel) · `GhostChip` (quiet metadata) ·
-`PulseDot` (tone dot, optional pulse) · `MonoValue` (LTR numerics inside RTL).
+- black publication masthead with desktop navigation;
+- warm registered-grid canvas;
+- edge-to-edge mobile newsroom dock;
+- responsive page transition and reduced-motion support.
 
-### `components/shell/` — app frame (PR B: atmosphere + brand shell)
-`AppShell` (`area="product"|"ops"`) branches structurally by area rather than
-just styling: **product routes have no sidebar** — the feed gets the full
-canvas — while **ops routes keep `ProductNav`'s desktop rail unchanged**
-(מוצר/קונסולה groups, exactly as before PR B; the console's own visual
-identity is a later PR, this one only changed how you arrive at/leave it).
-`Masthead` (replaces the old plain header) — wordmark at the inline-start
-edge, product nav inline (product routes only) or a "חזרה למוצר" link (ops),
-then at the inline-end edge: `DataModeBadge`, the identity controls, and a
-console-entry icon (product, admins/bypass only); starts transparent over the
-atmosphere and gains `surface-glass` + a hairline only past a scroll
-threshold (`useScrolled.js`). **Identity controls (User Platform, 2026-07-10):**
-under an enforced consumer session the product masthead shows the ACCOUNT
-menu (email, logout — account identity is the product identity) and no
-profile switcher; the `ProfileSwitcher` now lives on the ops console as the
-admin **QA view-as** control. In local/bypass modes the pre-auth masthead
-(ProfileSwitcher in the product) renders unchanged — the historical
-description below reflects that original PR-B design.
-`SignalMark` — the wordmark's three-bar icon, same visual language as the
-Feed's SIGNAL strength instrument. `Atmosphere` — a fixed, decorative
-backdrop (soft floodlight mesh + one large half-court arc + a whisper of
-film-grain, all CSS/inline-SVG, opacity-only breathing) behind product pages
-only; **not rendered in the ops console**, which stays flat by design.
-`MobileNav` — a floating glass pill (product) vs. the original edge-to-edge
-tab bar (ops, unchanged). `DataModeBadge` shrank from a labeled pill to a
-dot + tooltip (ops-relevant info, not a consumer-facing label).
-`OpsNav` (console strip, unchanged) · `ProfileSwitcher` (Radix dropdown,
-sandbox "בדיקה" tag; since User Platform #53 it renders in the product only
-for local/bypass modes and on the ops console as the admin QA view-as) · `navConfig.js` (+ tests — area resolution,
-llm-qa backend gate, mobile nav; unchanged, reused by the new shell).
-`AppShell` also wraps `<Outlet/>` in a Framer Motion opacity+y page
-transition keyed by pathname, reduced-motion aware.
+`AppShell area="ops"` supplies:
 
-### `components/feed/` — the flagship ("The Edition", PR A)
-**Story species:** `LeadStory` (aura + court-arc + serif display headline) ·
-`BulletinStrip` (מבזק / "לא לפספס" level, gold start-edge bleed) · `EditorialTier` (asymmetric
-major/minor blocks) · `StreamRow` (typographic row; inline expand; relevance-
-scaled type + level dot in filtered mode) · `BriefsDigest` (collapsed low_feed
-one-liners).
-**Edition frame:** `EditionHeader` (date line + "המהדורה של X") ·
-`SignalSpectrum` (proportional level bar; segments + legend are the level
-filters; grows in on mount) · `SignalBoard` (PR A.1 — sticky side board on xl:
-vertical spectrum, quick topic filters, desk facts derived from page data) ·
-`TopicFilters` (quiet text toggles, inline or vertical) · `SectionHeading`
-(small tracked Heebo label + hairline rule — serif is reserved for story
-headlines) · `EditionSkeleton` (edition-shaped loading).
-**Desktop composition (PR A.1):** the lead is a full-width hero band (layered
-signal mesh, half-court SVG that draws in on mount, signal-strength
-instrument); below it the editorial column runs beside the sticky signal board
-in an `xl:grid-cols-[1fr_280px]`. Serif weight tops out at 700 (the 800 import
-was dropped); the edition title stays smaller than the lead headline.
-**Voice & actions:** `DeskVoice` ("למה אצלך" + expandable margin note; full
-trace stays in Debug) · `FeedbackControls` (`variant="icons"|"text"` — emits
-`more_like_this`/`less_like_this` unchanged) · `SourceMeta` ·
-`EditionEmptyState` (PR E — the Feed's own zero-articles moment: enlarged
-`SignalMark`, "ממתין לאות" kicker, replaces the generic shared `EmptyState`
-for this one case only; the shared component is untouched and still used
-for the filtered-empty case and by Debug/LLM QA).
-**Logic modules (+tests):** `editionComposer.js` (stable partition into tiers) ·
-`storyLabels.js` (Hebrew kicker maps: entity/league/sport · event type;
-`condensedReason`) · `feedFilters.js` (level + topic filters) ·
-`motionPresets.js`. `DecisionBadge` + `decisionConfig.js` remain (Hebrew labels
-cross-locked to `DECISION_LABELS_HE` by test) — consumed by Debug, LLM QA,
-Preferences, and `StreamRow`'s level dots; no longer rendered as feed badges.
-Removed in PR A: `ArticleCard`, `FeedHero`, `FeedHeader`, `FilterChips`,
-`SignalRail`, `EntityChips`, `RelevanceReason`.
+- dark console tokens;
+- desktop product/console rail and ops breadcrumb;
+- dense panels suited to source, scheduler, notification, debug, and LLM QA
+  workflows.
 
-### `components/ops/` — console (renamed from `ingestion/`)
-`SchedulerPanel` · `IngestionPanel` · `BenchmarkPanel` · `HealthCard` ·
-`SourceToggleCard` (letter-avatar rows) · `consoleStyles.js` (`consoleButton`
-steel-blue, `consoleToggle`, `consoleAlert`). Page content/logic in these
-panels is untouched by every visual PR — PR D (below) only changed the shell
-around them.
+Every page route is loaded with `React.lazy`. Rollup vendor groups keep the
+consumer entry separate from ops/QA code, motion, date utilities, icons, and
+Radix primitives.
 
-### The console's own identity (PR D — ops shell variant)
-Two worlds, one shell (`AppShell`, PR B), now each with their own backdrop:
-`OpsGrid` — a fixed, flat blueprint grid (steel-blue, ~5% opacity, 40px
-cells) behind every ops page, replacing the product's floodlit `Atmosphere`.
-Both backdrops fade in on mount (0.5s opacity) so crossing between product
-and console is felt, not a hard cut. `OpsNav`'s label changed from a plain
-"קונסולת תפעול" tag to a **mono breadcrumb** — "המערכת ⁄ קונסולה ⁄
-{current page}" (`font-mono`, natural RTL flow — deliberately **not**
-`MonoValue`, which forces `dir="ltr"` and is only correct for numerics, not
-Hebrew words). Nothing else in Sources/Debug/LLM QA changed: same
-`ProductNav` console-group rail, same page components, same panels, same
-API calls.
+## Feed component boundaries
 
-### `components/debug/`
-`DebugArticleCard` · `ProfileComparisonTable` · `ReasoningTrace` (numbered chain
-as a console trace) · `ClassifiedByBadge` (+ `classifiedByConfig.js` + tests —
-llm=blue / guardrail=cyan / failure=red / low-conf=gold).
+`Feed.jsx` coordinates data, filtering, empty/loading behavior, and the edition
+layout. It does not rank or mutate feed decisions.
 
-### Signature details (PR E)
-Small, sitewide finishing touches that were still giving the app a
-"generic scaffold" tell despite the A–D redesign:
-- **Real favicon** (`public/favicon.svg` — the SignalMark bars motif on the
-  canvas navy; previously referenced in `index.html` but the file didn't
-  exist, so the tab showed a broken/default icon) + a `theme-color` meta
-  matching the background (tints mobile browser chrome) + a proper
-  `<title>`/description + a critical-CSS background fallback in
-  `index.html` (kills the flash-of-white before `index.css` loads).
-- **Themed `:focus-visible`** — a global ring using the existing `--ring`
-  token (the same one shadcn components already bind to), replacing the
-  default browser-blue outline everywhere, product and console alike.
-- **Custom scrollbar** — thin, dark, `surface-3` thumb with a `signal-feed`
-  hover tint, via `scrollbar-color`/`::-webkit-scrollbar`. Sitewide, low
-  risk (styling only, no layout impact); note that headless-browser
-  screenshots don't reliably render OS/overlay scrollbars, so this is
-  best verified by eye, not by screenshot.
-- **`PageNotFound` rebuilt** ("אין אות" — no signal, a natural pun for a
-  product literally called Signal) — this page renders outside `AppShell`
-  (it's not nested under either area's layout route) and had never been
-  touched by the redesign; it now carries its own small atmosphere
-  (mesh glow, whisper court-rings, `SignalMark`) rather than the plain
-  centered "404" box it shipped with since Court Vision PR 1.
-- **`EditionEmptyState`** — see the feed component list above.
+- `editionComposer.js` performs the stable tier partition.
+- `EditionHeader` identifies the personal edition and intake ratio.
+- `SignalSpectrum` and `TopicFilters` are the above-fold hierarchy controls.
+- `LeadStory` is the front page: headline/action on paper and live context in
+  the ink column.
+- `BulletinStrip` handles additional push stories.
+- `EditorialTier` handles `high_feed`.
+- `StreamRow` handles regular `feed`.
+- `BriefsDigest` compresses `low_feed`.
+- `ClusterSources` expands visible reporting behind any lead, bulletin,
+  editorial, or stream treatment.
+- `DeskVoice`, `SourceMeta`, and `FeedbackControls` preserve reasoning,
+  attribution, article opening, learning feedback, and never-show behavior.
+- `SignalBoard` is a desktop reading-order index, not a duplicate dashboard.
 
-### `components/preferences/`
-`TopicCard` (PR C: restyled from a bordered box to a hairline-divided
-expandable row — kicker line of priority/mode/leagues instead of separate
-pill badges, matching the Feed's storytelling).
+No component derives a new decision. `AppContext`, API normalizers, and the
+backend remain the source of truth.
 
-### Product pages (PR C — Preferences, Calibration, Results)
-Brought in line with the Feed's editorial voice, on top of the PR B shell
-(no sidebar, atmosphere backdrop). New shared `DeskIntro` (small tracked
-kicker + one sentence, no card — the same "prose sitting on the canvas"
-idea as the Feed's kickers) opens Preferences ("מה המערכת יודעת" — reads
-live topic/entity/muted counts off the active profile) and Calibration
-("כיול"). `PageHeader` itself is unchanged (shared with the ops console —
-Sources/Debug/LLM QA use it too, so it stays out of scope here). Preferences'
-boxed sections became hairline-divided lists; a loud gold "important
-difference" callout was retoned to cyan (`signal-ai` — it's explanatory, not
-urgent, so push-gold was a token misuse). Calibration's `HeadlineCard` gained
-a kicker line (league/sport · event type · importance) and a serif headline
-in place of four separate pill badges; `InferenceDraftPanel`'s nested
-box-in-box sections became hairline dividers. All calibration/preference
-**logic is untouched** — every hook, handler, and `src/engine` call
-(`inferPreferenceDraftFromCalibration`, `convertCalibrationDraftToUserProfile`,
-`scoreArticle`, `updateProfile`) is verbatim; only JSX/className changed.
-Results — a coming-soon placeholder — was simplified to a single centered
-moment (kicker + serif headline + one line) now that the atmosphere behind
-it does most of the visual work.
+## Responsive strategy
 
-**JS-side variant config and pure logic live in plain modules**
-(`decisionConfig.js`, `classifiedByConfig.js`, `navConfig.js`, `feedFilters.js`,
-`editionComposer.js`, `storyLabels.js`, `motionPresets.js`) so they stay
-testable in the Vitest `node` environment without a DOM.
+Desktop and mobile are separate compositions:
 
----
+- **Desktop (`lg+`)**: full-width lead, editorial column, sticky reading index,
+  inline masthead navigation.
+- **Tablet**: single editorial column with above-fold spectrum and filters.
+- **Mobile**: one-column front page; the lead’s black context column stacks
+  below the headline; metadata wraps; the mobile dock is edge-to-edge and
+  reserves bottom content padding.
 
-## 5. RTL rules (hard requirements)
+The app has a 320px minimum supported width. `min-w-0`, wrapping metadata, and
+logical alignment prevent long Hebrew headlines, cluster sources, and profile
+controls from widening the document.
 
-- `<html lang="he" dir="rtl">` is set in `frontend/index.html`. This is what
-  makes Radix portals (dropdowns/dialogs render into `document.body`) inherit
-  RTL — a div-level `dir` does **not** reach them.
-- **Logical utilities only** in new code: `ms-/me-/ps-/pe-`, `start-/end-`,
-  `text-start/text-end`, `border-s/border-e`, `rounded-s/rounded-e`. **Never**
-  `ml-/mr-/pl-/pr-/left-/right-/text-left/text-right`.
-- Prefer `gap` over `space-x-*` (the latter needs `space-x-reverse` in RTL).
-- Numbers/times/IDs render LTR inside RTL flow via `MonoValue` (`dir="ltr"`).
-- Directional icons: "forward/next" is `ChevronLeft` in RTL; flip
-  external-link/open glyphs with `rtl:-scale-x-100` where the direction is
-  semantic.
-- Audit before shipping: the tight grep
-  `(?<![\w-])(m[lr]-[0-9]|p[lr]-[0-9]|left-[0-9]|right-[0-9]|space-x-[0-9]|rounded-[lr]-|border-[lr]-|text-(left|right))`
-  over `src` (excluding `ui/`) must return nothing.
+## RTL and accessibility
 
----
+- `frontend/index.html` sets `lang="he"` and `dir="rtl"` at the document root,
+  including Radix portals.
+- New layout code uses logical `start/end`, `s/e`, and `text-start/end`
+  utilities.
+- Numerics use `MonoValue` where direction isolation is needed.
+- Focus uses the global high-contrast `--ring`; controls retain semantic
+  labels, `aria-expanded`, `aria-pressed`, and external-link safety.
+- Motion is short, y-axis based, and disabled through
+  `prefers-reduced-motion`/`useReducedMotion`.
+- Interactive elements keep mobile tap targets and suppress accidental
+  horizontal viewport growth.
 
-## 6. Conventions & gotchas
+## Data flow
 
-- **Optional props need defaults.** Destructuring a prop without a default
-  (e.g. `className`) makes checkJs infer it as *required* and flags every call
-  site that omits it — including existing pages. Always default optional props
-  (`className = ""`).
-- **`StatCard` values**: numeric only get the mono/LTR treatment; a Hebrew
-  string value must not be forced LTR (it garbles). `StatCard` detects this.
-- **Frozen layers**: `src/context`, `src/api`, `src/engine`, `src/data` and the
-  entire `backend/` are the contract. UI never modifies them. The `useApp()`
-  surface is the only bridge between pages and data.
-- **Two data modes**: `VITE_DATA_MODE=local` (mock data + JS engine) and
-  `backend` (FastAPI). Every page must work in both; backend-only panels
-  (scheduler/health/benchmark/LLM-QA) render an explanation or hide in local.
-- **shadcn primitives under checkJs** emit type-noise (untyped forwardRef). Only
-  adopt a `ui/*` primitive when it earns its keep; a lightweight inline
-  alternative (e.g. the inline expand in `RelevanceReason` instead of a Radix
-  popover) is often cleaner and avoids the noise.
+```text
+AuthContext session
+      ↓
+AppContext identity routing
+      ↓
+local engine fixtures OR existing FastAPI client
+      ↓
+API normalizers (snake_case → UI shape)
+      ↓
+Feed tier composition / route presentation
+      ↓
+existing feedback, interests, calibration, account, and ops calls
+```
 
----
+There are no backend changes in this experiment. It does not alter ranking,
+visibility, freshness, clustering, push policy, ingestion, or authorization.
 
-## 7. Bundle
+## Validation strategy
 
-Baseline (pre-redesign) JS ≈ 114 kB gz. After the full redesign ≈ 154 kB gz.
-The ~40 kB increase is fonts + the one-time Radix/floating-ui chain from the
-first dropdown adoption; subsequent Radix usage adds little. Base44 leftover
-dependencies (Stripe, three.js, react-leaflet, react-quill, jspdf, html2canvas,
-moment, lodash, …) are still installed and pruning them is a **separate**
-post-redesign cleanup (see the redesign plan §8) — never mixed into a
-visual/product PR.
+Required frontend gates:
+
+```bash
+cd frontend
+npm run test
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Baseline on 2026-07-24:
+
+- tests: 423 passed;
+- lint: passed;
+- typecheck: failed with 11 existing checkJs errors;
+- build: passed with a 743 kB monolithic JS chunk warning.
+
+The experiment fixes the checkJs failures and route-splits the bundle. Visual
+checks use the real local relevance fixtures through the supported local data
+mode; backend mode continues to use same-origin API routes.
+
+Final validation on 2026-07-24:
+
+- frontend: 423 tests passed, lint passed, typecheck passed, build passed;
+- backend integration contracts: 180 tests passed (auth/session, acceptance
+  journey, identity isolation, `/api/me`, interests, calibration, clustered
+  feed, and feedback learning);
+- build: largest chunk 216.26 kB, app entry 143.20 kB; no size warning;
+- backend changes: none.
+
+Review images:
+
+- [Before — desktop feed](frontend-screenshots/before-feed-desktop.png)
+- [Before — mobile feed](frontend-screenshots/before-feed-mobile.png)
+- [After — desktop feed](frontend-screenshots/after-feed-desktop.png)
+- [After — mobile feed](frontend-screenshots/after-feed-mobile.png)
+- [After — preferences](frontend-screenshots/after-preferences-desktop.png)
+- [After — operations console](frontend-screenshots/after-ops-desktop.png)
+
+## Known limitations
+
+- The Results route is still intentionally a transparent coming-soon state;
+  it does not fabricate live scores.
+- No article-image field exists in the current normalized feed contract, so the
+  design deliberately relies on type and reporting context.
+- Full auth/onboarding persistence still requires a running backend configured
+  for enforced auth. Local mode validates presentation and existing pure-flow
+  tests; it does not substitute mock production accounts.
+- Headless Chromium on Windows enforces a 500px minimum native window. The
+  mobile screenshots use that width; CSS and static inspection cover the 320px
+  lower bound.
+
+## Migration and rollback
+
+This work is isolated on `experiment/frontend-reinvention`. `main` remains the
+rollback: closing the experiment or reverting its frontend commits restores
+Court Vision without a data migration. No database, API, or backend rollback
+is needed. Screenshots are review artifacts and may be removed independently.

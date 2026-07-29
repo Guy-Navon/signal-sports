@@ -13,24 +13,25 @@ export default function MobileNav({ area, isBackendMode }) {
 
   if (area === "product") {
     return (
-      <nav className="md:hidden fixed bottom-4 inset-x-4 z-50">
-        <div className="surface-glass border border-border rounded-full shadow-lg flex items-center justify-between px-2 py-1.5">
+      <nav className="orbit-mobile-nav md:hidden fixed inset-x-3 z-50">
+        <div className="orbit-mobile-dock flex items-center justify-between px-1.5 py-1.5">
           {items.map(({ path, label, icon: Icon }) => {
             const active = location.pathname === path;
             return (
               <Link
                 key={path}
                 to={path}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex flex-col items-center gap-0.5 flex-1 py-1.5 rounded-full transition-colors",
-                  active ? "text-signal-high" : "text-text-dim"
+                  "orbit-mobile-link relative flex flex-col items-center gap-0.5 flex-1 py-2 rounded-full transition-colors",
+                  active ? "text-signal-high" : "text-text-secondary"
                 )}
               >
                 {active && (
-                  <span className="absolute top-0.5 w-1 h-1 rounded-full bg-signal-high" />
+                  <span className="orbit-mobile-link__active absolute inset-0 rounded-full" />
                 )}
-                <Icon size={17} />
-                <span className="text-[9px] leading-none">{label}</span>
+                <Icon size={17} className="relative z-10" />
+                <span className="relative z-10 text-[10px] leading-none">{label}</span>
               </Link>
             );
           })}
@@ -48,6 +49,7 @@ export default function MobileNav({ area, isBackendMode }) {
             <Link
               key={path}
               to={path}
+              aria-current={active ? "page" : undefined}
               className={cn(
                 "flex-1 flex flex-col items-center py-2 gap-1 transition-colors",
                 active ? "text-signal-high" : "text-text-dim"

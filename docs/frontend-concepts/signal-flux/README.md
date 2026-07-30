@@ -37,42 +37,32 @@ The lead story provides the main interaction controls. Reviewers can:
 No live sports claims are made. The interface uses the repository's fixed Hebrew
 fixtures and a documented concept time of 09:18.
 
-## Static evidence
-
-### Personalized feed
-
-![Signal Flux desktop personalized feed](./signal-flux-feed-desktop-1440.png)
-
-![Signal Flux mobile personalized feed](./signal-flux-feed-mobile-390.png)
-
-### Expanded source cluster
-
-![Signal Flux expanded cluster on desktop](./signal-flux-cluster-expanded-desktop.png)
-
-![Signal Flux expanded cluster on mobile](./signal-flux-cluster-expanded-mobile.png)
+> **Superseded.** Signal Flux was an exploration. The shipped consumer feed is
+> **Orbit** (`frontend/src/components/feed/orbit/`). This page is kept as the
+> record of the direction and why it was explored — not as a description of the
+> current UI.
+>
+> The static PNGs and the GIF previews were removed: the stills documented a
+> layout that no longer exists, and every GIF duplicated a WebM of the same clip
+> at roughly ten times the size (8.4 MB of media for this one page). The
+> higher-quality WebM recordings are kept below. Evidence for the current feed
+> lives in [`../orbit-b1-b2/`](../orbit-b1-b2/).
 
 ## Motion evidence
 
-The GIFs are lightweight GitHub previews. Each linked WebM retains the
-higher-quality real-browser recording.
+Real-browser recordings of the concept's three signature transitions.
 
 ### A third source joins the lead story
 
-![Third source arrival preview](./signal-flux-source-arrival.gif)
-
-[Higher-quality source-arrival WebM](./signal-flux-source-arrival.webm)
+[Source-arrival WebM](./signal-flux-source-arrival.webm)
 
 ### The lead story expands into its source journey
 
-![Shared cluster transition preview](./signal-flux-cluster-transition.gif)
-
-[Higher-quality cluster-transition WebM](./signal-flux-cluster-transition.webm)
+[Cluster-transition WebM](./signal-flux-cluster-transition.webm)
 
 ### The feed changes from all stories to Maccabi
 
-![Maccabi filter transition preview](./signal-flux-filter-transition.gif)
-
-[Higher-quality filter-transition WebM](./signal-flux-filter-transition.webm)
+[Filter-transition WebM](./signal-flux-filter-transition.webm)
 
 ## System rules
 

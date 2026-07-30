@@ -2,6 +2,9 @@
   --orbit-aqua: 176 53% 66%;
   --orbit-violet: 244 64% 72%;
   --orbit-alert: 10 100% 70%;
+  /* low_feed's own hue — deliberately desaturated so the quiet tier reads as
+     quiet rather than as a fourth colour competing for attention. */
+  --orbit-quiet: 230 13% 62%;
   --orbit-space: 232 48% 5%;
   --orbit-panel: 231 39% 9%;
   --orbit-panel-raised: 231 34% 12%;
@@ -163,10 +166,14 @@
   background: hsl(var(--orbit-alert) / 0.09);
 }
 
-.orbit-filter--feed.is-active,
-.orbit-filter--low.is-active {
+.orbit-filter--feed.is-active {
   border-color: hsl(var(--orbit-violet) / 0.3);
   background: hsl(var(--orbit-violet) / 0.08);
+}
+
+.orbit-filter--low.is-active {
+  border-color: hsl(var(--orbit-quiet) / 0.3);
+  background: hsl(var(--orbit-quiet) / 0.09);
 }
 
 .orbit-filters__separator {
@@ -379,9 +386,12 @@
     0 0 76px hsl(var(--orbit-alert) / 0.055);
 }
 
-.orbit-core--feed,
-.orbit-core--low {
+.orbit-core--feed {
   border-color: hsl(var(--orbit-violet) / 0.31);
+}
+
+.orbit-core--low {
+  border-color: hsl(var(--orbit-quiet) / 0.26);
 }
 
 .orbit-core__topline {
@@ -414,9 +424,12 @@
   color: hsl(var(--orbit-alert));
 }
 
-.orbit-core--feed .orbit-state-label,
-.orbit-core--low .orbit-state-label {
+.orbit-core--feed .orbit-state-label {
   color: hsl(var(--orbit-violet));
+}
+
+.orbit-core--low .orbit-state-label {
+  color: hsl(var(--orbit-quiet));
 }
 
 .orbit-core h2 {
@@ -737,6 +750,27 @@ a.orbit-satellite:hover {
   border-top: 1px solid hsl(var(--orbit-line) / 0.62);
 }
 
+.orbit-queue__more {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 11px 14px;
+  border: 1px solid hsl(var(--orbit-line) / 0.8);
+  border-radius: 12px;
+  background: hsl(var(--orbit-panel) / 0.6);
+  color: hsl(var(--text-secondary));
+  font-size: 12px;
+  font-weight: 560;
+  transition:
+    border-color 160ms var(--ease-soft),
+    color 160ms var(--ease-soft);
+}
+
+.orbit-queue__more:hover {
+  border-color: hsl(var(--orbit-aqua) / 0.4);
+  color: hsl(var(--foreground));
+}
+
 .orbit-queue-story {
   position: relative;
   border-bottom: 1px solid hsl(var(--orbit-line) / 0.62);
@@ -763,6 +797,97 @@ a.orbit-satellite:hover {
   width: 100%;
   padding: 17px 2px 9px;
   text-align: start;
+}
+
+/* ── Ranking ──────────────────────────────────────────────────────────────
+   Type scale, density, ink and spacing carry the ranking; the level word is
+   confirmation, not the cue. Contract + ordering live in decisionConfig.js
+   (`orbit` block) and are locked by decisionConfig.test.js.
+
+   The `h3` rules below intentionally repeat the block class
+   (`.orbit-queue-story.orbit-queue-story--push h3`). The base
+   `.orbit-queue-story h3` rule is declared later in this file at equal
+   specificity, so a single class loses the cascade and the type scale
+   silently collapses to one size. Do not "simplify" these selectors. */
+
+/* push — loudest: largest type, a lit signal rail, most air */
+.orbit-queue-story--push .orbit-queue-story__main {
+  padding: 21px 2px 11px;
+}
+
+.orbit-queue-story.orbit-queue-story--push h3 {
+  font-size: 19px;
+  font-weight: 660;
+  letter-spacing: -0.025em;
+  line-height: 1.28;
+}
+
+/* The rail is the one thing reserved for push (queueRail). */
+.orbit-queue-story--railed::before {
+  background: hsl(var(--orbit-alert) / 0.85);
+  box-shadow: 0 0 12px hsl(var(--orbit-alert) / 0.45);
+}
+
+.orbit-queue-story--railed:hover::before,
+.orbit-queue-story--railed:focus-within::before {
+  background: hsl(var(--orbit-alert));
+}
+
+/* high_feed — clearly heavier than feed, but no rail */
+.orbit-queue-story--high .orbit-queue-story__main {
+  padding: 18px 2px 10px;
+}
+
+.orbit-queue-story.orbit-queue-story--high h3 {
+  font-size: 16.5px;
+  font-weight: 630;
+}
+
+/* feed — the baseline */
+.orbit-queue-story--feed .orbit-queue-story__main {
+  padding: 15px 2px 9px;
+}
+
+.orbit-queue-story.orbit-queue-story--feed h3 {
+  font-size: 14.5px;
+  font-weight: 590;
+  line-height: 1.42;
+}
+
+/* low_feed — quiet: one line, secondary ink, tight, no subtitle (compact) */
+.orbit-queue-story--low .orbit-queue-story__main {
+  padding: 10px 2px 8px;
+}
+
+.orbit-queue-story.orbit-queue-story--low h3 {
+  font-size: 13px;
+  font-weight: 520;
+  letter-spacing: 0;
+  line-height: 1.5;
+  -webkit-line-clamp: 1;
+}
+
+.orbit-queue-story.orbit-queue-story--muted h3 {
+  color: hsl(var(--text-secondary));
+}
+
+.orbit-queue-story--muted .orbit-queue-story__topline,
+.orbit-queue-story--muted .orbit-queue-story__meta {
+  opacity: 0.78;
+}
+
+/* Compact cards drop the "to centre" affordance and the cluster chip — the
+   whole point of the tier is that it takes less of the reader's attention. */
+.orbit-queue-story--compact .orbit-queue-story__focus {
+  display: none;
+}
+
+.orbit-queue-story--compact .orbit-queue-story__meta {
+  margin-top: 5px;
+}
+
+.orbit-queue-story--compact .orbit-queue-story__actions {
+  padding-bottom: 7px;
 }
 
 .orbit-queue-story__topline {
@@ -792,9 +917,14 @@ a.orbit-satellite:hover {
   color: hsl(var(--orbit-alert));
 }
 
-.orbit-queue-signal--feed,
-.orbit-queue-signal--low {
+.orbit-queue-signal--feed {
   color: hsl(var(--orbit-violet));
+}
+
+/* low_feed had been sharing feed's violet, which left the two tiers identical. */
+.orbit-queue-signal--low {
+  color: hsl(var(--orbit-quiet));
+  font-weight: 560;
 }
 
 .orbit-queue-story h3 {

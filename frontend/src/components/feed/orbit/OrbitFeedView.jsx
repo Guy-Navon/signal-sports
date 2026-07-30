@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpLeft,
   ChevronLeft,
@@ -19,6 +19,11 @@ import {
 } from "@/components/feed/feedFilters";
 import OrbitStoryField from "./OrbitStoryField";
 import {
+  queueEnterMotion,
+  queueEnterTransition,
+  queuePage,
+} from "./orbitQueueMotion";
+import {
   orbitFeedbackArticleId,
   orbitHasMultiSourceField,
   orbitQueueItems,
@@ -30,13 +35,6 @@ import {
   orbitUniqueSourceCount,
   resolveOrbitFocus,
 } from "./orbitStoryModel";
-
-const LEVEL_LABELS = {
-  push: "דחוף",
-  high_feed: "חשוב",
-  feed: "במסלול",
-  low_feed: "שקט",
-};
 
 function OrbitFeedHeading({ profileName, total, scanned, urgentCount }) {
   return (
@@ -110,7 +108,7 @@ function OrbitFilters({
               activeFilters.has(id) && "is-active"
             )}
           >
-            {LEVEL_LABELS[id]}
+            {getDecisionConfig(id).label}
             <span dir="ltr">{decisionCounts[id] || 0}</span>
           </button>
         ))}
@@ -166,6 +164,9 @@ function OrbitQueueStory({ item, index, onFocus, localScoredArticles, reduce }) 
   const publishedAt = orbitStoryTimestamp(item, reports);
   const kicker = buildKicker(item);
   const feedbackId = orbitFeedbackArticleId(item, reports);
+  const config = getDecisionConfig(item.score?.decision);
+  const { queueDensity, queueRail, queueMuted } = config.orbit;
+  const showSubtitle = queueDensity !== "compact" && Boolean(item.subtitle);
   const articleUrl =
     (isCluster
       ? reports.find((report) => report.articleId === item.primaryArticleId)?.url ??
@@ -174,16 +175,15 @@ function OrbitQueueStory({ item, index, onFocus, localScoredArticles, reduce }) 
 
   return (
     <motion.article
-      layout={!reduce}
-      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
-      transition={
-        reduce
-          ? { duration: 0.1 }
-          : { layout: { type: "spring", stiffness: 250, damping: 29 }, delay: index * 0.025 }
-      }
-      className="orbit-queue-story"
+      {...queueEnterMotion(reduce)}
+      transition={queueEnterTransition(index, reduce)}
+      className={cn(
+        "orbit-queue-story",
+        `orbit-queue-story--${config.tone}`,
+        `orbit-queue-story--${queueDensity}`,
+        queueRail && "orbit-queue-story--railed",
+        queueMuted && "orbit-queue-story--muted"
+      )}
     >
       <button type="button" onClick={onFocus} className="orbit-queue-story__main">
         <div className="orbit-queue-story__topline">
@@ -191,7 +191,7 @@ function OrbitQueueStory({ item, index, onFocus, localScoredArticles, reduce }) 
           <span>{kicker || "סיפור בדירוג"}</span>
         </div>
         <h3>{title}</h3>
-        {item.subtitle && <p>{item.subtitle}</p>}
+        {showSubtitle && <p>{item.subtitle}</p>}
         <div className="orbit-queue-story__meta">
           <SourceMeta
             source={source}
@@ -244,6 +244,7 @@ export default function OrbitFeedView({
   const reduce = useReducedMotion();
   const [selectedFocusId, setSelectedFocusId] = useState(null);
   const [expandedStoryId, setExpandedStoryId] = useState(null);
+  const [queuePages, setQueuePages] = useState(1);
 
   const resolvedFocus = useMemo(
     () => resolveOrbitFocus(items, selectedFocusId),
@@ -254,6 +255,10 @@ export default function OrbitFeedView({
     () => orbitQueueItems(items, focusItem),
     [focusItem, items]
   );
+  // Render a bounded slice: the number of animating, laid-out nodes must not
+  // track the size of the feed. See orbitQueueMotion.
+  const page = queuePage(queueItems.length, queuePages);
+  const visibleQueueItems = queueItems.slice(0, page.visible);
   const activeStoryId = orbitStoryId(focusItem);
   const expanded =
     Boolean(activeStoryId) && expandedStoryId === activeStoryId;
@@ -265,6 +270,11 @@ export default function OrbitFeedView({
       setExpandedStoryId(null);
     }
   }, [resolvedFocus.isPinned, selectedFocusId]);
+
+  // A new filter selection is a new list: start it from the first page.
+  useEffect(() => {
+    setQueuePages(1);
+  }, [activeFilters]);
 
   useEffect(() => {
     const previousStoryId = previousActiveStoryId.current;
@@ -388,13 +398,17 @@ export default function OrbitFeedView({
                 <span>המשך המסלול</span>
                 <h2>עוד בדירוג שלך</h2>
               </div>
-              <strong dir="ltr">{queueItems.length}</strong>
+              <strong dir="ltr">
+                {page.hasMore ? `${page.visible}/${queueItems.length}` : queueItems.length}
+              </strong>
             </div>
 
             {queueItems.length > 0 ? (
-              <div className="orbit-queue__list">
-                <AnimatePresence initial={false}>
-                  {queueItems.map((item, index) => (
+              <>
+                {/* No AnimatePresence: a card that stops matching the filter
+                    unmounts immediately instead of animating out. */}
+                <div className="orbit-queue__list">
+                  {visibleQueueItems.map((item, index) => (
                     <OrbitQueueStory
                       key={orbitStoryId(item)}
                       item={item}
@@ -404,8 +418,17 @@ export default function OrbitFeedView({
                       reduce={reduce}
                     />
                   ))}
-                </AnimatePresence>
-              </div>
+                </div>
+                {page.hasMore && (
+                  <button
+                    type="button"
+                    className="orbit-queue__more"
+                    onClick={() => setQueuePages((pages) => pages + 1)}
+                  >
+                    עוד <span dir="ltr">{page.remaining}</span> במסלול
+                  </button>
+                )}
+              </>
             ) : (
               <p className="orbit-queue__quiet">זה הסיפור היחיד במסלול כרגע.</p>
             )}

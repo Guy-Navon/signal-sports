@@ -255,6 +255,41 @@
   border-radius: 26px;
 }
 
+/* ── Single-source field ───────────────────────────────────────────────────
+   About 95% of real feed items have exactly one source, so this is the
+   product's primary state and is composed for deliberately rather than left
+   as a multi-source layout with its satellites missing.
+
+   The field is shorter, the core sits centred and a little narrower, and the
+   geometry closes in around it — one report, presented calmly. Multi-source
+   fields (2/3/4 sources) are untouched. */
+.orbit-field--solo {
+  height: 560px;
+}
+
+.orbit-field--solo .orbit-field__ambient {
+  inset: 18% 18%;
+}
+
+.orbit-field--solo .orbit-geometry {
+  width: 74%;
+  height: 66%;
+  inset: 17% 13% auto;
+}
+
+.orbit-field--solo .orbit-core {
+  width: min(72%, 545px);
+  /* Sits above centre so a tall headline still clears the meter below. */
+  inset: 41% auto auto 50%;
+}
+
+/* With no satellites to balance against, the solo field reads as one vertical
+   axis: caption, core, signal. Off to one corner the meter looks stranded. */
+.orbit-field--solo .orbit-field__strength {
+  inset: auto auto 6% 50%;
+  translate: -50% 0;
+}
+
 .orbit-field__ambient {
   position: absolute;
   inset: 12% 10%;
@@ -1349,6 +1384,12 @@ a.orbit-report:hover {
     border-radius: 26px 26px 0 0;
   }
 
+  /* Must be restated inside this query: the base `.orbit-field--solo` height
+     ties on specificity with `.orbit-field` above and would lose on order. */
+  .orbit-field--solo {
+    height: 520px;
+  }
+
   .orbit-queue {
     border-radius: 0 0 26px 26px;
   }
@@ -1566,8 +1607,64 @@ a.orbit-report:hover {
     inset: auto auto 4% 5%;
   }
 
+  /* The signal-strength meter is the only place relevance is encoded visually
+     rather than in words, so mobile must not drop it. The desktop circle is
+     absolutely positioned and does not survive the narrow field, so here it
+     becomes a horizontal chip in normal flow beneath the core. */
   .orbit-field__strength {
+    position: static;
+    display: flex;
+    width: fit-content;
+    height: auto;
+    max-width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    margin: 14px auto 0;
+    padding: 7px 15px;
+    border-radius: 999px;
+  }
+
+  .orbit-field__strength > span {
+    font-size: 12px;
+  }
+
+  .orbit-field__strength > div {
+    margin-top: 0;
+  }
+
+  /* The chip is labelled by aria-label; the caption would only add width. */
+  .orbit-field__strength small {
     display: none;
+  }
+
+  /* The base `.orbit-field--solo .orbit-core` rule is (0,2,0) and would beat the
+     mobile `.orbit-core` reset above on specificity, dragging the core back into
+     absolute desktop positioning and pushing it off-screen. Restate the reset at
+     matching specificity. */
+  .orbit-field--solo .orbit-core {
+    position: relative;
+    width: 100%;
+    inset: auto;
+    translate: none;
+  }
+
+  /* Solo on mobile: the generous top padding exists to clear satellite slot 1,
+     which a single-source story does not render. Reclaim it for the headline. */
+  .orbit-field--solo .orbit-field__compact {
+    min-height: 0;
+    padding-top: 62px;
+    padding-bottom: 26px;
+  }
+
+  .orbit-field--solo {
+    min-height: 0;
+  }
+
+  .orbit-field--solo .orbit-geometry {
+    width: 116%;
+    height: 74%;
+    inset: 12% -8% auto;
   }
 
   .orbit-queue {

@@ -25,7 +25,17 @@ export default function DeskVoice({ reasoning = [], variant = "line", className 
         className="group flex items-center gap-1.5 min-w-0 max-w-full text-start hover:text-foreground transition-colors"
       >
         <Sparkles size={isFull ? 14 : 12} className="text-signal-ai flex-shrink-0" />
-        <span className={cn("truncate", isFull ? "text-text-secondary" : "text-text-dim")}>
+        {/* Clamped to one line rather than `truncate`. `truncate` is
+            white-space: nowrap + ellipsis, which cuts at whatever character
+            lands on the boundary — in this mixed-direction string that sliced
+            the LTR run mid-token and rendered "(negotiation)" as "egotiation)".
+            A one-line clamp wraps first, so the break lands between tokens. */}
+        <span
+          className={cn(
+            "line-clamp-1 break-words",
+            isFull ? "text-text-secondary" : "text-text-dim"
+          )}
+        >
           {isFull && <span className="text-signal-ai/90 font-medium">למה אצלך: </span>}
           {summary}
         </span>

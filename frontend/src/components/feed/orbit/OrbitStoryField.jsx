@@ -439,6 +439,11 @@ export default function OrbitStoryField({
   const arrival = useSourceArrivals(storyId, reports);
   const layoutId = `orbit-story-core-${storyId}`;
   const fieldId = `orbit-story-field-${String(storyId).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  // ~95% of real feed items carry exactly one source, so this is the primary
+  // state, not a degraded cluster. It gets its own composition: no satellite
+  // (the core's own meta line already names the source, so one orbiting chip
+  // just repeats it beside a large empty field).
+  const isSolo = sourceCount <= 1;
 
   return (
     <section
@@ -446,6 +451,7 @@ export default function OrbitStoryField({
       className={cn(
         "orbit-field",
         expanded && "orbit-field--expanded",
+        isSolo && !expanded && "orbit-field--solo",
         `orbit-field--${state.tone}`
       )}
       aria-label={
@@ -497,24 +503,28 @@ export default function OrbitStoryField({
               reduce={reduce}
             />
 
-            <div className="orbit-satellites" role="list" aria-label="מקורות הסיפור">
-              <AnimatePresence initial={false}>
-                {compactReports.map((report, index) => (
-                  <CompactSatellite
-                    key={report.articleId ?? `${report.source}-${index}`}
-                    report={report}
-                    index={index}
-                    isNew={arrival?.articleId === report.articleId}
-                    reduce={reduce}
-                  />
-                ))}
-              </AnimatePresence>
-              {sourceCount > compactReports.length && (
-                <div role="listitem" className="orbit-source-overflow">
-                  +{sourceCount - compactReports.length} מקורות
-                </div>
-              )}
-            </div>
+            {!isSolo && (
+              <div className="orbit-satellites" role="list" aria-label="מקורות הסיפור">
+                <AnimatePresence initial={false}>
+                  {compactReports.map((report, index) => (
+                    <CompactSatellite
+                      key={report.articleId ?? `${report.source}-${index}`}
+                      report={report}
+                      index={index}
+                      isNew={arrival?.articleId === report.articleId}
+                      reduce={reduce}
+                    />
+                  ))}
+                </AnimatePresence>
+                {sourceCount > compactReports.length && (
+                  <div role="listitem" className="orbit-source-overflow">
+                    {sourceCount - compactReports.length === 1
+                      ? "עוד מקור אחד"
+                      : `עוד ${sourceCount - compactReports.length} מקורות`}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div
               className="orbit-field__strength"

@@ -792,6 +792,202 @@ function assertDecisionSignatures(label, audit) {
   }
 }
 
+// ── Typography ────────────────────────────────────────────────────────────────
+//
+// The serif is a PRODUCT-ONLY display face. Source CSS cannot prove that: a
+// token redefinition, a stray `h1` rule or a Tailwind `font-display` utility
+// could silently pull it into Ops or Auth. These assertions read the computed
+// family off elements the browser actually painted, after document.fonts.ready
+// so a pending download can never be mistaken for a fallback.
+
+const SERIF_FAMILY = "frank ruhl libre";
+const SANS_FAMILY = "heebo";
+
+/** Consumer display surfaces that MUST render serif. */
+const SERIF_SURFACES = {
+  feedHeadingH1: ".orbit-feed-heading h1",
+  compactCoreHeadline: ".orbit-core h2",
+};
+
+/** Everything else in the consumer feed MUST stay sans. */
+const SANS_SURFACES = {
+  queueHeadline: ".orbit-queue-story h3",
+  queueLevelLabel: ".orbit-queue-signal",
+  filterChip: ".orbit-filter",
+  coreMetadata: ".orbit-core__meta",
+  deskVoice: ".orbit-core__reason button",
+  primaryAction: ".orbit-primary-action",
+  navigation: ".orbit-nav-link",
+  queueHeading: ".orbit-queue__heading h2",
+};
+
+async function readFamilies(client, selectorMap) {
+  return await evaluate(
+    client,
+    `(async () => {
+      // Never measure a face that has not finished loading.
+      await document.fonts.ready;
+      const map = ${JSON.stringify(selectorMap)};
+      const out = {};
+      for (const [name, selector] of Object.entries(map)) {
+        const element = document.querySelector(selector);
+        out[name] = element
+          ? {
+              present: true,
+              selector,
+              family: getComputedStyle(element).fontFamily
+                .split(",")[0].replace(/["']/g, "").trim(),
+              weight: getComputedStyle(element).fontWeight,
+              text: (element.innerText || "").trim().slice(0, 30),
+            }
+          : { present: false, selector };
+      }
+      return out;
+    })()`
+  );
+}
+
+function assertFamilies(label, families, expected) {
+  for (const [name, probe] of Object.entries(families)) {
+    // Guard against a vacuous pass: a missing element must fail, not skip.
+    if (!probe.present) {
+      throw new Error(
+        `${label}: ${name} (${probe.selector}) did not render, so its typography is unverified.`
+      );
+    }
+    const actual = probe.family.toLowerCase();
+    const matches = expected === "serif"
+      ? actual.includes(SERIF_FAMILY)
+      : actual.includes(SANS_FAMILY);
+    if (!matches) {
+      throw new Error(
+        `${label}: ${name} should render ${expected} but computed "${probe.family}" ` +
+          `(${probe.selector}, weight ${probe.weight}, "${probe.text}")`
+      );
+    }
+  }
+}
+
+/** No serif may reach a non-product route, and the route must really render. */
+async function auditNoSerifLeak(client, route, headingSelector) {
+  await client.send("Page.navigate", { url: `${origin}${route}` });
+  await delay(1200);
+  const evidence = await evaluate(
+    client,
+    `(async () => {
+      await document.fonts.ready;
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const timeoutAt = performance.now() + 8000;
+      while (!document.querySelector(${JSON.stringify(headingSelector)}) && performance.now() < timeoutAt) {
+        await sleep(60);
+      }
+      const heading = document.querySelector(${JSON.stringify(headingSelector)});
+      const serifElements = Array.from(document.querySelectorAll("body *"))
+        .filter((element) => getComputedStyle(element).fontFamily.toLowerCase()
+          .includes(${JSON.stringify(SERIF_FAMILY)}))
+        .map((element) => (element.tagName + "." +
+          (typeof element.className === "string" ? element.className : "")).slice(0, 70));
+      return {
+        landedPath: location.pathname,
+        headingText: heading ? (heading.innerText || "").trim().slice(0, 40) : null,
+        headingPresent: Boolean(heading),
+        headingFamily: heading
+          ? getComputedStyle(heading).fontFamily.split(",")[0].replace(/["']/g, "").trim()
+          : null,
+        serifElementCount: serifElements.length,
+        serifElements: serifElements.slice(0, 5),
+        fontDisplayToken: getComputedStyle(document.documentElement)
+          .getPropertyValue("--font-display").trim(),
+      };
+    })()`
+  );
+
+  // A redirect would silently measure a different page — the feed's serif H1
+  // reads as a "leak" that is nothing of the sort. Fail on the redirect instead.
+  if (evidence.landedPath !== route) {
+    throw new Error(
+      `${route}: redirected to ${evidence.landedPath}, so this route proves nothing ` +
+        `about leakage. Pick a route that renders under the harness's local mode: ` +
+        JSON.stringify(evidence)
+    );
+  }
+  if (!evidence.headingPresent) {
+    throw new Error(
+      `${route}: ${headingSelector} did not render, so leakage there is unverified: ` +
+        JSON.stringify(evidence)
+    );
+  }
+  if (!evidence.headingFamily.toLowerCase().includes(SANS_FAMILY)) {
+    throw new Error(
+      `${route}: heading computed "${evidence.headingFamily}", expected the sans face: ` +
+        JSON.stringify(evidence)
+    );
+  }
+  if (evidence.serifElementCount > 0) {
+    throw new Error(
+      `${route}: the display serif leaked onto ${evidence.serifElementCount} element(s): ` +
+        JSON.stringify(evidence.serifElements)
+    );
+  }
+  // --font-display must remain the sans token: Ops and utility surfaces use it.
+  if (evidence.fontDisplayToken.toLowerCase().includes(SERIF_FAMILY)) {
+    throw new Error(
+      `${route}: --font-display was redefined to the serif (${evidence.fontDisplayToken}); ` +
+        `it must stay sans so non-product surfaces are unaffected.`
+    );
+  }
+  return { route, ...evidence };
+}
+
+async function auditTypography(client, label) {
+  await loadApp(client);
+  const consumerSerif = await readFamilies(client, SERIF_SURFACES);
+  assertFamilies(label, consumerSerif, "serif");
+  const consumerSans = await readFamilies(client, SANS_SURFACES);
+  assertFamilies(label, consumerSans, "sans");
+
+  // The expanded cluster's central headline needs the cluster open.
+  await focusFirstCluster(client);
+  await expandFocusedCluster(client);
+  const expanded = await readFamilies(client, {
+    expandedCoreHeadline: ".orbit-cluster__core h3",
+  });
+  assertFamilies(label, expanded, "serif");
+  // The expansion's section heading is not a story headline — it stays sans.
+  const expandedChrome = await readFamilies(client, {
+    expandedSectionHeading: ".orbit-cluster__heading h2",
+    expandedSourceCard: ".orbit-report h3",
+    closeAction: ".orbit-close-action",
+  });
+  assertFamilies(label, expandedChrome, "sans");
+  await closeExpandedCluster(client);
+
+  // Auth (/login, /signup) is deliberately unreachable here: main.jsx redirects
+  // those routes away in local/bypass mode, which is the mode this harness runs
+  // for hermeticity. Its headings use the `font-display` Tailwind utility — the
+  // same mechanism PageNotFound uses — so /no-such-route exercises that exact
+  // code path, and every route below additionally asserts that --font-display
+  // itself is still the sans stack.
+  const leaks = [];
+  for (const [route, heading] of [
+    ["/debug", "h1"],            // Ops console
+    ["/results", "h1"],          // Results
+    ["/preferences", "h1"],      // preferences utility surface
+    ["/no-such-route", "h1"],    // 404 — same font-display utility as Auth
+  ]) {
+    leaks.push(await auditNoSerifLeak(client, route, heading));
+  }
+
+  return {
+    label,
+    serif: consumerSerif,
+    expandedCore: expanded.expandedCoreHeadline,
+    sans: consumerSans,
+    expandedChrome,
+    leaks,
+  };
+}
+
 // ── Focus transitions ─────────────────────────────────────────────────────────
 //
 // Orbit's focus management is ref-based; the decisions are unit-tested in
@@ -1324,6 +1520,19 @@ async function main() {
       "desktop normal-motion"
     );
 
+    // Product-only display serif, proven from computed styles under both motion
+    // preferences (font loading is motion-independent, but the run is not).
+    const typographyAudits = [];
+    for (const reducedMotion of [true, false]) {
+      await configureViewport(client, 1440, 1000, false, reducedMotion);
+      typographyAudits.push(
+        await auditTypography(
+          client,
+          `typography ${reducedMotion ? "reduced" : "normal"}-motion`
+        )
+      );
+    }
+
     // Ref-based focus, proven in the browser under both motion preferences.
     const focusAudits = [];
     for (const reducedMotion of [true, false]) {
@@ -1391,6 +1600,13 @@ async function main() {
         {
           outputDirectory,
           instance: { port, ...ownership },
+          typography: typographyAudits.map((audit) => ({
+            label: audit.label,
+            serif: Object.fromEntries(Object.entries(audit.serif).map(([k, v]) => [k, v.family])),
+            expandedCore: audit.expandedCore?.family ?? null,
+            sansSample: Object.fromEntries(Object.entries(audit.sans).map(([k, v]) => [k, v.family])),
+            leaks: audit.leaks.map((l) => ({ route: l.route, heading: l.headingFamily, serifElements: l.serifElementCount })),
+          })),
           focusAudits,
           dockAudits,
           regressions: {

@@ -1,0 +1,310 @@
+{
+  "label": "after",
+  "capturedAt": "2026-07-31T02:40:24.104Z",
+  "desktopSolo": {
+    "feedH1": {
+      "family": "Frank Ruhl Libre",
+      "weight": "500",
+      "size": "36px",
+      "lineHeight": "43.92px",
+      "letterSpacing": "-0.432px"
+    },
+    "compactCore": {
+      "family": "Frank Ruhl Libre",
+      "weight": "500",
+      "size": "35.28px",
+      "lineHeight": "43.7472px",
+      "letterSpacing": "-0.42336px"
+    },
+    "expandedCore": null,
+    "queueTitle": {
+      "family": "Heebo Variable",
+      "weight": "660",
+      "size": "19px",
+      "lineHeight": "24.32px",
+      "letterSpacing": "-0.475px"
+    },
+    "filterChip": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "coreMeta": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "deskVoice": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "primaryAction": {
+      "family": "Heebo Variable",
+      "weight": "690",
+      "size": "12px",
+      "lineHeight": "18px",
+      "letterSpacing": "normal"
+    },
+    "navLink": {
+      "family": "Heebo Variable",
+      "weight": "500",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "emptyHeading": null
+  },
+  "desktop3Source": {
+    "feedH1": {
+      "family": "Frank Ruhl Libre",
+      "weight": "500",
+      "size": "36px",
+      "lineHeight": "43.92px",
+      "letterSpacing": "-0.432px"
+    },
+    "compactCore": {
+      "family": "Frank Ruhl Libre",
+      "weight": "500",
+      "size": "35.28px",
+      "lineHeight": "43.7472px",
+      "letterSpacing": "-0.42336px"
+    },
+    "expandedCore": null,
+    "queueTitle": {
+      "family": "Heebo Variable",
+      "weight": "660",
+      "size": "19px",
+      "lineHeight": "24.32px",
+      "letterSpacing": "-0.475px"
+    },
+    "filterChip": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "coreMeta": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "deskVoice": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "primaryAction": {
+      "family": "Heebo Variable",
+      "weight": "690",
+      "size": "12px",
+      "lineHeight": "18px",
+      "letterSpacing": "normal"
+    },
+    "navLink": {
+      "family": "Heebo Variable",
+      "weight": "500",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "emptyHeading": null
+  },
+  "expanded4Source": {
+    "feedH1": {
+      "family": "Frank Ruhl Libre",
+      "weight": "500",
+      "size": "36px",
+      "lineHeight": "43.92px",
+      "letterSpacing": "-0.432px"
+    },
+    "compactCore": null,
+    "expandedCore": {
+      "family": "Frank Ruhl Libre",
+      "weight": "500",
+      "size": "28.8px",
+      "lineHeight": "36.288px",
+      "letterSpacing": "-0.288px"
+    },
+    "queueTitle": {
+      "family": "Heebo Variable",
+      "weight": "660",
+      "size": "19px",
+      "lineHeight": "24.32px",
+      "letterSpacing": "-0.475px"
+    },
+    "filterChip": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "coreMeta": null,
+    "deskVoice": null,
+    "primaryAction": null,
+    "navLink": {
+      "family": "Heebo Variable",
+      "weight": "500",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "emptyHeading": null
+  },
+  "mobile390": {
+    "feedH1": {
+      "family": "Frank Ruhl Libre",
+      "weight": "500",
+      "size": "24.8px",
+      "lineHeight": "29.76px",
+      "letterSpacing": "-0.2976px"
+    },
+    "compactCore": {
+      "family": "Frank Ruhl Libre",
+      "weight": "500",
+      "size": "23.4px",
+      "lineHeight": "28.314px",
+      "letterSpacing": "-0.2808px"
+    },
+    "expandedCore": null,
+    "queueTitle": {
+      "family": "Heebo Variable",
+      "weight": "660",
+      "size": "19px",
+      "lineHeight": "24.32px",
+      "letterSpacing": "-0.475px"
+    },
+    "filterChip": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "coreMeta": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "deskVoice": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "primaryAction": {
+      "family": "Heebo Variable",
+      "weight": "690",
+      "size": "12px",
+      "lineHeight": "18px",
+      "letterSpacing": "normal"
+    },
+    "navLink": {
+      "family": "Heebo Variable",
+      "weight": "500",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "emptyHeading": null
+  },
+  "mobile320": {
+    "feedH1": {
+      "family": "Frank Ruhl Libre",
+      "weight": "500",
+      "size": "24.8px",
+      "lineHeight": "29.76px",
+      "letterSpacing": "-0.2976px"
+    },
+    "compactCore": {
+      "family": "Frank Ruhl Libre",
+      "weight": "500",
+      "size": "20.8px",
+      "lineHeight": "25.168px",
+      "letterSpacing": "-0.2496px"
+    },
+    "expandedCore": null,
+    "queueTitle": {
+      "family": "Heebo Variable",
+      "weight": "660",
+      "size": "19px",
+      "lineHeight": "24.32px",
+      "letterSpacing": "-0.475px"
+    },
+    "filterChip": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "coreMeta": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "deskVoice": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "primaryAction": {
+      "family": "Heebo Variable",
+      "weight": "690",
+      "size": "12px",
+      "lineHeight": "18px",
+      "letterSpacing": "normal"
+    },
+    "navLink": {
+      "family": "Heebo Variable",
+      "weight": "500",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "emptyHeading": null
+  },
+  "longHeadline": {
+    "text": "פרסום ראשון | שטילמן פנה לרקנאטי: מעוניין לרכוש את המניות שלך במכבי ת\"א",
+    "chars": 71,
+    "family": "Frank Ruhl Libre",
+    "lineClamp": "none",
+    "fontSize": "35.28px",
+    "lines": 3,
+    "coreHeight": 385,
+    "fieldHeight": 560,
+    "bottomSpill": -138
+  },
+  "filterEmpty": {
+    "filterEmptyPresent": true,
+    "filterEmptyFamily": "Heebo Variable",
+    "feedEmptyPresent": false,
+    "feedEmptyFamily": null
+  },
+  "ops": {
+    "h1": "Heebo Variable",
+    "h2": null,
+    "body": "Heebo Variable",
+    "anySerifElements": 0,
+    "rootFontDisplay": "\"Heebo Variable\", \"Heebo\", system-ui, -apple-system, sans-serif"
+  }
+}

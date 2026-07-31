@@ -1,5 +1,12 @@
 /* Base application tokens. Orbit overrides the consumer shell in a scoped layer. */
 @import "@fontsource-variable/heebo";
+/* Display serif for consumer product surfaces only. Declaring the face here is
+   global, but nothing uses it outside the scoped `--orbit-serif` token in
+   components/feed/orbit/orbit.css — `--font-display` deliberately stays Heebo,
+   so Ops, Auth, Results, Preferences, 404 and PageHeader are untouched.
+   This file carries every subset gated by unicode-range, so the Hebrew face is
+   the only one fetched for Hebrew copy. Weight 500 is the only weight used. */
+@import "@fontsource/frank-ruhl-libre/500.css";
 
 @tailwind base;
 @tailwind components;

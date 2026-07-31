@@ -1,0 +1,310 @@
+{
+  "label": "before",
+  "capturedAt": "2026-07-31T02:38:02.539Z",
+  "desktopSolo": {
+    "feedH1": {
+      "family": "Heebo Variable",
+      "weight": "650",
+      "size": "36px",
+      "lineHeight": "41.4px",
+      "letterSpacing": "-1.26px"
+    },
+    "compactCore": {
+      "family": "Heebo Variable",
+      "weight": "650",
+      "size": "35.28px",
+      "lineHeight": "40.9248px",
+      "letterSpacing": "-1.2348px"
+    },
+    "expandedCore": null,
+    "queueTitle": {
+      "family": "Heebo Variable",
+      "weight": "660",
+      "size": "19px",
+      "lineHeight": "24.32px",
+      "letterSpacing": "-0.475px"
+    },
+    "filterChip": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "coreMeta": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "deskVoice": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "primaryAction": {
+      "family": "Heebo Variable",
+      "weight": "690",
+      "size": "12px",
+      "lineHeight": "18px",
+      "letterSpacing": "normal"
+    },
+    "navLink": {
+      "family": "Heebo Variable",
+      "weight": "500",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "emptyHeading": null
+  },
+  "desktop3Source": {
+    "feedH1": {
+      "family": "Heebo Variable",
+      "weight": "650",
+      "size": "36px",
+      "lineHeight": "41.4px",
+      "letterSpacing": "-1.26px"
+    },
+    "compactCore": {
+      "family": "Heebo Variable",
+      "weight": "650",
+      "size": "35.28px",
+      "lineHeight": "40.9248px",
+      "letterSpacing": "-1.2348px"
+    },
+    "expandedCore": null,
+    "queueTitle": {
+      "family": "Heebo Variable",
+      "weight": "660",
+      "size": "19px",
+      "lineHeight": "24.32px",
+      "letterSpacing": "-0.475px"
+    },
+    "filterChip": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "coreMeta": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "deskVoice": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "primaryAction": {
+      "family": "Heebo Variable",
+      "weight": "690",
+      "size": "12px",
+      "lineHeight": "18px",
+      "letterSpacing": "normal"
+    },
+    "navLink": {
+      "family": "Heebo Variable",
+      "weight": "500",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "emptyHeading": null
+  },
+  "expanded4Source": {
+    "feedH1": {
+      "family": "Heebo Variable",
+      "weight": "650",
+      "size": "36px",
+      "lineHeight": "41.4px",
+      "letterSpacing": "-1.26px"
+    },
+    "compactCore": null,
+    "expandedCore": {
+      "family": "Heebo Variable",
+      "weight": "640",
+      "size": "28.8px",
+      "lineHeight": "34.56px",
+      "letterSpacing": "-0.864px"
+    },
+    "queueTitle": {
+      "family": "Heebo Variable",
+      "weight": "660",
+      "size": "19px",
+      "lineHeight": "24.32px",
+      "letterSpacing": "-0.475px"
+    },
+    "filterChip": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "coreMeta": null,
+    "deskVoice": null,
+    "primaryAction": null,
+    "navLink": {
+      "family": "Heebo Variable",
+      "weight": "500",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "emptyHeading": null
+  },
+  "mobile390": {
+    "feedH1": {
+      "family": "Heebo Variable",
+      "weight": "650",
+      "size": "24.8px",
+      "lineHeight": "29.76px",
+      "letterSpacing": "-0.868px"
+    },
+    "compactCore": {
+      "family": "Heebo Variable",
+      "weight": "650",
+      "size": "23.4px",
+      "lineHeight": "27.846px",
+      "letterSpacing": "-0.819px"
+    },
+    "expandedCore": null,
+    "queueTitle": {
+      "family": "Heebo Variable",
+      "weight": "660",
+      "size": "19px",
+      "lineHeight": "24.32px",
+      "letterSpacing": "-0.475px"
+    },
+    "filterChip": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "coreMeta": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "deskVoice": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "primaryAction": {
+      "family": "Heebo Variable",
+      "weight": "690",
+      "size": "12px",
+      "lineHeight": "18px",
+      "letterSpacing": "normal"
+    },
+    "navLink": {
+      "family": "Heebo Variable",
+      "weight": "500",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "emptyHeading": null
+  },
+  "mobile320": {
+    "feedH1": {
+      "family": "Heebo Variable",
+      "weight": "650",
+      "size": "24.8px",
+      "lineHeight": "29.76px",
+      "letterSpacing": "-0.868px"
+    },
+    "compactCore": {
+      "family": "Heebo Variable",
+      "weight": "650",
+      "size": "20.8px",
+      "lineHeight": "24.752px",
+      "letterSpacing": "-0.728px"
+    },
+    "expandedCore": null,
+    "queueTitle": {
+      "family": "Heebo Variable",
+      "weight": "660",
+      "size": "19px",
+      "lineHeight": "24.32px",
+      "letterSpacing": "-0.475px"
+    },
+    "filterChip": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "coreMeta": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "11px",
+      "lineHeight": "16.5px",
+      "letterSpacing": "normal"
+    },
+    "deskVoice": {
+      "family": "Heebo Variable",
+      "weight": "400",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "primaryAction": {
+      "family": "Heebo Variable",
+      "weight": "690",
+      "size": "12px",
+      "lineHeight": "18px",
+      "letterSpacing": "normal"
+    },
+    "navLink": {
+      "family": "Heebo Variable",
+      "weight": "500",
+      "size": "14px",
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "emptyHeading": null
+  },
+  "longHeadline": {
+    "text": "פרסום ראשון | שטילמן פנה לרקנאטי: מעוניין לרכוש את המניות שלך במכבי ת\"א",
+    "chars": 71,
+    "family": "Heebo Variable",
+    "lineClamp": "none",
+    "fontSize": "35.28px",
+    "lines": 3,
+    "coreHeight": 377,
+    "fieldHeight": 560,
+    "bottomSpill": -142
+  },
+  "filterEmpty": {
+    "filterEmptyPresent": true,
+    "filterEmptyFamily": "Heebo Variable",
+    "feedEmptyPresent": false,
+    "feedEmptyFamily": null
+  },
+  "ops": {
+    "h1": "Heebo Variable",
+    "h2": null,
+    "body": "Heebo Variable",
+    "anySerifElements": 0,
+    "rootFontDisplay": "\"Heebo Variable\", \"Heebo\", system-ui, -apple-system, sans-serif"
+  }
+}

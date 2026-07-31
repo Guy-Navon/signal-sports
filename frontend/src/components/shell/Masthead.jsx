@@ -22,8 +22,9 @@ function InlineNavLink({ path, label, active }) {
   return (
     <Link
       to={path}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "relative px-1 py-1 text-sm transition-colors",
+        "orbit-nav-link relative px-1 py-1 text-sm transition-colors",
         active ? "text-foreground font-medium" : "text-text-secondary hover:text-foreground"
       )}
     >
@@ -100,6 +101,7 @@ export default function Masthead({ area, isBackendMode, isLoading }) {
     <header
       className={cn(
         "sticky top-0 z-50 transition-colors duration-300",
+        area === "product" && "orbit-masthead",
         scrolled ? "surface-glass border-b border-border" : "bg-transparent border-b border-transparent"
       )}
     >
@@ -107,13 +109,14 @@ export default function Masthead({ area, isBackendMode, isLoading }) {
         <div className="flex items-center gap-6 min-w-0">
           <Link to="/" className="flex items-center gap-2 flex-shrink-0">
             <SignalMark />
-            <span className="font-display font-bold text-foreground text-[1.05rem] tracking-tight">
-              סיגנל
+            <span className="orbit-wordmark font-display font-bold text-foreground text-[1.05rem] tracking-tight">
+              <span>סיגנל</span>
+              {area === "product" && <small>מודיעין ספורט</small>}
             </span>
           </Link>
 
           {area === "product" && (
-            <nav className="hidden md:flex items-center gap-5">
+            <nav className="orbit-inline-nav hidden md:flex items-center gap-5">
               {PRODUCT_NAV_ITEMS.map((item) => (
                 <InlineNavLink
                   key={item.path}

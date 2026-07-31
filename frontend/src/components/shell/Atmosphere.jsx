@@ -1,19 +1,14 @@
 import React from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
-// The product canvas's atmosphere: a fixed, decorative backdrop behind every
-// product page (not rendered in the ops console — ops stays flat/instrument-
-// panel by design). A soft floodlight mesh, one large half-court arc, and a
-// whisper of film grain — identity, not decoration. Static positioning +
-// opacity-only breathing keep this essentially free at runtime. Fades in on
-// mount so returning from the console feels like arriving somewhere, not a
-// hard cut.
+// Orbit's product atmosphere: a fixed field of quiet spatial relationships.
+// Geometry is static; product-state motion belongs to the feed itself.
 export default function Atmosphere() {
   const reduce = useReducedMotion();
   return (
     <motion.div
       aria-hidden
-      className="fixed inset-0 -z-10 overflow-hidden pointer-events-none"
+      className="orbit-atmosphere fixed inset-0 -z-10 overflow-hidden pointer-events-none"
       initial={reduce ? { opacity: 1 } : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
@@ -22,18 +17,31 @@ export default function Atmosphere() {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 60% 50% at 50% -10%, hsl(var(--signal-high) / 0.05), transparent 60%)," +
-            "radial-gradient(ellipse 45% 40% at 100% 100%, hsl(var(--signal-ai) / 0.03), transparent 60%)",
+            "radial-gradient(ellipse 56% 46% at 64% -8%, hsl(var(--signal-high) / 0.055), transparent 62%)," +
+            "radial-gradient(ellipse 48% 42% at 2% 96%, hsl(var(--signal-feed) / 0.04), transparent 66%)",
         }}
       />
       <svg
-        viewBox="0 0 800 800"
+        viewBox="0 0 1000 800"
         fill="none"
-        className="absolute top-1/2 -translate-y-1/2 end-[-220px] h-[140%] w-auto text-foreground opacity-[0.035] rtl:-scale-x-100"
+        className="absolute top-[8%] end-[-180px] h-[86%] w-auto text-signal-feed opacity-[0.045]"
       >
-        <circle cx="800" cy="400" r="360" stroke="currentColor" strokeWidth="1.5" />
-        <circle cx="800" cy="400" r="230" stroke="currentColor" strokeWidth="1" />
-        <path d="M 800 60 A 340 340 0 0 0 800 740" stroke="currentColor" strokeWidth="1.5" />
+        <ellipse cx="570" cy="400" rx="440" ry="295" stroke="currentColor" strokeWidth="1" />
+        <ellipse
+          cx="570"
+          cy="400"
+          rx="315"
+          ry="205"
+          stroke="hsl(var(--signal-high))"
+          strokeOpacity="0.65"
+          strokeDasharray="3 12"
+        />
+        <path
+          d="M120 540 C315 260 742 225 972 410"
+          stroke="currentColor"
+          strokeWidth="1"
+          strokeDasharray="1 14"
+        />
       </svg>
       <div
         className="absolute inset-0 opacity-[0.025] mix-blend-overlay"

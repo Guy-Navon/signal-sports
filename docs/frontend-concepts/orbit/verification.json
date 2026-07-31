@@ -1,0 +1,78 @@
+{
+  "capturedAt": "2026-07-31T13:51:58.134Z",
+  "overflow": {
+    "desktop": -10,
+    "m390": 0,
+    "m320": 0,
+    "ops": -10
+  },
+  "checks": {
+    "feedCounts": {
+      "filters": [
+        "הכול 198",
+        "דורש תשומת לב 20",
+        "חשוב 38",
+        "רגיל 103",
+        "נמוך 37",
+        "מכבי",
+        "כדורסל",
+        "NBA",
+        "מקורות מחו״ל"
+      ],
+      "queueRendered": 40,
+      "heading": "40/197",
+      "showMore": "עוד 157 במסלול"
+    },
+    "expanded": {
+      "heading": "4 דיווחים מ־4 מקורות. סיפור אחד.",
+      "reports": 4
+    },
+    "levels": {
+      "push": {
+        "before": 40,
+        "after": 19,
+        "tones": [
+          "push"
+        ],
+        "result": "20 תוצאות",
+        "titleSize": "19px",
+        "settledWithinMs": 190
+      },
+      "high_feed": {
+        "before": 40,
+        "after": 37,
+        "tones": [
+          "high"
+        ],
+        "result": "38 תוצאות",
+        "titleSize": "16.5px",
+        "settledWithinMs": 212
+      },
+      "feed": {
+        "before": 40,
+        "after": 40,
+        "tones": [
+          "feed"
+        ],
+        "result": "103 תוצאות",
+        "titleSize": "14.5px",
+        "settledWithinMs": 260
+      },
+      "low_feed": {
+        "before": 40,
+        "after": 36,
+        "tones": [
+          "low"
+        ],
+        "result": "37 תוצאות",
+        "titleSize": "13px",
+        "settledWithinMs": 306
+      }
+    },
+    "opsSerif": {
+      "serifElements": 0,
+      "h1": "Heebo Variable"
+    }
+  },
+  "consoleErrors": []
+}

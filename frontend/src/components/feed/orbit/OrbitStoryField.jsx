@@ -24,7 +24,7 @@ import { FOCUS_TARGETS } from "./orbitFocusModel";
 import {
   orbitFeedbackArticleId,
   orbitHasMultiSourceField,
-  orbitUniqueSourceCount,
+  orbitSourceCount,
   orbitStoryId,
   orbitStoryReports,
   orbitStorySourceLine,
@@ -200,7 +200,7 @@ function CompactCore({
       ? reports.find((report) => report.articleId === item.primaryArticleId)?.url ??
         reports[0]?.url
       : item.url) ?? null;
-  const sourceCount = orbitUniqueSourceCount(reports);
+  const sourceCount = orbitSourceCount(item, reports);
 
   return (
     <motion.article
@@ -364,7 +364,7 @@ function ExpandedCluster({
   const closeActionRef = useRef(null);
   useSelfFocus(focusTarget, FOCUS_TARGETS.closeAction, closeActionRef, onFocusApplied);
   const chronological = reportsChronologically(reports);
-  const sourceCount = orbitUniqueSourceCount(reports);
+  const sourceCount = orbitSourceCount(item, reports);
   const newestId = chronological.at(-1)?.articleId;
   const title = orbitStoryTitle(item);
   const feedbackId = orbitFeedbackArticleId(item, reports);
@@ -508,7 +508,7 @@ const OrbitStoryField = forwardRef(function OrbitStoryField(
     [item, reports]
   );
   const compactReports = sourceReports.slice(0, 3);
-  const sourceCount = sourceReports.length;
+  const sourceCount = orbitSourceCount(item, reports);
   const storyId = orbitStoryId(item);
   const state = orbitStoryState(item);
   const arrival = useSourceArrivals(storyId, reports);
@@ -540,9 +540,9 @@ const OrbitStoryField = forwardRef(function OrbitStoryField(
     >
       <div className="orbit-field__ambient" aria-hidden />
 
-      {/* onExitComplete is the deterministic "composition has settled" signal:
-          the outgoing view is gone and the incoming one is mounted, so a focus
-          target that did not exist during the swap exists now. */}
+      {/* No onExitComplete hook: focus is not coordinated from out here. Each
+          view focuses its own element on mount (see useSelfFocus), so there is
+          nothing to wait for an animation to finish. */}
       <AnimatePresence initial={false}>
         {expanded ? (
           <ExpandedCluster

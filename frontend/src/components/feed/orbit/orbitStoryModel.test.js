@@ -5,11 +5,14 @@ import {
   orbitQueueItems,
   orbitUniqueSourceCount,
   hydrateLocalClusters,
+  latestReportTimestamp,
+  orbitSourceCount,
   prepareFeedItems,
   resolveOrbitFocus,
   orbitStoryId,
   orbitStoryReports,
   orbitStorySourceLine,
+  orbitStoryTimestamp,
   reportsChronologically,
   reportsWithPrimaryFirst,
   detectNewSource,
@@ -342,5 +345,158 @@ describe("prepareFeedItems — cluster value authority", () => {
   it("defaults to hydrating when no mode is supplied", () => {
     expect(() => prepareFeedItems([])).not.toThrow();
     expect(prepareFeedItems([])).toEqual([]);
+  });
+});
+
+// Not rewriting the object is only half the job: the render path must also READ
+// the authoritative values. These clusters are built so the backend value and
+// whatever the client would derive DISAGREE — if a resolver ever falls back to
+// derivation for a backend item, exactly one of these fails.
+describe("authoritative cluster values — adversarial", () => {
+  /** sourceCount says 5; report deduplication would say 2. */
+  const countDisagrees = Object.freeze({
+    id: "d1",
+    clusterId: "disagree-count",
+    type: "cluster",
+    sourceCount: 5,
+    lastUpdatedAt: "2026-07-27T10:00:00Z",
+    members: Object.freeze([
+      { articleId: "d1", source: "one", sourceDisplayName: "ONE",
+        title: "א", publishedAt: "2026-07-27T09:00:00Z", decision: "feed" },
+      { articleId: "d2", source: "sport5", sourceDisplayName: "ספורט 5",
+        title: "ב", publishedAt: "2026-07-27T08:00:00Z", decision: "feed" },
+    ]),
+    score: { decision: "feed" },
+  });
+
+  /** lastUpdatedAt is OLDER than the newest member — derivation would win. */
+  const timeDisagrees = Object.freeze({
+    id: "t1",
+    clusterId: "disagree-time",
+    type: "cluster",
+    sourceCount: 2,
+    lastUpdatedAt: "2026-07-27T06:00:00Z",
+    publishedAt: "2026-07-27T05:00:00Z",
+    firstSeenAt: "2026-07-27T04:00:00Z",
+    members: Object.freeze([
+      { articleId: "t1", source: "one", sourceDisplayName: "ONE",
+        title: "א", publishedAt: "2026-07-27T23:00:00Z", decision: "feed" },
+      { articleId: "t2", source: "sport5", sourceDisplayName: "ספורט 5",
+        title: "ב", publishedAt: "2026-07-27T22:00:00Z", decision: "feed" },
+    ]),
+    score: { decision: "feed" },
+  });
+
+  describe("source count", () => {
+    it("returns the backend value, not the deduplicated report count", () => {
+      const reports = orbitStoryReports(countDisagrees, []);
+      expect(orbitUniqueSourceCount(reports)).toBe(2); // what derivation says
+      expect(orbitSourceCount(countDisagrees, reports)).toBe(5); // what we display
+    });
+
+    it("branches the multi-source field on the backend value", () => {
+      const single = { ...countDisagrees, sourceCount: 1 };
+      const reports = orbitStoryReports(single, []);
+      // Derivation would see two distinct sources and open the field anyway.
+      expect(orbitUniqueSourceCount(reports)).toBe(2);
+      expect(orbitHasMultiSourceField(single, reports)).toBe(false);
+    });
+
+    it("falls back to derivation only when the backend value is absent", () => {
+      const local = { ...countDisagrees, sourceCount: undefined };
+      const reports = orbitStoryReports(local, []);
+      expect(orbitSourceCount(local, reports)).toBe(2);
+    });
+
+    it("treats a non-numeric count as absent", () => {
+      const reports = orbitStoryReports(countDisagrees, []);
+      for (const bad of [null, undefined, Number.NaN, "5"]) {
+        expect(orbitSourceCount({ ...countDisagrees, sourceCount: bad }, reports)).toBe(2);
+      }
+    });
+
+    it("honours an authoritative zero rather than silently deriving", () => {
+      const reports = orbitStoryReports(countDisagrees, []);
+      expect(orbitSourceCount({ ...countDisagrees, sourceCount: 0 }, reports)).toBe(0);
+    });
+  });
+
+  describe("timestamp", () => {
+    it("returns the backend sort time, not the newest member", () => {
+      const reports = orbitStoryReports(timeDisagrees, []);
+      expect(latestReportTimestamp(reports)).toBe("2026-07-27T23:00:00Z"); // derivation
+      expect(orbitStoryTimestamp(timeDisagrees, reports)).toBe("2026-07-27T06:00:00Z");
+    });
+
+    it("falls back to the newest report when lastUpdatedAt is absent", () => {
+      const local = { ...timeDisagrees, lastUpdatedAt: undefined };
+      const reports = orbitStoryReports(local, []);
+      expect(orbitStoryTimestamp(local, reports)).toBe("2026-07-27T23:00:00Z");
+    });
+
+    it("falls back further when there are no reports at all", () => {
+      const bare = { ...timeDisagrees, lastUpdatedAt: undefined, members: [] };
+      expect(orbitStoryTimestamp(bare, [])).toBe("2026-07-27T05:00:00Z");
+      expect(orbitStoryTimestamp({ ...bare, publishedAt: undefined }, [])).toBe(
+        "2026-07-27T04:00:00Z"
+      );
+    });
+
+    it("leaves plain articles on their own publish time", () => {
+      expect(
+        orbitStoryTimestamp({ type: "article", publishedAt: "2026-07-27T01:00:00Z" }, [])
+      ).toBe("2026-07-27T01:00:00Z");
+    });
+  });
+
+  describe("local hydration still calculates both", () => {
+    // The mock item carries deliberately WRONG values; hydration must overwrite
+    // them from the catalogue rather than echo them back through the readers.
+    const staleLocal = {
+      id: "l0",
+      clusterId: "local-stale",
+      type: "cluster",
+      primaryArticleId: "l1",
+      articleIds: ["l1", "l2"],
+      sourceCount: 99,
+      lastUpdatedAt: "2020-01-01T00:00:00Z",
+      score: { decision: "feed" },
+    };
+    const scored = [
+      { id: "l1", source: "sport5", sourceDisplayName: "ספורט 5", title: "ראשון",
+        publishedAt: "2026-07-27T08:00:00Z", score: { decision: "feed" } },
+      { id: "l2", source: "one", sourceDisplayName: "ONE", title: "שני",
+        publishedAt: "2026-07-27T09:30:00Z", score: { decision: "feed" } },
+    ];
+
+    it("recomputes both values from the catalogue", () => {
+      const [card] = prepareFeedItems([staleLocal], {
+        isBackendMode: false, localScoredArticles: scored,
+      });
+      expect(card.sourceCount).toBe(2);
+      expect(card.lastUpdatedAt).toBe("2026-07-27T09:30:00Z");
+    });
+
+    it("makes the readers agree with the hydrated values", () => {
+      const [card] = prepareFeedItems([staleLocal], {
+        isBackendMode: false, localScoredArticles: scored,
+      });
+      const reports = orbitStoryReports(card, scored);
+      expect(orbitSourceCount(card, reports)).toBe(2);
+      expect(orbitStoryTimestamp(card, reports)).toBe("2026-07-27T09:30:00Z");
+    });
+  });
+
+  it("keeps backend items identity-preserved through the resolvers", () => {
+    const items = [countDisagrees, timeDisagrees];
+    const result = prepareFeedItems(items, { isBackendMode: true });
+    expect(result).toBe(items);
+    expect(result[0]).toBe(countDisagrees);
+    expect(result[1]).toBe(timeDisagrees);
+    // Reading through the resolvers must not mutate either.
+    orbitSourceCount(result[0], orbitStoryReports(result[0], []));
+    orbitStoryTimestamp(result[1], orbitStoryReports(result[1], []));
+    expect(result[0].sourceCount).toBe(5);
+    expect(result[1].lastUpdatedAt).toBe("2026-07-27T06:00:00Z");
   });
 });

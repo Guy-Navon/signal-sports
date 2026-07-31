@@ -99,13 +99,24 @@ export function orbitUniqueSourceCount(reports) {
   return uniqueOrbitSourceReports(reports).length;
 }
 
+/**
+ * The one place Orbit answers "how many sources does this story have?".
+ *
+ * `sourceCount` is backend-authoritative — `len({m.article.source for m in
+ * visible})`, test-locked server-side and mapped straight through by
+ * normalizers.js. Deduplicating reports in the client is a *fallback* for
+ * local/mock clusters, which carry no such field. Preferring the authoritative
+ * value means the consumer feed and Debug cannot disagree even if the client's
+ * deduplication behaviour changes.
+ */
+export function orbitSourceCount(item, reports = []) {
+  if (Number.isFinite(item?.sourceCount)) return item.sourceCount;
+  return orbitUniqueSourceCount(reports);
+}
+
 export function orbitHasMultiSourceField(item, reports) {
   if (item?.type !== "cluster") return false;
-  const uniqueCount = orbitUniqueSourceCount(reports);
-  const declaredCount = Number.isFinite(item.sourceCount)
-    ? item.sourceCount
-    : uniqueCount;
-  return declaredCount >= 2 && uniqueCount >= 2;
+  return orbitSourceCount(item, reports) >= 2;
 }
 
 export function detectNewSource(previousReports, nextReports) {
@@ -131,16 +142,41 @@ export function orbitStorySourceLine(item, reports) {
   );
 }
 
-export function orbitStoryTimestamp(item, reports = []) {
-  if (!item) return null;
-  if (item.type !== "cluster") return item.publishedAt ?? null;
-  const latestVisibleTimestamp = reports.reduce((latest, report) => {
+/**
+ * Newest timestamp across a set of reports.
+ *
+ * Kept separate from orbitStoryTimestamp on purpose: local hydration needs to
+ * CALCULATE `lastUpdatedAt`, while rendering needs to READ it. Folding both into
+ * one function makes hydration consume the very field it is producing.
+ */
+export function latestReportTimestamp(reports = []) {
+  return reports.reduce((latest, report) => {
     const timestamp = Date.parse(report.publishedAt ?? "");
     return timestamp > latest.timestamp
       ? { timestamp, value: report.publishedAt }
       : latest;
   }, { timestamp: 0, value: null }).value;
-  return latestVisibleTimestamp ?? item.publishedAt ?? item.firstSeenAt ?? null;
+}
+
+/**
+ * The timestamp Orbit shows for a story.
+ *
+ * For clusters the backend's `sort_at` — normalized to `lastUpdatedAt` — is
+ * authoritative: it is the newest VISIBLE member, computed server-side and
+ * test-locked, and it is what Debug displays. Re-deriving it from reports gave
+ * the same answer, but only by coincidence of the two calculations agreeing.
+ * The derivation survives as the local/legacy fallback.
+ */
+export function orbitStoryTimestamp(item, reports = []) {
+  if (!item) return null;
+  if (item.type !== "cluster") return item.publishedAt ?? null;
+  return (
+    item.lastUpdatedAt ??
+    latestReportTimestamp(reports) ??
+    item.publishedAt ??
+    item.firstSeenAt ??
+    null
+  );
 }
 
 export function orbitStoryState(item) {
@@ -211,7 +247,12 @@ export function hydrateLocalClusters(items, localScoredArticles = []) {
       sources: uniqueReports.map((report) => report.source).filter(Boolean),
       sourceDisplayNames: uniqueReports.map((report) => report.sourceDisplayName),
       sourceCount: uniqueReports.length,
-      lastUpdatedAt: orbitStoryTimestamp(item, reports),
+      // Calculated from the hydrated reports, not read back through
+      // orbitStoryTimestamp — that reader now prefers `lastUpdatedAt`, so using
+      // it here would make hydration echo whatever stale value the mock item
+      // already carried instead of deriving the real one.
+      lastUpdatedAt:
+        latestReportTimestamp(reports) ?? item.publishedAt ?? item.firstSeenAt ?? null,
     };
   });
 }

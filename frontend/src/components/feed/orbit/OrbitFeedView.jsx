@@ -40,7 +40,7 @@ import {
   orbitStorySourceLine,
   orbitStoryTimestamp,
   orbitStoryTitle,
-  orbitUniqueSourceCount,
+  orbitSourceCount,
   resolveOrbitFocus,
 } from "./orbitStoryModel";
 
@@ -166,7 +166,7 @@ function OrbitQueueStory({ item, index, onFocus, localScoredArticles, reduce }) 
   const isCluster = item.type === "cluster";
   const reports = orbitStoryReports(item, localScoredArticles);
   const hasClusterField = orbitHasMultiSourceField(item, reports);
-  const sourceCount = orbitUniqueSourceCount(reports);
+  const sourceCount = orbitSourceCount(item, reports);
   const title = orbitStoryTitle(item);
   const source = orbitStorySourceLine(item, reports);
   const publishedAt = orbitStoryTimestamp(item, reports);

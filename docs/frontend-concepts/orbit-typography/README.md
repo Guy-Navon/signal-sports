@@ -16,7 +16,8 @@ process-level, no file changed.
 | Orbit feed H1 (`.orbit-feed-heading h1`) | **Frank Ruhl Libre 500** |
 | focused story headline (`.orbit-core h2`) | **Frank Ruhl Libre 500** |
 | expanded cluster central headline (`.orbit-cluster__core h3`) | **Frank Ruhl Libre 500** |
-| consumer feed empty-state heading (`.orbit-feed-empty h2`) | **Frank Ruhl Libre 500** |
+| consumer feed empty-state heading (`.orbit-feed-empty h2`) | **Frank Ruhl Libre 500** — implemented, **not** browser-verified (see below) |
+| filter-empty state body copy (`.orbit-filter-empty p`) | Heebo — body copy, not a display heading |
 | queue story titles, level labels, filters | Heebo |
 | body copy, DeskVoice, metadata, timestamps, source names | Heebo |
 | buttons, controls, navigation | Heebo |
@@ -104,10 +105,18 @@ reported as a leak. That guard caught exactly that during this work.
   Tailwind utility, the same mechanism `PageNotFound` uses, so `/no-such-route`
   exercises that exact code path, and every audited route additionally asserts
   `--font-display` is still sans.
-- **The consumer feed empty state** (`EditionEmptyState`) renders only when zero
-  items are visible, which the real corpus cannot produce. The rule is in place
-  and scoped, but it is not asserted in the browser. `07-consumer-empty-state`
-  captures the reachable filter-empty state, whose body copy correctly stays sans.
+- **The consumer feed empty state** (`EditionEmptyState`, governed by
+  `.orbit-feed-empty h2`) renders only when zero items are visible, which the
+  real corpus cannot produce. The rule is implemented and scoped, but it is
+  **not browser-verified** — the measurements record `feedEmptyPresent: false`
+  and `emptyHeading: null` in both runs. No production hook or synthetic data
+  path was added to force it into view; an unverified rule honestly labelled is
+  better than a contrived one.
+
+  `07-filter-empty-state` is **not** evidence for that surface. It captures the
+  *filter*-empty state — the one reachable by narrowing filters — and exists
+  solely to show that surface stays sans, which is correct: it renders body copy
+  (`.orbit-filter-empty p`), not a display heading.
 
 ## Index
 
@@ -119,7 +128,7 @@ reported as a leak. That guard caught exactly that during this work.
 | Mobile 390 | `before/04-mobile-390.png` | `after/04-mobile-390.png` |
 | Mobile 320 | `before/05-mobile-320.png` | `after/05-mobile-320.png` |
 | Long Hebrew headline | `before/06-long-headline.png` | `after/06-long-headline.png` |
-| Consumer empty state | `before/07-consumer-empty-state.png` | `after/07-consumer-empty-state.png` |
+| Filter-empty state — stays sans | `before/07-filter-empty-state.png` | `after/07-filter-empty-state.png` |
 | Ops (Debug) — no leakage | `before/08-ops-debug.png` | `after/08-ops-debug.png` |
 
 Raw computed-family measurements for both runs are in `before/fonts.json` and

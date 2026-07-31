@@ -1,5 +1,19 @@
 # Signal Sports — Sports Intelligence OS concept exploration
 
+> **ARCHIVED — historical decision record.**
+>
+> This is the exploration that led to selecting **Orbit** as the product
+> direction. It is kept for traceability and is **not** a description of the
+> shipped frontend; for that see
+> [`docs/FRONTEND_DESIGN_SYSTEM.md`](./FRONTEND_DESIGN_SYSTEM.md).
+>
+> The standalone concept application it describes
+> (`frontend/concepts/sports-intelligence-os/`) and its capture script
+> (`npm run capture:concepts`) were **removed** when Orbit shipped — they were
+> prototype code outside the product. The commands quoted below no longer run.
+> The captured screenshots in `docs/frontend-concepts/sports-intelligence-os/`
+> are retained as the visual record of the comparison.
+
 ## Status and scope
 
 This document records a visual exploration only. It does not select a winning
@@ -17,10 +31,10 @@ live change feel native to a premium digital system. All three directions use
 an obsidian foundation, controlled luminous state, modern Hebrew typography,
 opaque layered surfaces, and motion tied to product events.
 
-The concept laboratory is isolated under
-`frontend/concepts/sports-intelligence-os/`. It does not import production
-components, register a production route, change `frontend/src`, call the
-backend, or add a runtime dependency. The existing production UI is untouched.
+The concept laboratory was isolated under
+`frontend/concepts/sports-intelligence-os/` (since removed). It did not import
+production components, register a production route, change `frontend/src`, call
+the backend, or add a runtime dependency.
 
 ## Shared content scenario
 

@@ -2,8 +2,8 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 // The wordmark icon: three ascending signal bars.
-// Same visual language as the Feed's SIGNAL strength instrument (LeadStory) —
-// the brand mark and the product's relevance indicator are the same idea.
+// Same visual language as the Orbit field's signal-strength meter — the brand
+// mark and the product's relevance indicator are the same idea.
 export default function SignalMark({ className = "" }) {
   return (
     <span className={cn("inline-flex items-end gap-[2.5px]", className)} aria-hidden>

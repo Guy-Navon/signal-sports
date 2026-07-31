@@ -11,8 +11,6 @@
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",
-    "capture:concepts": "node scripts/capture-sports-intelligence-concepts.mjs",
-    "capture:flux": "node scripts/capture-signal-flux.mjs",
     "capture:orbit": "node scripts/capture-orbit-production.mjs"
   },
   "dependencies": {

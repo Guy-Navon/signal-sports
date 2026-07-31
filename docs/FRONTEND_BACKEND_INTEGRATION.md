@@ -175,7 +175,7 @@ React context shape so no consumer component needs to branch on the mode.
 **Backend mode:**
 - On mount: loads profiles from `GET /api/profiles`
 - On `activeProfileId` change: loads `GET /api/feed/{userId}` and `GET /api/debug/feed/{userId}` in parallel
-- `addFeedback`: records locally **and** posts to `POST /api/feedback` for actions the backend accepts (`more_like_this`, `not_interested`, `never_show`, `mute_source`, `always_notify`). The action `less_like_this` (emitted by `FeedbackControls`, used across the Feed's story components — `LeadStory`, `BulletinStrip`, `EditorialTier`, `StreamRow`, `BriefsDigest` — since the PR A "Edition" redesign; the old monolithic `FeedCard` no longer exists) is tracked locally only.
+- `addFeedback`: records locally **and** posts to `POST /api/feedback` for actions the backend accepts (`more_like_this`, `not_interested`, `never_show`, `mute_source`, `always_notify`). The action `less_like_this` (emitted by `FeedbackControls`, rendered on the Orbit story field's core and on each queue card) is tracked locally only.
 - `refreshFeed()`: re-triggers the feed fetch in backend mode
 - `refreshProfiles()`: re-fetches the profile list in backend mode
 - Loading state exposed via `isLoading`

@@ -10,19 +10,81 @@
 
 import { spawn } from "node:child_process";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const frontendDirectory = path.resolve(scriptDirectory, "..");
-const port = Number.parseInt(process.env.ORBIT_REVIEW_PORT ?? "5199", 10);
-const origin = `http://127.0.0.1:${port}`;
+const HOST = "127.0.0.1";
+
+// Resolved in main(). A fixed default port is a hazard: this harness once
+// "passed" against a completely different server that happened to own 5199,
+// reporting 197 backend stories as if they were the 47 local ones. Readiness is
+// therefore never inferred from an HTTP 200 alone — see assertOwnedInstance.
+let port = null;
+let origin = null;
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
     setTimeout(resolve, milliseconds);
   });
+
+/** Reserve a free ephemeral port from the OS, then release it for Vite. */
+export async function reserveEphemeralPort() {
+  return await new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.unref();
+    probe.on("error", reject);
+    probe.listen({ host: HOST, port: 0, exclusive: true }, () => {
+      const { port: chosen } = probe.address();
+      probe.close((error) => (error ? reject(error) : resolve(chosen)));
+    });
+  });
+}
+
+/**
+ * Fail loudly when a port is already owned by someone else.
+ *
+ * `--strictPort` alone is not enough: Vite exits, but the foreign server keeps
+ * answering, so a naive readiness poll sees 200 and proceeds against the wrong
+ * application. Locked by capture-orbit-production.test.mjs.
+ */
+export async function ensurePortAvailable(candidate) {
+  await new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.on("error", (error) => {
+      if (error.code === "EADDRINUSE" || error.code === "EACCES") {
+        reject(
+          new Error(
+            `Port ${candidate} is already in use, so this harness cannot own it. ` +
+              `Stop the process holding ${HOST}:${candidate}, or unset ORBIT_REVIEW_PORT ` +
+              `to let the harness pick a free port automatically.`
+          )
+        );
+        return;
+      }
+      reject(error);
+    });
+    probe.listen({ host: HOST, port: candidate, exclusive: true }, () => {
+      probe.close((error) => (error ? reject(error) : resolve()));
+    });
+  });
+  return candidate;
+}
+
+/** Explicit port must be free; otherwise take one the OS says is free. */
+export async function resolveHarnessPort(requested = process.env.ORBIT_REVIEW_PORT) {
+  if (requested !== undefined && requested !== null && String(requested).trim() !== "") {
+    const parsed = Number.parseInt(String(requested), 10);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
+      throw new Error(`ORBIT_REVIEW_PORT must be a valid port number, got "${requested}".`);
+    }
+    return await ensurePortAvailable(parsed);
+  }
+  return await reserveEphemeralPort();
+}
 
 async function firstAccessiblePath(paths) {
   for (const candidate of paths) {
@@ -49,33 +111,110 @@ async function findChrome() {
   return chrome;
 }
 
-function startVite() {
+function startVite(chosenPort) {
   const entry = path.join(frontendDirectory, "node_modules", "vite", "bin", "vite.js");
-  return spawn(
+  const child = spawn(
     process.execPath,
-    [entry, "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
+    [entry, "--host", HOST, "--port", String(chosenPort), "--strictPort"],
     {
       cwd: frontendDirectory,
       env: { ...process.env, VITE_DATA_MODE: "local", CI: "1" },
-      stdio: ["ignore", "ignore", "pipe"],
+      // Both streams are captured: a startup failure explains itself on stderr,
+      // and swallowing it turns a clear bind error into a mute timeout.
+      stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     }
   );
+  child.viteOutput = "";
+  child.stdout?.on("data", (chunk) => { child.viteOutput += chunk.toString(); });
+  child.stderr?.on("data", (chunk) => { child.viteOutput += chunk.toString(); });
+  return child;
 }
 
+function viteDiagnostics(child) {
+  const output = (child?.viteOutput ?? "").trim();
+  return output ? `\n--- vite output ---\n${output}` : "\n(vite produced no output)";
+}
+
+/**
+ * Wait for OUR Vite to serve. A 200 is necessary but never sufficient: the
+ * spawned process must still be alive when the response arrives, otherwise the
+ * reply came from whatever else owns the port.
+ */
 async function waitForUrl(url, child) {
   const timeoutAt = Date.now() + 25_000;
   while (Date.now() < timeoutAt) {
-    if (child.exitCode !== null) throw new Error(`Vite exited with ${child.exitCode}.`);
+    if (child.exitCode !== null) {
+      throw new Error(
+        `Vite exited with code ${child.exitCode} before serving ${url}.` +
+          viteDiagnostics(child)
+      );
+    }
     try {
       const response = await fetch(url);
-      if (response.ok) return;
-    } catch {
-      // Vite is still starting.
+      // Re-check liveness: a 200 from a dead child is a foreign server.
+      if (response.ok && child.exitCode === null) return;
+      if (response.ok) {
+        throw new Error(
+          `${url} answered 200 but the spawned Vite process had already exited — ` +
+            `the response came from another server.${viteDiagnostics(child)}`
+        );
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("another server")) throw error;
+      // Otherwise Vite is still starting.
     }
     await delay(100);
   }
-  throw new Error(`Timed out waiting for ${url}.`);
+  throw new Error(`Timed out waiting for ${url}.${viteDiagnostics(child)}`);
+}
+
+/**
+ * Prove the rendered application is the local-data instance this harness
+ * started, not some other build of the same project.
+ *
+ * Local mode never calls the API — AppContext short-circuits every fetch on
+ * `isBackendMode`. A backend-mode instance issues `/api/...` requests during
+ * load, so the resource timeline is a behavioural fingerprint that a shared
+ * codebase cannot fake.
+ */
+async function assertOwnedInstance(client, child) {
+  if (child.exitCode !== null) {
+    throw new Error(
+      `Vite exited with code ${child.exitCode} while the page was loading.` +
+        viteDiagnostics(child)
+    );
+  }
+  const evidence = await evaluate(
+    client,
+    `(() => {
+      // Must match the request PATH, not the substring: Vite serves the app's
+      // own modules from /src/api/..., which is not a backend call.
+      const apiCalls = performance.getEntriesByType("resource")
+        .map((entry) => entry.name)
+        .filter((name) => {
+          try { return new URL(name).pathname.startsWith("/api/"); }
+          catch { return false; }
+        });
+      return {
+        apiCalls: apiCalls.slice(0, 5),
+        apiCallCount: apiCalls.length,
+        renderedOrbit: Boolean(document.querySelector(".orbit-feed-layout")),
+        queueTotal: document.querySelector(".orbit-queue__heading strong")?.innerText.trim() ?? null,
+      };
+    })()`
+  );
+  if (!evidence.renderedOrbit) {
+    throw new Error(`The served page is not the Orbit feed: ${JSON.stringify(evidence)}`);
+  }
+  if (evidence.apiCallCount > 0) {
+    throw new Error(
+      `Expected the local-data instance, but the page called the backend API ` +
+        `${evidence.apiCallCount} time(s) — this is a backend-mode server, not ours: ` +
+        JSON.stringify(evidence)
+    );
+  }
+  return evidence;
 }
 
 function startChrome(executable, profileDirectory) {
@@ -645,6 +784,203 @@ function assertDecisionSignatures(label, audit) {
   }
 }
 
+// ── Mobile dock occlusion ─────────────────────────────────────────────────────
+//
+// The dock is `position: fixed`, so a horizontal-bounds check cannot see it: a
+// control can sit fully inside the viewport horizontally and still be painted
+// under the dock. `elementFromPoint` is the only honest test — it reports what
+// the user would actually hit.
+//
+// "Below the fold" is NOT occlusion. Anything off-screen is scrolled into view
+// and re-probed; only a control still covered *after* scrolling is a failure.
+
+const OCCLUSION_PROBE = `(async (selector, describeActive) => {
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+  const dock = document.querySelector(".orbit-mobile-dock");
+  const element = describeActive ? document.activeElement : document.querySelector(selector);
+  if (!element || element === document.body) return { selector, present: false };
+
+  const describe = (node) => {
+    if (!node) return null;
+    const className = typeof node.className === "string" ? node.className : node.className?.baseVal;
+    return (node.tagName || "?") + (className ? "." + className.trim().split(/\\s+/).join(".").slice(0, 60) : "");
+  };
+
+  const sample = () => {
+    const rect = element.getBoundingClientRect();
+    const dockRect = dock?.getBoundingClientRect() ?? null;
+    const points = [
+      ["centre", rect.left + rect.width / 2, rect.top + rect.height / 2],
+      ["bottom", rect.left + rect.width / 2, rect.bottom - 2],
+      ["top", rect.left + rect.width / 2, rect.top + 2],
+    ];
+    const hits = points.map(([name, x, y]) => {
+      if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) {
+        return { name, outsideViewport: true };
+      }
+      const painted = document.elementFromPoint(x, y);
+      return {
+        name,
+        reachable: painted === element || element.contains(painted) || Boolean(painted?.contains(element)),
+        coveredByDock: Boolean(dock && painted && dock.contains(painted)),
+        painted: describe(painted),
+      };
+    });
+    return {
+      rect: { top: Math.round(rect.top), bottom: Math.round(rect.bottom), height: Math.round(rect.height) },
+      dockTop: dockRect ? Math.round(dockRect.top) : null,
+      hits,
+      outsideViewport: hits.every((hit) => hit.outsideViewport),
+      coveredByDock: hits.some((hit) => hit.coveredByDock),
+      reachable: hits.some((hit) => hit.reachable),
+    };
+  };
+
+  // Spring layout animations mean a control can be transiently unreachable while
+  // it slides into place. That is not occlusion. Settle first: wait until the
+  // geometry stops moving (and the control is reachable, if it is going to be)
+  // before judging. A control that never settles reachable IS a failure.
+  const settle = async () => {
+    let previous = null;
+    let stableFrames = 0;
+    const deadline = performance.now() + 2500;
+    let current = sample();
+    while (performance.now() < deadline) {
+      const key = JSON.stringify(current.rect);
+      stableFrames = key === previous ? stableFrames + 1 : 0;
+      previous = key;
+      if (stableFrames >= 3 && current.reachable) return { sample: current, settled: true };
+      await frame();
+      current = sample();
+    }
+    return { sample: current, settled: false };
+  };
+
+  const first = await settle();
+  let afterScroll = null;
+  // Off-screen or covered? Give scrolling a chance before calling it occluded.
+  if (first.sample.outsideViewport || first.sample.coveredByDock || !first.sample.reachable) {
+    element.scrollIntoView({ block: "center", behavior: "instant" });
+    await sleep(300);
+    afterScroll = (await settle()).sample;
+  }
+  const final = afterScroll ?? first.sample;
+  return {
+    selector: describeActive ? "document.activeElement" : selector,
+    present: true,
+    tag: element.tagName,
+    label: (element.innerText || element.getAttribute("aria-label") || "").trim().slice(0, 40),
+    dockTop: final.dockTop,
+    neededScroll: Boolean(afterScroll),
+    settledImmediately: first.settled,
+    initial: first.sample,
+    final,
+    // Only a control still covered or unreachable AFTER settling and scrolling.
+    occluded: final.coveredByDock || !final.reachable,
+    occludedByDock: final.coveredByDock,
+  };
+})`;
+
+async function probeControl(client, selector, { active = false } = {}) {
+  return await evaluate(
+    client,
+    `(${OCCLUSION_PROBE})(${JSON.stringify(selector)}, ${active ? "true" : "false"})`
+  );
+}
+
+/**
+ * Walk the real interaction sequence at a mobile width and prove that every
+ * control the user is steered toward stays reachable: load, queue focus,
+ * expand, collapse (which restores focus to the primary action).
+ */
+async function auditDockOcclusion(client, label) {
+  const states = {};
+
+  await loadApp(client);
+  states.onLoad = {
+    primaryAction: await probeControl(client, ".orbit-core .orbit-primary-action"),
+  };
+
+  const focused = await focusFirstCluster(client);
+  states.afterQueueFocus = {
+    focusedCore: await probeControl(client, "", { active: true }),
+    primaryAction: await probeControl(client, ".orbit-core .orbit-primary-action"),
+  };
+
+  const expanded = await expandFocusedCluster(client);
+  states.afterExpand = {
+    closeAction: await probeControl(client, ".orbit-close-action"),
+    focusTarget: await probeControl(client, "", { active: true }),
+  };
+
+  const closed = await closeExpandedCluster(client);
+  states.afterCollapse = {
+    restoredFocus: await probeControl(client, "", { active: true }),
+    primaryAction: await probeControl(client, ".orbit-core .orbit-primary-action"),
+  };
+
+  // Worst case for the resting clearance: the tallest core this corpus can
+  // produce. Clearance at 320 is only a few px, so it is headline-sensitive and
+  // must be measured rather than assumed.
+  await loadApp(client);
+  const longest = await evaluate(
+    client,
+    `(async () => {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const rows = Array.from(document.querySelectorAll(".orbit-queue-story"));
+      if (!rows.length) return null;
+      const target = rows
+        .map((row) => ({ row, length: (row.querySelector("h3")?.innerText ?? "").length }))
+        .sort((a, b) => b.length - a.length)[0];
+      target.row.querySelector(".orbit-queue-story__main").click();
+      await sleep(900);
+      return { headlineLength: target.length };
+    })()`
+  );
+  states.longestHeadline = {
+    meta: longest,
+    primaryAction: await probeControl(client, ".orbit-core .orbit-primary-action"),
+  };
+
+  return { label, focused, expanded, closed, states };
+}
+
+function assertDockOcclusion(audit) {
+  const { label, states } = audit;
+  const failures = [];
+  for (const [stateName, controls] of Object.entries(states)) {
+    for (const [controlName, probe] of Object.entries(controls)) {
+      if (!probe?.present) continue;
+      if (probe.occluded) {
+        failures.push({ state: stateName, control: controlName, probe });
+      }
+    }
+  }
+  if (failures.length) {
+    throw new Error(
+      `${label}: ${failures.length} control(s) unreachable beneath the fixed dock: ` +
+        JSON.stringify(failures, null, 2)
+    );
+  }
+  // A pass must not be vacuous — the primary action has to have been seen.
+  if (!states.onLoad.primaryAction?.present) {
+    throw new Error(`${label}: no primary action was found to test.`);
+  }
+
+  // Reachable-after-scrolling is the bar for occlusion, but the focused story's
+  // main call to action should not be sitting half under the dock at rest: at
+  // 320 it measured 28 of its 44px covered, leaving a ~16px tap target.
+  const onLoad = states.onLoad.primaryAction;
+  if (onLoad.initial?.coveredByDock) {
+    throw new Error(
+      `${label}: the primary action is partially under the dock at rest ` +
+        `(action ${JSON.stringify(onLoad.initial.rect)}, dock top ${onLoad.initial.dockTop}). ` +
+        `It is reachable after scrolling, but the resting tap target is clipped.`
+    );
+  }
+}
+
 /** The whole rendered-behaviour suite, run at one motion preference. */
 async function auditOrbitRegressions(client, label) {
   const paging = await auditQueuePaging(client);
@@ -686,7 +1022,11 @@ async function main() {
   const chromePath = await findChrome();
   const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "signal-orbit-evidence-"));
   const profileDirectory = await mkdtemp(path.join(os.tmpdir(), "signal-orbit-chrome-"));
-  const vite = startVite();
+  // Preflight before spawning: an occupied port must fail here, loudly, rather
+  // than silently handing the run to a foreign server.
+  port = await resolveHarnessPort();
+  origin = `http://${HOST}:${port}`;
+  const vite = startVite(port);
   let chrome;
   let client;
   const browserErrors = [];
@@ -720,6 +1060,8 @@ async function main() {
 
     await configureViewport(client, 1440, 1000, false);
     const desktop = await loadApp(client);
+    // Ownership proof must run before any assertion is trusted.
+    const ownership = await assertOwnedInstance(client, vite);
     assertLayout("desktop", desktop, 1440);
     await capture(client, path.join(outputDirectory, "orbit-production-desktop.png"));
 
@@ -826,6 +1168,47 @@ async function main() {
       "desktop normal-motion"
     );
 
+    // Fixed-dock occlusion across the real interaction sequence, at both narrow
+    // widths and both motion preferences.
+    const dockAudits = [];
+    for (const reducedMotion of [true, false]) {
+      for (const [width, height] of [[390, 844], [320, 640]]) {
+        await configureViewport(client, width, height, true, reducedMotion);
+        const label = `${width}px dock ${reducedMotion ? "reduced" : "normal"}-motion`;
+        const audit = await auditDockOcclusion(client, label);
+        assertDockOcclusion(audit);
+        dockAudits.push({
+          label,
+          dockTop: audit.states.onLoad.primaryAction?.dockTop ?? null,
+          primaryActionOnLoad: {
+            // `belowTheFold` vs `underDock` is the distinction that matters: the
+            // first is normal page flow, the second would be a real defect.
+            initial: {
+              rect: audit.states.onLoad.primaryAction?.initial?.rect ?? null,
+              belowTheFold: audit.states.onLoad.primaryAction?.initial?.outsideViewport ?? null,
+              underDock: audit.states.onLoad.primaryAction?.initial?.coveredByDock ?? null,
+              reachable: audit.states.onLoad.primaryAction?.initial?.reachable ?? null,
+            },
+            neededScroll: audit.states.onLoad.primaryAction?.neededScroll ?? null,
+            reachableAfterScroll: audit.states.onLoad.primaryAction?.final?.reachable ?? null,
+            rectAfterScroll: audit.states.onLoad.primaryAction?.final?.rect ?? null,
+            occludedByDock: audit.states.onLoad.primaryAction?.occludedByDock ?? null,
+          },
+          restoredFocus: {
+            label: audit.states.afterCollapse.restoredFocus?.label ?? null,
+            neededScroll: audit.states.afterCollapse.restoredFocus?.neededScroll ?? null,
+            reachable: audit.states.afterCollapse.restoredFocus?.final?.reachable ?? null,
+          },
+          longestHeadline: {
+            headlineLength: audit.states.longestHeadline.meta?.headlineLength ?? null,
+            rect: audit.states.longestHeadline.primaryAction?.initial?.rect ?? null,
+            underDock: audit.states.longestHeadline.primaryAction?.initial?.coveredByDock ?? null,
+            reachable: audit.states.longestHeadline.primaryAction?.final?.reachable ?? null,
+          },
+        });
+      }
+    }
+
     if (browserErrors.length) {
       throw new Error(`Browser errors:\n${browserErrors.join("\n")}`);
     }
@@ -834,6 +1217,8 @@ async function main() {
       JSON.stringify(
         {
           outputDirectory,
+          instance: { port, ...ownership },
+          dockAudits,
           regressions: {
             reducedMotion: {
               queueRendered: reducedMotionRegressions.paging.initial,
@@ -882,4 +1267,8 @@ async function main() {
   }
 }
 
-await main();
+// Only run when invoked directly, so the port-ownership helpers above can be
+// imported and exercised by capture-orbit-production.test.mjs.
+const invokedDirectly =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) await main();

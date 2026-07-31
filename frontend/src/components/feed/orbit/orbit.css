@@ -1650,11 +1650,20 @@ a.orbit-report:hover {
   }
 
   /* Solo on mobile: the generous top padding exists to clear satellite slot 1,
-     which a single-source story does not render. Reclaim it for the headline. */
+     which a single-source story does not render. Reclaim it for the headline.
+     The exact value also keeps the core's primary action clear of the fixed
+     dock at rest on a 320x640 viewport, where it previously sat with 28 of its
+     44px covered — asserted by assertDockOcclusion in the capture harness. */
   .orbit-field--solo .orbit-field__compact {
     min-height: 0;
-    padding-top: 62px;
-    padding-bottom: 26px;
+    padding-top: 26px;
+    padding-bottom: 22px;
+  }
+
+  /* The caption is absolutely positioned, so it must come up with the padding
+     rather than float over the headline. */
+  .orbit-field--solo .orbit-field__caption {
+    inset-block-start: 9px;
   }
 
   .orbit-field--solo {

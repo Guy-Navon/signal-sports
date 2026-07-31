@@ -466,15 +466,23 @@ async function closeExpandedCluster(client) {
       const close = document.querySelector(".orbit-close-action");
       if (!(close instanceof HTMLButtonElement)) throw new Error("Cluster close is unavailable");
       close.click();
-      const timeoutAt = performance.now() + 1800;
-      while (document.querySelector(".orbit-cluster") && performance.now() < timeoutAt) {
+      // Poll for BOTH outcomes. Sampling focus once, at the moment the cluster
+      // happens to unmount, raced the exit animation: under normal motion the
+      // collapse completes at a different time than the focus hand-off, so a
+      // single sample could catch either side of it.
+      const timeoutAt = performance.now() + 2500;
+      let collapsed = false;
+      let focusRestored = false;
+      // Poll for BOTH outcomes: sampling focus once, at whatever moment the
+      // cluster happens to unmount, raced the exit animation.
+      while (performance.now() < timeoutAt) {
+        collapsed = !document.querySelector(".orbit-cluster");
+        focusRestored =
+          document.activeElement?.classList.contains("orbit-primary-action") ?? false;
+        if (collapsed && focusRestored) break;
         await sleep(40);
       }
-      return {
-        collapsed: !document.querySelector(".orbit-cluster"),
-        focusRestored:
-          document.activeElement?.classList.contains("orbit-primary-action") ?? false,
-      };
+      return { collapsed, focusRestored };
     })()`
   );
 }
@@ -782,6 +790,154 @@ function assertDecisionSignatures(label, audit) {
       );
     }
   }
+}
+
+// ── Focus transitions ─────────────────────────────────────────────────────────
+//
+// Orbit's focus management is ref-based; the decisions are unit-tested in
+// orbitFocusModel.test.js, but only a browser can prove that focus actually
+// lands on the element React handed us. In particular: while a cluster is
+// expanded, choosing a different queue story must collapse the old expansion
+// AND move focus onto the NEW story's core — the case the old
+// `cores[cores.length - 1]` lookup was guessing at.
+
+async function auditFocusTransitions(client, label) {
+  return await evaluate(
+    client,
+    `(async () => {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const settle = async () => { for (let i = 0; i < 40; i += 1) await sleep(25); };
+      const activeInfo = () => {
+        const el = document.activeElement;
+        return {
+          className: typeof el?.className === "string" ? el.className : null,
+          isCore: Boolean(el?.classList?.contains("orbit-core")),
+          isCloseAction: Boolean(el?.classList?.contains("orbit-close-action")),
+          isPrimaryAction: Boolean(el?.classList?.contains("orbit-primary-action")),
+          // Prove it is the CURRENT core, not an exiting AnimatePresence sibling.
+          isAttached: Boolean(el && document.querySelector(".orbit-field")?.contains(el)),
+        };
+      };
+      const coreTitle = () =>
+        document.querySelector(".orbit-field .orbit-core h2, .orbit-cluster__core h3")
+          ?.innerText.trim() ?? null;
+      const isExpanded = () => Boolean(document.querySelector(".orbit-cluster"));
+      const clusterRows = () => Array.from(document.querySelectorAll(".orbit-queue-story"))
+        .filter((row) => row.querySelector(".orbit-queue-story__cluster"));
+
+      const steps = {};
+
+      // 1. Choosing a queue story moves focus into that story's core.
+      const firstCluster = clusterRows()[0];
+      if (!firstCluster) throw new Error("No cluster row available for the focus audit");
+      const firstTitle = firstCluster.querySelector("h3")?.innerText.trim() ?? null;
+      firstCluster.querySelector(".orbit-queue-story__main").click();
+      await settle();
+      steps.afterQueueFocus = {
+        ...activeInfo(),
+        coreTitle: coreTitle(),
+        matchesChosenStory: coreTitle() === firstTitle,
+        expanded: isExpanded(),
+      };
+
+      // 2. Opening the cluster moves focus to the close control.
+      document.querySelector(".orbit-field .orbit-primary-action")?.click();
+      await settle();
+      steps.afterExpand = { ...activeInfo(), expanded: isExpanded() };
+
+      // 3. Switching stories WHILE EXPANDED must collapse and follow the new story.
+      const nextRow = Array.from(document.querySelectorAll(".orbit-queue-story"))[0];
+      const nextTitle = nextRow?.querySelector("h3")?.innerText.trim() ?? null;
+      nextRow?.querySelector(".orbit-queue-story__main").click();
+      await settle();
+      steps.afterSwitchWhileExpanded = {
+        ...activeInfo(),
+        coreTitle: coreTitle(),
+        matchesChosenStory: coreTitle() === nextTitle,
+        expanded: isExpanded(),
+      };
+
+      // 4. Closing restores focus to the control that opened it.
+      const reopen = clusterRows()[0];
+      if (reopen) {
+        reopen.querySelector(".orbit-queue-story__main").click();
+        await settle();
+        document.querySelector(".orbit-field .orbit-primary-action")?.click();
+        await settle();
+        document.querySelector(".orbit-close-action")?.click();
+        await settle();
+        steps.afterCollapse = { ...activeInfo(), expanded: isExpanded() };
+      }
+
+      return steps;
+    })()`
+  );
+}
+
+function assertFocusTransitions(label, steps) {
+  const fail = (message) => {
+    throw new Error(`${label}: ${message}: ${JSON.stringify(steps, null, 2)}`);
+  };
+
+  if (!steps.afterQueueFocus?.isCore) fail("choosing a queue story did not focus its core");
+  if (!steps.afterQueueFocus?.isAttached) fail("focus landed outside the live field");
+  if (!steps.afterQueueFocus?.matchesChosenStory) {
+    fail("focus landed on a core showing a different story");
+  }
+  if (steps.afterQueueFocus?.expanded) fail("choosing a story left the field expanded");
+
+  if (!steps.afterExpand?.isCloseAction) fail("expanding did not focus the close control");
+  if (!steps.afterExpand?.expanded) fail("expanding did not open the cluster");
+
+  // The regression the ref rewrite exists for.
+  if (steps.afterSwitchWhileExpanded?.expanded) {
+    fail("switching stories while expanded left the previous expansion open");
+  }
+  if (!steps.afterSwitchWhileExpanded?.isCore) {
+    fail("switching stories while expanded did not focus the new core");
+  }
+  if (!steps.afterSwitchWhileExpanded?.matchesChosenStory) {
+    fail("switching stories while expanded focused the wrong story's core");
+  }
+
+  if (steps.afterCollapse && !steps.afterCollapse.isPrimaryAction) {
+    fail("closing did not restore focus to the primary action");
+  }
+  if (steps.afterCollapse?.expanded) fail("closing did not collapse the cluster");
+}
+
+/** Mobile: choosing a story must still pull the stacked field into view. */
+async function auditFieldScroll(client, label) {
+  const result = await evaluate(
+    client,
+    `(async () => {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      document.scrollingElement.scrollTop = 0;
+      await sleep(200);
+      const row = Array.from(document.querySelectorAll(".orbit-queue-story"))[3]
+        ?? Array.from(document.querySelectorAll(".orbit-queue-story"))[0];
+      if (!row) throw new Error("No queue row available for the scroll audit");
+      const before = document.scrollingElement.scrollTop;
+      row.querySelector(".orbit-queue-story__main").click();
+      for (let i = 0; i < 50; i += 1) await sleep(25);
+      const field = document.querySelector(".orbit-field");
+      return {
+        scrollTopBefore: Math.round(before),
+        scrollTopAfter: Math.round(document.scrollingElement.scrollTop),
+        fieldTop: Math.round(field.getBoundingClientRect().top),
+        viewportHeight: window.innerHeight,
+      };
+    })()`
+  );
+  // "block: start" means the field's top should end up near the top of the
+  // viewport, not left far below the fold.
+  if (result.fieldTop > result.viewportHeight * 0.5) {
+    throw new Error(
+      `${label}: the field was not scrolled into view after choosing a story: ` +
+        JSON.stringify(result)
+    );
+  }
+  return result;
 }
 
 // ── Mobile dock occlusion ─────────────────────────────────────────────────────
@@ -1168,6 +1324,23 @@ async function main() {
       "desktop normal-motion"
     );
 
+    // Ref-based focus, proven in the browser under both motion preferences.
+    const focusAudits = [];
+    for (const reducedMotion of [true, false]) {
+      const label = `desktop focus ${reducedMotion ? "reduced" : "normal"}-motion`;
+      await configureViewport(client, 1440, 1000, false, reducedMotion);
+      await loadApp(client);
+      const steps = await auditFocusTransitions(client, label);
+      assertFocusTransitions(label, steps);
+
+      const mobileLabel = `390px field scroll ${reducedMotion ? "reduced" : "normal"}-motion`;
+      await configureViewport(client, 390, 844, true, reducedMotion);
+      await loadApp(client);
+      const scroll = await auditFieldScroll(client, mobileLabel);
+
+      focusAudits.push({ label, steps, mobileScroll: { label: mobileLabel, ...scroll } });
+    }
+
     // Fixed-dock occlusion across the real interaction sequence, at both narrow
     // widths and both motion preferences.
     const dockAudits = [];
@@ -1218,6 +1391,7 @@ async function main() {
         {
           outputDirectory,
           instance: { port, ...ownership },
+          focusAudits,
           dockAudits,
           regressions: {
             reducedMotion: {

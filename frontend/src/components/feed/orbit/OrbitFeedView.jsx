@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpLeft,
@@ -18,6 +18,14 @@ import {
   TOPIC_CHIPS,
 } from "@/components/feed/feedFilters";
 import OrbitStoryField from "./OrbitStoryField";
+import {
+  focusIntentForCollapse,
+  focusIntentForExpand,
+  focusIntentForStorySelection,
+  isFieldExpanded,
+  resolveStoryChange,
+  shouldScrollForIntent,
+} from "./orbitFocusModel";
 import {
   queueEnterMotion,
   queueEnterTransition,
@@ -260,9 +268,27 @@ export default function OrbitFeedView({
   const page = queuePage(queueItems.length, queuePages);
   const visibleQueueItems = queueItems.slice(0, page.visible);
   const activeStoryId = orbitStoryId(focusItem);
-  const expanded =
-    Boolean(activeStoryId) && expandedStoryId === activeStoryId;
+  const expanded = isFieldExpanded(activeStoryId, expandedStoryId);
   const previousActiveStoryId = useRef(activeStoryId);
+
+  // The field exposes its focusable roles by name; no DOM queries, and no
+  // guessing which of two AnimatePresence siblings is the incoming core.
+  const fieldRef = useRef(null);
+  // The role to focus. The view that owns that element focuses it when it
+  // mounts, then clears this — so we never reach for a node that has not been
+  // committed yet.
+  const [focusTarget, setFocusTarget] = useState(null);
+
+  const requestFocus = (intent) => {
+    if (!intent?.target) return;
+    if (shouldScrollForIntent(intent.scrollField, window.innerWidth)) {
+      // The <section> is not animated, so its position is stable immediately.
+      fieldRef.current?.scrollIntoView(reduce ? "auto" : "smooth");
+    }
+    setFocusTarget(intent.target);
+  };
+
+  const handleFocusApplied = useCallback(() => setFocusTarget(null), []);
 
   useEffect(() => {
     if (selectedFocusId && !resolvedFocus.isPinned) {
@@ -276,72 +302,39 @@ export default function OrbitFeedView({
     setQueuePages(1);
   }, [activeFilters]);
 
+  // The focused story was replaced by something other than a reader action —
+  // a filter, a refresh. resolveStoryChange decides what that means.
   useEffect(() => {
     const previousStoryId = previousActiveStoryId.current;
     previousActiveStoryId.current = activeStoryId;
-    if (!previousStoryId || previousStoryId === activeStoryId) return;
-
-    const shouldRestoreFocus = expandedStoryId === previousStoryId;
-    if (expandedStoryId) setExpandedStoryId(null);
-    if (!shouldRestoreFocus) return;
-
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        const cores = document.querySelectorAll(".orbit-field .orbit-core");
-        const core = cores[cores.length - 1];
-        if (core instanceof HTMLElement) core.focus({ preventScroll: true });
-      });
+    const outcome = resolveStoryChange({
+      previousStoryId,
+      nextStoryId: activeStoryId,
+      expandedStoryId,
     });
+    if (outcome.collapse) setExpandedStoryId(null);
+    if (outcome.target) requestFocus(outcome);
   }, [activeStoryId, expandedStoryId]);
 
+  // Apply a focus request once React has committed the render that created the
+  // target. This is the deterministic point: the element exists, so no rAF
+  // chain and no animation callback is needed to find it. Scrolling targets the
+  // <section>, which is not animated, so its position is stable here too.
   const focusStory = (item) => {
-    setExpandedStoryId(null);
+    const intent = focusIntentForStorySelection();
+    if (intent.collapse) setExpandedStoryId(null);
     setSelectedFocusId(orbitStoryId(item));
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        const field = document.querySelector(".orbit-field");
-        const cores = field?.querySelectorAll(".orbit-core");
-        const core = cores?.[cores.length - 1];
-        if (core instanceof HTMLElement) core.focus({ preventScroll: true });
-        if (!window.matchMedia("(min-width: 1200px)").matches) {
-          field?.scrollIntoView({
-            behavior: reduce ? "auto" : "smooth",
-            block: "start",
-          });
-        }
-      });
-    });
+    requestFocus(intent);
   };
 
   const openCluster = () => {
     setExpandedStoryId(activeStoryId);
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        const field = document.querySelector(".orbit-field");
-        const closeAction = field?.querySelector(".orbit-close-action");
-        if (closeAction instanceof HTMLElement) {
-          closeAction.focus({ preventScroll: true });
-        }
-        field?.scrollIntoView({
-          behavior: reduce ? "auto" : "smooth",
-          block: "start",
-        });
-      });
-    });
+    requestFocus(focusIntentForExpand());
   };
 
   const closeCluster = () => {
     setExpandedStoryId(null);
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        const primaryAction = document.querySelector(
-          ".orbit-field .orbit-primary-action"
-        );
-        if (primaryAction instanceof HTMLElement) {
-          primaryAction.focus({ preventScroll: true });
-        }
-      });
-    });
+    requestFocus(focusIntentForCollapse());
   };
 
   const urgentCount = decisionCounts.push;
@@ -384,12 +377,15 @@ export default function OrbitFeedView({
       ) : (
         <div className={cn("orbit-feed-layout", expanded && "is-expanded")}>
           <OrbitStoryField
+            ref={fieldRef}
             item={focusItem}
             localScoredArticles={localScoredArticles}
             isPinned={resolvedFocus.isPinned}
             expanded={expanded}
             onExpand={openCluster}
             onClose={closeCluster}
+            focusTarget={focusTarget}
+            onFocusApplied={handleFocusApplied}
           />
 
           <aside className="orbit-queue" aria-label="המשך המסלול">

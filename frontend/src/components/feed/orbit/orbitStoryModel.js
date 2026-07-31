@@ -179,12 +179,19 @@ export function orbitQueueItems(items, focusItem) {
 }
 
 /**
- * Presentation-only sanitization. Backend members are already visible-only;
- * local clusters are hydrated from scored articles. Replacing the cluster's
- * source metadata here keeps filters, freshness, feedback, and Orbit labels on
- * exactly that visible set without mutating AppContext's shared contract.
+ * LOCAL/MOCK MODE ONLY — never run this over a backend payload.
+ *
+ * Local clusters carry no `members`, so their reports have to be hydrated from
+ * the already-scored article catalogue before the field can show sources.
+ *
+ * The backend has no such gap. `ClusterCard` (docs/CLUSTERING.md §9) guarantees
+ * `source_count`, `members`, `displayed_article_id` and `sort_at` are all
+ * VISIBLE-only and test-locked server-side, and `normalizers.js` maps each one
+ * directly. Re-deriving them in the consumer feed made it a second source of
+ * truth that could drift from Debug, which reads the same payload untouched.
+ * See prepareFeedItems for the split.
  */
-export function prepareOrbitItems(items, localScoredArticles = []) {
+export function hydrateLocalClusters(items, localScoredArticles = []) {
   return items.map((item) => {
     if (item.type !== "cluster") return item;
     const reports = orbitStoryReports(item, localScoredArticles);
@@ -207,4 +214,21 @@ export function prepareOrbitItems(items, localScoredArticles = []) {
       lastUpdatedAt: orbitStoryTimestamp(item, reports),
     };
   });
+}
+
+/**
+ * The single place the data-mode split is decided, so it is explicit rather
+ * than relying on backend values happening to survive a second calculation
+ * unchanged.
+ *
+ * Backend mode: items pass through untouched — same array, same object
+ * identities — so the consumer feed and Debug read byte-identical cluster
+ * truth. Local mode: clusters are hydrated from the scored catalogue.
+ */
+export function prepareFeedItems(
+  items,
+  { isBackendMode = false, localScoredArticles = [] } = {}
+) {
+  if (isBackendMode) return items;
+  return hydrateLocalClusters(items, localScoredArticles);
 }

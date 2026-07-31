@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpLeft,
@@ -13,6 +20,7 @@ import { cn } from "@/lib/utils";
 import DeskVoice from "@/components/feed/DeskVoice";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import { buildKicker } from "@/components/feed/storyLabels";
+import { FOCUS_TARGETS } from "./orbitFocusModel";
 import {
   orbitFeedbackArticleId,
   orbitHasMultiSourceField,
@@ -146,6 +154,25 @@ function CompactSatellite({ report, index, isNew, reduce }) {
   );
 }
 
+/**
+ * Each view focuses its OWN element when it mounts carrying a focus target.
+ *
+ * Focusing across component boundaries is not deterministic here: AnimatePresence
+ * decides when the incoming view is added, so a parent effect can run in a commit
+ * where the target simply does not exist yet — which is exactly how the collapse
+ * case failed, leaving focus to fall to <body> when the expanded view was finally
+ * removed. Inside the view, the ref is attached by definition.
+ */
+function useSelfFocus(target, ownTarget, elementRef, onApplied) {
+  useEffect(() => {
+    if (target !== ownTarget) return;
+    const node = elementRef.current;
+    if (!node) return;
+    node.focus({ preventScroll: true });
+    onApplied?.(ownTarget);
+  }, [target, ownTarget, elementRef, onApplied]);
+}
+
 function CompactCore({
   item,
   reports,
@@ -154,7 +181,13 @@ function CompactCore({
   layoutId,
   fieldId,
   reduce,
+  focusTarget,
+  onFocusApplied,
 }) {
+  const coreRef = useRef(null);
+  const primaryActionRef = useRef(null);
+  useSelfFocus(focusTarget, FOCUS_TARGETS.core, coreRef, onFocusApplied);
+  useSelfFocus(focusTarget, FOCUS_TARGETS.primaryAction, primaryActionRef, onFocusApplied);
   const isCluster = item.type === "cluster";
   const hasClusterField = orbitHasMultiSourceField(item, reports);
   const title = orbitStoryTitle(item);
@@ -171,6 +204,7 @@ function CompactCore({
 
   return (
     <motion.article
+      ref={coreRef}
       layoutId={reduce ? undefined : layoutId}
       tabIndex={-1}
       className={cn("orbit-core", `orbit-core--${state.tone}`)}
@@ -217,6 +251,7 @@ function CompactCore({
       <div className="orbit-core__actions">
         {hasClusterField ? (
           <button
+            ref={primaryActionRef}
             type="button"
             onClick={onExpand}
             className="orbit-primary-action"
@@ -228,6 +263,7 @@ function CompactCore({
           </button>
         ) : articleUrl ? (
           <a
+            ref={primaryActionRef}
             href={articleUrl}
             target="_blank"
             rel="noopener noreferrer"
@@ -322,7 +358,11 @@ function ExpandedCluster({
   layoutId,
   fieldId,
   reduce,
+  focusTarget,
+  onFocusApplied,
 }) {
+  const closeActionRef = useRef(null);
+  useSelfFocus(focusTarget, FOCUS_TARGETS.closeAction, closeActionRef, onFocusApplied);
   const chronological = reportsChronologically(reports);
   const sourceCount = orbitUniqueSourceCount(reports);
   const newestId = chronological.at(-1)?.articleId;
@@ -349,6 +389,7 @@ function ExpandedCluster({
           <p>כל מקור נשאר נפרד; הסדר מציג את רצף ההגעה לסיפור.</p>
         </div>
         <button
+          ref={closeActionRef}
           type="button"
           onClick={onClose}
           className="orbit-close-action"
@@ -415,15 +456,49 @@ function ExpandedCluster({
   );
 }
 
-export default function OrbitStoryField({
-  item,
-  localScoredArticles,
-  isPinned,
-  expanded,
-  onExpand,
-  onClose,
-}) {
+/**
+ * The field owns its focusable roles and exposes them by name.
+ *
+ * Callers ask for "the core" or "the close control" and get the node this
+ * render produced — no DOM queries, no class-name coupling, and no
+ * `cores[cores.length - 1]` guess about which of two AnimatePresence siblings is
+ * the incoming one. React hands us the live element directly.
+ */
+const OrbitStoryField = forwardRef(function OrbitStoryField(
+  /**
+   * @type {{
+   *   item: any,
+   *   localScoredArticles?: any[],
+   *   isPinned?: boolean,
+   *   expanded?: boolean,
+   *   onExpand?: () => void,
+   *   onClose?: () => void,
+   *   focusTarget?: string | null,
+   *   onFocusApplied?: (target: string) => void,
+   * }}
+   */
+  {
+    item,
+    localScoredArticles,
+    isPinned,
+    expanded,
+    onExpand,
+    onClose,
+    focusTarget,
+    onFocusApplied,
+  },
+  ref
+) {
   const reduce = useReducedMotion();
+  const sectionRef = useRef(null);
+
+  // Only scrolling is imperative; focus is owned by whichever view holds the
+  // element, so it cannot be asked for before that element exists.
+  useImperativeHandle(ref, () => ({
+    scrollIntoView(behavior) {
+      sectionRef.current?.scrollIntoView({ behavior, block: "start" });
+    },
+  }), []);
   const reports = useMemo(
     () => orbitStoryReports(item, localScoredArticles),
     [item, localScoredArticles]
@@ -447,6 +522,7 @@ export default function OrbitStoryField({
 
   return (
     <section
+      ref={sectionRef}
       id={fieldId}
       className={cn(
         "orbit-field",
@@ -464,6 +540,9 @@ export default function OrbitStoryField({
     >
       <div className="orbit-field__ambient" aria-hidden />
 
+      {/* onExitComplete is the deterministic "composition has settled" signal:
+          the outgoing view is gone and the incoming one is mounted, so a focus
+          target that did not exist during the swap exists now. */}
       <AnimatePresence initial={false}>
         {expanded ? (
           <ExpandedCluster
@@ -476,6 +555,8 @@ export default function OrbitStoryField({
             layoutId={layoutId}
             fieldId={fieldId}
             reduce={reduce}
+            focusTarget={focusTarget}
+            onFocusApplied={onFocusApplied}
           />
         ) : (
           <motion.div
@@ -501,6 +582,8 @@ export default function OrbitStoryField({
               layoutId={layoutId}
               fieldId={fieldId}
               reduce={reduce}
+              focusTarget={focusTarget}
+              onFocusApplied={onFocusApplied}
             />
 
             {!isSolo && (
@@ -548,4 +631,6 @@ export default function OrbitStoryField({
       </div>
     </section>
   );
-}
+});
+
+export default OrbitStoryField;

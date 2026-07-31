@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { showCalibrateEmptyState } from "@/context/onboardingFlow";
 import EditionEmptyState from "@/components/feed/EditionEmptyState";
 import OrbitFeedView from "@/components/feed/orbit/OrbitFeedView";
-import { prepareOrbitItems } from "@/components/feed/orbit/orbitStoryModel";
+import { prepareFeedItems } from "@/components/feed/orbit/orbitStoryModel";
 import {
   filterFeedItems,
   getVisibleItems,
@@ -60,8 +60,10 @@ export default function Feed() {
   const [activeFilters, setActiveFilters] = useState(new Set(["all"]));
 
   const visibleItems = useMemo(() => getVisibleItems(feedItems), [feedItems]);
+  // Backend clusters are authoritative; local/mock clusters need hydrating.
+  // prepareFeedItems owns that split — see orbitStoryModel.
   const orbitItems = useMemo(
-    () => prepareOrbitItems(visibleItems, isBackendMode ? [] : scoredArticles),
+    () => prepareFeedItems(visibleItems, { isBackendMode, localScoredArticles: scoredArticles }),
     [isBackendMode, scoredArticles, visibleItems]
   );
   const filteredItems = useMemo(

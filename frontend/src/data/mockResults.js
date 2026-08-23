@@ -1,0 +1,121 @@
+// Mock game results for LOCAL data mode / offline demo (issue #178).
+// Same snake_case shape the API returns, so the page runs through the identical
+// normalize → relevance → group path in both modes. Relevance is applied
+// client-side in local mode; in backend mode the server has already filtered.
+
+const side = (id, name, nameProvider, score, isWinner) => ({
+  id,
+  name,
+  name_provider: nameProvider,
+  score,
+  is_winner: isWinner,
+});
+
+export const mockResults = [
+  {
+    id: "game_mock_nba_por_was",
+    competition_id: "comp:nba", competition_he: "NBA", competition_en: "NBA",
+    sport: "basketball", season: "2025-2026", stage: "עונה סדירה",
+    status: "final", start_time: "2026-04-10T02:00:00+00:00",
+    home: side("team:portland_blazers", "פורטלנד בלייזרס", "Portland Trail Blazers", 110, true),
+    away: side("team:washington_wizards", "וושינגטון וויזארדס", "Washington Wizards", 98, false),
+    winner: "home", relevance_reason: "",
+  },
+  {
+    id: "game_mock_nba_lal_bos",
+    competition_id: "comp:nba", competition_he: "NBA", competition_en: "NBA",
+    sport: "basketball", season: "2025-2026", stage: "עונה סדירה",
+    status: "final", start_time: "2026-04-09T02:30:00+00:00",
+    home: side("team:la_lakers", "לוס אנג'לס לייקרס", "Los Angeles Lakers", 102, false),
+    away: side("team:boston_celtics", "בוסטון סלטיקס", "Boston Celtics", 105, true),
+    winner: "away", relevance_reason: "",
+  },
+  {
+    id: "game_mock_nba_por_lal",
+    competition_id: "comp:nba", competition_he: "NBA", competition_en: "NBA",
+    sport: "basketball", season: "2025-2026", stage: "עונה סדירה",
+    status: "scheduled", start_time: "2026-04-20T03:00:00+00:00",
+    home: side("team:portland_blazers", "פורטלנד בלייזרס", "Portland Trail Blazers", null, false),
+    away: side("team:la_lakers", "לוס אנג'לס לייקרס", "Los Angeles Lakers", null, false),
+    winner: null, relevance_reason: "",
+  },
+  {
+    id: "game_mock_el_mac_rmb",
+    competition_id: "comp:euroleague", competition_he: "יורוליג", competition_en: "EuroLeague",
+    sport: "basketball", season: "2025-2026", stage: "פלייאוף",
+    status: "final", start_time: "2026-04-08T19:05:00+00:00",
+    home: side("team:maccabi_tlv_bb", "מכבי תל אביב", "Maccabi Tel Aviv", 89, true),
+    away: side("team:real_madrid_bb", "ריאל מדריד", "Real Madrid Baloncesto", 85, false),
+    winner: "home", relevance_reason: "",
+  },
+  {
+    id: "game_mock_el_oly_pao",
+    competition_id: "comp:euroleague", competition_he: "יורוליג", competition_en: "EuroLeague",
+    sport: "basketball", season: "2025-2026", stage: "פלייאוף",
+    status: "final", start_time: "2026-04-07T18:00:00+00:00",
+    home: side("team:olympiacos_bb", "אולימפיאקוס", "Olympiacos BC", 77, false),
+    away: side("team:panathinaikos_bb", "פנאתינייקוס", "Panathinaikos BC", 80, true),
+    winner: "away", relevance_reason: "",
+  },
+  {
+    id: "game_mock_ibl_hap_mac",
+    competition_id: "comp:ibl", competition_he: "ליגת ווינר סל",
+    competition_en: "Israeli Basketball League",
+    sport: "basketball", season: "2025-2026", stage: "עונה סדירה",
+    status: "final", start_time: "2026-04-06T17:30:00+00:00",
+    home: side("team:hapoel_tlv_bb", "הפועל תל אביב", "Hapoel Tel Aviv BC", 70, false),
+    away: side("team:maccabi_tlv_bb", "מכבי תל אביב", "Maccabi Tel Aviv BC", 88, true),
+    winner: "away", relevance_reason: "",
+  },
+  {
+    id: "game_mock_acb_bar_bas",
+    competition_id: "comp:acb", competition_he: "הליגה הספרדית בכדורסל",
+    competition_en: "Spanish ACB",
+    sport: "basketball", season: "2025-2026", stage: "עונה סדירה",
+    status: "final", start_time: "2026-04-05T18:00:00+00:00",
+    home: side("team:barcelona_bb", "ברצלונה", "FC Barcelona Basquet", 90, true),
+    away: side("team:baskonia", "בסקוניה", "Baskonia", 84, false),
+    winner: "home", relevance_reason: "",
+  },
+  {
+    id: "game_mock_ec_mon_vir",
+    competition_id: "comp:eurocup", competition_he: "יורוקאפ", competition_en: "EuroCup",
+    sport: "basketball", season: "2025-2026", stage: "עונה סדירה",
+    status: "postponed", start_time: "2026-03-30T18:00:00+00:00",
+    home: side("team:monaco_bb", "מונאקו", "AS Monaco", null, false),
+    away: side("team:virtus_bologna", "וירטוס בולוניה", "Virtus Bologna", null, false),
+    winner: null, relevance_reason: "",
+  },
+  // ── Football (different sport, same card model) ──────────────────────────────
+  {
+    id: "game_mock_il_hai_bei",
+    competition_id: "comp:ligat_haal", competition_he: "ליגת העל",
+    competition_en: "Israeli Premier League",
+    sport: "football", season: "2025-2026", stage: "עונה סדירה",
+    status: "final", start_time: "2026-04-09T18:15:00+00:00",
+    home: side("team:maccabi_haifa_fc", "מכבי חיפה", "Maccabi Haifa", 2, true),
+    away: side("team:beitar_jlm_fc", 'בית"ר ירושלים', "Beitar Jerusalem", 1, false),
+    winner: "home", relevance_reason: "",
+  },
+  {
+    id: "game_mock_il_hap_mac_draw",
+    competition_id: "comp:ligat_haal", competition_he: "ליגת העל",
+    competition_en: "Israeli Premier League",
+    sport: "football", season: "2025-2026", stage: "עונה סדירה",
+    status: "final", start_time: "2026-04-08T18:15:00+00:00",
+    home: side("team:hapoel_tlv_fc", "הפועל תל אביב", "Hapoel Tel Aviv", 1, false),
+    away: side("team:maccabi_tlv_fc", "מכבי תל אביב", "Maccabi Tel Aviv", 1, false),
+    winner: "draw", relevance_reason: "",
+  },
+  {
+    id: "game_mock_epl_mci_ars",
+    competition_id: "comp:epl", competition_he: "הפרמייר ליג",
+    competition_en: "Premier League",
+    sport: "football", season: "2025-2026", stage: "עונה סדירה",
+    status: "final", start_time: "2026-04-07T19:00:00+00:00",
+    // Clubs the taxonomy does not track → provider-name (English) shown in both.
+    home: side(null, "Manchester City", "Manchester City", 3, true),
+    away: side(null, "Arsenal", "Arsenal", 2, false),
+    winner: "home", relevance_reason: "",
+  },
+];

@@ -52,6 +52,7 @@ Reference:
 - [BACKEND_FOUNDATION.md](docs/BACKEND_FOUNDATION.md) — backend architecture and engine design
 - [FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md) — design tokens, product-vs-console split, RTL rules
 - [MOBILE_REMOTE_ACCESS.md](docs/MOBILE_REMOTE_ACCESS.md) — private phone access via Tailscale Serve
+- [RESULTS.md](docs/RESULTS.md) — personalized game-results feature (provider abstraction, relevance, sync, API)
 
 Historical (kept for record, superseded — do not cite as current behavior):
 

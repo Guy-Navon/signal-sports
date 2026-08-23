@@ -6,7 +6,11 @@ import { scoreAllArticles, scoreCluster, scoreArticle, DECISION_RANK } from "@/e
 import {
   getProfiles, getFeed, getDebugFeed, submitFeedback, getCalibrationHeadlines, neverShow,
   getMeFeed, getMeProfile, submitMeFeedback, meNeverShow,
+  getMeResults, getResults,
 } from "@/api/client";
+import { mockResults } from "@/data/mockResults";
+import { normalizeResultsResponse, normalizeResultFromApi } from "@/components/results/resultsModel";
+import { deriveFollows, filterRelevant, hasAnyFollows } from "@/components/results/resultsRelevance";
 import { useAuth } from "@/context/AuthContext";
 import {
   isConsumerSession as computeConsumerSession,
@@ -80,6 +84,12 @@ export function AppProvider({ children }) {
   // Used to trigger manual refresh without changing activeProfileId
   const [feedRefreshTick, setFeedRefreshTick] = useState(0);
 
+  // ── Results (issue #178) ──────────────────────────────────────────────────
+  const [backendResults, setBackendResults] = useState({ hasPreferences: false, games: [] });
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [resultsError, setResultsError] = useState(null);
+  const [resultsRefreshTick, setResultsRefreshTick] = useState(0);
+
   // ── Load backend profiles once (QA surface — admin/bypass only) ─────────────
   useEffect(() => {
     if (!isBackendMode || fetchesBlocked || !qaSurfaceAllowed) return;
@@ -137,6 +147,34 @@ export function AppProvider({ children }) {
     return () => { cancelled = true; };
   }, [isBackendMode, fetchesBlocked, consumerSession, consumerUserId,
       qaSurfaceAllowed, adminViewAs, activeProfileId, feedRefreshTick]);
+
+  // ── Load personalized results (backend mode) ────────────────────────────────
+  // Consumer sessions use the session identity (/api/me/results); admin view-as
+  // and bypass/local-QA use the {user_id} route. The server enforces relevance
+  // and isolation — the client never filters.
+  useEffect(() => {
+    if (!isBackendMode || fetchesBlocked) return;
+    let cancelled = false;
+    setResultsLoading(true);
+    setResultsError(null);
+    const promise = consumerSession && !adminViewAs
+      ? getMeResults()
+      : getResults(activeProfileId);
+    promise
+      .then((raw) => {
+        if (cancelled) return;
+        setBackendResults(normalizeResultsResponse(raw));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setResultsError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setResultsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [isBackendMode, fetchesBlocked, consumerSession, consumerUserId,
+      adminViewAs, activeProfileId, resultsRefreshTick]);
 
   // ── Local computed state (only used in local mode) ───────────────────────────
   const allProfiles = useMemo(() => ({
@@ -227,9 +265,23 @@ export function AppProvider({ children }) {
     });
   }, [allProfiles, clusteredArticleIds, disabledSourceIds]);
 
+  // ── Local-mode results (offline demo) — same normalize→relevance path ───────
+  const localResults = useMemo(() => {
+    if (isBackendMode) return { hasPreferences: false, games: [] };
+    const profile = allProfiles[activeProfileId];
+    if (!profile) return { hasPreferences: false, games: [] };
+    const follows = deriveFollows(profile);
+    const normalized = mockResults.map(normalizeResultFromApi);
+    return {
+      hasPreferences: hasAnyFollows(follows),
+      games: filterRelevant(normalized, follows),
+    };
+  }, [isBackendMode, allProfiles, activeProfileId]);
+
   // ── Resolved values (switch between modes) ───────────────────────────────────
   const feedItems = isBackendMode ? backendFeedItems : localFeedItems;
   const debugItems = isBackendMode ? backendDebugItems : localDebugItems;
+  const resultsData = isBackendMode ? backendResults : localResults;
 
   const backendProfilesMap = useMemo(() => {
     const map = {};
@@ -252,6 +304,10 @@ export function AppProvider({ children }) {
   // ── Manual refresh helpers ───────────────────────────────────────────────────
   const refreshFeed = useCallback(() => {
     if (isBackendMode) setFeedRefreshTick(n => n + 1);
+  }, [isBackendMode]);
+
+  const refreshResults = useCallback(() => {
+    if (isBackendMode) setResultsRefreshTick(n => n + 1);
   }, [isBackendMode]);
 
   // ── Feedback ────────────────────────────────────────────────────────────────
@@ -380,6 +436,13 @@ export function AppProvider({ children }) {
     feedItems,
     debugItems,
     comparisonItems,
+
+    // Results (issue #178)
+    resultsGames: resultsData.games,
+    resultsHasPreferences: resultsData.hasPreferences,
+    resultsLoading,
+    resultsError,
+    refreshResults,
     scoredArticles,
     scoredClusters,
     clusteredArticleIds,

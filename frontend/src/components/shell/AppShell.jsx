@@ -10,18 +10,22 @@ import ProductNav from "@/components/shell/ProductNav";
 import OpsNav from "@/components/shell/OpsNav";
 import ErrorState from "@/components/shared/ErrorState";
 
-// Product routes read as an edition on an ambient canvas — no sidebar, the
-// masthead carries navigation inline, and the feed gets the full width.
-// Ops routes keep the console rail (ProductNav's console group + the OpsNav
-// strip) and get their own flat, instrument-panel backdrop (OpsGrid) instead
-// of the product's atmosphere — two worlds, one shell.
+// Product routes live inside Orbit's ambient intelligence canvas — no sidebar;
+// the masthead carries navigation and the feed gets the full width. Ops keeps
+// its console rail and flat instrument-panel backdrop: two worlds, one shell.
 export default function AppShell({ area = "product" }) {
   const { isBackendMode, isLoading, apiError, refreshFeed } = useApp();
   const location = useLocation();
   const reduce = useReducedMotion();
 
   return (
-    <div className="min-h-screen flex flex-col relative">
+    <div
+      className={
+        area === "product"
+          ? "orbit-product min-h-screen flex flex-col relative"
+          : "min-h-screen flex flex-col relative"
+      }
+    >
       {area === "product" ? <Atmosphere /> : <OpsGrid />}
 
       <Masthead area={area} isBackendMode={isBackendMode} isLoading={isLoading} />
@@ -42,7 +46,7 @@ export default function AppShell({ area = "product" }) {
           <div
             className={
               area === "product"
-                ? "w-full px-4 py-6 pb-20 md:pb-10"
+                ? "w-full px-4 pt-5 pb-28 md:px-5 md:pt-6 md:pb-12"
                 : "mx-auto w-full max-w-7xl px-4 py-6 pb-24 md:pb-10"
             }
           >

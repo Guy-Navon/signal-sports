@@ -1,0 +1,502 @@
+import { describe, expect, it } from "vitest";
+import {
+  orbitFeedbackArticleId,
+  orbitHasMultiSourceField,
+  orbitQueueItems,
+  orbitUniqueSourceCount,
+  hydrateLocalClusters,
+  latestReportTimestamp,
+  orbitSourceCount,
+  prepareFeedItems,
+  resolveOrbitFocus,
+  orbitStoryId,
+  orbitStoryReports,
+  orbitStorySourceLine,
+  orbitStoryTimestamp,
+  reportsChronologically,
+  reportsWithPrimaryFirst,
+  detectNewSource,
+  selectOrbitFocus,
+  sourceInitial,
+} from "./orbitStoryModel";
+
+const cluster = {
+  id: "displayed-article",
+  clusterId: "story-1",
+  type: "cluster",
+  primaryArticleId: "a2",
+  sourceDisplayNames: ["ONE", "ספורט 5"],
+  members: [
+    {
+      articleId: "a1",
+      source: "sport5",
+      sourceDisplayName: "ספורט 5",
+      title: "דיווח ראשון",
+      publishedAt: "2026-07-27T08:00:00Z",
+      decision: "feed",
+    },
+    {
+      articleId: "a2",
+      source: "one",
+      sourceDisplayName: "ONE",
+      title: "דיווח שני",
+      publishedAt: "2026-07-27T09:00:00Z",
+      decision: "push",
+    },
+  ],
+  // This must never be consulted by the consumer adapter.
+  suppressedMembers: [
+    {
+      articleId: "secret",
+      sourceDisplayName: "מקור מוסתר",
+      decision: "hidden",
+    },
+  ],
+};
+
+describe("Orbit story adapter", () => {
+  it("uses stable story identity while keeping feedback article-owned", () => {
+    expect(orbitStoryId(cluster)).toBe("story-1");
+    expect(orbitFeedbackArticleId(cluster, orbitStoryReports(cluster))).toBe("a2");
+  });
+
+  it("reads only visible cluster members", () => {
+    const reports = orbitStoryReports(cluster);
+    expect(reports.map((report) => report.articleId)).toEqual(["a1", "a2"]);
+    expect(reports.some((report) => report.articleId === "secret")).toBe(false);
+  });
+
+  it("hydrates legacy local clusters from scored visible articles", () => {
+    const localCluster = { ...cluster, members: undefined, articleIds: ["a1", "a2", "a3"] };
+    const reports = orbitStoryReports(localCluster, [
+      { id: "a1", source: "one", title: "א", score: { decision: "feed" } },
+      { id: "a2", source: "sport5", title: "ב", score: { decision: "push" } },
+      { id: "a3", source: "muted", title: "ג", score: { decision: "hidden" } },
+    ]);
+    expect(reports.map((report) => report.articleId)).toEqual(["a1", "a2"]);
+  });
+
+  it("can order reports for the compact field or a chronological expansion", () => {
+    const reports = orbitStoryReports(cluster);
+    expect(reportsWithPrimaryFirst(cluster, reports)[0].articleId).toBe("a2");
+    expect(reportsChronologically(reports).map((report) => report.articleId)).toEqual([
+      "a1",
+      "a2",
+    ]);
+  });
+
+  it("derives the displayed source from the primary report", () => {
+    expect(orbitStorySourceLine(cluster, orbitStoryReports(cluster))).toBe("ONE");
+  });
+
+  it("preserves upstream order when choosing a focus and queue", () => {
+    const items = [
+      { id: "first", type: "article" },
+      { id: "second", type: "article" },
+      { id: "third", type: "article" },
+    ];
+    expect(selectOrbitFocus(items).id).toBe("first");
+    expect(orbitQueueItems(items, items[1]).map((item) => item.id)).toEqual([
+      "first",
+      "third",
+    ]);
+  });
+
+  it("follows a new leader until the user explicitly pins a story", () => {
+    const original = [
+      { id: "first", type: "article" },
+      { id: "second", type: "article" },
+    ];
+    expect(resolveOrbitFocus(original, null)).toEqual({
+      item: original[0],
+      isPinned: false,
+    });
+    const reordered = [{ id: "urgent", type: "article" }, ...original];
+    expect(resolveOrbitFocus(reordered, null).item.id).toBe("urgent");
+    expect(resolveOrbitFocus(reordered, "second")).toEqual({
+      item: original[1],
+      isPinned: true,
+    });
+  });
+
+  it("counts unique visible sources and gates multi-source disclosure", () => {
+    const duplicate = {
+      articleId: "a3",
+      source: "one",
+      sourceDisplayName: "ONE",
+      decision: "feed",
+    };
+    const reports = [...orbitStoryReports(cluster), duplicate];
+    expect(orbitUniqueSourceCount(reports)).toBe(2);
+    expect(orbitHasMultiSourceField({ ...cluster, sourceCount: 2 }, reports)).toBe(true);
+    expect(
+      orbitHasMultiSourceField(
+        { ...cluster, sourceCount: 1 },
+        reports.filter((report) => report.source === "one")
+      )
+    ).toBe(false);
+  });
+
+  it("detects a genuinely new source, not another report from an existing source", () => {
+    const before = orbitStoryReports(cluster);
+    expect(
+      detectNewSource(before, [
+        ...before,
+        { articleId: "a4", source: "one", sourceDisplayName: "ONE" },
+      ])
+    ).toBeNull();
+    expect(
+      detectNewSource(before, [
+        ...before,
+        { articleId: "a5", source: "ynet", sourceDisplayName: "ynet" },
+      ])?.articleId
+    ).toBe("a5");
+  });
+
+  it("sanitizes local source metadata, freshness, title, and feedback identity", () => {
+    const localCluster = {
+      ...cluster,
+      members: undefined,
+      articleIds: ["hidden-primary", "visible"],
+      primaryArticleId: "hidden-primary",
+      clusterTitle: "כותרת מוסתרת",
+      sources: ["foreign-hidden", "sport5"],
+      lastUpdatedAt: "2026-07-27T12:00:00Z",
+    };
+    const prepared = hydrateLocalClusters([localCluster], [
+      {
+        id: "hidden-primary",
+        source: "foreign-hidden",
+        title: "כותרת מוסתרת",
+        publishedAt: "2026-07-27T12:00:00Z",
+        score: { decision: "hidden" },
+      },
+      {
+        id: "visible",
+        source: "sport5",
+        sourceDisplayName: "ספורט 5",
+        title: "כותרת גלויה",
+        publishedAt: "2026-07-27T09:00:00Z",
+        score: { decision: "feed" },
+      },
+    ])[0];
+    expect(prepared.primaryArticleId).toBe("visible");
+    expect(prepared.clusterTitle).toBe("כותרת גלויה");
+    expect(prepared.sources).toEqual(["sport5"]);
+    expect(prepared.lastUpdatedAt).toBe("2026-07-27T09:00:00Z");
+    expect(orbitFeedbackArticleId(prepared, prepared.members)).toBe("visible");
+  });
+
+  it("creates source initials for Hebrew and Latin identities", () => {
+    expect(sourceInitial("ספורט 5")).toBe("ס");
+    expect(sourceInitial("one")).toBe("O");
+  });
+});
+
+// The backend/local split must be structural, not a coincidence of the two
+// calculations agreeing. Backend cluster truth is test-locked server-side
+// (docs/CLUSTERING.md §9) and mapped straight through by normalizers.js.
+describe("prepareFeedItems — cluster value authority", () => {
+  // Shaped exactly as normalizers.js emits a backend cluster.
+  const backendCluster = Object.freeze({
+    id: "displayed-article",
+    clusterId: "story-9",
+    type: "cluster",
+    clusterTitle: "הכותרת מהשרת",
+    primaryArticleId: "b2",
+    representativeArticleId: "b2",
+    priorityArticleId: "b1",
+    displayedReason: "representative_visible",
+    sourceCount: 2,
+    lastUpdatedAt: "2026-07-27T10:00:00Z",
+    firstSeenAt: "2026-07-27T08:00:00Z",
+    members: Object.freeze([
+      Object.freeze({
+        articleId: "b2", source: "one", sourceDisplayName: "ONE",
+        title: "דיווח שני", url: "https://example.test/2",
+        publishedAt: "2026-07-27T10:00:00Z", decision: "push",
+      }),
+      Object.freeze({
+        articleId: "b1", source: "sport5", sourceDisplayName: "ספורט 5",
+        title: "דיווח ראשון", url: "https://example.test/1",
+        publishedAt: "2026-07-27T08:00:00Z", decision: "feed",
+      }),
+    ]),
+    articleIds: ["b2", "b1"],
+    sources: ["one", "sport5"],
+    sourceDisplayNames: ["ONE", "ספורט 5"],
+    score: { decision: "push" },
+  });
+
+  const backendArticle = Object.freeze({
+    id: "solo", type: "article", title: "כתבה בודדת",
+    source: "walla_sport", publishedAt: "2026-07-27T11:00:00Z",
+    score: { decision: "feed" },
+  });
+
+  describe("backend mode", () => {
+    const items = [backendCluster, backendArticle];
+
+    it("passes the list through without rebuilding it", () => {
+      const result = prepareFeedItems(items, { isBackendMode: true });
+      expect(result).toBe(items);
+    });
+
+    it("keeps every item object identical", () => {
+      const [cardResult, articleResult] = prepareFeedItems(items, { isBackendMode: true });
+      expect(cardResult).toBe(backendCluster);
+      expect(articleResult).toBe(backendArticle);
+    });
+
+    // Each value the frontend used to recompute, named explicitly so a
+    // reintroduced rewrite fails here rather than drifting silently.
+    it.each([
+      ["members", "members"],
+      ["sourceCount", "sourceCount"],
+      ["primaryArticleId", "primaryArticleId"],
+      ["clusterTitle", "clusterTitle"],
+      ["lastUpdatedAt", "lastUpdatedAt"],
+    ])("leaves backend-authoritative %s untouched", (_name, key) => {
+      const [card] = prepareFeedItems(items, { isBackendMode: true });
+      expect(card[key]).toBe(backendCluster[key]);
+    });
+
+    it("ignores localScoredArticles entirely", () => {
+      const decoy = [
+        { id: "b2", source: "impostor", title: "לא אמור להופיע",
+          publishedAt: "2026-07-27T23:00:00Z", score: { decision: "feed" } },
+      ];
+      const [card] = prepareFeedItems(items, {
+        isBackendMode: true, localScoredArticles: decoy,
+      });
+      expect(card).toBe(backendCluster);
+      expect(card.sourceCount).toBe(2);
+      expect(card.lastUpdatedAt).toBe("2026-07-27T10:00:00Z");
+    });
+
+    // Debug renders the raw payload; the consumer feed must agree with it.
+    it("agrees with Debug on source count and canonical article identity", () => {
+      const debugView = backendCluster; // Debug consumes debugItems untouched
+      const [consumerView] = prepareFeedItems(items, { isBackendMode: true });
+      expect(consumerView.sourceCount).toBe(debugView.sourceCount);
+      expect(consumerView.primaryArticleId).toBe(debugView.primaryArticleId);
+      expect(consumerView.representativeArticleId).toBe(debugView.representativeArticleId);
+      expect(consumerView.clusterTitle).toBe(debugView.clusterTitle);
+      expect(consumerView.lastUpdatedAt).toBe(debugView.lastUpdatedAt);
+    });
+
+    it("reads reports straight from the backend members", () => {
+      const [card] = prepareFeedItems(items, { isBackendMode: true });
+      const reports = orbitStoryReports(card, []);
+      expect(reports.map((report) => report.articleId)).toEqual(["b2", "b1"]);
+      expect(orbitUniqueSourceCount(reports)).toBe(card.sourceCount);
+    });
+  });
+
+  describe("local mode", () => {
+    const localCluster = {
+      id: "local-displayed",
+      clusterId: "local-9",
+      type: "cluster",
+      clusterTitle: "כותרת מקומית",
+      primaryArticleId: "l1",
+      articleIds: ["l1", "l2"],
+      score: { decision: "feed" },
+    };
+    const scored = [
+      { id: "l1", source: "sport5", sourceDisplayName: "ספורט 5", title: "ראשון",
+        publishedAt: "2026-07-27T08:00:00Z", score: { decision: "feed" } },
+      { id: "l2", source: "one", sourceDisplayName: "ONE", title: "שני",
+        publishedAt: "2026-07-27T09:30:00Z", score: { decision: "high_feed" } },
+    ];
+
+    it("hydrates members from the scored catalogue", () => {
+      const [card] = prepareFeedItems([localCluster], {
+        isBackendMode: false, localScoredArticles: scored,
+      });
+      expect(card).not.toBe(localCluster);
+      expect(card.members.map((member) => member.articleId)).toEqual(["l1", "l2"]);
+      expect(card.sourceCount).toBe(2);
+      expect(card.lastUpdatedAt).toBe("2026-07-27T09:30:00Z");
+    });
+
+    it("still drops locally hidden members", () => {
+      const [card] = prepareFeedItems([localCluster], {
+        isBackendMode: false,
+        localScoredArticles: [scored[0], { ...scored[1], score: { decision: "hidden" } }],
+      });
+      expect(card.sourceCount).toBe(1);
+      expect(card.members.map((member) => member.articleId)).toEqual(["l1"]);
+    });
+
+    it("leaves plain local articles alone", () => {
+      const article = { id: "x", type: "article", score: { decision: "feed" } };
+      const [result] = prepareFeedItems([article], {
+        isBackendMode: false, localScoredArticles: scored,
+      });
+      expect(result).toBe(article);
+    });
+
+    it("survives a missing catalogue without throwing", () => {
+      expect(() => prepareFeedItems([localCluster], { isBackendMode: false })).not.toThrow();
+    });
+  });
+
+  it("defaults to hydrating when no mode is supplied", () => {
+    expect(() => prepareFeedItems([])).not.toThrow();
+    expect(prepareFeedItems([])).toEqual([]);
+  });
+});
+
+// Not rewriting the object is only half the job: the render path must also READ
+// the authoritative values. These clusters are built so the backend value and
+// whatever the client would derive DISAGREE — if a resolver ever falls back to
+// derivation for a backend item, exactly one of these fails.
+describe("authoritative cluster values — adversarial", () => {
+  /** sourceCount says 5; report deduplication would say 2. */
+  const countDisagrees = Object.freeze({
+    id: "d1",
+    clusterId: "disagree-count",
+    type: "cluster",
+    sourceCount: 5,
+    lastUpdatedAt: "2026-07-27T10:00:00Z",
+    members: Object.freeze([
+      { articleId: "d1", source: "one", sourceDisplayName: "ONE",
+        title: "א", publishedAt: "2026-07-27T09:00:00Z", decision: "feed" },
+      { articleId: "d2", source: "sport5", sourceDisplayName: "ספורט 5",
+        title: "ב", publishedAt: "2026-07-27T08:00:00Z", decision: "feed" },
+    ]),
+    score: { decision: "feed" },
+  });
+
+  /** lastUpdatedAt is OLDER than the newest member — derivation would win. */
+  const timeDisagrees = Object.freeze({
+    id: "t1",
+    clusterId: "disagree-time",
+    type: "cluster",
+    sourceCount: 2,
+    lastUpdatedAt: "2026-07-27T06:00:00Z",
+    publishedAt: "2026-07-27T05:00:00Z",
+    firstSeenAt: "2026-07-27T04:00:00Z",
+    members: Object.freeze([
+      { articleId: "t1", source: "one", sourceDisplayName: "ONE",
+        title: "א", publishedAt: "2026-07-27T23:00:00Z", decision: "feed" },
+      { articleId: "t2", source: "sport5", sourceDisplayName: "ספורט 5",
+        title: "ב", publishedAt: "2026-07-27T22:00:00Z", decision: "feed" },
+    ]),
+    score: { decision: "feed" },
+  });
+
+  describe("source count", () => {
+    it("returns the backend value, not the deduplicated report count", () => {
+      const reports = orbitStoryReports(countDisagrees, []);
+      expect(orbitUniqueSourceCount(reports)).toBe(2); // what derivation says
+      expect(orbitSourceCount(countDisagrees, reports)).toBe(5); // what we display
+    });
+
+    it("branches the multi-source field on the backend value", () => {
+      const single = { ...countDisagrees, sourceCount: 1 };
+      const reports = orbitStoryReports(single, []);
+      // Derivation would see two distinct sources and open the field anyway.
+      expect(orbitUniqueSourceCount(reports)).toBe(2);
+      expect(orbitHasMultiSourceField(single, reports)).toBe(false);
+    });
+
+    it("falls back to derivation only when the backend value is absent", () => {
+      const local = { ...countDisagrees, sourceCount: undefined };
+      const reports = orbitStoryReports(local, []);
+      expect(orbitSourceCount(local, reports)).toBe(2);
+    });
+
+    it("treats a non-numeric count as absent", () => {
+      const reports = orbitStoryReports(countDisagrees, []);
+      for (const bad of [null, undefined, Number.NaN, "5"]) {
+        expect(orbitSourceCount({ ...countDisagrees, sourceCount: bad }, reports)).toBe(2);
+      }
+    });
+
+    it("honours an authoritative zero rather than silently deriving", () => {
+      const reports = orbitStoryReports(countDisagrees, []);
+      expect(orbitSourceCount({ ...countDisagrees, sourceCount: 0 }, reports)).toBe(0);
+    });
+  });
+
+  describe("timestamp", () => {
+    it("returns the backend sort time, not the newest member", () => {
+      const reports = orbitStoryReports(timeDisagrees, []);
+      expect(latestReportTimestamp(reports)).toBe("2026-07-27T23:00:00Z"); // derivation
+      expect(orbitStoryTimestamp(timeDisagrees, reports)).toBe("2026-07-27T06:00:00Z");
+    });
+
+    it("falls back to the newest report when lastUpdatedAt is absent", () => {
+      const local = { ...timeDisagrees, lastUpdatedAt: undefined };
+      const reports = orbitStoryReports(local, []);
+      expect(orbitStoryTimestamp(local, reports)).toBe("2026-07-27T23:00:00Z");
+    });
+
+    it("falls back further when there are no reports at all", () => {
+      const bare = { ...timeDisagrees, lastUpdatedAt: undefined, members: [] };
+      expect(orbitStoryTimestamp(bare, [])).toBe("2026-07-27T05:00:00Z");
+      expect(orbitStoryTimestamp({ ...bare, publishedAt: undefined }, [])).toBe(
+        "2026-07-27T04:00:00Z"
+      );
+    });
+
+    it("leaves plain articles on their own publish time", () => {
+      expect(
+        orbitStoryTimestamp({ type: "article", publishedAt: "2026-07-27T01:00:00Z" }, [])
+      ).toBe("2026-07-27T01:00:00Z");
+    });
+  });
+
+  describe("local hydration still calculates both", () => {
+    // The mock item carries deliberately WRONG values; hydration must overwrite
+    // them from the catalogue rather than echo them back through the readers.
+    const staleLocal = {
+      id: "l0",
+      clusterId: "local-stale",
+      type: "cluster",
+      primaryArticleId: "l1",
+      articleIds: ["l1", "l2"],
+      sourceCount: 99,
+      lastUpdatedAt: "2020-01-01T00:00:00Z",
+      score: { decision: "feed" },
+    };
+    const scored = [
+      { id: "l1", source: "sport5", sourceDisplayName: "ספורט 5", title: "ראשון",
+        publishedAt: "2026-07-27T08:00:00Z", score: { decision: "feed" } },
+      { id: "l2", source: "one", sourceDisplayName: "ONE", title: "שני",
+        publishedAt: "2026-07-27T09:30:00Z", score: { decision: "feed" } },
+    ];
+
+    it("recomputes both values from the catalogue", () => {
+      const [card] = prepareFeedItems([staleLocal], {
+        isBackendMode: false, localScoredArticles: scored,
+      });
+      expect(card.sourceCount).toBe(2);
+      expect(card.lastUpdatedAt).toBe("2026-07-27T09:30:00Z");
+    });
+
+    it("makes the readers agree with the hydrated values", () => {
+      const [card] = prepareFeedItems([staleLocal], {
+        isBackendMode: false, localScoredArticles: scored,
+      });
+      const reports = orbitStoryReports(card, scored);
+      expect(orbitSourceCount(card, reports)).toBe(2);
+      expect(orbitStoryTimestamp(card, reports)).toBe("2026-07-27T09:30:00Z");
+    });
+  });
+
+  it("keeps backend items identity-preserved through the resolvers", () => {
+    const items = [countDisagrees, timeDisagrees];
+    const result = prepareFeedItems(items, { isBackendMode: true });
+    expect(result).toBe(items);
+    expect(result[0]).toBe(countDisagrees);
+    expect(result[1]).toBe(timeDisagrees);
+    // Reading through the resolvers must not mutate either.
+    orbitSourceCount(result[0], orbitStoryReports(result[0], []));
+    orbitStoryTimestamp(result[1], orbitStoryReports(result[1], []));
+    expect(result[0].sourceCount).toBe(5);
+    expect(result[1].lastUpdatedAt).toBe("2026-07-27T06:00:00Z");
+  });
+});

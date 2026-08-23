@@ -104,8 +104,8 @@ export function normalizeScoredArticleFromApi(sa) {
   };
 
   // Story clustering (#104). The backend attaches `cluster` to the DISPLAYED member only.
-  // We map it onto the pre-existing `type: "cluster"` item contract the UI already speaks,
-  // so LeadStory / StreamRow / BriefsDigest / Debug need no new item shape.
+  // We map it onto the `type: "cluster"` item contract the UI speaks, so the Orbit
+  // field, the queue and Debug all need no new item shape.
   //
   // Two decisions live here and must not be confused:
   //   score.decision       = the CARD decision (MAX over this user's VISIBLE members)

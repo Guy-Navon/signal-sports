@@ -1,330 +1,380 @@
-# Signal Sports — Frontend Design System ("Court Vision")
+# Signal Sports — Frontend Design System ("Orbit")
 
-Last updated: 2026-07-04 — this is the **complete** picture of the frontend
-redesign, now finished and merged to `main` at commit `7e029bc`: Court Vision
-(PRs 1–6) turned the Base44-generated QA dashboard into a premium,
-Hebrew-first, RTL-first dark product, and five further PRs (**A** "The
-Edition", **B** "atmosphere + brand shell", **C** "product pages", **D** "ops
-shell variant", **E** "signature details") rebuilt the product identity from
-the ground up under the approved **"המערכת / The Desk"** design concept — a
-codename for the visual direction only, the product name is still Signal
-Sports / סיגנל. Section 1 covers the design language, section 4 has the full,
-current component inventory organized by the PR that introduced each part.
+Last updated: 2026-07-31 — this describes the **shipped** consumer frontend.
+Orbit replaced the previous "Court Vision / The Edition" frontend entirely; that
+direction, its tier composer and its story species no longer exist in the
+codebase. The exploration that selected Orbit is archived in
+[`SPORTS_INTELLIGENCE_OS_CONCEPTS.md`](./SPORTS_INTELLIGENCE_OS_CONCEPTS.md).
 
-This document is the reference for the design system: the tokens, the component
-inventory, the product-vs-console split, and the hard RTL rules. Read it before
-adding any new UI. `docs/CURRENT_PROJECT_STATE.md` has the equivalent summary
-for the whole project (backend + frontend); this file is the frontend-only
-deep reference.
+Read this before adding any consumer UI. `docs/CURRENT_PROJECT_STATE.md` carries
+the whole-project summary; this file is the frontend deep reference.
 
 ---
 
-## 1. Design language
+## 1. Product thesis
 
-**"The more a story matters to *you*, the more light it emits."** Relevance is
-the brand. On a calm near-black navy canvas, relevance is encoded as **light and
-shape**, never as loud card borders or badge rows.
+**One story at the centre; its sources in orbit around it; everything else
+queued behind it.**
 
-Since PR A the Feed is **"The Edition" (המהדורה)**: the ranked visible items are
-partitioned per reader into five visual species — the lead story, framed as
-**"הסיפור המרכזי"** (serif display headline directly on the canvas,
-signal-tinted aura + court-line arc, breathing gold for push), **מבזק**
-bulletin strips (remaining push — the general push-level label is **"לא
-לפספס"**), the asymmetric **"במוקד"** tier (high_feed), typographic **"עוד
-מהפיד"** rows (feed), and the collapsed **"קריאה נוספת"** digest (low_feed).
-These are display copy only (PR A.2) — the underlying decision ids (`push`,
-`high_feed`, `feed`, `low_feed`, `hidden`) are unchanged. Decision badges and
-the old signal-rail edge bar are gone from the product feed — position, type
-scale, and light do that work (`DecisionBadge` survives as a console
-affordance in Debug/LLM-QA/Preferences, using its own label set). Two
-readers' editions differ in *shape*, not just ordering.
+The product exists to answer "what is worth *this* reader's attention right
+now?", so the interface leads with a single answer rather than a scrollable
+list. The field shows the top-ranked story large and legible; the queue behind
+it is ranked, and its typography encodes that ranking so the hierarchy is
+readable before any label is.
 
-Two visual areas share one token system:
+Two consequences drive most decisions below:
 
-- **Product** (Feed, Preferences, Calibration, Results) — editorial, green
-  accents, serif display headlines. The flagship experience.
-- **Console** (Sources, Debug, LLM QA) — a polished developer instrument panel:
-  denser, steel-blue actions, monospace values. Reached via the "קונסולה" nav
-  group; ops routes render `AppShell area="ops"` which adds the `OpsNav` strip.
+- **Relevance is visual, not verbal.** Type scale, density, ink and spacing
+  carry the ranking. The decision word confirms it; it is never the only cue.
+- **The corpus is ~95% single-source.** In a 1,356-article corpus there are 41
+  clusters, maximum size 4; in a 36-hour window, 11 clusters, nine of them
+  exactly two sources. The single-source field is therefore the *primary* state
+  and is composed for deliberately, not treated as a degraded cluster.
 
-The split is deliberate: the consumer feed must never feel like a dashboard, and
-the dev tools must feel like a first-class console rather than the whole app.
+Orbit geometry is deliberately **decorative and honest**: satellite position
+does not encode agreement, confidence or chronology. The data cannot support
+such a claim, so the UI does not make one.
 
 ---
 
-## 2. Stack
+## 2. Surface boundaries
 
-- **React 18 + Vite 6**, JavaScript/JSX (checkJs via `jsconfig.json` — no TS).
-- **Tailwind 3.4 + shadcn/ui + Radix** primitives (`src/components/ui/`). The
-  redesign is the *first real adoption* of these primitives — earlier code was
-  hand-rolled Tailwind.
-- **Fonts** (self-hosted, `@fontsource`): **Frank Ruhl Libre** (Hebrew serif
-  display) + **Heebo** (UI/body). System mono for numerics.
-- **Motion**: `framer-motion` (first adopted in PR A, Feed only): staggered
-  edition entrance, blur headline reveal, `AnimatePresence`/`layout` filter
-  recomposition. Variants live in `components/feed/motionPresets.js`, are
-  **y-axis-only** (sidesteps RTL mirroring), and every factory takes the result
-  of `useReducedMotion()`. CSS keyframes (`fade-up`, `shimmer`, `pulse-soft`,
-  `breathe`) remain for micro/looping effects; prefer CSS unless a layout
-  animation genuinely requires framer.
+Three worlds, one shell (`components/shell/AppShell.jsx`):
 
----
+| surface | routes | shell | character |
+|---|---|---|---|
+| **Consumer product** | `/` (Feed), `/preferences`, `/interests`, `/calibration`, `/results`, `/account` | `AppShell area="product"` + `Atmosphere` | ambient canvas, no sidebar, masthead carries nav |
+| **Ops console** | `/sources`, `/debug`, `/llm-qa` | `AppShell area="ops"` + `OpsGrid` | flat instrument panel, console rail, monospace values |
+| **Utility** | `/login`, `/signup`, `/welcome`, 404 | outside both shells | product-styled, standalone |
 
-## 3. Tokens
+The consumer shell sets `.orbit-product`, which re-scopes the colour tokens
+(mineral signals, opaque spatial surfaces). Ops keeps the base token palette.
 
-All tokens live in **`src/index.css`** as HSL custom properties and are exposed
-to Tailwind in **`tailwind.config.js`**. **Feature components must use semantic
-tokens — never raw Tailwind palette colours** (`gray-*`, `blue-*`, `amber-*`…).
-
-### Surfaces (elevation ladder)
-| Token | Use |
-|---|---|
-| `--background` / `bg-background` | app canvas (near-black navy) |
-| `surface-1` | cards, panels |
-| `surface-2` | elevated / hover / inset cells |
-| `surface-3` | chips, inputs, strongest inset |
-| `--border` | hairline (subtle, replaces visible gray borders) |
-
-Recipes (in `index.css` `@layer components`): `.surface-glass` (sticky header +
-mobile tab bar only), `.elevation-1` (background-step + hairline + shadow),
-`.glow-push` (gold inner hairline + soft glow — **push only, never ad-hoc**).
-
-### Text
-`text-foreground` (primary) · `text-text-secondary` · `text-text-dim` (muted).
-
-### Signal system (decision levels = the brand)
-| Token | Meaning | Where |
-|---|---|---|
-| `signal-push` (gold) | push / attention | **push cards + critical alerts + console warnings only** |
-| `signal-high` (electric green) | high_feed | also: primary product actions, active nav, healthy status |
-| `signal-feed` (steel blue) | feed | also: the console action colour |
-| `signal-low` (dim gray) | low_feed | — |
-| `signal-hidden` / `--destructive` (red) | hidden | also: errors, destructive actions |
-| `signal-ai` (cyan) | AI/intelligence moments | relevance-reason spark, guardrail badge, disagreement, pilot |
-
-**Colour discipline:** gold is scarce (push only) — this is why the feed reads as
-gold at the top (push stories sort first) then transitions to green/blue as
-relevance drops. Red is errors/hidden only.
-
-### Type scale
-Display serif (Frank Ruhl Libre 500/700 — the 800 weight tried in PR A was
-dropped in the A.1 polish pass, it read as too dramatic) carries story
-headlines: the lead scales 1.4rem→2.9rem responsive, bulletin/editorial
-headlines ~1.2–1.75rem, both weight 700. **Section labels are Heebo, not
-serif** — "במוקד", "עוד מהפיד", "קריאה נוספת" render as small (11px), tracked,
-semibold Heebo labels with a hairline rule (`SectionHeading`); serif is
-reserved for story headlines only and must **not** be used below ~1.1rem (the
-high-contrast face reads thin/grey there). Heebo semibold for stream-row
-headlines (~1.05rem) and all UI/body text. Kickers/meta 10–12.5px. Numerics
-use `MonoValue`.
+**Only the Feed renders Orbit itself.** Other product routes carry the shell and
+its tokens but none of `.orbit-feed-view`, `.orbit-field` or `.orbit-queue-*`.
+That distinction matters: several Orbit rules are scoped to those containers and
+must never reach Preferences, Results or account surfaces.
 
 ---
 
-## 4. Component inventory
+## 3. Decision hierarchy
 
-### `components/shared/` — cross-area primitives
-`EmptyState` · `ErrorState` (strip + page variants) · `LoadingSkeleton`
-(card/row/stat shimmer) · `StatCard` (mono-izes only numeric values — Hebrew
-text stays in body font) · `PageHeader` (serif title + optional icon + actions
-slot) · `SectionCard` (titled console panel) · `GhostChip` (quiet metadata) ·
-`PulseDot` (tone dot, optional pulse) · `MonoValue` (LTR numerics inside RTL).
+Four visible levels, plus `hidden` (debug-only). The contract lives in
+`DECISION_CONFIG[...].orbit` in `components/feed/decisionConfig.js` and is
+locked by `decisionConfig.test.js` — a level cannot silently become a twin of
+its neighbour.
 
-### `components/shell/` — app frame (PR B: atmosphere + brand shell)
-`AppShell` (`area="product"|"ops"`) branches structurally by area rather than
-just styling: **product routes have no sidebar** — the feed gets the full
-canvas — while **ops routes keep `ProductNav`'s desktop rail unchanged**
-(מוצר/קונסולה groups, exactly as before PR B; the console's own visual
-identity is a later PR, this one only changed how you arrive at/leave it).
-`Masthead` (replaces the old plain header) — wordmark at the inline-start
-edge, product nav inline (product routes only) or a "חזרה למוצר" link (ops),
-then at the inline-end edge: `DataModeBadge`, the identity controls, and a
-console-entry icon (product, admins/bypass only); starts transparent over the
-atmosphere and gains `surface-glass` + a hairline only past a scroll
-threshold (`useScrolled.js`). **Identity controls (User Platform, 2026-07-10):**
-under an enforced consumer session the product masthead shows the ACCOUNT
-menu (email, logout — account identity is the product identity) and no
-profile switcher; the `ProfileSwitcher` now lives on the ops console as the
-admin **QA view-as** control. In local/bypass modes the pre-auth masthead
-(ProfileSwitcher in the product) renders unchanged — the historical
-description below reflects that original PR-B design.
-`SignalMark` — the wordmark's three-bar icon, same visual language as the
-Feed's SIGNAL strength instrument. `Atmosphere` — a fixed, decorative
-backdrop (soft floodlight mesh + one large half-court arc + a whisper of
-film-grain, all CSS/inline-SVG, opacity-only breathing) behind product pages
-only; **not rendered in the ops console**, which stays flat by design.
-`MobileNav` — a floating glass pill (product) vs. the original edge-to-edge
-tab bar (ops, unchanged). `DataModeBadge` shrank from a labeled pill to a
-dot + tooltip (ops-relevant info, not a consumer-facing label).
-`OpsNav` (console strip, unchanged) · `ProfileSwitcher` (Radix dropdown,
-sandbox "בדיקה" tag; since User Platform #53 it renders in the product only
-for local/bypass modes and on the ops console as the admin QA view-as) · `navConfig.js` (+ tests — area resolution,
-llm-qa backend gate, mobile nav; unchanged, reused by the new shell).
-`AppShell` also wraps `<Outlet/>` in a Framer Motion opacity+y page
-transition keyed by pathname, reduced-motion aware.
+| level | queue title | weight | title ink | signal | density |
+|---|---|---|---|---|---|
+| `push` | 19 px | 660 | foreground | salmon `--orbit-alert` | full + **signal rail** |
+| `high_feed` | 16.5 px | 630 | foreground | aqua `--orbit-aqua` | full |
+| `feed` | 14.5 px | 590 | foreground | violet `--orbit-violet` | standard |
+| `low_feed` | 13 px | 520 | secondary | desaturated `--orbit-quiet` | compact — one line, no subtitle |
 
-### `components/feed/` — the flagship ("The Edition", PR A)
-**Story species:** `LeadStory` (aura + court-arc + serif display headline) ·
-`BulletinStrip` (מבזק / "לא לפספס" level, gold start-edge bleed) · `EditorialTier` (asymmetric
-major/minor blocks) · `StreamRow` (typographic row; inline expand; relevance-
-scaled type + level dot in filtered mode) · `BriefsDigest` (collapsed low_feed
-one-liners).
-**Edition frame:** `EditionHeader` (date line + "המהדורה של X") ·
-`SignalSpectrum` (proportional level bar; segments + legend are the level
-filters; grows in on mount) · `SignalBoard` (PR A.1 — sticky side board on xl:
-vertical spectrum, quick topic filters, desk facts derived from page data) ·
-`TopicFilters` (quiet text toggles, inline or vertical) · `SectionHeading`
-(small tracked Heebo label + hairline rule — serif is reserved for story
-headlines) · `EditionSkeleton` (edition-shaped loading).
-**Desktop composition (PR A.1):** the lead is a full-width hero band (layered
-signal mesh, half-court SVG that draws in on mount, signal-strength
-instrument); below it the editorial column runs beside the sticky signal board
-in an `xl:grid-cols-[1fr_280px]`. Serif weight tops out at 700 (the 800 import
-was dropped); the edition title stays smaller than the lead headline.
-**Voice & actions:** `DeskVoice` ("למה אצלך" + expandable margin note; full
-trace stays in Debug) · `FeedbackControls` (`variant="icons"|"text"` — emits
-`more_like_this`/`less_like_this` unchanged) · `SourceMeta` ·
-`EditionEmptyState` (PR E — the Feed's own zero-articles moment: enlarged
-`SignalMark`, "ממתין לאות" kicker, replaces the generic shared `EmptyState`
-for this one case only; the shared component is untouched and still used
-for the filtered-empty case and by Debug/LLM QA).
-**Logic modules (+tests):** `editionComposer.js` (stable partition into tiers) ·
-`storyLabels.js` (Hebrew kicker maps: entity/league/sport · event type;
-`condensedReason`) · `feedFilters.js` (level + topic filters) ·
-`motionPresets.js`. `DecisionBadge` + `decisionConfig.js` remain (Hebrew labels
-cross-locked to `DECISION_LABELS_HE` by test) — consumed by Debug, LLM QA,
-Preferences, and `StreamRow`'s level dots; no longer rendered as feed badges.
-Removed in PR A: `ArticleCard`, `FeedHero`, `FeedHeader`, `FilterChips`,
-`SignalRail`, `EntityChips`, `RelevanceReason`.
+`feed` and `low_feed` differ on **six** axes (size, weight, ink, hue, spacing,
+density). They were once byte-identical apart from the word; the unit tests and
+the browser harness both guard against regressing to that.
 
-### `components/ops/` — console (renamed from `ingestion/`)
-`SchedulerPanel` · `IngestionPanel` · `BenchmarkPanel` · `HealthCard` ·
-`SourceToggleCard` (letter-avatar rows) · `consoleStyles.js` (`consoleButton`
-steel-blue, `consoleToggle`, `consoleAlert`). Page content/logic in these
-panels is untouched by every visual PR — PR D (below) only changed the shell
-around them.
+The signal rail on the card's inline-start edge is reserved for `push` alone,
+asserted in markup *and* in paint.
 
-### The console's own identity (PR D — ops shell variant)
-Two worlds, one shell (`AppShell`, PR B), now each with their own backdrop:
-`OpsGrid` — a fixed, flat blueprint grid (steel-blue, ~5% opacity, 40px
-cells) behind every ops page, replacing the product's floodlit `Atmosphere`.
-Both backdrops fade in on mount (0.5s opacity) so crossing between product
-and console is felt, not a hard cut. `OpsNav`'s label changed from a plain
-"קונסולת תפעול" tag to a **mono breadcrumb** — "המערכת ⁄ קונסולה ⁄
-{current page}" (`font-mono`, natural RTL flow — deliberately **not**
-`MonoValue`, which forces `dir="ltr"` and is only correct for numerics, not
-Hebrew words). Nothing else in Sources/Debug/LLM QA changed: same
-`ProductNav` console-group rail, same page components, same panels, same
-API calls.
-
-### `components/debug/`
-`DebugArticleCard` · `ProfileComparisonTable` · `ReasoningTrace` (numbered chain
-as a console trace) · `ClassifiedByBadge` (+ `classifiedByConfig.js` + tests —
-llm=blue / guardrail=cyan / failure=red / low-conf=gold).
-
-### Signature details (PR E)
-Small, sitewide finishing touches that were still giving the app a
-"generic scaffold" tell despite the A–D redesign:
-- **Real favicon** (`public/favicon.svg` — the SignalMark bars motif on the
-  canvas navy; previously referenced in `index.html` but the file didn't
-  exist, so the tab showed a broken/default icon) + a `theme-color` meta
-  matching the background (tints mobile browser chrome) + a proper
-  `<title>`/description + a critical-CSS background fallback in
-  `index.html` (kills the flash-of-white before `index.css` loads).
-- **Themed `:focus-visible`** — a global ring using the existing `--ring`
-  token (the same one shadcn components already bind to), replacing the
-  default browser-blue outline everywhere, product and console alike.
-- **Custom scrollbar** — thin, dark, `surface-3` thumb with a `signal-feed`
-  hover tint, via `scrollbar-color`/`::-webkit-scrollbar`. Sitewide, low
-  risk (styling only, no layout impact); note that headless-browser
-  screenshots don't reliably render OS/overlay scrollbars, so this is
-  best verified by eye, not by screenshot.
-- **`PageNotFound` rebuilt** ("אין אות" — no signal, a natural pun for a
-  product literally called Signal) — this page renders outside `AppShell`
-  (it's not nested under either area's layout route) and had never been
-  touched by the redesign; it now carries its own small atmosphere
-  (mesh glow, whisper court-rings, `SignalMark`) rather than the plain
-  centered "404" box it shipped with since Court Vision PR 1.
-- **`EditionEmptyState`** — see the feed component list above.
-
-### `components/preferences/`
-`TopicCard` (PR C: restyled from a bordered box to a hairline-divided
-expandable row — kicker line of priority/mode/leagues instead of separate
-pill badges, matching the Feed's storytelling).
-
-### Product pages (PR C — Preferences, Calibration, Results)
-Brought in line with the Feed's editorial voice, on top of the PR B shell
-(no sidebar, atmosphere backdrop). New shared `DeskIntro` (small tracked
-kicker + one sentence, no card — the same "prose sitting on the canvas"
-idea as the Feed's kickers) opens Preferences ("מה המערכת יודעת" — reads
-live topic/entity/muted counts off the active profile) and Calibration
-("כיול"). `PageHeader` itself is unchanged (shared with the ops console —
-Sources/Debug/LLM QA use it too, so it stays out of scope here). Preferences'
-boxed sections became hairline-divided lists; a loud gold "important
-difference" callout was retoned to cyan (`signal-ai` — it's explanatory, not
-urgent, so push-gold was a token misuse). Calibration's `HeadlineCard` gained
-a kicker line (league/sport · event type · importance) and a serif headline
-in place of four separate pill badges; `InferenceDraftPanel`'s nested
-box-in-box sections became hairline dividers. All calibration/preference
-**logic is untouched** — every hook, handler, and `src/engine` call
-(`inferPreferenceDraftFromCalibration`, `convertCalibrationDraftToUserProfile`,
-`scoreArticle`, `updateProfile`) is verbatim; only JSX/className changed.
-Results — a coming-soon placeholder — was simplified to a single centered
-moment (kicker + serif headline + one line) now that the atmosphere behind
-it does most of the visual work.
-
-**JS-side variant config and pure logic live in plain modules**
-(`decisionConfig.js`, `classifiedByConfig.js`, `navConfig.js`, `feedFilters.js`,
-`editionComposer.js`, `storyLabels.js`, `motionPresets.js`) so they stay
-testable in the Vitest `node` environment without a DOM.
+**Labels are single-sourced.** `DECISION_CONFIG[...].label` is the only Hebrew
+decision vocabulary; `DECISION_LABELS_HE` in `api/normalizers.js` is kept
+identical by test. Orbit previously carried a private second table and the
+filter chips disagreed with the cards — do not reintroduce one.
 
 ---
 
-## 5. RTL rules (hard requirements)
+## 4. The story field
+
+`components/feed/orbit/OrbitStoryField.jsx`.
+
+### Solo (single source) — the primary state
+
+`.orbit-field--solo`. No satellite is rendered: the core's own meta line already
+names the source, so an orbiting chip would only repeat it beside a large empty
+field. The field is shorter (560 px desktop, ~400 px at 390), and the core and
+signal meter sit on one vertical axis.
+
+### Clustered (2–4 sources)
+
+Up to three satellites in fixed slots plus an overflow chip. Four is the corpus
+maximum, so `+N` is effectively a safety path; its Hebrew is singular-aware
+(`עוד מקור אחד`).
+
+### Expanded cluster
+
+The strongest screen in the product: *"N דיווחים מ־N מקורות. סיפור אחד."* with
+each source as a card around the ellipse and the story core at the centre.
+Sequence numbers and role labels (`הדיווח המוצג` / `העדכון האחרון` /
+`דיווח נוסף`) show how the story accumulated. **Preserve this.**
+
+---
+
+## 5. Queue behaviour
+
+`components/feed/orbit/OrbitFeedView.jsx` + `orbitQueueMotion.js`.
+
+**The queue renders a bounded page of 40 cards** with a "show more" control. The
+heading shows `visible/total` while more remain. This is not cosmetic: the
+number of animating, laid-out nodes must not track feed size.
+
+**Motion is bounded, not merely fast.** Two rules make filtering feel immediate:
+
+1. the enter stagger is **capped** at 6 steps, so settle time is constant for
+   any list length (`queueSettleSeconds(198) === queueSettleSeconds(50)`,
+   test-locked);
+2. **removal is not animated** — a card that stops matching unmounts
+   synchronously.
+
+The previous strategy (`delay: index * 0.025` inside `AnimatePresence`) meant
+card 196 began animating 4.9 s after a filter click while exiting cards stayed
+mounted: filtering 198 → 20 left 197 stale cards on screen for 4–8 s while the
+header already read "20 תוצאות". Measured after the fix: **stale cards clear in
+16–56 ms**. Do not reintroduce an index-proportional delay.
+
+---
+
+## 6. Typography
+
+Two faces, with a deliberate boundary.
+
+**Frank Ruhl Libre 500 — display serif, consumer product only.** Exactly four
+rules consume it, each targeting a specific element:
+
+- `.orbit-feed-heading h1` — the feed's main headline
+- `.orbit-core h2` — the focused story headline
+- `.orbit-cluster__core h3` — the expanded cluster's central headline
+- `.orbit-feed-empty h2` — the consumer feed's empty-state heading
+
+**Heebo everywhere else**, including queue titles, filters, labels, body copy,
+DeskVoice, metadata, timestamps, source names, buttons, navigation, and all Ops
+and utility surfaces.
+
+### Scoping rules — do not break these
+
+- `--font-display` **stays Heebo** in `:root`. Ops, Auth, 404 and `PageHeader`
+  use that token; leaving it alone is what keeps them untouched.
+- The serif lives in its own token, `--orbit-serif`, declared on
+  `.orbit-feed-view`.
+- **No global `h1`/`h2`/`h3` rule and no `.font-display` override.** Either
+  would leak the face onto non-product routes.
+- Only weight **500** is imported. `500.css` gates each subset by
+  `unicode-range`, so the Hebrew face is the only one fetched for Hebrew copy.
+
+### Hebrew tuning
+
+The serif carries more vertical detail than Heebo, so the sans's tight tracking
+closes its counters: tracking is relaxed (`-0.035em` → `-0.012em`) and leading
+opened (1.15 → 1.22 on the H1, 1.16 → 1.24 on the core). **Type sizes are
+unchanged** — never shrink display type to hide a face swap.
+
+Weight 500 rather than a bolder cut is deliberate: on the near-black canvas a
+heavy serif reads ornamental. The sans/serif split carries the editorial
+identity, not weight.
+
+---
+
+## 7. RTL and responsive rules
+
+**Hebrew-first, RTL-first.** Hard rules:
 
 - `<html lang="he" dir="rtl">` is set in `frontend/index.html`. This is what
-  makes Radix portals (dropdowns/dialogs render into `document.body`) inherit
-  RTL — a div-level `dir` does **not** reach them.
-- **Logical utilities only** in new code: `ms-/me-/ps-/pe-`, `start-/end-`,
-  `text-start/text-end`, `border-s/border-e`, `rounded-s/rounded-e`. **Never**
-  `ml-/mr-/pl-/pr-/left-/right-/text-left/text-right`.
+  makes Radix portals (which render into `document.body`) inherit RTL — a
+  div-level `dir` does **not** reach them.
+- **Logical properties/utilities only**: `inset-inline-*`, `border-inline-*`,
+  `margin-inline`, `padding-inline`, `ms-/me-/ps-/pe-`, `start-/end-`,
+  `text-start/text-end`. **Never** `ml-/mr-/pl-/pr-/left-/right-`.
 - Prefer `gap` over `space-x-*` (the latter needs `space-x-reverse` in RTL).
-- Numbers/times/IDs render LTR inside RTL flow via `MonoValue` (`dir="ltr"`).
-- Directional icons: "forward/next" is `ChevronLeft` in RTL; flip
-  external-link/open glyphs with `rtl:-scale-x-100` where the direction is
-  semantic.
-- Audit before shipping: the tight grep
-  `(?<![\w-])(m[lr]-[0-9]|p[lr]-[0-9]|left-[0-9]|right-[0-9]|space-x-[0-9]|rounded-[lr]-|border-[lr]-|text-(left|right))`
-  over `src` (excluding `ui/`) must return nothing.
+- Wrap LTR runs (source names, English entities) in `<bdi dir="auto">`.
+- Numerals that must read LTR carry `dir="ltr"`.
+- Visual position must never reorder the accessibility tree.
+
+Breakpoints:
+
+| range | layout |
+|---|---|
+| ≥1200 px | field and queue side by side; field is `position: sticky` |
+| 768–1199 px | stacked; queue becomes a two-column grid; field 620 px (solo 520 px) |
+| ≤767 px | single column; field height auto; signal meter becomes a horizontal chip in normal flow |
+
+**Cascade warning.** `orbit.css` declares some base rules *after* their
+modifiers, so a modifier that ties on specificity loses. Three rules
+intentionally repeat their class or restate themselves inside a media query and
+are commented as load-bearing —
+`.orbit-queue-story.orbit-queue-story--<tone> h3`, `.orbit-field--solo` height
+inside `@media (max-width: 1199px)`, and `.orbit-field--solo .orbit-core` inside
+`@media (max-width: 767px)`. Do not "simplify" them; each one silently broke a
+shipped surface when it was a single class.
 
 ---
 
-## 6. Conventions & gotchas
+## 8. Keyboard focus and reduced motion
 
-- **Optional props need defaults.** Destructuring a prop without a default
-  (e.g. `className`) makes checkJs infer it as *required* and flags every call
-  site that omits it — including existing pages. Always default optional props
-  (`className = ""`).
-- **`StatCard` values**: numeric only get the mono/LTR treatment; a Hebrew
-  string value must not be forced LTR (it garbles). `StatCard` detects this.
-- **Frozen layers**: `src/context`, `src/api`, `src/engine`, `src/data` and the
-  entire `backend/` are the contract. UI never modifies them. The `useApp()`
-  surface is the only bridge between pages and data.
-- **Two data modes**: `VITE_DATA_MODE=local` (mock data + JS engine) and
-  `backend` (FastAPI). Every page must work in both; backend-only panels
-  (scheduler/health/benchmark/LLM-QA) render an explanation or hide in local.
-- **shadcn primitives under checkJs** emit type-noise (untyped forwardRef). Only
-  adopt a `ui/*` primitive when it earns its keep; a lightweight inline
-  alternative (e.g. the inline expand in `RelevanceReason` instead of a Radix
-  popover) is often cleaner and avoids the noise.
+Focus is **ref-based**. There are no `document.querySelector` lookups, no
+class-name coupling and no `requestAnimationFrame` chains in the Orbit
+components.
+
+Decisions live as pure functions in `orbitFocusModel.js` (node-tested): focus
+intents per interaction, a scroll policy resolved against the viewport,
+`resolveStoryChange` for a story replaced by a filter, and `isFieldExpanded`.
+
+**Each view focuses its own element on mount** (`useSelfFocus`). Focusing across
+component boundaries is not deterministic here: `AnimatePresence` decides when
+the incoming view mounts, and on collapse the compact core — which owns the
+primary action — is absent for that commit. A parent effect therefore found a
+null ref, dropped the intent, and focus fell to `<body>`. Inside the view the
+ref is attached by definition, so no animation-completion callback or retry is
+needed. Only scrolling stays imperative, because the `<section>` is not
+animated and its position is stable immediately.
+
+Guaranteed transitions, asserted in a real browser under **both** motion
+preferences:
+
+| action | focus lands on |
+|---|---|
+| choose a queue story | that story's core |
+| open a cluster | the close control |
+| switch stories while expanded | previous expansion collapses; focus follows the **new** core |
+| close | the primary action |
+
+**Reduced motion** is honoured through `useReducedMotion`; the enter stagger
+drops to zero and durations shorten. There are **no CSS `animation` declarations
+in `orbit.css`**, so nothing bypasses the preference.
 
 ---
 
-## 7. Bundle
+## 9. Backend authority vs local hydration
 
-Baseline (pre-redesign) JS ≈ 114 kB gz. After the full redesign ≈ 154 kB gz.
-The ~40 kB increase is fonts + the one-time Radix/floating-ui chain from the
-first dropdown adoption; subsequent Radix usage adds little. Base44 leftover
-dependencies (Stripe, three.js, react-leaflet, react-quill, jspdf, html2canvas,
-moment, lodash, …) are still installed and pruning them is a **separate**
-post-redesign cleanup (see the redesign plan §8) — never mixed into a
-visual/product PR.
+Cluster values are **backend-authoritative**. `ClusterCard`
+(`docs/CLUSTERING.md` §9) guarantees `source_count`, `members`,
+`displayed_article_id` and `sort_at` are VISIBLE-only and test-locked
+server-side, and `api/normalizers.js` maps each one directly.
+
+`prepareFeedItems(items, { isBackendMode, localScoredArticles })` owns the split:
+
+- **backend** — items pass through untouched; same array, same object
+  identities. Debug renders the same payload, so the two views cannot disagree.
+- **local/mock** — clusters are hydrated from the scored catalogue, because
+  local clusters carry no `members`.
+
+The render path reads authoritative values too, not just the preparation path:
+
+- `orbitSourceCount(item, reports)` prefers a finite `item.sourceCount` and
+  deduplicates reports only as a local fallback;
+- `orbitStoryTimestamp(item, reports)` prefers `item.lastUpdatedAt`, deriving
+  from reports only as a local/legacy fallback.
+
+`latestReportTimestamp(reports)` is kept separate on purpose: rendering *reads*
+`lastUpdatedAt` while local hydration *calculates* it. Merging them would make
+hydration echo whatever stale value a mock item already carried.
+
+Adversarial tests construct clusters where the backend value and the client
+derivation deliberately disagree, so any fallback for a backend item fails.
+
+---
+
+## 10. Verification
+
+Three layers.
+
+**Unit (node, no jsdom).** `npm test` — the repo deliberately has no
+component-testing stack. Logic that needs testing is extracted into pure modules
+(`orbitStoryModel`, `orbitQueueMotion`, `orbitFocusModel`, `decisionConfig`,
+`feedFilters`, `storyLabels`).
+
+**Hermetic browser harness.** `npm run capture:orbit` drives the real app
+through Chrome over CDP and asserts what the browser *paints*:
+
+- rendered decision signatures stay distinct with a strictly descending type
+  scale (config-level tests cannot catch this — a correct config once rendered
+  at one size because a ranking rule lost the cascade);
+- filtering clears stale cards within 100 ms;
+- the queue is bounded to 40 and "show more" reveals exactly one page;
+- focus transitions land correctly, both motion modes;
+- the fixed dock occludes no control, using `elementFromPoint`;
+- computed font families — serif only where intended, zero serif on `/debug`,
+  `/results`, `/preferences`, `/no-such-route`, and `--font-display` still sans.
+
+**Harness ownership.** The harness reserves a free ephemeral port, captures Vite
+stdout/stderr, refuses a 200 from a dead child, and proves in-page that it is
+the local-data instance (local mode never calls `/api/`). It once "passed"
+against a different application that owned a fixed port;
+`capture-orbit-production.test.mjs` locks that regression. Redirecting routes
+fail the audit explicitly rather than being measured on the wrong page.
+
+Guards against vacuous passes are mandatory: every asserted element must exist,
+and an audit with nothing to measure fails.
+
+---
+
+## 11. Accepted limitations at 320 px
+
+Measured, not assumed; documented rather than hidden:
+
+- **The signal chip may require a small scroll.** At 320×640 there is not enough
+  height for core, action and chip above the fixed dock. The chip is an
+  indicator, not a control. It is fully visible at rest at 390.
+- **The primary action must remain unobstructed** — this one is enforced. It
+  once rested with 28 of its 44 px under the dock; spacing was corrected and
+  `assertDockOcclusion` now fails if it is covered at rest. Clearance is 8 px at
+  320 and 252 px at 390; focusing any story scrolls the field and widens that to
+  245 px.
+- **The field caption renders only its first half** (`הסיפור שמוביל כרגע`,
+  without the source count) at 320. Pre-existing, unrelated to the Orbit
+  typography or layout work.
+- **Auth typography is not reachable** in the hermetic harness: `main.jsx`
+  redirects `/login` and `/signup` away in local/bypass mode, the mode the
+  harness runs. `/no-such-route` exercises the identical `font-display` utility.
+- **`.orbit-feed-empty h2` is implemented but not browser-verified**: it renders
+  only when zero items are visible, which the real corpus cannot produce. No
+  synthetic data path was added to force it.
+
+---
+
+## 12. Component inventory
+
+```
+components/feed/orbit/
+  OrbitFeedView.jsx      heading, filters, queue, focus orchestration
+  OrbitStoryField.jsx    solo + clustered + expanded field, self-owned focus
+  orbit.css              all Orbit styling (scoped, imported by Feed)
+  orbitStoryModel.js     cluster reads, authority resolvers, local hydration
+  orbitQueueMotion.js    bounded stagger + pagination budget
+  orbitFocusModel.js     focus intents, scroll policy, story-change resolution
+components/feed/
+  decisionConfig.js      decision contract: labels, tone, strength, orbit block
+  feedFilters.js         level + topic filtering
+  storyLabels.js         Hebrew kickers, condensed reasoning
+  DeskVoice.jsx          "why you're seeing this", one clamped line
+  FeedbackControls.jsx · SourceMeta.jsx · EditionEmptyState.jsx
+  DecisionBadge.jsx      console affordance (Debug / LLM-QA / Preferences)
+  clusterModel.js        cluster roles for Debug's ClusterEvidence
+components/shell/
+  AppShell · Masthead · MobileNav · ProductNav · OpsNav · Atmosphere ·
+  OpsGrid · SignalMark
+```
+
+`EditionEmptyState` keeps its legacy name but is live — it is the consumer
+feed's zero-items state. The Edition-era story species (`LeadStory`,
+`BulletinStrip`, `EditorialTier`, `StreamRow`, `BriefsDigest`, `SignalBoard`,
+`SignalSpectrum`, `TopicFilters`, `SectionHeading`, `EditionHeader`,
+`EditionSkeleton`, `ClusterSources`, `editionComposer`, `motionPresets`) were
+removed when Orbit shipped.
+
+---
+
+## 13. Engineering rules
+
+1. **Components render; models decide.** Anything worth testing goes in a pure
+   module beside the component.
+2. **Never trust source CSS for a visual guarantee.** If it matters, assert the
+   computed value in the harness.
+3. **No DOM queries for focus or identity.** Use refs; focus from inside the
+   view that owns the element.
+4. **Backend-authoritative values are read, never re-derived** — in both the
+   preparation and the render path.
+5. **Logical properties only.** RTL is the default, not an adaptation.
+6. **Bounded work.** Anything proportional to feed size (animation, layout,
+   rendered nodes) must be capped.
+7. **Scope new tokens.** Never redefine a shared token to style one surface.

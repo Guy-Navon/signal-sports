@@ -33,3 +33,12 @@ export function groupByDay(games) {
   for (const group of groups) group.games = sortGames(group.games);
   return groups;
 }
+
+// How one day's games lay out. A single-game day must not sit in a two-column
+// row with the other half empty — against the real synced corpus that is the
+// common case rather than an edge case (10 of 20 days hold exactly one game),
+// so it would leave half the page looking broken. Days with more than one game
+// keep the denser two-column grid from `sm` up.
+export function dayGridClass(gameCount) {
+  return gameCount > 1 ? "grid gap-3 sm:grid-cols-2" : "grid gap-3";
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sortGames, groupByDay } from "./resultsGrouping";
+import { sortGames, groupByDay, dayGridClass } from "./resultsGrouping";
 
 const game = (id, startTime) => ({ id, startTime });
 
@@ -30,5 +30,16 @@ describe("groupByDay", () => {
 
   it("returns an empty array for no games", () => {
     expect(groupByDay([])).toEqual([]);
+  });
+});
+
+describe("dayGridClass", () => {
+  it("gives a single-game day the full column so no half-row is left empty", () => {
+    expect(dayGridClass(1)).not.toContain("grid-cols-2");
+  });
+
+  it("keeps two columns from sm up once a day holds more than one game", () => {
+    expect(dayGridClass(2)).toContain("sm:grid-cols-2");
+    expect(dayGridClass(9)).toContain("sm:grid-cols-2");
   });
 });

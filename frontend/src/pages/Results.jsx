@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import EmptyState from "@/components/shared/EmptyState";
 import DayHeading from "@/components/results/DayHeading";
 import ResultCard from "@/components/results/ResultCard";
-import { groupByDay } from "@/components/results/resultsGrouping";
+import { groupByDay, dayGridClass } from "@/components/results/resultsGrouping";
 import { formatDayHeading } from "@/components/results/resultsFormat";
 
 function ResultsSkeleton() {
@@ -109,7 +109,7 @@ export default function Results() {
             <DayHeading count={group.games.length} className="mb-3">
               {formatDayHeading(group.dayKey)}
             </DayHeading>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className={dayGridClass(group.games.length)}>
               {group.games.map((game) => (
                 <ResultCard key={game.id} game={game} />
               ))}

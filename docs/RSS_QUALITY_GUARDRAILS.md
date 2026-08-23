@@ -772,6 +772,80 @@ zero unrelated). Regression tests: `TestMadarFarewellConvergence138`,
 
 ---
 
+## 12. A Grand Slam Win Is a Grand Slam Win (#133, 2026-08-23)
+
+**The defect was a Hebrew/English vocabulary asymmetry, not a missing headline.**
+`grand_slam_winner` required slam context plus a win signal, and that win signal was
+`winner / wins / won / champion` in English but only the VERBS `זוכה / זכה / זכתה` in
+Hebrew. The Hebrew champion NOUN (`אלוף / אלופה / אלופת / אלופות`) was recognised by
+`title_win` alone. So a slam win phrased with the champion noun — the most natural
+Hebrew form — was never even proposed as a slam win and fell through to `title_win`.
+
+Both live Wimbledon-winner articles were stored `title_win / confirmed / very_high`
+and were therefore **`hidden` for Guy**, whose tennis preference is keyed on
+`grand_slam_winner`. This is the product's stated tennis rule failing on the single
+clearest example of it.
+
+**Fix — the same assertion contract `title_win` already had.** `grand_slam_winner`
+becomes assertion-strict, validated by `_has_grand_slam_win_evidence()`: slam context,
+no blockers, and either a win verb **or** a bare champion-noun predicate read through
+the *same* `_has_champion_assertion()` analysis #125 built. The proposal list in
+`classifier.py` gains the Hebrew champion nouns so the case is proposed at all — the
+proposal layer mirrors the validation table (the #138 lesson) and stays high-recall,
+leaving epithet filtering to validation.
+
+**Guards, because the champion noun is the risky half:**
+
+- **Every `title_win` blocker applies** — aspiration, negation/cancellation, candidate,
+  medal placement, death context. A slam is no more won by hoping than a domestic title.
+- **Elimination blockers are new**: early-round vocabulary plus `הודח` / `knocked out` /
+  `eliminated` / `crashes out`. A beaten defending champion is the commonest way a
+  champion noun sits beside a slam name (`"אלופת ווימבלדון הודחה בסיבוב הראשון"`), and
+  without this the extension would turn eliminations into wins. Blocking here lets
+  `early_round_result` — proposed later — claim the article.
+- **`grand_slam_winner` joins `TITLE_LOCAL_EVENT_TYPES`.** Once the champion noun counts
+  as evidence, a champion word in a SUBTITLE is the same epithet trap #125 documented for
+  domestic titles, where the certainty cap alone was already proven insufficient.
+- **Hierarchy decision:** a slam win is **exclusively** `grand_slam_winner`, never also
+  `title_win`. The proposal loop returns the first valid proposal and `grand_slam_winner`
+  is proposed first; `title_win` keeps domestic league/cup titles unchanged.
+
+**Also closed:** only the masculine `זכה` sat in `confirmed_any`, so a woman's slam win
+(`"נוסקובה זכתה בווימבלדון"`) was capped at `probable` and lost `very_high` importance.
+Validity is now assertion-strict, so a rules-sourced slam win is `confirmed` by
+construction — the same reasoning `title_win` already used.
+
+**Real-corpus effect (1,443 articles, deterministic path):** exactly **4** articles
+change, all tennis, zero elsewhere.
+
+| headline | before | after | Guy | Deni |
+|---|---|---|---|---|
+| `סינר שוב אלוף ווימבלדון…` | `title_win/confirmed` | `grand_slam_winner/confirmed` | `hidden` → `high_feed` | `hidden` |
+| `מכסח דשא: יאניק סינר אלוף ווימבלדון…` | `title_win/confirmed` | `grand_slam_winner/confirmed` | `hidden` → `high_feed` | `hidden` |
+| `אלופה בת 21: לינדה נוסקובה זכתה בווימבלדון` | `grand_slam_winner/probable` | `grand_slam_winner/confirmed` | `feed` → `high_feed` | `hidden` |
+| `לינדה נוסקובה זכתה בטורניר ווימבלדון` | `grand_slam_winner/probable` | `grand_slam_winner/confirmed` | `feed` → `high_feed` | `hidden` |
+
+`casual_deni_fan` is unchanged on every tennis article (32 `hidden` before and after).
+Guy's promotion is verified through the decision trace, not the tier:
+`event_affinity / tennis / grand_slam_winner / +2 / source=explicit`, with every
+basketball scope recorded as `no_match`.
+
+**Known adjacent imprecision, deliberately not fixed:** `"אלופת ווימבלדון הודחה בסיבוב
+הראשון"` still validates as `title_win` (the epithet reads as an assertion at the start
+of a headline). It is pre-existing, decision-neutral for both profiles (tennis
+`title_win` is hidden for Guy), and adding elimination blockers to `title_win` risks
+demoting genuine domestic titles reported alongside another team's exit. Recorded rather
+than patched.
+
+Regression tests: `TestGrandSlamChampionNoun`, `TestGrandSlamWinnerIsTitleLocal` in
+`tests/test_event_evidence.py` — the two reported articles verbatim, both win-verb
+genders, and six adversarial neighbours that must NOT become slam wins.
+
+**Stored rows are unchanged.** A classifier change affects future ingestion only;
+correcting the four existing rows is a `POST /api/classify/backfill` decision.
+
+---
+
 ## Next Steps
 
 - **Re-run LLM gating benchmark** — Quality fixes on branch `feature/selective-llm-gating` are now in place. Re-run the benchmark from the Sources page to measure skip rate and quality after fixes.

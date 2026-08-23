@@ -250,3 +250,121 @@ class TestMedalPlacementIsNotTitleWin:
 
     def test_plain_championship_win_still_valid(self):
         assert validate_event_evidence("title_win", "מכבי זכתה באליפות המדינה").valid
+
+
+class TestGrandSlamChampionNoun:
+    """#133: a Grand Slam win must reach `grand_slam_winner`, not `title_win`.
+
+    The slam rule accepted only win VERBS (זכה/זכתה/זוכה) plus the ENGLISH
+    "champion"; the Hebrew champion NOUN was recognised by title_win alone. So
+    the clearest possible slam headline — "סינר אלוף ווימבלדון" — was claimed by
+    title_win and never reached a tennis preference keyed on grand_slam_winner.
+    """
+
+    # ── The reported articles (verbatim from the live corpus) ─────────────────
+    def test_champion_noun_slam_headline_is_grand_slam_winner(self):
+        ev = validate_event_evidence(
+            "grand_slam_winner",
+            "מכסח דשא: יאניק סינר אלוף ווימבלדון בפעם השנייה ברציפות",
+            sport="tennis",
+        )
+        assert ev.valid and ev.event_type == "grand_slam_winner"
+        assert ev.certainty == "confirmed"
+
+    def test_defended_title_slam_headline_is_grand_slam_winner(self):
+        ev = validate_event_evidence(
+            "grand_slam_winner",
+            "סינר שוב אלוף ווימבלדון: ניצח את זברב והגן על התואר",
+            sport="tennis",
+        )
+        assert ev.valid and ev.event_type == "grand_slam_winner"
+
+    def test_classifier_end_to_end_prefers_grand_slam_over_title_win(self):
+        article = classify(
+            "מכסח דשא: יאניק סינר אלוף ווימבלדון בפעם השנייה ברציפות",
+            source_id="walla_sport",
+            language="he",
+            source_sport_hint="tennis",
+        )
+        assert article.event_type == "grand_slam_winner"
+
+    # ── The win VERB path must keep working, both genders ────────────────────
+    def test_masculine_win_verb_still_valid(self):
+        assert validate_event_evidence(
+            "grand_slam_winner",
+            "גראנד סלאם 5 בקריירה: יאניק סינר זכה בטורניר וימבלדון",
+            sport="tennis",
+        ).valid
+
+    def test_feminine_win_verb_is_confirmed_not_merely_probable(self):
+        # Only the masculine זכה sat in confirmed_any, so a woman's slam win was
+        # capped at `probable` and lost very_high importance.
+        ev = validate_event_evidence(
+            "grand_slam_winner", "אלופה בת 21: לינדה נוסקובה זכתה בווימבלדון",
+            sport="tennis",
+        )
+        assert ev.valid and ev.certainty == "confirmed"
+
+    # ── Adversarial neighbours: none of these may become a slam win ──────────
+    def test_early_round_result_is_not_promoted(self):
+        assert not validate_event_evidence(
+            "grand_slam_winner",
+            "וימבלדון: אלקאראז מתקדם לסיבוב שלישי לאחר ניצחון קל",
+            sport="tennis",
+        ).valid
+
+    def test_eliminated_defending_champion_is_not_a_slam_win(self):
+        # The commonest way a champion noun sits beside a slam name.
+        assert not validate_event_evidence(
+            "grand_slam_winner", "אלופת ווימבלדון הודחה בסיבוב הראשון", sport="tennis"
+        ).valid
+
+    def test_champion_noun_as_epithet_is_not_a_slam_win(self):
+        assert not validate_event_evidence(
+            "grand_slam_winner",
+            "מול אלופת ווימבלדון: הישראלית מקווה להפתיע",
+            sport="tennis",
+        ).valid
+
+    def test_role_holder_champion_noun_is_not_a_slam_win(self):
+        assert not validate_event_evidence(
+            "grand_slam_winner", "המאמן של אלוף ווימבלדון מדבר על העונה", sport="tennis"
+        ).valid
+
+    def test_aspiration_is_not_a_slam_win(self):
+        assert not validate_event_evidence(
+            "grand_slam_winner",
+            'אלקראס חולם על ווימבלדון: "זה התואר שאני הכי רוצה"',
+            sport="tennis",
+        ).valid
+
+    def test_slam_win_stays_tennis_only(self):
+        assert not validate_event_evidence(
+            "grand_slam_winner", "מכבי אלופת ווימבלדון", sport="basketball"
+        ).valid
+
+    # ── title_win must keep its own domain ───────────────────────────────────
+    def test_domestic_title_is_still_title_win(self):
+        article = classify(
+            "מכבי תל אביב אלופת הליגה",
+            source_id="walla_sport",
+            language="he",
+            source_sport_hint="basketball",
+        )
+        assert article.event_type == "title_win"
+
+    def test_world_cup_crowning_is_still_title_win(self):
+        assert validate_event_evidence(
+            "title_win", "ספרד הוכתרה לאלופת העולם", sport="football"
+        ).valid
+
+
+class TestGrandSlamWinnerIsTitleLocal:
+    """#133: a champion noun in a SUBTITLE is an epithet, exactly as #125 found
+    for domestic titles — so the slam win joins the title-local set."""
+
+    def test_grand_slam_winner_is_title_local(self):
+        from app.classification.event_evidence import TITLE_LOCAL_EVENT_TYPES
+
+        assert "grand_slam_winner" in TITLE_LOCAL_EVENT_TYPES
+        assert "title_win" in TITLE_LOCAL_EVENT_TYPES

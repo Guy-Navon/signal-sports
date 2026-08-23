@@ -569,7 +569,15 @@ _GRAND_SLAM_KW = (
     "us open",
     "australian open", "אליפות אוסטרליה",
 )
-_GRAND_SLAM_WIN_KW = ("winner", "wins", "won", "champion", "זוכה", "זכה", "זכתה")
+# Hebrew champion NOUNS are included here (#133) so a slam win phrased "סינר אלוף
+# ווימבלדון" is PROPOSED at all — the proposal list must mirror the validation
+# table (the #138 lesson). This layer is deliberately high-recall: the epithet /
+# elimination / aspiration filtering is validation's job
+# (`_has_grand_slam_win_evidence`), not this tuple's.
+_GRAND_SLAM_WIN_KW = (
+    "winner", "wins", "won", "champion", "זוכה", "זכה", "זכתה",
+    "אלוף", "אלופה", "אלופת", "אלופות",
+)
 
 _SIGNING_KW = (
     "חתם", "חתמה", "חתמו", "החתים", "חתימה",

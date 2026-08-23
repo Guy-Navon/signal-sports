@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { BarChart2, AlertTriangle, SlidersHorizontal, RefreshCw } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import EmptyState from "@/components/shared/EmptyState";
-import SectionHeading from "@/components/feed/SectionHeading";
+import DayHeading from "@/components/results/DayHeading";
 import ResultCard from "@/components/results/ResultCard";
 import { groupByDay } from "@/components/results/resultsGrouping";
 import { formatDayHeading } from "@/components/results/resultsFormat";
@@ -106,9 +106,9 @@ export default function Results() {
       <div className="space-y-8">
         {groups.map((group) => (
           <section key={group.dayKey ?? "undated"} aria-label={formatDayHeading(group.dayKey)}>
-            <SectionHeading count={group.games.length} className="mb-3">
+            <DayHeading count={group.games.length} className="mb-3">
               {formatDayHeading(group.dayKey)}
-            </SectionHeading>
+            </DayHeading>
             <div className="grid gap-3 sm:grid-cols-2">
               {group.games.map((game) => (
                 <ResultCard key={game.id} game={game} />

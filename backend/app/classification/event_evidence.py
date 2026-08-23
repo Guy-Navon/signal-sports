@@ -375,6 +375,58 @@ def _has_champion_assertion(text: str) -> bool:
     return False
 
 
+# ── Grand Slam win evidence (#133) ────────────────────────────────────────────
+# The slam rule originally accepted only win VERBS (זכה/זכתה/זוכה) plus the
+# ENGLISH "champion". The Hebrew champion NOUN was missing on the slam side while
+# title_win already recognised it — so "יאניק סינר אלוף ווימבלדון", the clearest
+# possible Grand Slam headline, was claimed by title_win and never reached a
+# tennis preference keyed on grand_slam_winner. The gap was a Hebrew/English
+# vocabulary asymmetry, not a missing headline.
+#
+# The champion noun is read through the SAME assertion/epithet analysis title_win
+# uses (`_has_champion_assertion`), so a reigning-champion epithet — "מול אלופת
+# ווימבלדון", "מאמן אלופת אוסטרליה" — still does not assert that anyone just won.
+_GRAND_SLAM_CONTEXT = (
+    phrase("grand slam"), phrase("גראנד סלאם"),
+    phrase("roland garros"), phrase("רולאן גארוס"), phrase("french open"),
+    phrase("wimbledon"), phrase("וימבלדון"),
+    phrase("us open"),
+    phrase("australian open"), phrase("אליפות אוסטרליה"),
+)
+_GRAND_SLAM_WIN_VERB = (
+    phrase("winner"), phrase("wins"), phrase("won"), phrase("champion"),
+    phrase("זוכה"), phrase("זכה"), phrase("זכתה"),
+)
+# Being knocked out of a slam is the OPPOSITE of winning it — and a beaten
+# defending champion is the single commonest way a champion noun appears beside a
+# slam name ("אלופת ווימבלדון הודחה בסיבוב הראשון"). Without this, extending the
+# rule to the champion noun would promote eliminations into wins, which is the
+# exact false positive #133 forbids. Early-round vocabulary blocks the slam win
+# outright so `early_round_result` — proposed later — can claim the article.
+_GRAND_SLAM_ELIMINATION = (
+    phrase("סיבוב ראשון"), phrase("סיבוב שני"), phrase("סיבוב שלישי"),
+    phrase("first round"), phrase("second round"), phrase("third round"),
+    phrase("round of 16"), phrase("round of 32"),
+    phrase("הודח"),  # covers הודחה / הודחו
+    phrase("knocked out"), phrase("eliminated"), phrase("crashes out"),
+)
+# A slam win inherits every title_win blocker: an aspired, negated, cancelled,
+# candidate, medal-placement or death-context "win" is no more a Grand Slam than
+# it is a domestic title.
+_GRAND_SLAM_BLOCKERS = _TITLE_WIN_BLOCKERS + _GRAND_SLAM_ELIMINATION
+
+
+def _has_grand_slam_win_evidence(text: str) -> bool:
+    """Slam context plus an actual assertion that someone WON it."""
+    if _has_any(text, _GRAND_SLAM_BLOCKERS):
+        return False
+    if not _has_any(text, _GRAND_SLAM_CONTEXT):
+        return False
+    if _has_any(text, _GRAND_SLAM_WIN_VERB):
+        return True
+    return _has_champion_assertion(text)
+
+
 def _has_title_win_evidence(text: str) -> bool:
     """The full title_win evidence contract: CROWNING or LIFT+TROPHY or ASSERTION or compound.
 
@@ -434,7 +486,12 @@ _SCORE_OR_RESULT_CONTEXT = (
 # "probable" — leaving the event VALID. On the live corpus that loophole let five
 # subtitle-only epithets stand as title wins, while both genuine wins asserted it in the
 # title. Certainty separation was already perfect; it just was not enforced.
-TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset({"title_win"})
+# grand_slam_winner joins title_win here (#133). Once the champion NOUN counts as
+# slam-win evidence, a champion word sitting in a SUBTITLE is the same epithet trap
+# #125 documented for domestic titles ("מול אלופת ווימבלדון" under a match report),
+# and the certainty cap alone was already proven insufficient there. A slam win is
+# asserted in the title or it is not that event.
+TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset({"title_win", "grand_slam_winner"})
 
 
 EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
@@ -489,20 +546,13 @@ EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
         blockers=_TITLE_WIN_BLOCKERS,
         confirmed_any=(hword("גמר"), phrase("finals"), phrase("championship game")),
     ),
+    # Assertion-strict like title_win (#133) — required_any is replaced by the
+    # custom check in validate_event_evidence; this entry exists so the event
+    # type is known to the table and carries its blockers.
     "grand_slam_winner": EventEvidenceRule(
-        required_any=(
-            (
-                phrase("grand slam"), phrase("גראנד סלאם"), phrase("roland garros"),
-                phrase("רולאן גארוס"), phrase("french open"), phrase("wimbledon"),
-                phrase("וימבלדון"), phrase("us open"), phrase("australian open"),
-                phrase("אליפות אוסטרליה"),
-            ),
-            (
-                phrase("winner"), phrase("wins"), phrase("won"),
-                phrase("champion"), phrase("זוכה"), phrase("זכה"), phrase("זכתה"),
-            ),
-        ),
-        confirmed_any=(phrase("winner"), phrase("champion"), phrase("זוכה"), phrase("זכה")),
+        required_any=((),),
+        blockers=_GRAND_SLAM_BLOCKERS,
+        confirmed_any=_GRAND_SLAM_WIN_VERB,
     ),
     "playoff_result": EventEvidenceRule(
         required_any=((phrase("פלייאוף"), phrase("playoffs"), phrase("playoff")),),
@@ -563,6 +613,20 @@ def validate_event_evidence(
     rule = EVENT_EVIDENCE_RULES.get(event_type)
     if rule is None:
         return EventEvidence("news", False, "confirmed")
+
+    if event_type == "grand_slam_winner":
+        # Same assertion semantics as title_win (#133): slam context plus a real
+        # win assertion — a win verb or a bare champion-noun predicate — never a
+        # champion epithet, an elimination, or an aspiration.
+        if not _has_grand_slam_win_evidence(normalized):
+            return EventEvidence("news", False, "confirmed")
+        # Validity is assertion-strict, so a rules-sourced slam win is confirmed
+        # by construction; LLM proposals stay weak per contract. This also closes
+        # the feminine-verb gap that left "נוסקובה זכתה בווימבלדון" merely
+        # `probable` because only the masculine זכה sat in confirmed_any.
+        return EventEvidence(
+            "grand_slam_winner", True, "weak" if source == "llm" else "confirmed"
+        )
 
     if event_type == "title_win":
         # Assertion semantics (issue #60): champion-noun assertion, trophy

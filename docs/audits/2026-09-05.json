@@ -187,7 +187,7 @@
       "title": "חיבור API ישיר איבד cookies ופרטי שגיאה",
       "before": "fetch לא כלל credentials עבור כתובת API אחרת; CORS לא התיר credentials ו־CSRF דחה גם same-site ממקור מורשה. קריאת JSON כושלת צרכה את גוף התשובה לפני ניסיון לקרוא טקסט.",
       "after": "בקשות כוללות credentials; CORS מתיר אותן רק ברשימת המקורות הקיימת; same-site מתקבל רק עם Origin מורשה. JSON נקרא מעותק, וטקסט שגיאה ופרטי validation נשמרים. cross-site עדיין נדחה.",
-      "evidence": "נבדקו אפשרות same-site מקומית מורשית, דחיית Origin חסר/זר, credentials ב־fetch ושגיאת proxy טקסטואלית. same-origin נשאר ברירת המחדל; אין תמיכה כללית בדומיינים שונים.",
+      "evidence": "נבדקו אפשרות same-site מקומית מורשית, דחיית Origin חסר/זר, credentials ב־fetch ושגיאת proxy טקסטואלית. same-origin נשאר ברירת המחדל; אין תמיכה כללית בדומיינים שונים. הוחלט לשמר: פריסה מופרדת היא הכיוון המתוכנן, ולכן המסלול נדרש. ההשלמה החסרה לכך מתועדת ב־N07.",
       "files": [
         "frontend/src/api/client.js",
         "frontend/src/api/client.test.js",
@@ -422,6 +422,20 @@
       "files": [
         "backend/tests/test_authz_inventory.py",
         "backend/requirements.txt"
+      ]
+    },
+    {
+      "id": "N07",
+      "severity": "medium",
+      "status": "next",
+      "title": "לפני פריסה מופרדת: רשימת המקורות מפוצלת לשני מקומות",
+      "before": "csrf_allowed_origins נקרא מ־CSRF_ALLOWED_ORIGINS עם ברירת מחדל של פורטי פיתוח, אבל allow_origins של CORS ב־main.py מקובע בקוד ואין לו override. F10 הופך את המסלול הזה לרלוונטי: כשה־frontend יישב בדומיין נפרד, ה־CSRF יקבל את המקור החדש וה־CORS ידחה אותו, והכשל ייראה כמו תקלת רשת בדפדפן. שתי הרשימות יכולות להיפרד בלי ששום בדיקה תתלונן.",
+      "after": "לאחד למקור אמת אחד שנקרא מהסביבה, ולהחליט במפורש מה ברירת המחדל בפרודקשן — כרגע היא רשימת localhost. להוסיף בדיקה שמאמתת שהמקורות ש־CSRF מתיר הם בדיוק אלה ש־CORS מתיר, כדי שהפיצול לא יחזור.",
+      "evidence": "נסקר config.py ו־main.py. לא נבדקה פריסה מופרדת בפועל, ולכן זו הערכה מקוד ולא ממדידה. לא חוסם את המצב הנוכחי, שבו הפרונט מגיע same-origin דרך proxy.",
+      "files": [
+        "backend/app/main.py",
+        "backend/app/core/config.py",
+        "backend/app/core/csrf.py"
       ]
     }
   ],

@@ -123,18 +123,23 @@ class TelegramSender:
             body = r.json()
         except ValueError:
             body = {}
+        if not isinstance(body, dict):
+            body = {}
 
-        if r.status_code == 200 and body.get("ok"):
-            mid = str(body.get("result", {}).get("message_id", "")) or None
-            return SendResult(SENT, message_id=mid)
+        if r.status_code == 200 and body.get("ok") is True:
+            result = body.get("result")
+            mid = result.get("message_id") if isinstance(result, dict) else None
+            if isinstance(mid, int) and not isinstance(mid, bool) and mid > 0:
+                return SendResult(SENT, message_id=str(mid))
+            return SendResult(UNKNOWN, error_class="invalid_confirmation")
 
         # Explicit provider rejection — proven non-delivery.
-        description = str(body.get("description", ""))[:120]
+        # Provider descriptions can echo credentials. Persist only the status.
         if r.status_code in (400, 401, 403, 404):
             # bad request / bad token / bot blocked / bad chat: retrying cannot help.
             return SendResult(FAILED_FINAL,
-                              error_class=f"http_{r.status_code}:{description}")
+                              error_class=f"http_{r.status_code}")
         if r.status_code == 429 or r.status_code >= 500:
             return SendResult(FAILED_RETRYABLE,
-                              error_class=f"http_{r.status_code}:{description}")
+                              error_class=f"http_{r.status_code}")
         return SendResult(UNKNOWN, error_class=f"http_{r.status_code}")

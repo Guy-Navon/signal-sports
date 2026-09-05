@@ -70,7 +70,7 @@ def cleanup_articles(session: Session, dry_run: bool = False) -> dict:
               - timedelta(days=retention_days())).isoformat()
 
     candidates = {r[0] for r in session.execute(text(
-        "SELECT id FROM articles WHERE id LIKE 'rss_%' AND published_at < :cutoff"
+        "SELECT id FROM articles WHERE id LIKE 'rss!_%' ESCAPE '!' AND published_at < :cutoff"
     ), {"cutoff": cutoff}).fetchall()}
 
     # Protection 2: a cluster with ANY in-window member protects ALL its members.

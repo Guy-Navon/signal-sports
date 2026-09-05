@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, event, text
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import sessionmaker, Session
 from app.db.orm_models import Base
 
@@ -76,12 +76,20 @@ def _apply_migrations(eng) -> None:
         ("ingestion_runs", "cycle_id",            "TEXT"),
     ]
     with eng.connect() as conn:
+        if eng.dialect.name == "sqlite":
+            # API and worker may start together: serialize inspection + ALTER.
+            conn.exec_driver_sql("BEGIN IMMEDIATE")
+        # Inspect existing columns instead of treating every database error as
+        # "already exists". Lock, permission and SQL failures must stop startup.
+        columns = {}
         for table, col, col_type in migrations:
-            try:
-                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
-                conn.commit()
-            except Exception:
-                pass  # Column already exists — safe to ignore
+            if table not in columns:
+                columns[table] = {c["name"] for c in inspect(conn).get_columns(table)}
+            if col in columns[table]:
+                continue
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
+            columns[table].add(col)
+        conn.commit()
 
 
 def init_db() -> None:

@@ -38,13 +38,17 @@ Tests: `.venv\Scripts\python -m pytest tests/ -v`
 
 See [backend/README.md](backend/README.md) for full details.
 
+## Repository audit
+
+The September 2026 repair branch is documented in [the audit report](docs/audits/2026-09-05.md), with a standalone [interactive Hebrew report](docs/audits/2026-09-05.html).
+
 ## Docs
 
 Start here for orientation (any agent picking up the project cold):
 
 - [CURRENT_PROJECT_STATE.md](docs/CURRENT_PROJECT_STATE.md) — **the authoritative, up-to-date summary**; §13 is a self-sufficient handoff prompt
 - [RELEVANCE_CONTRACT.md](docs/RELEVANCE_CONTRACT.md) — umbrella contract for the intelligence pipeline (FACTS → VISIBILITY → PREFERENCE → LEARNING)
-- [USER_PLATFORM.md](docs/USER_PLATFORM.md) — **active milestone**: accounts, auth, onboarding, per-user isolation — approved architecture, not yet implemented (Epic #48, issues #49–#55)
+- [USER_PLATFORM.md](docs/USER_PLATFORM.md) — implemented accounts, auth, onboarding and per-user isolation; architecture and API contract (Epic #48, issues #49–#55)
 
 Reference:
 

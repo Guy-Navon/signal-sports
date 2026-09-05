@@ -1,5 +1,7 @@
 # Signal Sports — Product Context for Claude
 
+> Historical prototype brief: the “current” priorities and implementation restrictions below describe the original Base44 phase. For implemented behavior, read `docs/CURRENT_PROJECT_STATE.md`; for the September 2026 repair branch, read `docs/audits/2026-09-05.md`. Auth, the backend, ingestion, clustering and results already exist. Retain the product principles below without treating the old status claims as current.
+
 ## What This Project Is
 
 Signal Sports is intended to become a personalized sports news intelligence feed.

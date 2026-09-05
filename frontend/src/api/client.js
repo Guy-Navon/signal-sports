@@ -17,7 +17,7 @@ function emitAuthExpired(path) {
 async function apiFetch(path, options = {}) {
   let res;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, options);
+    res = await fetch(`${API_BASE_URL}${path}`, { credentials: "include", ...options });
   } catch (err) {
     throw new Error(`Cannot reach backend at ${API_BASE_URL}${path}: ${err.message}`);
   }
@@ -27,8 +27,8 @@ async function apiFetch(path, options = {}) {
   if (!res.ok) {
     let detail = "";
     try {
-      const body = await res.json();
-      detail = body.detail || JSON.stringify(body);
+      const body = await res.clone().json();
+      detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail ?? body);
     } catch {
       detail = await res.text().catch(() => "");
     }
@@ -165,6 +165,7 @@ export function getClassifyStatus() {
   return apiFetch("/api/classify/status");
 }
 
+/** @param {{sourceId?: string, limit?: number, dryRun?: boolean, force?: boolean}} options */
 export function classifyBackfill({ sourceId, limit, dryRun = false, force = false } = {}) {
   const params = new URLSearchParams();
   if (sourceId) params.set("source_id", sourceId);

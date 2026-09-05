@@ -67,15 +67,15 @@ export default function NotificationsPanel({ isBackendMode }) {
     <SectionCard
       title="התראות טלגרם (פיילוט)"
       icon={Bell}
-      action={
-        <button type="button" onClick={load} className={consoleButton}
+      actions={
+        <button type="button" onClick={load} className={consoleButton("ghost")}
                 data-testid="notifications-refresh">
           <RefreshCw className="w-3.5 h-3.5" />
           רענון
         </button>
       }
     >
-      {error && <div className={consoleAlert}>{error}</div>}
+      {error && <div className={consoleAlert("error")}>{error}</div>}
 
       {health && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm" data-testid="notifications-health">
@@ -106,7 +106,7 @@ export default function NotificationsPanel({ isBackendMode }) {
       )}
 
       {unknownEvents.length > 0 && (
-        <div className={`${consoleAlert} flex items-start gap-2`} data-testid="unknown-review">
+        <div className={consoleAlert("warn")} data-testid="unknown-review">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <div>
             <div className="font-semibold">דורש בדיקה ידנית ({unknownEvents.length})</div>

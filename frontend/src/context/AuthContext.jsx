@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -30,6 +31,8 @@ export function AuthProvider({ children }) {
   const isBackendMode = DATA_MODE === "backend";
   const [bootstrap, setBootstrap] = useState(null);
   const [bootstrapped, setBootstrapped] = useState(!isBackendMode);
+  const [bootstrapError, setBootstrapError] = useState(false);
+  const sessionRequest = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,17 +44,21 @@ export function AuthProvider({ children }) {
 
   const refreshSession = useCallback(async () => {
     if (!isBackendMode) return null;
+    const requestId = ++sessionRequest.current;
     try {
       const payload = await getAuthSession();
+      if (requestId !== sessionRequest.current) return null;
       setBootstrap(payload);
+      setBootstrapError(false);
       return payload;
     } catch {
-      // Backend unreachable: fall back to the pre-auth UI; page-level error
-      // states already surface connectivity problems.
-      setBootstrap({ auth_enforced: false, user: null, onboarding: null });
+      if (requestId !== sessionRequest.current) return null;
+      // Connectivity failure is not permission to enter the bypass UI.
+      setBootstrap({ auth_enforced: true, user: null, onboarding: null });
+      setBootstrapError(true);
       return null;
     } finally {
-      setBootstrapped(true);
+      if (requestId === sessionRequest.current) setBootstrapped(true);
     }
   }, [isBackendMode]);
 
@@ -63,6 +70,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!isBackendMode) return undefined;
     const onExpired = () => {
+      sessionRequest.current += 1;
       setBootstrap((prev) =>
         prev && prev.auth_enforced
           ? { ...prev, user: null, onboarding: null }
@@ -118,6 +126,14 @@ export function AuthProvider({ children }) {
     [view, login, signup, logout, refreshSession],
   );
 
+  if (bootstrapError) {
+    return (
+      <main dir="rtl" className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
+        <p role="alert">לא ניתן להתחבר לשרת. נסו שוב בעוד רגע.</p>
+        <button type="button" onClick={refreshSession} className="underline">ניסיון נוסף</button>
+      </main>
+    );
+  }
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

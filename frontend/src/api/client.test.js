@@ -15,12 +15,7 @@ function mockFetchSuccess(data) {
 }
 
 function mockFetchHttpError(status, detail) {
-  return vi.fn().mockResolvedValue({
-    ok: false,
-    status,
-    json: () => Promise.resolve({ detail }),
-    text: () => Promise.resolve(detail),
-  });
+  return vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail }), { status }));
 }
 
 function mockFetchNetworkError(message) {
@@ -54,7 +49,7 @@ describe("API_BASE_URL", () => {
     const { getProfiles } = await import("./client");
     await getProfiles();
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/profiles", {});
+    expect(mockFetch).toHaveBeenCalledWith("/api/profiles", { credentials: "include" });
   });
 
   it("uses the explicit override when VITE_API_BASE_URL is set", async () => {
@@ -66,13 +61,23 @@ describe("API_BASE_URL", () => {
     const { getProfiles } = await import("./client");
     await getProfiles();
 
-    expect(mockFetch).toHaveBeenCalledWith("http://127.0.0.1:8000/api/profiles", {});
+    expect(mockFetch).toHaveBeenCalledWith("http://127.0.0.1:8000/api/profiles", { credentials: "include" });
   });
 });
 
 // ── Health check ──────────────────────────────────────────────────────────────
 
 describe("getHealth", () => {
+  it("preserves a plain-text proxy error after JSON parsing fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("upstream unavailable", { status: 502 })));
+    await expect(getHealth()).rejects.toThrow("upstream unavailable");
+  });
+
+  it("serializes structured validation details", async () => {
+    vi.stubGlobal("fetch", mockFetchHttpError(422, [{ msg: "invalid input" }]));
+    await expect(getHealth()).rejects.toThrow("invalid input");
+  });
+
   it("returns parsed JSON on success", async () => {
     vi.stubGlobal("fetch", mockFetchSuccess({ status: "ok" }));
     const result = await getHealth();

@@ -75,7 +75,7 @@ def markdown(data, rows):
     lines += ["## תחזוקת הדוח", "", "מקור התוכן הוא קובץ ה־JSON. ליצירה חוזרת:", "",
               "```powershell", "python scripts/generate_audit_report.py", "```", "",
               "הדוח הוא קובץ HTML עצמאי: אין צורך בשרת, בתוספים או בחיבור חיצוני. אפשר לחפש, לסנן, לפתוח פרטים ולהדפיס ל־PDF. ה־CSV הוא מיפוי סטטי, לא כיסוי שורות ולא אישור שכל קובץ נסקר ידנית.", ""]
-    (OUT / f"{STEM}.md").write_text("\n".join(lines), encoding="utf-8")
+    (OUT / f"{STEM}.md").write_text("\n".join(lines), encoding="utf-8", newline="")
 
 
 def webpage(data, rows):
@@ -141,7 +141,10 @@ let printState=[];window.addEventListener('beforeprint',()=>{printState=cards.ma
                        "SCOPE": e(data["scope"]), "BOUNDARIES": boundaries, "CARDS": "".join(cards),
                        "CHECKS": checks, "ROADMAP": roadmap}.items():
         page = page.replace(f"__{key}__", value)
-    (OUT / f"{STEM}.html").write_text(page, encoding="utf-8")
+    # newline="" keeps the LF above verbatim. Without it Python translates
+    # to CRLF on Windows, which .gitattributes then normalises back — so a
+    # plain regenerate would always dirty the tree.
+    (OUT / f"{STEM}.html").write_text(page, encoding="utf-8", newline="")
 
 
 def main():

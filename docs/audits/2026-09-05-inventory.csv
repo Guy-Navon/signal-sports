@@ -452,4 +452,4 @@ frontend/src/pages/llmQaHelpers.test.js,416,static inventory; lint/build scope c
 frontend/src/utils/index.ts,3,static inventory; lint/build scope configured separately,,
 frontend/tailwind.config.js,157,static inventory; lint/build scope configured separately,,
 frontend/vite.config.js,25,static inventory; lint/build scope configured separately,,
-scripts/generate_audit_report.py,156,Python AST parsed,4,0
+scripts/generate_audit_report.py,159,Python AST parsed,4,0

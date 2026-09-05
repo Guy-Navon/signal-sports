@@ -72,8 +72,6 @@ export const PARTICIPANT_INFERENCE_EXCLUDED_EVENTS = new Set(["friendly_match"])
 export function scoreArticle(article, profile, options = {}) {
   const { disabledSourceIds = new Set() } = options;
   const reasoning = [];
-  let matchedTopic = null;
-  let matchedRule = null;
 
   reasoning.push(`פרופיל: ${profile.displayName}`);
 
@@ -116,7 +114,6 @@ export function scoreArticle(article, profile, options = {}) {
   let bestTopicReasoning = [];
 
   for (const { topic, matchReason, matchKind } of matchingTopics) {
-    // eslint-disable-next-line prefer-const
     let { topicDecision, topicRule, topicReasoning } = scoreAgainstTopic(article, topic, profile, matchReason);
     if (matchKind === "membership" && DECISION_RANK[topicDecision] > DECISION_RANK.feed) {
       // Membership-derived reach with no independent entity backing is one tier
@@ -379,7 +376,8 @@ function applyEntityBoost(decision, reasoning) {
  */
 function applyImportanceBoost(decision, importance, reasoning) {
   const ranks = ["hidden", "low_feed", "feed", "high_feed", "push"];
-  const PUSH_RANK = 4;
+  // No PUSH_RANK constant on purpose: the boost caps at HIGH_FEED_RANK because
+  // push is never reachable automatically — only an explicit rule grants it.
   const HIGH_FEED_RANK = 3;
 
   if (importance === "very_high" && DECISION_RANK[decision] > 0) {
@@ -454,6 +452,7 @@ function participantInferredCompetition(article) {
     ? teamMembershipsForEntityIds(article.entityIds || [])
     : teamMembershipsForLegacyNames(article.entities || []);
   if (teams.size < 2) return null;
+  /** @type {Set<string> | null} */
   let shared = null;
   for (const memberships of teams.values()) {
     const set = new Set(memberships);

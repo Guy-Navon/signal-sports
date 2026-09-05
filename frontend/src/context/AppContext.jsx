@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from "react";
 import { userProfiles } from "@/data/userProfiles";
 import { mockArticles, mockClusters } from "@/data/mockArticles";
 import { feedSources } from "@/data/feedSources";
 import { scoreAllArticles, scoreCluster, scoreArticle, DECISION_RANK } from "@/engine/relevanceEngine";
 import {
-  getProfiles, getFeed, getDebugFeed, submitFeedback, getCalibrationHeadlines, neverShow,
+  getProfiles, getFeed, getDebugFeed, submitFeedback, neverShow,
   getMeFeed, getMeProfile, submitMeFeedback, meNeverShow,
   getMeResults, getResults,
 } from "@/api/client";
@@ -24,7 +24,6 @@ export const SANDBOX_PROFILE_ID = "calibrated_sandbox";
 import {
   normalizeProfileFromApi,
   normalizeScoredArticleFromApi,
-  normalizeCalibrationHeadlineFromApi,
 } from "@/api/normalizers";
 
 const DATA_MODE = import.meta.env.VITE_DATA_MODE || "local";
@@ -42,6 +41,13 @@ const BACKEND_VALID_ACTIONS = new Set([
 ]);
 
 export function AppProvider({ children }) {
+  const auth = useAuth();
+  // Personal data and outstanding requests belong to one session identity.
+  // Remount on login/logout/account switch so previous-user state cannot leak.
+  return <AppStateProvider key={`${auth.authEnforced}:${auth.user?.id ?? "anonymous"}`}>{children}</AppStateProvider>;
+}
+
+function AppStateProvider({ children }) {
   const isBackendMode = DATA_MODE === "backend";
 
   // Consumer/QA split (User Platform PR 5, #53). Under real enforcement with
@@ -64,12 +70,14 @@ export function AppProvider({ children }) {
   // Non-admin consumer sessions never get this — canFetchQaSurface is false
   // for them, so this is precisely the admin case.
   const adminViewAs = consumerSession && qaSurfaceAllowed;
+  const feedbackUsesSession = consumerSession && !adminViewAs;
 
   // The session user's own profile (product surface under enforcement).
   const [meProfile, setMeProfile] = useState(null);
 
   // ── Local state (used in both modes) ────────────────────────────────────────
   const [activeProfileId, setActiveProfileId] = useState("guy");
+  const feedbackUserId = feedbackUsesSession ? consumerUserId : activeProfileId;
   const [profiles, setProfiles] = useState(userProfiles);
   const [sandboxProfile, setSandboxProfile] = useState(null);
   const [sources, setSources] = useState(feedSources);
@@ -223,7 +231,7 @@ export function AppProvider({ children }) {
       if (rankDiff !== 0) return rankDiff;
       const aDate = new Date(a.publishedAt || a.firstSeenAt);
       const bDate = new Date(b.publishedAt || b.firstSeenAt);
-      return bDate - aDate;
+      return bDate.getTime() - aDate.getTime();
     });
   }, [scoredClusters, scoredArticles, clusteredArticleIds]);
 
@@ -315,18 +323,17 @@ export function AppProvider({ children }) {
     // Track locally always
     const entry = {
       id: `feedback_${Date.now()}`,
-      userId: activeProfileId,
+      userId: feedbackUserId,
       articleId,
       action,
       createdAt: new Date().toISOString(),
     };
     setFeedback(prev => [...prev, entry]);
 
-    // In backend mode, POST to API for supported actions. Consumer sessions
-    // go through /api/me/feedback (server-derived identity, #53); the legacy
-    // body-identity form remains for bypass/QA use only.
+    // Feedback follows the displayed feed identity: regular users use /me;
+    // admin view-as and bypass use the explicit, server-guarded target.
     if (isBackendMode && BACKEND_VALID_ACTIONS.has(action)) {
-      const post = consumerSession
+      const post = feedbackUsesSession
         ? submitMeFeedback(articleId, action)
         : submitFeedback({
             user_id: activeProfileId,
@@ -343,14 +350,14 @@ export function AppProvider({ children }) {
         // Feedback failure is non-fatal; local state already recorded the event
       });
     }
-  }, [activeProfileId, isBackendMode, consumerSession, refreshFeed]);
+  }, [activeProfileId, feedbackUserId, isBackendMode, feedbackUsesSession, refreshFeed]);
 
   // Explicit scoped suppression (issue #34): creates a never_show override
   // for the most specific scope on the article, then refreshes the feed.
   const neverShowArticle = useCallback(async (articleId) => {
     if (!isBackendMode) return;
     try {
-      if (consumerSession) {
+      if (feedbackUsesSession) {
         await meNeverShow(articleId);
         await submitMeFeedback(articleId, "never_show");
       } else {
@@ -365,11 +372,11 @@ export function AppProvider({ children }) {
       // non-fatal
     }
     refreshFeed();
-  }, [activeProfileId, isBackendMode, consumerSession, refreshFeed]);
+  }, [activeProfileId, isBackendMode, feedbackUsesSession, refreshFeed]);
 
   const getFeedbackForArticle = useCallback((articleId) => {
-    return feedback.filter(f => f.userId === activeProfileId && f.articleId === articleId);
-  }, [feedback, activeProfileId]);
+    return feedback.filter(f => f.userId === feedbackUserId && f.articleId === articleId);
+  }, [feedback, feedbackUserId]);
 
   // ── Source toggle ────────────────────────────────────────────────────────────
   const toggleSource = useCallback((sourceId) => {

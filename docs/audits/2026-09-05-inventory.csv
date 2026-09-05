@@ -1,0 +1,455 @@
+﻿path,lines,scan,python_functions,broad_exception_handlers
+backend/app/__init__.py,0,Python AST parsed,0,0
+backend/app/api/__init__.py,0,Python AST parsed,0,0
+backend/app/api/routes_articles.py,23,Python AST parsed,2,0
+backend/app/api/routes_auth.py,215,Python AST parsed,12,0
+backend/app/api/routes_calibration.py,177,Python AST parsed,6,0
+backend/app/api/routes_classify.py,278,Python AST parsed,2,0
+backend/app/api/routes_dev.py,290,Python AST parsed,7,0
+backend/app/api/routes_feed.py,60,Python AST parsed,4,0
+backend/app/api/routes_feedback.py,72,Python AST parsed,2,0
+backend/app/api/routes_health.py,8,Python AST parsed,1,0
+backend/app/api/routes_ingest.py,343,Python AST parsed,11,0
+backend/app/api/routes_learning.py,184,Python AST parsed,4,0
+backend/app/api/routes_me.py,398,Python AST parsed,19,0
+backend/app/api/routes_profiles.py,50,Python AST parsed,3,0
+backend/app/api/routes_results.py,78,Python AST parsed,5,0
+backend/app/api/routes_scheduler.py,331,Python AST parsed,9,0
+backend/app/api/routes_taxonomy.py,170,Python AST parsed,4,0
+backend/app/api/routes_translation.py,224,Python AST parsed,2,1
+backend/app/calibration_v2/__init__.py,13,Python AST parsed,0,0
+backend/app/calibration_v2/dataset.py,537,Python AST parsed,1,0
+backend/app/calibration_v2/inference.py,219,Python AST parsed,5,0
+backend/app/calibration_v2/selection.py,224,Python AST parsed,6,0
+backend/app/classification/__init__.py,0,Python AST parsed,0,0
+backend/app/classification/entity_normalizer.py,89,Python AST parsed,2,0
+backend/app/classification/event_evidence.py,661,Python AST parsed,19,0
+backend/app/classification/facts.py,554,Python AST parsed,9,0
+backend/app/classification/gating.py,140,Python AST parsed,1,0
+backend/app/classification/llm_result.py,14,Python AST parsed,0,0
+backend/app/classification/merge.py,245,Python AST parsed,2,0
+backend/app/classification/prompt.py,54,Python AST parsed,1,0
+backend/app/classification/providers.py,216,Python AST parsed,12,2
+backend/app/classification/service.py,57,Python AST parsed,1,0
+backend/app/classification/source_hints.py,104,Python AST parsed,1,0
+backend/app/classification/sport_guards.py,104,Python AST parsed,5,0
+backend/app/classification/validation.py,115,Python AST parsed,3,0
+backend/app/clustering/__init__.py,38,Python AST parsed,0,0
+backend/app/clustering/anchor_contract.py,119,Python AST parsed,5,0
+backend/app/clustering/anchor_enrichment.py,182,Python AST parsed,9,0
+backend/app/clustering/anchor_normalization.py,77,Python AST parsed,2,0
+backend/app/clustering/anchor_validators.py,309,Python AST parsed,14,3
+backend/app/clustering/anchors.py,509,Python AST parsed,16,2
+backend/app/clustering/candidate_scope.py,132,Python AST parsed,4,0
+backend/app/clustering/claims.py,100,Python AST parsed,3,0
+backend/app/clustering/coherence.py,310,Python AST parsed,9,0
+backend/app/clustering/config.py,192,Python AST parsed,3,0
+backend/app/clustering/contract.py,100,Python AST parsed,1,0
+backend/app/clustering/event_states.py,81,Python AST parsed,5,0
+backend/app/clustering/identity.py,45,Python AST parsed,2,0
+backend/app/clustering/ingest_stage.py,270,Python AST parsed,6,3
+backend/app/clustering/intra_source.py,156,Python AST parsed,2,0
+backend/app/clustering/matcher.py,242,Python AST parsed,10,0
+backend/app/clustering/service.py,103,Python AST parsed,3,0
+backend/app/clustering/tokens.py,204,Python AST parsed,9,0
+backend/app/core/__init__.py,0,Python AST parsed,0,0
+backend/app/core/config.py,40,Python AST parsed,1,0
+backend/app/core/csrf.py,36,Python AST parsed,1,0
+backend/app/core/security_deps.py,96,Python AST parsed,8,0
+backend/app/db/__init__.py,0,Python AST parsed,0,0
+backend/app/db/corpus_protection.py,98,Python AST parsed,4,0
+backend/app/db/database.py,107,Python AST parsed,4,0
+backend/app/db/orm_models.py,486,Python AST parsed,0,0
+backend/app/ingestion/__init__.py,0,Python AST parsed,0,0
+backend/app/ingestion/adapters/__init__.py,0,Python AST parsed,0,0
+backend/app/ingestion/adapters/base.py,20,Python AST parsed,1,0
+backend/app/ingestion/adapters/factory.py,33,Python AST parsed,1,0
+backend/app/ingestion/adapters/one_adapter.py,190,Python AST parsed,10,4
+backend/app/ingestion/adapters/rss_adapter.py,88,Python AST parsed,3,1
+backend/app/ingestion/adapters/sport5_adapter.py,235,Python AST parsed,9,3
+backend/app/ingestion/classifier.py,1156,Python AST parsed,30,0
+backend/app/ingestion/config.py,183,Python AST parsed,2,0
+backend/app/ingestion/dedup.py,27,Python AST parsed,2,0
+backend/app/ingestion/ingestion_service.py,684,Python AST parsed,6,2
+backend/app/ingestion/orchestration.py,461,Python AST parsed,19,8
+backend/app/ingestion/retention.py,133,Python AST parsed,3,0
+backend/app/ingestion/run_metrics.py,157,Python AST parsed,4,0
+backend/app/ingestion/source_state.py,32,Python AST parsed,3,0
+backend/app/ingestion/subtitle.py,72,Python AST parsed,2,0
+backend/app/main.py,144,Python AST parsed,4,0
+backend/app/models/__init__.py,0,Python AST parsed,0,0
+backend/app/models/article.py,43,Python AST parsed,0,0
+backend/app/models/benchmark.py,43,Python AST parsed,0,0
+backend/app/models/calibration.py,13,Python AST parsed,0,0
+backend/app/models/feedback.py,26,Python AST parsed,0,0
+backend/app/models/ingestion.py,150,Python AST parsed,0,0
+backend/app/models/profile.py,33,Python AST parsed,0,0
+backend/app/models/profile_v2.py,124,Python AST parsed,4,0
+backend/app/models/scoring.py,64,Python AST parsed,0,0
+backend/app/models/source.py,10,Python AST parsed,0,0
+backend/app/models/translation.py,34,Python AST parsed,0,0
+backend/app/notifications/__init__.py,0,Python AST parsed,0,0
+backend/app/notifications/dispatcher.py,167,Python AST parsed,5,0
+backend/app/notifications/outbox.py,243,Python AST parsed,5,0
+backend/app/notifications/planner.py,186,Python AST parsed,7,0
+backend/app/notifications/telegram.py,145,Python AST parsed,6,1
+backend/app/qa/__init__.py,1,Python AST parsed,0,0
+backend/app/qa/fact_consistency.py,152,Python AST parsed,3,0
+backend/app/repositories/__init__.py,0,Python AST parsed,0,0
+backend/app/repositories/article_repository.py,255,Python AST parsed,13,0
+backend/app/repositories/calibration_repository.py,46,Python AST parsed,5,0
+backend/app/repositories/cluster_repository.py,392,Python AST parsed,14,0
+backend/app/repositories/feedback_repository.py,85,Python AST parsed,7,0
+backend/app/repositories/game_result_repository.py,110,Python AST parsed,7,0
+backend/app/repositories/ingestion_repository.py,81,Python AST parsed,4,0
+backend/app/repositories/profile_repository.py,85,Python AST parsed,8,0
+backend/app/repositories/seed_runner.py,43,Python AST parsed,1,0
+backend/app/repositories/source_override_repository.py,43,Python AST parsed,4,0
+backend/app/repositories/source_repository.py,47,Python AST parsed,6,0
+backend/app/results/__init__.py,5,Python AST parsed,0,0
+backend/app/results/models.py,72,Python AST parsed,2,0
+backend/app/results/normalization.py,77,Python AST parsed,4,0
+backend/app/results/providers/__init__.py,19,Python AST parsed,1,0
+backend/app/results/providers/base.py,31,Python AST parsed,1,0
+backend/app/results/providers/fake.py,103,Python AST parsed,3,0
+backend/app/results/providers/thesportsdb.py,182,Python AST parsed,6,1
+backend/app/results/relevance.py,92,Python AST parsed,4,0
+backend/app/results/service.py,94,Python AST parsed,3,0
+backend/app/results/settings.py,133,Python AST parsed,15,0
+backend/app/results/status.py,75,Python AST parsed,2,0
+backend/app/results/sync_service.py,119,Python AST parsed,5,0
+backend/app/results/team_resolver.py,86,Python AST parsed,6,0
+backend/app/seed/__init__.py,0,Python AST parsed,0,0
+backend/app/seed/seed_articles.py,303,Python AST parsed,2,0
+backend/app/seed/seed_calibration.py,27,Python AST parsed,1,0
+backend/app/seed/seed_profiles.py,428,Python AST parsed,2,0
+backend/app/seed/seed_sources.py,16,Python AST parsed,1,0
+backend/app/services/__init__.py,0,Python AST parsed,0,0
+backend/app/services/article_service.py,10,Python AST parsed,2,0
+backend/app/services/auth_service.py,451,Python AST parsed,30,1
+backend/app/services/calibration_service.py,68,Python AST parsed,4,0
+backend/app/services/cluster_collapse.py,189,Python AST parsed,5,0
+backend/app/services/feed_service.py,73,Python AST parsed,2,0
+backend/app/services/freshness.py,90,Python AST parsed,6,0
+backend/app/services/interests_service.py,228,Python AST parsed,9,0
+backend/app/services/learning_service.py,230,Python AST parsed,5,0
+backend/app/services/preference_engine.py,377,Python AST parsed,11,0
+backend/app/services/profile_service.py,10,Python AST parsed,2,0
+backend/app/services/relevance_engine.py,650,Python AST parsed,19,0
+backend/app/services/shadow_service.py,98,Python AST parsed,2,0
+backend/app/taxonomy/__init__.py,64,Python AST parsed,0,0
+backend/app/taxonomy/competitions.py,53,Python AST parsed,0,0
+backend/app/taxonomy/entities.py,495,Python AST parsed,5,0
+backend/app/taxonomy/export.py,41,Python AST parsed,1,0
+backend/app/taxonomy/integrity.py,74,Python AST parsed,1,0
+backend/app/taxonomy/policy.py,50,Python AST parsed,2,0
+backend/app/taxonomy/resolver.py,170,Python AST parsed,7,0
+backend/app/translation/__init__.py,0,Python AST parsed,0,0
+backend/app/translation/fake_detection.py,24,Python AST parsed,1,0
+backend/app/translation/language_detection.py,127,Python AST parsed,4,0
+backend/app/translation/prompt_builder.py,84,Python AST parsed,1,0
+backend/app/translation/providers.py,96,Python AST parsed,5,1
+backend/app/translation/translation_quality.py,69,Python AST parsed,3,0
+backend/app/translation/translation_service.py,169,Python AST parsed,6,1
+backend/app/worker.py,230,Python AST parsed,9,0
+backend/scripts/anchor_validator_eval.py,293,Python AST parsed,9,0
+backend/scripts/apply_113_corrections.py,88,Python AST parsed,1,0
+backend/scripts/apply_125_corrections.py,143,Python AST parsed,1,0
+backend/scripts/apply_138_corrections.py,95,Python AST parsed,1,0
+backend/scripts/backfill_clusters.py,255,Python AST parsed,3,0
+backend/scripts/backfill_story_anchors.py,141,Python AST parsed,4,0
+backend/scripts/backup_db.py,44,Python AST parsed,1,0
+backend/scripts/calibration_coverage_report.py,60,Python AST parsed,1,0
+backend/scripts/clustering_diagnostics.py,318,Python AST parsed,14,0
+backend/scripts/fact_consistency_report.py,70,Python AST parsed,2,1
+backend/scripts/feed_before_after_124.py,120,Python AST parsed,5,0
+backend/scripts/feed_dedup_eval_124.py,209,Python AST parsed,5,0
+backend/scripts/feed_freshness_qa_m8.py,180,Python AST parsed,6,0
+backend/scripts/generate_taxonomy_export.py,40,Python AST parsed,1,0
+backend/scripts/init_notification_watermark.py,118,Python AST parsed,1,0
+backend/scripts/probe_hebrew_rss.py,71,Python AST parsed,2,1
+backend/scripts/qa_snapshot.py,101,Python AST parsed,3,1
+backend/scripts/reclassify_copy.py,86,Python AST parsed,1,0
+backend/scripts/reset_admin_password.py,81,Python AST parsed,1,0
+backend/scripts/resolve_telegram_chat_id.py,63,Python AST parsed,1,0
+backend/tests/__init__.py,0,Python AST parsed,0,0
+backend/tests/conftest.py,267,Python AST parsed,12,0
+backend/tests/test_acceptance_journey.py,153,Python AST parsed,5,0
+backend/tests/test_account_lifecycle.py,247,Python AST parsed,14,0
+backend/tests/test_anchor_edges_141.py,337,Python AST parsed,23,0
+backend/tests/test_anchor_normalization_137.py,73,Python AST parsed,10,0
+backend/tests/test_anchor_validation_141.py,183,Python AST parsed,18,0
+backend/tests/test_article_facts.py,528,Python AST parsed,39,0
+backend/tests/test_auth_core.py,559,Python AST parsed,42,0
+backend/tests/test_authz_inventory.py,328,Python AST parsed,16,0
+backend/tests/test_authz_matrix.py,157,Python AST parsed,13,0
+backend/tests/test_basketball_enrichment.py,172,Python AST parsed,13,0
+backend/tests/test_benchmark_endpoint.py,330,Python AST parsed,21,0
+backend/tests/test_calibration_coverage.py,162,Python AST parsed,15,0
+backend/tests/test_calibration_selection.py,193,Python AST parsed,16,0
+backend/tests/test_calibration_v2.py,387,Python AST parsed,31,0
+backend/tests/test_claims_142.py,152,Python AST parsed,13,0
+backend/tests/test_clustering_acceptance.py,357,Python AST parsed,27,0
+backend/tests/test_clustering_adversarial.py,224,Python AST parsed,18,0
+backend/tests/test_clustering_anchors_135_136.py,393,Python AST parsed,31,0
+backend/tests/test_clustering_backfill.py,253,Python AST parsed,18,0
+backend/tests/test_clustering_fixtures.py,179,Python AST parsed,25,0
+backend/tests/test_clustering_ingestion.py,407,Python AST parsed,25,0
+backend/tests/test_clustering_matcher.py,776,Python AST parsed,97,0
+backend/tests/test_clustering_persistence.py,530,Python AST parsed,43,0
+backend/tests/test_corpus_db_guard.py,144,Python AST parsed,20,0
+backend/tests/test_decision_contract.py,632,Python AST parsed,49,0
+backend/tests/test_decision_provenance.py,154,Python AST parsed,12,0
+backend/tests/test_dev_reset.py,129,Python AST parsed,10,0
+backend/tests/test_entity_normalizer_expansion.py,229,Python AST parsed,21,0
+backend/tests/test_entity_resolver.py,399,Python AST parsed,49,0
+backend/tests/test_event_evidence.py,370,Python AST parsed,53,0
+backend/tests/test_fact_consistency_113.py,429,Python AST parsed,44,0
+backend/tests/test_fake_detection.py,71,Python AST parsed,10,0
+backend/tests/test_feed_api.py,254,Python AST parsed,25,0
+backend/tests/test_feed_cluster_collapse.py,320,Python AST parsed,25,0
+backend/tests/test_feed_dedup_121.py,222,Python AST parsed,21,0
+backend/tests/test_feed_dedup_125.py,344,Python AST parsed,25,0
+backend/tests/test_feed_freshness_m8.py,433,Python AST parsed,37,0
+backend/tests/test_feedback_learning.py,404,Python AST parsed,28,0
+backend/tests/test_golden_cases.py,201,Python AST parsed,10,0
+backend/tests/test_health.py,6,Python AST parsed,1,0
+backend/tests/test_hebrew_rss.py,861,Python AST parsed,104,0
+backend/tests/test_hebrew_rss_expansion.py,541,Python AST parsed,65,0
+backend/tests/test_identity_isolation.py,193,Python AST parsed,11,0
+backend/tests/test_ingest_api.py,252,Python AST parsed,21,0
+backend/tests/test_ingestion_classifier.py,613,Python AST parsed,66,0
+backend/tests/test_ingestion_filters.py,327,Python AST parsed,46,0
+backend/tests/test_ingestion_rss.py,233,Python AST parsed,23,0
+backend/tests/test_ingestion_translation.py,240,Python AST parsed,12,0
+backend/tests/test_interests_api.py,374,Python AST parsed,28,0
+backend/tests/test_intra_source_123.py,205,Python AST parsed,16,0
+backend/tests/test_language_detection.py,153,Python AST parsed,29,0
+backend/tests/test_llm_classification.py,1268,Python AST parsed,128,0
+backend/tests/test_llm_gating.py,582,Python AST parsed,51,0
+backend/tests/test_me_api.py,294,Python AST parsed,25,0
+backend/tests/test_notification_identity_151.py,286,Python AST parsed,19,0
+backend/tests/test_one_adapter.py,319,Python AST parsed,35,0
+backend/tests/test_orchestration_147.py,309,Python AST parsed,20,0
+backend/tests/test_participant_inference.py,342,Python AST parsed,28,0
+backend/tests/test_preference_engine_v2.py,555,Python AST parsed,46,0
+backend/tests/test_profile_drift_guard.py,77,Python AST parsed,5,0
+backend/tests/test_profile_v2_api.py,150,Python AST parsed,15,0
+backend/tests/test_prompt_builder.py,88,Python AST parsed,21,0
+backend/tests/test_push_planner_152.py,245,Python AST parsed,13,0
+backend/tests/test_quality_regressions.py,529,Python AST parsed,59,0
+backend/tests/test_relevance_engine.py,478,Python AST parsed,50,0
+backend/tests/test_relevance_visibility_contract.py,444,Python AST parsed,25,0
+backend/tests/test_repository_audit.py,151,Python AST parsed,13,0
+backend/tests/test_results_178.py,487,Python AST parsed,50,0
+backend/tests/test_retention_149.py,219,Python AST parsed,15,0
+backend/tests/test_run_metrics.py,280,Python AST parsed,14,0
+backend/tests/test_scheduler.py,31,Python AST parsed,3,0
+backend/tests/test_scheduler_api.py,115,Python AST parsed,8,0
+backend/tests/test_scheduler_observability_150.py,246,Python AST parsed,19,0
+backend/tests/test_source_config.py,130,Python AST parsed,18,0
+backend/tests/test_source_health.py,131,Python AST parsed,12,0
+backend/tests/test_source_hints.py,112,Python AST parsed,20,0
+backend/tests/test_source_toggle.py,134,Python AST parsed,14,0
+backend/tests/test_sport5_adapter.py,386,Python AST parsed,53,0
+backend/tests/test_sqlite_persistence.py,369,Python AST parsed,21,0
+backend/tests/test_subtitle.py,150,Python AST parsed,29,0
+backend/tests/test_taxonomy_catalog.py,135,Python AST parsed,15,0
+backend/tests/test_taxonomy_export_freshness.py,45,Python AST parsed,2,0
+backend/tests/test_taxonomy_integrity.py,97,Python AST parsed,10,0
+backend/tests/test_telegram_dispatch_153.py,296,Python AST parsed,25,0
+backend/tests/test_translation_backfill.py,557,Python AST parsed,24,0
+backend/tests/test_translation_quality.py,146,Python AST parsed,28,0
+backend/tests/test_translation_service.py,177,Python AST parsed,24,0
+backend/tests/test_watermark_init_156.py,176,Python AST parsed,11,0
+backend/tests/test_worker_148.py,188,Python AST parsed,18,0
+backend/tests/test_ynet_rss.py,208,Python AST parsed,19,0
+frontend/eslint.config.js,57,static inventory; lint/build scope configured separately,,
+frontend/postcss.config.js,6,static inventory; lint/build scope configured separately,,
+frontend/scripts/capture-orbit-production.mjs,1668,static inventory; lint/build scope configured separately,,
+frontend/scripts/capture-orbit-production.test.mjs,99,static inventory; lint/build scope configured separately,,
+frontend/src/api/client.js,360,static inventory; lint/build scope configured separately,,
+frontend/src/api/client.test.js,700,static inventory; lint/build scope configured separately,,
+frontend/src/api/normalizers.js,331,static inventory; lint/build scope configured separately,,
+frontend/src/api/normalizers.test.js,400,static inventory; lint/build scope configured separately,,
+frontend/src/components/ScrollToTop.jsx,33,static inventory; lint/build scope configured separately,,
+frontend/src/components/debug/ClassifiedByBadge.jsx,11,static inventory; lint/build scope configured separately,,
+frontend/src/components/debug/ClusterEvidence.jsx,92,static inventory; lint/build scope configured separately,,
+frontend/src/components/debug/DebugArticleCard.jsx,160,static inventory; lint/build scope configured separately,,
+frontend/src/components/debug/FactsTracePanel.jsx,140,static inventory; lint/build scope configured separately,,
+frontend/src/components/debug/FactsTracePanel.test.jsx,98,static inventory; lint/build scope configured separately,,
+frontend/src/components/debug/ProfileComparisonTable.jsx,96,static inventory; lint/build scope configured separately,,
+frontend/src/components/debug/ReasoningTrace.jsx,36,static inventory; lint/build scope configured separately,,
+frontend/src/components/debug/ShadowComparisonPanel.jsx,127,static inventory; lint/build scope configured separately,,
+frontend/src/components/debug/classifiedByConfig.js,15,static inventory; lint/build scope configured separately,,
+frontend/src/components/debug/classifiedByConfig.test.js,31,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/DecisionBadge.jsx,24,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/DeskVoice.jsx,78,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/EditionEmptyState.jsx,53,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/FeedbackControls.jsx,110,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/SourceMeta.jsx,29,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/clusterModel.js,79,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/clusterModel.test.js,178,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/decisionConfig.js,91,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/decisionConfig.test.js,134,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/feedFilters.js,63,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/feedFilters.test.js,113,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/orbit/OrbitFeedView.jsx,436,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/orbit/OrbitStoryField.jsx,636,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/orbit/orbitFocusModel.js,100,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/orbit/orbitFocusModel.test.js,141,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/orbit/orbitQueueMotion.js,81,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/orbit/orbitQueueMotion.test.js,124,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/orbit/orbitStoryModel.js,275,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/orbit/orbitStoryModel.test.js,502,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/storyLabels.js,123,static inventory; lint/build scope configured separately,,
+frontend/src/components/feed/storyLabels.test.js,66,static inventory; lint/build scope configured separately,,
+frontend/src/components/interests/CatalogSearch.jsx,54,static inventory; lint/build scope configured separately,,
+frontend/src/components/interests/EventPresetControls.jsx,48,static inventory; lint/build scope configured separately,,
+frontend/src/components/interests/FollowChip.jsx,45,static inventory; lint/build scope configured separately,,
+frontend/src/components/interests/InterestPicker.jsx,189,static inventory; lint/build scope configured separately,,
+frontend/src/components/interests/InterestsManager.jsx,148,static inventory; lint/build scope configured separately,,
+frontend/src/components/interests/interestsModel.js,250,static inventory; lint/build scope configured separately,,
+frontend/src/components/interests/interestsModel.test.js,221,static inventory; lint/build scope configured separately,,
+frontend/src/components/ops/BenchmarkPanel.jsx,209,static inventory; lint/build scope configured separately,,
+frontend/src/components/ops/BenchmarkPanel.test.jsx,219,static inventory; lint/build scope configured separately,,
+frontend/src/components/ops/HealthCard.jsx,88,static inventory; lint/build scope configured separately,,
+frontend/src/components/ops/IngestionPanel.jsx,413,static inventory; lint/build scope configured separately,,
+frontend/src/components/ops/NotificationsPanel.jsx,144,static inventory; lint/build scope configured separately,,
+frontend/src/components/ops/NotificationsPanel.test.jsx,82,static inventory; lint/build scope configured separately,,
+frontend/src/components/ops/SchedulerPanel.jsx,164,static inventory; lint/build scope configured separately,,
+frontend/src/components/ops/SchedulerPanel.test.jsx,176,static inventory; lint/build scope configured separately,,
+frontend/src/components/ops/SourceToggleCard.jsx,100,static inventory; lint/build scope configured separately,,
+frontend/src/components/ops/consoleStyles.js,42,static inventory; lint/build scope configured separately,,
+frontend/src/components/preferences/LearnedAdjustmentsPanel.jsx,136,static inventory; lint/build scope configured separately,,
+frontend/src/components/preferences/TopicCard.jsx,87,static inventory; lint/build scope configured separately,,
+frontend/src/components/results/DayHeading.jsx,21,static inventory; lint/build scope configured separately,,
+frontend/src/components/results/ResultCard.jsx,89,static inventory; lint/build scope configured separately,,
+frontend/src/components/results/resultsFormat.js,53,static inventory; lint/build scope configured separately,,
+frontend/src/components/results/resultsFormat.test.js,46,static inventory; lint/build scope configured separately,,
+frontend/src/components/results/resultsGrouping.js,44,static inventory; lint/build scope configured separately,,
+frontend/src/components/results/resultsGrouping.test.js,45,static inventory; lint/build scope configured separately,,
+frontend/src/components/results/resultsModel.js,73,static inventory; lint/build scope configured separately,,
+frontend/src/components/results/resultsModel.test.js,81,static inventory; lint/build scope configured separately,,
+frontend/src/components/results/resultsRelevance.js,66,static inventory; lint/build scope configured separately,,
+frontend/src/components/results/resultsRelevance.test.js,81,static inventory; lint/build scope configured separately,,
+frontend/src/components/shared/DeskIntro.jsx,18,static inventory; lint/build scope configured separately,,
+frontend/src/components/shared/EmptyState.jsx,17,static inventory; lint/build scope configured separately,,
+frontend/src/components/shared/ErrorState.jsx,64,static inventory; lint/build scope configured separately,,
+frontend/src/components/shared/GhostChip.jsx,18,static inventory; lint/build scope configured separately,,
+frontend/src/components/shared/LoadingSkeleton.jsx,59,static inventory; lint/build scope configured separately,,
+frontend/src/components/shared/MonoValue.jsx,11,static inventory; lint/build scope configured separately,,
+frontend/src/components/shared/PageHeader.jsx,17,static inventory; lint/build scope configured separately,,
+frontend/src/components/shared/PulseDot.jsx,25,static inventory; lint/build scope configured separately,,
+frontend/src/components/shared/SectionCard.jsx,25,static inventory; lint/build scope configured separately,,
+frontend/src/components/shared/StatCard.jsx,39,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/AppShell.jsx,72,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/Atmosphere.jsx,55,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/DataModeBadge.jsx,17,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/Masthead.jsx,172,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/MobileNav.jsx,66,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/OpsGrid.jsx,36,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/OpsNav.jsx,46,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/ProductNav.jsx,58,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/ProfileSwitcher.jsx,60,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/RequireOpsRole.jsx,23,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/RequireSession.jsx,24,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/SignalMark.jsx,15,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/navConfig.js,34,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/navConfig.test.js,89,static inventory; lint/build scope configured separately,,
+frontend/src/components/shell/useScrolled.js,16,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/accordion.jsx,41,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/alert-dialog.jsx,111,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/alert.jsx,47,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/aspect-ratio.jsx,5,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/avatar.jsx,35,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/badge.jsx,34,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/breadcrumb.jsx,92,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/button.jsx,50,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/calendar.jsx,71,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/card.jsx,50,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/carousel.jsx,193,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/chart.jsx,309,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/checkbox.jsx,22,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/collapsible.jsx,11,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/command.jsx,116,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/context-menu.jsx,156,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/dialog.jsx,96,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/drawer.jsx,92,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/dropdown-menu.jsx,162,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/form.jsx,134,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/hover-card.jsx,25,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/input-otp.jsx,53,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/input.jsx,21,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/label.jsx,18,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/menubar.jsx,200,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/navigation-menu.jsx,104,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/pagination.jsx,100,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/popover.jsx,27,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/progress.jsx,23,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/radio-group.jsx,29,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/resizable.jsx,42,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/scroll-area.jsx,38,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/select.jsx,121,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/separator.jsx,23,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/sheet.jsx,109,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/sidebar.jsx,626,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/skeleton.jsx,14,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/slider.jsx,21,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/sonner.jsx,29,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/switch.jsx,22,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/table.jsx,86,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/tabs.jsx,41,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/textarea.jsx,18,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/toast.jsx,104,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/toaster.jsx,33,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/toggle-group.jsx,44,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/toggle.jsx,38,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/tooltip.jsx,28,static inventory; lint/build scope configured separately,,
+frontend/src/components/ui/use-toast.jsx,164,static inventory; lint/build scope configured separately,,
+frontend/src/context/AppContext.jsx,475,static inventory; lint/build scope configured separately,,
+frontend/src/context/AppContext.test.jsx,57,static inventory; lint/build scope configured separately,,
+frontend/src/context/AuthContext.jsx,162,static inventory; lint/build scope configured separately,,
+frontend/src/context/authView.js,38,static inventory; lint/build scope configured separately,,
+frontend/src/context/authView.test.js,87,static inventory; lint/build scope configured separately,,
+frontend/src/context/dataRouting.js,65,static inventory; lint/build scope configured separately,,
+frontend/src/context/dataRouting.test.js,137,static inventory; lint/build scope configured separately,,
+frontend/src/context/onboardingFlow.js,68,static inventory; lint/build scope configured separately,,
+frontend/src/context/onboardingFlow.test.js,122,static inventory; lint/build scope configured separately,,
+frontend/src/context/sessionSafety.test.jsx,62,static inventory; lint/build scope configured separately,,
+frontend/src/data/feedSources.js,74,static inventory; lint/build scope configured separately,,
+frontend/src/data/mockArticles.js,1530,static inventory; lint/build scope configured separately,,
+frontend/src/data/mockResults.js,121,static inventory; lint/build scope configured separately,,
+frontend/src/data/userProfiles.drift.test.js,74,static inventory; lint/build scope configured separately,,
+frontend/src/data/userProfiles.js,305,static inventory; lint/build scope configured separately,,
+frontend/src/engine/participantInference.test.js,276,static inventory; lint/build scope configured separately,,
+frontend/src/engine/relevanceEngine.js,684,static inventory; lint/build scope configured separately,,
+frontend/src/engine/relevanceEngine.test.js,521,static inventory; lint/build scope configured separately,,
+frontend/src/engine/relevanceVisibilityContract.test.js,307,static inventory; lint/build scope configured separately,,
+frontend/src/engine/taxonomyReach.js,80,static inventory; lint/build scope configured separately,,
+frontend/src/hooks/use-mobile.jsx,19,static inventory; lint/build scope configured separately,,
+frontend/src/lib/PageNotFound.jsx,70,static inventory; lint/build scope configured separately,,
+frontend/src/lib/query-client.js,11,static inventory; lint/build scope configured separately,,
+frontend/src/lib/utils.js,6,static inventory; lint/build scope configured separately,,
+frontend/src/main.jsx,71,static inventory; lint/build scope configured separately,,
+frontend/src/pages/Account.jsx,183,static inventory; lint/build scope configured separately,,
+frontend/src/pages/AuthScene.jsx,51,static inventory; lint/build scope configured separately,,
+frontend/src/pages/Calibration.jsx,323,static inventory; lint/build scope configured separately,,
+frontend/src/pages/Debug.jsx,167,static inventory; lint/build scope configured separately,,
+frontend/src/pages/Feed.jsx,123,static inventory; lint/build scope configured separately,,
+frontend/src/pages/InterestSelection.jsx,198,static inventory; lint/build scope configured separately,,
+frontend/src/pages/LlmQa.jsx,733,static inventory; lint/build scope configured separately,,
+frontend/src/pages/Login.jsx,100,static inventory; lint/build scope configured separately,,
+frontend/src/pages/Onboarding.jsx,83,static inventory; lint/build scope configured separately,,
+frontend/src/pages/Preferences.jsx,210,static inventory; lint/build scope configured separately,,
+frontend/src/pages/Results.jsx,129,static inventory; lint/build scope configured separately,,
+frontend/src/pages/Signup.jsx,111,static inventory; lint/build scope configured separately,,
+frontend/src/pages/Sources.jsx,46,static inventory; lint/build scope configured separately,,
+frontend/src/pages/authValidation.js,51,static inventory; lint/build scope configured separately,,
+frontend/src/pages/authValidation.test.js,54,static inventory; lint/build scope configured separately,,
+frontend/src/pages/llmQaHelpers.js,277,static inventory; lint/build scope configured separately,,
+frontend/src/pages/llmQaHelpers.test.js,416,static inventory; lint/build scope configured separately,,
+frontend/src/utils/index.ts,3,static inventory; lint/build scope configured separately,,
+frontend/tailwind.config.js,157,static inventory; lint/build scope configured separately,,
+frontend/vite.config.js,31,static inventory; lint/build scope configured separately,,
+scripts/generate_audit_report.py,159,Python AST parsed,4,0

@@ -3,7 +3,6 @@ import {
   normalizeArticleFromApi,
   normalizeProfileFromApi,
   normalizeScoredArticleFromApi,
-  normalizeCalibrationHeadlineFromApi,
   normalizeIngestResultFromApi,
   formatMs,
   formatDuration,
@@ -62,17 +61,6 @@ const RAW_PROFILE = {
       muted_subtopics: [],
     },
   ],
-};
-
-const RAW_CALIBRATION_HEADLINE = {
-  id: "calibration_001",
-  title: "מכבי ת״א במו״מ עם גארד מיורוליג",
-  sport: "basketball",
-  league: "EuroLeague",
-  entities: ["Maccabi Tel Aviv Basketball"],
-  event_type: "negotiation",
-  importance: "high",
-  tags: ["מכבי", "יורוליג", "מו״מ"],
 };
 
 // ── Article normalizer ────────────────────────────────────────────────────────
@@ -167,7 +155,9 @@ describe("normalizeScoredArticleFromApi", () => {
   it("maps matched_event_rule to matchedRule (not matchedEventRule)", () => {
     const result = normalizeScoredArticleFromApi(RAW_SCORED_ARTICLE);
     expect(result.score.matchedRule).toBe("negotiation");
-    expect(result.score.matchedEventRule).toBeUndefined();
+    // Deliberately probing a key the normalizer must NOT produce, so the
+    // checker needs to be told this absence is the assertion.
+    expect(/** @type {any} */ (result.score).matchedEventRule).toBeUndefined();
   });
 
   it("adds type: article", () => {
@@ -408,34 +398,3 @@ describe("formatDuration", () => {
   });
 });
 
-// ── Calibration headline normalizer ──────────────────────────────────────────
-
-describe("normalizeCalibrationHeadlineFromApi", () => {
-  it("converts event_type to eventType", () => {
-    const result = normalizeCalibrationHeadlineFromApi(RAW_CALIBRATION_HEADLINE);
-    expect(result.eventType).toBe("negotiation");
-    expect(result.event_type).toBeUndefined();
-  });
-
-  it("preserves other fields", () => {
-    const result = normalizeCalibrationHeadlineFromApi(RAW_CALIBRATION_HEADLINE);
-    expect(result.id).toBe("calibration_001");
-    expect(result.title).toBe("מכבי ת״א במו״מ עם גארד מיורוליג");
-    expect(result.sport).toBe("basketball");
-    expect(result.league).toBe("EuroLeague");
-    expect(result.entities).toEqual(["Maccabi Tel Aviv Basketball"]);
-    expect(result.importance).toBe("high");
-    expect(result.tags).toEqual(["מכבי", "יורוליג", "מו״מ"]);
-  });
-
-  it("defaults missing optional fields", () => {
-    const minimal = {
-      id: "h1", title: "Test", sport: "basketball",
-      event_type: "signing", importance: "medium",
-    };
-    const result = normalizeCalibrationHeadlineFromApi(minimal);
-    expect(result.league).toBeNull();
-    expect(result.entities).toEqual([]);
-    expect(result.tags).toEqual([]);
-  });
-});

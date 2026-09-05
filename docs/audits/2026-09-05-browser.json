@@ -1,0 +1,470 @@
+{
+  "instance": {
+    "port": 57808,
+    "apiCalls": [],
+    "apiCallCount": 0,
+    "renderedOrbit": true,
+    "queueTotal": "40/47"
+  },
+  "typography": [
+    {
+      "label": "typography reduced-motion",
+      "serif": {
+        "feedHeadingH1": "Frank Ruhl Libre",
+        "compactCoreHeadline": "Frank Ruhl Libre"
+      },
+      "expandedCore": "Frank Ruhl Libre",
+      "sansSample": {
+        "queueHeadline": "Heebo Variable",
+        "queueLevelLabel": "Heebo Variable",
+        "filterChip": "Heebo Variable",
+        "coreMetadata": "Heebo Variable",
+        "deskVoice": "Heebo Variable",
+        "primaryAction": "Heebo Variable",
+        "navigation": "Heebo Variable",
+        "queueHeading": "Heebo Variable"
+      },
+      "leaks": [
+        {
+          "route": "/debug",
+          "heading": "Heebo Variable",
+          "serifElements": 0
+        },
+        {
+          "route": "/results",
+          "heading": "Heebo Variable",
+          "serifElements": 0
+        },
+        {
+          "route": "/preferences",
+          "heading": "Heebo Variable",
+          "serifElements": 0
+        },
+        {
+          "route": "/no-such-route",
+          "heading": "Heebo Variable",
+          "serifElements": 0
+        }
+      ]
+    },
+    {
+      "label": "typography normal-motion",
+      "serif": {
+        "feedHeadingH1": "Frank Ruhl Libre",
+        "compactCoreHeadline": "Frank Ruhl Libre"
+      },
+      "expandedCore": "Frank Ruhl Libre",
+      "sansSample": {
+        "queueHeadline": "Heebo Variable",
+        "queueLevelLabel": "Heebo Variable",
+        "filterChip": "Heebo Variable",
+        "coreMetadata": "Heebo Variable",
+        "deskVoice": "Heebo Variable",
+        "primaryAction": "Heebo Variable",
+        "navigation": "Heebo Variable",
+        "queueHeading": "Heebo Variable"
+      },
+      "leaks": [
+        {
+          "route": "/debug",
+          "heading": "Heebo Variable",
+          "serifElements": 0
+        },
+        {
+          "route": "/results",
+          "heading": "Heebo Variable",
+          "serifElements": 0
+        },
+        {
+          "route": "/preferences",
+          "heading": "Heebo Variable",
+          "serifElements": 0
+        },
+        {
+          "route": "/no-such-route",
+          "heading": "Heebo Variable",
+          "serifElements": 0
+        }
+      ]
+    }
+  ],
+  "focusAudits": [
+    {
+      "label": "desktop focus reduced-motion",
+      "steps": {
+        "afterQueueFocus": {
+          "className": "orbit-core orbit-core--push",
+          "isCore": true,
+          "isCloseAction": false,
+          "isPrimaryAction": false,
+          "isAttached": true,
+          "coreTitle": "מכבי ת״א במו״מ עם גארד יורוליג",
+          "matchesChosenStory": true,
+          "expanded": false
+        },
+        "afterExpand": {
+          "className": "orbit-close-action",
+          "isCore": false,
+          "isCloseAction": true,
+          "isPrimaryAction": false,
+          "isAttached": true,
+          "expanded": true
+        },
+        "afterSwitchWhileExpanded": {
+          "className": "orbit-core orbit-core--push",
+          "isCore": true,
+          "isCloseAction": false,
+          "isPrimaryAction": false,
+          "isAttached": true,
+          "coreTitle": "רשמי: מכבי ת״א חתמה על חיזוק שני לעונת יורוליג — שחקן מהליגה הספרדית",
+          "matchesChosenStory": true,
+          "expanded": false
+        },
+        "afterCollapse": {
+          "className": "orbit-primary-action",
+          "isCore": false,
+          "isCloseAction": false,
+          "isPrimaryAction": true,
+          "isAttached": true,
+          "expanded": false
+        }
+      },
+      "mobileScroll": {
+        "label": "390px field scroll reduced-motion",
+        "scrollTopBefore": 0,
+        "scrollTopAfter": 188,
+        "fieldTop": 66,
+        "viewportHeight": 844
+      }
+    },
+    {
+      "label": "desktop focus normal-motion",
+      "steps": {
+        "afterQueueFocus": {
+          "className": "orbit-core orbit-core--push",
+          "isCore": true,
+          "isCloseAction": false,
+          "isPrimaryAction": false,
+          "isAttached": true,
+          "coreTitle": "מכבי ת״א במו״מ עם גארד יורוליג",
+          "matchesChosenStory": true,
+          "expanded": false
+        },
+        "afterExpand": {
+          "className": "orbit-close-action",
+          "isCore": false,
+          "isCloseAction": true,
+          "isPrimaryAction": false,
+          "isAttached": true,
+          "expanded": true
+        },
+        "afterSwitchWhileExpanded": {
+          "className": "orbit-core orbit-core--push",
+          "isCore": true,
+          "isCloseAction": false,
+          "isPrimaryAction": false,
+          "isAttached": true,
+          "coreTitle": "רשמי: מכבי ת״א חתמה על חיזוק שני לעונת יורוליג — שחקן מהליגה הספרדית",
+          "matchesChosenStory": true,
+          "expanded": false
+        },
+        "afterCollapse": {
+          "className": "orbit-primary-action",
+          "isCore": false,
+          "isCloseAction": false,
+          "isPrimaryAction": true,
+          "isAttached": true,
+          "expanded": false
+        }
+      },
+      "mobileScroll": {
+        "label": "390px field scroll normal-motion",
+        "scrollTopBefore": 0,
+        "scrollTopAfter": 188,
+        "fieldTop": 66,
+        "viewportHeight": 844
+      }
+    }
+  ],
+  "dockAudits": [
+    {
+      "label": "390px dock reduced-motion",
+      "dockTop": 777,
+      "primaryActionOnLoad": {
+        "initial": {
+          "rect": {
+            "top": 483,
+            "bottom": 527,
+            "height": 44
+          },
+          "belowTheFold": false,
+          "underDock": false,
+          "reachable": true
+        },
+        "neededScroll": false,
+        "reachableAfterScroll": true,
+        "rectAfterScroll": {
+          "top": 483,
+          "bottom": 527,
+          "height": 44
+        },
+        "occludedByDock": false
+      },
+      "restoredFocus": {
+        "label": "פתח את שדה הסיפור",
+        "neededScroll": false,
+        "reachable": true
+      },
+      "longestHeadline": {
+        "headlineLength": 68,
+        "rect": {
+          "top": 295,
+          "bottom": 339,
+          "height": 44
+        },
+        "underDock": false,
+        "reachable": true
+      }
+    },
+    {
+      "label": "320px dock reduced-motion",
+      "dockTop": 573,
+      "primaryActionOnLoad": {
+        "initial": {
+          "rect": {
+            "top": 492,
+            "bottom": 536,
+            "height": 44
+          },
+          "belowTheFold": false,
+          "underDock": false,
+          "reachable": true
+        },
+        "neededScroll": false,
+        "reachableAfterScroll": true,
+        "rectAfterScroll": {
+          "top": 492,
+          "bottom": 536,
+          "height": 44
+        },
+        "occludedByDock": false
+      },
+      "restoredFocus": {
+        "label": "פתח את שדה הסיפור",
+        "neededScroll": false,
+        "reachable": true
+      },
+      "longestHeadline": {
+        "headlineLength": 68,
+        "rect": {
+          "top": 285,
+          "bottom": 329,
+          "height": 44
+        },
+        "underDock": false,
+        "reachable": true
+      }
+    },
+    {
+      "label": "390px dock normal-motion",
+      "dockTop": 777,
+      "primaryActionOnLoad": {
+        "initial": {
+          "rect": {
+            "top": 483,
+            "bottom": 527,
+            "height": 44
+          },
+          "belowTheFold": false,
+          "underDock": false,
+          "reachable": true
+        },
+        "neededScroll": false,
+        "reachableAfterScroll": true,
+        "rectAfterScroll": {
+          "top": 483,
+          "bottom": 527,
+          "height": 44
+        },
+        "occludedByDock": false
+      },
+      "restoredFocus": {
+        "label": "פתח את שדה הסיפור",
+        "neededScroll": false,
+        "reachable": true
+      },
+      "longestHeadline": {
+        "headlineLength": 68,
+        "rect": {
+          "top": 295,
+          "bottom": 339,
+          "height": 44
+        },
+        "underDock": false,
+        "reachable": true
+      }
+    },
+    {
+      "label": "320px dock normal-motion",
+      "dockTop": 573,
+      "primaryActionOnLoad": {
+        "initial": {
+          "rect": {
+            "top": 492,
+            "bottom": 536,
+            "height": 44
+          },
+          "belowTheFold": false,
+          "underDock": false,
+          "reachable": true
+        },
+        "neededScroll": false,
+        "reachableAfterScroll": true,
+        "rectAfterScroll": {
+          "top": 492,
+          "bottom": 536,
+          "height": 44
+        },
+        "occludedByDock": false
+      },
+      "restoredFocus": {
+        "label": "פתח את שדה הסיפור",
+        "neededScroll": false,
+        "reachable": true
+      },
+      "longestHeadline": {
+        "headlineLength": 68,
+        "rect": {
+          "top": 285,
+          "bottom": 329,
+          "height": 44
+        },
+        "underDock": false,
+        "reachable": true
+      }
+    }
+  ],
+  "regressions": {
+    "reducedMotion": {
+      "queueRendered": 40,
+      "revealedAll": 47,
+      "filterClearedMs": 26,
+      "signatures": {
+        "push": {
+          "tone": "push",
+          "fontSize": 19,
+          "fontWeight": 660,
+          "color": "rgb(242, 244, 248)",
+          "lineClamp": "2",
+          "signalColor": "rgb(255, 127, 102)",
+          "padding": "21px 2px 11px",
+          "hasSubtitle": false,
+          "railColor": "rgba(255, 127, 102, 0.85)",
+          "railed": true
+        },
+        "high_feed": {
+          "tone": "high",
+          "fontSize": 16.5,
+          "fontWeight": 630,
+          "color": "rgb(242, 244, 248)",
+          "lineClamp": "2",
+          "signalColor": "rgb(122, 214, 208)",
+          "padding": "18px 2px 10px",
+          "hasSubtitle": false,
+          "railColor": "rgba(0, 0, 0, 0)",
+          "railed": false
+        },
+        "feed": {
+          "tone": "feed",
+          "fontSize": 14.5,
+          "fontWeight": 590,
+          "color": "rgb(242, 244, 248)",
+          "lineClamp": "2",
+          "signalColor": "rgb(144, 138, 229)",
+          "padding": "15px 2px 9px",
+          "hasSubtitle": false,
+          "railColor": "rgba(0, 0, 0, 0)",
+          "railed": false
+        },
+        "low_feed": {
+          "tone": "low",
+          "fontSize": 13,
+          "fontWeight": 520,
+          "color": "rgb(154, 162, 182)",
+          "lineClamp": "1",
+          "signalColor": "rgb(146, 150, 171)",
+          "padding": "10px 2px 8px",
+          "hasSubtitle": false,
+          "railColor": "rgba(0, 0, 0, 0)",
+          "railed": false
+        }
+      }
+    },
+    "normalMotion": {
+      "queueRendered": 40,
+      "revealedAll": 47,
+      "filterClearedMs": 53
+    }
+  },
+  "desktop": {
+    "viewport": "1440x1000",
+    "scrollWidth": 1430,
+    "title": "9 אותות משנים מסלול עכשיו",
+    "queueCount": 40
+  },
+  "mobile": {
+    "viewport": "390x844",
+    "scrollWidth": 390,
+    "title": "9 אותות משנים מסלול עכשיו",
+    "queueCount": 40
+  },
+  "expanded": {
+    "expanded": true,
+    "sourceCount": 3,
+    "focusMovedToClose": true
+  },
+  "closedCluster": {
+    "collapsed": true,
+    "focusRestored": true
+  },
+  "focusedCluster": {
+    "focused": true,
+    "compactSources": 3,
+    "focusMovedToCore": true
+  },
+  "mobileExpanded": {
+    "expanded": true,
+    "sourceCount": 3,
+    "focusMovedToClose": true
+  },
+  "narrowViewports": [
+    {
+      "width": 375,
+      "height": 812
+    },
+    {
+      "width": 320,
+      "height": 640
+    }
+  ],
+  "normalMotion": {
+    "focused": {
+      "focused": true,
+      "compactSources": 3,
+      "focusMovedToCore": true
+    },
+    "expanded": {
+      "expanded": true,
+      "sourceCount": 3,
+      "focusMovedToClose": true
+    },
+    "closed": {
+      "collapsed": true,
+      "focusRestored": true
+    }
+  },
+  "screenshots": [
+    "2026-09-05-orbit-production-desktop.png",
+    "2026-09-05-orbit-production-mobile.png"
+  ]
+}

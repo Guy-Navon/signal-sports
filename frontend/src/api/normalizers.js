@@ -281,21 +281,6 @@ export function sourceTypeLabel(sourceType) {
   return "RSS";
 }
 
-// ── Calibration headline normalizer ──────────────────────────────────────────
-
-export function normalizeCalibrationHeadlineFromApi(h) {
-  return {
-    id: h.id,
-    title: h.title,
-    sport: h.sport,
-    league: h.league ?? null,
-    entities: h.entities ?? [],
-    eventType: h.event_type,
-    importance: h.importance,
-    tags: h.tags ?? [],
-  };
-}
-
 const DECISION_LABELS_HE = {
   hidden: "מוסתר",
   low_feed: "נמוך",

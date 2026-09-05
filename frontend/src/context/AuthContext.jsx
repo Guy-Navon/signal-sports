@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -16,7 +17,11 @@ import {
 } from "@/api/client";
 import { deriveAuthView } from "@/context/authView";
 
-const DATA_MODE = /** @type {any} */ (import.meta).env?.VITE_DATA_MODE || "local";
+// Read exactly like AppContext does. The parenthesised/optional-chained form
+// this used to carry is not rewritten by the Vite/Vitest env transform, so
+// vi.stubEnv could not reach it and the value came from whatever .env.local
+// the developer happened to have — see audit R06.
+const DATA_MODE = import.meta.env.VITE_DATA_MODE || "local";
 
 const AuthContext = createContext(null);
 
@@ -30,6 +35,9 @@ export function AuthProvider({ children }) {
   const isBackendMode = DATA_MODE === "backend";
   const [bootstrap, setBootstrap] = useState(null);
   const [bootstrapped, setBootstrapped] = useState(!isBackendMode);
+  const [bootstrapError, setBootstrapError] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const sessionRequest = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,19 +49,34 @@ export function AuthProvider({ children }) {
 
   const refreshSession = useCallback(async () => {
     if (!isBackendMode) return null;
+    const requestId = ++sessionRequest.current;
     try {
       const payload = await getAuthSession();
+      if (requestId !== sessionRequest.current) return null;
       setBootstrap(payload);
+      setBootstrapError(false);
       return payload;
     } catch {
-      // Backend unreachable: fall back to the pre-auth UI; page-level error
-      // states already surface connectivity problems.
-      setBootstrap({ auth_enforced: false, user: null, onboarding: null });
+      if (requestId !== sessionRequest.current) return null;
+      // Connectivity failure is not permission to enter the bypass UI.
+      setBootstrap({ auth_enforced: true, user: null, onboarding: null });
+      setBootstrapError(true);
       return null;
     } finally {
-      setBootstrapped(true);
+      if (requestId === sessionRequest.current) setBootstrapped(true);
     }
   }, [isBackendMode]);
+
+  // A retry that fails again lands on an identical screen, so without an
+  // explicit pending state the user cannot tell the click did anything.
+  const retryBootstrap = useCallback(async () => {
+    setRetrying(true);
+    try {
+      await refreshSession();
+    } finally {
+      setRetrying(false);
+    }
+  }, [refreshSession]);
 
   useEffect(() => {
     refreshSession();
@@ -63,6 +86,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!isBackendMode) return undefined;
     const onExpired = () => {
+      sessionRequest.current += 1;
       setBootstrap((prev) =>
         prev && prev.auth_enforced
           ? { ...prev, user: null, onboarding: null }
@@ -118,6 +142,16 @@ export function AuthProvider({ children }) {
     [view, login, signup, logout, refreshSession],
   );
 
+  if (bootstrapError) {
+    return (
+      <main dir="rtl" className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
+        <p role="alert">לא ניתן להתחבר לשרת. נסו שוב בעוד רגע.</p>
+        <button type="button" onClick={retryBootstrap} disabled={retrying} className="underline">
+          {retrying ? "מנסה להתחבר..." : "ניסיון נוסף"}
+        </button>
+      </main>
+    );
+  }
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

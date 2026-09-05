@@ -1,0 +1,488 @@
+{
+  "date": "2026-09-05",
+  "branch": "fix/repository-audit",
+  "title": "Signal Sports — ביקורת קוד ותיקונים",
+  "summary": "התשתית המוצרית אמיתית ויש בה כיסוי בדיקות רחב. החולשות הבולטות נמצאו בגבולות שבין רכיבים: חיבור פעיל מול הגנת מסד, התחברות מול מצב הממשק, פרופיל מוצג מול יעד המשוב, ובדיקות עזר מול רכיבים שמרונדרים בפועל. התיקונים ממוקדים באמינות, בשיוך נתונים ובתחזוקה, בלי לשנות את כללי הרלוונטיות המוצריים.",
+  "scope": "בוצעו מיפוי של קובצי הקוד, חיפושי דפוסים וייבואים, הרצת כל סוויטות הבדיקות וסקירה ידנית ממוקדת של מסלולי auth, מסד נתונים, פעולות מחיקה, פיד, משוב, התראות, סנכרון תוצאות והגדרות הפרונט. זו אינה טענה שכל שורה בכל קובץ נבדקה ידנית או שאין באגים נוספים. רשימת הקבצים ונתוני הסריקה נמצאים ב־2026-09-05-inventory.csv. ממצאי F נובעים מסבב התיקונים הראשון. ממצאי R נוספו בסבב אימות עצמאי שהריץ מחדש את כל השערים, קרא את ה־diff במלואו ואימת נקודתית את הטענות החדות; הוא תיקן את מה שנמצא לא מדויק או חסר.",
+  "boundaries": [
+    "העבודה בוצעה בברנצ נפרד מ־main. לא בוצעו push, פתיחת PR, merge או שינוי בפריסה.",
+    "לא שונו מסד הכתבות, קובצי .env או הגדרות של שירותים רצים. כל בדיקות המסד השתמשו בקבצים זמניים.",
+    "לא הופעלו ספקי LLM, משיכת מקורות חיים או משלוחי Telegram. בדיקות ספקים השתמשו בתחליפים מקומיים.",
+    "תוצאות הבדיקות מתייחסות לסביבת Windows המקומית. נוסף workflow ל־CI, אך הוא עדיין לא הורץ ב־GitHub.",
+    "בדיקות דפדפן, ככל שהושלמו, משתמשות במצב הדמו המקומי ואינן מוכיחות את איכות הפיד החי או מסע התחברות מול שרת אמיתי.",
+    "סבב האימות (R01–R05) בדק את התיקונים של הסבב הראשון, לא את הריפו מחדש. הוא אינו טענה שלא נותרו באגים בקוד שלא נגעו בו."
+  ],
+  "checks": [
+    {
+      "name": "Backend לפני תיקונים",
+      "result": "2425 passed, 1 skipped; 40 warnings",
+      "command": "cd backend; .venv/Scripts/python -m pytest tests -q --tb=short"
+    },
+    {
+      "name": "Frontend לפני תיקונים",
+      "result": "536 passed; lint עבר; typecheck נכשל ב־11 שגיאות; build עבר עם אזהרת גודל",
+      "command": "cd frontend; npm run test; npm run lint; npm run typecheck; npm run build"
+    },
+    {
+      "name": "Backend סופי",
+      "result": "2446 passed, 1 skipped; 40 warnings; 253.72s",
+      "command": "cd backend; .venv/Scripts/python -m pytest tests -q --tb=short"
+    },
+    {
+      "name": "Frontend סופי",
+      "result": "542 passed, 32 test files; lint ו־typecheck עברו; build עבר",
+      "command": "cd frontend; npm run test -- --maxWorkers=2; npm run lint; npm run typecheck; npm run build"
+    },
+    {
+      "name": "בדיקות ממוקדות למסד ולמשלוחים",
+      "result": "56 passed; כל הבדיקות על מסד זמני וספקים מדומים",
+      "command": "cd backend; .venv/Scripts/python -m pytest tests/test_repository_audit.py tests/test_retention_149.py tests/test_dev_reset.py tests/test_telegram_dispatch_153.py -q"
+    },
+    {
+      "name": "דפדפן Orbit",
+      "result": "עבר בריצה החוזרת: דסקטופ 1440, מובייל 390/375/320, clusters, focus, dock, typography, reduced/normal motion; אפס קריאות API. הריצה הראשונה נעצרה ב־render timeout; הסיבה לא הוכחה. נוספו פרטי שגיאות לכלי הבדיקה. ראיות: 2026-09-05-browser.json",
+      "command": "cd frontend; npm run capture:orbit"
+    },
+    {
+      "name": "סבב אימות — Backend",
+      "result": "2446 passed, 1 skipped; 40 warnings; 255.24s (הורץ מחדש, תואם לדיווח)",
+      "command": "cd backend; .venv/Scripts/python -m pytest -q"
+    },
+    {
+      "name": "סבב אימות — Frontend אחרי R01–R05",
+      "result": "539 passed, 32 test files; lint עם --max-warnings=0 נקי; typecheck נקי על כל src; build עבר (אזהרת bundle נותרה, N02)",
+      "command": "cd frontend; npm run test; npm run lint; npm run typecheck; npm run build"
+    },
+    {
+      "name": "סבב אימות — ריצת CI ראשונה (PR #186)",
+      "result": "נכשלה בשני ה־jobs וחשפה שני כשלים אמיתיים שלא נראים מקומית: R06 (תלות ב־.env.local) ו־R07 (מלאי הרשאות ריק על FastAPI חדש). שניהם תוקנו; שניהם קיימים ב־main.",
+      "command": "gh run view --log-failed"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F01",
+      "severity": "high",
+      "status": "fixed",
+      "title": "הגנת מסד הכתבות בדקה יעד שאינו בהכרח החיבור הפעיל",
+      "before": "הבדיקה קראה DATABASE_URL מהסביבה בכל קריאה. החיבור של SQLAlchemy נקבע בייבוא, ולכן שינוי או מחיקה של המשתנה לא משנים את היעד שהשרת באמת כותב אליו. גם URL עם driver או פרמטרים לא פוענח כראוי.",
+      "after": "ההגנה קוראת את URL של ה־engine הפעיל, מפענחת URL של SQLAlchemy כולל SQLite URI, פותרת נתיבים יחסית לתיקיית העבודה ובודקת גם זהות קובץ. לא נפתח חיבור למסד החי במהלך הבדיקה.",
+      "evidence": "רגרסיה שבה engine מצביע לקורפוס והסביבה מצהירה על memory עדיין חוסמת; נבדקו driver, query, URI ותיקיית עבודה אחרת.",
+      "files": [
+        "backend/app/db/corpus_protection.py",
+        "backend/tests/test_repository_audit.py"
+      ]
+    },
+    {
+      "id": "F02",
+      "severity": "high",
+      "status": "fixed",
+      "title": "מיגרציות הסתירו כל שגיאת מסד",
+      "before": "כל חריגה ב־ALTER TABLE נבלעה כאילו העמודה כבר קיימת. השרת יכול היה לעלות עם סכימה חסרה אחרי שגיאת נעילה או הרשאה.",
+      "after": "נבדקת הסכימה בפועל; עמודות קיימות מדולגות, וכשל אמיתי עוצר את העלייה. ב־SQLite נעילת BEGIN IMMEDIATE מכסה את הבדיקה והשינויים כדי לתאם עלייה מקבילה של API ו־worker.",
+      "evidence": "נבדקו הפעלה חוזרת, כשל כתיבה יזום שאינו נבלע, התאוששות והשלמת עמודה חסרה. גם בדיקת סכימה היסטורית הקיימת עברה.",
+      "files": [
+        "backend/app/db/database.py",
+        "backend/tests/test_repository_audit.py",
+        "backend/tests/test_orchestration_147.py"
+      ]
+    },
+    {
+      "id": "F03",
+      "severity": "high",
+      "status": "fixed",
+      "title": "תקלה בשרת העבירה את הממשק למצב bypass",
+      "before": "כישלון בטעינת session יצר auth_enforced=false. הממשק פירש חוסר תקשורת כאישור להציג את המעטפת ללא התחברות. הרשאות השרת נותרו בתוקף, ולכן זו לא הוכחה לעקיפת הרשאות בבקאנד.",
+      "after": "כשל מציג הודעה בעברית וכפתור ניסיון נוסף, בלי לרנדר את האפליקציה הפרטית. מזהה בקשה מונע מתשובות bootstrap ישנות לדרוס תשובה חדשה או פקיעת session.",
+      "evidence": "בדיקת React אמיתית מדמה כשל רשת, מוודאת שתוכן האפליקציה לא מוצג, ואז בודקת התאוששות בלחיצה. אומת בסבב האימות: auth_enforced הוא not allow_insecure_auth_bypass (backend/app/core/security_deps.py), כלומר ברירת המחדל היא אכיפה ו־bypass הוא opt-in. לכן fail-closed הוא ההתנהגות הנכונה כאן ולא רגרסיה.",
+      "files": [
+        "frontend/src/context/AuthContext.jsx",
+        "frontend/src/context/sessionSafety.test.jsx"
+      ]
+    },
+    {
+      "id": "F04",
+      "severity": "high",
+      "status": "fixed",
+      "title": "מצב אישי שרד מעבר בין חשבונות",
+      "before": "AppProvider נשאר mounted לאורך logout/login. נתוני פיד, תוצאות, משוב ופרופילים של הזהות הקודמת נשארו במצב המקומי, ובקשות ישנות יכלו לסיים מאוחר.",
+      "after": "מצב האפליקציה נוצר מחדש כשזהות המשתמש או מצב אכיפת ההתחברות משתנים. ניקוי effects הקיים מבטל עדכוני פיד ותוצאות מהעץ הישן.",
+      "evidence": "בדיקת React מוסיפה משוב בזהות אחת, מחליפה חשבון ומוודאת שהמצב האישי התאפס. אין שינוי במדיניות ההרשאות של השרת.",
+      "files": [
+        "frontend/src/context/AppContext.jsx",
+        "frontend/src/context/AppContext.test.jsx"
+      ]
+    },
+    {
+      "id": "F05",
+      "severity": "high",
+      "status": "fixed",
+      "title": "משוב של אדמין עודכן בחשבון הלא נכון",
+      "before": "אדמין צפה בפיד של activeProfileId אבל שלח משוב ו־never_show ל־/api/me, כלומר לחשבון שלו. גם הרישום המקומי של משוב משתמש רגיל נשא את מזהה פרופיל הדמו.",
+      "after": "משוב משתמש רגיל נשאר session-derived. משוב אדמין ב־view-as נשלח ליעד הפיד דרך המסלול המוגן לאדמין, כולל never_show. הרישום המקומי משתמש באותה זהות.",
+      "evidence": "בדיקות רכיב מאמתות שהאדמין הצופה ב־guy שולח user_id=guy, ושהמשתמש הרגיל שולח רק ל־/api/me.",
+      "files": [
+        "frontend/src/context/AppContext.jsx",
+        "frontend/src/context/AppContext.test.jsx"
+      ]
+    },
+    {
+      "id": "F06",
+      "severity": "high",
+      "status": "fixed",
+      "title": "מסנן מחיקה של RSS השתמש בקו תחתון כתו כללי",
+      "before": "LIKE 'rss_%' מתאים גם ל־rssXkeep, משום ש־_ הוא wildcard ב־SQL. הדבר הופיע בקריאה, backfill, retention ואיפוס.",
+      "after": "ביטויי ORM משתמשים ב־startswith עם escaping, ושאילתת retention כוללת ESCAPE מפורש. רק תחילית rss_ המילולית נבחרת.",
+      "evidence": "שלוש בדיקות עם שני מזהים כמעט זהים מאמתות קריאה, retention ואיפוס בלי למחוק rssXkeep.",
+      "files": [
+        "backend/app/repositories/article_repository.py",
+        "backend/app/ingestion/retention.py",
+        "backend/app/api/routes_dev.py",
+        "backend/tests/test_repository_audit.py"
+      ]
+    },
+    {
+      "id": "F07",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "עליית שרת קרסה כשקיימים מספר אדמינים",
+      "before": "bootstrap_admin קרא scalar_one_or_none על כל האדמינים. שני אדמינים קיימים גרמו ל־MultipleResultsFound גם כשלא נדרשת יצירה.",
+      "after": "שאילתת הקיום מוגבלת לשורה אחת; bootstrap נשאר create-only.",
+      "evidence": "נוצרו שני אדמינים במסד זמני ו־bootstrap ללא פרטי יצירה הסתיים תקין.",
+      "files": [
+        "backend/app/services/auth_service.py",
+        "backend/tests/test_repository_audit.py"
+      ]
+    },
+    {
+      "id": "F08",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "בקשות כניסה חסומות המשיכו לבצע Argon2",
+      "before": "גם לאחר rate limit בוצע אימות dummy יקר. החסימה הגבילה כניסה אך לא עצרה את העבודה היקרה של כל בקשה שנדחתה.",
+      "after": "אחרי החלטת חסימה מוחזר 429 בלי hashing. אימות dummy נשמר עבור חשבון לא קיים במסלול שאינו חסום.",
+      "evidence": "בדיקות נפרדות לחסם החשבון ולחסם הגלובלי נכשלות אם בקשה שנחסמה מגיעה ל־dummy verifier. זהו trade-off ולא שיפור חד־כיווני: המחיר הוא שאחידות התזמון נפגעת ואפשר להסיק בעזרת מדידת זמן אם בקשה נחסמה. הצד שגובר הוא מניעת עומס Argon2 על כל בקשה שנדחתה. מומלץ לסגור את הפער דרך N01 (חסימה בגבול השירות), לא דרך החזרת ה־hashing.",
+      "files": [
+        "backend/app/services/auth_service.py",
+        "backend/tests/test_repository_audit.py"
+      ]
+    },
+    {
+      "id": "F09",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "טיפול Telegram אישר הצלחה ללא אישור תקף ושמר טקסט ספק",
+      "before": "ok=true הספיק ל־sent גם ללא message_id. JSON במבנה לא צפוי יכול היה לקרוס, ותיאור שגיאה שהתקבל מהספק הוכנס לשדה הנשמר למרות אפשרות להדהוד פרטי חיבור.",
+      "after": "sent מחייב message_id מספרי חיובי. אישור פגום מסומן unknown ולא נשלח שוב אוטומטית. שגיאות HTTP שומרות קוד בלבד, בלי תיאור הספק.",
+      "evidence": "נבדקו null, מערך, result חסר ומזהה בוליאני; תיאור המכיל token ו־chat מדומים אינו נשמר. הבדיקות אינן שולחות הודעות.",
+      "files": [
+        "backend/app/notifications/telegram.py",
+        "backend/tests/test_repository_audit.py"
+      ]
+    },
+    {
+      "id": "F10",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "חיבור API ישיר איבד cookies ופרטי שגיאה",
+      "before": "fetch לא כלל credentials עבור כתובת API אחרת; CORS לא התיר credentials ו־CSRF דחה גם same-site ממקור מורשה. קריאת JSON כושלת צרכה את גוף התשובה לפני ניסיון לקרוא טקסט.",
+      "after": "בקשות כוללות credentials; CORS מתיר אותן רק ברשימת המקורות הקיימת; same-site מתקבל רק עם Origin מורשה. JSON נקרא מעותק, וטקסט שגיאה ופרטי validation נשמרים. cross-site עדיין נדחה.",
+      "evidence": "נבדקו אפשרות same-site מקומית מורשית, דחיית Origin חסר/זר, credentials ב־fetch ושגיאת proxy טקסטואלית. same-origin נשאר ברירת המחדל; אין תמיכה כללית בדומיינים שונים. הוחלט לשמר: פריסה מופרדת היא הכיוון המתוכנן, ולכן המסלול נדרש. ההשלמה החסרה לכך מתועדת ב־N07.",
+      "files": [
+        "frontend/src/api/client.js",
+        "frontend/src/api/client.test.js",
+        "backend/app/main.py",
+        "backend/app/core/csrf.py",
+        "backend/tests/test_repository_audit.py"
+      ]
+    },
+    {
+      "id": "F11",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "כפתור רענון ההתראות לא רונדר והעיצוב נשבר",
+      "before": "SectionCard מקבל actions אבל הפאנל העביר action. בנוסף className קיבל פונקציות עיצוב במקום הפלט שלהן. בדיקות העזר לא רינדרו את הפאנל ולכן עברו.",
+      "after": "שם ה־prop והפעלת פונקציות העיצוב תוקנו. נוספה בדיקת רינדור של הפאנל עצמו.",
+      "evidence": "בדיקת markup מאמתת כפתור notifications-refresh ו־CSS. כל 11 שגיאות ה־typecheck המקוריות נפתרו, כולל טיפוסי Vite, פרמטרי backfill, Set ותאריכים.",
+      "files": [
+        "frontend/src/components/ops/NotificationsPanel.jsx",
+        "frontend/src/components/ops/NotificationsPanel.test.jsx",
+        "frontend/jsconfig.json",
+        "frontend/src/engine/relevanceEngine.js"
+      ]
+    },
+    {
+      "id": "F12",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "תלויות וקוד מת מהאב־טיפוס נשארו בריפו",
+      "before": "נמצאו 16 תלויות ללא ייבוא או שימוש בסריקה. backend/app/db.py הכיל מסד in-memory ישן המוסתר על ידי חבילת app/db. isIframe לא היה בשימוש ובכל זאת ניגש ל־window בזמן ייבוא utils.",
+      "after": "הוסרו 16 תלויות, db.py הישן, isIframe ושלושה ייבואים מיותרים. package-lock עודכן. נוספה תלות פיתוח אחת, react-test-renderer התואמת ל־React 18, עבור בדיקות רכיבים אמיתיות.",
+      "evidence": "npm uninstall הסיר 135 חבילות לפני הוספת כלי הבדיקה; אין לייחס את כל ההפחתה לגודל bundle. נבדקו חיפושי ייבואים, build וסוויטות לאחר ההסרה. רשימת החבילות מופיעה בדוח המקור.",
+      "files": [
+        "frontend/package.json",
+        "frontend/package-lock.json",
+        "frontend/src/lib/utils.js",
+        "frontend/src/context/AppContext.jsx"
+      ]
+    },
+    {
+      "id": "F13",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "בדיקות האיכות לא כיסו את תיקיות הליבה ותיעוד ההפעלה היה מיושן",
+      "before": "ESLint הוגדר בעיקר לעמודים ולרכיבים, ללא api/context/engine/data. לא היה workflow ל־CI. README של הבקאנד טען שאין clustering, הציג scheduler ב־lifespan והמליץ למחוק את מסד הכתבות.",
+      "after": "ה־lint מכסה את קובצי JS/JSX של src עם החרגות מפורשות ל־ui/lib, בדיקת טיפוסים מוגדרת noEmit, נוסף CI לפרונט ולבקאנד, ותיעוד ההפעלה שוכתב לפי המימוש. CLAUDE.md סומן כבריף היסטורי.",
+      "evidence": "ההרחבה של ESLint אמיתית. הטענה על typecheck לא החזיקה כפי שנוסחה: jsconfig include נשאר src/components/**/*.js (בלי .jsx), src/pages/**/*.jsx ו־Layout.jsx, עם src/api ו־src/lib ב־exclude, כך ש־api/context/engine/data נבדקו רק בעקיפין דרך ייבוא. תוקן ב־R01. workflow נבדק בקריאה בלבד.",
+      "files": [
+        "frontend/eslint.config.js",
+        "frontend/jsconfig.json",
+        ".github/workflows/checks.yml",
+        "backend/README.md",
+        "README.md",
+        "CLAUDE.md"
+      ]
+    },
+    {
+      "id": "N01",
+      "severity": "high",
+      "status": "next",
+      "title": "לפני פתיחה רחבה: הגנת עומס על הרשמה ואימות",
+      "before": "signup אינו rate-limited; חסמי login הם בזיכרון ובתהליך יחיד, והמפה של חסם החשבון אינה מנקה מפתחות ישנים. reset password ו־email verification עדיין חסרים כמסעות שירות עצמי.",
+      "after": "לתכנן חסימה לפי מקור וחשבון בגבול השירות, תקציב hashing וניקוי TTL, עם תשובות עקביות. בחירת reverse proxy או מנגנון משותף תלויה בטופולוגיית הפריסה ולכן לא הוכנסה תשתית חדשה בסבב תיקונים זה.",
+      "evidence": "routes_auth.py ו־FixedWindowLimiter נסקרו. אין כאן טענה שנבדקה מתקפת עומס בפועל.",
+      "files": [
+        "backend/app/api/routes_auth.py",
+        "backend/app/services/auth_service.py"
+      ]
+    },
+    {
+      "id": "N02",
+      "severity": "medium",
+      "status": "next",
+      "title": "פיד גדול ו־bundle ראשוני כבד",
+      "before": "ה־bundle המרכזי עדיין כ־750KB מיניפייד, כ־220KB gzip. main.jsx טוען מסכי ops מראש, ונתיבי פיד טוענים כתבות לפני סינון freshness בשירות. AppContext מבצע השוואות דמו גם במצב backend.",
+      "after": "השלב הבא: lazy loading למסכי ops, פיצול קוד דמו, וסינון חלון התאריכים בשאילתה תוך שמירת מסלול debug המלא. יש למדוד p95, כמות שאילתות וזיכרון לפני ואחרי כדי לא לפגוע ב־clustering.",
+      "evidence": "אזהרת build קיימת גם לפני וגם אחרי. get_rss_articles מחזיר את כל הכתבות התואמות; build_feed מסנן מאוחר יותר.",
+      "files": [
+        "frontend/src/main.jsx",
+        "frontend/src/context/AppContext.jsx",
+        "backend/app/repositories/article_repository.py",
+        "backend/app/services/feed_service.py"
+      ]
+    },
+    {
+      "id": "N03",
+      "severity": "medium",
+      "status": "next",
+      "title": "לסגור פערי אמינות במשוב ובסנכרון תוצאות",
+      "before": "כישלונות שמירת משוב נבלעים אחרי רישום מקומי, כך שהמשתמש עלול לחשוב שההעדפה נשמרה. sync_results מסתמך על ספק שמחזיר FetchOutcome; חריגה לא צפויה יכולה לצאת בלי תיעוד last_attempt, ואין lease ייעודי לתוצאות.",
+      "after": "להגדיר מצב pending/saved/failed במשוב ולחצן ניסיון חוזר. לסנכרון תוצאות להוסיף תיאום בין הפעלה ידנית ל־worker ותיעוד ניסיון לפני קריאת הספק. אלה שינויים במסע ובמודל מצבים שדורשים סבב ממוקד ובדיקות מקביליות.",
+      "evidence": "סקירת AppContext ו־sync_service; לא בוצע ניסוי עומס או סנכרון מול ספק חי.",
+      "files": [
+        "frontend/src/context/AppContext.jsx",
+        "backend/app/results/sync_service.py"
+      ]
+    },
+    {
+      "id": "N04",
+      "severity": "medium",
+      "status": "next",
+      "title": "נעילת תלויות בקאנד ומיגרציות בעלות גרסה",
+      "before": "רוב requirements.txt הוא חסמי מינימום, ולכן התקנות בתאריכים שונים אינן בהכרח זהות. מיגרציות עדיין רשימת ALTER בתוך קוד העלייה; התיקון הנוכחי הופך אותן לגלויות במקרה כשל אך אינו יוצר היסטוריית סכימה מלאה.",
+      "after": "לייצר lock מתועד לסביבה נקייה, לבחור מדיניות עדכונים, ולהעביר בהדרגה למיגרציות ממוספרות עם תרגיל שדרוג ושחזור על עותק. אין צורך להחליף SQLite רק לשם החלפת טכנולוגיה.",
+      "evidence": "40 אזהרות בסוויטת הבקאנד כוללות deprecations של TestClient/cookies. CI חדש טרם עבר בענן. זה הפסיק להיות תיאורטי: הריצה הראשונה של ה־CI התקינה fastapi 0.141.1 מול 0.136.3 המקומי והפילה את מלאי ההרשאות — ראה R07.",
+      "files": [
+        "backend/requirements.txt",
+        "backend/app/db/database.py",
+        "backend/tests/conftest.py"
+      ]
+    },
+    {
+      "id": "N05",
+      "severity": "medium",
+      "status": "next",
+      "title": "למדוד את איכות המוצר על קורפוס אמיתי",
+      "before": "אלפי בדיקות מאמתות חוזים ודוגמאות, אך אינן מוכיחות שהפיד החי של היום מסנן היטב, ש־push נדיר ומוצדק, או שכל חברי cluster מתארים אותה התפתחות.",
+      "after": "להכין סט ביקורת מסומן ידנית, לפחות עבור שלושה פרופילים שונים, ולמדוד דיוק כתבות מוצגות, דחיות שגויות, איכות clustering ו־push. להתחיל בעותק/קריאה בלבד; לשמור baseline לפני כל שינוי בכללי הסיווג.",
+      "evidence": "יש בריפו corpus fixtures, בדיקות חוזים ודוחות QA היסטוריים. בסבב הזה לא סווג מחדש הקורפוס החי ולכן אין נתון איכות חי חדש.",
+      "files": [
+        "backend/tests/fixtures/golden_cases.json",
+        "docs/RELEVANCE_CONTRACT.md",
+        "docs/qa"
+      ]
+    },
+    {
+      "id": "N06",
+      "severity": "low",
+      "status": "next",
+      "title": "הקטנת קבצים מרכזיים ובדיקות דפדפן של מסעות משתמש",
+      "before": "classifier.py מעל אלף שורות; LlmQa ו־AppContext מרכזים אחריות רבה. רבות מבדיקות JSX המקוריות בודקות helpers בלבד. נוספו בדיקות רכיבים, אבל זה אינו E2E מלא.",
+      "after": "לפצל לפי אחריות תוך שימוש בבדיקות החוזה: data hooks לפי תחום, API DTOs, סיווג לפי שלבים. להוסיף מסע דפדפן signup → interests → feed → feedback → logout → login של משתמש אחר, מול שרת ומסד זמניים.",
+      "evidence": "inventory.csv כולל שורות לכל קובץ. renderer חדש מכסה תקלות ספציפיות, וה־harness הקיים מכסה Orbit במצב דמו.",
+      "files": [
+        "backend/app/ingestion/classifier.py",
+        "frontend/src/context/AppContext.jsx",
+        "frontend/src/pages/LlmQa.jsx",
+        "frontend/scripts/capture-orbit-production.mjs"
+      ]
+    },
+    {
+      "id": "R01",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "כיסוי ה־typecheck היה צר ממה שנטען, והרחבתו חשפה שגיאות אמיתיות",
+      "before": "F13 טען שהשערים הורחבו לתיקיות הליבה, אבל jsconfig include עדיין כיסה רק src/components/**/*.js, src/pages/**/*.jsx ו־Layout.jsx, כאשר src/api ו־src/lib מוחרגים. כלומר client, normalizers, context, engine ו־data נבדקו רק בעקיפין.",
+      "after": "include הורחב ל־src/**/*.js ו־src/**/*.jsx, נוספו maxNodeModuleJsDepth=0 ו־types node, ורק src/components/ui (פלט shadcn מיובא, שכבר מוחרג ב־ESLint) נשאר מחוץ לתחום ומסומן @ts-nocheck עם forwardRef אטום כדי שלא ייצור false positives אצל הצרכנים שלו.",
+      "evidence": "ההרחבה חשפה שלוש שגיאות אמיתיות בקוד שלנו: prop muted שהוגדר חובה ב־NavItem ולא הועבר על ידי פריטי המוצר, וזוג טענות בבדיקות שנשענו על טיפוסים לא נכונים. כולן תוקנו. npm run typecheck נקי כעת על כל src.",
+      "files": [
+        "frontend/jsconfig.json",
+        "frontend/src/components/shell/ProductNav.jsx",
+        "frontend/src/components/ui/dropdown-menu.jsx",
+        "frontend/src/api/normalizers.test.js",
+        "frontend/src/components/ops/BenchmarkPanel.test.jsx"
+      ]
+    },
+    {
+      "id": "R02",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "ה־lint רץ עם ‎--quiet ולכן ה־CI לא היה אוכף את מה שהוא מוצא",
+      "before": "npm run lint הריץ eslint . --quiet, שמדווח errors בלבד. חמש אזהרות של קוד מת היו קיימות ועברו בשקט, כולל ב־relevanceEngine.js. CI שמריץ פקודה כזו ירוק גם כשיש ממצאים.",
+      "after": "הפקודה היא כעת eslint . --max-warnings=0, וחמש האזהרות טופלו: הוסרו matchedTopic, matchedRule ו־PUSH_RANK שאינם בשימוש, הוסרה הנחיית eslint-disable מיותרת, והוסר isBackendMode שלא נצרך ב־Preferences.",
+      "evidence": "ההסרה גם הוכיחה את ערך R01: ההנחיה prefer-const אכן הייתה מיותרת, אבל ה־let עצמו נחוץ כי topicDecision מוקצה מחדש בהמשך. ה־typecheck המורחב תפס את זה מיד וה־let הוחזר. lint ו־typecheck נקיים, הסוויטה עוברת.",
+      "files": [
+        "frontend/package.json",
+        "frontend/src/engine/relevanceEngine.js",
+        "frontend/src/pages/Preferences.jsx"
+      ]
+    },
+    {
+      "id": "R03",
+      "severity": "low",
+      "status": "fixed",
+      "title": "משטח קליברציה V1 מת נשאר בריפו אחרי ניקוי התלויות",
+      "before": "F12 הסיר את הייבוא של getCalibrationHeadlines ו־normalizeCalibrationHeadlineFromApi מ־AppContext, אבל השאיר את שתי הפונקציות מיוצאות. דף הקליברציה עבר ל־calibration_v2, כך שהבדיקות של הפונקציות היו הצרכן היחיד שלהן והחזיקו אותן בחיים.",
+      "after": "שתי הפונקציות, שלוש הבדיקות שלהן וה־fixture היתום הוסרו.",
+      "evidence": "אומת שדף Calibration מייבא רק endpoints של v2. ארבע הבדיקות של המשטח המת ירדו מהסוויטה; כל השאר עובר, build עובר. הבקאנד לא נגוע.",
+      "files": [
+        "frontend/src/api/client.js",
+        "frontend/src/api/normalizers.js",
+        "frontend/src/api/client.test.js",
+        "frontend/src/api/normalizers.test.js"
+      ]
+    },
+    {
+      "id": "R04",
+      "severity": "low",
+      "status": "fixed",
+      "title": "ה־CI קיבע Python 3.11 בזמן שהסוויטה מוכחת על 3.13",
+      "before": "workflow החדש התקין Python 3.11, אבל ה־venv שבו הורצו 2446 הבדיקות הוא 3.13.14. ריצה ירוקה ראשונה בענן לא הייתה מוכיחה את אותה סביבה.",
+      "after": "הגרסה קובעה ל־3.13 עם הערה שזה מקבע את המפרש בלבד, לא את סט התלויות.",
+      "evidence": "requirements.txt עדיין חסמי מינימום, ולכן זהות סט התלויות נשארת פתוחה — זה בדיוק N04 ולא נסגר כאן.",
+      "files": [
+        ".github/workflows/checks.yml"
+      ]
+    },
+    {
+      "id": "R05",
+      "severity": "low",
+      "status": "fixed",
+      "title": "מסך חסימת ההתחברות היה מבוי סתום בלי משוב על ניסיון חוזר",
+      "before": "המסך של F03 קרא ל־refreshSession ישירות. ניסיון חוזר שנכשל שוב מחזיר בדיוק את אותו מסך בלי שום שינוי נראה, כך שהמשתמש לא יכול לדעת אם הלחיצה נקלטה.",
+      "after": "נוסף מצב pending: הכפתור מושבת ומציג ״מנסה להתחבר...״ בזמן הבקשה וחוזר לאחר מכן.",
+      "evidence": "נוספה בדיקת React שמחזיקה את הבקשה פתוחה, מוודאת disabled וטקסט ההמתנה, ואז דוחה אותה ומוודאת שהמסך הפרטי עדיין חסום. נכשלת מול הקוד הקודם.",
+      "files": [
+        "frontend/src/context/AuthContext.jsx",
+        "frontend/src/context/sessionSafety.test.jsx"
+      ]
+    },
+    {
+      "id": "R06",
+      "severity": "high",
+      "status": "fixed",
+      "title": "בדיקות ה־session עברו רק בזכות קובץ .env.local שאינו בגיט",
+      "before": "הבדיקה של F03 קוראת ל־vi.stubEnv(\"VITE_DATA_MODE\",\"backend\"), אבל AuthContext קרא את המשתנה בצורה /** @type {any} */ (import.meta).env?.VITE_DATA_MODE — צורה שה־transform של Vite/Vitest לא כותב מחדש, כך ש־stubEnv לא הגיע אליה. הערך הגיע בפועל מ־frontend/.env.local של המפתח, שהוא gitignored. על checkout נקי isBackendMode היה false, המסך החוסם לא נוצר, ושתי הבדיקות נכשלו. האינדירקציה קיימת ב־main מ־#51 ולא נוצרה בסבב הזה.",
+      "after": "AuthContext קורא את המשתנה כמו AppContext. בנוסף vite.config מקבע test.env.VITE_DATA_MODE לערך ריק, כך שהסוויטה לא יורשת יותר את .env.local של אף מכונה; בדיקה שצריכה מצב מסוים מצהירה עליו בעצמה.",
+      "evidence": "שוחזר מקומית על ידי הסרת .env.local — בדיוק שתי הבדיקות שנכשלו ב־CI נכשלו, והשאר עבר. אחרי התיקון הסוויטה מחזירה 539 עוברות זהה עם ובלי הקובץ. זה בדיוק סוג הביטחון המדומה שהביקורת אמורה הייתה לחסל.",
+      "files": [
+        "frontend/src/context/AuthContext.jsx",
+        "frontend/vite.config.js",
+        "frontend/src/context/sessionSafety.test.jsx"
+      ]
+    },
+    {
+      "id": "R07",
+      "severity": "high",
+      "status": "fixed",
+      "title": "מלאי ההרשאות עובר בשקט בלי לבדוק כלום על FastAPI חדש",
+      "before": "ה־CI התקין fastapi 0.141.1 במקום 0.136.3 המקומי, כי requirements.txt הוא חסמי מינימום. ב־0.141 include_router כבר לא משטח routes ל־APIRoute אלא מוסיף _IncludedRouter יחיד, כך ש־isinstance(route, APIRoute) לא מוצא דבר. שלוש שכבות ההוכחה של test_authz_inventory — כיסוי, אמת התלויות והמטריצה ההתנהגותית — היו עוברות ריקות. רק הבדיקה ההפוכה, שדורשת שכל route במלאי יהיה רשום, נכשלה וחשפה את זה.",
+      "after": "כל ארבע נקודות הקריאה עוברות דרך _registered_routes_checked, שנכשל במפורש כשהמעבר מחזיר ריק ומדפיס את גרסת FastAPI ואת סוגי ה־routes שנמצאו. בנוסף fastapi חסום ב־<0.137 עם הסבר, עד שה־introspection יותאם.",
+      "evidence": "אומת בסביבה נקייה: על fastapi 0.141.1 אין אף APIRoute ב־app.routes, ועל הטווח החסום נפתר 0.136.3 וה־introspection עובד. אלפי הבדיקות האחרות עברו גם על 0.141, כלומר האפליקציה עצמה לא נשברה — רק ההוכחה עליה. הכשל קיים ב־main; ה־CI החדש הוא שחשף אותו.",
+      "files": [
+        "backend/tests/test_authz_inventory.py",
+        "backend/requirements.txt"
+      ]
+    },
+    {
+      "id": "N07",
+      "severity": "medium",
+      "status": "next",
+      "title": "לפני פריסה מופרדת: רשימת המקורות מפוצלת לשני מקומות",
+      "before": "csrf_allowed_origins נקרא מ־CSRF_ALLOWED_ORIGINS עם ברירת מחדל של פורטי פיתוח, אבל allow_origins של CORS ב־main.py מקובע בקוד ואין לו override. F10 הופך את המסלול הזה לרלוונטי: כשה־frontend יישב בדומיין נפרד, ה־CSRF יקבל את המקור החדש וה־CORS ידחה אותו, והכשל ייראה כמו תקלת רשת בדפדפן. שתי הרשימות יכולות להיפרד בלי ששום בדיקה תתלונן.",
+      "after": "לאחד למקור אמת אחד שנקרא מהסביבה, ולהחליט במפורש מה ברירת המחדל בפרודקשן — כרגע היא רשימת localhost. להוסיף בדיקה שמאמתת שהמקורות ש־CSRF מתיר הם בדיוק אלה ש־CORS מתיר, כדי שהפיצול לא יחזור.",
+      "evidence": "נסקר config.py ו־main.py. לא נבדקה פריסה מופרדת בפועל, ולכן זו הערכה מקוד ולא ממדידה. לא חוסם את המצב הנוכחי, שבו הפרונט מגיע same-origin דרך proxy.",
+      "files": [
+        "backend/app/main.py",
+        "backend/app/core/config.py",
+        "backend/app/core/csrf.py"
+      ]
+    }
+  ],
+  "removed_dependencies": [
+    "@hello-pangea/dnd",
+    "@hookform/resolvers",
+    "@radix-ui/react-toast",
+    "@stripe/react-stripe-js",
+    "@stripe/stripe-js",
+    "canvas-confetti",
+    "html2canvas",
+    "jspdf",
+    "lodash",
+    "moment",
+    "react-hot-toast",
+    "react-leaflet",
+    "react-markdown",
+    "react-quill",
+    "three",
+    "zod"
+  ],
+  "roadmap": [
+    {
+      "step": "1 — סקירה ומיזוג מבוקר",
+      "action": "לקרוא את התיקונים לפי F01–F13, להריץ את ה־CI בענף/PR לאחר push יזום, ולבצע smoke test על שרת ומסד זמניים. main נשאר ללא שינוי עד החלטתך.",
+      "done": "CI ירוק, התחברות/החלפת חשבון/משוב מאומתים, וגיבוי שנבדק לפני כל פריסה."
+    },
+    {
+      "step": "2 — להוכיח את איכות הפיד",
+      "action": "לבנות סט אמת קטן של כתבות עדכניות ושלושה פרופילי עניין שונים; לדרג ידנית האם כל סיפור צריך להופיע, להיות מוסתר או לייצר push.",
+      "done": "דוח חוזר עם שיעורי טעות לפי מקור, סוג אירוע ופרופיל, כולל טעויות clustering ו־push."
+    },
+    {
+      "step": "3 — לסגור לולאת משוב אמינה",
+      "action": "להראות למשתמש אם משוב נשמר או נכשל, לבחון איך שינוי העדפה משנה את הפיד, ולהוסיף מסע E2E מלא כולל מעבר חשבון.",
+      "done": "אין הצלחות מדומות בממשק ואין נתונים של משתמש קודם; מסע המשתמש עובר אוטומטית."
+    },
+    {
+      "step": "4 — פיילוט מצומצם ומדידה",
+      "action": "לתת לקבוצה קטנה להשתמש בפיד ולמדוד סיפורים מועילים, הסתרות, תלונות על כפילות ודיוק התראות. לתקן קודם תקלות שמייצרות רעש או פוגעות באמון.",
+      "done": "משתמשים חוזרים לפיד ומדווחים שהוא חוסך פתיחה של אתרי ספורט, עם מעט התראות שווא."
+    },
+    {
+      "step": "5 — תחזוקה וקיבולת לפי נתונים",
+      "action": "לטפל ב־bundle, בשאילתות ובנעילת התלויות לפי מדידה; להשלים הגנת עומס והרשמה לפני הרחבת הגישה. לפרק קבצים גדולים בהדרגה בלי לשכתב את כל המנוע.",
+      "done": "זמני תגובה וטעינה נמדדים, שדרוג ושחזור ניתנים לשחזור, ולכל שינוי כללי סיווג יש baseline."
+    }
+  ],
+  "base_commit": "620161294ccc2444f956ffc078398e9ea23f3a6e"
+}

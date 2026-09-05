@@ -88,7 +88,7 @@ def _guard_corpus_db(operation: str, allow_with_opt_in: bool) -> None:
 
 def _reset_rss_data(session: Session) -> None:
     """Delete all RSS articles and ingestion run logs (shared by reset + benchmark)."""
-    session.query(ArticleRow).filter(ArticleRow.id.like("rss_%")).delete(synchronize_session=False)
+    session.query(ArticleRow).filter(ArticleRow.id.startswith("rss_", autoescape=True)).delete(synchronize_session=False)
     session.query(IngestionRunRow).delete(synchronize_session=False)
     session.commit()
 
@@ -98,7 +98,7 @@ def _count_sport_unknown(session: Session, source_ids: list[str]) -> dict[str, i
     rows = (
         session.query(ArticleRow.source, func.count().label("cnt"))
         .filter(
-            ArticleRow.id.like("rss_%"),
+            ArticleRow.id.startswith("rss_", autoescape=True),
             ArticleRow.sport == "unknown",
             ArticleRow.source.in_(source_ids),
         )
@@ -165,7 +165,7 @@ def reset_rss_data(session: Session = Depends(get_session)) -> ResetRssDataResul
 
     deleted_articles = (
         session.query(ArticleRow)
-        .filter(ArticleRow.id.like("rss_%"))
+        .filter(ArticleRow.id.startswith("rss_", autoescape=True))
         .delete(synchronize_session=False)
     )
     deleted_runs = session.query(IngestionRunRow).delete(synchronize_session=False)

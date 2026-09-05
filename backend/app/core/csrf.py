@@ -14,13 +14,17 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         fetch_site = request.headers.get("sec-fetch-site")
-        if fetch_site is not None and fetch_site.lower() not in ALLOWED_FETCH_SITES:
+        origin = request.headers.get("origin")
+        trusted_same_site = (
+            fetch_site is not None and fetch_site.lower() == "same-site"
+            and origin is not None and origin in settings.csrf_allowed_origins
+        )
+        if fetch_site is not None and fetch_site.lower() not in ALLOWED_FETCH_SITES and not trusted_same_site:
             return JSONResponse(
                 status_code=403,
                 content={"detail": "CSRF check failed"},
             )
 
-        origin = request.headers.get("origin")
         if origin is not None:
             allowed = set(settings.csrf_allowed_origins)
             if origin not in allowed:

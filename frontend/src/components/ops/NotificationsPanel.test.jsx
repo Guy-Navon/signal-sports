@@ -4,11 +4,21 @@
  */
 
 import { describe, it, expect } from "vitest";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import NotificationsPanel from "./NotificationsPanel";
 import {
   NOTIFICATION_STATUS_LABELS as STATUS_LABELS,
   manualReviewEvents,
   notificationsStateLabel,
 } from "@/api/normalizers";
+
+it("renders the actual notification refresh action with CSS classes", () => {
+  const markup = renderToStaticMarkup(<NotificationsPanel isBackendMode />);
+  expect(markup).toContain('data-testid="notifications-refresh"');
+  expect(markup).toContain("inline-flex");
+  expect(markup).not.toContain("function consoleButton");
+});
 
 describe("STATUS_LABELS", () => {
   it("covers every outbox status with a Hebrew label", () => {

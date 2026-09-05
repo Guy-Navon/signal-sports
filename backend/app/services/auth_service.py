@@ -258,10 +258,8 @@ def login(
 ) -> tuple[UserRow, str, AuthSessionRow]:
     normalized = normalize_email(email)
     if not _global_login_limiter.check("global"):
-        verify_dummy_password(password)
         raise RateLimitExceeded("too many login attempts")
     if not _account_login_limiter.check(normalized):
-        verify_dummy_password(password)
         raise RateLimitExceeded("too many login attempts")
 
     user = get_user_by_email(session, normalized)
@@ -430,7 +428,7 @@ def bootstrap_admin(session: Session, *, email: Optional[str], password: Optiona
         return None
 
     existing_admin = session.execute(
-        select(UserRow).where(UserRow.role == "admin")
+        select(UserRow).where(UserRow.role == "admin").limit(1)
     ).scalar_one_or_none()
     if existing_admin is not None:
         return None

@@ -99,7 +99,7 @@ def get_by_url(session: Session, url: str) -> Optional[Article]:
 
 def get_rss_articles(session: Session) -> List[Article]:
     """Return all articles ingested via RSS (id prefix 'rss_')."""
-    rows = session.query(ArticleRow).filter(ArticleRow.id.like("rss_%")).all()
+    rows = session.query(ArticleRow).filter(ArticleRow.id.startswith("rss_", autoescape=True)).all()
     return [_row_to_article(r) for r in rows]
 
 
@@ -220,7 +220,7 @@ def get_articles_for_classification_backfill(
     _already_llm = {"llm", "llm+rules_guardrail"}
     query = (
         session.query(ArticleRow)
-        .filter(ArticleRow.id.like("rss_%"))
+        .filter(ArticleRow.id.startswith("rss_", autoescape=True))
         .filter(ArticleRow.source.in_(source_ids))
     )
     if not force:
@@ -244,7 +244,7 @@ def get_untranslated_rss_articles(
     """
     query = (
         session.query(ArticleRow)
-        .filter(ArticleRow.id.like("rss_%"))
+        .filter(ArticleRow.id.startswith("rss_", autoescape=True))
         .filter(ArticleRow.language != "he")
         .filter(ArticleRow.translated_title.is_(None))
     )

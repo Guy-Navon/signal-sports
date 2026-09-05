@@ -1397,7 +1397,8 @@ async function main() {
     await client.send("Runtime.enable");
     await client.send("Log.enable");
     client.on("Runtime.exceptionThrown", (event) => {
-      browserErrors.push(event.exceptionDetails?.text ?? "Runtime exception");
+      browserErrors.push(event.exceptionDetails?.exception?.description
+        ?? event.exceptionDetails?.text ?? "Runtime exception");
     });
     client.on("Log.entryAdded", (event) => {
       if (event.entry?.level === "error") browserErrors.push(event.entry.text);
@@ -1649,6 +1650,9 @@ async function main() {
         2
       )
     );
+  } catch (error) {
+    if (browserErrors.length) console.error("Browser errors:", browserErrors);
+    throw error;
   } finally {
     client?.close();
     await stopProcess(chrome);

@@ -29,7 +29,7 @@ The app runs in two modes via `VITE_DATA_MODE` (in `.env.local`):
   (`/api/...`, `/health`) forwarded to `http://127.0.0.1:8000` by the Vite
   dev proxy (see `vite.config.js`). Setting `VITE_API_BASE_URL` explicitly is
   an override/debug path only (direct cross-origin calls bypassing the proxy;
-  unsupported under cookie-auth enforcement).
+  supported for explicitly allowed same-site development origins with credentialed fetch; the same-origin proxy remains the default).
 
 ```bash
 # local mode

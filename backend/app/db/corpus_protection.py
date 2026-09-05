@@ -30,32 +30,39 @@ Contract:
 import os
 from pathlib import Path
 from typing import Optional
+from sqlalchemy.engine import make_url
+from sqlalchemy.exc import ArgumentError
 
 # The canonical corpus file, relative to the backend package root.
 # backend/app/db/corpus_protection.py → parents[2] == backend/
 _BACKEND_ROOT = Path(__file__).resolve().parents[2]
 CANONICAL_CORPUS_PATH = (_BACKEND_ROOT / "data" / "signal_sports.db").resolve()
 
-_SQLITE_PREFIX = "sqlite:///"
-
 
 def _sqlite_path_from_url(url: str) -> Optional[Path]:
     """Resolve a sqlite SQLAlchemy URL to an absolute filesystem path.
 
     Returns None for non-sqlite URLs and for in-memory databases (which are never
-    the corpus). Relative paths resolve against the backend root — that is how
-    ``sqlite:///./data/signal_sports.db`` is written in ``backend/.env``.
+    the corpus). Relative paths resolve against the working directory, just
+    like SQLite. Driver-qualified URLs and SQLite URI filenames are supported.
     """
-    if not url.startswith(_SQLITE_PREFIX):
+    try:
+        parsed = make_url(url)
+    except ArgumentError:
+        return None
+    if parsed.get_backend_name() != "sqlite":
         return None
 
-    raw = url[len(_SQLITE_PREFIX):]
-    if not raw or ":memory:" in raw:
+    raw = parsed.database
+    if not raw or raw == ":memory:":
         return None
+    if raw.startswith("file:"):
+        from urllib.parse import unquote
+        raw = unquote(raw[5:])
 
     path = Path(raw)
     if not path.is_absolute():
-        path = _BACKEND_ROOT / path
+        path = Path.cwd() / path
 
     try:
         return path.resolve()
@@ -64,14 +71,22 @@ def _sqlite_path_from_url(url: str) -> Optional[Path]:
 
 
 def active_database_url() -> str:
-    """The DB URL the app is actually using (env first, matching app.db.database)."""
-    return os.environ.get("DATABASE_URL", "")
+    """Use the initialized engine; later environment edits cannot retarget it."""
+    from app.db.database import engine
+    return engine.url.render_as_string(hide_password=False)
 
 
 def is_protected_corpus_db(url: Optional[str] = None) -> bool:
     """True when the active database is the canonical article corpus."""
     resolved = _sqlite_path_from_url(url if url is not None else active_database_url())
-    return resolved is not None and resolved == CANONICAL_CORPUS_PATH
+    if resolved is None:
+        return False
+    if resolved == CANONICAL_CORPUS_PATH:
+        return True
+    try:
+        return resolved.samefile(CANONICAL_CORPUS_PATH)
+    except OSError:
+        return False
 
 
 def corpus_reset_opt_in() -> bool:

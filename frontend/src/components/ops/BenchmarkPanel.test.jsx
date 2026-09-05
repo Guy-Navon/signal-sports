@@ -58,7 +58,7 @@ describe("runLlmGatingBenchmark API function", () => {
 
   it("calls POST /api/dev/benchmark/llm-gating", async () => {
     const calls = [];
-    globalThis.fetch = vi.fn(async (url, opts) => {
+    globalThis.fetch = /** @type {any} */ (vi.fn(async (url, opts) => {
       calls.push({ url, opts });
       return {
         ok: true,
@@ -70,7 +70,7 @@ describe("runLlmGatingBenchmark API function", () => {
           comparison: {},
         }),
       };
-    });
+    }));
 
     const mod = await import("@/api/client");
     await mod.runLlmGatingBenchmark();

@@ -137,6 +137,15 @@ _PARAM_FILL = {
 
 
 def _registered_routes(application):
+    """Every APIRoute on the app, as ("METHOD /path", route) pairs.
+
+    This walks FastAPI internals, so a FastAPI release can change the shape of
+    ``application.routes`` and quietly return nothing here — which would make
+    all three proof layers below pass while testing NOTHING. That is not
+    hypothetical: 0.141 stopped flattening ``include_router`` into APIRoute
+    objects and appends a single ``_IncludedRouter`` instead. Callers must go
+    through _registered_routes_checked so an empty walk fails loudly.
+    """
     from fastapi.routing import APIRoute
     out = []
     for route in application.routes:
@@ -145,6 +154,24 @@ def _registered_routes(application):
         for method in sorted(route.methods - {"HEAD", "OPTIONS"}):
             out.append((f"{method} {route.path}", route))
     return out
+
+
+def _registered_routes_checked(application):
+    """_registered_routes, but an empty result is a failure, never a pass."""
+    routes = _registered_routes(application)
+    assert routes, (
+        "Route introspection returned NOTHING, so the authorization inventory "
+        "would pass vacuously. The installed FastAPI "
+        f"({_fastapi_version()}) exposes app.routes as "
+        f"{sorted({type(r).__name__ for r in application.routes})}. Fix "
+        "_registered_routes for this version before trusting this suite."
+    )
+    return routes
+
+
+def _fastapi_version():
+    import fastapi
+    return getattr(fastapi, "__version__", "unknown")
 
 
 def _security_deps_on(route):
@@ -200,7 +227,7 @@ def _enforced(client, monkeypatch):
 
 def test_every_registered_route_is_classified(client, _application):
     unclassified = [
-        key for key, _ in _registered_routes(_application) if key not in INVENTORY
+        key for key, _ in _registered_routes_checked(_application) if key not in INVENTORY
     ]
     assert unclassified == [], (
         "Routes exist outside the authorization inventory — classify them in "
@@ -209,14 +236,14 @@ def test_every_registered_route_is_classified(client, _application):
 
 
 def test_every_classified_route_is_registered(client, _application):
-    registered = {key for key, _ in _registered_routes(_application)}
+    registered = {key for key, _ in _registered_routes_checked(_application)}
     ghosts = [key for key in INVENTORY if key not in registered]
     assert ghosts == [], f"Inventory lists routes that do not exist: {ghosts}"
 
 
 def test_attached_security_dependency_matches_declared_class(client, _application):
     mismatches = []
-    for key, route in _registered_routes(_application):
+    for key, route in _registered_routes_checked(_application):
         expected = _EXPECTED_DEP[INVENTORY[key]]
         actual = _security_deps_on(route)
         if actual != expected:
@@ -228,7 +255,7 @@ def test_attached_security_dependency_matches_declared_class(client, _applicatio
 
 def _gated_routes(_application):
     return [
-        (key, route) for key, route in _registered_routes(_application)
+        (key, route) for key, route in _registered_routes_checked(_application)
         if INVENTORY[key] in ("me", "session", "admin", "admin+env")
     ]
 

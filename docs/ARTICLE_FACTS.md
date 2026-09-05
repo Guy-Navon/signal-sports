@@ -59,6 +59,36 @@ conflict and enforces the invariants:
   to `sport=unknown`, drop the entity, record the abstention. (Case 10:
   Maccabi Tel Aviv **Football** + `sport=basketball` cannot persist.)
 
+### Naming a club is not being about it (former affiliation)
+
+Entity resolution emits an entity only for mentions that make the club a
+**subject** of the story. An alias occurrence *touching* a former-affiliation
+marker — `אקס `, ` לשעבר`, `ex-`, `former ` — still **claims its span** (the text
+really does name the club there, so a shorter alias must not re-match it) but
+resolves to nothing, and the alias is reported in `EntityResolution.
+former_affiliations` so the abstention is visible in a trace rather than silent.
+
+**Adjacency is the entire condition.** A marker elsewhere in the sentence says
+nothing about a different mention of the same club, so
+`"אקס מכבי תל אביב חתם במכבי תל אביב"` still resolves Maccabi — the second
+mention is a subject one. Likewise the marker suppresses only the club it
+touches: in `"אחרי כוכב פנאתינייקוס: הקבוצה שמנסה לגנוב את אקס מכבי תל אביב"`,
+Panathinaikos resolves and Maccabi does not.
+
+Why it exists: the N05 ground-truth pass found
+`"חוזר לאירופה: אקס מכבי תל אביב חתם בקבוצה חדשה"` — an ex-Maccabi player
+signing *elsewhere* — resolving to Maccabi Tel Aviv and riding that club's
+`always_push` override to a phone notification. Four of the twenty-two pushes in
+the rated corpus were this shape, and the rater rejected every one. This is the
+same law the clustering layer already holds for story anchors (*anchor evidence
+is subject evidence*); the relevance path simply never applied it.
+
+Stored rows written before this rule keep the old attribution — the rule affects
+new classification only. `backend/scripts/apply_former_affiliation_corrections.py`
+corrects existing rows, and rewrites **entity attribution only**: a rules-only
+recompute of sport/event/importance would lose LLM-assisted classification that
+many stored rows depend on. See `docs/qa/N05_FEED_GROUND_TRUTH.md`.
+
 ### Evidence weight order (recorded in the trace)
 
 `source URL hint / basketball-only source (100) > explicit sport keyword —

@@ -585,6 +585,17 @@ See `docs/LLM_CLASSIFICATION.md` for full architecture details.
 
 ---
 
+### Former affiliation (2026-09-05)
+
+A club named as somebody's *former* club no longer resolves as an entity of the
+story — see `docs/ARTICLE_FACTS.md` for the rule and its adjacency condition.
+Found by the first ground-truth measurement of feed quality (audit item N05):
+four of twenty-two pushes were ex-Maccabi players signing elsewhere. 23 stored
+rows were corrected in place (entity attribution only). Measured against 282
+human ratings: push precision 32% → 41%, shown precision 97% → 98%, with one
+additional false hide. Tool and results: `docs/qa/N05_FEED_GROUND_TRUTH.md`,
+`backend/scripts/feed_ground_truth.py`.
+
 ## 9. Translation Pipeline State (Post-MVP — Preserved, Not Active)
 
 Translation is not used in the current MVP. All active sources (`walla_sport`, `israel_hayom_sport`, `ynet_sport`, `one_sport`) are Hebrew-native — no translation is needed. `TRANSLATION_PROVIDER=disabled` is the default and the correct MVP setting.

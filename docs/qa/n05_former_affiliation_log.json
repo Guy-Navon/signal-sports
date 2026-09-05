@@ -1,0 +1,347 @@
+{
+  "generated_at": "2026-09-05T21:37:44.916016+00:00",
+  "applied": true,
+  "database": "C:\\Users\\HOME\\Documents\\signal-sports\\backend\\data\\signal_sports.db",
+  "rows": [
+    {
+      "id": "rss_05af0853a22d35956113",
+      "title": "עמדה במצוקה: אקס הפועל תל אביב מתרחק מהקבוצה",
+      "former_affiliations": [
+        "הפועל תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:hapoel_tlv_fc"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:hapoel_tlv_fc"
+      ]
+    },
+    {
+      "id": "rss_bffe4c28befd8c4f44bb",
+      "title": "אחרי כוכב פנאתינייקוס: הקבוצה שמנסה לגנוב את אקס מכבי תל אביב",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_tlv_bb",
+        "team:panathinaikos_bb"
+      ],
+      "entity_ids_after": [
+        "team:panathinaikos_bb"
+      ],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_5fdf311e1375300da7b7",
+      "title": "ענאן חלאילי במוקד: המהפך של רן בן שמעון בנבחרת ישראל",
+      "former_affiliations": [
+        "מכבי חיפה"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_haifa_fc"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_haifa_fc"
+      ]
+    },
+    {
+      "id": "rss_0c9d0229a4765f7e160c",
+      "title": "חוזר לאירופה: אקס מכבי תל אביב חתם בקבוצה חדשה",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_tlv_bb"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_6835021ba35140e88757",
+      "title": "שוב בצהוב: ג'רמי פארגו מככב מול אגדות NBA",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:hapoel_jlm_bb",
+        "team:maccabi_tlv_bb"
+      ],
+      "entity_ids_after": [
+        "team:hapoel_jlm_bb"
+      ],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_d50b23c308932ee8e8d8",
+      "title": "אקס מכבי תל אביב מסתבך: \"הפר את החוזה\"",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_tlv_bb"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_b6cd711e8761d319d328",
+      "title": "כוכב \"פאוור קאפל\" על ההתמוטטות: \"עד היום אני לוקח כדורים\"",
+      "former_affiliations": [
+        "הפועל תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:hapoel_tlv_fc"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:hapoel_tlv_fc"
+      ]
+    },
+    {
+      "id": "rss_5a8959a81c879515f7cc",
+      "title": "אקס מכבי תל אביב בדרך לקבוצה חדשה מהיורוקאפ | פרסום ראשון",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_tlv_bb"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_46b8526abcb0536b1cc8",
+      "title": "תמיר בלאט ושמות גדולים: השחקנים מליגת העל שעדיין מחפשים קבוצה",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:hapoel_tlv_bb",
+        "team:maccabi_tlv_bb"
+      ],
+      "entity_ids_after": [
+        "team:hapoel_tlv_bb"
+      ],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_e84814c01635934f9d0d",
+      "title": "אקס מכבי תל אביב במו״מ עם קבוצה מפתיעה מישראל | פרסום ראשון",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_tlv_bb"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_5f4b32e58f00ab843438",
+      "title": "ההצעה הראשונה נדחתה: י-ם בעקבות אקס דנבר",
+      "former_affiliations": [
+        "דנבר"
+      ],
+      "entity_ids_before": [
+        "team:denver_nuggets"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:denver_nuggets"
+      ]
+    },
+    {
+      "id": "rss_0c600cc0d53e34a020c0",
+      "title": "המסר של ערן זהבי לאקס מכבי תל אביב אחרי הזכייה במונדיאל",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_tlv_fc"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_tlv_fc"
+      ]
+    },
+    {
+      "id": "rss_f46825fe55375003e818",
+      "title": "אקס הפועל תל אביב חשף: המועד בו לברון ג'יימס יודיע על עתידו",
+      "former_affiliations": [
+        "הפועל תל אביב"
+      ],
+      "entity_ids_before": [
+        "player:lebron_james",
+        "team:hapoel_tlv_bb"
+      ],
+      "entity_ids_after": [
+        "player:lebron_james"
+      ],
+      "dropped": [
+        "team:hapoel_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_169042f9416c67bd7024",
+      "title": "יפגוש את הפועל ב\"ש? אקס מכבי ת\"א בדרך לכוכב האדום בלגרד",
+      "former_affiliations": [
+        "מכבי ת\"א"
+      ],
+      "entity_ids_before": [
+        "team:hapoel_beer_sheva_fc",
+        "team:maccabi_tlv_fc"
+      ],
+      "entity_ids_after": [
+        "team:hapoel_beer_sheva_fc"
+      ],
+      "dropped": [
+        "team:maccabi_tlv_fc"
+      ]
+    },
+    {
+      "id": "rss_3fa19124bcc0d7a97e2c",
+      "title": "לראשונה מאמן ראשי: התפקיד החדש של דורון פרקינס",
+      "former_affiliations": [
+        "מכבי ת\"א"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_tlv_bb"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_b02825c3f5f8ee43e750",
+      "title": "אקס מכבי תל אביב בדרך למעבר גדול: \"זה היה מה שהכריע\"",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_tlv_fc"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_tlv_fc"
+      ]
+    },
+    {
+      "id": "rss_b372cdbd9e1ea96e21cd",
+      "title": "רשמי: ג`ייקוב וויילי חתם בנס ציונה",
+      "former_affiliations": [
+        "פנאתינייקוס"
+      ],
+      "entity_ids_before": [
+        "team:panathinaikos_bb"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:panathinaikos_bb"
+      ]
+    },
+    {
+      "id": "rss_28ba5784d1b103967d49",
+      "title": "דיווח: אקס מכבי תל אביב מציע את עצמו לקבוצות היורוליג",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_tlv_bb"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_06f5bb96fddd4304a2e5",
+      "title": "\"מוחמד אבו פאני הוא המאסטר, לויזוס לויזו לא שחקן לליגת האלופות\"",
+      "former_affiliations": [
+        "הפועל ת\"א"
+      ],
+      "entity_ids_before": [
+        "team:hapoel_tlv_fc"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:hapoel_tlv_fc"
+      ]
+    },
+    {
+      "id": "rss_780c38438df0c99b110d",
+      "title": "המאמן הענק לקח את אקס מכבי תל אביב כפרויקט: \"אראה גרסה אחרת\"",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_tlv_bb"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_c256b501d2507597f9e6",
+      "title": "אקס מכבי תל אביב מועמד להפועל ירושלים | פרסום ראשון",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:hapoel_jlm_bb",
+        "team:maccabi_tlv_bb"
+      ],
+      "entity_ids_after": [
+        "team:hapoel_jlm_bb"
+      ],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_b5ca1402f4ebbe3a675f",
+      "title": "בטח ניחשתם מי בפסגה: דירוג 99 הקלעים הגדולים בתולדות ה-NBA",
+      "former_affiliations": [
+        "מכבי תל אביב"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_tlv_bb"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_5e5615c2b6d0f2280fd2",
+      "title": "כוכב העבר האיטלקי החתים את אקס מכבי יפו בניו יורק קוסמוס",
+      "former_affiliations": [
+        "מכבי יפו"
+      ],
+      "entity_ids_before": [
+        "team:maccabi_jaffa_fc"
+      ],
+      "entity_ids_after": [],
+      "dropped": [
+        "team:maccabi_jaffa_fc"
+      ]
+    }
+  ]
+}

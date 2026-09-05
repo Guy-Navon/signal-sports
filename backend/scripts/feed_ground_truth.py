@@ -292,6 +292,31 @@ RATING_TO_TIER = {
 TIER_RANK = {"hidden": 0, "low_feed": 1, "feed": 2, "high_feed": 3, "push": 4}
 
 
+def _refresh_decisions(sample: dict) -> None:
+    """Replace the sample's frozen decisions with the engine's current ones.
+
+    Strata and weights are left exactly as drawn. An article's stratum records
+    where it was SAMPLED from, which is what the weights describe; re-deriving
+    it from the new decision would silently change the sampling design and make
+    the population estimates wrong.
+    """
+    with SessionLocal() as session:
+        feeds, _ = _score_all(session)
+    for user_id, block in sample["profiles"].items():
+        current = {s.article.id: s for s in feeds.get(user_id, [])}
+        moved = 0
+        for item in block["items"]:
+            scored = current.get(item["id"])
+            if scored is None:
+                continue
+            if scored.decision != item["engine_decision"]:
+                moved += 1
+            item["engine_decision"] = scored.decision
+            item["matched_topic"] = scored.matched_topic
+            item["matched_event_rule"] = scored.matched_event_rule
+        print(f"{user_id}: {moved} of {len(block['items'])} rated items changed decision")
+
+
 def cmd_score(args) -> None:
     raw = json.loads(Path(args.ratings).read_text(encoding="utf-8"))
     sample = json.loads(Path(args.sample).read_text(encoding="utf-8"))
@@ -307,6 +332,13 @@ def cmd_score(args) -> None:
     for user_id in ratings:
         if user_id not in sample["profiles"]:
             raise SystemExit(f"Ratings name a profile the sample does not have: {user_id}")
+
+    if args.live:
+        # The sample froze the decisions that were current when it was drawn.
+        # Re-scoring the same articles against the engine as it stands NOW is
+        # what answers "did my change improve things?" — same people, same
+        # ratings, same strata and weights, new decisions.
+        _refresh_decisions(sample)
 
     report = {"meta": _run_meta(sample["meta"]["corpus_articles"]), "profiles": {}}
     report["meta"]["rated_against_sample"] = sample["meta"].get("generated_at")
@@ -458,6 +490,11 @@ def main() -> None:
     p_score.add_argument("--ratings", required=True)
     p_score.add_argument("--sample", required=True)
     p_score.add_argument("--out")
+    p_score.add_argument(
+        "--live", action="store_true",
+        help="score the ratings against the engine's CURRENT decisions instead "
+             "of the ones frozen into the sample — the before/after gate",
+    )
     p_score.set_defaults(func=cmd_score)
 
     args = parser.parse_args()

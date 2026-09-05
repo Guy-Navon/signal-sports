@@ -21,5 +21,11 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    // Neutralise the developer's gitignored .env.local. Without this the suite
+    // inherits whatever VITE_DATA_MODE that file sets, so a test can pass on a
+    // workstation and fail on a clean checkout — which is exactly how the
+    // session-bootstrap tests reached CI green locally and red on GitHub.
+    // Tests that need a mode declare it themselves via vi.stubEnv.
+    env: { VITE_DATA_MODE: '' },
   },
 });

@@ -52,6 +52,11 @@
       "name": "סבב אימות — Frontend אחרי R01–R05",
       "result": "539 passed, 32 test files; lint עם --max-warnings=0 נקי; typecheck נקי על כל src; build עבר (אזהרת bundle נותרה, N02)",
       "command": "cd frontend; npm run test; npm run lint; npm run typecheck; npm run build"
+    },
+    {
+      "name": "סבב אימות — ריצת CI ראשונה (PR #186)",
+      "result": "נכשלה בשני ה־jobs וחשפה שני כשלים אמיתיים שלא נראים מקומית: R06 (תלות ב־.env.local) ו־R07 (מלאי הרשאות ריק על FastAPI חדש). שניהם תוקנו; שניהם קיימים ב־main.",
+      "command": "gh run view --log-failed"
     }
   ],
   "findings": [
@@ -286,7 +291,7 @@
       "title": "נעילת תלויות בקאנד ומיגרציות בעלות גרסה",
       "before": "רוב requirements.txt הוא חסמי מינימום, ולכן התקנות בתאריכים שונים אינן בהכרח זהות. מיגרציות עדיין רשימת ALTER בתוך קוד העלייה; התיקון הנוכחי הופך אותן לגלויות במקרה כשל אך אינו יוצר היסטוריית סכימה מלאה.",
       "after": "לייצר lock מתועד לסביבה נקייה, לבחור מדיניות עדכונים, ולהעביר בהדרגה למיגרציות ממוספרות עם תרגיל שדרוג ושחזור על עותק. אין צורך להחליף SQLite רק לשם החלפת טכנולוגיה.",
-      "evidence": "40 אזהרות בסוויטת הבקאנד כוללות deprecations של TestClient/cookies. CI חדש טרם עבר בענן.",
+      "evidence": "40 אזהרות בסוויטת הבקאנד כוללות deprecations של TestClient/cookies. CI חדש טרם עבר בענן. זה הפסיק להיות תיאורטי: הריצה הראשונה של ה־CI התקינה fastapi 0.141.1 מול 0.136.3 המקומי והפילה את מלאי ההרשאות — ראה R07.",
       "files": [
         "backend/requirements.txt",
         "backend/app/db/database.py",
@@ -390,6 +395,33 @@
       "files": [
         "frontend/src/context/AuthContext.jsx",
         "frontend/src/context/sessionSafety.test.jsx"
+      ]
+    },
+    {
+      "id": "R06",
+      "severity": "high",
+      "status": "fixed",
+      "title": "בדיקות ה־session עברו רק בזכות קובץ .env.local שאינו בגיט",
+      "before": "הבדיקה של F03 קוראת ל־vi.stubEnv(\"VITE_DATA_MODE\",\"backend\"), אבל AuthContext קרא את המשתנה בצורה /** @type {any} */ (import.meta).env?.VITE_DATA_MODE — צורה שה־transform של Vite/Vitest לא כותב מחדש, כך ש־stubEnv לא הגיע אליה. הערך הגיע בפועל מ־frontend/.env.local של המפתח, שהוא gitignored. על checkout נקי isBackendMode היה false, המסך החוסם לא נוצר, ושתי הבדיקות נכשלו. האינדירקציה קיימת ב־main מ־#51 ולא נוצרה בסבב הזה.",
+      "after": "AuthContext קורא את המשתנה כמו AppContext. בנוסף vite.config מקבע test.env.VITE_DATA_MODE לערך ריק, כך שהסוויטה לא יורשת יותר את .env.local של אף מכונה; בדיקה שצריכה מצב מסוים מצהירה עליו בעצמה.",
+      "evidence": "שוחזר מקומית על ידי הסרת .env.local — בדיוק שתי הבדיקות שנכשלו ב־CI נכשלו, והשאר עבר. אחרי התיקון הסוויטה מחזירה 539 עוברות זהה עם ובלי הקובץ. זה בדיוק סוג הביטחון המדומה שהביקורת אמורה הייתה לחסל.",
+      "files": [
+        "frontend/src/context/AuthContext.jsx",
+        "frontend/vite.config.js",
+        "frontend/src/context/sessionSafety.test.jsx"
+      ]
+    },
+    {
+      "id": "R07",
+      "severity": "high",
+      "status": "fixed",
+      "title": "מלאי ההרשאות עובר בשקט בלי לבדוק כלום על FastAPI חדש",
+      "before": "ה־CI התקין fastapi 0.141.1 במקום 0.136.3 המקומי, כי requirements.txt הוא חסמי מינימום. ב־0.141 include_router כבר לא משטח routes ל־APIRoute אלא מוסיף _IncludedRouter יחיד, כך ש־isinstance(route, APIRoute) לא מוצא דבר. שלוש שכבות ההוכחה של test_authz_inventory — כיסוי, אמת התלויות והמטריצה ההתנהגותית — היו עוברות ריקות. רק הבדיקה ההפוכה, שדורשת שכל route במלאי יהיה רשום, נכשלה וחשפה את זה.",
+      "after": "כל ארבע נקודות הקריאה עוברות דרך _registered_routes_checked, שנכשל במפורש כשהמעבר מחזיר ריק ומדפיס את גרסת FastAPI ואת סוגי ה־routes שנמצאו. בנוסף fastapi חסום ב־<0.137 עם הסבר, עד שה־introspection יותאם.",
+      "evidence": "אומת בסביבה נקייה: על fastapi 0.141.1 אין אף APIRoute ב־app.routes, ועל הטווח החסום נפתר 0.136.3 וה־introspection עובד. אלפי הבדיקות האחרות עברו גם על 0.141, כלומר האפליקציה עצמה לא נשברה — רק ההוכחה עליה. הכשל קיים ב־main; ה־CI החדש הוא שחשף אותו.",
+      "files": [
+        "backend/tests/test_authz_inventory.py",
+        "backend/requirements.txt"
       ]
     }
   ],

@@ -17,7 +17,11 @@ import {
 } from "@/api/client";
 import { deriveAuthView } from "@/context/authView";
 
-const DATA_MODE = /** @type {any} */ (import.meta).env?.VITE_DATA_MODE || "local";
+// Read exactly like AppContext does. The parenthesised/optional-chained form
+// this used to carry is not rewritten by the Vite/Vitest env transform, so
+// vi.stubEnv could not reach it and the value came from whatever .env.local
+// the developer happened to have — see audit R06.
+const DATA_MODE = import.meta.env.VITE_DATA_MODE || "local";
 
 const AuthContext = createContext(null);
 

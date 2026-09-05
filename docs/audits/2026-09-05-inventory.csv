@@ -181,7 +181,7 @@ backend/tests/test_anchor_normalization_137.py,73,Python AST parsed,10,0
 backend/tests/test_anchor_validation_141.py,183,Python AST parsed,18,0
 backend/tests/test_article_facts.py,528,Python AST parsed,39,0
 backend/tests/test_auth_core.py,559,Python AST parsed,42,0
-backend/tests/test_authz_inventory.py,301,Python AST parsed,14,0
+backend/tests/test_authz_inventory.py,328,Python AST parsed,16,0
 backend/tests/test_authz_matrix.py,157,Python AST parsed,13,0
 backend/tests/test_basketball_enrichment.py,172,Python AST parsed,13,0
 backend/tests/test_benchmark_endpoint.py,330,Python AST parsed,21,0
@@ -409,7 +409,7 @@ frontend/src/components/ui/tooltip.jsx,28,static inventory; lint/build scope con
 frontend/src/components/ui/use-toast.jsx,164,static inventory; lint/build scope configured separately,,
 frontend/src/context/AppContext.jsx,475,static inventory; lint/build scope configured separately,,
 frontend/src/context/AppContext.test.jsx,57,static inventory; lint/build scope configured separately,,
-frontend/src/context/AuthContext.jsx,158,static inventory; lint/build scope configured separately,,
+frontend/src/context/AuthContext.jsx,162,static inventory; lint/build scope configured separately,,
 frontend/src/context/authView.js,38,static inventory; lint/build scope configured separately,,
 frontend/src/context/authView.test.js,87,static inventory; lint/build scope configured separately,,
 frontend/src/context/dataRouting.js,65,static inventory; lint/build scope configured separately,,
@@ -451,5 +451,5 @@ frontend/src/pages/llmQaHelpers.js,277,static inventory; lint/build scope config
 frontend/src/pages/llmQaHelpers.test.js,416,static inventory; lint/build scope configured separately,,
 frontend/src/utils/index.ts,3,static inventory; lint/build scope configured separately,,
 frontend/tailwind.config.js,157,static inventory; lint/build scope configured separately,,
-frontend/vite.config.js,25,static inventory; lint/build scope configured separately,,
+frontend/vite.config.js,31,static inventory; lint/build scope configured separately,,
 scripts/generate_audit_report.py,159,Python AST parsed,4,0

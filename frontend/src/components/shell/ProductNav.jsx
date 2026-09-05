@@ -5,7 +5,7 @@ import { PRODUCT_NAV_ITEMS, getOpsNavItems } from "@/components/shell/navConfig"
 
 // Deliberately quiet: the nav is a margin note, the feed is the page. Active
 // state is colour + a start-edge tick — no filled pill, no boxed hovers.
-function NavItem({ path, label, icon: Icon, active, muted }) {
+function NavItem({ path, label, icon: Icon, active, muted = false }) {
   return (
     <Link
       to={path}

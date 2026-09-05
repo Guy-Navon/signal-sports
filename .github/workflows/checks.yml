@@ -14,7 +14,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          # Matches the interpreter the suite is actually proven on locally.
+          # requirements.txt is minimum-bounds only (see audit N04), so this
+          # pins the interpreter, not the dependency set.
+          python-version: '3.13'
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt

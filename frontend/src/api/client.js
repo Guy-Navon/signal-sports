@@ -87,10 +87,6 @@ export function submitFeedback(payload) {
   });
 }
 
-export function getCalibrationHeadlines() {
-  return apiFetch("/api/calibration/headlines");
-}
-
 export function getIngestSources() {
   return apiFetch("/api/ingest/sources");
 }

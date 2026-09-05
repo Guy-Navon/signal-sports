@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  getHealth, getFeed, getDebugFeed, getProfiles, submitFeedback, getCalibrationHeadlines,
+  getHealth, getFeed, getDebugFeed, getProfiles, submitFeedback,
   getIngestSources, runIngestion, getIngestRuns, getIngestQuality,
   getClassifyStatus, classifyBackfill, resetRssData,
 } from "./client";
@@ -185,22 +185,6 @@ describe("submitFeedback", () => {
     await expect(
       submitFeedback({ user_id: "guy", article_id: "article_001", action: "bad_action" })
     ).rejects.toThrow("422");
-  });
-});
-
-// ── Calibration headlines ─────────────────────────────────────────────────────
-
-describe("getCalibrationHeadlines", () => {
-  it("calls /api/calibration/headlines", async () => {
-    const payload = [{ id: "h1", title: "Test", sport: "basketball", event_type: "signing", importance: "high" }];
-    const mockFetch = mockFetchSuccess(payload);
-    vi.stubGlobal("fetch", mockFetch);
-
-    const result = await getCalibrationHeadlines();
-
-    const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain("/api/calibration/headlines");
-    expect(result).toEqual(payload);
   });
 });
 

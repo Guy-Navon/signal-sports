@@ -32,6 +32,7 @@ export function AuthProvider({ children }) {
   const [bootstrap, setBootstrap] = useState(null);
   const [bootstrapped, setBootstrapped] = useState(!isBackendMode);
   const [bootstrapError, setBootstrapError] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const sessionRequest = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,6 +62,17 @@ export function AuthProvider({ children }) {
       if (requestId === sessionRequest.current) setBootstrapped(true);
     }
   }, [isBackendMode]);
+
+  // A retry that fails again lands on an identical screen, so without an
+  // explicit pending state the user cannot tell the click did anything.
+  const retryBootstrap = useCallback(async () => {
+    setRetrying(true);
+    try {
+      await refreshSession();
+    } finally {
+      setRetrying(false);
+    }
+  }, [refreshSession]);
 
   useEffect(() => {
     refreshSession();
@@ -130,7 +142,9 @@ export function AuthProvider({ children }) {
     return (
       <main dir="rtl" className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
         <p role="alert">לא ניתן להתחבר לשרת. נסו שוב בעוד רגע.</p>
-        <button type="button" onClick={refreshSession} className="underline">ניסיון נוסף</button>
+        <button type="button" onClick={retryBootstrap} disabled={retrying} className="underline">
+          {retrying ? "מנסה להתחבר..." : "ניסיון נוסף"}
+        </button>
       </main>
     );
   }

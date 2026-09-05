@@ -3,13 +3,14 @@
   "branch": "fix/repository-audit",
   "title": "Signal Sports — ביקורת קוד ותיקונים",
   "summary": "התשתית המוצרית אמיתית ויש בה כיסוי בדיקות רחב. החולשות הבולטות נמצאו בגבולות שבין רכיבים: חיבור פעיל מול הגנת מסד, התחברות מול מצב הממשק, פרופיל מוצג מול יעד המשוב, ובדיקות עזר מול רכיבים שמרונדרים בפועל. התיקונים ממוקדים באמינות, בשיוך נתונים ובתחזוקה, בלי לשנות את כללי הרלוונטיות המוצריים.",
-  "scope": "בוצעו מיפוי של קובצי הקוד, חיפושי דפוסים וייבואים, הרצת כל סוויטות הבדיקות וסקירה ידנית ממוקדת של מסלולי auth, מסד נתונים, פעולות מחיקה, פיד, משוב, התראות, סנכרון תוצאות והגדרות הפרונט. זו אינה טענה שכל שורה בכל קובץ נבדקה ידנית או שאין באגים נוספים. רשימת הקבצים ונתוני הסריקה נמצאים ב־2026-09-05-inventory.csv.",
+  "scope": "בוצעו מיפוי של קובצי הקוד, חיפושי דפוסים וייבואים, הרצת כל סוויטות הבדיקות וסקירה ידנית ממוקדת של מסלולי auth, מסד נתונים, פעולות מחיקה, פיד, משוב, התראות, סנכרון תוצאות והגדרות הפרונט. זו אינה טענה שכל שורה בכל קובץ נבדקה ידנית או שאין באגים נוספים. רשימת הקבצים ונתוני הסריקה נמצאים ב־2026-09-05-inventory.csv. ממצאי F נובעים מסבב התיקונים הראשון. ממצאי R נוספו בסבב אימות עצמאי שהריץ מחדש את כל השערים, קרא את ה־diff במלואו ואימת נקודתית את הטענות החדות; הוא תיקן את מה שנמצא לא מדויק או חסר.",
   "boundaries": [
     "העבודה בוצעה בברנצ נפרד מ־main. לא בוצעו push, פתיחת PR, merge או שינוי בפריסה.",
     "לא שונו מסד הכתבות, קובצי .env או הגדרות של שירותים רצים. כל בדיקות המסד השתמשו בקבצים זמניים.",
     "לא הופעלו ספקי LLM, משיכת מקורות חיים או משלוחי Telegram. בדיקות ספקים השתמשו בתחליפים מקומיים.",
     "תוצאות הבדיקות מתייחסות לסביבת Windows המקומית. נוסף workflow ל־CI, אך הוא עדיין לא הורץ ב־GitHub.",
-    "בדיקות דפדפן, ככל שהושלמו, משתמשות במצב הדמו המקומי ואינן מוכיחות את איכות הפיד החי או מסע התחברות מול שרת אמיתי."
+    "בדיקות דפדפן, ככל שהושלמו, משתמשות במצב הדמו המקומי ואינן מוכיחות את איכות הפיד החי או מסע התחברות מול שרת אמיתי.",
+    "סבב האימות (R01–R05) בדק את התיקונים של הסבב הראשון, לא את הריפו מחדש. הוא אינו טענה שלא נותרו באגים בקוד שלא נגעו בו."
   ],
   "checks": [
     {
@@ -41,6 +42,16 @@
       "name": "דפדפן Orbit",
       "result": "עבר בריצה החוזרת: דסקטופ 1440, מובייל 390/375/320, clusters, focus, dock, typography, reduced/normal motion; אפס קריאות API. הריצה הראשונה נעצרה ב־render timeout; הסיבה לא הוכחה. נוספו פרטי שגיאות לכלי הבדיקה. ראיות: 2026-09-05-browser.json",
       "command": "cd frontend; npm run capture:orbit"
+    },
+    {
+      "name": "סבב אימות — Backend",
+      "result": "2446 passed, 1 skipped; 40 warnings; 255.24s (הורץ מחדש, תואם לדיווח)",
+      "command": "cd backend; .venv/Scripts/python -m pytest -q"
+    },
+    {
+      "name": "סבב אימות — Frontend אחרי R01–R05",
+      "result": "539 passed, 32 test files; lint עם --max-warnings=0 נקי; typecheck נקי על כל src; build עבר (אזהרת bundle נותרה, N02)",
+      "command": "cd frontend; npm run test; npm run lint; npm run typecheck; npm run build"
     }
   ],
   "findings": [
@@ -78,7 +89,7 @@
       "title": "תקלה בשרת העבירה את הממשק למצב bypass",
       "before": "כישלון בטעינת session יצר auth_enforced=false. הממשק פירש חוסר תקשורת כאישור להציג את המעטפת ללא התחברות. הרשאות השרת נותרו בתוקף, ולכן זו לא הוכחה לעקיפת הרשאות בבקאנד.",
       "after": "כשל מציג הודעה בעברית וכפתור ניסיון נוסף, בלי לרנדר את האפליקציה הפרטית. מזהה בקשה מונע מתשובות bootstrap ישנות לדרוס תשובה חדשה או פקיעת session.",
-      "evidence": "בדיקת React אמיתית מדמה כשל רשת, מוודאת שתוכן האפליקציה לא מוצג, ואז בודקת התאוששות בלחיצה.",
+      "evidence": "בדיקת React אמיתית מדמה כשל רשת, מוודאת שתוכן האפליקציה לא מוצג, ואז בודקת התאוששות בלחיצה. אומת בסבב האימות: auth_enforced הוא not allow_insecure_auth_bypass (backend/app/core/security_deps.py), כלומר ברירת המחדל היא אכיפה ו־bypass הוא opt-in. לכן fail-closed הוא ההתנהגות הנכונה כאן ולא רגרסיה.",
       "files": [
         "frontend/src/context/AuthContext.jsx",
         "frontend/src/context/sessionSafety.test.jsx"
@@ -145,7 +156,7 @@
       "title": "בקשות כניסה חסומות המשיכו לבצע Argon2",
       "before": "גם לאחר rate limit בוצע אימות dummy יקר. החסימה הגבילה כניסה אך לא עצרה את העבודה היקרה של כל בקשה שנדחתה.",
       "after": "אחרי החלטת חסימה מוחזר 429 בלי hashing. אימות dummy נשמר עבור חשבון לא קיים במסלול שאינו חסום.",
-      "evidence": "בדיקות נפרדות לחסם החשבון ולחסם הגלובלי נכשלות אם בקשה שנחסמה מגיעה ל־dummy verifier.",
+      "evidence": "בדיקות נפרדות לחסם החשבון ולחסם הגלובלי נכשלות אם בקשה שנחסמה מגיעה ל־dummy verifier. זהו trade-off ולא שיפור חד־כיווני: המחיר הוא שאחידות התזמון נפגעת ואפשר להסיק בעזרת מדידת זמן אם בקשה נחסמה. הצד שגובר הוא מניעת עומס Argon2 על כל בקשה שנדחתה. מומלץ לסגור את הפער דרך N01 (חסימה בגבול השירות), לא דרך החזרת ה־hashing.",
       "files": [
         "backend/app/services/auth_service.py",
         "backend/tests/test_repository_audit.py"
@@ -217,7 +228,7 @@
       "title": "בדיקות האיכות לא כיסו את תיקיות הליבה ותיעוד ההפעלה היה מיושן",
       "before": "ESLint הוגדר בעיקר לעמודים ולרכיבים, ללא api/context/engine/data. לא היה workflow ל־CI. README של הבקאנד טען שאין clustering, הציג scheduler ב־lifespan והמליץ למחוק את מסד הכתבות.",
       "after": "ה־lint מכסה את קובצי JS/JSX של src עם החרגות מפורשות ל־ui/lib, בדיקת טיפוסים מוגדרת noEmit, נוסף CI לפרונט ולבקאנד, ותיעוד ההפעלה שוכתב לפי המימוש. CLAUDE.md סומן כבריף היסטורי.",
-      "evidence": "lint מורחב, typecheck ו־build עברו מקומית. workflow נבדק בקריאה בלבד, ולא נטען שהורץ בענן. הקובץ הנוכחי, HTML, Markdown ו־CSV ניתנים ליצירה חוזרת מסקריפט.",
+      "evidence": "ההרחבה של ESLint אמיתית. הטענה על typecheck לא החזיקה כפי שנוסחה: jsconfig include נשאר src/components/**/*.js (בלי .jsx), src/pages/**/*.jsx ו־Layout.jsx, עם src/api ו־src/lib ב־exclude, כך ש־api/context/engine/data נבדקו רק בעקיפין דרך ייבוא. תוקן ב־R01. workflow נבדק בקריאה בלבד.",
       "files": [
         "frontend/eslint.config.js",
         "frontend/jsconfig.json",
@@ -309,6 +320,76 @@
         "frontend/src/context/AppContext.jsx",
         "frontend/src/pages/LlmQa.jsx",
         "frontend/scripts/capture-orbit-production.mjs"
+      ]
+    },
+    {
+      "id": "R01",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "כיסוי ה־typecheck היה צר ממה שנטען, והרחבתו חשפה שגיאות אמיתיות",
+      "before": "F13 טען שהשערים הורחבו לתיקיות הליבה, אבל jsconfig include עדיין כיסה רק src/components/**/*.js, src/pages/**/*.jsx ו־Layout.jsx, כאשר src/api ו־src/lib מוחרגים. כלומר client, normalizers, context, engine ו־data נבדקו רק בעקיפין.",
+      "after": "include הורחב ל־src/**/*.js ו־src/**/*.jsx, נוספו maxNodeModuleJsDepth=0 ו־types node, ורק src/components/ui (פלט shadcn מיובא, שכבר מוחרג ב־ESLint) נשאר מחוץ לתחום ומסומן @ts-nocheck עם forwardRef אטום כדי שלא ייצור false positives אצל הצרכנים שלו.",
+      "evidence": "ההרחבה חשפה שלוש שגיאות אמיתיות בקוד שלנו: prop muted שהוגדר חובה ב־NavItem ולא הועבר על ידי פריטי המוצר, וזוג טענות בבדיקות שנשענו על טיפוסים לא נכונים. כולן תוקנו. npm run typecheck נקי כעת על כל src.",
+      "files": [
+        "frontend/jsconfig.json",
+        "frontend/src/components/shell/ProductNav.jsx",
+        "frontend/src/components/ui/dropdown-menu.jsx",
+        "frontend/src/api/normalizers.test.js",
+        "frontend/src/components/ops/BenchmarkPanel.test.jsx"
+      ]
+    },
+    {
+      "id": "R02",
+      "severity": "medium",
+      "status": "fixed",
+      "title": "ה־lint רץ עם ‎--quiet ולכן ה־CI לא היה אוכף את מה שהוא מוצא",
+      "before": "npm run lint הריץ eslint . --quiet, שמדווח errors בלבד. חמש אזהרות של קוד מת היו קיימות ועברו בשקט, כולל ב־relevanceEngine.js. CI שמריץ פקודה כזו ירוק גם כשיש ממצאים.",
+      "after": "הפקודה היא כעת eslint . --max-warnings=0, וחמש האזהרות טופלו: הוסרו matchedTopic, matchedRule ו־PUSH_RANK שאינם בשימוש, הוסרה הנחיית eslint-disable מיותרת, והוסר isBackendMode שלא נצרך ב־Preferences.",
+      "evidence": "ההסרה גם הוכיחה את ערך R01: ההנחיה prefer-const אכן הייתה מיותרת, אבל ה־let עצמו נחוץ כי topicDecision מוקצה מחדש בהמשך. ה־typecheck המורחב תפס את זה מיד וה־let הוחזר. lint ו־typecheck נקיים, הסוויטה עוברת.",
+      "files": [
+        "frontend/package.json",
+        "frontend/src/engine/relevanceEngine.js",
+        "frontend/src/pages/Preferences.jsx"
+      ]
+    },
+    {
+      "id": "R03",
+      "severity": "low",
+      "status": "fixed",
+      "title": "משטח קליברציה V1 מת נשאר בריפו אחרי ניקוי התלויות",
+      "before": "F12 הסיר את הייבוא של getCalibrationHeadlines ו־normalizeCalibrationHeadlineFromApi מ־AppContext, אבל השאיר את שתי הפונקציות מיוצאות. דף הקליברציה עבר ל־calibration_v2, כך שהבדיקות של הפונקציות היו הצרכן היחיד שלהן והחזיקו אותן בחיים.",
+      "after": "שתי הפונקציות, שלוש הבדיקות שלהן וה־fixture היתום הוסרו.",
+      "evidence": "אומת שדף Calibration מייבא רק endpoints של v2. ארבע הבדיקות של המשטח המת ירדו מהסוויטה; כל השאר עובר, build עובר. הבקאנד לא נגוע.",
+      "files": [
+        "frontend/src/api/client.js",
+        "frontend/src/api/normalizers.js",
+        "frontend/src/api/client.test.js",
+        "frontend/src/api/normalizers.test.js"
+      ]
+    },
+    {
+      "id": "R04",
+      "severity": "low",
+      "status": "fixed",
+      "title": "ה־CI קיבע Python 3.11 בזמן שהסוויטה מוכחת על 3.13",
+      "before": "workflow החדש התקין Python 3.11, אבל ה־venv שבו הורצו 2446 הבדיקות הוא 3.13.14. ריצה ירוקה ראשונה בענן לא הייתה מוכיחה את אותה סביבה.",
+      "after": "הגרסה קובעה ל־3.13 עם הערה שזה מקבע את המפרש בלבד, לא את סט התלויות.",
+      "evidence": "requirements.txt עדיין חסמי מינימום, ולכן זהות סט התלויות נשארת פתוחה — זה בדיוק N04 ולא נסגר כאן.",
+      "files": [
+        ".github/workflows/checks.yml"
+      ]
+    },
+    {
+      "id": "R05",
+      "severity": "low",
+      "status": "fixed",
+      "title": "מסך חסימת ההתחברות היה מבוי סתום בלי משוב על ניסיון חוזר",
+      "before": "המסך של F03 קרא ל־refreshSession ישירות. ניסיון חוזר שנכשל שוב מחזיר בדיוק את אותו מסך בלי שום שינוי נראה, כך שהמשתמש לא יכול לדעת אם הלחיצה נקלטה.",
+      "after": "נוסף מצב pending: הכפתור מושבת ומציג ״מנסה להתחבר...״ בזמן הבקשה וחוזר לאחר מכן.",
+      "evidence": "נוספה בדיקת React שמחזיקה את הבקשה פתוחה, מוודאת disabled וטקסט ההמתנה, ואז דוחה אותה ומוודאת שהמסך הפרטי עדיין חסום. נכשלת מול הקוד הקודם.",
+      "files": [
+        "frontend/src/context/AuthContext.jsx",
+        "frontend/src/context/sessionSafety.test.jsx"
       ]
     }
   ],

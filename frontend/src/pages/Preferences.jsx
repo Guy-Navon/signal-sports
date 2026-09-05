@@ -25,7 +25,7 @@ const LEGACY_TABS = [
 
 export default function Preferences() {
   const {
-    activeProfile, activeProfileId, updateProfile, isBackendMode,
+    activeProfile, activeProfileId, updateProfile,
     consumerSession, refreshProfiles, refreshFeed,
   } = useApp();
   const tabs = consumerSession ? CONSUMER_TABS : LEGACY_TABS;

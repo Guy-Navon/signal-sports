@@ -397,3 +397,56 @@ class TestNicknameAbstentionQ3:
         res = resolve_entities("מכבי תל אביב עם הודעה חשובה")
         assert res.resolved == []
         assert len(res.ambiguous) == 1
+
+
+class TestFormerAffiliation:
+    """A club named as somebody's FORMER club is not a subject of the story.
+
+    Found by the N05 ground-truth pass: "אקס מכבי תל אביב חתם בקבוצה חדשה" — an
+    ex-Maccabi player signing ELSEWHERE — resolved to Maccabi and rode that
+    club's always_push override to a phone notification. Four of the twenty-two
+    pushes in the rated corpus were this shape, and Guy rejected every one.
+    """
+
+    def test_ex_prefix_does_not_make_the_club_a_subject(self):
+        res = resolve_entities(
+            "חוזר לאירופה: אקס מכבי תל אביב חתם בקבוצה חדשה",
+            sport_context="basketball",
+        )
+        assert "Maccabi Tel Aviv Basketball" not in res.resolved_legacy_names
+        assert "מכבי תל אביב" in res.former_affiliations
+
+    def test_former_suffix_does_not_make_the_club_a_subject(self):
+        res = resolve_entities(
+            "שחקן מכבי תל אביב לשעבר חתם בקבוצה חדשה",
+            sport_context="basketball",
+        )
+        assert "Maccabi Tel Aviv Basketball" not in res.resolved_legacy_names
+
+    def test_the_actual_subject_still_resolves_alongside_a_former_mention(self):
+        # The ex- marker suppresses only the club it touches. Panathinaikos is
+        # named plainly in the same headline and must survive.
+        res = resolve_entities(
+            "אחרי כוכב פנאתינייקוס: הקבוצה שמנסה לגנוב את אקס מכבי תל אביב",
+            sport_context="basketball",
+        )
+        assert "Panathinaikos Basketball" in res.resolved_legacy_names
+        assert "Maccabi Tel Aviv Basketball" not in res.resolved_legacy_names
+
+    def test_adjacency_only_a_second_plain_mention_still_resolves(self):
+        # This is the guard against over-suppression: a marker somewhere in the
+        # sentence says nothing about a DIFFERENT mention of the same club. An
+        # ex-Maccabi player signing FOR Maccabi is a Maccabi signing.
+        res = resolve_entities(
+            "אקס מכבי תל אביב חתם במכבי תל אביב",
+            sport_context="basketball",
+        )
+        assert "Maccabi Tel Aviv Basketball" in res.resolved_legacy_names
+
+    def test_plain_mention_is_untouched(self):
+        res = resolve_entities(
+            'היקר בתולדותיה: ים מדר חתם רשמית במכבי ת"א',
+            sport_context="basketball",
+        )
+        assert "Maccabi Tel Aviv Basketball" in res.resolved_legacy_names
+        assert res.former_affiliations == []

@@ -1,0 +1,1274 @@
+{
+  "meta": {
+    "generated_at": "2026-09-05T18:11:33.969561+00:00",
+    "git_sha": "f29f969ed78c93b477478363949d180326c764ae",
+    "engine": "v2",
+    "corpus_articles": 1427,
+    "scope": "Relevance rules over the whole ingested corpus, freshness window not applied, raw profiles without learned augmentation.",
+    "rated_against_sample": "2026-09-05T17:07:27.997835+00:00"
+  },
+  "profiles": {
+    "guy": {
+      "rated": 185,
+      "sample_counts": {
+        "rated": 185,
+        "over_ranked": 46,
+        "false_hide": 34,
+        "exact": 84,
+        "under_ranked": 18,
+        "false_show": 3
+      },
+      "shown_precision": {
+        "shown": 112,
+        "worth_showing": 109,
+        "precision": 0.973,
+        "note": "census of the visible tiers; not an estimate"
+      },
+      "population_estimates": {
+        "exact": 0.7216,
+        "false_show": 0.0042,
+        "false_hide": 0.1934,
+        "over_ranked": 0.0563,
+        "under_ranked": 0.0245
+      },
+      "push_precision": {
+        "rated": 22,
+        "agreed_push_worthy": 7,
+        "precision": 0.318
+      },
+      "disagreements": [
+        {
+          "id": "rss_16e3280f7a5e0c2bc862",
+          "title": "נלקחה באזיקים: כוכבת נבחרת ישראל נעצרה בנתב\"ג",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_7948546a686d0017357f",
+          "title": "נבחרת העתודה הפסידה ליוון והודחה מהיורובאסקט",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "high_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_479d4247413e00a5dd23",
+          "title": "מכבי חיפה החדשה: האזינו להללי אורגינל ברדיו צפון",
+          "stratum": "hidden:football",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_b1aae4e7cc49b8b8a481",
+          "title": "מכסח דשא: יאניק סינר אלוף ווימבלדון בפעם השנייה ברציפות",
+          "stratum": "hidden:tennis",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "tennis",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2ef00572732c069ba855",
+          "title": "עמוס פרישמן: \"החלון האחרון היה מביש ומתסכל, מצפה מכל שחקן שנקרא - להגיע\"",
+          "stratum": "hidden:unknown",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_25cdbd412e5eda082f56",
+          "title": "לא שם, לא כאן: מה באמת קורה עם בלאט?",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_3a8b9c15b8fdb90cc7b0",
+          "title": "האם מומנטום ו\"יד חמה\" קיימים? מדענים קבעו שלא - ואז הגיע הטוויסט",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_1d8e8945a12571237a17",
+          "title": "חריג: התקרית של ההחתמה החדשה של העמק",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_c220cac9718a95b3c6aa",
+          "title": "עמנואל שארפ: \"הגעתי לקבוצה שבאמת רוצה אותי, מאמינים בי\"",
+          "stratum": "hidden:unknown",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_68a6d6cad84cad243bd9",
+          "title": "יעד חדש: רני בלגה הצטרף לגליל עליון",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_24168840f962162b3de1",
+          "title": "\"לטום דאנדון אין לאן לעבור עם פורטלנד טרייל בלייזרס\"",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_277fcc398bc76f389039",
+          "title": "דור הניצחון מחכה ב-2029: למה פרישמן היה חייב לזעזע את המערכת? | תוכן גולשים",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_59225a5ca73546384ac7",
+          "title": "נבחרת העתודה לנשים רחוקה 40 דקות מזכייה באליפות אירופה: \"השמיים הם הגבול\"",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_b5b870d06fc4cb404347",
+          "title": "\"מכבי תל אביב פספסה בענק\" - אבל יש גם סיבות לאופטימיות",
+          "stratum": "hidden:unknown",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_b201a1ddfc11dd6d4642",
+          "title": "ברייס בראון ימשיך לעונה שלישית בעירוני נס ציונה",
+          "stratum": "hidden:unknown",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_cd678084031ab7bee564",
+          "title": "\"מבאס שלא קיבלתי במכבי תל אביב הזדמנות, אבל מבין למה\"",
+          "stratum": "hidden:football",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a7850f04c198390451cf",
+          "title": "בר טימור במשא ומתן על חוזה חדש בהפועל",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_5900483ae5c42c10c227",
+          "title": "היחידה בליגה: קונפינו מונתה למנהלת אשדוד",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_e4313cc69ef10e6a7fe6",
+          "title": "מצפון לדרום? ארון ווילר במו\"מ עם אילת",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_2e75fe137b292803dbaf",
+          "title": "רשמי. סנטר ג`ורג`טאון לשעבר חתם באשדוד",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_c0c008be1ea9aa36df16",
+          "title": "בראיינט האריך חוזה: זה שכרו יוצא הדופן",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_eb38f019afdda0173279",
+          "title": "דיווח: עתיד הבלייזרס בפורטלנד בסכנה על רקע משבר האולם",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_d5cce32897aff06835fa",
+          "title": "לראשונה בהיסטוריה: הערב הסטטיסטי החריג של כוכב נבחרת העתודה",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_6b644af77b56991ea786",
+          "title": "עמנואל שארפ ממשיך להלהיב: \"סקרמנטו צריכה שחקנים כמוהו\"",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_b89ac6a7a01adb52b731",
+          "title": "הישג שיא לכדורסל הנשים הישראלי: נבחרת העתודה - סגנית אלופת אירופה",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_e03479686e1effcab70b",
+          "title": "\"מנסים להתארגן\": הפועל באר-שבע תמשיך בליגת העל?",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_e8c3a24475a9cde5a1bc",
+          "title": "אירופה גמורה: ציון 3 בפרק לקראת המסע של הישראליות",
+          "stratum": "hidden:unknown",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_884730ca0824aa1b0af8",
+          "title": "\"לכל המבקרים...\": המקורב לתמיר בלאט מדבר",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_fb8bd107f2e1e311c135",
+          "title": "מילטון חתם רשמית בי-ם: זה השכר שירוויח",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_700b4eaa319287a16e0a",
+          "title": "\"גיבור מקומי\": מחנה האימון של לוני ווקר",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_7505914fd1575b0747ea",
+          "title": "אחרי ההישג ההיסטורי - נבחרת העתודה לנשים בעננים: \"רוצות לזכות באליפות אירופה\"",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_c5c251af39a66d2572d5",
+          "title": "הפועל אילת הודיעה: אליעד טל ימשיך בעונה הבאה",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_b8dd1b7f552e117c9d8f",
+          "title": "נבחרת הנוער הפסידה 95:87 לסלובניה ברבע הגמר",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_846a52322c349724cb31",
+          "title": "דורי סהר סיכם בהפועל גליל עליון",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_aeb6c84e89c1e9023733",
+          "title": "ספרד אלופה לאחר גמר המונדיאל הגרוע בהיסטוריה, ולא באשמתה. הטור של דני דבורין",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a4b6954250f680db4eae",
+          "title": "שנה שנייה ברציפות: גיא ששון זכה בטורניר הזוגות בווימבלדון",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "tennis",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_780c38438df0c99b110d",
+          "title": "המאמן הענק לקח את אקס מכבי תל אביב כפרויקט: \"אראה גרסה אחרת\"",
+          "stratum": "push",
+          "engine": "push",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:signing"
+        },
+        {
+          "id": "rss_34c9938e8ba19fa791e4",
+          "title": "הגבוה החדש שחתם לשנתיים בהפועל ירושלים",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_7b895b3961903082aba6",
+          "title": "\"יכולתי להיות הרבה יותר טוב במכבי תל אביב, אם לא הפציעה\"",
+          "stratum": "push",
+          "engine": "push",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:injury"
+        },
+        {
+          "id": "rss_ad9068aee85da8ca6318",
+          "title": "הסמל הגדול של רומניה בעמק: קארל גוזמן חתם לעונה הבאה",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:eurocup",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_113b0da3d591301b0e46",
+          "title": "דיווח: ריאל מדריד מנהלת מגעים לצירופו של לוני ווקר",
+          "stratum": "push",
+          "engine": "push",
+          "human": "high_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:negotiation"
+        },
+        {
+          "id": "rss_f3a1ce0e2f5f9f5bf0d1",
+          "title": "זאק לידיי חתם בהפועל תל אביב לשנתיים",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_0ba753f9cefe21a05dde",
+          "title": "התקדם ממכבי תל אביב: התפקיד המפתיע של דורון פרקינס",
+          "stratum": "push",
+          "engine": "push",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:signing"
+        },
+        {
+          "id": "rss_e84814c01635934f9d0d",
+          "title": "אקס מכבי תל אביב במו״מ עם קבוצה מפתיעה מישראל | פרסום ראשון",
+          "stratum": "push",
+          "engine": "push",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:negotiation"
+        },
+        {
+          "id": "rss_6835021ba35140e88757",
+          "title": "שוב בצהוב: ג'רמי פארגו מככב מול אגדות NBA",
+          "stratum": "push",
+          "engine": "push",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:negotiation"
+        },
+        {
+          "id": "rss_2d693144f4586ef3278e",
+          "title": "\"אם דני אבדיה יעשה את זה, לפורטלנד לא תהיה ברירה\"",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_41134d3ac222e124b6b8",
+          "title": "מבוקש גם בספרד: השחקן מליגת העל שקרוב להצטרף לאלבה ברלין",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_845dac59b4b01b174594",
+          "title": "כזה עוד לא ראיתם: צפו בצעצוע החדש והמיוחד של שאקיל אוניל",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_c70310e62027e2e67371",
+          "title": "גראנד סלאם 5 בקריירה: יאניק סינר זכה בטורניר וימבלדון",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "tennis",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_0291a5f683192506e30f",
+          "title": "לינדה נוסקובה זכתה בטורניר ווימבלדון",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "tennis",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_3c86a7d7a90a1ac4a2bb",
+          "title": "הכול מתחיל בדני אבדיה: המפתחות להצלחתו של מאמן הבלייזרס",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_1e76d32fa147f18eea99",
+          "title": "מגיע מה-NBA: בן ה-35 שצפוי לאמן ביורוליג בעונה הבאה",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_3e89b6278a014a26fd19",
+          "title": "המעבר בדרך: ג'ונתן מוטלי סיכם בכוכב האדום בלגרד",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_0c36d05cf39fc0bb035a",
+          "title": "מכבי תל אביב עוקבת, הפועל מעורבת: כוכבי היורוליג שעשויים להיפלט",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_c256b501d2507597f9e6",
+          "title": "אקס מכבי תל אביב מועמד להפועל ירושלים | פרסום ראשון",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_4ccde3af1a05659e3400",
+          "title": "סעיף היציאה פג, הסאגה עוד לא: לוני ווקר יעזוב?",
+          "stratum": "push",
+          "engine": "push",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:negotiation"
+        },
+        {
+          "id": "rss_b5ca1402f4ebbe3a675f",
+          "title": "בטח ניחשתם מי בפסגה: דירוג 99 הקלעים הגדולים בתולדות ה-NBA",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_0c9d0229a4765f7e160c",
+          "title": "חוזר לאירופה: אקס מכבי תל אביב חתם בקבוצה חדשה",
+          "stratum": "push",
+          "engine": "push",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:signing"
+        },
+        {
+          "id": "rss_b4f0c3b48945bf84bdcc",
+          "title": "ללא סעיף יציאה: אוטורו חתם על חוזה חדש",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_cd6912c520a6b81548db",
+          "title": "רשמית: טריי קינג חתם במכבי ראשון לציון",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_75bc2c6119f80de8905d",
+          "title": "לאחר עונה אחת: מכבי ת\"א נפרדה מהנקינס",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_37ab1ebf1090b93f489c",
+          "title": "כל הפרטים: כך פוספס הקאמבק של ג`וש ניבו למכבי תל אביב",
+          "stratum": "push",
+          "engine": "push",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:negotiation"
+        },
+        {
+          "id": "rss_76c7b1f73243e642a220",
+          "title": "עמנואל שארפ חשף: \"העירו לי על הזריקה, למדתי אותה מאבא\"",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_ad67dfa049f180097888",
+          "title": "\"במכבי תל אביב האמינו שיגיע, המשפחה שלו טרפה הכל\"",
+          "stratum": "push",
+          "engine": "push",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:signing"
+        },
+        {
+          "id": "rss_6f5077fc8467a899c076",
+          "title": "הטרייד של קוואי לאונרד לטורונטו תקוע: החקירה תיגרר עד 2027?",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2af61ff0561659079a9d",
+          "title": "יככב לצד האקסים של הפועל תל אביב? חברו של דני אבדיה בדרך ליורוליג",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_170d5d9109f279b40f5b",
+          "title": "שינויים אחרונים: הפועל תל אביב מתקרבת לסגירת הסגל",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_e367fa5edfc97c493767",
+          "title": "יעד מפתיע: הכישרון של מכבי תל אביב מתקרב לקבוצה חדשה",
+          "stratum": "push",
+          "engine": "push",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:negotiation"
+        },
+        {
+          "id": "rss_0b6b88be571411e7dd99",
+          "title": "מכבי ת\"א נפרדה מזאק הנקינס: \"שותף חשוב לדאבל\"",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_5d4dde1b5350f921faa6",
+          "title": "מתקרב: הצטמצמו הפערים בין מכבי תל אביב ואיפה לונדברג",
+          "stratum": "push",
+          "engine": "push",
+          "human": "high_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:negotiation"
+        },
+        {
+          "id": "rss_a4857aa358ee70122709",
+          "title": "אם לוני ווקר יעזוב: שחקן היורוליג שמועמד למכבי תל אביב",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_20e0bd748b82f7d49cd2",
+          "title": "גם ללא קבוצה שתקלוט אותו: לוני ווקר עשוי לעזוב בקרוב את מכבי תל אביב",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_7b3a5ad13cf2a7cf448b",
+          "title": "כבר חתם על חוזה: כוכב היורוליג דחה את הפועל ומכבי תל אביב",
+          "stratum": "push",
+          "engine": "push",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:signing"
+        },
+        {
+          "id": "rss_08c9d639729943956597",
+          "title": "מלבנון לבירה: הסנטר שבדרך להפועל ירושלים",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:eurocup",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_b63e4f5f88329f126a0e",
+          "title": "\"לפורטלנד אסור לבצע את הטעות הזו עם דני אבדיה העונה\"",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_edc3f16c9a013b4d2289",
+          "title": "\"דני אבדיה טוב בכדורסל, כל השאר לא מעניין אותי\"",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_b85be10794c2fd05aba8",
+          "title": "דיווח: לוני ווקר במו\"מ עם קבוצה ענקית מהיורוליג",
+          "stratum": "push",
+          "engine": "push",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:negotiation"
+        },
+        {
+          "id": "rss_bffe4c28befd8c4f44bb",
+          "title": "אחרי כוכב פנאתינייקוס: הקבוצה שמנסה לגנוב את אקס מכבי תל אביב",
+          "stratum": "push",
+          "engine": "push",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:negotiation"
+        },
+        {
+          "id": "rss_1291db2c565d97f818ad",
+          "title": "רק דני אבדיה יכול להציל את פורטלנד טרייל בלייזרס מהתחזית הקודרת",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_27fd966f9fd281250e02",
+          "title": "תמיר בלאט סיכם בהפועל ת\"א - יושאל לקבוצה אחרת באירופה",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_5a9e838b4e259641ddb1",
+          "title": "רשמית: גרג לי חתם בהפועל חולון",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:ibl",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_13dc5fb83d5f2854e139",
+          "title": "רכש חדש למכבי ראשון לציון: טריי קינג חתם לעונה אחת",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_6493a40aac0cd4d701ec",
+          "title": "\"נגרם אובדן פרנסה\": הבקשה של מאמנו של דני אבדיה שהסתבך בפלילים",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a0d42519100855b15c54",
+          "title": "הפועל תל אביב שוב בתמונה? המסע של מריו הזוניה ל-NBA קיבל תפנית",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_26ef0abce53c93c8f2ae",
+          "title": "היורש של פסקואל: ברצלונה מינתה את אלכסנדר סקוליץ'",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a05288b489fc81f4b1c8",
+          "title": "\"משחק למענכם\": התרומה של אלוף ה-NBA ליהודים בניו יורק",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_cc8fffc630a09b7db58d",
+          "title": "תמורת 50 מיליון דולר: משפחת רקנאטי רכשה את חלקה של משפחת פדרמן במכבי ת\"א",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "push",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2f23e95b413b2bb9f6bc",
+          "title": "\"5 קבוצות יורוליג הציעו אותו שכר, עם סעיף יציאה ל-NBA\"",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_43371ad3e976a77750f1",
+          "title": "פרסום ראשון | שטילמן פנה לרקנאטי: מעוניין לרכוש את המניות שלך במכבי ת\"א",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "push",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_b5d03fed33330928a558",
+          "title": "דיווח: צסק\"א מוסקבה עשויה לחזור ליורוליג - אך נתקלת בבעיה חדשה",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_b267a492462da8ddb407",
+          "title": "יאניס שלח מסר לאוהדי מיאמי, בארה\"ב התלהבו: \"הופעה עוצמתית\"",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_3f75b0dc40d8d4c9be07",
+          "title": "ריאל מדריד מנסה לבנות מחדש, העתיד של הזוניה מעכב את הפאזל",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_067bfa93d425730b5a9b",
+          "title": "הישראלי החם: ירושלים רוצה את השחקן שבמו\"מ עם הפועל תל אביב",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_8eaf4d84f1b16ed27f80",
+          "title": "במקום ים מדר: שחקני היורוליג שמאיימים על הפועל ירושלים",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_c7a1f987abc7de0ccc45",
+          "title": "דייוויד רודי חתם לעונה בהפועל ירושלים",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_7367b86d511c1624a7ab",
+          "title": "במכבי תל אביב אופטימיים שעסקת לונדברג קרובה להיסגר",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_1078424b3ed0d7c9a811",
+          "title": "\"דני אבדיה אולסטאר, מקווה שלאוהדי פורטלנד את מי לעודד בעונה הבאה\"",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_d57b49b5606270ab2dd8",
+          "title": "מונאקו מצאה מושיע: כוכב ה-NBA לשעבר הציל את המועדון",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_ad092a5e70c6a1d95920",
+          "title": "הסיפור המלא נחשף: מאחורי עסקת מדר למכבי",
+          "stratum": "feed",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_e73da4719d37fa15f06e",
+          "title": "קבוצת ה-NBA שרוצה את מריו הזוניה, והכעס הגדול בריאל מדריד",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_d925bb630455a0bd3096",
+          "title": "בגיל 34: כוכב היורוליג פרש \"באופן פתאומי\"",
+          "stratum": "low_feed",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        }
+      ]
+    },
+    "casual_deni_fan": {
+      "rated": 97,
+      "sample_counts": {
+        "rated": 97,
+        "exact": 78,
+        "false_hide": 1,
+        "over_ranked": 15,
+        "under_ranked": 1,
+        "false_show": 2
+      },
+      "shown_precision": {
+        "shown": 24,
+        "worth_showing": 22,
+        "precision": 0.917,
+        "note": "census of the visible tiers; not an estimate"
+      },
+      "population_estimates": {
+        "exact": 0.9798,
+        "false_show": 0.0014,
+        "false_hide": 0.0076,
+        "over_ranked": 0.0105,
+        "under_ranked": 0.0007
+      },
+      "push_precision": {
+        "rated": 0,
+        "agreed_push_worthy": 0,
+        "precision": null
+      },
+      "disagreements": [
+        {
+          "id": "rss_7ea861d268b93b8d55fc",
+          "title": "הרמז המפתיע: \"אני יודעת שפורטלנד מנסה להחתים את לברון\"",
+          "stratum": "hidden:basketball",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_3d08e96d5d040f4d01b7",
+          "title": "שובר את כל הגרפים: דיוויד מוסיס הוא הדבר הגדול הבא בכדורסל הישראלי",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2af61ff0561659079a9d",
+          "title": "יככב לצד האקסים של הפועל תל אביב? חברו של דני אבדיה בדרך ליורוליג",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2d693144f4586ef3278e",
+          "title": "\"אם דני אבדיה יעשה את זה, לפורטלנד לא תהיה ברירה\"",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_004533dc192234c138ec",
+          "title": "\"השאיפה להיות כמו דני אבדיה - הפנים של הכדורסל הישראלי\"",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_e5aec33af965ca2e02b1",
+          "title": "אין לאן לעבור: פורטלנד ואבדיה נותרו ללא יעד אפשרי",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_6540e32ca3c52131f4be",
+          "title": "שחקן פורטלנד שוחח עם לוקה דונצ'יץ' - והחליט לעזוב את דני אבדיה",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_32c7df102e55d8750b60",
+          "title": "בארה\"ב מנתחים: \"העסק בפורטלנד מבולגן\" - וגם דני אבדיה ייפגע",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_fbb357986452089daaab",
+          "title": "הכישרון של שיקגו רוצה ללמוד מאבדיה \"איך הוא תוקף את הסל\"",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_124bff93deca310350a8",
+          "title": "מתחיל מחדש: דני אבדיה צפוי לשלם את המחיר הכבד ביותר בפורטלנד",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_1291db2c565d97f818ad",
+          "title": "רק דני אבדיה יכול להציל את פורטלנד טרייל בלייזרס מהתחזית הקודרת",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_76d61867461f3f986447",
+          "title": "הכוכב העולה של ה-NBA שיתף: \"הכי הייתי רוצה להתאמן עם דני אבדיה\"",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_edc3f16c9a013b4d2289",
+          "title": "\"דני אבדיה טוב בכדורסל, כל השאר לא מעניין אותי\"",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_9991ec903f663e95a9fb",
+          "title": "לידיעת אבדיה: וומבניאמה יתייצב לנבחרת צרפת בחלון הקרוב",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_3c86a7d7a90a1ac4a2bb",
+          "title": "הכול מתחיל בדני אבדיה: המפתחות להצלחתו של מאמן הבלייזרס",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_23d86abd3f442f86244e",
+          "title": "ההחלטה המפוקפקת שאולי עוד תגרום לדני אבדיה לעזוב את פורטלנד",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_abe188261aea315dcfee",
+          "title": "בארה\"ב ניתחו: זה כנראה האתגר הגדול ביותר של פורטלנד ודני אבדיה",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a2d776b676234df30672",
+          "title": "המהלכים של פורטלנד \"פוגעים במעמדו של דני אבדיה - ולא מסייעים לו\"",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_4c34e0718aadb617f71b",
+          "title": "דיווח דרמטי: דני אבדיה ופורטלנד עשויים לעבור לאוקלהומה",
+          "stratum": "high_feed",
+          "engine": "high_feed",
+          "human": "push",
+          "kind": "under_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        }
+      ]
+    }
+  }
+}

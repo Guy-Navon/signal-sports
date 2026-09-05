@@ -1,0 +1,302 @@
+{
+  "meta": {
+    "generated_at": "2026-09-05T17:06:48.787918+00:00",
+    "git_sha": "a9ce403d15a7913cddbc40debbc3ed49b9b5fab3",
+    "engine": "v2",
+    "corpus_articles": 1427,
+    "scope": "Relevance rules over the whole ingested corpus, freshness window not applied, raw profiles without learned augmentation."
+  },
+  "profiles": {
+    "guy": {
+      "decisions": {
+        "push": 22,
+        "high_feed": 45,
+        "feed": 124,
+        "low_feed": 41,
+        "hidden": 1195
+      },
+      "visible_total": 232,
+      "visible_share": 0.1626,
+      "unused_tiers": [],
+      "by_sport": {
+        "basketball": {
+          "total": 349,
+          "hidden": 126,
+          "hidden_share": 0.361
+        },
+        "football": {
+          "total": 842,
+          "hidden": 838,
+          "hidden_share": 0.995
+        },
+        "tennis": {
+          "total": 26,
+          "hidden": 22,
+          "hidden_share": 0.846
+        },
+        "unknown": {
+          "total": 210,
+          "hidden": 209,
+          "hidden_share": 0.995
+        }
+      },
+      "push": {
+        "count": 22,
+        "carrying_a_cluster_card": 1,
+        "matched_rules": {
+          "always_push:negotiation": 12,
+          "always_push:signing": 9,
+          "always_push:injury": 1
+        },
+        "matched_topics": {
+          "team:maccabi_tlv_bb": 22
+        },
+        "items": [
+          {
+            "id": "rss_113b0da3d591301b0e46",
+            "title": "דיווח: ריאל מדריד מנהלת מגעים לצירופו של לוני ווקר",
+            "source": "walla_sport",
+            "published_at": "2026-07-24T10:29:42.767199+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          },
+          {
+            "id": "rss_b85be10794c2fd05aba8",
+            "title": "דיווח: לוני ווקר במו\"מ עם קבוצה ענקית מהיורוליג",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-24T07:51:52+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          },
+          {
+            "id": "rss_e367fa5edfc97c493767",
+            "title": "יעד מפתיע: הכישרון של מכבי תל אביב מתקרב לקבוצה חדשה",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-23T13:36:13+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          },
+          {
+            "id": "rss_780c38438df0c99b110d",
+            "title": "המאמן הענק לקח את אקס מכבי תל אביב כפרויקט: \"אראה גרסה אחרת\"",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-23T03:54:23+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:signing",
+            "clustered": false
+          },
+          {
+            "id": "rss_641d111dad0a0dc8620d",
+            "title": "נשאר צהוב: איפה לונדברג סיכם לשנתיים נוספות במכבי ת\"א",
+            "source": "ynet_sport",
+            "published_at": "2026-07-23T02:11:00+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          },
+          {
+            "id": "rss_8362e4afb01bf26bbef9",
+            "title": "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב",
+            "source": "sport5_sport",
+            "published_at": "2026-07-22T22:42:27.644849+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          },
+          {
+            "id": "rss_0ba753f9cefe21a05dde",
+            "title": "התקדם ממכבי תל אביב: התפקיד המפתיע של דורון פרקינס",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-21T12:23:46+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:signing",
+            "clustered": false
+          },
+          {
+            "id": "rss_2e9f8bef5a3cf1073f11",
+            "title": "בשורה אדירה למכבי תל אביב: איפה לונדברג סיכם על חוזה חדש",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-20T18:23:02+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          },
+          {
+            "id": "rss_aab7e4b98b877da05e8f",
+            "title": "השוק הנוסף שמכבי תל אביב בוחנת לעמדת הסנטר, ומתי לונדברג יסגור?",
+            "source": "walla_sport",
+            "published_at": "2026-07-20T12:05:18.091159+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:signing",
+            "clustered": false
+          },
+          {
+            "id": "rss_37ab1ebf1090b93f489c",
+            "title": "כל הפרטים: כך פוספס הקאמבק של ג`וש ניבו למכבי תל אביב",
+            "source": "sport5_sport",
+            "published_at": "2026-07-20T10:54:12.323042+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          },
+          {
+            "id": "rss_5d4dde1b5350f921faa6",
+            "title": "מתקרב: הצטמצמו הפערים בין מכבי תל אביב ואיפה לונדברג",
+            "source": "sport5_sport",
+            "published_at": "2026-07-19T17:59:07.324208+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          },
+          {
+            "id": "rss_e84814c01635934f9d0d",
+            "title": "אקס מכבי תל אביב במו״מ עם קבוצה מפתיעה מישראל | פרסום ראשון",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-19T11:09:48+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          },
+          {
+            "id": "rss_7b895b3961903082aba6",
+            "title": "\"יכולתי להיות הרבה יותר טוב במכבי תל אביב, אם לא הפציעה\"",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-18T15:16:03+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:injury",
+            "clustered": false
+          },
+          {
+            "id": "rss_6835021ba35140e88757",
+            "title": "שוב בצהוב: ג'רמי פארגו מככב מול אגדות NBA",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-17T13:23:52+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          },
+          {
+            "id": "rss_0c9d0229a4765f7e160c",
+            "title": "חוזר לאירופה: אקס מכבי תל אביב חתם בקבוצה חדשה",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-17T02:43:01+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:signing",
+            "clustered": false
+          },
+          {
+            "id": "rss_ad67dfa049f180097888",
+            "title": "\"במכבי תל אביב האמינו שיגיע, המשפחה שלו טרפה הכל\"",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-16T09:20:11+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:signing",
+            "clustered": false
+          },
+          {
+            "id": "rss_4ccde3af1a05659e3400",
+            "title": "סעיף היציאה פג, הסאגה עוד לא: לוני ווקר יעזוב?",
+            "source": "ynet_sport",
+            "published_at": "2026-07-16T06:58:29+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          },
+          {
+            "id": "rss_7b3a5ad13cf2a7cf448b",
+            "title": "כבר חתם על חוזה: כוכב היורוליג דחה את הפועל ומכבי תל אביב",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-13T06:07:57+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:signing",
+            "clustered": false
+          },
+          {
+            "id": "rss_ff501392ec59403606ad",
+            "title": "מכבי ת\"א הציגה את ים מדר: \"פותח פרק חדש. יאללה מכבי\"",
+            "source": "walla_sport",
+            "published_at": "2026-07-12T09:33:00+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:signing",
+            "clustered": false
+          },
+          {
+            "id": "rss_81f1e1469be5fd299749",
+            "title": "היקר בתולדותיה: ים מדר חתם רשמית במכבי ת\"א",
+            "source": "sport5_sport",
+            "published_at": "2026-07-12T08:55:30.645544+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:signing",
+            "clustered": true
+          },
+          {
+            "id": "rss_2b094951a5d4cadffa96",
+            "title": "ים מדר חתם במכבי ת\"א: \"מבטיח לתת את הכל\" | נחשף ב-ynet",
+            "source": "ynet_sport",
+            "published_at": "2026-07-12T06:46:21+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:signing",
+            "clustered": false
+          },
+          {
+            "id": "rss_bffe4c28befd8c4f44bb",
+            "title": "אחרי כוכב פנאתינייקוס: הקבוצה שמנסה לגנוב את אקס מכבי תל אביב",
+            "source": "israel_hayom_sport",
+            "published_at": "2026-07-12T04:03:14+00:00",
+            "matched_topic": "team:maccabi_tlv_bb",
+            "matched_event_rule": "always_push:negotiation",
+            "clustered": false
+          }
+        ]
+      }
+    },
+    "casual_deni_fan": {
+      "decisions": {
+        "push": 0,
+        "high_feed": 24,
+        "feed": 0,
+        "low_feed": 0,
+        "hidden": 1403
+      },
+      "visible_total": 24,
+      "visible_share": 0.0168,
+      "unused_tiers": [
+        "push",
+        "feed",
+        "low_feed"
+      ],
+      "by_sport": {
+        "basketball": {
+          "total": 349,
+          "hidden": 325,
+          "hidden_share": 0.931
+        },
+        "football": {
+          "total": 842,
+          "hidden": 842,
+          "hidden_share": 1.0
+        },
+        "tennis": {
+          "total": 26,
+          "hidden": 26,
+          "hidden_share": 1.0
+        },
+        "unknown": {
+          "total": 210,
+          "hidden": 210,
+          "hidden_share": 1.0
+        }
+      },
+      "push": {
+        "count": 0,
+        "carrying_a_cluster_card": 0,
+        "matched_rules": {},
+        "matched_topics": {},
+        "items": []
+      }
+    }
+  }
+}

@@ -30,6 +30,10 @@ class EntityResolution:
     ambiguous: list[tuple[str, tuple[TaxonomyEntity, ...]]] = field(default_factory=list)
     # bare family-name mentions not covered by any resolved/ambiguous alias span
     family_mentions: list[str] = field(default_factory=list)
+    # aliases present ONLY as somebody's former club ("אקס מכבי תל אביב"). The
+    # span is claimed but no entity is emitted: the club is named, not the
+    # subject. Kept for debug traces so the abstention is visible, not silent.
+    former_affiliations: list[str] = field(default_factory=list)
 
     @property
     def resolved_legacy_names(self) -> list[str]:
@@ -62,6 +66,32 @@ def _find_occurrences(text: str, needle: str) -> list[tuple[int, int]]:
 def _overlaps(span: tuple[int, int], taken: list[tuple[int, int]]) -> bool:
     s, e = span
     return any(s < te and ts < e for ts, te in taken)
+
+
+# A club named as somebody's FORMER club is not a subject of the story. The
+# project already holds this rule for clustering anchors — anchor evidence is
+# subject evidence — and the N05 ground-truth pass showed the relevance side
+# never applied it: "אקס מכבי תל אביב חתם בקבוצה חדשה" (an ex-Maccabi player
+# signing ELSEWHERE) resolved to Maccabi and rode its always_push override
+# straight to a phone notification. Four of twenty-two pushes were this.
+#
+# Only adjacency counts. A marker anywhere else in the sentence says nothing
+# about THIS mention ("אקס מכבי חתם במכבי" is a Maccabi signing), so the window
+# is the text immediately touching the alias span.
+_FORMER_PREFIXES: tuple[str, ...] = ("אקס ", "ex-", "ex ", "former ")
+_FORMER_SUFFIXES: tuple[str, ...] = (" לשעבר", " לעבר")
+_PREFIX_WINDOW = max(len(p) for p in _FORMER_PREFIXES)
+_SUFFIX_WINDOW = max(len(s) for s in _FORMER_SUFFIXES)
+
+
+def _is_former_affiliation(text: str, span: tuple[int, int]) -> bool:
+    """True when this alias occurrence names a former club, not the subject."""
+    start, end = span
+    before = text[max(0, start - _PREFIX_WINDOW):start]
+    if any(before.endswith(p) for p in _FORMER_PREFIXES):
+        return True
+    after = text[end:end + _SUFFIX_WINDOW]
+    return any(after.startswith(s) for s in _FORMER_SUFFIXES)
 
 
 def _filter_candidates(
@@ -98,6 +128,16 @@ def resolve_entities(text: str, sport_context: Optional[str] = None) -> EntityRe
         free = [sp for sp in occurrences if not _overlaps(sp, taken_spans)]
         if not free:
             continue
+
+        # Former-affiliation mentions still CLAIM their span — the text really
+        # does name this club there, so a shorter alias must not re-match it —
+        # but they are not evidence that the club is what the story is about.
+        subject = [sp for sp in free if not _is_former_affiliation(lowered, sp)]
+        if not subject:
+            taken_spans.extend(free)
+            result.former_affiliations.append(alias)
+            continue
+        free = subject
 
         candidates = _filter_candidates(_ALIAS_INDEX[alias], sport_context)
 

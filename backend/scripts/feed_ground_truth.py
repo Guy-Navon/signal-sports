@@ -293,8 +293,20 @@ TIER_RANK = {"hidden": 0, "low_feed": 1, "feed": 2, "high_feed": 3, "push": 4}
 
 
 def cmd_score(args) -> None:
-    ratings = json.loads(Path(args.ratings).read_text(encoding="utf-8"))
+    raw = json.loads(Path(args.ratings).read_text(encoding="utf-8"))
     sample = json.loads(Path(args.sample).read_text(encoding="utf-8"))
+
+    # The rating page exports {generated, seed, ratings}; a hand-written file may
+    # just be {profile: {id: rating}}. Accept either rather than fail quietly.
+    ratings = raw.get("ratings", raw)
+    if "seed" in raw and raw["seed"] != sample["meta"].get("seed"):
+        raise SystemExit(
+            f"Ratings were made against seed {raw['seed']} but this sample is "
+            f"{sample['meta'].get('seed')} — they describe different item sets."
+        )
+    for user_id in ratings:
+        if user_id not in sample["profiles"]:
+            raise SystemExit(f"Ratings name a profile the sample does not have: {user_id}")
 
     report = {"meta": _run_meta(sample["meta"]["corpus_articles"]), "profiles": {}}
     report["meta"]["rated_against_sample"] = sample["meta"].get("generated_at")
@@ -353,10 +365,24 @@ def cmd_score(args) -> None:
         pushes = [(i, t) for i, t in rated if i["engine_decision"] == "push"]
         justified = sum(1 for _, t in pushes if t == "push")
 
+        # The visible tiers are sampled as a census too, and this is the number
+        # that actually describes the product. Overall accuracy is dominated by
+        # the hidden majority — on a profile that hides 98% of the corpus,
+        # agreeing with "hidden" scores ~98% while saying nothing about whether
+        # the feed is any good. Precision here is over what the user is SHOWN.
+        shown = [(i, t) for i, t in rated if i["engine_decision"] != "hidden"]
+        kept = sum(1 for _, t in shown if t != "hidden")
+
         total = est["rated"] or 1.0
         report["profiles"][user_id] = {
             "rated": raw["rated"],
             "sample_counts": dict(raw),
+            "shown_precision": {
+                "shown": len(shown),
+                "worth_showing": kept,
+                "precision": round(kept / len(shown), 3) if shown else None,
+                "note": "census of the visible tiers; not an estimate",
+            },
             "population_estimates": {
                 k: round(est[k] / total, 4)
                 for k in ("exact", "false_show", "false_hide", "over_ranked", "under_ranked")
@@ -380,6 +406,10 @@ def _print_score(report: dict) -> None:
             print(f"  {p.get('note')}")
             continue
         print(f"  rated {p['rated']} items")
+        sp = p["shown_precision"]
+        if sp["precision"] is not None:
+            print(f"  shown precision {sp['precision'] * 100:.0f}% "
+                  f"({sp['worth_showing']}/{sp['shown']} of what the user sees is wanted)")
         for k, v in p["population_estimates"].items():
             print(f"    {k:14} {v * 100:5.1f}%   (sample n={p['sample_counts'].get(k, 0)})")
         pp = p["push_precision"]

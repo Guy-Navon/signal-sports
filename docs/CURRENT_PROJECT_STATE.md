@@ -596,6 +596,38 @@ human ratings: push precision 32% → 41%, shown precision 97% → 98%, with one
 additional false hide. Tool and results: `docs/qa/N05_FEED_GROUND_TRUTH.md`,
 `backend/scripts/feed_ground_truth.py`.
 
+---
+
+### Feed-quality gate (2026-09-10, issue #189)
+
+Those 282 ratings are now a **repeatable gate**, not a one-off snapshot:
+
+```
+cd backend
+.venv/Scripts/python.exe scripts/feed_ground_truth.py gate      # exit 0 / 1
+```
+
+Run it before landing any classification, taxonomy or relevance change. It
+needs the live corpus DB and therefore **cannot run in CI** — the rules it
+enforces are pure and are covered there instead
+(`backend/tests/test_feed_quality_gate.py`, 30 tests).
+
+It is deliberately **directional**, because a single accuracy number hides the
+failure: `casual_deni_fan` scores 98% exact agreement while hiding 98.3% of the
+corpus. The gate guards `shown_precision` (98% Guy / 92% Deni — what is
+already working) and `false_hide` (19.4% Guy — the open failure) *separately*,
+plus push precision, push volume, and zero drift on `casual_deni_fan`. Slack on
+ratio checks is exactly one rated item (`1/n`); `false_hide`, push volume and
+profile drift have none.
+
+This matters more than it sounds: a synthetic "improve recall" change that
+surfaced everything hidden made `false_hide` look better (19.4% → 11.4%) while
+`shown_precision` collapsed to 83.5%. A recall-only check would have passed it.
+
+Baseline: `docs/qa/n05_gate_baseline.json`. Regenerating it (`--update-baseline`)
+redefines what every later change is measured against, so it needs its own
+justification. Full rules and the `--accept` escape hatch: `docs/RELEVANCE_CONTRACT.md`.
+
 ## 9. Translation Pipeline State (Post-MVP — Preserved, Not Active)
 
 Translation is not used in the current MVP. All active sources (`walla_sport`, `israel_hayom_sport`, `ynet_sport`, `one_sport`) are Hebrew-native — no translation is needed. `TRANSLATION_PROVIDER=disabled` is the default and the correct MVP setting.

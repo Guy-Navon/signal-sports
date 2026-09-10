@@ -88,9 +88,18 @@ Two orthogonal rules resolve event affinities, in this order:
 
 Push requires an explicit rule: legacy `event_rules`/`entity_event_rules`
 declaring push, or a v2 `always_push` override. Boosts cap at high_feed.
-Calibration and learning can never write push rules. Measured on the real
-feed (Fable checkpoint): 13 pushes for Guy, 2 for the Deni fan, identical
-across both engines.
+Calibration and learning can never write push rules.
+
+Measured against human ratings on the real corpus (2026-09-05, a census of
+every push — `docs/qa/N05_FEED_GROUND_TRUTH.md`): **17 pushes for Guy at 41%
+precision, 0 for the Deni fan.** The rejected pushes were almost all rated
+`feed`, not `hide` — real stories that do not deserve a phone buzz. Push
+volume and push precision are both gated (see below); volume may not rise
+without a precision gain.
+
+> The earlier "13 pushes for Guy, 2 for the Deni fan (Fable checkpoint)" line
+> recorded engine-vs-engine agreement, not quality, and predates both the
+> corpus as it stands and the former-affiliation fix. It is superseded.
 
 ## Signal hierarchy (learning layer)
 
@@ -125,3 +134,49 @@ Every decision must be explainable without reading code:
 
 The consumer product surface keeps only the one-line desk voice; full
 traces stay in Debug/ops.
+
+## Quality gate — run this before landing a relevance change (issue #189)
+
+The suite proves the engine does what it was told. It does not prove that what
+it was told is any good. That question is answered against 282 hand-rated real
+corpus items (`docs/qa/N05_FEED_GROUND_TRUTH.md`):
+
+```
+cd backend
+.venv/Scripts/python.exe scripts/feed_ground_truth.py gate
+```
+
+Exit 0 = no regression; exit 1 = blocked, with the failing check named. It
+needs the live corpus DB, so it is **local-only — it cannot run in CI.** The
+rules it enforces are pure and ARE covered in CI
+(`backend/tests/test_feed_quality_gate.py`).
+
+**Read two numbers, never one.** Overall accuracy is dominated by the hidden
+majority: `casual_deni_fan` scores 98% exact agreement while hiding 98.3% of
+the corpus, so agreeing with "hidden" on football scores well and says nothing.
+The gate reports and enforces both directions instead:
+
+| Check | Rule | Slack |
+|---|---|---|
+| `shown_precision` | of what the user sees, how much did they want? | one rated shown item (`1/n`) |
+| `false_hide` | how much did they want and never see? | **none** |
+| `push_precision` | were the interruptions justified? | one rated push (`1/n`) |
+| `push_volume` | may not rise | **none**, unless precision improved |
+| `<profile>.no_drift` | `casual_deni_fan` must not move | **none** |
+
+Baseline: `docs/qa/n05_gate_baseline.json` (Guy 98% shown / 19.4% false hide /
+41% push; Deni 92% shown / 0.8% false hide). Regenerating it is a deliberate
+act (`gate --update-baseline`) and needs its own justification in the commit —
+it redefines what every later change is measured against.
+
+A change that genuinely needs to regress a check says so explicitly:
+
+```
+gate --accept guy.false_hide --reason "cost of the #193 mention-vs-subject fix; argued there"
+```
+
+That records the override and its argument in the artifact. A stale `--accept`
+naming a check that no longer fails is itself a gate failure.
+
+**`false_show` is reported but not separately gated** — within the visible set
+it is the complement of `shown_precision`, which is gated.

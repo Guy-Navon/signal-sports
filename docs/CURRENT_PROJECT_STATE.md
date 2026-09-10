@@ -628,6 +628,39 @@ Baseline: `docs/qa/n05_gate_baseline.json`. Regenerating it (`--update-baseline`
 redefines what every later change is measured against, so it needs its own
 justification. Full rules and the `--accept` escape hatch: `docs/RELEVANCE_CONTRACT.md`.
 
+---
+
+### Israeli-basketball recall (2026-09-11, issue #190)
+
+Guy's false-hide rate is **18.2%**, down from 19.4%, with shown precision **held
+at 98.2%** — the shown set grew from 110 to 114 rated items and all four new ones
+were wanted. `casual_deni_fan`: zero drift. The gate baseline was ratcheted
+forward to lock the gain in.
+
+The measured cause was **not** missing competition memberships, which is what the
+issue assumed: 24 of the 25 competition-less false-hides had **no resolved entity
+at all**. Fixes, all in the taxonomy/resolver layer:
+
+- `team:hapoel_galil_elyon` and `team:maccabi_ashdod` added — genuinely absent
+  clubs (Galil **Elyon** is not Galil **Gilboa**, which was the only one registered)
+- bare `אילת` alias; hyphen-class characters now fold to spaces, so
+  `הפועל באר-שבע` and `הפועל באר שבע` are one name
+- `full_name_disambiguates` — a guarded club may resolve on its full canonical
+  name without sport evidence. Guarded clubs were in a **circular dependency**:
+  the entity needed sport evidence, and the sport was `unknown` because nothing
+  resolved. Explicit metadata, never inferred — Real Madrid and Bayern share
+  their full name across sports and must stay evidence-gated.
+
+24 stored rows were corrected in place by
+`backend/scripts/apply_190_entity_corrections.py` — **entity attribution only**,
+scoped to those five entities and to title evidence, hand-verified, idempotent,
+backed up first. `primary_competition` stays explicit-evidence-only, so the RC-4
+background-mention hazard is untouched.
+
+Deferred with reasons in `docs/TAXONOMY.md`: Israeli national teams (7 rows),
+Israeli-league players (6 rows — the registry has 3 players total, all NBA).
+Nine of the 34 false-hides belong to #191 (`event_type=news`) and #195, not here.
+
 ## 9. Translation Pipeline State (Post-MVP — Preserved, Not Active)
 
 Translation is not used in the current MVP. All active sources (`walla_sport`, `israel_hayom_sport`, `ynet_sport`, `one_sport`) are Hebrew-native — no translation is needed. `TRANSLATION_PROVIDER=disabled` is the default and the correct MVP setting.

@@ -169,4 +169,8 @@ class TestEnrichmentPhraseTable:
             "Ironi Kiryat Ata",
             "Hapoel Beer Sheva Basketball",
             "Hapoel Haifa Basketball",
+            # #190: a club the ground truth proved missing. Maccabi Ashdod was
+            # added in the same change but is guarded (bare "אשדוד" also names
+            # M.S. Ashdod in football), so it is correctly absent here.
+            "Hapoel Galil Elyon",
         }

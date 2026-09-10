@@ -35,6 +35,13 @@ class TaxonomyEntity:
     domestic_competition: Optional[str] = None  # comp:* id
     memberships: tuple[tuple[str, Optional[str]], ...] = ()
     guarded: bool = False                       # resolve only with matching sport evidence
+    # Only meaningful together with `guarded` (#190). True means the other-sport
+    # club sharing this club's SHORT name has a DIFFERENT full name, so the full
+    # canonical name is sport-safe on its own and may resolve without sport
+    # evidence. False (the default) is the safe case: European multi-sport clubs
+    # like Real Madrid or Bayern Munich share their full name across sports, so
+    # nothing about the name proves the sport and evidence stays mandatory.
+    full_name_disambiguates: bool = False
     team_id: Optional[str] = None               # for players/coaches: current team
 
 
@@ -49,6 +56,7 @@ def _team(
     domestic: Optional[str] = None,
     extra_memberships: tuple[str, ...] = (),
     guarded: bool = False,
+    full_name_disambiguates: bool = False,
 ) -> TaxonomyEntity:
     memberships = tuple(
         (comp, None) for comp in ((domestic,) if domestic else ()) + extra_memberships
@@ -57,6 +65,7 @@ def _team(
         id=id, kind="team", sport=sport,
         display_he=display_he, display_en=display_en, legacy_name=legacy_name,
         aliases=aliases, family=family,
+        full_name_disambiguates=full_name_disambiguates,
         domestic_competition=domestic, memberships=memberships, guarded=guarded,
     )
 
@@ -93,9 +102,11 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
           "Bnei Herzliya",
           ("בני הרצליה", "bnei herzliya", "bney herzliya"),
           domestic="comp:ibl"),
+    # Bare "אילת" added in #190: nine corpus articles mention it and all nine are
+    # basketball — the city's name carries no competing club in this registry.
     _team("team:hapoel_eilat", "basketball", "הפועל אילת", "Hapoel Eilat",
           "Hapoel Eilat",
-          ("הפועל אילת", "hapoel eilat"),
+          ("הפועל אילת", "אילת", "hapoel eilat", "eilat"),
           family="הפועל", domestic="comp:ibl"),
     _team("team:hapoel_galil_gilboa", "basketball", "הפועל גלבוע גליל", "Hapoel Galil Gilboa",
           "Hapoel Galil Gilboa",
@@ -110,11 +121,36 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
     _team("team:ironi_ness_ziona", "basketball", "עירוני נס ציונה", "Ironi Ness Ziona",
           "Ironi Ness Ziona",
           ("עירוני נס ציונה", "נס ציונה", "ironi ness ziona", "ness ziona"),
-          family="עירוני", domestic="comp:ibl", guarded=True),
+          family="עירוני", domestic="comp:ibl", guarded=True,
+          # The football club is SEKTZIA Ness Ziona — only the bare town form
+          # collides, so the full club name resolves without sport evidence.
+          full_name_disambiguates=True),
     _team("team:emek_yizrael_bb", "basketball", "עמק יזרעאל", "Emek Yizrael",
           "Emek Yizrael Basketball",
           ("עמק יזרעאל", "emek yizrael"),
           domestic="comp:ibl"),
+    # ── #190 — clubs the ground truth proved missing (docs/qa/N05_FEED_GROUND_TRUTH.md).
+    #    Each one hid articles Guy rated as wanted. Season-volatile roster; see
+    #    docs/TAXONOMY.md audit table. ─────────────────────────────────────────
+    #
+    # Maccabi Ashdod is GUARDED: bare "אשדוד" also names M.S. Ashdod, the football
+    # club, which is not in this registry — measured in the corpus (7 mentions:
+    # 4 basketball, 1 football, 2 unknown including "מ.ס אשדוד"). Guarding means the
+    # bare form resolves only with basketball evidence, which both hidden articles
+    # already carry, while the football mentions keep abstaining.
+    _team("team:maccabi_ashdod", "basketball", "מכבי אשדוד", "Maccabi Ashdod",
+          "Maccabi Ashdod",
+          ("מכבי אשדוד", "אשדוד", "maccabi ashdod", "ashdod"),
+          family="מכבי", domestic="comp:ibl", guarded=True,
+          # The football club is M.S. Ashdod — a different full name.
+          full_name_disambiguates=True),
+    # Hapoel Galil ELYON is a DIFFERENT club from Hapoel Galil Gilboa above — the
+    # registry had only the latter, so "גליל עליון" resolved to nothing. All ten
+    # corpus mentions are basketball, so no guard is warranted.
+    _team("team:hapoel_galil_elyon", "basketball", "הפועל גליל עליון", "Hapoel Galil Elyon",
+          "Hapoel Galil Elyon",
+          ("הפועל גליל עליון", "גליל עליון", "hapoel galil elyon", "galil elyon"),
+          family="הפועל", domestic="comp:ibl"),
     # ── The two clubs from the screenshot regressions — previously absent, the
     #    root cause of "Maccabi" contamination (Cases 1–2). ────────────────────
     _team("team:maccabi_ramat_gan", "basketball", "מכבי רמת גן", "Maccabi Ramat Gan",

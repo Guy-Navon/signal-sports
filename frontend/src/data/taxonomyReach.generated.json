@@ -316,6 +316,14 @@
       ],
       "sport": "basketball"
     },
+    "team:hapoel_galil_elyon": {
+      "kind": "team",
+      "legacy_name": "Hapoel Galil Elyon",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
     "team:hapoel_galil_gilboa": {
       "kind": "team",
       "legacy_name": "Hapoel Galil Gilboa",
@@ -435,6 +443,14 @@
       "legacy_name": "Los Angeles Lakers",
       "memberships": [
         "comp:nba"
+      ],
+      "sport": "basketball"
+    },
+    "team:maccabi_ashdod": {
+      "kind": "team",
+      "legacy_name": "Maccabi Ashdod",
+      "memberships": [
+        "comp:ibl"
       ],
       "sport": "basketball"
     },
@@ -764,6 +780,7 @@
     "Hapoel Beer Sheva": "team:hapoel_beer_sheva_fc",
     "Hapoel Beer Sheva Basketball": "team:hapoel_beer_sheva_bb",
     "Hapoel Eilat": "team:hapoel_eilat",
+    "Hapoel Galil Elyon": "team:hapoel_galil_elyon",
     "Hapoel Galil Gilboa": "team:hapoel_galil_gilboa",
     "Hapoel Haifa Basketball": "team:hapoel_haifa_bb",
     "Hapoel Haifa Football": "team:hapoel_haifa_fc",
@@ -781,6 +798,7 @@
     "LA Clippers": "team:la_clippers",
     "LeBron James": "player:lebron_james",
     "Los Angeles Lakers": "team:la_lakers",
+    "Maccabi Ashdod": "team:maccabi_ashdod",
     "Maccabi Bnei Raina": "team:maccabi_bnei_raina_fc",
     "Maccabi Haifa": "team:maccabi_haifa_fc",
     "Maccabi Herzliya": "team:maccabi_herzliya_fc",

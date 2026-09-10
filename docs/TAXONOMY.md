@@ -29,6 +29,10 @@ Location: `backend/app/taxonomy/`
 3. **Longest match wins.** All alias occurrences are matched longest-first;
    shorter aliases overlapping an accepted span are discarded, so
    "מכבי רמת גן" can never surface the bare "מכבי" inside it.
+   Matching also folds hyphen-class characters (`-` `־` `–` `—`) to spaces on
+   both sides (#190), so "הפועל באר-שבע" and "הפועל באר שבע" are one name. The
+   fold is length-preserving, which keeps alias span offsets valid for the
+   former-affiliation adjacency window.
 4. **Cross-sport ambiguity abstains.** "מכבי תל אביב" / "הפועל תל אביב" /
    "הפועל ירושלים" exist as TWO entities (basketball + football) sharing
    aliases. Without sport evidence the resolver reports the mention as
@@ -37,9 +41,27 @@ Location: `backend/app/taxonomy/`
    name is an entity mention, **not** sport evidence (the old
    `"הפועל ירושלים" → basketball-context` rule was exactly the mechanism that
    classified Hapoel Jerusalem football stories as basketball).
-5. **Guarded entities** (`guarded=True`): European multi-sport clubs
-   (Real Madrid, Barcelona, Olympiacos, …) whose bare Hebrew names usually
-   mean the football section. They resolve only with basketball evidence.
+5. **Guarded entities** (`guarded=True`): clubs whose bare Hebrew name usually
+   means the football section — European multi-sport clubs (Real Madrid,
+   Barcelona, Olympiacos, …) and Israeli clubs whose other-sport namesake is not
+   in this registry (Ironi Ness Ziona, Maccabi Ashdod). They resolve only with
+   matching sport evidence.
+
+   **The one exemption** (`full_name_disambiguates=True`, #190): a guarded entity
+   may resolve on its FULL canonical name without sport evidence, when the
+   other-sport namesake carries a *different* full name. `עירוני נס ציונה` is
+   safe because the football club is *Sektzia* Ness Ziona; `מכבי אשדוד` is safe
+   because the football club is *M.S.* Ashdod. Only the bare town form collides.
+
+   This flag is **explicit metadata and must never be inferred** from "is this a
+   full name". Real Madrid and Bayern Munich share their full name across
+   football and basketball, so for them no part of the name proves the sport and
+   evidence stays mandatory. Attempting to derive the rule instead of declaring
+   it broke exactly those clubs (see `tests/test_competition_recall_190.py`).
+
+   Why the exemption is needed at all: guarded clubs were in a **circular
+   dependency**. The entity required sport evidence, and the article's sport was
+   `unknown` *because* no entity had resolved.
 6. **Coach → team is data.** Oded Kattash implies Maccabi Tel Aviv Basketball
    through his registry `team_id`, not a hardcoded rule. When he changes
    clubs, fix the data.
@@ -104,7 +126,7 @@ must be re-audited when seasons roll over.
 |---|---|---|---|
 | NBA | 30/30 teams | Complete (franchise set is stable) | Low |
 | EuroLeague | 20/20 clubs (2025-26) | Complete for 2025-26 | Annual: promotion/licence changes each season |
-| Israeli Basketball League | 15 clubs | Near-complete; promoted/relegated edge clubs may be missing | Annual roster churn; verify at season start |
+| Israeli Basketball League | 17 clubs | Near-complete; promoted/relegated edge clubs may be missing | Annual roster churn; verify at season start |
 | EuroCup | 1 club (Hapoel Jerusalem) | Deliberately sparse — EuroCup lineup is volatile; register on coverage evidence | High |
 | Spanish ACB | 4 clubs (Real Madrid, Barcelona, Baskonia, Valencia) | Partial by design — EuroLeague clubs only; no non-EL ACB club has appeared in ingested coverage | Medium |
 | Turkish BSL | 2 clubs (Fenerbahce, Anadolu Efes) | Partial by design — zero non-EL BSL mentions in the real DB | Medium |
@@ -172,3 +194,59 @@ Guy-relevant off-court Israeli-club business/ownership stories (e.g. "רקנאט
 רוכשת… מכבי ת״א") resolve `sport=unknown` → cross-sport-ambiguous → abstain. The
 alias already exists; the article's **sport** cannot be proven. Tracked
 separately from Q3.
+
+## Ground-truth coverage audit (#190 — 2026-09-11)
+
+Unlike the #40 audit above, which asked *"is the competition complete?"*, this one
+asked *"which registry gaps are measurably hiding articles the user wanted?"* —
+driven by the 282 hand-rated items in `docs/qa/N05_FEED_GROUND_TRUTH.md`.
+
+**The diagnosis that mattered.** 25 of Guy's 34 false-hides carried no resolved
+competition, and **24 of those 25 had no resolved *entity* at all**. The failure
+was one layer earlier than "missing competition membership": there was nothing
+for competition inference to work from. Participant-set inference could not have
+fixed a single one of them.
+
+Registry changes, each traced to hidden articles:
+
+| Change | Cause | Evidence |
+|---|---|---|
+| `team:hapoel_galil_elyon` **added** | A different club from `team:hapoel_galil_gilboa`, which was the only one registered — so `גליל עליון` resolved to nothing | 10 corpus mentions, all basketball → unguarded |
+| `team:maccabi_ashdod` **added**, guarded | Absent entirely | 7 mentions: 4 basketball, 1 football, 2 unknown (incl. `מ.ס אשדוד`) → **guarded**, so the bare town form needs basketball evidence |
+| `team:hapoel_eilat` — bare `אילת` alias | Only `הפועל אילת` was an alias | 9 mentions, all basketball |
+| `team:ironi_ness_ziona` — `full_name_disambiguates` | Guarded, so it could never resolve while sport was unknown, and the sport was unknown because nothing resolved | see Core rule 5 |
+| `team:hapoel_beer_sheva_bb` — hyphen fold | `הפועל באר-שבע` failed where `הפועל באר שבע` resolved | see Core rule 3 |
+
+**Measured result** (`scripts/feed_ground_truth.py gate`): Guy's false hide
+**19.4% → 18.2%**, shown precision **held at 98.2%** while the shown set grew
+from 110 to 114 rated items — all four newly-shown items were ones he wanted.
+`casual_deni_fan`: zero drift.
+
+### Deliberately not done
+
+- **Israeli national teams** (7 of the 25 hidden rows: `נבחרת ישראל`,
+  `נבחרת העתודה`, `נבחרת הנוער`, women's). A new entity kind plus new
+  competitions, and — because profiles are DB rows, not re-seeded from code — it
+  additionally needs a profile mutation before anything would surface. Deferred
+  as a product decision; the senior team alone was scoped and is tracked
+  separately.
+- **Israeli-league players** (6 rows). The registry holds **3 players total**, all
+  NBA. These articles name a player and never a club, so nothing else can catch
+  them — but an Israeli-league roster is season-volatile and needs a maintenance
+  policy first. Tracked as its own issue.
+- **`העמק`** — corpus articles say `הפועל העמק`, which may or may not be the
+  registered `team:emek_yizrael_bb`. That is a question about Israeli basketball,
+  not about this code, and was left rather than guessed.
+- **Bare family names** (`בהפועל`) stay unresolvable. That abstention is a
+  designed success mode, not a remaining gap.
+
+### Known limitation this audit exposed
+
+Bare aliases surface **incidental mentions**: an opponent from last season
+(`נגד אשדוד`), a player's former club, a former coach
+(`המאמן לשעבר של עירוני נס ציונה` — the former-affiliation window is adjacency-based
+and does not cover a marker separated by `של`). All six such cases were
+subtitle-only, so the corpus correction was scoped to **title evidence** as a
+conservative proxy for subject-hood. Mention-vs-subject is the proper fix and
+belongs to #193 — this change increases its blast radius and is a reason to
+prioritise it.

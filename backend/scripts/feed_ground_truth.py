@@ -64,6 +64,7 @@ except ImportError:  # pragma: no cover - dotenv is a hard dependency in practic
     pass
 
 from app.db.database import SessionLocal  # noqa: E402
+from app.qa import feed_quality_gate  # noqa: E402
 from app.repositories import article_repository, profile_repository  # noqa: E402
 from app.services.feed_service import active_engine, build_feed  # noqa: E402
 
@@ -317,9 +318,15 @@ def _refresh_decisions(sample: dict) -> None:
         print(f"{user_id}: {moved} of {len(block['items'])} rated items changed decision")
 
 
-def cmd_score(args) -> None:
-    raw = json.loads(Path(args.ratings).read_text(encoding="utf-8"))
-    sample = json.loads(Path(args.sample).read_text(encoding="utf-8"))
+def _score_ratings(ratings_path: str, sample_path: str, live: bool) -> tuple[dict, dict]:
+    """Score the ratings and return ``(report, {profile: {id: decision}})``.
+
+    The per-item decision map is what the gate needs and the report does not
+    carry: the report lists only DISAGREEMENTS, so two opposite flips would net
+    to "no change" in the aggregates while the feed actually moved.
+    """
+    raw = json.loads(Path(ratings_path).read_text(encoding="utf-8"))
+    sample = json.loads(Path(sample_path).read_text(encoding="utf-8"))
 
     # The rating page exports {generated, seed, ratings}; a hand-written file may
     # just be {profile: {id: rating}}. Accept either rather than fail quietly.
@@ -333,13 +340,29 @@ def cmd_score(args) -> None:
         if user_id not in sample["profiles"]:
             raise SystemExit(f"Ratings name a profile the sample does not have: {user_id}")
 
-    if args.live:
+    if live:
         # The sample froze the decisions that were current when it was drawn.
         # Re-scoring the same articles against the engine as it stands NOW is
         # what answers "did my change improve things?" — same people, same
         # ratings, same strata and weights, new decisions.
         _refresh_decisions(sample)
 
+    # Restricted to RATED items: an unrated item has no ground truth, so a flip
+    # there is not evidence of anything the gate can reason about.
+    decisions = {
+        user_id: {
+            item["id"]: item["engine_decision"]
+            for item in block["items"]
+            if item["id"] in ratings.get(user_id, {})
+        }
+        for user_id, block in sample["profiles"].items()
+    }
+
+    report = _build_report(sample, ratings)
+    return report, decisions
+
+
+def _build_report(sample: dict, ratings: dict) -> dict:
     report = {"meta": _run_meta(sample["meta"]["corpus_articles"]), "profiles": {}}
     report["meta"]["rated_against_sample"] = sample["meta"].get("generated_at")
 
@@ -427,6 +450,11 @@ def cmd_score(args) -> None:
             "disagreements": sorted(disagreements, key=lambda d: d["kind"]),
         }
 
+    return report
+
+
+def cmd_score(args) -> None:
+    report, _ = _score_ratings(args.ratings, args.sample, args.live)
     _write(args.out, report)
     _print_score(report)
 
@@ -448,6 +476,63 @@ def _print_score(report: dict) -> None:
         if pp["precision"] is not None:
             print(f"  push precision {pp['precision'] * 100:.0f}% ({pp['agreed_push_worthy']}/{pp['rated']})")
         print(f"  {len(p['disagreements'])} disagreements recorded")
+
+
+# ── gate ──────────────────────────────────────────────────────────────────────
+
+DEFAULT_BASELINE = _BACKEND.parent / "docs" / "qa" / "n05_gate_baseline.json"
+
+
+def cmd_gate(args) -> None:
+    """The regression gate: score live, compare to the frozen baseline, exit 0/1.
+
+    Always scores ``--live``. Scoring against the decisions frozen into the
+    sample would compare the baseline to itself and pass unconditionally.
+    """
+    # Validate the invocation BEFORE scoring: the run below reads the whole
+    # corpus, and learning about a typo'd flag after that wait is pure friction.
+    accepted = list(args.accept or [])
+    if accepted and not args.reason:
+        raise SystemExit(
+            "--accept requires --reason. An accepted regression must carry an "
+            "argument, otherwise it is just a silently relaxed threshold."
+        )
+    baseline_path = Path(args.baseline)
+    if not args.update_baseline and not baseline_path.exists():
+        raise SystemExit(
+            f"No baseline at {baseline_path}. Create one deliberately with:\n"
+            f"  scripts/feed_ground_truth.py gate --update-baseline"
+        )
+
+    report, decisions = _score_ratings(args.ratings, args.sample, live=True)
+
+    if args.update_baseline:
+        baseline = feed_quality_gate.build_baseline(report, decisions)
+        _write(args.baseline, baseline)
+        print(
+            "\nBaseline REWRITTEN. This is a deliberate act: every future change is "
+            "now measured against these numbers.\n"
+            "Commit it with the reasoning, and state both directions in the message."
+        )
+        _print_score(report)
+        return
+
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+
+    try:
+        verdict = feed_quality_gate.evaluate(
+            baseline, report, decisions, accepted=accepted, accept_reason=args.reason
+        )
+    except feed_quality_gate.GateInputError as exc:
+        raise SystemExit(f"Cannot compare: {exc}")
+
+    print(feed_quality_gate.format_verdict(verdict))
+
+    if args.out:
+        _write(args.out, {"meta": report["meta"], "verdict": verdict.as_dict()})
+
+    if not verdict.passed:
+        sys.exit(1)
 
 
 # ── plumbing ──────────────────────────────────────────────────────────────────
@@ -496,6 +581,27 @@ def main() -> None:
              "of the ones frozen into the sample — the before/after gate",
     )
     p_score.set_defaults(func=cmd_score)
+
+    p_gate = sub.add_parser(
+        "gate",
+        help="regression gate: score live against the committed baseline (exit 1 on regression)",
+    )
+    p_gate.add_argument("--ratings", default=str(_BACKEND.parent / "docs" / "qa" / "n05_ratings.json"))
+    p_gate.add_argument("--sample", default=str(_BACKEND.parent / "docs" / "qa" / "n05_sample.json"))
+    p_gate.add_argument("--baseline", default=str(DEFAULT_BASELINE))
+    p_gate.add_argument("--out", help="write the verdict as JSON")
+    p_gate.add_argument(
+        "--accept", action="append", metavar="CHECK_ID",
+        help="accept a specific failing check (repeatable). Requires --reason.",
+    )
+    p_gate.add_argument(
+        "--reason", help="why the accepted regression is the right call",
+    )
+    p_gate.add_argument(
+        "--update-baseline", action="store_true",
+        help="REWRITE the baseline from this run instead of checking against it",
+    )
+    p_gate.set_defaults(func=cmd_gate)
 
     args = parser.parse_args()
     args.func(args)

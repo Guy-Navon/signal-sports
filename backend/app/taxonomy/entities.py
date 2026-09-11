@@ -138,12 +138,16 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
     # 4 basketball, 1 football, 2 unknown including "מ.ס אשדוד"). Guarding means the
     # bare form resolves only with basketball evidence, which both hidden articles
     # already carry, while the football mentions keep abstaining.
+    # NAME NOT VERIFIED: every corpus mention of the basketball club is the bare
+    # town form ("אשדוד"); no article names it in full, so the display name below
+    # is a reasonable assumption, NOT evidence. It therefore does NOT declare
+    # full_name_disambiguates — the guard plus basketball evidence is what
+    # actually resolves these rows, and that part IS evidence-backed. Confirm the
+    # club's real name before relying on the full form anywhere.
     _team("team:maccabi_ashdod", "basketball", "מכבי אשדוד", "Maccabi Ashdod",
           "Maccabi Ashdod",
           ("מכבי אשדוד", "אשדוד", "maccabi ashdod", "ashdod"),
-          family="מכבי", domestic="comp:ibl", guarded=True,
-          # The football club is M.S. Ashdod — a different full name.
-          full_name_disambiguates=True),
+          family="מכבי", domestic="comp:ibl", guarded=True),
     # Hapoel Galil ELYON is a DIFFERENT club from Hapoel Galil Gilboa above — the
     # registry had only the latter, so "גליל עליון" resolved to nothing. All ten
     # corpus mentions are basketball, so no guard is warranted.

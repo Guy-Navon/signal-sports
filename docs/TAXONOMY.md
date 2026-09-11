@@ -50,8 +50,10 @@ Location: `backend/app/taxonomy/`
    **The one exemption** (`full_name_disambiguates=True`, #190): a guarded entity
    may resolve on its FULL canonical name without sport evidence, when the
    other-sport namesake carries a *different* full name. `עירוני נס ציונה` is
-   safe because the football club is *Sektzia* Ness Ziona; `מכבי אשדוד` is safe
-   because the football club is *M.S.* Ashdod. Only the bare town form collides.
+   safe because the football club is *Sektzia* Ness Ziona. Only the bare town
+   form collides. Maccabi Ashdod is guarded but deliberately does **not** declare
+   the flag: no corpus article names that club in full, so its display name is an
+   assumption rather than evidence, and the guard alone resolves its rows.
 
    This flag is **explicit metadata and must never be inferred** from "is this a
    full name". Real Madrid and Bayern Munich share their full name across
@@ -212,7 +214,7 @@ Registry changes, each traced to hidden articles:
 | Change | Cause | Evidence |
 |---|---|---|
 | `team:hapoel_galil_elyon` **added** | A different club from `team:hapoel_galil_gilboa`, which was the only one registered — so `גליל עליון` resolved to nothing | 10 corpus mentions, all basketball → unguarded |
-| `team:maccabi_ashdod` **added**, guarded | Absent entirely | 7 mentions: 4 basketball, 1 football, 2 unknown (incl. `מ.ס אשדוד`) → **guarded**, so the bare town form needs basketball evidence |
+| `team:maccabi_ashdod` **added**, guarded | Absent entirely | 7 mentions: 4 basketball, 1 football, 2 unknown (incl. `מ.ס אשדוד`) → **guarded**, so the bare town form needs basketball evidence. Full club name **unverified** — every corpus mention is the bare town form |
 | `team:hapoel_eilat` — bare `אילת` alias | Only `הפועל אילת` was an alias | 9 mentions, all basketball |
 | `team:ironi_ness_ziona` — `full_name_disambiguates` | Guarded, so it could never resolve while sport was unknown, and the sport was unknown because nothing resolved | see Core rule 5 |
 | `team:hapoel_beer_sheva_bb` — hyphen fold | `הפועל באר-שבע` failed where `הפועל באר שבע` resolved | see Core rule 3 |

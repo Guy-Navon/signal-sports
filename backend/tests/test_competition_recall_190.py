@@ -116,7 +116,10 @@ class TestGuardedFullNameExemption:
     def test_exemption_is_opt_in_across_the_whole_registry(self):
         """A future guarded entity must not silently inherit the exemption."""
         exempt = {e.id for e in ENTITIES.values() if e.full_name_disambiguates}
-        assert exempt == {"team:ironi_ness_ziona", "team:maccabi_ashdod"}
+        # Maccabi Ashdod is guarded but deliberately does NOT declare the flag:
+        # no corpus article names the club in full, so its display name is an
+        # assumption rather than evidence. The guard alone resolves those rows.
+        assert exempt == {"team:ironi_ness_ziona"}
         assert all(ENTITIES[eid].guarded for eid in exempt)
 
 

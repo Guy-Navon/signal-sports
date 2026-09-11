@@ -67,6 +67,10 @@ those rows would floor `false_hide` at **≈7.0%**. So 12.0% asks for roughly 55
 of the recoverable ground — ambitious and grounded. 7.0% is the theoretical
 floor; do not treat it as the target.
 
+⚠️ **The corpus is frozen** — the newest article is 2026-07-31 and no ingestion
+runs during this work. So a goal must never depend on an article that does not
+exist in it. That is what made the original G4b unreachable.
+
 ⚠️ **Weight granularity matters.** Hidden-football rows carry a sampling weight
 of ~55.9, so a *single* football row moves `false_hide` by ~3.9 pp (that is the
 whole `release` line above — one article, rated `low`). Do not chase, or claim,
@@ -87,11 +91,13 @@ feature exists end to end and is starved of clusters.
 
 ### G4 — Break the flat scale for `casual_deni_fan`
 
-- **At least one `always_push` rule must demonstrably fire** on a real corpus
-  article that deserves it (name the article, show the trace). It has **never
-  fired** — the `push` stratum population is literally 0.
-- Over-ranking: **15 of 24** visible items are over-rated (engine `high_feed`,
-  owner rated `feed`) → **≤ 8**.
+**G4a — over-ranking: 15 of 24** visible items are over-rated (engine
+`high_feed`, owner rated `feed`) → **≤ 8**. Independent of G4b; do this either way.
+
+**G4b — make a push fire.** The profile's `push` stratum population is literally
+0: no `always_push` rule has ever fired. §2b below records an **authorized product
+decision** that makes this reachable. Demonstrate the rule firing on
+`rss_4c34e0718aadb617f71b`, with the trace.
 
 ### Guardrail — non-negotiable
 
@@ -100,10 +106,82 @@ the gate's one-item slack. A change that buys recall by wrecking precision is a
 failure, not a trade.
 
 > **If a goal turns out to be unreachable for a principled reason, say so with
-> evidence and stop there. Do NOT weaken a contract or an invariant to hit a
-> number.** A well-evidenced "12% is not reachable without breaking X, here is
-> why, here is what I got instead" is a success. Two of this epic's issues were
-> re-scoped or closed on exactly that basis (#190, #193) and both saved real work.
+> evidence and MOVE ON TO THE NEXT GOAL. Do NOT weaken a contract or an
+> invariant to hit a number.** A well-evidenced "12% is not reachable without
+> breaking X, here is why, here is what I got instead" is a success. Two of this
+> epic's issues were re-scoped or closed on exactly that basis (#190, #193) and
+> both saved real work.
+>
+> **⚠️ A blocked goal stops THAT GOAL, not the run.** The goals are independent:
+> G1 (recall), G2 (push) and G3 (story-level) do not depend on G4 in any way. The
+> first attempt at this brief read an earlier wording as "stop the whole task" and
+> halted after G4, leaving three goals untouched. Do not repeat that. Work each
+> goal, record what blocked, and keep going. Only a corrupted corpus or a failing
+> gate you cannot explain justifies stopping the run.
+
+---
+
+## 2b. AUTHORIZED product decision — add a `relocation` event type
+
+A first attempt at this brief stopped here, and its finding was correct and sharp:
+**the one `casual_deni_fan` article the owner rated `push` is not a trade or an
+injury.** Verified independently:
+
+- `rss_4c34e0718aadb617f71b` — title `דיווח דרמטי: דני אבדיה ופורטלנד עשויים לעבור לאוקלהומה`,
+  subtitle `הכוכב הישראלי יעביר את ביתו ליעד חדש?` — *his home*, not his team.
+- Entities: `player:deni_avdija`, `team:portland_blazers`, `team:okc_thunder`.
+- A coherent storyline surrounds it: `עתיד הבלייזרס בפורטלנד בסכנה על רקע משבר האולם`,
+  `"לטום דאנדון אין לאן לעבור עם פורטלנד"`, `אין לאן לעבור: פורטלנד ואבדיה נותרו ללא יעד`.
+
+This is **franchise relocation**. Labelling it `major_trade` would be a false
+fact, and the first attempt was right to refuse.
+
+**The owner has now decided: `relocation` becomes a real event type.** This is the
+explicit decision that §7's "no new event types" invariant requires — you are
+authorized to add exactly this one, and no others.
+
+### The evidence that fixes its scope
+
+How each profile rated the relocation storyline:
+
+| Article | Guy | casual_deni_fan |
+|---|---|---|
+| `דני אבדיה ופורטלנד עשויים לעבור לאוקלהומה` | `feed` | **`push`** |
+| `אין לאן לעבור: פורטלנד ואבדיה נותרו ללא יעד` | — | `feed` |
+| `עתיד הבלייזרס בפורטלנד בסכנה על רקע משבר האולם` | **`low`** | — |
+| `"לטום דאנדון אין לאן לעבור עם פורטלנד"` | **`low`** | — |
+
+Read that carefully, because it is the spec:
+
+- **The same article is `push` for the Deni fan and `feed` for Guy.** This is
+  `CLAUDE.md`'s Critical Personalization Principle showing up as measured data:
+  *"The same article must be able to produce different relevance decisions for
+  different users."*
+- **Relocation is only push-worthy when the followed player is its subject.**
+  Generic franchise/arena news without Deni is rated `low` by Guy.
+
+So the override must be **entity-scoped**:
+`always_push` × `scope=player` × `target_id=player:deni_avdija` ×
+`event_type=relocation`. **Guy gets no relocation push rule** — his `push_volume`
+must stay 17 and the gate enforces that.
+
+### What adding it requires
+
+1. `relocation` in `ALLOWED_EVENT_TYPES` (`backend/app/classification/validation.py`)
+   and in the LLM prompt's type list (`backend/app/classification/prompt.py`).
+2. **A clustering event-state decision.** `relocation` must be an explicit member
+   of exactly one of `CLUSTERABLE_EVENT_STATES` / `NEVER_CLUSTERED_EVENT_STATES`
+   (`backend/app/clustering/config.py`). `tests/test_feed_dedup_121.py::test_every_event_type_is_explicitly_classified`
+   enforces this, and #121 documents why: a type in neither set does not "default
+   to safe", it becomes **unclusterable at any similarity, silently**. Several
+   sources report the same relocation report, so clusterable is very likely
+   correct — but state the choice.
+3. Event **evidence** for asserting it (`backend/app/classification/event_evidence.py`),
+   at the same standard as every other type. Do not special-case it to make G4b pass.
+4. **A profile mutation**, because profiles are DB rows and not re-seeded from code
+   (§8.2). Update the seed for future environments *and* mutate the live
+   `casual_deni_fan` profile, or G4b cannot be demonstrated on this corpus.
+5. A guard that relocation does **not** leak into Guy's push surface.
 
 ---
 
@@ -249,12 +327,38 @@ with the justification in the commit.
 ## 6. Sequence
 
 1. **Gate before.** Confirm a clean start and record the numbers.
-2. **Census `news` across the whole corpus** (1,427 scored RSS rows): by sport, by
-   source, and by classification method (`rules` / `llm` / `llm+rules_guardrail` /
-   `rules_fallback_after_llm_failure`). Is it a rules gap, an LLM gap, or both?
-   **Post this before designing anything.** #190 was scoped on an assumption about
-   its root cause and the diagnosis proved it wrong — 24 of 25 rows failed for a
-   completely different reason than the ticket claimed.
+2. **The census is ALREADY DONE and merged — do not redo it.** See
+   `docs/qa/N05_MILESTONE_FEED_QUALITY_FINDINGS.md` and
+   `docs/qa/n05_milestone_census.json`. Independently reproduced: **816 of 1,427
+   rows are `news` (57.2%)**.
+
+   Its findings are your starting leads:
+
+   | Classification method | all rows | `news` |
+   |---|---:|---:|
+   | `rules_fallback_after_llm_failure` | 478 | **336** |
+   | `rules` | 687 | 293 |
+   | `llm+rules_guardrail` | 188 | 138 |
+   | `llm` | 74 | 49 |
+
+   - **It is both a rules gap and an LLM gap.** 336 `news` rows followed an LLM
+     *failure*; 293 used rules with no LLM proposal at all.
+   - **101 rows stored `news` while the LLM had proposed a different event.**
+     That is the sharpest lead in the census: something is *downgrading* proposals.
+     One hypothesis worth testing — `validation.py:89` reads
+     `event_type if event_type in ALLOWED_EVENT_TYPES else "news"`, so any
+     proposed type outside the allowed set silently becomes `news`. I probed for
+     this and my guess at the trace shape returned nothing, so treat it as an
+     unconfirmed hypothesis; the previous attempt extracted those 101 and knows
+     how to read the traces.
+   - Also recorded: 8 `news` rows whose historical `trace event.final` differs
+     from the stored `event_type`, so trace history alone cannot establish the
+     current cause.
+
+   The census explicitly does **not** prove all 816 are misclassified. Keep that
+   discipline: #190 was scoped on an assumption about its root cause and the
+   diagnosis proved it wrong — 24 of 25 rows failed for a completely different
+   reason than the ticket claimed.
 3. **Decide explicitly whether `news` stays reachable**, and state the trade-off
    in the PR. A classifier that cannot say "I don't know" is worse than one that
    can — abstention is a *designed success mode* here. But an escape hatch that
@@ -304,8 +408,9 @@ with the justification in the commit.
 - **Push stays rare**, and volume may never rise without a measured precision gain.
 - **`primary_competition` is explicit-evidence-only** (#28). Never populate it from
   inference — that opens the RC-4 hazard of promoting a background mention.
-- **No new event types** without an explicit, stated decision. Prefer routing to
-  existing ones.
+- **No new event types** without an explicit, stated decision. **`relocation` is
+  that decision and the only one authorized (§2b).** Everything else routes to
+  existing types.
 - **No live Telegram sends.** Work at planner/outbox level only.
 
 ---

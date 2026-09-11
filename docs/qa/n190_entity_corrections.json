@@ -1,0 +1,359 @@
+{
+  "generated_at": "2026-09-10T23:28:59.482135+00:00",
+  "issue": 190,
+  "applied": true,
+  "database": "C:\\Users\\HOME\\Documents\\signal-sports\\backend\\data\\signal_sports.db",
+  "in_scope_entity_ids": [
+    "team:hapoel_beer_sheva_bb",
+    "team:hapoel_eilat",
+    "team:hapoel_galil_elyon",
+    "team:ironi_ness_ziona",
+    "team:maccabi_ashdod"
+  ],
+  "evidence_scope": "title only (subtitle-only mentions deliberately excluded — see #193)",
+  "fields_written": [
+    "entity_ids",
+    "entities"
+  ],
+  "rows": [
+    {
+      "id": "rss_e4313cc69ef10e6a7fe6",
+      "title": "מצפון לדרום? ארון ווילר במו\"מ עם אילת",
+      "sport": "basketball",
+      "event_type": "negotiation",
+      "league_before": null,
+      "gained": [
+        "team:hapoel_eilat"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:hapoel_eilat"
+      ]
+    },
+    {
+      "id": "rss_cb65195a6e53c05334ac",
+      "title": "הפועל גליל עליון החתימה את שחקן נבחרת העתודה אריאל סלע",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:hapoel_galil_elyon"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:hapoel_galil_elyon"
+      ]
+    },
+    {
+      "id": "rss_424d25ac9aef0a3147c6",
+      "title": "דוברת ואקס פנאתינייקוס סיכמו בנס ציונה",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:ironi_ness_ziona"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:ironi_ness_ziona"
+      ]
+    },
+    {
+      "id": "rss_93626b6024e7b02c88a4",
+      "title": "רכש מרשים: פאריס לי הצטרף לנס ציונה",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": "EuroLeague",
+      "gained": [
+        "team:ironi_ness_ziona"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:ironi_ness_ziona"
+      ]
+    },
+    {
+      "id": "rss_846a52322c349724cb31",
+      "title": "דורי סהר סיכם בהפועל גליל עליון",
+      "sport": "basketball",
+      "event_type": "negotiation",
+      "league_before": null,
+      "gained": [
+        "team:hapoel_galil_elyon"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:hapoel_galil_elyon"
+      ]
+    },
+    {
+      "id": "rss_c3fe30b51abcc4a07a6b",
+      "title": "חוזר לשתף פעולה עם אבשלום: דורי סהר חתם בגליל עליון",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:hapoel_galil_elyon"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:hapoel_galil_elyon"
+      ]
+    },
+    {
+      "id": "rss_fea42b9b8cb3fba2765c",
+      "title": "כפי שפורסם: דורי סהר חתם בגליל עליון",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:hapoel_galil_elyon"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:hapoel_galil_elyon"
+      ]
+    },
+    {
+      "id": "rss_7cce0582f7c4876b8b83",
+      "title": "הקפטן ממשיך: יהל מלמד האריך חוזה בהפועל גליל עליון",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:hapoel_galil_elyon"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:hapoel_galil_elyon"
+      ]
+    },
+    {
+      "id": "rss_e03479686e1effcab70b",
+      "title": "\"מנסים להתארגן\": הפועל באר-שבע תמשיך בליגת העל?",
+      "sport": "basketball",
+      "event_type": "news",
+      "league_before": null,
+      "gained": [
+        "team:hapoel_beer_sheva_bb"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:hapoel_beer_sheva_bb"
+      ]
+    },
+    {
+      "id": "rss_a4ba081c1c45ce8969d5",
+      "title": "רשמי: יהל מלמד ממשיך בגליל עליון",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:hapoel_galil_elyon"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:hapoel_galil_elyon"
+      ]
+    },
+    {
+      "id": "rss_c6a3f19cba2381d30f85",
+      "title": "תמונת מצב: התוכניות של אשדוד לעונה הקרבה",
+      "sport": "basketball",
+      "event_type": "news",
+      "league_before": null,
+      "gained": [
+        "team:maccabi_ashdod"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:maccabi_ashdod"
+      ]
+    },
+    {
+      "id": "rss_5900483ae5c42c10c227",
+      "title": "היחידה בליגה: קונפינו מונתה למנהלת אשדוד",
+      "sport": "basketball",
+      "event_type": "news",
+      "league_before": null,
+      "gained": [
+        "team:maccabi_ashdod"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:maccabi_ashdod"
+      ]
+    },
+    {
+      "id": "rss_4818ccb704ca5241b2d9",
+      "title": "ממשיך איתה בליגה הראשונה: בן רוינה האריך חוזה באילת",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:hapoel_eilat"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:hapoel_eilat"
+      ]
+    },
+    {
+      "id": "rss_04a67b4797b0de712232",
+      "title": "ממשיכה להתחזק: בניה סרור סיכם בנס ציונה",
+      "sport": "basketball",
+      "event_type": "negotiation",
+      "league_before": null,
+      "gained": [
+        "team:ironi_ness_ziona"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:ironi_ness_ziona"
+      ]
+    },
+    {
+      "id": "rss_3726314cdce34c8d4526",
+      "title": "הסגל הישראלי הושלם: בניה סרור סיכם בנס ציונה",
+      "sport": "basketball",
+      "event_type": "negotiation",
+      "league_before": null,
+      "gained": [
+        "team:ironi_ness_ziona"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:ironi_ness_ziona"
+      ]
+    },
+    {
+      "id": "rss_b372cdbd9e1ea96e21cd",
+      "title": "רשמי: ג`ייקוב וויילי חתם בנס ציונה",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": "Greek Basket League",
+      "gained": [
+        "team:ironi_ness_ziona"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:ironi_ness_ziona"
+      ]
+    },
+    {
+      "id": "rss_dd217fac904c7046d317",
+      "title": "שמרה על הנכס: ברייס בראון נשאר בנס ציונה",
+      "sport": "basketball",
+      "event_type": "news",
+      "league_before": null,
+      "gained": [
+        "team:ironi_ness_ziona"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:ironi_ness_ziona"
+      ]
+    },
+    {
+      "id": "rss_b201a1ddfc11dd6d4642",
+      "title": "ברייס בראון ימשיך לעונה שלישית בעירוני נס ציונה",
+      "sport": "unknown",
+      "event_type": "news",
+      "league_before": null,
+      "gained": [
+        "team:ironi_ness_ziona"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:ironi_ness_ziona"
+      ]
+    },
+    {
+      "id": "rss_093b846e4faf76d92ce7",
+      "title": "רשמי: נועם דוברת חתם בעירוני נס ציונה",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:ironi_ness_ziona"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:ironi_ness_ziona"
+      ]
+    },
+    {
+      "id": "rss_42c531440ad6fef98089",
+      "title": "נועם דוברת חתם בעירוני נס ציונה לעונה",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:ironi_ness_ziona"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:ironi_ness_ziona"
+      ]
+    },
+    {
+      "id": "rss_1b391c019ba1b50d20ce",
+      "title": "תחנה רביעית בישראל: מוריס קמפ חתם בהפועל גליל עליון",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": "Israeli Basketball League",
+      "gained": [
+        "team:hapoel_galil_elyon"
+      ],
+      "entity_ids_before": [
+        "team:bnei_herzliya"
+      ],
+      "entity_ids_after": [
+        "team:bnei_herzliya",
+        "team:hapoel_galil_elyon"
+      ]
+    },
+    {
+      "id": "rss_59a5c1969f0c57e36aca",
+      "title": "ממשיכה להתחזק: מוריס קמפ חתם בגליל עליון",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:hapoel_galil_elyon"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:hapoel_galil_elyon"
+      ]
+    },
+    {
+      "id": "rss_2e75fe137b292803dbaf",
+      "title": "רשמי. סנטר ג`ורג`טאון לשעבר חתם באשדוד",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:maccabi_ashdod"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:maccabi_ashdod"
+      ]
+    },
+    {
+      "id": "rss_68a6d6cad84cad243bd9",
+      "title": "יעד חדש: רני בלגה הצטרף לגליל עליון",
+      "sport": "basketball",
+      "event_type": "signing",
+      "league_before": null,
+      "gained": [
+        "team:hapoel_galil_elyon"
+      ],
+      "entity_ids_before": [],
+      "entity_ids_after": [
+        "team:hapoel_galil_elyon"
+      ]
+    }
+  ]
+}

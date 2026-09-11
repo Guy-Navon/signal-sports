@@ -1,0 +1,1511 @@
+{
+  "base": "66f77f64cd48c591684ae13b4cea47e02f108061",
+  "corpus": 1427,
+  "news": 816,
+  "census": {
+    "sport": [
+      {
+        "sport": "basketball",
+        "total": 349,
+        "news": 168
+      },
+      {
+        "sport": "football",
+        "total": 842,
+        "news": 495
+      },
+      {
+        "sport": "tennis",
+        "total": 26,
+        "news": 12
+      },
+      {
+        "sport": "unknown",
+        "total": 210,
+        "news": 141
+      }
+    ],
+    "source": [
+      {
+        "source": "israel_hayom_sport",
+        "total": 358,
+        "news": 217
+      },
+      {
+        "source": "sport5_sport",
+        "total": 80,
+        "news": 24
+      },
+      {
+        "source": "walla_sport",
+        "total": 704,
+        "news": 417
+      },
+      {
+        "source": "ynet_sport",
+        "total": 285,
+        "news": 158
+      }
+    ],
+    "classified_by": [
+      {
+        "classified_by": "llm",
+        "total": 74,
+        "news": 49
+      },
+      {
+        "classified_by": "llm+rules_guardrail",
+        "total": 188,
+        "news": 138
+      },
+      {
+        "classified_by": "rules",
+        "total": 687,
+        "news": 293
+      },
+      {
+        "classified_by": "rules_fallback_after_llm_failure",
+        "total": 478,
+        "news": 336
+      }
+    ]
+  },
+  "deni_aliases": [
+    "דני אבדיה",
+    "אבדיה",
+    "deni avdija",
+    "avdija",
+    "deni"
+  ],
+  "deni_overrides": [
+    {
+      "kind": "always_push",
+      "scope": "player",
+      "target_id": "player:deni_avdija",
+      "event_type": "major_trade",
+      "source": "explicit"
+    },
+    {
+      "kind": "always_push",
+      "scope": "player",
+      "target_id": "player:deni_avdija",
+      "event_type": "injury",
+      "source": "explicit"
+    },
+    {
+      "kind": "never_show",
+      "scope": "player",
+      "target_id": "player:deni_avdija",
+      "event_type": "generic_preview",
+      "source": "explicit"
+    },
+    {
+      "kind": "never_show",
+      "scope": "player",
+      "target_id": "player:deni_avdija",
+      "event_type": "schedule",
+      "source": "explicit"
+    }
+  ],
+  "deni_review": [
+    {
+      "id": "rss_14b1ca15afb2b32a903e",
+      "title": "ג'ה מוראנט עקץ את דני אבדיה: \"הוא ממש מנסה לעצבן בכוונה\"",
+      "subtitle": "אחרי שבילה עם הישראלי במשחק ליגת הקיץ, הכוכב דיבר לראשונה עם העיתונאים • הוא שיתף על חבריו החדשים (\"הם אוהבים להתגרות אחד בשני\") • סיפר כי רצה להמשיך עם הספרה 12, אבל \"לטרייל בלייזרס יש תוכניות אחרות בשבילו\" • וגם: הביקורת כלפי תדמית \"הבעיי",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija"
+      ],
+      "rating": "high",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_07098f8939b1be430059",
+      "title": "\"אם פיני גרשון היה בנבחרת ישראל - כולם היו מתייצבים\"",
+      "subtitle": "על רקע היעדרות כוכבי הנבחרת במוק' אליפות העולם, ב\"דאבל דריבל\" העמיקו בסוגייה הבוערת: \"אם אבדיה היה מגיע - הרוב היו מצטרפים\". צפו",
+      "event_type": "injury",
+      "entity_ids": [],
+      "rating": null,
+      "decision": "hidden",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "ספורט: unknown, ליגה: —",
+        "אין תחום עניין תואם בפרופיל → מוסתר",
+        "החלטה סופית: מוסתר"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": null,
+          "effect": "hidden",
+          "detail": "no_matching_scope"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "injury",
+          "valid": true,
+          "certainty": "probable"
+        }
+      }
+    },
+    {
+      "id": "rss_23d86abd3f442f86244e",
+      "title": "ההחלטה המפוקפקת שאולי עוד תגרום לדני אבדיה לעזוב את פורטלנד",
+      "subtitle": "בארה\"ב ניתחו את צירופו של ג'ה מוראנט: \"יש בזה הרבה יותר סיכון משנראה. זה יקשה על הענקת חוזה חדש לדני בקיץ הבא\"",
+      "event_type": "signing",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_9991ec903f663e95a9fb",
+      "title": "לידיעת אבדיה: וומבניאמה יתייצב לנבחרת צרפת בחלון הקרוב",
+      "subtitle": "כוכב סן אנטוניו ישוב לסגל הטריקולור במוקדמות אליפות העולם באוגוסט, למרות קיץ עמוס ועונת NBA היסטורית. זאת לאחר שבישראל נעדרו שחקני המפתח בחלון האחרון",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_004533dc192234c138ec",
+      "title": "\"השאיפה להיות כמו דני אבדיה - הפנים של הכדורסל הישראלי\"",
+      "subtitle": "גל רביב מסכמת את הקיץ הגדול בקריירה ומדברת על היעד הבא - ה-WNBA (\"הלוואי שכבר אהיה אולסטאר\"), החיים בארה\"ב (\"זה דורש המון קשרים\") וההשוואה לקייטלין קלארק (\"שינתה את כל המשחק\"). צפו בכוכבת נבחרת העתודה בראיון מיוחד לוואלה ספורט",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_32c7df102e55d8750b60",
+      "title": "בארה\"ב מנתחים: \"העסק בפורטלנד מבולגן\" - וגם דני אבדיה ייפגע",
+      "subtitle": "ב\"יאהו\" מתקשים להבין את ההתאמה של ג'ה מוראנט לצד הישראלי: \"קשה להבין את ההיגיון. צריך לרווח עבורו את המגרש, לא לצופף\"",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_a2d776b676234df30672",
+      "title": "המהלכים של פורטלנד \"פוגעים במעמדו של דני אבדיה - ולא מסייעים לו\"",
+      "subtitle": "ב\"ריפ סיטי פרוג'קט\" העריכו שהישראלי עתיד לקחת צעד אחורה העונה, על רקע העומס בקו האחורי: \"לא יצליחו למצות את היכולות שלו\"",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_2af61ff0561659079a9d",
+      "title": "יככב לצד האקסים של הפועל תל אביב? חברו של דני אבדיה בדרך ליורוליג",
+      "subtitle": "אחרי צירופם של כריס ג'ונס וג'ונתן מוטלי, ב\"מרידיאן\" הסרבי טוענים כי הכוכב האדום בלגרד נמצאת במשא ומתן מתקדם עם פטריק בולדווין ג'וניור • האמריקני, שיעזוב את הליגה הטובה בעולם אחרי 4 שנים, שיתף פעולה עם הישראלי במדי וושינגטון וויזארדס",
+      "event_type": "negotiation",
+      "entity_ids": [
+        "team:hapoel_tlv_bb",
+        "player:deni_avdija"
+      ],
+      "rating": "hide",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_387ec0fd4db2eb99425a",
+      "title": "כשניו-יורק הפכה לבואנוס איירס: החגיגה הארגנטינאית לפני גמר המונדיאל | דיווח מיוחד",
+      "subtitle": "דגלי ענק, תופים ונחיל עצום של אנשים עם חולצות של האלביסלסטה, בעיקר של לאו מסי. הארגנטינאים הציפו את הרחובות עם ה'בנדראסו' המפורסם לקראת הגמר הגדול נגד ספרד (22:00). וגם: הקשר בין מסי לדני אבדיה",
+      "event_type": "finals_result",
+      "entity_ids": [],
+      "rating": "hide",
+      "decision": "hidden",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "ספורט: football, ליגה: —",
+        "אין תחום עניין תואם בפרופיל → מוסתר",
+        "החלטה סופית: מוסתר"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": null,
+          "effect": "hidden",
+          "detail": "no_matching_scope"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_397910520215784419ed",
+      "title": "לפני 10 חודשים: דני אבדיה ניחש את המשתתפות בגמר המונדיאל",
+      "subtitle": "פורטלנד התגאה בישראלי שבספטמבר 2025 הימר כי ארגנטינה וספרד יפגשו בגמר של גביע העולם בארה\"ב: \"הוא מבין בכדור\"",
+      "event_type": "news",
+      "entity_ids": [],
+      "rating": null,
+      "decision": "hidden",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "ספורט: basketball, ליגה: —",
+        "אין תחום עניין תואם בפרופיל → מוסתר",
+        "החלטה סופית: מוסתר"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": null,
+          "effect": "hidden",
+          "detail": "no_matching_scope"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_b63e4f5f88329f126a0e",
+      "title": "\"לפורטלנד אסור לבצע את הטעות הזו עם דני אבדיה העונה\"",
+      "subtitle": "ב\"יאהו\" ייעצו לבלייזרס להמשיך להשתמש בכוכב הישראלי כשחקן המפתח, גם לאחר הגעת מוראנט וחזרת לילארד, אחרת \"תהיה בעיה שקשה לפתור\"",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "high",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_4c34e0718aadb617f71b",
+      "title": "דיווח דרמטי: דני אבדיה ופורטלנד עשויים לעבור לאוקלהומה",
+      "subtitle": "הכוכב הישראלי יעביר את ביתו ליעד חדש?",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:okc_thunder",
+        "team:portland_blazers"
+      ],
+      "rating": "push",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_6540e32ca3c52131f4be",
+      "title": "שחקן פורטלנד שוחח עם לוקה דונצ'יץ' - והחליט לעזוב את דני אבדיה",
+      "subtitle": "למרות צירופו של ג'ה מוראנט, הקבוצה מאורגון תיאלץ להתמודד מספר עזיבות • מאת'יס טייבול, שהיה אחד משחקני ההגנה הטובים של הקבוצה, בחר לחתום בלוס אנג'לס לייקרס לעונה תמורת 3.3 מיליון דולר • וגם: השיחה שהכריעה",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_e5aec33af965ca2e02b1",
+      "title": "אין לאן לעבור: פורטלנד ואבדיה נותרו ללא יעד אפשרי",
+      "subtitle": "על רקע המשבר מול העירייה, ב-NBA כבר בוחנים תרחיש של מעבר, אבל סיאטל ולאס וגאס שמורות להתרחבות, ושאר היעדים אינם ריאלים",
+      "event_type": "news",
+      "entity_ids": [
+        "team:portland_blazers",
+        "player:deni_avdija"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_0d9fc8062280c8a7c90a",
+      "title": "כאוס בקבוצה של דני אבדיה: בכיר בפורטלנד בהצהרה חריגה",
+      "subtitle": "בכיר במועדון, ששוחח בעילום שם, מתח ביקורת חריפה על העירייה: \"אם הם לא רוצים אותנו - אז זה בסדר\" • הבעלים טום דאנדון שוקל ברצינות להעביר את המועדון למדינה אחרת • בסביבתו מבהירים: \"זה לא שנפסיד כסף\"",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "high",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_2d693144f4586ef3278e",
+      "title": "\"אם דני אבדיה יעשה את זה, לפורטלנד לא תהיה ברירה\"",
+      "subtitle": "אחרי הטרייד המסקרן על ג'ה מוראנט, ב\"ספורט אילוסטרייטד\" העלו שאלה על כל שחקן בחמישייה הפותחת החדשה • לגבי הישראלי תהו \"האם יוכיח שהוא חלק מהעתיד של הקבוצה לטווח הארוך?\" • וענו לעצמם: \"אם ישפר את היעילות ההתקפית, יקבל הארכת חוזה משמעותית\"",
+      "event_type": "signing",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "major_trade",
+          "valid": true,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_abe188261aea315dcfee",
+      "title": "בארה\"ב ניתחו: זה כנראה האתגר הגדול ביותר של פורטלנד ודני אבדיה",
+      "subtitle": "בתקשורת באורוגון מעריכים כי צירופו של ג'ה מוראנט תשנה לחלוטין את מאזן הכוחות בפורטלנד - אך גם תציב אתגר חדש בפני הפורוורד הישראלי: \"אם ישמור על יכולתו מאשתקד - לא תהיה ברירה אלא להעניק לו הארכת חוזה משמעותית\"",
+      "event_type": "signing",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_76d61867461f3f986447",
+      "title": "הכוכב העולה של ה-NBA שיתף: \"הכי הייתי רוצה להתאמן עם דני אבדיה\"",
+      "subtitle": "מחמאה גדולה: מטאס בוזליס בן ה-21, שנחשב לאחד הכישרונות הגדולים בליגה, התארח בפודקאסט \"ballinthefampod\" לצד לונזו בול ובחר בכוכב הישראלי לפני קווין דוראנט ופרנץ ואגנר • טיאגו ספליטר יאמן אותו בשיקגו העונה, והוא כבר הושווה ל\"דני אבדיה הבא\"",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_fbb357986452089daaab",
+      "title": "הכישרון של שיקגו רוצה ללמוד מאבדיה \"איך הוא תוקף את הסל\"",
+      "subtitle": "הישראלי של פורטלנד זכה לשבחים מבוזליס, שסיפר כי הוא לומד ממנו כיצד לשפר את משחק החדירה שלו: \"אני צריך להגיע יותר לטבעת\"",
+      "event_type": "news",
+      "entity_ids": [
+        "team:chicago_bulls",
+        "player:deni_avdija"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_edc3f16c9a013b4d2289",
+      "title": "\"דני אבדיה טוב בכדורסל, כל השאר לא מעניין אותי\"",
+      "subtitle": "עיתונאי אמריקני יצא להגנת שחקן ה-NBA, אחרי שהלאום הישראלי שוב הפך אותו מוקד לביקורת: \"מעניין אותי רק מה הוא עושה על הפרקט\"",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_24168840f962162b3de1",
+      "title": "\"לטום דאנדון אין לאן לעבור עם פורטלנד טרייל בלייזרס\"",
+      "subtitle": "העיתונאי ירון ויצמן ניסה להבין האם ישנה היתכנות למעבר הקבוצה של דני אבדיה: \"החדשות הטובות עבור האוהדים הן שהקבוצה תישאר בפורטלנד, החדשות הרעות הן שהבעלים הולך להיות חלק מהנוף לזמן רב\"",
+      "event_type": "news",
+      "entity_ids": [
+        "team:portland_blazers"
+      ],
+      "rating": null,
+      "decision": "hidden",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "ספורט: basketball, ליגה: NBA",
+        "אין תחום עניין תואם בפרופיל → מוסתר",
+        "החלטה סופית: מוסתר"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": null,
+          "effect": "hidden",
+          "detail": "no_matching_scope"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_124bff93deca310350a8",
+      "title": "מתחיל מחדש: דני אבדיה צפוי לשלם את המחיר הכבד ביותר בפורטלנד",
+      "subtitle": "הישראלי סיים את העונה האחרונה כאולסטאר, אבל יחל את הקרובה עם יותר סימני שאלה מאי פעם • השילוב לצד ג'ה מוראנט ודמיאן לילארד לא מנבא טובות והמעמד שלו ככוכב הקבוצה מעורער מתמיד • אל תתפלאו אם בקיץ הבא הוא כבר יתחיל לחשוב על הקריירה בנפרד מהטרי",
+      "event_type": "release",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_3c86a7d7a90a1ac4a2bb",
+      "title": "הכול מתחיל בדני אבדיה: המפתחות להצלחתו של מאמן הבלייזרס",
+      "subtitle": "ב\"ספורטס אילוסטרייטד\" ניתחו את כניסתו של נורי לתפקיד וקבעו שהשאלה החשובה ביותר נוגעת בכלל לישראלי: \"כמה גדול הצעד הבא שלו?\"",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_b0196d06ee56c43bda89",
+      "title": "\"דני אבדיה הוא תופעה, כשהוא מרגיש בטוח - אי אפשר לעצור אותו\"",
+      "subtitle": "אבי אבן הסביר ב\"דאבל דריבל\" את סוד ההצלחה של כוכב פורטלנד: \"הוא משתפר בכל שנה, הוא במקום מדהים והלוואי שימשיך לצמוח\". צפו",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija"
+      ],
+      "rating": "high",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_3d08e96d5d040f4d01b7",
+      "title": "שובר את כל הגרפים: דיוויד מוסיס הוא הדבר הגדול הבא בכדורסל הישראלי",
+      "subtitle": "דיוויד מוסיס לא שיחק כמעט עד גיל 15, והיום הוא התקווה הגבוהה של נבחרת ישראל. הוא נחשב ל\"חד-קרן\", ובעונה הבאה יהיה במכללות. הסנטר שצמח בבית הגידול שהוציא את ליאור אליהו רוצה להוביל את נבחרת ישראל לפודיום, ויש גם השוואה לדני אבדיה",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija"
+      ],
+      "rating": "hide",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_1078424b3ed0d7c9a811",
+      "title": "\"דני אבדיה אולסטאר, מקווה שלאוהדי פורטלנד את מי לעודד בעונה הבאה\"",
+      "subtitle": "טום האברסטרו, האנליסט מהשידורים של הטרייל בלייזרס שקיבל הודעה כי לא ימשיך במועדון, התייחס לעזיבה: \"ידעתי שיהיה שינוי, מבאס שלא אוכל לעקוב בשידור חי אחרי ההתפתחות שלו\" • על הדיווחים של מעבר הפרנצ'ייז למקום אחר אמר: \"זה כמו דת שם, יהיה מאוד ע",
+      "event_type": "schedule",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": null,
+      "decision": "hidden",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "חוק never_show: player:deni_avdija (schedule)",
+        "החלטה סופית: מוסתר"
+      ],
+      "contributions": [
+        {
+          "step": "override",
+          "scope": "player:deni_avdija",
+          "effect": "hidden",
+          "detail": "never_show:schedule"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_37e0c498b543589b2e4d",
+      "title": "ישפיע גם על דני אבדיה? \"בעלי פורטלנד החדש לא מנהל משא ומתן\"",
+      "subtitle": "העיתונאי האמריקאי ביל אוראם, המסקר את הבלייזרס, סיפר שטום דאנדון \"מציב את התנאים שלו, ואפשר לקבל אותם או לא\". ויש גם שלל דגלים אדומים",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "high",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_6493a40aac0cd4d701ec",
+      "title": "\"נגרם אובדן פרנסה\": הבקשה של מאמנו של דני אבדיה שהסתבך בפלילים",
+      "subtitle": "עורכי דינו של צ'ונסי בילאפס, שסיים את דרכו בפורטלנד טרייל בלייזרס לאחר שנעצר על ידי ה-FBI, דורשים להשאיר את מועד פתיחת המשפט על כנו • משרד המשפטים האמריקני ביקש לדחות אותו לתחילת 2027 למורת רוחם של הסנגורים: \"הוא הפך למושא לגינוי ציבורי\"",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija"
+      ],
+      "rating": "high",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    },
+    {
+      "id": "rss_1291db2c565d97f818ad",
+      "title": "רק דני אבדיה יכול להציל את פורטלנד טרייל בלייזרס מהתחזית הקודרת",
+      "subtitle": "ב-ESPN סימנו את הבלייזרס כאחת הקבוצות בעלות הסיכוי הנמוך ביותר לזכות באליפות ה-NBA בשנים הקרובות: \"תקועה באמצע\" • \"קפיצה ענקית נוספת\" ביכולת של הישראלי יכול לשנות את התמונה",
+      "event_type": "news",
+      "entity_ids": [
+        "player:deni_avdija",
+        "team:portland_blazers"
+      ],
+      "rating": "feed",
+      "decision": "high_feed",
+      "reasoning": [
+        "פרופיל (v2): אוהד דני קז׳ואל",
+        "בסיס: עוקב (very_high) אחרי Deni Avdija → 3 נק' (בחירה מפורשת)",
+        "סוג אירוע לא זוהה — הרלוונטיות נשמרת לפי תחום העניין בלבד",
+        "ניקוד: 3 → חשוב",
+        "החלטה סופית: חשוב"
+      ],
+      "contributions": [
+        {
+          "step": "base_scope",
+          "scope": "player:deni_avdija",
+          "effect": "+3",
+          "detail": "player:Deni Avdija level=very_high",
+          "source": "explicit"
+        },
+        {
+          "step": "event_affinity",
+          "scope": null,
+          "effect": "0",
+          "detail": "unknown_event_fallback"
+        },
+        {
+          "step": "threshold",
+          "scope": null,
+          "effect": "high_feed",
+          "detail": "score=3"
+        }
+      ],
+      "evidence": {
+        "major_trade": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        },
+        "injury": {
+          "event_type": "news",
+          "valid": false,
+          "certainty": "confirmed"
+        }
+      }
+    }
+  ],
+  "metrics": {
+    "guy": {
+      "visible": 242,
+      "cluster_cards": 20,
+      "pushes": 17,
+      "high_feed_rated_feed": 21
+    },
+    "casual_deni_fan": {
+      "visible": 24,
+      "cluster_cards": 1,
+      "pushes": 0,
+      "high_feed_rated_feed": 15
+    }
+  }
+}

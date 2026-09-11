@@ -1,5 +1,15 @@
 # N05 — האם הפיד באמת מסנן טוב?
 
+**2026-09-11 - #191/#192 implementation follow-up.** The original measurement
+below remains the historical reference. On the same frozen corpus, Guy shown
+precision / false hide is now **98.3% / 18.0%**, and Deni remains **91.7% / 0.8%**.
+Guy push article precision is 7/7; the actual planner emits four eligible stories,
+all approved. Deni over-ranking falls 15 to 7 and the authorized relocation rule
+fires once. G1's 12% and G3's 20% targets remain unmet; G2's literal article count
+is 7, distinct from four notification stories. See the
+[implementation report](N05_FEED_QUALITY_IMPLEMENTATION.md) for both directions,
+accepted Deni gate changes, exact traces and contract-preserving stop evidence.
+
 > 2026-09-11 milestone follow-up: [whole-corpus census and principled stop](N05_MILESTONE_FEED_QUALITY_FINDINGS.md). The Deni Oklahoma example concerns franchise relocation, not a player trade; the existing trade/injury overrides cannot express its owner-rated push preference. No engine or corpus changes were made, and the gate remains green with unchanged metrics.
 
 הסוויטה מוכיחה שהמנוע עושה מה שנאמר לו. שום דבר לא הוכיח שמה שנאמר לו נכון.

@@ -1,0 +1,240 @@
+{
+  "input_sha256": "85a22e48c71ddd6a4a46e95322ee3bfe39f3171afffc4a3f88d92f605be1f908",
+  "affected_ids": [
+    "rss_004533dc192234c138ec",
+    "rss_04c088f7005baf884c4b",
+    "rss_0ba753f9cefe21a05dde",
+    "rss_0d9fc8062280c8a7c90a",
+    "rss_113b0da3d591301b0e46",
+    "rss_16e3280f7a5e0c2bc862",
+    "rss_23d86abd3f442f86244e",
+    "rss_23dae074c6fdb1976beb",
+    "rss_2b094951a5d4cadffa96",
+    "rss_2d2a967d6d20dd437477",
+    "rss_2d693144f4586ef3278e",
+    "rss_2e9f8bef5a3cf1073f11",
+    "rss_2edc78d0eac35fdb2897",
+    "rss_2f23e95b413b2bb9f6bc",
+    "rss_32c7df102e55d8750b60",
+    "rss_37ab1ebf1090b93f489c",
+    "rss_398fa1567faf734e21da",
+    "rss_3c86a7d7a90a1ac4a2bb",
+    "rss_3fa35d111fba13789728",
+    "rss_459097541cf88b3f04cb",
+    "rss_4c34e0718aadb617f71b",
+    "rss_4ccde3af1a05659e3400",
+    "rss_50eb624e95b11ed0e33c",
+    "rss_5d4dde1b5350f921faa6",
+    "rss_636248f94c28bfb8e705",
+    "rss_641d111dad0a0dc8620d",
+    "rss_6c02027afd564082a42d",
+    "rss_74c365e1726840b4b0b7",
+    "rss_76d61867461f3f986447",
+    "rss_7b3a5ad13cf2a7cf448b",
+    "rss_7b895b3961903082aba6",
+    "rss_7cba5fe9d7693c582744",
+    "rss_7e18d290243ad46e9fa5",
+    "rss_7f55c2cd781ba6789c93",
+    "rss_81f1e1469be5fd299749",
+    "rss_8362e4afb01bf26bbef9",
+    "rss_8e7d0b515af1ddac78a8",
+    "rss_946f205c23c00b97bc6a",
+    "rss_9ccfed7f40f424ede65d",
+    "rss_a2d776b676234df30672",
+    "rss_aab7e4b98b877da05e8f",
+    "rss_abe188261aea315dcfee",
+    "rss_ad67dfa049f180097888",
+    "rss_b163aeda6edffb63e6df",
+    "rss_b1aae4e7cc49b8b8a481",
+    "rss_b63e4f5f88329f126a0e",
+    "rss_b85be10794c2fd05aba8",
+    "rss_b9902d274cbd28a67f49",
+    "rss_df219a2e599de03f2ee1",
+    "rss_e367fa5edfc97c493767",
+    "rss_eb38f019afdda0173279",
+    "rss_f3a35c9b0f263f74443c",
+    "rss_fcb1334d99e77e843a11",
+    "rss_ff4f3932056ef4d66cbd",
+    "rss_ff501392ec59403606ad"
+  ],
+  "steps": [
+    {
+      "trigger": "rss_2d693144f4586ef3278e",
+      "before": {
+        "rss_2d693144f4586ef3278e": "cluster_cb9979b3e6882b95",
+        "rss_abe188261aea315dcfee": "cluster_cb9979b3e6882b95"
+      },
+      "after": {
+        "rss_2d693144f4586ef3278e": null,
+        "rss_abe188261aea315dcfee": null
+      },
+      "proposals": []
+    },
+    {
+      "trigger": "rss_641d111dad0a0dc8620d",
+      "before": {
+        "rss_8362e4afb01bf26bbef9": null,
+        "rss_9ccfed7f40f424ede65d": null,
+        "rss_641d111dad0a0dc8620d": null
+      },
+      "after": {
+        "rss_641d111dad0a0dc8620d": "cluster_154662894917b642",
+        "rss_8362e4afb01bf26bbef9": "cluster_154662894917b642",
+        "rss_9ccfed7f40f424ede65d": "cluster_154662894917b642"
+      },
+      "proposals": [
+        {
+          "anchor_id": "rss_8362e4afb01bf26bbef9",
+          "representative_id": "rss_641d111dad0a0dc8620d",
+          "member_ids": [
+            "rss_641d111dad0a0dc8620d",
+            "rss_8362e4afb01bf26bbef9",
+            "rss_9ccfed7f40f424ede65d"
+          ],
+          "event_state": "negotiation",
+          "sport": "basketball",
+          "edges": [
+            {
+              "article_a": "rss_8362e4afb01bf26bbef9",
+              "article_b": "rss_9ccfed7f40f424ede65d",
+              "jaccard": 0.2143,
+              "hours_apart": 5.55,
+              "rare_tokens": [
+                "translit:לנדברג",
+                "ונדברג",
+                "לונדברג"
+              ],
+              "entity_overlap": [],
+              "competition_overlap": [],
+              "tier": "N"
+            },
+            {
+              "article_a": "rss_8362e4afb01bf26bbef9",
+              "article_b": "rss_641d111dad0a0dc8620d",
+              "jaccard": 0.08,
+              "hours_apart": 3.48,
+              "rare_tokens": [
+                "translit:לנדברג",
+                "ונדברג",
+                "לונדברג"
+              ],
+              "entity_overlap": [
+                "team:maccabi_tlv_bb"
+              ],
+              "competition_overlap": [],
+              "tier": "N"
+            },
+            {
+              "article_a": "rss_9ccfed7f40f424ede65d",
+              "article_b": "rss_641d111dad0a0dc8620d",
+              "jaccard": 0.0889,
+              "hours_apart": 2.08,
+              "rare_tokens": [
+                "translit:לנדברג",
+                "ונדברג",
+                "לונדברג"
+              ],
+              "entity_overlap": [],
+              "competition_overlap": [],
+              "tier": "N"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trigger": "rss_7e18d290243ad46e9fa5",
+      "before": {
+        "rss_028d37120f8bd7d06e48": "cluster_d7c1c9d7b4cb8b80",
+        "rss_7e18d290243ad46e9fa5": "cluster_d7c1c9d7b4cb8b80"
+      },
+      "after": {
+        "rss_028d37120f8bd7d06e48": null,
+        "rss_7e18d290243ad46e9fa5": null
+      },
+      "proposals": []
+    },
+    {
+      "trigger": "rss_b163aeda6edffb63e6df",
+      "before": {
+        "rss_b1aae4e7cc49b8b8a481": "cluster_cfa91d63a4ad9cd9",
+        "rss_c70310e62027e2e67371": null,
+        "rss_b163aeda6edffb63e6df": "cluster_cfa91d63a4ad9cd9"
+      },
+      "after": {
+        "rss_b163aeda6edffb63e6df": "cluster_cfa91d63a4ad9cd9",
+        "rss_b1aae4e7cc49b8b8a481": "cluster_cfa91d63a4ad9cd9",
+        "rss_c70310e62027e2e67371": "cluster_cfa91d63a4ad9cd9"
+      },
+      "proposals": [
+        {
+          "anchor_id": "rss_c70310e62027e2e67371",
+          "representative_id": "rss_b1aae4e7cc49b8b8a481",
+          "member_ids": [
+            "rss_b163aeda6edffb63e6df",
+            "rss_b1aae4e7cc49b8b8a481",
+            "rss_c70310e62027e2e67371"
+          ],
+          "event_state": "grand_slam_winner",
+          "sport": "tennis",
+          "edges": [
+            {
+              "article_a": "rss_b1aae4e7cc49b8b8a481",
+              "article_b": "rss_c70310e62027e2e67371",
+              "jaccard": 0.0755,
+              "hours_apart": 3.0,
+              "rare_tokens": [
+                "translit:יאנק",
+                "translit:יאנק סנר",
+                "translit:סנר",
+                "יאניק",
+                "יאניק סינר",
+                "סינר"
+              ],
+              "entity_overlap": [],
+              "competition_overlap": [
+                "comp:wimbledon"
+              ],
+              "tier": "N"
+            },
+            {
+              "article_a": "rss_b1aae4e7cc49b8b8a481",
+              "article_b": "rss_b163aeda6edffb63e6df",
+              "jaccard": 0.1333,
+              "hours_apart": 2.96,
+              "rare_tokens": [
+                "translit:זברב",
+                "translit:סנר",
+                "זברב",
+                "סינר"
+              ],
+              "entity_overlap": [],
+              "competition_overlap": [
+                "comp:wimbledon"
+              ],
+              "tier": "N"
+            },
+            {
+              "article_a": "rss_c70310e62027e2e67371",
+              "article_b": "rss_b163aeda6edffb63e6df",
+              "jaccard": 0.1915,
+              "hours_apart": 0.03,
+              "rare_tokens": [
+                "translit:זברב",
+                "translit:סנר",
+                "גראנד",
+                "זברב",
+                "סינר"
+              ],
+              "entity_overlap": [],
+              "competition_overlap": [
+                "comp:wimbledon"
+              ],
+              "tier": "N"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

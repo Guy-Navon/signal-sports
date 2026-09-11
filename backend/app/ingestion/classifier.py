@@ -710,6 +710,12 @@ def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
 
     proposals: list[str] = []
 
+    # Editorial formats are existing product types. Positive format evidence
+    # prevents a background transaction in an analysis from claiming the story.
+    for event in ("relocation", "analysis", "interview"):
+        if validate_event_evidence(event, text, sport=sport).valid:
+            proposals.append(event)
+
     # Grand slam winner: needs BOTH the tournament context AND a win signal.
     if sport == "tennis" and _has(text, *_GRAND_SLAM_KW) and _has(text, *_GRAND_SLAM_WIN_KW):
         proposals.append("grand_slam_winner")
@@ -783,6 +789,21 @@ def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
 
 def _detect_event_type(text: str, sport: str) -> str:
     return _detect_event_evidence(text, sport).event_type
+
+
+def detect_article_event(title: str, subtitle: str, sport: str) -> EventEvidence:
+    """Title-first event routing, shared by ingestion and targeted corrections."""
+    title, subtitle = title.lower(), subtitle.lower()
+    evidence = _detect_event_evidence(title, sport)
+    if evidence.event_type != "news" or not subtitle:
+        return evidence
+    # Relocation may assert the coordinated franchise in the title and its
+    # physical home move in the subtitle. Neither half alone proves the event.
+    relocation = validate_event_evidence("relocation", title + " " + subtitle, sport=sport)
+    evidence = relocation if relocation.valid else _detect_event_evidence(subtitle, sport)
+    if evidence.certainty == "confirmed" and evidence.event_type != "news":
+        return EventEvidence(evidence.event_type, True, "probable")
+    return evidence
 
 
 # ── Importance assignment ─────────────────────────────────────────────────────
@@ -1006,21 +1027,8 @@ def classify(
     if league is None:
         league = _infer_league_from_membership(entities, sport)
 
-    event_evidence = _detect_event_evidence(text, sport)
+    event_evidence = detect_article_event(text, sub_text or "", sport)
     event_type = event_evidence.event_type
-
-    # Event type gap: subtitle refines generic "news" to a more specific event type.
-    # A subtitle-derived event never carries "confirmed" certainty (issue #60):
-    # the title is the primary signal, so subtitle evidence caps at "probable".
-    if event_type == "news" and sub_text:
-        sub_event_evidence = _detect_event_evidence(sub_text, sport)
-        if sub_event_evidence.event_type != "news":
-            if sub_event_evidence.certainty == "confirmed":
-                sub_event_evidence = EventEvidence(
-                    sub_event_evidence.event_type, True, "probable"
-                )
-            event_evidence = sub_event_evidence
-            event_type = sub_event_evidence.event_type
 
     importance = _assign_importance(
         event_type, entities, league, event_certainty=event_evidence.certainty

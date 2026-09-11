@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 # The rule generation these clusters were produced by. Bump when matcher semantics change;
 # a rule change is then an explicit, auditable recompute (#102), never silent drift.
-RULE_VERSION = 1
+RULE_VERSION = 2
 
 
 def clustering_enabled() -> bool:

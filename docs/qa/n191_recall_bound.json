@@ -1,0 +1,479 @@
+{
+  "scope": "Optimistic event-only oracle, not semantically valid corrections",
+  "weighted_denominator": 1427.0,
+  "false_hide_before": 0.18229385657556646,
+  "oracle_floor": 0.10302499416024294,
+  "floor_without_football_relabeling": 0.14217472553141788,
+  "rows": [
+    {
+      "id": "rss_b5b870d06fc4cb404347",
+      "title": "\"מכבי תל אביב פספסה בענק\" - אבל יש גם סיבות לאופטימיות",
+      "subtitle": "בפרק האחרון של \"דאבל דריבל\", דנו דרור הופמן ורועי צוקרמן בקיץ של הצהובים: \"עוד לא השתחררו מההנהלה הקצת מיושנת - אבל אנחנו קרובים לעוד שינוי\". צפו בתכנית",
+      "sport": "unknown",
+      "event": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 10.45,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_fb8bd107f2e1e311c135",
+      "title": "מילטון חתם רשמית בי-ם: זה השכר שירוויח",
+      "subtitle": "צפו בביצועיו: הגארד שהיה מועמד גם למכבי, מגיע לישראל לאחר עונה בפרטיזן",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [
+        "team:partizan_bb"
+      ],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 4.2,
+      "visible_if_event": [
+        "candidate",
+        "injury",
+        "major_trade",
+        "negotiation",
+        "release",
+        "signing"
+      ]
+    },
+    {
+      "id": "rss_3a8b9c15b8fdb90cc7b0",
+      "title": "האם מומנטום ו\"יד חמה\" קיימים? מדענים קבעו שלא - ואז הגיע הטוויסט",
+      "subtitle": "האם לשחקני כדורסל יש סיכוי גבוה יותר לקלוע ככל שקלעו יותר לפני כן? חוקרים ניסו להוכיח שלא – עד שהגיעו חוקרים אחרים וגילו פגם משמעותי בשיטת המחקר",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_b8dd1b7f552e117c9d8f",
+      "title": "נבחרת הנוער הפסידה 95:87 לסלובניה ברבע הגמר",
+      "subtitle": "החבורה של נדב זילברשטיין נשארה צמודה במשך שלושה רבעים, אך נכנעה לבריחה סלובנית בעשר הדקות האחרונות. סטפן יוקסימוביץ' הצטיין עם 32 נקודות והוביל את נבחרתו לחצי הגמר",
+      "sport": "basketball",
+      "event": "finals_result",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_277fcc398bc76f389039",
+      "title": "דור הניצחון מחכה ב-2029: למה פרישמן היה חייב לזעזע את המערכת? | תוכן גולשים",
+      "subtitle": "כשפברואר 2028 יגיע, השחקנים יצטרכו להתייצב לצו ה-8 של פרישמן – לא מתוך כפייה, אלא מתוך הבנה שהם יכולים לכתוב את הפרק המפואר ביותר בתולדות הכדורסל הישראלי. גם לכם יש מה להגיד? שלחו לנו טורים לכתובת: kick@ynet.co.il",
+      "sport": "basketball",
+      "event": "match_result",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_479d4247413e00a5dd23",
+      "title": "מכבי חיפה החדשה: האזינו להללי אורגינל ברדיו צפון",
+      "subtitle": "מכבי חיפה עושה קולות של קבוצה שמשנה את פניה. היא נפרדה מדולב חזיזה, צירפה כמה שחקנים והאופטימיות מוגבלת אומנם, אבל קיימת",
+      "sport": "football",
+      "event": "release",
+      "entity_ids": [
+        "team:maccabi_haifa_fc"
+      ],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 55.86666666666667,
+      "visible_if_event": [
+        "title_win"
+      ]
+    },
+    {
+      "id": "rss_b201a1ddfc11dd6d4642",
+      "title": "ברייס בראון ימשיך לעונה שלישית בעירוני נס ציונה",
+      "subtitle": "הסקורר (29, 1.91) שקלע בעונה שעברה 16.1 נקודות למשחק ימשיך בלב המושבה: \"מועדון שהוא כמו בית עבורי\". חובר לג'קסון רואו, פריס לי וג'ייקוב וויילי בסגל הזר של הקבוצה",
+      "sport": "unknown",
+      "event": "news",
+      "entity_ids": [
+        "team:ironi_ness_ziona"
+      ],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 10.45,
+      "visible_if_event": [
+        "candidate",
+        "injury",
+        "major_trade",
+        "negotiation",
+        "release",
+        "signing"
+      ]
+    },
+    {
+      "id": "rss_24168840f962162b3de1",
+      "title": "\"לטום דאנדון אין לאן לעבור עם פורטלנד טרייל בלייזרס\"",
+      "subtitle": "העיתונאי ירון ויצמן ניסה להבין האם ישנה היתכנות למעבר הקבוצה של דני אבדיה: \"החדשות הטובות עבור האוהדים הן שהקבוצה תישאר בפורטלנד, החדשות הרעות הן שהבעלים הולך להיות חלק מהנוף לזמן רב\"",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [
+        "team:portland_blazers"
+      ],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": [
+        "candidate",
+        "injury",
+        "major_trade",
+        "negotiation",
+        "release",
+        "signing"
+      ]
+    },
+    {
+      "id": "rss_1d8e8945a12571237a17",
+      "title": "חריג: התקרית של ההחתמה החדשה של העמק",
+      "subtitle": "ב-2023 גוזמן הפך עימות על הפרקט לעבירה פלילית: \"לא משקף את הערכים שלי\"",
+      "sport": "basketball",
+      "event": "signing",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_e8c3a24475a9cde5a1bc",
+      "title": "אירופה גמורה: ציון 3 בפרק לקראת המסע של הישראליות",
+      "subtitle": "הקבוצות הישראליות מתחילות את קמפיין ההשתלטות על היבשת, אז ציון 3 באולפן כדי להתכונן עם מיטב התירוצים. צפו בפרק",
+      "sport": "unknown",
+      "event": "schedule",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 10.45,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_c5c251af39a66d2572d5",
+      "title": "הפועל אילת הודיעה: אליעד טל ימשיך בעונה הבאה",
+      "subtitle": "הפורוורד (24, 1.95) שהיה אחד השחקנים החשובים בעליית הליגה של הדרומיים עם 12.6 נקודות למשחק בעונה שעברה, ימשיך תחת אורן אהרוני בליגת העל. חובר לבן רוינה, צוף בן משה, קנדל מקולום וארון ווילר בסגל",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [
+        "team:hapoel_eilat"
+      ],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": [
+        "candidate",
+        "injury",
+        "major_trade",
+        "negotiation",
+        "release",
+        "signing"
+      ]
+    },
+    {
+      "id": "rss_700b4eaa319287a16e0a",
+      "title": "\"גיבור מקומי\": מחנה האימון של לוני ווקר",
+      "subtitle": "שחקן מכבי פועל למען הקהילה והתרגש: \"רוצה לתת השראה לנוער\"",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_2ef00572732c069ba855",
+      "title": "עמוס פרישמן: \"החלון האחרון היה מביש ומתסכל, מצפה מכל שחקן שנקרא - להגיע\"",
+      "subtitle": "יו\"ר האיגוד תקף את שחקני נבחרת ישראל שלא התייצבו לחלונות האחרונים: \"נבחרת ישראל היא לא תכנית כבקשתך, הגופיה הזו היא לא עוד גופיה\"",
+      "sport": "unknown",
+      "event": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 10.45,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_eb38f019afdda0173279",
+      "title": "דיווח: עתיד הבלייזרס בפורטלנד בסכנה על רקע משבר האולם",
+      "subtitle": "המחלוקת על מימון שיפוץ האולם הביתי, לצד סיום ההסכם ב-2030, מעוררת חשש שהקבוצה עשויה לעזוב את העיר. הדד-ליין: 31 בדצמבר",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [
+        "team:portland_blazers"
+      ],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": [
+        "candidate",
+        "injury",
+        "major_trade",
+        "negotiation",
+        "release",
+        "signing"
+      ]
+    },
+    {
+      "id": "rss_c220cac9718a95b3c6aa",
+      "title": "עמנואל שארפ: \"הגעתי לקבוצה שבאמת רוצה אותי, מאמינים בי\"",
+      "subtitle": "שחקן סקרמנטו טען כי יכול היה להילקח בשלב מוקדם יותר של הדראפט, אבל \"מעדיף להיבחר מאוחר או לא להיבחר בכלל, אבל להגיע למקום הנכון\"",
+      "sport": "unknown",
+      "event": "news",
+      "entity_ids": [
+        "team:sacramento_kings"
+      ],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 10.45,
+      "visible_if_event": [
+        "candidate",
+        "injury",
+        "major_trade",
+        "negotiation",
+        "release",
+        "signing"
+      ]
+    },
+    {
+      "id": "rss_5900483ae5c42c10c227",
+      "title": "היחידה בליגה: קונפינו מונתה למנהלת אשדוד",
+      "subtitle": "הצהובים הודיעו על החתמת בת ה-27, שתהיה האישה היחידה בתפקיד בליגת העל",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [
+        "team:maccabi_ashdod"
+      ],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": [
+        "candidate",
+        "injury",
+        "major_trade",
+        "negotiation",
+        "release",
+        "signing"
+      ]
+    },
+    {
+      "id": "rss_e03479686e1effcab70b",
+      "title": "\"מנסים להתארגן\": הפועל באר-שבע תמשיך בליגת העל?",
+      "subtitle": "הרקע לחוסר הוודאות סביב עתיד המועדון הוא בשל מצבו הכלכלי. הבעלים כפיר ארזי: \"מקווה שנהיה בליגת העל גם בעונה הבאה\"",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [
+        "team:hapoel_beer_sheva_bb"
+      ],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 4.2,
+      "visible_if_event": [
+        "candidate",
+        "injury",
+        "major_trade",
+        "negotiation",
+        "release",
+        "signing"
+      ]
+    },
+    {
+      "id": "rss_e84814c01635934f9d0d",
+      "title": "אקס מכבי תל אביב במו״מ עם קבוצה מפתיעה מישראל | פרסום ראשון",
+      "subtitle": "סולימאן בריימו, אקס הצהובים והפועל ירושלים עשוי לחזור לכדורסל הישראלי ומנהל משא ומתן עם קבוצה מהליגה הלאומית",
+      "sport": "basketball",
+      "event": "negotiation",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 1.0,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_d5cce32897aff06835fa",
+      "title": "לראשונה בהיסטוריה: הערב הסטטיסטי החריג של כוכב נבחרת העתודה",
+      "subtitle": "נבחרת העתודה חגגה עם 74:96 מוחץ על לטביה ותשחק מול ליטא על המקום התשיעי באליפות אירופה עד גיל 20 • רני בלגה הצטיין עם טריפל דאבל היסטורי של 16 נקודות, 12 אסיסטים ו-10 ריבאונדים, תמיר גולד קלע 25 נקודות",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_6b644af77b56991ea786",
+      "title": "עמנואל שארפ ממשיך להלהיב: \"סקרמנטו צריכה שחקנים כמוהו\"",
+      "subtitle": "הגארד של הקינגס הותיר רושם חיובי מאוד בליגת הקיץ בלאס וגאס, בארצות הברית פרגנו: \"בטוח שהוא יצליח לפלס את דרכו לרוטציה\"",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [
+        "team:sacramento_kings"
+      ],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": [
+        "candidate",
+        "injury",
+        "major_trade",
+        "negotiation",
+        "release",
+        "signing"
+      ]
+    },
+    {
+      "id": "rss_16e3280f7a5e0c2bc862",
+      "title": "נלקחה באזיקים: כוכבת נבחרת ישראל נעצרה בנתב\"ג",
+      "subtitle": "גל רביב, כוכבת נבחרת העתודה, שהובילה את הנבחרת לגמר אליפות אירופה ונבחרה לחמישיית הטורניר, התארחה בפודקאסט \"שוט\" וחשפה את סיפור המעצר שלה: \"אני נחשבתי למשתמטת אז נעצרתי בשדה, חקרו ושפטו אותי במשטרה הצבאית\"",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_a7850f04c198390451cf",
+      "title": "בר טימור במשא ומתן על חוזה חדש בהפועל",
+      "subtitle": "פרסום ראשון: לצד השיחות עם גינת, קפטן האדומים עשוי להישאר במועדון",
+      "sport": "basketball",
+      "event": "negotiation",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_884730ca0824aa1b0af8",
+      "title": "\"לכל המבקרים...\": המקורב לתמיר בלאט מדבר",
+      "subtitle": "אבשלום, מאמן גליל ומקורבו של השחקן סיפר מה שעובר עליו ב\"5 באוויר\"",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_cd678084031ab7bee564",
+      "title": "\"מבאס שלא קיבלתי במכבי תל אביב הזדמנות, אבל מבין למה\"",
+      "subtitle": "רוי נאווי מצטרף לקריבבאס האוקראינית אחרי עונת השאלה בהפועל חיפה: \"היה מאתגר מכל הבחינות\" • הוא מבין מדוע הצהובים לא נלחמו עליו (\"זו הסיטואציה\"), לא מתעסק במה היה יכול להיות ובטוח: \"הקדוש ברוך הוא יעזור לי\"",
+      "sport": "football",
+      "event": "news",
+      "entity_ids": [
+        "team:maccabi_tlv_fc"
+      ],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 55.86666666666667,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_7948546a686d0017357f",
+      "title": "נבחרת העתודה הפסידה ליוון והודחה מהיורובאסקט",
+      "subtitle": "החבורה של אורן אהרוני נכנעה 79:66 ליוונים בשמינית הגמר ולא הצליחה להעפיל ל-8 האחרונות של הטורניר. אורן סהר בלט עם 20 נק', רני בלגה הוסיף 19",
+      "sport": "basketball",
+      "event": "match_result",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "high",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_b1aae4e7cc49b8b8a481",
+      "title": "מכסח דשא: יאניק סינר אלוף ווימבלדון בפעם השנייה ברציפות",
+      "subtitle": "יאניק סינר הפך הערב (ראשון) לטניסאי העשירי בעידן הפתוח שמגן על התואר שלו בווימבלדון, לאחר שניצח 7:6 (7), 6:7 (2), 3:6, 4:6 את סשה זברב במשחק הגמר והוכתר לאלוף על הדשא בפעם השנייה ברציפות.",
+      "sport": "tennis",
+      "event": "title_win",
+      "entity_ids": [],
+      "primary_competition": "comp:wimbledon",
+      "rating": "feed",
+      "weight": 2.75,
+      "visible_if_event": [
+        "grand_slam_winner"
+      ]
+    },
+    {
+      "id": "rss_b89ac6a7a01adb52b731",
+      "title": "הישג שיא לכדורסל הנשים הישראלי: נבחרת העתודה - סגנית אלופת אירופה",
+      "subtitle": "הכחולות-לבנות אמנם הפסידו 79:66 לצרפת בקרב על התואר, אך סיימו טורניר בלתי נשכח עם מדליית הכסף ההיסטורית. גל רביב כיכבה עם 29 נקודות, אבל זה לא הספיק מול הנבחרת הטובה ביבשת. המאמן טל נתן: \"הבנות הביאו המון גאווה וכבוד למדינה\"",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_25cdbd412e5eda082f56",
+      "title": "לא שם, לא כאן: מה באמת קורה עם בלאט?",
+      "subtitle": "הקיפאון עם הפועל ת\"א, חילוקי הדעות והאם הסיכום הוא מחייב? פרטים חדשים",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [
+        "team:hapoel_tlv_bb"
+      ],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 4.2,
+      "visible_if_event": [
+        "candidate",
+        "injury",
+        "major_trade",
+        "negotiation",
+        "release",
+        "signing"
+      ]
+    },
+    {
+      "id": "rss_59225a5ca73546384ac7",
+      "title": "נבחרת העתודה לנשים רחוקה 40 דקות מזכייה באליפות אירופה: \"השמיים הם הגבול\"",
+      "subtitle": "אחרי הניצחון ההיסטורי על בלגיה, החבורה של טל נתן תפגוש את צרפת האימתנית - עליה גברה רק בשנה שעברה ביורובאסקט - בקרב על התואר. מאיה זילברשלג: \"אנחנו חבורה של ווינריות, רוצות להביא את הגביע\"",
+      "sport": "basketball",
+      "event": "match_result",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_c0c008be1ea9aa36df16",
+      "title": "בראיינט האריך חוזה: זה שכרו יוצא הדופן",
+      "subtitle": "כוכב הפועל חתם על חוזה לשלוש שנים ויקבל שדרוג עצום. פרטי ההסכם בפנים",
+      "sport": "basketball",
+      "event": "signing",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "feed",
+      "weight": 4.2,
+      "visible_if_event": []
+    },
+    {
+      "id": "rss_7505914fd1575b0747ea",
+      "title": "אחרי ההישג ההיסטורי - נבחרת העתודה לנשים בעננים: \"רוצות לזכות באליפות אירופה\"",
+      "subtitle": "הכחולות-לבנות המשיכו את מסע הקסם החלומי עם 69:78 על בלגיה, הבטיחו מקום על הפודיום וכבר חולמות על התואר. טל נתן: \"המדינה עברה כמה אירועים קשים, והנה חיוך גדול שממיס את הלב\". מעין כהן: \"באנו לתת בראש, והסתכלנו בלבן של העיניים של כל נבחרת\"",
+      "sport": "basketball",
+      "event": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "rating": "low",
+      "weight": 4.2,
+      "visible_if_event": []
+    }
+  ]
+}

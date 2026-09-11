@@ -1,5 +1,16 @@
 # RSS Quality Guardrails — PR 7.1
 
+**2026-09-11 - Feed-quality routing (#191/#192).** Positive analysis/interview
+format evidence now routes to those existing editorial types. Title-supported
+events retain priority over subtitle-only editorial context. Authorized franchise
+relocation requires a physical move plus franchise context; the player-home
+form also requires a coordinated team subject. Negated destinations, private
+home moves and ordinary trades do not qualify. New ingestion records event
+abstention reasons and factual attention evidence. No existing event-semantic
+or certainty threshold was weakened. Stored corrections were targeted and
+reviewed, preserving LLM-assisted sport/entities/competition; no blanket
+classification backfill occurred. [Full QA](qa/N05_FEED_QUALITY_IMPLEMENTATION.md).
+
 ## Why Quality Guardrails?
 
 PR 7 proved that real RSS articles can enter the system. PR 7.1 improves the quality

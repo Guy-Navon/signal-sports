@@ -1,5 +1,15 @@
 # Preference Model V2 — Affinity Scorer (issue #32)
 
+**2026-09-11 - Additional push evidence (#192).** Step 8 remains the only path
+to push. When `classification_trace.attention` is present, signing,
+major_signing, negotiation and injury overrides additionally require a current
+agreement/completion, imminent renewal or injury, plus the target's factual
+subject ID for team/player scopes. Missing historical metadata preserves the
+legacy override behavior; refreshed rows and future ingestion carry evidence.
+Relocation player overrides always require `event.subject_entity_ids`.
+Existing analysis/interview affinities now receive positively classified events.
+[Measured rollout and limitations](qa/N05_FEED_QUALITY_IMPLEMENTATION.md).
+
 **Status: ACTIVE.** `GET /api/feed` is served by the v2 engine since
 2026-07-08 (post-shadow-checkpoint flip). Rollback path:
 `PREFERENCE_ENGINE=legacy` env var — the legacy topic engine remains fully

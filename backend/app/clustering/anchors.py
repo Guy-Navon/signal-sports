@@ -300,6 +300,12 @@ def generate_candidates(
             ))
 
         corroborated = set(bigram_names) | set(lexicon or ())
+        # A common-word first name (e.g. איפה, literally "where") prevents a
+        # name bigram. The surname immediately before a transaction verb is
+        # still a candidate. This is generation only: the SAME independent
+        # language-frequency validator must prove it name-like below.
+        subject_verbs = {"חתם", "חתמה", "סיכם", "סיכמה", "האריך", "האריכה",
+                         "הצטרף", "הצטרפה", "נפרד", "נפרדה", "שוחרר", "שוחררה"}
         for i, w in enumerate(words):
             if _is_vocabulary_any_form(w):
                 continue
@@ -307,7 +313,13 @@ def generate_candidates(
             skeleton_hit = (
                 f"translit:{_skeleton(w)}" in corroborated
             )
-            if not (surface_hit or skeleton_hit):
+            subject_verb = (
+                src == "title" and i + 1 < len(words) and words[i + 1] in subject_verbs
+                # A split apostrophe fragment (ג'מייקה → ג / מייקה) is not
+                # a freestanding surname. Subtitle roles remain incidental.
+                and not re.search(r"[א-ת]['׳]" + re.escape(w), text)
+            )
+            if not (surface_hit or skeleton_hit or subject_verb):
                 continue
             key = (w, src, i)
             if key in seen:
@@ -317,12 +329,12 @@ def generate_candidates(
                 raw=w, normalized=w, source=src, token_start=i, token_end=i + 1,
                 left_context=tuple(words[max(0, i - ctx):i]),
                 right_context=tuple(words[i + 1:i + 1 + ctx]),
-                pattern="lone_mention_known_to_population",
+                pattern="subject_before_transaction_verb" if subject_verb else "lone_mention_known_to_population",
                 role=_infer_role(words, i, text),
                 entity_id=None, taxonomy_kind=None,
                 population_corroborated=bool(lexicon and any(
                     f in lexicon for f in _candidate_forms(w))),
-                generation_rule="corroborated_single", confidence="weak",
+                generation_rule="transaction_subject" if subject_verb else "corroborated_single", confidence="weak",
                 article_id=article_id, candidate_set_id=candidate_set_id,
                 anchor_type="person",
             ))

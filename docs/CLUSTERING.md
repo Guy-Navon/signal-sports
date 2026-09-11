@@ -1,5 +1,17 @@
 # Story Clustering — v1 Contract
 
+**2026-09-11 - Validated subject-anchor recovery (#192).** A title surname
+immediately before a transaction verb is additionally proposed to the same
+lexical validator; Hebrew apostrophe fragments are excluded. Lexical thresholds,
+role gates, similarity and existing time windows are unchanged. Rule version is
+2 and lexical enrichment version includes `subject-v2`. `relocation` is explicitly
+clusterable with a 24-hour strict same-state window. Existing `analysis` and
+`interview` remain never-clustered. The reviewed correction adapter closes its
+write scope over affected old/proposed memberships, rather than writing every
+match in surrounding candidate windows. Guy cluster-card coverage is only
+21/244 (8.6%); **the 20% milestone target is not met**. Visible member coverage
+is a different measure. [Reviewed changes and rejected expansion](qa/N05_FEED_QUALITY_IMPLEMENTATION.md).
+
 > ## ✅ STATUS: ACTIVE IN PRODUCTION (`CLUSTERING_ENABLED=true`, #126, 2026-07-15)
 >
 > Milestone 6 (Feed De-duplication & Clustering Activation) is **closed**. The #126 gate

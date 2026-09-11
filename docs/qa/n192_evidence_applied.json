@@ -1,0 +1,4252 @@
+{
+  "applied": true,
+  "rows": [
+    {
+      "id": "rss_0ba753f9cefe21a05dde",
+      "input": {
+        "id": "rss_0ba753f9cefe21a05dde",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/21030851",
+        "title": "התקדם ממכבי תל אביב: התפקיד המפתיע של דורון פרקינס",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-21T12:23:46Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "signing",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "signing"
+        ],
+        "cluster_id": null,
+        "subtitle": "אחרי 5 שנים כעוזר מאמן הצהובים וקליבלנד צ'ארג' מליגת הפיתוח, כוכב העבר התקדם לתפקיד המאמן הראשי • גוואנגז'ו לונג ליונס, מהליגה הבכירה בסין, הודיעה רשמית על מינויו • וגם: ההתפתחות המהירה של המועדון החדש שלו",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "פרקינס",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "team:cleveland_cavaliers",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "taxonomy",
+          "reason_code": "canonical_taxonomy"
+        },
+        {
+          "anchor": "ארג",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "retrospective_or_rejected",
+            "subject_entity_ids": []
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_113b0da3d591301b0e46",
+      "input": {
+        "id": "rss_113b0da3d591301b0e46",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3855907",
+        "title": "דיווח: ריאל מדריד מנהלת מגעים לצירופו של לוני ווקר",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-24T10:29:42.767199Z",
+        "published_at_meta": {
+          "provenance": "clamped_future",
+          "raw": "2026-07-24T11:04:00+00:00"
+        },
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "negotiation",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "negotiation"
+        ],
+        "cluster_id": null,
+        "subtitle": "הגארד האמריקאי בדרך לפרידה סופית ממכבי תל אביב. הבלאנקוס רואים בו חתיכה חסרה בפאזל, הצהובים כבר סימנו מחליפים",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גארד"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "הבלאנקוס",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גארד"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "routine_or_uncertain",
+            "subject_entity_ids": []
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_2b094951a5d4cadffa96",
+      "input": {
+        "id": "rss_2b094951a5d4cadffa96",
+        "source": "ynet_sport",
+        "source_display_name": "ynet ספורט",
+        "url": "https://www.ynet.co.il/sport/israelibasketball/article/4i89ozx77",
+        "title": "ים מדר חתם במכבי ת\"א: \"מבטיח לתת את הכל\" | נחשף ב-ynet",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-12T06:46:21Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "signing",
+        "event_certainty": "confirmed",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "signing"
+        ],
+        "cluster_id": "cluster_8418f57b3706ae47",
+        "subtitle": "רעידת אדמה בכדורסל הישראלי: הרכז, שבחר לעזוב את הפועל ת\"א, השלים את המעבר ליריבה העירונית. ירוויח 6 מיליון דולר בשלוש השנים הקרובות: \"נרגש לפתוח פרק חדש\". עודד קטש: \"האיכויות שלו ברורות לכולם, במיוחד אחרי הפלייאוף האחרון\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורסל"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "מדר",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "קטש האיכויות",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "ירוויח",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "קטש",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "האיכויות",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורסל"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_2e9f8bef5a3cf1073f11",
+      "input": {
+        "id": "rss_2e9f8bef5a3cf1073f11",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/21025541",
+        "title": "בשורה אדירה למכבי תל אביב: איפה לונדברג סיכם על חוזה חדש",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-20T18:23:02Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "negotiation",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "negotiation"
+        ],
+        "cluster_id": null,
+        "subtitle": "לאחר משא ומתן ארוך וממושך, ה-MVP של סדרת גמר הפלייאוף יישאר במועדון עד 2028, כך נודע ל\"היום\" • בימים האחרונים הצהובים שיפרו את הצעתם והפערים הצטמצמו • פרטי החוזה המלאים בפנים",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "שיפרו",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "הצעתם",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "הצטמצמו",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "story_anchors": [
+          {
+            "anchor": "שיפרו",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "הצעתם",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "הצטמצמו",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "לונדברג",
+            "role": "unknown",
+            "source": "title",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          }
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_37ab1ebf1090b93f489c",
+      "input": {
+        "id": "rss_37ab1ebf1090b93f489c",
+        "source": "sport5_sport",
+        "source_display_name": "ערוץ הספורט",
+        "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=552785",
+        "title": "כל הפרטים: כך פוספס הקאמבק של ג`וש ניבו למכבי תל אביב",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-20T10:54:12.323042Z",
+        "published_at_meta": {
+          "provenance": "ingest_fallback"
+        },
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "negotiation",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "negotiation"
+        ],
+        "cluster_id": null,
+        "subtitle": "כמעט מחטף לבארסה: הגבוה היה במו\"מ מתקדם בשבועות האחרונים, הביע נכונות לשוב והצדדים כבר התקרבו בסכומים. מה הפיל את העסקה? מאחורי הקלעים והפלונטר שנוצר בגזרת הגבוהים",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "פוספס הקאמבק",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "פוספס",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "הקאמבק",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "ניבו",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "לבארסה",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "והפלונטר",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "retrospective_or_rejected",
+            "subject_entity_ids": []
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_4c34e0718aadb617f71b",
+      "input": {
+        "id": "rss_4c34e0718aadb617f71b",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/world-basketball/article/21022885",
+        "title": "דיווח דרמטי: דני אבדיה ופורטלנד עשויים לעבור לאוקלהומה",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-20T12:09:43Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija",
+          "Oklahoma City Thunder",
+          "Portland Trail Blazers"
+        ],
+        "event_type": "relocation",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Oklahoma City Thunder",
+          "Portland Trail Blazers",
+          "relocation"
+        ],
+        "cluster_id": null,
+        "subtitle": "הכוכב הישראלי יעביר את ביתו ליעד חדש?",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija",
+          "team:okc_thunder",
+          "team:portland_blazers"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Oklahoma City Thunder,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:okc_thunder",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Oklahoma City Thunder",
+                "id": "team:okc_thunder"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "relocation",
+            "final": "relocation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            },
+            "subject_entity_ids": [
+              "player:deni_avdija"
+            ]
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "player:deni_avdija",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "taxonomy",
+          "reason_code": "canonical_taxonomy"
+        },
+        {
+          "anchor": "team:okc_thunder",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "taxonomy",
+          "reason_code": "canonical_taxonomy"
+        },
+        {
+          "anchor": "team:portland_blazers",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "taxonomy",
+          "reason_code": "canonical_taxonomy"
+        },
+        {
+          "anchor": "אבדיה",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "לאוקלהומה",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Oklahoma City Thunder,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:okc_thunder",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Oklahoma City Thunder",
+                "id": "team:okc_thunder"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "relocation",
+            "final": "relocation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            },
+            "subject_entity_ids": [
+              "player:deni_avdija"
+            ]
+          },
+          "attention": {
+            "development": "other_event",
+            "subject_entity_ids": [
+              "player:deni_avdija",
+              "team:okc_thunder",
+              "team:portland_blazers"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_4ccde3af1a05659e3400",
+      "input": {
+        "id": "rss_4ccde3af1a05659e3400",
+        "source": "ynet_sport",
+        "source_display_name": "ynet ספורט",
+        "url": "https://www.ynet.co.il/sport/israelibasketball/article/ry2bnfuvzg",
+        "title": "סעיף היציאה פג, הסאגה עוד לא: לוני ווקר יעזוב?",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-16T06:58:29Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "negotiation",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Maccabi Tel Aviv Basketball",
+          "negotiation"
+        ],
+        "cluster_id": null,
+        "subtitle": "על פי ההסכם בין הצדדים, הלילה הסתיימה אופציית המעבר שלו ל-NBA, אולם במכבי ת\"א מבהירים כי הסוגייה עדיין לא נסגרה סופית. נציגיו ממשיכים לנהל מגעים עם מספר קבוצות",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": "comp:nba",
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [],
+            "explicit_hits": [
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "הסאגה",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "לוני",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "אופציית",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "הסוגייה",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "נציגיו",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [],
+            "explicit_hits": [
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "routine_or_uncertain",
+            "subject_entity_ids": []
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_50eb624e95b11ed0e33c",
+      "input": {
+        "id": "rss_50eb624e95b11ed0e33c",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3855228",
+        "title": "נובאקוביץ' חתם במכבי חיפה: \"נרגש להצטרף למועדון גדול\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-21T13:11:41.733697Z",
+        "published_at_meta": {
+          "provenance": "clamped_future",
+          "raw": "2026-07-21T14:03:00+00:00"
+        },
+        "sport": "football",
+        "league": "Israeli Premier League",
+        "entities": [
+          "Maccabi Haifa"
+        ],
+        "event_type": "signing",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.95,
+        "tags": [
+          "football",
+          "Israeli Premier League",
+          "Maccabi Haifa",
+          "signing"
+        ],
+        "cluster_id": null,
+        "subtitle": "האמריקאי-סרבי הצטרף בחוזה לשנתיים. המנהל המקצועי ליאור רפאלוב: \"חלוץ איכותי וחזק שמעמיד תמיד את טובת הקבוצה מעל הכול\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_haifa_fc"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "מכבי חיפה"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "חלוץ"
+              },
+              {
+                "sport": "football",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Haifa"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_haifa_fc"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Haifa",
+                "id": "team:maccabi_haifa_fc"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "team:maccabi_haifa_fc",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "taxonomy",
+          "reason_code": "canonical_taxonomy"
+        },
+        {
+          "anchor": "רפאלוב",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "story_anchors": [
+          {
+            "anchor": "team:maccabi_haifa_fc",
+            "role": "unknown",
+            "source": "title",
+            "validator_id": "taxonomy",
+            "reason_code": "canonical_taxonomy"
+          },
+          {
+            "anchor": "רפאלוב",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "נובאקוביץ",
+            "role": "unknown",
+            "source": "title",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rss_5d4dde1b5350f921faa6",
+      "input": {
+        "id": "rss_5d4dde1b5350f921faa6",
+        "source": "sport5_sport",
+        "source_display_name": "ערוץ הספורט",
+        "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=552732",
+        "title": "מתקרב: הצטמצמו הפערים בין מכבי תל אביב ואיפה לונדברג",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-19T17:59:07.324208Z",
+        "published_at_meta": {
+          "provenance": "ingest_fallback"
+        },
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "negotiation",
+        "event_certainty": "confirmed",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "negotiation"
+        ],
+        "cluster_id": null,
+        "subtitle": "אחד מכוכבי העונה שעברה ישאר? תמונת המצב במו\"מ בין הצהובים לגארד הדני",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גארד"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "הצטמצמו",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גארד"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "routine_or_uncertain",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_641d111dad0a0dc8620d",
+      "input": {
+        "id": "rss_641d111dad0a0dc8620d",
+        "source": "ynet_sport",
+        "source_display_name": "ynet ספורט",
+        "url": "https://www.ynet.co.il/sport/israelibasketball/article/rkoeqzysme",
+        "title": "נשאר צהוב: איפה לונדברג סיכם לשנתיים נוספות במכבי ת\"א",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-23T02:11:00Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "negotiation",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "negotiation"
+        ],
+        "cluster_id": null,
+        "subtitle": "בימים האחרונים חלה פריצת דרך משמעותית במגעים בין הצדדים, הפערים הצטמצמו וה-MVP של סדרת גמר הפלייאוף האחרונה מול הפועל ת\"א ימשיך במועדון עד 2028",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "הצטמצמו",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "story_anchors": [
+          {
+            "anchor": "הצטמצמו",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "לונדברג",
+            "role": "unknown",
+            "source": "title",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          }
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_7b3a5ad13cf2a7cf448b",
+      "input": {
+        "id": "rss_7b3a5ad13cf2a7cf448b",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/20969879",
+        "title": "כבר חתם על חוזה: כוכב היורוליג דחה את הפועל ומכבי תל אביב",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-13T06:07:57Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "EuroLeague",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "signing",
+        "event_certainty": "confirmed",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "EuroLeague",
+          "Maccabi Tel Aviv Basketball",
+          "signing"
+        ],
+        "cluster_id": null,
+        "subtitle": "מוזס רייט לא יגיע לישראל: על פי דיווח של באיטליה, סנטר ז'לגיריס קובנה חתם על חוזה לשנתיים באולימפיה מילאנו, במסגרתו ישתכר כ־3.5 מיליון דולר בסך הכל • אלו הסיבות",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": "comp:euroleague",
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "יורוליג"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "סנטר"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:euroleague"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:euroleague",
+            "article": [],
+            "explicit_hits": [
+              "comp:euroleague"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "team:zalgiris",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "taxonomy",
+          "reason_code": "canonical_taxonomy"
+        },
+        {
+          "anchor": "לגיריס קובנה",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "לגיריס",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "קובנה",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "באולימפיה",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "ישתכר",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "יורוליג"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "סנטר"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:euroleague"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:euroleague",
+            "article": [],
+            "explicit_hits": [
+              "comp:euroleague"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "retrospective_or_rejected",
+            "subject_entity_ids": []
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_7b895b3961903082aba6",
+      "input": {
+        "id": "rss_7b895b3961903082aba6",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/21008048",
+        "title": "\"יכולתי להיות הרבה יותר טוב במכבי תל אביב, אם לא הפציעה\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-18T15:16:03Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "injury",
+        "event_certainty": "confirmed",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "injury"
+        ],
+        "cluster_id": null,
+        "subtitle": "בורקו ראדוביץ', ששיחק שמונה שנים בישראל, חוזר ארצה בתור עוזרו של שרון דרוקר בהפועל חיפה: \"המטרה היא עלייה לליגת העל\" • בראיון ל\"היום\" הוא נזכר בזכייה עם הצהובים בגביע אירופה: \"התקופה הזו היא פסגת הקריירה\" • ובטוח שווסיליה מיציץ', ששיחק תחתי",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "ליגת העל"
+              },
+              {
+                "sport": "football",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:ligat_haal"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [
+              "comp:ligat_haal"
+            ],
+            "dropped": [
+              {
+                "competition": "comp:ligat_haal",
+                "competition_sport": "football",
+                "article_sport": "basketball"
+              }
+            ]
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [
+            {
+              "field": "sport",
+              "candidates": [
+                {
+                  "sport": "basketball",
+                  "source": "source_url_hint",
+                  "weight": 100,
+                  "detail": "basketball"
+                },
+                {
+                  "sport": "football",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "ליגת העל"
+                },
+                {
+                  "sport": "football",
+                  "source": "competition_keyword",
+                  "weight": 55,
+                  "detail": "comp:ligat_haal"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "entity_derived",
+                  "weight": 40,
+                  "detail": "Maccabi Tel Aviv Basketball"
+                }
+              ],
+              "winner": "basketball",
+              "rule": "source_url_hint_outweighs"
+            },
+            {
+              "field": "competition",
+              "candidates": [
+                "comp:ligat_haal (sport=football)"
+              ],
+              "winner": "basketball",
+              "rule": "competition_dropped_sport_conflict"
+            }
+          ],
+          "event": {
+            "final": "injury",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "בורקו ראדוביץ",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "שווסיליה מיציץ",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "בורקו",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "ראדוביץ",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "שווסיליה",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "מיציץ",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "ליגת העל"
+              },
+              {
+                "sport": "football",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:ligat_haal"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [
+              "comp:ligat_haal"
+            ],
+            "dropped": [
+              {
+                "competition": "comp:ligat_haal",
+                "competition_sport": "football",
+                "article_sport": "basketball"
+              }
+            ]
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [
+            {
+              "field": "sport",
+              "candidates": [
+                {
+                  "sport": "basketball",
+                  "source": "source_url_hint",
+                  "weight": 100,
+                  "detail": "basketball"
+                },
+                {
+                  "sport": "football",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "ליגת העל"
+                },
+                {
+                  "sport": "football",
+                  "source": "competition_keyword",
+                  "weight": 55,
+                  "detail": "comp:ligat_haal"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "entity_derived",
+                  "weight": 40,
+                  "detail": "Maccabi Tel Aviv Basketball"
+                }
+              ],
+              "winner": "basketball",
+              "rule": "source_url_hint_outweighs"
+            },
+            {
+              "field": "competition",
+              "candidates": [
+                "comp:ligat_haal (sport=football)"
+              ],
+              "winner": "basketball",
+              "rule": "competition_dropped_sport_conflict"
+            }
+          ],
+          "event": {
+            "final": "injury",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "retrospective_or_rejected",
+            "subject_entity_ids": []
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_81f1e1469be5fd299749",
+      "input": {
+        "id": "rss_81f1e1469be5fd299749",
+        "source": "sport5_sport",
+        "source_display_name": "ערוץ הספורט",
+        "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=550552",
+        "title": "היקר בתולדותיה: ים מדר חתם רשמית במכבי ת\"א",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-12T08:55:30.645544Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "signing",
+        "event_certainty": "confirmed",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "signing"
+        ],
+        "cluster_id": "cluster_8418f57b3706ae47",
+        "subtitle": "השכר ופרטי החוזה בפנים. המעבר הגדול של הקיץ הפך לרשמי: הגארד המצטיין שעזב את הפועל ת\"א, חצה את הכביש: \"מחכה לפגוש את הקהל. יאללה מכבי!\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גארד"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "מדר",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גארד"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_8362e4afb01bf26bbef9",
+      "input": {
+        "id": "rss_8362e4afb01bf26bbef9",
+        "source": "sport5_sport",
+        "source_display_name": "ערוץ הספורט",
+        "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=554077",
+        "title": "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-22T22:42:27.644849Z",
+        "published_at_meta": {
+          "provenance": "ingest_fallback"
+        },
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "negotiation",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "negotiation"
+        ],
+        "cluster_id": null,
+        "subtitle": "הסאגה בדרך לסיום: הצהובים קרובים מאוד להשאיר את הגארד שהצטיין מאז הצטרף לקבוצה של עודד קטש במהלך העונה שעברה. הדני בן ה-32 סגר על חוזה לשנתיים עם אופציה לעונה נוספת",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גארד"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "הסאגה",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "קטש",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "story_anchors": [
+          {
+            "anchor": "הסאגה",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "קטש",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "לונדברג",
+            "role": "unknown",
+            "source": "title",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          }
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גארד"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_9ccfed7f40f424ede65d",
+      "input": {
+        "id": "rss_9ccfed7f40f424ede65d",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3855583",
+        "title": "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב. סומן מחליף לווקר",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-23T04:15:34.643936Z",
+        "published_at_meta": {
+          "provenance": "clamped_future",
+          "raw": "2026-07-23T05:05:00+00:00"
+        },
+        "sport": "unknown",
+        "league": null,
+        "entities": [],
+        "event_type": "negotiation",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "confidence": 0.5,
+        "tags": [
+          "negotiation",
+          "ambiguous_club"
+        ],
+        "cluster_id": null,
+        "subtitle": "סוף לסאגה. אחרי מגעים של מספר חודשים סיכמה הלילה (בין רביעי לחמישי) מכבי תל אביב עם איפה לונדברג על חוזה חדש לשנתיים עם אופציה לעונה שלישית.",
+        "classified_by": "rules_fallback_after_llm_failure",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "unknown",
+            "evidence": []
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "ambiguous_club",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "סומן",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "לסאגה",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "story_anchors": [
+          {
+            "anchor": "סומן",
+            "role": "unknown",
+            "source": "title",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "לסאגה",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "לונדברג",
+            "role": "unknown",
+            "source": "title",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rss_aab7e4b98b877da05e8f",
+      "input": {
+        "id": "rss_aab7e4b98b877da05e8f",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854918",
+        "title": "השוק הנוסף שמכבי תל אביב בוחנת לעמדת הסנטר, ומתי לונדברג יסגור?",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-20T12:05:18.091159Z",
+        "published_at_meta": {
+          "provenance": "clamped_future",
+          "raw": "2026-07-20T13:05:00+00:00"
+        },
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "signing",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Maccabi Tel Aviv Basketball",
+          "signing"
+        ],
+        "cluster_id": null,
+        "subtitle": "הצהובים ממשיכים בחיפוש אחר שחקני פנים שישלימו את הסגל, כשעיקר תשומת הלב מופנית לעבר שחקני יורוליג ושחקנים שייפלטו מה-NBA. גורמים בקבוצה מעריכים שפרטים קטנים עומדים בפניהם לבין סגירת הארכת חוזהו של הדני",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": "comp:nba",
+        "article_competitions": [
+          "comp:euroleague"
+        ],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "סנטר"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "יורוליג"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:euroleague"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [
+              "comp:euroleague"
+            ],
+            "explicit_hits": [
+              "comp:euroleague",
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "לונדברג יסגור",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "לונדברג",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "יסגור",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "שישלימו",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "סנטר"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "יורוליג"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:euroleague"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [
+              "comp:euroleague"
+            ],
+            "explicit_hits": [
+              "comp:euroleague",
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "imminent_renewal",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_ad67dfa049f180097888",
+      "input": {
+        "id": "rss_ad67dfa049f180097888",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/20996750",
+        "title": "\"במכבי תל אביב האמינו שיגיע, המשפחה שלו טרפה הכל\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-16T09:20:11Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "signing",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "signing"
+        ],
+        "cluster_id": null,
+        "subtitle": "בסרביה התייחסו לחתימה של מרכוס בינגהאם בפנרבחצ'ה: \"הוא היה ממש קרוב, המצב השתנה עקב המצב הביטחוני במזרח התיכון\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "בינגהאם בפנרבחצ",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "בינגהאם",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "בפנרבחצ",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "retrospective_or_rejected",
+            "subject_entity_ids": []
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_b85be10794c2fd05aba8",
+      "input": {
+        "id": "rss_b85be10794c2fd05aba8",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/world-basketball/article/21050541",
+        "title": "דיווח: לוני ווקר במו\"מ עם קבוצה ענקית מהיורוליג",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-24T07:51:52Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "EuroLeague",
+        "entities": [
+          "Maccabi Tel Aviv Basketball",
+          "Real Madrid Basketball"
+        ],
+        "event_type": "negotiation",
+        "event_certainty": "confirmed",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "EuroLeague",
+          "Maccabi Tel Aviv Basketball",
+          "Real Madrid Basketball",
+          "negotiation"
+        ],
+        "cluster_id": null,
+        "subtitle": "הגארד צפוי לעזוב את מכבי תל אביב ולפי העיתונאי צ'מה דה לוקאס נמצא במגעים עם ריאל מדריד",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": "comp:euroleague",
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb",
+          "team:real_madrid_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "יורוליג"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גארד"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:euroleague"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball,Real Madrid Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:euroleague",
+            "article": [],
+            "explicit_hits": [
+              "comp:euroleague"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb",
+              "team:real_madrid_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              },
+              {
+                "legacy_name": "Real Madrid Basketball",
+                "id": "team:real_madrid_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "לוני",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "יורוליג"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גארד"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:euroleague"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball,Real Madrid Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:euroleague",
+            "article": [],
+            "explicit_hits": [
+              "comp:euroleague"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb",
+              "team:real_madrid_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              },
+              {
+                "legacy_name": "Real Madrid Basketball",
+                "id": "team:real_madrid_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "routine_or_uncertain",
+            "subject_entity_ids": []
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_e367fa5edfc97c493767",
+      "input": {
+        "id": "rss_e367fa5edfc97c493767",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/21047228",
+        "title": "יעד מפתיע: הכישרון של מכבי תל אביב מתקרב לקבוצה חדשה",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-23T13:36:13Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "negotiation",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "negotiation"
+        ],
+        "cluster_id": null,
+        "subtitle": "אחרי שכיכב בקבוצת הנוער והשתלב בקבוצה הבוגרת, תמיר גולד מבוקש בליגה הלאומית • ל\"היום\" נודע כי אחת מקבוצות ליגת המשנה מנהלת עימו משא ומתן מתקדם",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "והשתלב",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "negotiation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "routine_or_uncertain",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_f3a35c9b0f263f74443c",
+      "input": {
+        "id": "rss_f3a35c9b0f263f74443c",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854632",
+        "title": "צונאמי חתם במכבי חיפה לשנתיים: \"יביא מנהיגות ואישיות חזקה\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-19T13:40:00Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": "Israeli Premier League",
+        "entities": [
+          "Maccabi Haifa"
+        ],
+        "event_type": "signing",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.95,
+        "tags": [
+          "football",
+          "Israeli Premier League",
+          "Maccabi Haifa",
+          "signing"
+        ],
+        "cluster_id": null,
+        "subtitle": "הברזילאי בן ה-30 אמור להיות מתופקד בעיקר כמגן שמאלי בשבועות הראשונים שלו בירוק: \"שמעתי הרבה על העוצמות של הקהל\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_haifa_fc"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "מכבי חיפה"
+              },
+              {
+                "sport": "football",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Haifa"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_haifa_fc"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Haifa",
+                "id": "team:maccabi_haifa_fc"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "team:maccabi_haifa_fc",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "taxonomy",
+          "reason_code": "canonical_taxonomy"
+        },
+        {
+          "anchor": "מתופקד",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "story_anchors": [
+          {
+            "anchor": "team:maccabi_haifa_fc",
+            "role": "unknown",
+            "source": "title",
+            "validator_id": "taxonomy",
+            "reason_code": "canonical_taxonomy"
+          },
+          {
+            "anchor": "מתופקד",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "צונאמי",
+            "role": "unknown",
+            "source": "title",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rss_ff4f3932056ef4d66cbd",
+      "input": {
+        "id": "rss_ff4f3932056ef4d66cbd",
+        "source": "ynet_sport",
+        "source_display_name": "ynet ספורט",
+        "url": "https://www.ynet.co.il/sport/israelisoccer/article/s1vj119erfg",
+        "title": "לונווייק חתם לשלוש שנים במכבי חיפה: \"שמח להגיע למועדון גדול\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-24T05:17:11Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": "Israeli Premier League",
+        "entities": [
+          "Maccabi Haifa"
+        ],
+        "event_type": "signing",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.95,
+        "tags": [
+          "football",
+          "Israeli Premier League",
+          "Maccabi Haifa",
+          "signing"
+        ],
+        "cluster_id": null,
+        "subtitle": "הבלם ההולנדי, שהגיע מוולבס האנגלית, ילבש ירוק עד קיץ 2029. המנהל המקצועי, ליאור רפאלוב: \"בטוחים שיתרום לנו רבות\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_haifa_fc"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "football"
+              },
+              {
+                "sport": "football",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "מכבי חיפה"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "בלם"
+              },
+              {
+                "sport": "football",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Haifa"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_haifa_fc"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Haifa",
+                "id": "team:maccabi_haifa_fc"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "team:maccabi_haifa_fc",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "taxonomy",
+          "reason_code": "canonical_taxonomy"
+        },
+        {
+          "anchor": "מוולבס",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "ילבש",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        },
+        {
+          "anchor": "רפאלוב",
+          "role": "unknown",
+          "source": "subtitle",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "story_anchors": [
+          {
+            "anchor": "team:maccabi_haifa_fc",
+            "role": "unknown",
+            "source": "title",
+            "validator_id": "taxonomy",
+            "reason_code": "canonical_taxonomy"
+          },
+          {
+            "anchor": "מוולבס",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "ילבש",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "רפאלוב",
+            "role": "unknown",
+            "source": "subtitle",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          },
+          {
+            "anchor": "לונווייק",
+            "role": "unknown",
+            "source": "title",
+            "validator_id": "lexical_frequency",
+            "reason_code": "rare_in_language"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rss_ff501392ec59403606ad",
+      "input": {
+        "id": "rss_ff501392ec59403606ad",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3852382",
+        "title": "מכבי ת\"א הציגה את ים מדר: \"פותח פרק חדש. יאללה מכבי\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-12T09:33:00Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "Israeli Basketball League",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "signing",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "Israeli Basketball League",
+          "Maccabi Tel Aviv Basketball",
+          "signing"
+        ],
+        "cluster_id": "cluster_8418f57b3706ae47",
+        "subtitle": "המעבר הגדול של הכדורסל הישראלי נחתם סופית ורשמית: ים מדר הוא שחקן מכבי תל אביב.",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורסל"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "anchors_before": [
+        {
+          "anchor": "מדר",
+          "role": "unknown",
+          "source": "title",
+          "validator_id": "lexical_frequency",
+          "reason_code": "rare_in_language"
+        }
+      ],
+      "after": {
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורסל"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          },
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,5 +1,16 @@
 # Telegram Push Pilot — Notification Contract (Milestone 7)
 
+**2026-09-11 - Feed severity and recovered membership (#192).** The planner
+already runs after clustering and reads full DB membership. A display card on
+only one Madar article did not mean the other sources lacked story identity.
+The frozen-corpus replay starts with 17 push articles but 15 notification stories;
+reviewed factual severity plus recovered Lundberg anchors yield 7 articles and
+4 stories, all owner-approved, with every formerly approved push still covered.
+Outbox uniqueness, delivery retries and terminal unknown behavior are unchanged;
+no Telegram sends were made. Deni's authorized entity-scoped relocation rule is
+verified as feed eligibility only: this does not activate Deni as a live Telegram
+pilot. [Metrics, traces and limitations](qa/N05_FEED_QUALITY_IMPLEMENTATION.md).
+
 **Status:** authoritative living contract for M7-5/#151 (story identity + outbox),
 M7-6/#152 (planner), M7-7/#153 (delivery).
 **ACTIVE IN PRODUCTION since 2026-07-18 (M7-10 #156):** the guarded watermark

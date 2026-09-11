@@ -121,7 +121,7 @@ class LexicalFrequencyValidator:
             import wordfreq
 
             self._zipf = wordfreq.zipf_frequency
-            self._version = f"wordfreq-{importlib.metadata.version('wordfreq')}"
+            self._version = f"wordfreq-{importlib.metadata.version('wordfreq')}+subject-v2"
         except Exception:
             pass
 

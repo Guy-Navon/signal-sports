@@ -1,0 +1,28 @@
+﻿guy: 10 of 185 rated items changed decision
+casual_deni_fan: 0 of 97 rated items changed decision
+
+-- casual_deni_fan --
+  [PASS    ] shown precision 91.7% vs baseline 91.7%
+             22/24 of what the user is shown was wanted (baseline 22/24). Slack is one rated shown item (4.2%).
+  [PASS    ] false hide 0.8% vs baseline 0.8%
+             Weighted share of the corpus the user wanted and never saw. Zero tolerance: this is the failure the epic exists to fix, and it rises in increments of at most ~0.25pp (a newly hidden item comes from a low-weight visible stratum), so a rise here is a real loss.
+  [PASS    ] push precision n/a vs baseline n/a
+             no push fired in the baseline, so there is no precision to protect. Any push appearing here is covered by the volume check.
+  [PASS    ] push volume 0 vs baseline 0
+             0 pushes vs baseline 0. Push is the only surface that physically interrupts the user; volume may not grow.
+  [PASS    ] 0 decision(s) drifted (must be 0)
+             This profile is the canary: it is nearly all base rate, so movement here is almost always collateral damage from a change aimed at another profile. Accept this check only if the change deliberately targets it. Flips: none
+
+-- guy --
+  [PASS    ] shown precision 98.2% vs baseline 98.2%
+             112/114 of what the user is shown was wanted (baseline 112/114). Slack is one rated shown item (0.9%).
+  [PASS    ] false hide 18.2% vs baseline 18.2%
+             Weighted share of the corpus the user wanted and never saw. Zero tolerance: this is the failure the epic exists to fix, and it rises in increments of at most ~0.25pp (a newly hidden item comes from a low-weight visible stratum), so a rise here is a real loss.
+  [PASS    ] push precision 41.2% vs baseline 41.2%
+             7/17 pushes were rated push-worthy (baseline 7/17). Slack is one rated push (5.9%).
+  [PASS    ] push volume 17 vs baseline 17
+             17 pushes vs baseline 17. Push is the only surface that physically interrupts the user; volume may not grow.
+
+note: false_show is reported, not separately gated: within the visible set it is the complement of shown_precision, which IS gated.
+
+GATE PASSED

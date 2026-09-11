@@ -1,5 +1,7 @@
 # Signal Sports — Current Project State
 
+**2026-09-11 — Feed-quality milestone diagnostic stop.** The required whole-corpus census found 816/1,427 RSS items classified `news`. G4's existing Deni trade/injury overrides cannot truthfully fire on the reviewed corpus: the owner-rated push example is franchise relocation, not a player trade. Implementation stopped under the brief's principled-stop condition; #191/#192 remain unimplemented by this work and all measured metrics are unchanged. See [census, evidence and gate results](qa/N05_MILESTONE_FEED_QUALITY_FINDINGS.md). This entry records diagnostics, not a shipped behavior change.
+
 **Repair branch note (2026-09-05):** `fix/repository-audit` contains a repository review and focused reliability fixes. See the [Hebrew audit report](audits/2026-09-05.md) and [standalone interactive artifact](audits/2026-09-05.html) for findings, validation and next steps. These changes have not been merged or deployed; the historical milestones below retain their original dates.
 
 Last updated: 2026-08-23 (**Grand Slam classification recall fixed (#133); Personalized Results (#178) merged on top of the Orbit frontend. Backend: Milestone 8 feed freshness and Milestone 7 autonomy defaults both still active**).

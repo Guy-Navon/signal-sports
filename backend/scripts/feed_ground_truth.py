@@ -429,9 +429,34 @@ def _build_report(sample: dict, ratings: dict) -> dict:
         kept = sum(1 for _, t in shown if t != "hidden")
 
         total = est["rated"] or 1.0
+
+        # False hide BY SPORT (#208). The headline figure cannot resolve recall
+        # work any more: hidden-football rows carry a sampling weight of ~55.9
+        # against ~4.2 for basketball, so ONE football rating moves the total by
+        # ~3.9pp while one basketball row moves it by ~0.29pp — a 13x difference.
+        # Measured on the current corpus, two football rows are 43% of Guy's
+        # remaining false hide while 23 basketball rows are 36%. Improving Israeli
+        # basketball coverage is therefore almost invisible in the total. Reported,
+        # deliberately NOT gated: a per-sport threshold would need its own evidence.
+        fh_by_sport: dict[str, dict] = {}
+        for item, truth in rated:
+            if item["engine_decision"] != "hidden" or truth == "hidden":
+                continue
+            sport = item.get("sport") or "unknown"
+            bucket = fh_by_sport.setdefault(sport, {"rows": 0, "weight": 0.0, "wanted_rows": 0})
+            bucket["rows"] += 1
+            bucket["weight"] += weights.get(item["stratum"], 1.0)
+            if truth in ("feed", "high_feed", "push"):
+                bucket["wanted_rows"] += 1
+        for sport, bucket in fh_by_sport.items():
+            bucket["share_of_corpus"] = round(bucket.pop("weight") / total, 4)
+
         report["profiles"][user_id] = {
             "rated": raw["rated"],
             "sample_counts": dict(raw),
+            "false_hide_by_sport": dict(sorted(
+                fh_by_sport.items(), key=lambda kv: -kv[1]["share_of_corpus"]
+            )),
             "shown_precision": {
                 "shown": len(shown),
                 "worth_showing": kept,
@@ -472,6 +497,12 @@ def _print_score(report: dict) -> None:
                   f"({sp['worth_showing']}/{sp['shown']} of what the user sees is wanted)")
         for k, v in p["population_estimates"].items():
             print(f"    {k:14} {v * 100:5.1f}%   (sample n={p['sample_counts'].get(k, 0)})")
+        by_sport = p.get("false_hide_by_sport") or {}
+        if by_sport:
+            print("  false hide by sport (reported, not gated):")
+            for sport, b in by_sport.items():
+                print(f"    {sport:11} {b['share_of_corpus'] * 100:5.2f}%  "
+                      f"({b['rows']} rows, {b['wanted_rows']} rated feed+)")
         pp = p["push_precision"]
         if pp["precision"] is not None:
             print(f"  push precision {pp['precision'] * 100:.0f}% ({pp['agreed_push_worthy']}/{pp['rated']})")

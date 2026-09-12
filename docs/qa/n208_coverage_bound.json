@@ -1,0 +1,908 @@
+{
+  "scope": "Optimistic upper bound on recall reachable by FACTS COVERAGE for the 'guy' profile, over the hand-rated sample. Not a proposal: attaching a scope an article does not support is a fabricated fact.",
+  "profile": "guy",
+  "weighted_denominator": 1427.0,
+  "false_hide_now": 0.18037,
+  "floor_coverage_only": 0.0,
+  "floor_coverage_and_event": 0.0,
+  "positive_scopes_tried": [
+    "team:maccabi_tlv_bb",
+    "comp:euroleague",
+    "comp:eurocup",
+    "comp:nba",
+    "comp:ibl",
+    "player:deni_avdija",
+    "coach:oded_kattash"
+  ],
+  "rows": [
+    {
+      "id": "rss_479d4247413e00a5dd23",
+      "title": "מכבי חיפה החדשה: האזינו להללי אורגינל ברדיו צפון",
+      "sport": "football",
+      "event_type": "release",
+      "entity_ids": [
+        "team:maccabi_haifa_fc"
+      ],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:football",
+      "weight": 55.86666666666667,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_cd678084031ab7bee564",
+      "title": "\"מבאס שלא קיבלתי במכבי תל אביב הזדמנות, אבל מבין למה\"",
+      "sport": "football",
+      "event_type": "news",
+      "entity_ids": [
+        "team:maccabi_tlv_fc"
+      ],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:football",
+      "weight": 55.86666666666667,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_b5b870d06fc4cb404347",
+      "title": "\"מכבי תל אביב פספסה בענק\" - אבל יש גם סיבות לאופטימיות",
+      "sport": "unknown",
+      "event_type": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:unknown",
+      "weight": 10.45,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_b201a1ddfc11dd6d4642",
+      "title": "ברייס בראון ימשיך לעונה שלישית בעירוני נס ציונה",
+      "sport": "unknown",
+      "event_type": "news",
+      "entity_ids": [
+        "team:ironi_ness_ziona"
+      ],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:unknown",
+      "weight": 10.45,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_e8c3a24475a9cde5a1bc",
+      "title": "אירופה גמורה: ציון 3 בפרק לקראת המסע של הישראליות",
+      "sport": "unknown",
+      "event_type": "schedule",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:unknown",
+      "weight": 10.45,
+      "rescued_by_coverage_only": [
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_2ef00572732c069ba855",
+      "title": "עמוס פרישמן: \"החלון האחרון היה מביש ומתסכל, מצפה מכל שחקן שנקרא - להגיע\"",
+      "sport": "unknown",
+      "event_type": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:unknown",
+      "weight": 10.45,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_c220cac9718a95b3c6aa",
+      "title": "עמנואל שארפ: \"הגעתי לקבוצה שבאמת רוצה אותי, מאמינים בי\"",
+      "sport": "unknown",
+      "event_type": "news",
+      "entity_ids": [
+        "team:sacramento_kings"
+      ],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:unknown",
+      "weight": 10.45,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_fb8bd107f2e1e311c135",
+      "title": "מילטון חתם רשמית בי-ם: זה השכר שירוויח",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [
+        "team:partizan_bb"
+      ],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_3a8b9c15b8fdb90cc7b0",
+      "title": "האם מומנטום ו\"יד חמה\" קיימים? מדענים קבעו שלא - ואז הגיע הטוויסט",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_b8dd1b7f552e117c9d8f",
+      "title": "נבחרת הנוער הפסידה 95:87 לסלובניה ברבע הגמר",
+      "sport": "basketball",
+      "event_type": "finals_result",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_277fcc398bc76f389039",
+      "title": "דור הניצחון מחכה ב-2029: למה פרישמן היה חייב לזעזע את המערכת? | תוכן גולשים",
+      "sport": "basketball",
+      "event_type": "match_result",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_24168840f962162b3de1",
+      "title": "\"לטום דאנדון אין לאן לעבור עם פורטלנד טרייל בלייזרס\"",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [
+        "team:portland_blazers"
+      ],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_1d8e8945a12571237a17",
+      "title": "חריג: התקרית של ההחתמה החדשה של העמק",
+      "sport": "basketball",
+      "event_type": "signing",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_c5c251af39a66d2572d5",
+      "title": "הפועל אילת הודיעה: אליעד טל ימשיך בעונה הבאה",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [
+        "team:hapoel_eilat"
+      ],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_700b4eaa319287a16e0a",
+      "title": "\"גיבור מקומי\": מחנה האימון של לוני ווקר",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_eb38f019afdda0173279",
+      "title": "דיווח: עתיד הבלייזרס בפורטלנד בסכנה על רקע משבר האולם",
+      "sport": "basketball",
+      "event_type": "relocation",
+      "entity_ids": [
+        "team:portland_blazers"
+      ],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_5900483ae5c42c10c227",
+      "title": "היחידה בליגה: קונפינו מונתה למנהלת אשדוד",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [
+        "team:maccabi_ashdod"
+      ],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_e03479686e1effcab70b",
+      "title": "\"מנסים להתארגן\": הפועל באר-שבע תמשיך בליגת העל?",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [
+        "team:hapoel_beer_sheva_bb"
+      ],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_d5cce32897aff06835fa",
+      "title": "לראשונה בהיסטוריה: הערב הסטטיסטי החריג של כוכב נבחרת העתודה",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_6b644af77b56991ea786",
+      "title": "עמנואל שארפ ממשיך להלהיב: \"סקרמנטו צריכה שחקנים כמוהו\"",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [
+        "team:sacramento_kings"
+      ],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_16e3280f7a5e0c2bc862",
+      "title": "נלקחה באזיקים: כוכבת נבחרת ישראל נעצרה בנתב\"ג",
+      "sport": "basketball",
+      "event_type": "interview",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_a7850f04c198390451cf",
+      "title": "בר טימור במשא ומתן על חוזה חדש בהפועל",
+      "sport": "basketball",
+      "event_type": "negotiation",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_884730ca0824aa1b0af8",
+      "title": "\"לכל המבקרים...\": המקורב לתמיר בלאט מדבר",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_7948546a686d0017357f",
+      "title": "נבחרת העתודה הפסידה ליוון והודחה מהיורובאסקט",
+      "sport": "basketball",
+      "event_type": "match_result",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "high",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_b89ac6a7a01adb52b731",
+      "title": "הישג שיא לכדורסל הנשים הישראלי: נבחרת העתודה - סגנית אלופת אירופה",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_25cdbd412e5eda082f56",
+      "title": "לא שם, לא כאן: מה באמת קורה עם בלאט?",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [
+        "team:hapoel_tlv_bb"
+      ],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_59225a5ca73546384ac7",
+      "title": "נבחרת העתודה לנשים רחוקה 40 דקות מזכייה באליפות אירופה: \"השמיים הם הגבול\"",
+      "sport": "basketball",
+      "event_type": "match_result",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_c0c008be1ea9aa36df16",
+      "title": "בראיינט האריך חוזה: זה שכרו יוצא הדופן",
+      "sport": "basketball",
+      "event_type": "signing",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_7505914fd1575b0747ea",
+      "title": "אחרי ההישג ההיסטורי - נבחרת העתודה לנשים בעננים: \"רוצות לזכות באליפות אירופה\"",
+      "sport": "basketball",
+      "event_type": "news",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "low",
+      "stratum": "hidden:basketball",
+      "weight": 4.2,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    },
+    {
+      "id": "rss_e84814c01635934f9d0d",
+      "title": "אקס מכבי תל אביב במו״מ עם קבוצה מפתיעה מישראל | פרסום ראשון",
+      "sport": "basketball",
+      "event_type": "negotiation",
+      "entity_ids": [],
+      "primary_competition": null,
+      "human_rating": "feed",
+      "stratum": "push",
+      "weight": 1.0,
+      "rescued_by_coverage_only": [
+        "team:maccabi_tlv_bb",
+        "comp:euroleague",
+        "comp:eurocup",
+        "comp:nba",
+        "comp:ibl",
+        "player:deni_avdija",
+        "coach:oded_kattash"
+      ],
+      "rescued_by_coverage_and_event": [
+        "coach:oded_kattash",
+        "comp:eurocup",
+        "comp:euroleague",
+        "comp:ibl",
+        "comp:nba",
+        "player:deni_avdija",
+        "team:maccabi_tlv_bb"
+      ]
+    }
+  ]
+}

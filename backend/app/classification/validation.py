@@ -23,7 +23,7 @@ ALLOWED_EVENT_TYPES = {
     "signing", "negotiation", "candidate", "injury", "major_trade",
     "match_result", "regular_season_result", "finals_result", "title_win",
     "grand_slam_winner", "playoff_result", "early_round_result",
-    "schedule", "release", "news",
+    "schedule", "release", "news", "relocation", "interview", "analysis",
 }
 ALLOWED_IMPORTANCES = {"very_high", "high", "medium", "low"}
 

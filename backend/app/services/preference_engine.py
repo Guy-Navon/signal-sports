@@ -158,6 +158,12 @@ def _override_matches(article: Article, rule: OverrideRule) -> bool:
         # push (and never_show) must be surgical.
         if article.event_type != rule.event_type:
             return False
+    if rule.kind == "always_push" and article.event_type == "relocation" and rule.scope == "player":
+        # Relocation's authorized player override applies to the participant,
+        # not every player mentioned in franchise/arena reporting.
+        event = (article.classification_trace or {}).get("event", {})
+        if rule.target_id not in event.get("subject_entity_ids", []):
+            return False
     if rule.scope == "sport":
         return article.sport == rule.target_id
     if rule.scope == "competition":
@@ -363,6 +369,15 @@ def score_article_v2(
     if decision != "hidden":
         for rule in v2.overrides:
             if rule.kind == "always_push" and _override_matches(article, rule):
+                attention = (article.classification_trace or {}).get("attention")
+                if attention is not None and article.event_type in {"signing", "major_signing", "negotiation", "injury"}:
+                    if attention.get("development") not in {"agreement_or_completion", "imminent_renewal", "current_injury"} or (
+                        rule.scope in {"team", "player"}
+                        and rule.target_id not in attention.get("subject_entity_ids", [])
+                    ):
+                        _contribute("push_severity", rule.target_id, "withheld",
+                                    attention.get("development", "missing_evidence"))
+                        continue
                 reasoning.append(
                     f"חוק push מפורש: {rule.target_id}"
                     + (f" ({rule.event_type})" if rule.event_type else "")

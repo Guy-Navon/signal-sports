@@ -1,0 +1,220 @@
+{
+  "meta": {
+    "generated_at": "2026-09-11T02:01:00.535696+00:00",
+    "git_sha": "87d317079a55ab09504aecb77560569b8edef67a",
+    "engine": "v2",
+    "corpus_articles": 1427,
+    "scope": "Relevance rules over the whole ingested corpus, freshness window not applied, raw profiles without learned augmentation.",
+    "rated_against_sample": "2026-09-05T17:07:27.997835+00:00"
+  },
+  "verdict": {
+    "passed": true,
+    "blocking_count": 0,
+    "checks": [
+      {
+        "check_id": "casual_deni_fan.shown_precision",
+        "profile": "casual_deni_fan",
+        "metric": "shown_precision",
+        "passed": true,
+        "accepted": false,
+        "accept_reason": null,
+        "blocking": false,
+        "headline": "shown precision 91.7% vs baseline 91.7%",
+        "detail": "22/24 of what the user is shown was wanted (baseline 22/24). Slack is one rated shown item (4.2%).",
+        "baseline": 0.917,
+        "current": 0.917,
+        "tolerance": 0.041666666666666664
+      },
+      {
+        "check_id": "casual_deni_fan.false_hide",
+        "profile": "casual_deni_fan",
+        "metric": "false_hide",
+        "passed": true,
+        "accepted": false,
+        "accept_reason": null,
+        "blocking": false,
+        "headline": "false hide 0.8% vs baseline 0.8%",
+        "detail": "Weighted share of the corpus the user wanted and never saw. Zero tolerance: this is the failure the epic exists to fix, and it rises in increments of at most ~0.25pp (a newly hidden item comes from a low-weight visible stratum), so a rise here is a real loss.",
+        "baseline": 0.0076,
+        "current": 0.0076,
+        "tolerance": 0.0
+      },
+      {
+        "check_id": "casual_deni_fan.push_precision",
+        "profile": "casual_deni_fan",
+        "metric": "push_precision",
+        "passed": true,
+        "accepted": false,
+        "accept_reason": null,
+        "blocking": false,
+        "headline": "push precision n/a vs baseline n/a",
+        "detail": "no push fired in the baseline, so there is no precision to protect. Any push appearing here is covered by the volume check.",
+        "baseline": null,
+        "current": null,
+        "tolerance": 0.0
+      },
+      {
+        "check_id": "casual_deni_fan.push_volume",
+        "profile": "casual_deni_fan",
+        "metric": "push_volume",
+        "passed": true,
+        "accepted": false,
+        "accept_reason": null,
+        "blocking": false,
+        "headline": "push volume 0 vs baseline 0",
+        "detail": "0 pushes vs baseline 0. Push is the only surface that physically interrupts the user; volume may not grow.",
+        "baseline": 0,
+        "current": 0,
+        "tolerance": 0.0
+      },
+      {
+        "check_id": "casual_deni_fan.no_drift",
+        "profile": "casual_deni_fan",
+        "metric": "profile_drift",
+        "passed": false,
+        "accepted": true,
+        "accept_reason": "G4a intentionally restores existing editorial affinities.",
+        "blocking": false,
+        "headline": "9 decision(s) drifted (must be 0)",
+        "detail": "This profile is the canary: it is nearly all base rate, so movement here is almost always collateral damage from a change aimed at another profile. Accept this check only if the change deliberately targets it. Flips: rss_004533dc192234c138ec: high_feed->feed, rss_23d86abd3f442f86244e: high_feed->feed, rss_2d693144f4586ef3278e: high_feed->feed, rss_32c7df102e55d8750b60: high_feed->feed, rss_3c86a7d7a90a1ac4a2bb: high_feed->feed, +4 more",
+        "baseline": 0,
+        "current": 9,
+        "tolerance": 0.0
+      },
+      {
+        "check_id": "guy.shown_precision",
+        "profile": "guy",
+        "metric": "shown_precision",
+        "passed": true,
+        "accepted": false,
+        "accept_reason": null,
+        "blocking": false,
+        "headline": "shown precision 98.3% vs baseline 98.2%",
+        "detail": "113/115 of what the user is shown was wanted (baseline 112/114). Slack is one rated shown item (0.9%).",
+        "baseline": 0.982,
+        "current": 0.983,
+        "tolerance": 0.008771929824561403
+      },
+      {
+        "check_id": "guy.false_hide",
+        "profile": "guy",
+        "metric": "false_hide",
+        "passed": true,
+        "accepted": false,
+        "accept_reason": null,
+        "blocking": false,
+        "headline": "false hide 18.0% vs baseline 18.2%",
+        "detail": "Weighted share of the corpus the user wanted and never saw. Zero tolerance: this is the failure the epic exists to fix, and it rises in increments of at most ~0.25pp (a newly hidden item comes from a low-weight visible stratum), so a rise here is a real loss.",
+        "baseline": 0.1823,
+        "current": 0.1804,
+        "tolerance": 0.0
+      },
+      {
+        "check_id": "guy.push_precision",
+        "profile": "guy",
+        "metric": "push_precision",
+        "passed": true,
+        "accepted": false,
+        "accept_reason": null,
+        "blocking": false,
+        "headline": "push precision 41.2% vs baseline 41.2%",
+        "detail": "7/17 pushes were rated push-worthy (baseline 7/17). Slack is one rated push (5.9%).",
+        "baseline": 0.412,
+        "current": 0.412,
+        "tolerance": 0.058823529411764705
+      },
+      {
+        "check_id": "guy.push_volume",
+        "profile": "guy",
+        "metric": "push_volume",
+        "passed": true,
+        "accepted": false,
+        "accept_reason": null,
+        "blocking": false,
+        "headline": "push volume 17 vs baseline 17",
+        "detail": "17 pushes vs baseline 17. Push is the only surface that physically interrupts the user; volume may not grow.",
+        "baseline": 17,
+        "current": 17,
+        "tolerance": 0.0
+      }
+    ],
+    "decision_flips": [
+      {
+        "article_id": "rss_004533dc192234c138ec",
+        "profile": "casual_deni_fan",
+        "before": "high_feed",
+        "after": "feed"
+      },
+      {
+        "article_id": "rss_23d86abd3f442f86244e",
+        "profile": "casual_deni_fan",
+        "before": "high_feed",
+        "after": "feed"
+      },
+      {
+        "article_id": "rss_2d693144f4586ef3278e",
+        "profile": "casual_deni_fan",
+        "before": "high_feed",
+        "after": "feed"
+      },
+      {
+        "article_id": "rss_32c7df102e55d8750b60",
+        "profile": "casual_deni_fan",
+        "before": "high_feed",
+        "after": "feed"
+      },
+      {
+        "article_id": "rss_3c86a7d7a90a1ac4a2bb",
+        "profile": "casual_deni_fan",
+        "before": "high_feed",
+        "after": "feed"
+      },
+      {
+        "article_id": "rss_76d61867461f3f986447",
+        "profile": "casual_deni_fan",
+        "before": "high_feed",
+        "after": "feed"
+      },
+      {
+        "article_id": "rss_a2d776b676234df30672",
+        "profile": "casual_deni_fan",
+        "before": "high_feed",
+        "after": "feed"
+      },
+      {
+        "article_id": "rss_abe188261aea315dcfee",
+        "profile": "casual_deni_fan",
+        "before": "high_feed",
+        "after": "feed"
+      },
+      {
+        "article_id": "rss_b63e4f5f88329f126a0e",
+        "profile": "casual_deni_fan",
+        "before": "high_feed",
+        "after": "feed"
+      },
+      {
+        "article_id": "rss_2d693144f4586ef3278e",
+        "profile": "guy",
+        "before": "high_feed",
+        "after": "feed"
+      },
+      {
+        "article_id": "rss_2f23e95b413b2bb9f6bc",
+        "profile": "guy",
+        "before": "low_feed",
+        "after": "feed"
+      },
+      {
+        "article_id": "rss_b1aae4e7cc49b8b8a481",
+        "profile": "guy",
+        "before": "hidden",
+        "after": "high_feed"
+      }
+    ],
+    "unknown_accepts": [],
+    "notes": [
+      "false_show is reported, not separately gated: within the visible set it is the complement of shown_precision, which IS gated."
+    ]
+  }
+}

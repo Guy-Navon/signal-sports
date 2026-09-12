@@ -1,0 +1,5736 @@
+{
+  "applied": true,
+  "rows": [
+    {
+      "id": "rss_004533dc192234c138ec",
+      "input": {
+        "id": "rss_004533dc192234c138ec",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854072",
+        "title": "\"השאיפה להיות כמו דני אבדיה - הפנים של הכדורסל הישראלי\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-17T09:00:00Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija"
+        ],
+        "cluster_id": null,
+        "subtitle": "גל רביב מסכמת את הקיץ הגדול בקריירה ומדברת על היעד הבא - ה-WNBA (\"הלוואי שכבר אהיה אולסטאר\"), החיים בארה\"ב (\"זה דורש המון קשרים\") וההשוואה לקייטלין קלארק (\"שינתה את כל המשחק\"). צפו בכוכבת נבחרת העתודה בראיון מיוחד לוואלה ספורט",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": "comp:nba",
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "כדורסל"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "nba"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "קשר"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [],
+            "explicit_hits": [
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [
+            {
+              "field": "sport",
+              "candidates": [
+                {
+                  "sport": "basketball",
+                  "source": "title_keyword",
+                  "weight": 80,
+                  "detail": "כדורסל"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "nba"
+                },
+                {
+                  "sport": "football",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "קשר"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "competition_keyword",
+                  "weight": 55,
+                  "detail": "comp:nba"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "entity_derived",
+                  "weight": 40,
+                  "detail": "Deni Avdija"
+                }
+              ],
+              "winner": "basketball",
+              "rule": "title_keyword_outweighs"
+            }
+          ],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "כדורסל"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "nba"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "קשר"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [],
+            "explicit_hits": [
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [
+            {
+              "field": "sport",
+              "candidates": [
+                {
+                  "sport": "basketball",
+                  "source": "title_keyword",
+                  "weight": 80,
+                  "detail": "כדורסל"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "nba"
+                },
+                {
+                  "sport": "football",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "קשר"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "competition_keyword",
+                  "weight": 55,
+                  "detail": "comp:nba"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "entity_derived",
+                  "weight": 40,
+                  "detail": "Deni Avdija"
+                }
+              ],
+              "winner": "basketball",
+              "rule": "title_keyword_outweighs"
+            }
+          ],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_04c088f7005baf884c4b",
+      "input": {
+        "id": "rss_04c088f7005baf884c4b",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/world-soccer/article/21025461",
+        "title": "אחרי הזכייה במונדיאל: הצעד של נבחרת ספרד נגד דונלד טראמפ",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-20T18:47:48Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.55,
+        "tags": [
+          "football"
+        ],
+        "cluster_id": null,
+        "subtitle": "בזמן ששחקני \"לה רוחה\" החלו בחגיגות המסורתיות, ברשתות החברתיות של ההתאחדות הספרדית העלו תמונות מרגע הנפת הגביע - ובאופן מוזר הנשיא נמחק, למרות שנכח באותו הרגע • ב\"מארקה\" ניתחו: \"ניסו להוציא אותו מהפריים, אין כל זכר אליו\"",
+        "classified_by": "rules_fallback_after_llm_failure",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "football"
+              },
+              {
+                "sport": "football",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "מונדיאל"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "football",
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "football"
+              },
+              {
+                "sport": "football",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "מונדיאל"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_0d9fc8062280c8a7c90a",
+      "input": {
+        "id": "rss_0d9fc8062280c8a7c90a",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/world-basketball/article/21026560",
+        "title": "כאוס בקבוצה של דני אבדיה: בכיר בפורטלנד בהצהרה חריגה",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-21T04:48:02Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "cluster_id": null,
+        "subtitle": "בכיר במועדון, ששוחח בעילום שם, מתח ביקורת חריפה על העירייה: \"אם הם לא רוצים אותנו - אז זה בסדר\" • הבעלים טום דאנדון שוקל ברצינות להעביר את המועדון למדינה אחרת • בסביבתו מבהירים: \"זה לא שנפסיד כסף\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija",
+          "team:portland_blazers"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "relocation",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers",
+          "relocation"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "relocation",
+            "final": "relocation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            },
+            "subject_entity_ids": []
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_16e3280f7a5e0c2bc862",
+      "input": {
+        "id": "rss_16e3280f7a5e0c2bc862",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/21002353",
+        "title": "נלקחה באזיקים: כוכבת נבחרת ישראל נעצרה בנתב\"ג",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-17T04:55:35Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.55,
+        "tags": [
+          "basketball"
+        ],
+        "cluster_id": null,
+        "subtitle": "גל רביב, כוכבת נבחרת העתודה, שהובילה את הנבחרת לגמר אליפות אירופה ונבחרה לחמישיית הטורניר, התארחה בפודקאסט \"שוט\" וחשפה את סיפור המעצר שלה: \"אני נחשבתי למשתמטת אז נעצרתי בשדה, חקרו ושפטו אותי במשטרה הצבאית\"",
+        "classified_by": "llm+rules_guardrail",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": "Israeli national team player Gal Ravid arrested for drug use.",
+        "classification_confidence": 0.85,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Gal Ravid"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "llm+rules_guardrail",
+            "proposal": {
+              "sport": "unknown",
+              "league": null,
+              "event_type": "injury",
+              "importance": "medium",
+              "confidence": 0.85,
+              "entities": [
+                "Gal Ravid"
+              ],
+              "reason": "Israeli national team player Gal Ravid arrested for drug use."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Gal Ravid"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "llm+rules_guardrail",
+            "proposal": {
+              "sport": "unknown",
+              "league": null,
+              "event_type": "injury",
+              "importance": "medium",
+              "confidence": 0.85,
+              "entities": [
+                "Gal Ravid"
+              ],
+              "reason": "Israeli national team player Gal Ravid arrested for drug use."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_23d86abd3f442f86244e",
+      "input": {
+        "id": "rss_23d86abd3f442f86244e",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3853946",
+        "title": "ההחלטה המפוקפקת שאולי עוד תגרום לדני אבדיה לעזוב את פורטלנד",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-16T12:52:00Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "event_type": "signing",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers",
+          "signing"
+        ],
+        "cluster_id": null,
+        "subtitle": "בארה\"ב ניתחו את צירופו של ג'ה מוראנט: \"יש בזה הרבה יותר סיכון משנראה. זה יקשה על הענקת חוזה חדש לדני בקיץ הבא\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija",
+          "team:portland_blazers"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers",
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "signing"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_23dae074c6fdb1976beb",
+      "input": {
+        "id": "rss_23dae074c6fdb1976beb",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/israeli-soccer/article/20995481",
+        "title": "\"הבטחתי שלא אבכה\": שמעון גרשון בריאיון חשוף על מלי, והקריירה החדשה",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-16T08:06:15Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": "Israeli Premier League",
+        "entities": [
+          "Hapoel Tel Aviv Football"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.85,
+        "tags": [
+          "football",
+          "Israeli Premier League",
+          "Hapoel Tel Aviv Football"
+        ],
+        "cluster_id": null,
+        "subtitle": "מהמגרשים הגדולים, דרך הפרישה מעולם הכדורגל ועד הכניסה לעולם היזמות, שמעון גרשון מתיישב לשיחה אישית בפודקאסט \"Stars\" עם אסף הדר • בריאיון הוא מספר על המעבר משחקן וקפטן בהפועל ת\"א ובנבחרת ישראל לעולם העסקי, על הקמת \"ערבויות ישיר\", על הזוגיות ",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:hapoel_tlv_fc"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "football"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              },
+              {
+                "sport": "football",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Hapoel Tel Aviv Football"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:hapoel_tlv_fc"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Hapoel Tel Aviv Football",
+                "id": "team:hapoel_tlv_fc"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "football",
+          "Israeli Premier League",
+          "Hapoel Tel Aviv Football",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "football"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              },
+              {
+                "sport": "football",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Hapoel Tel Aviv Football"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:hapoel_tlv_fc"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Hapoel Tel Aviv Football",
+                "id": "team:hapoel_tlv_fc"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_2d2a967d6d20dd437477",
+      "input": {
+        "id": "rss_2d2a967d6d20dd437477",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854030",
+        "title": "הדבר הבא: הפועל ת\"א מתחזקת, מכבי ת\"א מחכה וגל רביב בראיון",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-16T13:00:00Z",
+        "published_at_meta": null,
+        "sport": "unknown",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.4,
+        "tags": [],
+        "cluster_id": null,
+        "subtitle": "איטודיס ממשיך לבנות סגל עמוס כוכבים, הצהובים מחפשת את החלקים החסרים, וכוכבת העתודה מספרת על החלום שלה. צפו בדאבל דריבל",
+        "classified_by": "llm",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": "Headline discusses multiple Tel Aviv football clubs and their activities, no clear sport context.",
+        "classification_confidence": 0.75,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "unknown",
+            "evidence": []
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Maccabi Tel Aviv"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "ambiguous_club",
+            "classified_by": "llm",
+            "proposal": {
+              "sport": "unknown",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [
+                "Hapoel Tel Aviv Football",
+                "Maccabi Tel Aviv"
+              ],
+              "reason": "Headline discusses multiple Tel Aviv football clubs and their activities, no clear sport context."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "unknown",
+            "evidence": []
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Maccabi Tel Aviv"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "ambiguous_club",
+            "classified_by": "llm",
+            "proposal": {
+              "sport": "unknown",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [
+                "Hapoel Tel Aviv Football",
+                "Maccabi Tel Aviv"
+              ],
+              "reason": "Headline discusses multiple Tel Aviv football clubs and their activities, no clear sport context."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_2d693144f4586ef3278e",
+      "input": {
+        "id": "rss_2d693144f4586ef3278e",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/world-basketball/article/21032833",
+        "title": "\"אם דני אבדיה יעשה את זה, לפורטלנד לא תהיה ברירה\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-21T17:50:43Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "event_type": "signing",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers",
+          "signing"
+        ],
+        "cluster_id": "cluster_cb9979b3e6882b95",
+        "subtitle": "אחרי הטרייד המסקרן על ג'ה מוראנט, ב\"ספורט אילוסטרייטד\" העלו שאלה על כל שחקן בחמישייה הפותחת החדשה • לגבי הישראלי תהו \"האם יוכיח שהוא חלק מהעתיד של הקבוצה לטווח הארוך?\" • וענו לעצמם: \"אם ישפר את היעילות ההתקפית, יקבל הארכת חוזה משמעותית\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija",
+          "team:portland_blazers"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers",
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "signing"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_2edc78d0eac35fdb2897",
+      "input": {
+        "id": "rss_2edc78d0eac35fdb2897",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854946",
+        "title": "בארגנטינה מנתחים: הסיבות לעזיבה המסתמנת של ליונל סקאלוני",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-20T14:12:23.220744Z",
+        "published_at_meta": {
+          "provenance": "clamped_future",
+          "raw": "2026-07-20T15:10:00+00:00"
+        },
+        "sport": "unknown",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.4,
+        "tags": [],
+        "cluster_id": null,
+        "subtitle": "בתקשורת הארגנטינאית כבר החלו לנתח את האפשרות שליונל סקאלוני יסיים את דרכו כמאמן הנבחרת עם תום חוזהו בדצמבר.",
+        "classified_by": "rules_fallback_after_llm_failure",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "unknown",
+            "evidence": []
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "unknown",
+            "evidence": []
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_2f23e95b413b2bb9f6bc",
+      "input": {
+        "id": "rss_2f23e95b413b2bb9f6bc",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/world-basketball/article/20968214",
+        "title": "\"5 קבוצות יורוליג הציעו אותו שכר, עם סעיף יציאה ל-NBA\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-13T04:28:37Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "ASVEL Villeurbanne"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "ASVEL Villeurbanne"
+        ],
+        "cluster_id": null,
+        "subtitle": "סילבן פרנסיסקו, אחד השחקנים המחוזרים ביותר באירופה, בחר לחתום בווילרבאן והפך למשתכר הגבוה בתולדות הכדורסל הצרפתי • בראיון הוא חשף: \"כולן הסכימו לאותם תנאים, מבחינתי הפרויקט הזה היה המעניין ביותר, להנהיג קבוצה צרפתית לפיינל פור\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": "comp:nba",
+        "article_competitions": [
+          "comp:euroleague"
+        ],
+        "entity_ids": [
+          "team:asvel"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "יורוליג"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורסל"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:euroleague"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "ASVEL Villeurbanne"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [
+              "comp:euroleague"
+            ],
+            "explicit_hits": [
+              "comp:euroleague",
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:asvel"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "ASVEL Villeurbanne",
+                "id": "team:asvel"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "ASVEL Villeurbanne",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "יורוליג"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורסל"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:euroleague"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "ASVEL Villeurbanne"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [
+              "comp:euroleague"
+            ],
+            "explicit_hits": [
+              "comp:euroleague",
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:asvel"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "ASVEL Villeurbanne",
+                "id": "team:asvel"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_32c7df102e55d8750b60",
+      "input": {
+        "id": "rss_32c7df102e55d8750b60",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854250",
+        "title": "בארה\"ב מנתחים: \"העסק בפורטלנד מבולגן\" - וגם דני אבדיה ייפגע",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-17T14:23:00Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "cluster_id": null,
+        "subtitle": "ב\"יאהו\" מתקשים להבין את ההתאמה של ג'ה מוראנט לצד הישראלי: \"קשה להבין את ההיגיון. צריך לרווח עבורו את המגרש, לא לצופף\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija",
+          "team:portland_blazers"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers",
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_398fa1567faf734e21da",
+      "input": {
+        "id": "rss_398fa1567faf734e21da",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/israeli-soccer/article/21049573",
+        "title": "אייל ברקוביץ' בהלם: \"על מה 100 אלף שקל בחודש?\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-24T09:17:47Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.55,
+        "tags": [
+          "football"
+        ],
+        "cluster_id": null,
+        "subtitle": "כדורגלן העבר האגדי הגיב בפודקאסט \"הקוסם ובניו\" לכך שארז איסקוב רכש את השרון נתניה מליגה ג' ולדרישת השכר שהציב בנו ליאור, ששיתף פעולה עם שחקן העבר ב\"גולסטאר\": \"מה זה השרון נתניה? פלאפל? אתה רוצה לחזור לשחק?\"",
+        "classified_by": "rules_fallback_after_llm_failure",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "football"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "football",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "football"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_3c86a7d7a90a1ac4a2bb",
+      "input": {
+        "id": "rss_3c86a7d7a90a1ac4a2bb",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3855800",
+        "title": "הכול מתחיל בדני אבדיה: המפתחות להצלחתו של מאמן הבלייזרס",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-23T16:41:48.061779Z",
+        "published_at_meta": {
+          "provenance": "clamped_future",
+          "raw": "2026-07-23T17:27:00+00:00"
+        },
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "cluster_id": null,
+        "subtitle": "ב\"ספורטס אילוסטרייטד\" ניתחו את כניסתו של נורי לתפקיד וקבעו שהשאלה החשובה ביותר נוגעת בכלל לישראלי: \"כמה גדול הצעד הבא שלו?\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija",
+          "team:portland_blazers"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers",
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_3fa35d111fba13789728",
+      "input": {
+        "id": "rss_3fa35d111fba13789728",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/world-soccer/article/20958974",
+        "title": "נשיא פיפ\"א יעזור לישראל: \"כולם יכולים לחלום על המונדיאל\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-11T21:01:33Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.55,
+        "tags": [
+          "football"
+        ],
+        "cluster_id": null,
+        "subtitle": "ג'אני אינפנטינו אישר בראיון בשווייץ כי הוא תומך בהרחבת הטורניר ל-64 נבחרות: \"כל העולם צריך להיות מסוגל לחלום, לא רק אירופה ודרום אמריקה\" • הנבחרת שלנו לא עלתה גם אחרי ההרחבה ל-48, אולי ככה כן נצליח להגיע?",
+        "classified_by": "llm",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": "UEFA president Gianni Infantino supports expanding the World Cup to 64 teams — football news.",
+        "classification_confidence": 0.75,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "football"
+              },
+              {
+                "sport": "football",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "מונדיאל"
+              },
+              {
+                "sport": "football",
+                "source": "llm",
+                "weight": 20,
+                "detail": "llm_proposal"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "UEFA"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "llm",
+            "proposal": {
+              "sport": "football",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [
+                "UEFA"
+              ],
+              "reason": "UEFA president Gianni Infantino supports expanding the World Cup to 64 teams — football news."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "football",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "football"
+              },
+              {
+                "sport": "football",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "מונדיאל"
+              },
+              {
+                "sport": "football",
+                "source": "llm",
+                "weight": 20,
+                "detail": "llm_proposal"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "UEFA"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "llm",
+            "proposal": {
+              "sport": "football",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [
+                "UEFA"
+              ],
+              "reason": "UEFA president Gianni Infantino supports expanding the World Cup to 64 teams — football news."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_459097541cf88b3f04cb",
+      "input": {
+        "id": "rss_459097541cf88b3f04cb",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3855749",
+        "title": "\"המערכת רקובה מהיסוד\": מתקפה חסרת תקדים על פיפ\"א",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-23T11:12:00Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": "La Liga",
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.7,
+        "tags": [
+          "football",
+          "La Liga"
+        ],
+        "cluster_id": null,
+        "subtitle": "נשיא לה ליגה פותח חזית מול ג'יאני אינפנטינו אחרי מונדיאל 2026. בראיון באיטליה הוא תוקף את הפסקות השתייה, הרחבת הטורניר ושתיקת עולם הכדורגל",
+        "classified_by": "rules_fallback_after_llm_failure",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": "comp:la_liga",
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              },
+              {
+                "sport": "football",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:la_liga"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:la_liga",
+            "article": [],
+            "explicit_hits": [
+              "comp:la_liga"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "football",
+          "La Liga",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              },
+              {
+                "sport": "football",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:la_liga"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:la_liga",
+            "article": [],
+            "explicit_hits": [
+              "comp:la_liga"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_4c34e0718aadb617f71b",
+      "input": {
+        "id": "rss_4c34e0718aadb617f71b",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/world-basketball/article/21022885",
+        "title": "דיווח דרמטי: דני אבדיה ופורטלנד עשויים לעבור לאוקלהומה",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-20T12:09:43Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija",
+          "Oklahoma City Thunder",
+          "Portland Trail Blazers"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Oklahoma City Thunder",
+          "Portland Trail Blazers"
+        ],
+        "cluster_id": null,
+        "subtitle": "הכוכב הישראלי יעביר את ביתו ליעד חדש?",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija",
+          "team:okc_thunder",
+          "team:portland_blazers"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Oklahoma City Thunder,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:okc_thunder",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Oklahoma City Thunder",
+                "id": "team:okc_thunder"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "relocation",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Oklahoma City Thunder",
+          "Portland Trail Blazers",
+          "relocation"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Oklahoma City Thunder,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:okc_thunder",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Oklahoma City Thunder",
+                "id": "team:okc_thunder"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "relocation",
+            "final": "relocation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            },
+            "subject_entity_ids": [
+              "player:deni_avdija"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_636248f94c28bfb8e705",
+      "input": {
+        "id": "rss_636248f94c28bfb8e705",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/20956997",
+        "title": "\"אם מכבי תל אביב תפנה אליי אני אגיע, יודע איזה שחקנים מתאימים\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-12T05:19:47Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Maccabi Tel Aviv Basketball"
+        ],
+        "cluster_id": null,
+        "subtitle": "שון ג'יימס, הזר היחיד ששימש כקפטן ביד אליהו, מבהיר בראיון מיוחד שישמח לחזור למועדון: \"מכבי זה מותג בארה\"ב כמו מייקל ג'ורדן\" • 12 שנים אחרי הזכייה ההיסטורית ביורוליג, הוא עובד ב-NBA ועדיין בקשר עם כולם (\"אנחנו כמו משפחה\"), ממשיך לעקוב אחרי ה",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": "comp:nba",
+        "article_competitions": [
+          "comp:euroleague"
+        ],
+        "entity_ids": [
+          "team:maccabi_tlv_bb"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "יורוליג"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "קשר"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:euroleague"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [
+              "comp:euroleague"
+            ],
+            "explicit_hits": [
+              "comp:euroleague",
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [
+            {
+              "field": "sport",
+              "candidates": [
+                {
+                  "sport": "basketball",
+                  "source": "source_url_hint",
+                  "weight": 100,
+                  "detail": "basketball"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "יורוליג"
+                },
+                {
+                  "sport": "football",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "קשר"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "competition_keyword",
+                  "weight": 55,
+                  "detail": "comp:euroleague"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "competition_keyword",
+                  "weight": 55,
+                  "detail": "comp:nba"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "entity_derived",
+                  "weight": 40,
+                  "detail": "Maccabi Tel Aviv Basketball"
+                }
+              ],
+              "winner": "basketball",
+              "rule": "source_url_hint_outweighs"
+            }
+          ],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Maccabi Tel Aviv Basketball",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "יורוליג"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "קשר"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:euroleague"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Maccabi Tel Aviv Basketball"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [
+              "comp:euroleague"
+            ],
+            "explicit_hits": [
+              "comp:euroleague",
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:maccabi_tlv_bb"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Maccabi Tel Aviv Basketball",
+                "id": "team:maccabi_tlv_bb"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [
+            {
+              "field": "sport",
+              "candidates": [
+                {
+                  "sport": "basketball",
+                  "source": "source_url_hint",
+                  "weight": 100,
+                  "detail": "basketball"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "יורוליג"
+                },
+                {
+                  "sport": "football",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "קשר"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "competition_keyword",
+                  "weight": 55,
+                  "detail": "comp:euroleague"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "competition_keyword",
+                  "weight": 55,
+                  "detail": "comp:nba"
+                },
+                {
+                  "sport": "basketball",
+                  "source": "entity_derived",
+                  "weight": 40,
+                  "detail": "Maccabi Tel Aviv Basketball"
+                }
+              ],
+              "winner": "basketball",
+              "rule": "source_url_hint_outweighs"
+            }
+          ],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_6c02027afd564082a42d",
+      "input": {
+        "id": "rss_6c02027afd564082a42d",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/world-soccer/article/20997454",
+        "title": "סובל ממחלה מורכבת: אביו של לאמין ימאל חשף מדוע לא הגיע למונדיאל",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-16T10:32:27Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.55,
+        "tags": [
+          "football"
+        ],
+        "cluster_id": null,
+        "subtitle": "מוניר נסראווי, שנחשב לאב מעורב מאוד בקריירה של בנו, לא הגיע לתמוך בו בארה\"ב • כשנשאל על כך בראיון בספרד, חשף כי הוא סובל מאפילפסיה • הוא שיתף: \"אני לוקח לא מעט כדורים כל יום, המתח וההתרגשות עשויים לגרום להתפרצות\"",
+        "classified_by": "llm",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": "Football player's father disclosed health issues preventing him from attending the World Cup in the US.",
+        "classification_confidence": 0.75,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "football"
+              },
+              {
+                "sport": "football",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "מונדיאל"
+              },
+              {
+                "sport": "football",
+                "source": "llm",
+                "weight": 20,
+                "detail": "llm_proposal"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Mohamed Yemael"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "llm",
+            "proposal": {
+              "sport": "football",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [
+                "Mohamed Yemael"
+              ],
+              "reason": "Football player's father disclosed health issues preventing him from attending the World Cup in the US."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "football",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "football"
+              },
+              {
+                "sport": "football",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "מונדיאל"
+              },
+              {
+                "sport": "football",
+                "source": "llm",
+                "weight": 20,
+                "detail": "llm_proposal"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Mohamed Yemael"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "llm",
+            "proposal": {
+              "sport": "football",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [
+                "Mohamed Yemael"
+              ],
+              "reason": "Football player's father disclosed health issues preventing him from attending the World Cup in the US."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_74c365e1726840b4b0b7",
+      "input": {
+        "id": "rss_74c365e1726840b4b0b7",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3853044",
+        "title": "\"מסי ציוני\"? עושים סדר בפייק ניוז: \"המציאות מורכבת\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-13T07:24:00Z",
+        "published_at_meta": null,
+        "sport": "unknown",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.4,
+        "tags": [],
+        "cluster_id": null,
+        "subtitle": "תמונות מזויפות, התבטאויות אנטישמיות וטענות מופרכות הציפו את הרשת בשבועות האחרונים. באתר \"פוטי טיימס\" ניתחו את ביקוריו של הכוכב בישראל, את השתיקה הרועמת ואת הטענות של מחנה רונאלדו",
+        "classified_by": "llm",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": "News about Poyatimes' coverage and critique of soccer-related content on the website.",
+        "classification_confidence": 0.75,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "unknown",
+            "evidence": []
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Poyatimes"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "llm",
+            "proposal": {
+              "sport": "unknown",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [
+                "Poyatimes"
+              ],
+              "reason": "News about Poyatimes' coverage and critique of soccer-related content on the website."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "unknown",
+            "evidence": []
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Poyatimes"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "llm",
+            "proposal": {
+              "sport": "unknown",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [
+                "Poyatimes"
+              ],
+              "reason": "News about Poyatimes' coverage and critique of soccer-related content on the website."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_76d61867461f3f986447",
+      "input": {
+        "id": "rss_76d61867461f3f986447",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/world-basketball/article/21033869",
+        "title": "הכוכב העולה של ה-NBA שיתף: \"הכי הייתי רוצה להתאמן עם דני אבדיה\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-22T03:51:12Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija"
+        ],
+        "cluster_id": null,
+        "subtitle": "מחמאה גדולה: מטאס בוזליס בן ה-21, שנחשב לאחד הכישרונות הגדולים בליגה, התארח בפודקאסט \"ballinthefampod\" לצד לונזו בול ובחר בכוכב הישראלי לפני קווין דוראנט ופרנץ ואגנר • טיאגו ספליטר יאמן אותו בשיקגו העונה, והוא כבר הושווה ל\"דני אבדיה הבא\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": "comp:nba",
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [],
+            "explicit_hits": [
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:nba"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:nba",
+            "article": [],
+            "explicit_hits": [
+              "comp:nba"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "clear_league_in_title",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_7cba5fe9d7693c582744",
+      "input": {
+        "id": "rss_7cba5fe9d7693c582744",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3857573",
+        "title": "שוער ברצלונה שלף סיגריה גם בזמן ריאיון: \"זו התמכרות\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-31T14:30:00Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.55,
+        "tags": [
+          "football"
+        ],
+        "cluster_id": null,
+        "subtitle": "וויצ'ך שצ'סני הוא אחד הכדורגלנים היחידים בעולם שמודה שהוא מעשן. בריאיון ל-\"The Athletic\", השוער הפולני של ברצלונה שלף סיגריה אלקטרונית ושאל את המראיין אם זה בסדר שיעשן.",
+        "classified_by": "rules_fallback_after_llm_failure",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "שוער"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "football",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "שוער"
+              },
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_7e18d290243ad46e9fa5",
+      "input": {
+        "id": "rss_7e18d290243ad46e9fa5",
+        "source": "ynet_sport",
+        "source_display_name": "ynet ספורט",
+        "url": "https://www.ynet.co.il/sport/article/sj0tvkebzx",
+        "title": "לאן נעלמו 41 מיליון דולר: הטניסאית האגדית נגד בעלה לשעבר",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-24T04:40:22Z",
+        "published_at_meta": null,
+        "sport": "tennis",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.55,
+        "tags": [
+          "tennis"
+        ],
+        "cluster_id": "cluster_d7c1c9d7b4cb8b80",
+        "subtitle": "ארנצ'ה סאנצ'ס ויקאריו, לשעבר מספר 1 בעולם בטניס נשים, טוענת שהאקס בזבז את כל הונה. \"התאהבתי בו בעיניים עצומות, והוא ממש לא האדם שחשבתי שהוא\", סיפרה בריאיון.",
+        "classified_by": "rules_fallback_after_llm_failure",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "tennis",
+            "evidence": [
+              {
+                "sport": "tennis",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "טניס"
+              },
+              {
+                "sport": "tennis",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "טניס"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "tennis",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "tennis",
+            "evidence": [
+              {
+                "sport": "tennis",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "טניס"
+              },
+              {
+                "sport": "tennis",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "טניס"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_7f55c2cd781ba6789c93",
+      "input": {
+        "id": "rss_7f55c2cd781ba6789c93",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854280",
+        "title": "אריק שטילמן יורה: \"אודי רקנאטי התנגד להגדלת התקציב\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-17T20:30:00Z",
+        "published_at_meta": null,
+        "sport": "unknown",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.4,
+        "tags": [],
+        "cluster_id": null,
+        "subtitle": "הספונסר של מכבי תל אביב התארח בפודקאסט \"אנחנו במפה\" וסיפק מתקפה חסרת תקדים: \"סיפור ים מדר היה שלי - גררתי אותם בכוח; טובת הקבוצה לא מעניינת את משפחת רקנאטי, הם אגומניאקים שאומרים, 'אני אקח את מכבי לקבר'\".",
+        "classified_by": "rules_fallback_after_llm_failure",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "unknown",
+            "evidence": []
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "unknown",
+            "evidence": []
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_8e7d0b515af1ddac78a8",
+      "input": {
+        "id": "rss_8e7d0b515af1ddac78a8",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854302",
+        "title": "בארגנטינה המומים ומסבירים את סוד הקסם של ליאונל מסי",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-18T05:55:00Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.55,
+        "tags": [
+          "football"
+        ],
+        "cluster_id": null,
+        "subtitle": "שחקני עבר ניתחו את היכולת המופלאה של הכוכב: \"המציא את עצמו מחדש כדי לעזור לקבוצה, היה צריך לזכות ב-14 כדורי זהב\"",
+        "classified_by": "llm",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": "Argentinian players explain Lionel Messi's exceptional ability.",
+        "classification_confidence": 0.75,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "llm",
+                "weight": 20,
+                "detail": "llm_proposal"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Argentina national football team",
+              "Lionel Messi"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "llm",
+            "proposal": {
+              "sport": "football",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [
+                "Argentina national football team",
+                "Lionel Messi"
+              ],
+              "reason": "Argentinian players explain Lionel Messi's exceptional ability."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "football",
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "llm",
+                "weight": 20,
+                "detail": "llm_proposal"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Argentina national football team",
+              "Lionel Messi"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "llm",
+            "proposal": {
+              "sport": "football",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [
+                "Argentina national football team",
+                "Lionel Messi"
+              ],
+              "reason": "Argentinian players explain Lionel Messi's exceptional ability."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_946f205c23c00b97bc6a",
+      "input": {
+        "id": "rss_946f205c23c00b97bc6a",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854014",
+        "title": "\"אבא הכין לי 8 אלבומים על הקריירה שלי, בכיתי מהתרגשות\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-16T13:00:00Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.55,
+        "tags": [
+          "football"
+        ],
+        "cluster_id": null,
+        "subtitle": "התדרוך בבכורה בבוגרים (\"אישית על דני נוימן - אתה והוא לא משחקים היום\"), ההחמצה של אייל גולן (\"היה תותח כדורגל\"), המפגש עם נדיה קומנצ'י והקשר הקרוב עם אביו (\"ליווה אותי לכל אימון ומשחק עד האחרון\"). בנצי פנקס בריאיון",
+        "classified_by": "llm+rules_guardrail",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": "Article about a sports personality (likely a basketball player) and his personal life, without clear sport context.",
+        "classification_confidence": 0.75,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "llm+rules_guardrail",
+            "proposal": {
+              "sport": "unknown",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [],
+              "reason": "Article about a sports personality (likely a basketball player) and his personal life, without clear sport context."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "football",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "llm+rules_guardrail",
+            "proposal": {
+              "sport": "unknown",
+              "league": null,
+              "event_type": "news",
+              "importance": "medium",
+              "confidence": 0.75,
+              "entities": [],
+              "reason": "Article about a sports personality (likely a basketball player) and his personal life, without clear sport context."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_a2d776b676234df30672",
+      "input": {
+        "id": "rss_a2d776b676234df30672",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854292",
+        "title": "המהלכים של פורטלנד \"פוגעים במעמדו של דני אבדיה - ולא מסייעים לו\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-18T06:01:00Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "cluster_id": null,
+        "subtitle": "ב\"ריפ סיטי פרוג'קט\" העריכו שהישראלי עתיד לקחת צעד אחורה העונה, על רקע העומס בקו האחורי: \"לא יצליחו למצות את היכולות שלו\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija",
+          "team:portland_blazers"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers",
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_abe188261aea315dcfee",
+      "input": {
+        "id": "rss_abe188261aea315dcfee",
+        "source": "ynet_sport",
+        "source_display_name": "ynet ספורט",
+        "url": "https://www.ynet.co.il/sport/worldbasketball/article/rjga2utezg",
+        "title": "בארה\"ב ניתחו: זה כנראה האתגר הגדול ביותר של פורטלנד ודני אבדיה",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-22T01:00:00Z",
+        "published_at_meta": null,
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "event_type": "signing",
+        "event_certainty": "probable",
+        "importance": "high",
+        "confidence": 0.95,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers",
+          "signing"
+        ],
+        "cluster_id": "cluster_cb9979b3e6882b95",
+        "subtitle": "בתקשורת באורוגון מעריכים כי צירופו של ג'ה מוראנט תשנה לחלוטין את מאזן הכוחות בפורטלנד - אך גם תציב אתגר חדש בפני הפורוורד הישראלי: \"אם ישמור על יכולתו מאשתקד - לא תהיה ברירה אלא להעניק לו הארכת חוזה משמעותית\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija",
+          "team:portland_blazers"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "פורוורד"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "signing",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers",
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "source_url_hint",
+                "weight": 100,
+                "detail": "basketball"
+              },
+              {
+                "sport": "basketball",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "פורוורד"
+              },
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_source_sport_hint",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "signing"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_b163aeda6edffb63e6df",
+      "input": {
+        "id": "rss_b163aeda6edffb63e6df",
+        "source": "ynet_sport",
+        "source_display_name": "ynet ספורט",
+        "url": "https://www.ynet.co.il/sport/article/bkt11g3gnzx",
+        "title": "סינר שוב אלוף ווימבלדון: ניצח את זברב והגן על התואר",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-12T16:59:07Z",
+        "published_at_meta": null,
+        "sport": "tennis",
+        "league": "Wimbledon",
+        "entities": [],
+        "event_type": "title_win",
+        "event_certainty": "confirmed",
+        "importance": "very_high",
+        "confidence": 0.8,
+        "tags": [
+          "tennis",
+          "Wimbledon",
+          "title_win"
+        ],
+        "cluster_id": "cluster_cfa91d63a4ad9cd9",
+        "subtitle": "האיטלקי (1 בעולם) חזר מפיגור מערכה בדרך ל-7:6, 6:7, 3:6, 4:6 דומיננטי על אלכסנדר זברב. זהו תואר הגראנד סלאם החמישי בקריירה והשני ברציפות בלונדון",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": "comp:wimbledon",
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "tennis",
+            "evidence": [
+              {
+                "sport": "tennis",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "וימבלדון"
+              },
+              {
+                "sport": "tennis",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גראנד סלאם"
+              },
+              {
+                "sport": "tennis",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:wimbledon"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:wimbledon",
+            "article": [],
+            "explicit_hits": [
+              "comp:wimbledon"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "title_win",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "grand_slam_winner",
+        "event_certainty": "confirmed",
+        "importance": "very_high",
+        "tags": [
+          "tennis",
+          "Wimbledon",
+          "grand_slam_winner"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "tennis",
+            "evidence": [
+              {
+                "sport": "tennis",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "וימבלדון"
+              },
+              {
+                "sport": "tennis",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "גראנד סלאם"
+              },
+              {
+                "sport": "tennis",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:wimbledon"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:wimbledon",
+            "article": [],
+            "explicit_hits": [
+              "comp:wimbledon"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "grand_slam_winner",
+            "final": "grand_slam_winner",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "title_win"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_b1aae4e7cc49b8b8a481",
+      "input": {
+        "id": "rss_b1aae4e7cc49b8b8a481",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3852700",
+        "title": "מכסח דשא: יאניק סינר אלוף ווימבלדון בפעם השנייה ברציפות",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-12T19:57:00Z",
+        "published_at_meta": null,
+        "sport": "tennis",
+        "league": "Wimbledon",
+        "entities": [],
+        "event_type": "title_win",
+        "event_certainty": "confirmed",
+        "importance": "very_high",
+        "confidence": 0.8,
+        "tags": [
+          "tennis",
+          "Wimbledon",
+          "title_win"
+        ],
+        "cluster_id": "cluster_cfa91d63a4ad9cd9",
+        "subtitle": "יאניק סינר הפך הערב (ראשון) לטניסאי העשירי בעידן הפתוח שמגן על התואר שלו בווימבלדון, לאחר שניצח 7:6 (7), 6:7 (2), 3:6, 4:6 את סשה זברב במשחק הגמר והוכתר לאלוף על הדשא בפעם השנייה ברציפות.",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": "comp:wimbledon",
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "tennis",
+            "evidence": [
+              {
+                "sport": "tennis",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "וימבלדון"
+              },
+              {
+                "sport": "tennis",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "טניס"
+              },
+              {
+                "sport": "tennis",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:wimbledon"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:wimbledon",
+            "article": [],
+            "explicit_hits": [
+              "comp:wimbledon"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "title_win",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "grand_slam_winner",
+        "event_certainty": "confirmed",
+        "importance": "very_high",
+        "tags": [
+          "tennis",
+          "Wimbledon",
+          "grand_slam_winner"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "tennis",
+            "evidence": [
+              {
+                "sport": "tennis",
+                "source": "title_keyword",
+                "weight": 80,
+                "detail": "וימבלדון"
+              },
+              {
+                "sport": "tennis",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "טניס"
+              },
+              {
+                "sport": "tennis",
+                "source": "competition_keyword",
+                "weight": 55,
+                "detail": "comp:wimbledon"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": "comp:wimbledon",
+            "article": [],
+            "explicit_hits": [
+              "comp:wimbledon"
+            ],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "grand_slam_winner",
+            "final": "grand_slam_winner",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "title_win"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_b63e4f5f88329f126a0e",
+      "input": {
+        "id": "rss_b63e4f5f88329f126a0e",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854732",
+        "title": "\"לפורטלנד אסור לבצע את הטעות הזו עם דני אבדיה העונה\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-19T21:12:30.063440Z",
+        "published_at_meta": {
+          "provenance": "clamped_future",
+          "raw": "2026-07-19T22:11:00+00:00"
+        },
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers"
+        ],
+        "cluster_id": null,
+        "subtitle": "ב\"יאהו\" ייעצו לבלייזרס להמשיך להשתמש בכוכב הישראלי כשחקן המפתח, גם לאחר הגעת מוראנט וחזרת לילארד, אחרת \"תהיה בעיה שקשה לפתור\"",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "player:deni_avdija",
+          "team:portland_blazers"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Deni Avdija",
+          "Portland Trail Blazers",
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Deni Avdija,Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "player:deni_avdija",
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Deni Avdija",
+                "id": "player:deni_avdija"
+              },
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_b9902d274cbd28a67f49",
+      "input": {
+        "id": "rss_b9902d274cbd28a67f49",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3853053",
+        "title": "באנגליה מנתחים: איך מתגברים על העימות בין בלינגהאם וטוכל?",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-13T11:21:00Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "medium",
+        "confidence": 0.55,
+        "tags": [
+          "football"
+        ],
+        "cluster_id": null,
+        "subtitle": "מייקל אואן צידד במאמן (\"הוא צדק\"), אך ביקש לעבור הלאה: \"לא מתחילים ויכוח עם השחקן הכי טוב שלך לפני חצי הגמר\". ומה צפוי מול ארגנטינה?",
+        "classified_by": "llm+rules_guardrail",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": "Football negotiation between managers of Brighton and Tottenham.",
+        "classification_confidence": 0.85,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "llm",
+                "weight": 20,
+                "detail": "llm_proposal"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Brighton",
+              "Tottenham"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "llm+rules_guardrail",
+            "proposal": {
+              "sport": "football",
+              "league": null,
+              "event_type": "negotiation",
+              "importance": "medium",
+              "confidence": 0.85,
+              "entities": [
+                "Brighton",
+                "Tottenham"
+              ],
+              "reason": "Football negotiation between managers of Brighton and Tottenham."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "analysis",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "football",
+          "analysis"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "llm",
+                "weight": 20,
+                "detail": "llm_proposal"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [
+              "Brighton",
+              "Tottenham"
+            ],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "llm+rules_guardrail",
+            "proposal": {
+              "sport": "football",
+              "league": null,
+              "event_type": "negotiation",
+              "importance": "medium",
+              "confidence": 0.85,
+              "entities": [
+                "Brighton",
+                "Tottenham"
+              ],
+              "reason": "Football negotiation between managers of Brighton and Tottenham."
+            }
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "analysis",
+            "final": "analysis",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_df219a2e599de03f2ee1",
+      "input": {
+        "id": "rss_df219a2e599de03f2ee1",
+        "source": "ynet_sport",
+        "source_display_name": "ynet ספורט",
+        "url": "https://www.ynet.co.il/sport/article/r1dnaapbfx",
+        "title": "\"חשבתי על ישראל דברים לא נכונים, לא חשבתי שאתחבר ככה למדינה\"",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-30T08:00:23Z",
+        "published_at_meta": null,
+        "sport": "unknown",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.4,
+        "tags": [],
+        "cluster_id": null,
+        "subtitle": "מחר יגיע רגע האמת של המתעמל אלכס מיאקינין: מבחן כשירות שישלח אותו לאליפות היבשת, או צפייה בתחרות מבחוץ. בריאיון ל-ynet הוא מספר על המאמצים: \"יש לי עוד שבועיים לתת פייט, להראות שאני פה\"",
+        "classified_by": "rules_fallback_after_llm_failure",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "unknown",
+            "evidence": []
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "unknown",
+            "evidence": []
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "sport_unknown",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_eb38f019afdda0173279",
+      "input": {
+        "id": "rss_eb38f019afdda0173279",
+        "source": "walla_sport",
+        "source_display_name": "וואלה ספורט",
+        "url": "https://sports.walla.co.il/item/3854977",
+        "title": "דיווח: עתיד הבלייזרס בפורטלנד בסכנה על רקע משבר האולם",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-20T16:14:35.674452Z",
+        "published_at_meta": {
+          "provenance": "clamped_future",
+          "raw": "2026-07-20T17:06:00+00:00"
+        },
+        "sport": "basketball",
+        "league": "NBA",
+        "entities": [
+          "Portland Trail Blazers"
+        ],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.85,
+        "tags": [
+          "basketball",
+          "NBA",
+          "Portland Trail Blazers"
+        ],
+        "cluster_id": null,
+        "subtitle": "המחלוקת על מימון שיפוץ האולם הביתי, לצד סיום ההסכם ב-2030, מעוררת חשש שהקבוצה עשויה לעזוב את העיר. הדד-ליין: 31 בדצמבר",
+        "classified_by": "rules",
+        "classification_provider": null,
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [
+          "team:portland_blazers"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "relocation",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "basketball",
+          "NBA",
+          "Portland Trail Blazers",
+          "relocation"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "basketball",
+            "evidence": [
+              {
+                "sport": "basketball",
+                "source": "entity_derived",
+                "weight": 40,
+                "detail": "Portland Trail Blazers"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [
+              "team:portland_blazers"
+            ],
+            "alias_to_id": [
+              {
+                "legacy_name": "Portland Trail Blazers",
+                "id": "team:portland_blazers"
+              }
+            ],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": false,
+            "gate_reason": "strong_deterministic_result",
+            "classified_by": "rules",
+            "proposal": null
+          },
+          "conflicts": [],
+          "event": {
+            "proposed": "relocation",
+            "final": "relocation",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            },
+            "subject_entity_ids": []
+          }
+        }
+      }
+    },
+    {
+      "id": "rss_fcb1334d99e77e843a11",
+      "input": {
+        "id": "rss_fcb1334d99e77e843a11",
+        "source": "israel_hayom_sport",
+        "source_display_name": "ישראל היום ספורט",
+        "url": "https://www.israelhayom.co.il/sport/other-sports/article/21042873",
+        "title": "אחרי 10 שנים: ספורטאית הצמרת חשפה כי פרשה בגלל בעיות נפשיות",
+        "original_title": null,
+        "translated_title": null,
+        "language": "he",
+        "published_at": "2026-07-23T05:30:21Z",
+        "published_at_meta": null,
+        "sport": "football",
+        "league": null,
+        "entities": [],
+        "event_type": "news",
+        "event_certainty": "confirmed",
+        "importance": "low",
+        "confidence": 0.55,
+        "tags": [
+          "football"
+        ],
+        "cluster_id": null,
+        "subtitle": "הטניסאית הקרואטית אנה איבנוביץ' ירדה מהמגרש בפעם האחרונה בגיל 29 בלבד • בפודקאסט של מאמן נבחרת הכדורגל סלאבן ביליץ', היא הודתה: \"בכל פעם שעליתי למגרש היו לי התקפי חרדה חמורים\"",
+        "classified_by": "rules_fallback_after_llm_failure",
+        "classification_provider": "ollama:qwen2.5:3b-instruct",
+        "classification_reason": null,
+        "classification_confidence": null,
+        "primary_competition": null,
+        "article_competitions": [],
+        "entity_ids": [],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              },
+              {
+                "sport": "tennis",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "טניס"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [
+            {
+              "field": "sport",
+              "candidates": [
+                {
+                  "sport": "football",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "כדורגל"
+                },
+                {
+                  "sport": "tennis",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "טניס"
+                }
+              ],
+              "winner": "football",
+              "rule": "equal_weight_tie_kept"
+            }
+          ],
+          "event": {
+            "final": "news",
+            "certainty": "confirmed",
+            "validated_after_facts": true,
+            "corrected": false
+          }
+        },
+        "taxonomy_version": 1
+      },
+      "after": {
+        "event_type": "interview",
+        "event_certainty": "probable",
+        "importance": "medium",
+        "tags": [
+          "football",
+          "interview"
+        ],
+        "classification_trace": {
+          "taxonomy_version": 1,
+          "sport": {
+            "final": "football",
+            "evidence": [
+              {
+                "sport": "football",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "כדורגל"
+              },
+              {
+                "sport": "tennis",
+                "source": "subtitle_keyword",
+                "weight": 60,
+                "detail": "טניס"
+              }
+            ]
+          },
+          "competitions": {
+            "primary": null,
+            "article": [],
+            "explicit_hits": [],
+            "dropped": []
+          },
+          "entities": {
+            "resolved_ids": [],
+            "alias_to_id": [],
+            "dropped": [],
+            "rejected_llm_mentions": [],
+            "enrichment_injected": []
+          },
+          "llm": {
+            "gate_should_call": true,
+            "gate_reason": "hebrew_broad_source_unclear",
+            "classified_by": "rules_fallback_after_llm_failure",
+            "proposal": null
+          },
+          "conflicts": [
+            {
+              "field": "sport",
+              "candidates": [
+                {
+                  "sport": "football",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "כדורגל"
+                },
+                {
+                  "sport": "tennis",
+                  "source": "subtitle_keyword",
+                  "weight": 60,
+                  "detail": "טניס"
+                }
+              ],
+              "winner": "football",
+              "rule": "equal_weight_tie_kept"
+            }
+          ],
+          "event": {
+            "proposed": "interview",
+            "final": "interview",
+            "certainty": "probable",
+            "validated_after_facts": true,
+            "corrected": false,
+            "abstention_reason": null,
+            "correction": {
+              "issue": 191,
+              "previous_event": "news"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

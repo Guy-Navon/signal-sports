@@ -495,6 +495,31 @@ TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset({"title_win", "grand_slam_wi
 
 
 EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
+    # Existing editorial types already have preference affinities and are explicitly
+    # never clustered. Previously the classifier could not emit either of them.
+    "analysis": EventEvidenceRule(
+        required_any=((hword("ניתחו"), hword("מנתחים"), phrase("ניתוח טקטי"),
+                       regex(r'ב["״][^"״\n]+["״]\s+העריכו'), hword("ייעצו"), phrase("העלו שאלה"),
+                       word("analysis")),),
+    ),
+    "interview": EventEvidenceRule(
+        required_any=((phrase("בראיון"), phrase("בריאיון"), phrase("בפודקאסט"),
+                       phrase("in an interview"), phrase("in a podcast")),),
+    ),
+    # Franchise geography, not a player changing teams. A relocation report
+    # needs both franchise/home context and a physical move; mere arena news,
+    # trade language or a negated destination is insufficient.
+    "relocation": EventEvidenceRule(
+        required_any=(
+            (phrase("פרנצ'ייז"), phrase("המועדון"), phrase("הקבוצה"),
+             phrase("ביתו"), word("franchise"), word("team")),
+            (phrase("לעזוב את העיר"), phrase("להעביר את המועדון"),
+             phrase("יעביר את ביתו"),
+             word("relocate"), word("relocation"), phrase("move to another city")),
+        ),
+        blockers=(phrase("אין לאן לעבור"), phrase("ללא יעד"),
+                  phrase("לא תעבור"), phrase("will not relocate")),
+    ),
     "signing": EventEvidenceRule(
         required_any=(_SIGNING_COMPLETE,),
         blockers=_NEGOTIATION + _CANDIDATE + _RELEASE_COMPLETE,
@@ -614,6 +639,18 @@ def validate_event_evidence(
     if rule is None:
         return EventEvidence("news", False, "confirmed")
 
+    if event_type == "relocation" and "יעביר את ביתו" in normalized:
+        # Moving a player's private home alone is not franchise relocation.
+        # Require the coordinated franchise subject ("X ו<team>") too.
+        from app.taxonomy.entities import ENTITIES
+        coordinated_team = any(
+            re.search(r"(?<![א-ת])ו" + re.escape(alias.lower()) + r"(?![א-ת])", normalized)
+            for entity in ENTITIES.values() if entity.kind == "team"
+            for alias in entity.aliases
+        )
+        if not coordinated_team:
+            return EventEvidence("news", False, "confirmed")
+
     if event_type == "grand_slam_winner":
         # Same assertion semantics as title_win (#133): slam context plus a real
         # win assertion — a win verb or a bare champion-noun predicate — never a
@@ -658,4 +695,3 @@ def _certainty_for(rule: EventEvidenceRule, text: str, source: str) -> str:
     if _has_any(text, rule.confirmed_any):
         return "confirmed"
     return "probable"
-

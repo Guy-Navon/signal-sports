@@ -1,5 +1,14 @@
 # LLM Classification — PR 11 + Post-QA Fixes
 
+**2026-09-11 - Event routing (#191).** The prompt and allowed values include
+the authorized franchise `relocation` type and the previously existing product
+types `analysis` and `interview`. Each requires positive semantic evidence;
+unsupported proposals still abstain to `news`, now with an explicit post-facts
+reason. All 101 historical non-news LLM proposals found in the census used valid
+enums but failed semantic validation; none was blindly restored. This was not
+an enum fallback defect. No provider call or ingestion was run for this replay.
+[Per-row audit and measured effects](qa/N05_FEED_QUALITY_IMPLEMENTATION.md).
+
 ## Why LLM Classification?
 
 The deterministic keyword classifier has a structural ceiling. It works well for:

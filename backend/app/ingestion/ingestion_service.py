@@ -92,6 +92,7 @@ def _apply_post_facts_event_validation(
     live corpus proved the certainty cap alone was not enough to stop it.
     """
     evidence_text = f"{title_lower} {subtitle_lower}".strip()
+    proposed_event = final_result.event_type
     source = "llm" if final_result.event_certainty == "weak" else "rules"
     event_evidence = validate_event_evidence(
         final_result.event_type,
@@ -143,13 +144,28 @@ def _apply_post_facts_event_validation(
             facts.sport, facts.league, facts.entities, final_result.event_type
         )
     facts.trace["event"] = {
+        "proposed": proposed_event,
         "final": final_result.event_type,
         "certainty": final_result.event_certainty,
         "validated_after_facts": True,
         # True when the proposed event failed semantic evidence validation and
         # was corrected to "news" — feeds the per-run event_correction_rate (#31).
         "corrected": corrected,
+        "abstention_reason": (
+            ("proposed_event_failed_semantic_evidence" if corrected
+             else "no_supported_event_with_positive_evidence")
+            if final_result.event_type == "news" else None
+        ),
     }
+    if final_result.event_type == "relocation":
+        from app.classification.event_subjects import relocation_subject_ids
+        facts.trace["event"]["subject_entity_ids"] = relocation_subject_ids(
+            title_lower, facts.entity_ids
+        )
+    from app.classification.attention_evidence import attention_evidence
+    facts.trace["attention"] = attention_evidence(
+        title_lower, subtitle_lower, final_result.event_type, facts.entity_ids
+    )
     return final_result
 
 

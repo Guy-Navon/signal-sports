@@ -20,12 +20,12 @@
     "entity_ids": [
      "player:lebron_james"
     ],
-    "event_type": "news",
-    "event_certainty": "confirmed",
-    "importance": "low",
+    "event_type": "interview",
+    "event_certainty": "probable",
+    "importance": "medium",
     "primary_competition": "comp:nba",
     "classified_by": "rules",
-    "guy": "low_feed",
+    "guy": "feed",
     "deni": "hidden"
    },
    "desired": {

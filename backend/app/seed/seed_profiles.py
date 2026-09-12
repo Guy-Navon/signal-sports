@@ -407,6 +407,8 @@ DENI_FAN_PROFILE_V2 = ProfileV2(
     ],
     overrides=[
         OverrideRule(kind="always_push", scope="player", target_id="player:deni_avdija",
+                     event_type="relocation"),
+        OverrideRule(kind="always_push", scope="player", target_id="player:deni_avdija",
                      event_type="major_trade"),
         OverrideRule(kind="always_push", scope="player", target_id="player:deni_avdija",
                      event_type="injury"),

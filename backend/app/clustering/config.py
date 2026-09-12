@@ -34,7 +34,7 @@ CLUSTERABLE_EVENT_STATES: frozenset[str] = frozenset({
     # neither set, it fell through the event-state gate and could never cluster AT ANY
     # SIMILARITY. In the real feed that produced FOUR near-identical high_feed cards for
     # one Maccabi release.
-    "release", "major_trade",
+    "release", "major_trade", "relocation",
     # ── Injury ────────────────────────────────────────────────────────────────
     "injury",
     # ── Results ───────────────────────────────────────────────────────────────
@@ -81,6 +81,7 @@ DEFAULT_TIME_WINDOW_HOURS: dict[str, float] = {
     "signing": 24.0,
     "release": 24.0,          # a release is a transfer-cycle event, like a signing (#121)
     "major_trade": 24.0,
+    "relocation": 24.0,
     "negotiation": 24.0,
     "candidate": 24.0,
     "rumor": 24.0,

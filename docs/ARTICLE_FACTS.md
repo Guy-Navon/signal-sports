@@ -1,5 +1,16 @@
 # ArticleFacts — Evidence-Backed Competitions, Entity IDs & Classification Trace
 
+**2026-09-11 - Event abstention and attention evidence (#191/#192).** The
+post-facts event trace now includes `proposed` and `abstention_reason` (failed
+semantic proposal versus no positively supported event). `news` remains a valid
+abstention. Relocation stores title-participant `event.subject_entity_ids`;
+a possessive player mention is insufficient. Profile-independent
+`attention.development` and `attention.subject_entity_ids` describe current
+agreement/completion, imminent renewal, injury, routine uncertainty or retrospective
+reporting. They are facts, not a relevance score. Existing evidence/certainty
+thresholds, sport, entity resolution and explicit competition rules are unchanged.
+[Implementation evidence](qa/N05_FEED_QUALITY_IMPLEMENTATION.md).
+
 Part of **Signal Intelligence Architecture v2** (issue #28, the FACTS layer,
 depends on the taxonomy foundation — see `docs/TAXONOMY.md`).
 

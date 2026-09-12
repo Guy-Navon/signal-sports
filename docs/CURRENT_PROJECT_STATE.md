@@ -1,6 +1,17 @@
 # Signal Sports — Current Project State
 
-**2026-09-11 — Feed-quality milestone diagnostic stop.** The required whole-corpus census found 816/1,427 RSS items classified `news`. G4's existing Deni trade/injury overrides cannot truthfully fire on the reviewed corpus: the owner-rated push example is franchise relocation, not a player trade. Implementation stopped under the brief's principled-stop condition; #191/#192 remain unimplemented by this work and all measured metrics are unchanged. See [census, evidence and gate results](qa/N05_MILESTONE_FEED_QUALITY_FINDINGS.md). This entry records diagnostics, not a shipped behavior change.
+**2026-09-11 - Feed-quality implementation (#191/#192), pending PR merge.**
+The earlier diagnostic stop is superseded by the authorized relocation decision
+and implementation on `feat/feed-quality-implementation`. Positive editorial
+routing, explicit abstention traces, factual push severity, and validated Lundberg
+subject anchors are implemented. Backed-up targeted corrections reached the
+local corpus. Guy shown precision / false hide: **98.3% / 18.0%**; Deni:
+**91.7% / 0.8%**. Guy has seven push articles forming four approved notification
+stories. Deni over-ranking is seven items and its relocation rule fires once.
+**G1 recall and G3 cluster-coverage targets remain unmet**; no contract was
+weakened to reach them. See [full outcomes, gate results and evidence](qa/N05_FEED_QUALITY_IMPLEMENTATION.md).
+The prior [census findings](qa/N05_MILESTONE_FEED_QUALITY_FINDINGS.md) remain
+historical evidence; this is not a claim that main or a deployed service changed.
 
 **Repair branch note (2026-09-05):** `fix/repository-audit` contains a repository review and focused reliability fixes. See the [Hebrew audit report](audits/2026-09-05.md) and [standalone interactive artifact](audits/2026-09-05.html) for findings, validation and next steps. These changes have not been merged or deployed; the historical milestones below retain their original dates.
 

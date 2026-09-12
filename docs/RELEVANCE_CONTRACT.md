@@ -1,5 +1,16 @@
 # Relevance Contract — Decision-Level Semantics (issue #35)
 
+**2026-09-11 - Feed-quality changes (#191/#192).** Explicit transfer/injury
+push overrides now require factual attention evidence on newly ingested or
+reviewed rows: current agreement/completion, imminent renewal, or current injury,
+with the followed team/player as a title subject. Historical rows lacking this
+metadata retain their old behavior. Normal visibility and affinities remain
+separate. Relocation player overrides additionally require factual participant
+IDs; only Deni's profile gains the authorized relocation rule. See
+[implementation, gate results and unmet targets](qa/N05_FEED_QUALITY_IMPLEMENTATION.md).
+The N05 gate still counts push ARTICLES; actual planner STORIES are reported
+separately. No semantic threshold or gate policy was relaxed.
+
 The umbrella contract for how an article becomes a feed decision. Layer
 detail lives in the per-layer docs; this file is the map.
 

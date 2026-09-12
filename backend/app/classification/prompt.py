@@ -13,7 +13,7 @@ Return this exact JSON structure (copy the keys exactly as shown):
 Allowed values for each field:
 - "sport": one of: basketball, football, tennis, unknown
 - "league": one of: NBA, EuroLeague, EuroCup, Israeli Basketball League, Spanish ACB, Turkish BSL, Greek Basket League, Italian LBA, French LNB, Wimbledon, Roland Garros, US Open, Australian Open, Israeli Premier League — or null if not confident
-- "event_type": one of: signing, negotiation, candidate, injury, major_trade, match_result, regular_season_result, finals_result, title_win, grand_slam_winner, playoff_result, early_round_result, schedule, release, news
+- "event_type": one of: signing, negotiation, candidate, injury, major_trade, match_result, regular_season_result, finals_result, title_win, grand_slam_winner, playoff_result, early_round_result, schedule, release, relocation, interview, analysis, news
 - "importance": one of: very_high, high, medium, low
 - "confidence": a float from 0.0 to 1.0
 - "entities": list of team names, player names, coach names found in the headline
@@ -25,6 +25,9 @@ Rules:
 - For multi-sport entities (Olympiacos, Real Madrid, Maccabi Tel Aviv, Hapoel Tel Aviv): only assign sport when the headline contains clear sport context (players, roles, competition names)
 - confidence below 0.65 means you are not confident — keep sport as "unknown" and league as null
 - Do not decide whether to show this article to a user; classify it objectively
+- relocation means a franchise moving its home city, not a player trade or routine arena news.
+- Use interview or analysis only with explicit editorial-format evidence. A background transaction does not turn an analysis into a signing.
+- news is a deliberate abstention when no supported event fits; explain the missing evidence in reason.
 
 Examples:
 

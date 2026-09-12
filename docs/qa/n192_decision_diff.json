@@ -1,0 +1,1339 @@
+{
+  "profiles": {
+    "guy": {
+      "total": 1427,
+      "unchanged": 1411,
+      "changes": [
+        {
+          "id": "rss_113b0da3d591301b0e46",
+          "title": "דיווח: ריאל מדריד מנהלת מגעים לצירופו של לוני ווקר",
+          "subtitle": "הגארד האמריקאי בדרך לפרידה סופית ממכבי תל אביב. הבלאנקוס רואים בו חתיכה חסרה בפאזל, הצהובים כבר סימנו מחליפים",
+          "before": "push",
+          "after": "high_feed",
+          "rating": "high",
+          "old_event": "negotiation",
+          "event": "negotiation",
+          "assessment": "intended contract change",
+          "reason": "New factual attention requirement withholds routine, retrospective, or incidental-team push",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:greek_basket, comp:lba, comp:lnb, comp:nba, football, player:deni_avdija, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "+3",
+              "detail": "team:Maccabi Tel Aviv Basketball level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "push_severity",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "withheld",
+              "detail": "routine_or_uncertain"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_b85be10794c2fd05aba8",
+          "title": "דיווח: לוני ווקר במו\"מ עם קבוצה ענקית מהיורוליג",
+          "subtitle": "הגארד צפוי לעזוב את מכבי תל אביב ולפי העיתונאי צ'מה דה לוקאס נמצא במגעים עם ריאל מדריד",
+          "before": "push",
+          "after": "high_feed",
+          "rating": "feed",
+          "old_event": "negotiation",
+          "event": "negotiation",
+          "assessment": "intended contract change",
+          "reason": "New factual attention requirement withholds routine, retrospective, or incidental-team push",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:bsl, comp:eurocup, comp:greek_basket, comp:lba, comp:lnb, comp:nba, football, player:deni_avdija, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "+3",
+              "detail": "team:Maccabi Tel Aviv Basketball level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "push_severity",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "withheld",
+              "detail": "routine_or_uncertain"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_e367fa5edfc97c493767",
+          "title": "יעד מפתיע: הכישרון של מכבי תל אביב מתקרב לקבוצה חדשה",
+          "subtitle": "אחרי שכיכב בקבוצת הנוער והשתלב בקבוצה הבוגרת, תמיר גולד מבוקש בליגה הלאומית • ל\"היום\" נודע כי אחת מקבוצות ליגת המשנה מנהלת עימו משא ומתן מתקדם",
+          "before": "push",
+          "after": "high_feed",
+          "rating": "feed",
+          "old_event": "negotiation",
+          "event": "negotiation",
+          "assessment": "intended contract change",
+          "reason": "New factual attention requirement withholds routine, retrospective, or incidental-team push",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:greek_basket, comp:lba, comp:lnb, comp:nba, football, player:deni_avdija, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "+3",
+              "detail": "team:Maccabi Tel Aviv Basketball level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "push_severity",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "withheld",
+              "detail": "routine_or_uncertain"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_0ba753f9cefe21a05dde",
+          "title": "התקדם ממכבי תל אביב: התפקיד המפתיע של דורון פרקינס",
+          "subtitle": "אחרי 5 שנים כעוזר מאמן הצהובים וקליבלנד צ'ארג' מליגת הפיתוח, כוכב העבר התקדם לתפקיד המאמן הראשי • גוואנגז'ו לונג ליונס, מהליגה הבכירה בסין, הודיעה רשמית על מינויו • וגם: ההתפתחות המהירה של המועדון החדש שלו",
+          "before": "push",
+          "after": "high_feed",
+          "rating": "feed",
+          "old_event": "signing",
+          "event": "signing",
+          "assessment": "intended contract change",
+          "reason": "New factual attention requirement withholds routine, retrospective, or incidental-team push",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:greek_basket, comp:lba, comp:lnb, comp:nba, football, player:deni_avdija, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "+3",
+              "detail": "team:Maccabi Tel Aviv Basketball level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "push_severity",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "withheld",
+              "detail": "retrospective_or_rejected"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_37ab1ebf1090b93f489c",
+          "title": "כל הפרטים: כך פוספס הקאמבק של ג`וש ניבו למכבי תל אביב",
+          "subtitle": "כמעט מחטף לבארסה: הגבוה היה במו\"מ מתקדם בשבועות האחרונים, הביע נכונות לשוב והצדדים כבר התקרבו בסכומים. מה הפיל את העסקה? מאחורי הקלעים והפלונטר שנוצר בגזרת הגבוהים",
+          "before": "push",
+          "after": "high_feed",
+          "rating": "feed",
+          "old_event": "negotiation",
+          "event": "negotiation",
+          "assessment": "intended contract change",
+          "reason": "New factual attention requirement withholds routine, retrospective, or incidental-team push",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:greek_basket, comp:lba, comp:lnb, comp:nba, football, player:deni_avdija, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "+3",
+              "detail": "team:Maccabi Tel Aviv Basketball level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "push_severity",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "withheld",
+              "detail": "retrospective_or_rejected"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_5d4dde1b5350f921faa6",
+          "title": "מתקרב: הצטמצמו הפערים בין מכבי תל אביב ואיפה לונדברג",
+          "subtitle": "אחד מכוכבי העונה שעברה ישאר? תמונת המצב במו\"מ בין הצהובים לגארד הדני",
+          "before": "push",
+          "after": "high_feed",
+          "rating": "high",
+          "old_event": "negotiation",
+          "event": "negotiation",
+          "assessment": "intended contract change",
+          "reason": "New factual attention requirement withholds routine, retrospective, or incidental-team push",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:greek_basket, comp:lba, comp:lnb, comp:nba, football, player:deni_avdija, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "+3",
+              "detail": "team:Maccabi Tel Aviv Basketball level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "push_severity",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "withheld",
+              "detail": "routine_or_uncertain"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_7b895b3961903082aba6",
+          "title": "\"יכולתי להיות הרבה יותר טוב במכבי תל אביב, אם לא הפציעה\"",
+          "subtitle": "בורקו ראדוביץ', ששיחק שמונה שנים בישראל, חוזר ארצה בתור עוזרו של שרון דרוקר בהפועל חיפה: \"המטרה היא עלייה לליגת העל\" • בראיון ל\"היום\" הוא נזכר בזכייה עם הצהובים בגביע אירופה: \"התקופה הזו היא פסגת הקריירה\" • ובטוח שווסיליה מיציץ', ששיחק תחתי",
+          "before": "push",
+          "after": "high_feed",
+          "rating": "low",
+          "old_event": "injury",
+          "event": "injury",
+          "assessment": "intended contract change",
+          "reason": "New factual attention requirement withholds routine, retrospective, or incidental-team push",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:greek_basket, comp:lba, comp:lnb, comp:nba, football, player:deni_avdija, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "+3",
+              "detail": "team:Maccabi Tel Aviv Basketball level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "push_severity",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "withheld",
+              "detail": "retrospective_or_rejected"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_ad67dfa049f180097888",
+          "title": "\"במכבי תל אביב האמינו שיגיע, המשפחה שלו טרפה הכל\"",
+          "subtitle": "בסרביה התייחסו לחתימה של מרכוס בינגהאם בפנרבחצ'ה: \"הוא היה ממש קרוב, המצב השתנה עקב המצב הביטחוני במזרח התיכון\"",
+          "before": "push",
+          "after": "high_feed",
+          "rating": "feed",
+          "old_event": "signing",
+          "event": "signing",
+          "assessment": "intended contract change",
+          "reason": "New factual attention requirement withholds routine, retrospective, or incidental-team push",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:greek_basket, comp:lba, comp:lnb, comp:nba, football, player:deni_avdija, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "+3",
+              "detail": "team:Maccabi Tel Aviv Basketball level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "push_severity",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "withheld",
+              "detail": "retrospective_or_rejected"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_4ccde3af1a05659e3400",
+          "title": "סעיף היציאה פג, הסאגה עוד לא: לוני ווקר יעזוב?",
+          "subtitle": "על פי ההסכם בין הצדדים, הלילה הסתיימה אופציית המעבר שלו ל-NBA, אולם במכבי ת\"א מבהירים כי הסוגייה עדיין לא נסגרה סופית. נציגיו ממשיכים לנהל מגעים עם מספר קבוצות",
+          "before": "push",
+          "after": "high_feed",
+          "rating": "feed",
+          "old_event": "negotiation",
+          "event": "negotiation",
+          "assessment": "intended contract change",
+          "reason": "New factual attention requirement withholds routine, retrospective, or incidental-team push",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:greek_basket, comp:lba, comp:lnb, football, player:deni_avdija, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "+3",
+              "detail": "team:Maccabi Tel Aviv Basketball level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "push_severity",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "withheld",
+              "detail": "routine_or_uncertain"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_7b3a5ad13cf2a7cf448b",
+          "title": "כבר חתם על חוזה: כוכב היורוליג דחה את הפועל ומכבי תל אביב",
+          "subtitle": "מוזס רייט לא יגיע לישראל: על פי דיווח של באיטליה, סנטר ז'לגיריס קובנה חתם על חוזה לשנתיים באולימפיה מילאנו, במסגרתו ישתכר כ־3.5 מיליון דולר בסך הכל • אלו הסיבות",
+          "before": "push",
+          "after": "high_feed",
+          "rating": "feed",
+          "old_event": "signing",
+          "event": "signing",
+          "assessment": "intended contract change",
+          "reason": "New factual attention requirement withholds routine, retrospective, or incidental-team push",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:greek_basket, comp:lba, comp:lnb, comp:nba, football, player:deni_avdija, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "+3",
+              "detail": "team:Maccabi Tel Aviv Basketball level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "push_severity",
+              "scope": "team:maccabi_tlv_bb",
+              "effect": "withheld",
+              "detail": "retrospective_or_rejected"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_b1aae4e7cc49b8b8a481",
+          "title": "מכסח דשא: יאניק סינר אלוף ווימבלדון בפעם השנייה ברציפות",
+          "subtitle": "יאניק סינר הפך הערב (ראשון) לטניסאי העשירי בעידן הפתוח שמגן על התואר שלו בווימבלדון, לאחר שניצח 7:6 (7), 6:7 (2), 3:6, 4:6 את סשה זברב במשחק הגמר והוכתר לאלוף על הדשא בפעם השנייה ברציפות.",
+          "before": "hidden",
+          "after": "high_feed",
+          "rating": "feed",
+          "old_event": "title_win",
+          "event": "grand_slam_winner",
+          "assessment": "intended contract change",
+          "reason": "Existing Grand Slam winner event affinity",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:euroleague, comp:greek_basket, comp:ibl, comp:lba, comp:lnb, comp:nba, football, player:deni_avdija, team:maccabi_tlv_bb"
+            },
+            {
+              "step": "base_scope",
+              "scope": "tennis",
+              "effect": "+0",
+              "detail": "sport:sport: tennis level=low",
+              "source": "explicit"
+            },
+            {
+              "step": "event_affinity",
+              "scope": "tennis",
+              "effect": "+2",
+              "detail": "grand_slam_winner",
+              "source": "explicit"
+            },
+            {
+              "step": "importance",
+              "scope": null,
+              "effect": "+1",
+              "detail": "very_high"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_b163aeda6edffb63e6df",
+          "title": "סינר שוב אלוף ווימבלדון: ניצח את זברב והגן על התואר",
+          "subtitle": "האיטלקי (1 בעולם) חזר מפיגור מערכה בדרך ל-7:6, 6:7, 3:6, 4:6 דומיננטי על אלכסנדר זברב. זהו תואר הגראנד סלאם החמישי בקריירה והשני ברציפות בלונדון",
+          "before": "hidden",
+          "after": "high_feed",
+          "rating": null,
+          "old_event": "title_win",
+          "event": "grand_slam_winner",
+          "assessment": "intended contract change",
+          "reason": "Existing Grand Slam winner event affinity",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:euroleague, comp:greek_basket, comp:ibl, comp:lba, comp:lnb, comp:nba, football, player:deni_avdija, team:maccabi_tlv_bb"
+            },
+            {
+              "step": "base_scope",
+              "scope": "tennis",
+              "effect": "+0",
+              "detail": "sport:sport: tennis level=low",
+              "source": "explicit"
+            },
+            {
+              "step": "event_affinity",
+              "scope": "tennis",
+              "effect": "+2",
+              "detail": "grand_slam_winner",
+              "source": "explicit"
+            },
+            {
+              "step": "importance",
+              "scope": null,
+              "effect": "+1",
+              "detail": "very_high"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "high_feed",
+              "detail": "score=3"
+            }
+          ]
+        },
+        {
+          "id": "rss_abe188261aea315dcfee",
+          "title": "בארה\"ב ניתחו: זה כנראה האתגר הגדול ביותר של פורטלנד ודני אבדיה",
+          "subtitle": "בתקשורת באורוגון מעריכים כי צירופו של ג'ה מוראנט תשנה לחלוטין את מאזן הכוחות בפורטלנד - אך גם תציב אתגר חדש בפני הפורוורד הישראלי: \"אם ישמור על יכולתו מאשתקד - לא תהיה ברירה אלא להעניק לו הארכת חוזה משמעותית\"",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": null,
+          "old_event": "signing",
+          "event": "analysis",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:euroleague, comp:greek_basket, comp:ibl, comp:lba, comp:lnb, comp:nba, football, team:maccabi_tlv_bb, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+2",
+              "detail": "player:Deni Avdija level=high",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        },
+        {
+          "id": "rss_2d693144f4586ef3278e",
+          "title": "\"אם דני אבדיה יעשה את זה, לפורטלנד לא תהיה ברירה\"",
+          "subtitle": "אחרי הטרייד המסקרן על ג'ה מוראנט, ב\"ספורט אילוסטרייטד\" העלו שאלה על כל שחקן בחמישייה הפותחת החדשה • לגבי הישראלי תהו \"האם יוכיח שהוא חלק מהעתיד של הקבוצה לטווח הארוך?\" • וענו לעצמם: \"אם ישפר את היעילות ההתקפית, יקבל הארכת חוזה משמעותית\"",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": "feed",
+          "old_event": "signing",
+          "event": "analysis",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:euroleague, comp:greek_basket, comp:ibl, comp:lba, comp:lnb, comp:nba, football, team:maccabi_tlv_bb, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+2",
+              "detail": "player:Deni Avdija level=high",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        },
+        {
+          "id": "rss_23d86abd3f442f86244e",
+          "title": "ההחלטה המפוקפקת שאולי עוד תגרום לדני אבדיה לעזוב את פורטלנד",
+          "subtitle": "בארה\"ב ניתחו את צירופו של ג'ה מוראנט: \"יש בזה הרבה יותר סיכון משנראה. זה יקשה על הענקת חוזה חדש לדני בקיץ הבא\"",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": null,
+          "old_event": "signing",
+          "event": "analysis",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:euroleague, comp:greek_basket, comp:ibl, comp:lba, comp:lnb, comp:nba, football, team:maccabi_tlv_bb, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+2",
+              "detail": "player:Deni Avdija level=high",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        },
+        {
+          "id": "rss_2f23e95b413b2bb9f6bc",
+          "title": "\"5 קבוצות יורוליג הציעו אותו שכר, עם סעיף יציאה ל-NBA\"",
+          "subtitle": "סילבן פרנסיסקו, אחד השחקנים המחוזרים ביותר באירופה, בחר לחתום בווילרבאן והפך למשתכר הגבוה בתולדות הכדורסל הצרפתי • בראיון הוא חשף: \"כולן הסכימו לאותם תנאים, מבחינתי הפרויקט הזה היה המעניין ביותר, להנהיג קבוצה צרפתית לפיינל פור\"",
+          "before": "low_feed",
+          "after": "feed",
+          "rating": "feed",
+          "old_event": "news",
+          "event": "interview",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "scopes_considered",
+              "scope": null,
+              "effect": "no_match",
+              "detail": "coach:oded_kattash, comp:acb, comp:bsl, comp:eurocup, comp:greek_basket, comp:ibl, comp:lba, comp:lnb, football, player:deni_avdija, team:maccabi_tlv_bb, tennis"
+            },
+            {
+              "step": "base_scope",
+              "scope": "comp:euroleague",
+              "effect": "+2",
+              "detail": "competition:EuroLeague (explicit_competition_evidence) level=high match_kind=explicit",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        }
+      ],
+      "original_push_trace": [
+        {
+          "id": "rss_641d111dad0a0dc8620d",
+          "title": "נשאר צהוב: איפה לונדברג סיכם לשנתיים נוספות במכבי ת\"א",
+          "rating": "push",
+          "event": "negotiation",
+          "before_cluster": null,
+          "after_cluster": "cluster_154662894917b642",
+          "after": "push",
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "חוק push מפורש: team:maccabi_tlv_bb (negotiation)",
+            "החלטה סופית: דורש תשומת לב"
+          ]
+        },
+        {
+          "id": "rss_8362e4afb01bf26bbef9",
+          "title": "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב",
+          "rating": "push",
+          "event": "negotiation",
+          "before_cluster": null,
+          "after_cluster": "cluster_154662894917b642",
+          "after": "push",
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "חוק push מפורש: team:maccabi_tlv_bb (negotiation)",
+            "החלטה סופית: דורש תשומת לב"
+          ]
+        },
+        {
+          "id": "rss_2e9f8bef5a3cf1073f11",
+          "title": "בשורה אדירה למכבי תל אביב: איפה לונדברג סיכם על חוזה חדש",
+          "rating": "push",
+          "event": "negotiation",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "push",
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "חוק push מפורש: team:maccabi_tlv_bb (negotiation)",
+            "החלטה סופית: דורש תשומת לב"
+          ]
+        },
+        {
+          "id": "rss_aab7e4b98b877da05e8f",
+          "title": "השוק הנוסף שמכבי תל אביב בוחנת לעמדת הסנטר, ומתי לונדברג יסגור?",
+          "rating": "push",
+          "event": "signing",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "push",
+          "attention": {
+            "development": "imminent_renewal",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "חוק push מפורש: team:maccabi_tlv_bb (signing)",
+            "החלטה סופית: דורש תשומת לב"
+          ]
+        },
+        {
+          "id": "rss_ff501392ec59403606ad",
+          "title": "מכבי ת\"א הציגה את ים מדר: \"פותח פרק חדש. יאללה מכבי\"",
+          "rating": "push",
+          "event": "signing",
+          "before_cluster": "cluster_8418f57b3706ae47",
+          "after_cluster": "cluster_8418f57b3706ae47",
+          "after": "push",
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "חוק push מפורש: team:maccabi_tlv_bb (signing)",
+            "החלטה סופית: דורש תשומת לב"
+          ]
+        },
+        {
+          "id": "rss_81f1e1469be5fd299749",
+          "title": "היקר בתולדותיה: ים מדר חתם רשמית במכבי ת\"א",
+          "rating": "push",
+          "event": "signing",
+          "before_cluster": "cluster_8418f57b3706ae47",
+          "after_cluster": "cluster_8418f57b3706ae47",
+          "after": "push",
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "חוק push מפורש: team:maccabi_tlv_bb (signing)",
+            "החלטה סופית: דורש תשומת לב"
+          ]
+        },
+        {
+          "id": "rss_2b094951a5d4cadffa96",
+          "title": "ים מדר חתם במכבי ת\"א: \"מבטיח לתת את הכל\" | נחשף ב-ynet",
+          "rating": "push",
+          "event": "signing",
+          "before_cluster": "cluster_8418f57b3706ae47",
+          "after_cluster": "cluster_8418f57b3706ae47",
+          "after": "push",
+          "attention": {
+            "development": "agreement_or_completion",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "חוק push מפורש: team:maccabi_tlv_bb (signing)",
+            "החלטה סופית: דורש תשומת לב"
+          ]
+        },
+        {
+          "id": "rss_113b0da3d591301b0e46",
+          "title": "דיווח: ריאל מדריד מנהלת מגעים לצירופו של לוני ווקר",
+          "rating": "high",
+          "event": "negotiation",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "high_feed",
+          "attention": {
+            "development": "routine_or_uncertain",
+            "subject_entity_ids": []
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "ניקוד: 3 → חשוב",
+            "החלטה סופית: חשוב"
+          ]
+        },
+        {
+          "id": "rss_b85be10794c2fd05aba8",
+          "title": "דיווח: לוני ווקר במו\"מ עם קבוצה ענקית מהיורוליג",
+          "rating": "feed",
+          "event": "negotiation",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "high_feed",
+          "attention": {
+            "development": "routine_or_uncertain",
+            "subject_entity_ids": []
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "ניקוד: 3 → חשוב",
+            "החלטה סופית: חשוב"
+          ]
+        },
+        {
+          "id": "rss_e367fa5edfc97c493767",
+          "title": "יעד מפתיע: הכישרון של מכבי תל אביב מתקרב לקבוצה חדשה",
+          "rating": "feed",
+          "event": "negotiation",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "high_feed",
+          "attention": {
+            "development": "routine_or_uncertain",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "ניקוד: 3 → חשוב",
+            "החלטה סופית: חשוב"
+          ]
+        },
+        {
+          "id": "rss_0ba753f9cefe21a05dde",
+          "title": "התקדם ממכבי תל אביב: התפקיד המפתיע של דורון פרקינס",
+          "rating": "feed",
+          "event": "signing",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "high_feed",
+          "attention": {
+            "development": "retrospective_or_rejected",
+            "subject_entity_ids": []
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "ניקוד: 3 → חשוב",
+            "החלטה סופית: חשוב"
+          ]
+        },
+        {
+          "id": "rss_37ab1ebf1090b93f489c",
+          "title": "כל הפרטים: כך פוספס הקאמבק של ג`וש ניבו למכבי תל אביב",
+          "rating": "feed",
+          "event": "negotiation",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "high_feed",
+          "attention": {
+            "development": "retrospective_or_rejected",
+            "subject_entity_ids": []
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "ניקוד: 3 → חשוב",
+            "החלטה סופית: חשוב"
+          ]
+        },
+        {
+          "id": "rss_5d4dde1b5350f921faa6",
+          "title": "מתקרב: הצטמצמו הפערים בין מכבי תל אביב ואיפה לונדברג",
+          "rating": "high",
+          "event": "negotiation",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "high_feed",
+          "attention": {
+            "development": "routine_or_uncertain",
+            "subject_entity_ids": [
+              "team:maccabi_tlv_bb"
+            ]
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "ניקוד: 3 → חשוב",
+            "החלטה סופית: חשוב"
+          ]
+        },
+        {
+          "id": "rss_7b895b3961903082aba6",
+          "title": "\"יכולתי להיות הרבה יותר טוב במכבי תל אביב, אם לא הפציעה\"",
+          "rating": "low",
+          "event": "injury",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "high_feed",
+          "attention": {
+            "development": "retrospective_or_rejected",
+            "subject_entity_ids": []
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "ניקוד: 3 → חשוב",
+            "החלטה סופית: חשוב"
+          ]
+        },
+        {
+          "id": "rss_ad67dfa049f180097888",
+          "title": "\"במכבי תל אביב האמינו שיגיע, המשפחה שלו טרפה הכל\"",
+          "rating": "feed",
+          "event": "signing",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "high_feed",
+          "attention": {
+            "development": "retrospective_or_rejected",
+            "subject_entity_ids": []
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "ניקוד: 3 → חשוב",
+            "החלטה סופית: חשוב"
+          ]
+        },
+        {
+          "id": "rss_4ccde3af1a05659e3400",
+          "title": "סעיף היציאה פג, הסאגה עוד לא: לוני ווקר יעזוב?",
+          "rating": "feed",
+          "event": "negotiation",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "high_feed",
+          "attention": {
+            "development": "routine_or_uncertain",
+            "subject_entity_ids": []
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "ניקוד: 3 → חשוב",
+            "החלטה סופית: חשוב"
+          ]
+        },
+        {
+          "id": "rss_7b3a5ad13cf2a7cf448b",
+          "title": "כבר חתם על חוזה: כוכב היורוליג דחה את הפועל ומכבי תל אביב",
+          "rating": "feed",
+          "event": "signing",
+          "before_cluster": null,
+          "after_cluster": null,
+          "after": "high_feed",
+          "attention": {
+            "development": "retrospective_or_rejected",
+            "subject_entity_ids": []
+          },
+          "reasoning": [
+            "פרופיל (v2): Guy",
+            "בסיס: עוקב (very_high) אחרי Maccabi Tel Aviv Basketball → 3 נק' (בחירה מפורשת)",
+            "ניקוד: 3 → חשוב",
+            "החלטה סופית: חשוב"
+          ]
+        }
+      ]
+    },
+    "casual_deni_fan": {
+      "total": 1427,
+      "unchanged": 1417,
+      "changes": [
+        {
+          "id": "rss_4c34e0718aadb617f71b",
+          "title": "דיווח דרמטי: דני אבדיה ופורטלנד עשויים לעבור לאוקלהומה",
+          "subtitle": "הכוכב הישראלי יעביר את ביתו ליעד חדש?",
+          "before": "high_feed",
+          "after": "push",
+          "rating": "push",
+          "old_event": "news",
+          "event": "relocation",
+          "assessment": "intended contract change",
+          "reason": "Explicit followed-player relocation override",
+          "contributions": [
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+3",
+              "detail": "player:Deni Avdija level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "override",
+              "scope": "player:deni_avdija",
+              "effect": "push",
+              "detail": "always_push:relocation"
+            }
+          ]
+        },
+        {
+          "id": "rss_3c86a7d7a90a1ac4a2bb",
+          "title": "הכול מתחיל בדני אבדיה: המפתחות להצלחתו של מאמן הבלייזרס",
+          "subtitle": "ב\"ספורטס אילוסטרייטד\" ניתחו את כניסתו של נורי לתפקיד וקבעו שהשאלה החשובה ביותר נוגעת בכלל לישראלי: \"כמה גדול הצעד הבא שלו?\"",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": "feed",
+          "old_event": "news",
+          "event": "analysis",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+3",
+              "detail": "player:Deni Avdija level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "event_affinity",
+              "scope": "player:deni_avdija",
+              "effect": "-1",
+              "detail": "analysis",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        },
+        {
+          "id": "rss_76d61867461f3f986447",
+          "title": "הכוכב העולה של ה-NBA שיתף: \"הכי הייתי רוצה להתאמן עם דני אבדיה\"",
+          "subtitle": "מחמאה גדולה: מטאס בוזליס בן ה-21, שנחשב לאחד הכישרונות הגדולים בליגה, התארח בפודקאסט \"ballinthefampod\" לצד לונזו בול ובחר בכוכב הישראלי לפני קווין דוראנט ופרנץ ואגנר • טיאגו ספליטר יאמן אותו בשיקגו העונה, והוא כבר הושווה ל\"דני אבדיה הבא\"",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": "feed",
+          "old_event": "news",
+          "event": "interview",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+3",
+              "detail": "player:Deni Avdija level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "event_affinity",
+              "scope": "player:deni_avdija",
+              "effect": "-1",
+              "detail": "interview",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        },
+        {
+          "id": "rss_abe188261aea315dcfee",
+          "title": "בארה\"ב ניתחו: זה כנראה האתגר הגדול ביותר של פורטלנד ודני אבדיה",
+          "subtitle": "בתקשורת באורוגון מעריכים כי צירופו של ג'ה מוראנט תשנה לחלוטין את מאזן הכוחות בפורטלנד - אך גם תציב אתגר חדש בפני הפורוורד הישראלי: \"אם ישמור על יכולתו מאשתקד - לא תהיה ברירה אלא להעניק לו הארכת חוזה משמעותית\"",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": "feed",
+          "old_event": "signing",
+          "event": "analysis",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+3",
+              "detail": "player:Deni Avdija level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "event_affinity",
+              "scope": "player:deni_avdija",
+              "effect": "-1",
+              "detail": "analysis",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        },
+        {
+          "id": "rss_2d693144f4586ef3278e",
+          "title": "\"אם דני אבדיה יעשה את זה, לפורטלנד לא תהיה ברירה\"",
+          "subtitle": "אחרי הטרייד המסקרן על ג'ה מוראנט, ב\"ספורט אילוסטרייטד\" העלו שאלה על כל שחקן בחמישייה הפותחת החדשה • לגבי הישראלי תהו \"האם יוכיח שהוא חלק מהעתיד של הקבוצה לטווח הארוך?\" • וענו לעצמם: \"אם ישפר את היעילות ההתקפית, יקבל הארכת חוזה משמעותית\"",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": "feed",
+          "old_event": "signing",
+          "event": "analysis",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+3",
+              "detail": "player:Deni Avdija level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "event_affinity",
+              "scope": "player:deni_avdija",
+              "effect": "-1",
+              "detail": "analysis",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        },
+        {
+          "id": "rss_b63e4f5f88329f126a0e",
+          "title": "\"לפורטלנד אסור לבצע את הטעות הזו עם דני אבדיה העונה\"",
+          "subtitle": "ב\"יאהו\" ייעצו לבלייזרס להמשיך להשתמש בכוכב הישראלי כשחקן המפתח, גם לאחר הגעת מוראנט וחזרת לילארד, אחרת \"תהיה בעיה שקשה לפתור\"",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": "high",
+          "old_event": "news",
+          "event": "analysis",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+3",
+              "detail": "player:Deni Avdija level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "event_affinity",
+              "scope": "player:deni_avdija",
+              "effect": "-1",
+              "detail": "analysis",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        },
+        {
+          "id": "rss_a2d776b676234df30672",
+          "title": "המהלכים של פורטלנד \"פוגעים במעמדו של דני אבדיה - ולא מסייעים לו\"",
+          "subtitle": "ב\"ריפ סיטי פרוג'קט\" העריכו שהישראלי עתיד לקחת צעד אחורה העונה, על רקע העומס בקו האחורי: \"לא יצליחו למצות את היכולות שלו\"",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": "feed",
+          "old_event": "news",
+          "event": "analysis",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+3",
+              "detail": "player:Deni Avdija level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "event_affinity",
+              "scope": "player:deni_avdija",
+              "effect": "-1",
+              "detail": "analysis",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        },
+        {
+          "id": "rss_32c7df102e55d8750b60",
+          "title": "בארה\"ב מנתחים: \"העסק בפורטלנד מבולגן\" - וגם דני אבדיה ייפגע",
+          "subtitle": "ב\"יאהו\" מתקשים להבין את ההתאמה של ג'ה מוראנט לצד הישראלי: \"קשה להבין את ההיגיון. צריך לרווח עבורו את המגרש, לא לצופף\"",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": "feed",
+          "old_event": "news",
+          "event": "analysis",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+3",
+              "detail": "player:Deni Avdija level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "event_affinity",
+              "scope": "player:deni_avdija",
+              "effect": "-1",
+              "detail": "analysis",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        },
+        {
+          "id": "rss_004533dc192234c138ec",
+          "title": "\"השאיפה להיות כמו דני אבדיה - הפנים של הכדורסל הישראלי\"",
+          "subtitle": "גל רביב מסכמת את הקיץ הגדול בקריירה ומדברת על היעד הבא - ה-WNBA (\"הלוואי שכבר אהיה אולסטאר\"), החיים בארה\"ב (\"זה דורש המון קשרים\") וההשוואה לקייטלין קלארק (\"שינתה את כל המשחק\"). צפו בכוכבת נבחרת העתודה בראיון מיוחד לוואלה ספורט",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": "feed",
+          "old_event": "news",
+          "event": "interview",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+3",
+              "detail": "player:Deni Avdija level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "event_affinity",
+              "scope": "player:deni_avdija",
+              "effect": "-1",
+              "detail": "interview",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        },
+        {
+          "id": "rss_23d86abd3f442f86244e",
+          "title": "ההחלטה המפוקפקת שאולי עוד תגרום לדני אבדיה לעזוב את פורטלנד",
+          "subtitle": "בארה\"ב ניתחו את צירופו של ג'ה מוראנט: \"יש בזה הרבה יותר סיכון משנראה. זה יקשה על הענקת חוזה חדש לדני בקיץ הבא\"",
+          "before": "high_feed",
+          "after": "feed",
+          "rating": "feed",
+          "old_event": "signing",
+          "event": "analysis",
+          "assessment": "intended contract change",
+          "reason": "Existing editorial event affinity",
+          "contributions": [
+            {
+              "step": "base_scope",
+              "scope": "player:deni_avdija",
+              "effect": "+3",
+              "detail": "player:Deni Avdija level=very_high",
+              "source": "explicit"
+            },
+            {
+              "step": "event_affinity",
+              "scope": "player:deni_avdija",
+              "effect": "-1",
+              "detail": "analysis",
+              "source": "explicit"
+            },
+            {
+              "step": "threshold",
+              "scope": null,
+              "effect": "feed",
+              "detail": "score=2"
+            }
+          ]
+        }
+      ],
+      "original_push_trace": []
+    }
+  },
+  "invariants": {
+    "article_ids_identical": true,
+    "article_count": 1443,
+    "changed_columns": {
+      "event_type": 34,
+      "tags": 34,
+      "event_certainty": 29,
+      "classification_trace": 51,
+      "cluster_id": 8,
+      "importance": 15,
+      "story_anchors": 7
+    },
+    "notifications_unchanged": {
+      "notification_events": true,
+      "notification_story_members": true,
+      "notification_watermarks": true
+    },
+    "profile_changed_columns": {
+      "casual_deni_fan": [
+        "profile_v2"
+      ]
+    },
+    "added_overrides": [
+      {
+        "kind": "always_push",
+        "scope": "player",
+        "target_id": "player:deni_avdija",
+        "event_type": "relocation",
+        "source": "explicit"
+      }
+    ]
+  }
+}

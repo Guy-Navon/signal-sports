@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from pydantic import BaseModel
 
+from app.qa.unknown_sport import build_report as build_unknown_sport_report
 from app.db.database import get_session
 from app.ingestion.config import RSS_SOURCES, get_source_config
 from sqlalchemy import text as sa_text
@@ -338,6 +339,7 @@ def get_ingest_quality(session: Session = Depends(get_session)):
         importance_breakdown=importance_breakdown,
         low_confidence_count=low_confidence_count,
         questionable_articles=questionable,
+        unknown_sport=build_unknown_sport_report(articles).as_dict(),
         # LLM dependency trend (issue #31) — per-run persisted metrics history.
         llm_dependency_runs=ingestion_repository.get_recent(session, limit=20),
     )

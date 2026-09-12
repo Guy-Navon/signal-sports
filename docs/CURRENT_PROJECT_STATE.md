@@ -674,6 +674,40 @@ Deferred with reasons in `docs/TAXONOMY.md`: Israeli national teams (7 rows),
 Israeli-league players (6 rows — the registry has 3 players total, all NBA).
 Nine of the 34 false-hides belong to #191 (`event_type=news`) and #195, not here.
 
+---
+
+### The `sport=unknown` blind spot, measured (2026-09-13, issue #194)
+
+`GET /api/ingest/quality` now returns an `unknown_sport` block, and
+`app/qa/unknown_sport.py` computes it. This exists because the failure mode is
+silent: `relevance_engine` lets `sport="unknown"` pass the sport check by design,
+so such a row is not blocked — it simply matches nothing, and **a classification
+failure becomes a hiding decision with no error and no log line.**
+
+Measured on the frozen local corpus: **210 of 1,427 rows (14.7%)**, 209 of them
+hidden from both profiles, splitting into:
+
+| bucket | rows | what it is |
+|---|---:|---|
+| `unresolved` | 153 | largely **correct abstention** — often not a tracked sport (MMA, athletics) or not sport at all |
+| `deadlock` | 46 | a dual-sport club alias (`מכבי תל אביב`, `הפועל ת"א`, `הפועל באר שבע`, `הפועל חיפה`) with no sport evidence |
+| `entity_without_sport` | 11 | an entity resolved, the sport did not |
+
+**Two hypotheses were tested and refuted.** It looked source-shaped —
+`walla_sport` is 182 of the 210, 26% of that source against 3% for
+`israel_hayom_sport` — but that source's unknown rows have an **identical** text
+profile to its resolved rows (title median 54 chars, every row has a subtitle),
+so it is not text extraction. And every one of the 46 `deadlock` rows would
+resolve if sport context were basketball — but the bucket is **sport-mixed**
+(`ים מדר` is a basketball player, `אליניב ברדה` a footballer), so defaulting a
+sport would fabricate facts on the other half.
+
+**There is therefore no blanket fix, and none was applied.** Breaking the deadlock
+needs person-level disambiguation; the registry holds three players, all NBA.
+A guard test fails if the unknown share exceeds 20% — set above today's 14.7% so
+it catches the blind spot *growing* rather than freezing a number that legitimate
+ingestion would move. Snapshot: `docs/qa/n194_unknown_sport.json`.
+
 ## 9. Translation Pipeline State (Post-MVP — Preserved, Not Active)
 
 Translation is not used in the current MVP. All active sources (`walla_sport`, `israel_hayom_sport`, `ynet_sport`, `one_sport`) are Hebrew-native — no translation is needed. `TRANSLATION_PROVIDER=disabled` is the default and the correct MVP setting.

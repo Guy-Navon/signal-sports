@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -148,3 +148,8 @@ class IngestQualityResponse(BaseModel):
     # predate the metrics column). Normal gated ingestion runs only — the
     # forced classification backfill never writes run records by design.
     llm_dependency_runs: List[IngestionRunRecord] = Field(default_factory=list)
+    # The sport=unknown blind spot (issue #194). A classification failure becomes
+    # a hiding decision with no error and no log line, so it needs a number that
+    # someone watches. Buckets separate the real defect (`deadlock` — a dual-sport
+    # club alias with no sport evidence) from correct abstention (`unresolved`).
+    unknown_sport: Dict[str, Any] = Field(default_factory=dict)

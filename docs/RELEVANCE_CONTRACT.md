@@ -191,3 +191,24 @@ naming a check that no longer fails is itself a gate failure.
 
 **`false_show` is reported but not separately gated** — within the visible set
 it is the complement of `shown_precision`, which is gated.
+
+### `false_hide_by_sport` — read this before targeting recall (#208)
+
+The gate also reports false hide **per sport**, because the headline figure can
+no longer resolve recall work:
+
+| sport | one rated row is worth |
+|---|---|
+| football | **3.91 pp** (15 of 838 hidden rows sampled) |
+| unknown | 0.73 pp |
+| basketball | **0.29 pp** (30 of 126 sampled) |
+| tennis | 0.19 pp |
+
+A **13×** difference. Measured on the current corpus, **two** football rows are
+43% of Guy's remaining false hide while **23** basketball rows are 36%. So fixing
+nine Israeli-basketball articles he actually wants moves the total by ~2.4pp —
+less than a single football rater disagreement.
+
+Report the per-sport line whenever you claim a recall change, or you may be
+reporting sampling noise. It is **not gated**: a per-sport threshold would need
+its own evidence and its own baseline.

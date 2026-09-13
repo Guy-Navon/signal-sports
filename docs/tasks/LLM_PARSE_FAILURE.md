@@ -373,6 +373,62 @@ has none, so both parse attempts fail.
 If the raw content captured in I1 shows complete, well-formed JSON, the hypothesis
 is wrong — say so and follow the evidence you actually have.
 
+## I2b. HOW to measure — read this before looking for a harness
+
+**You do not need ingestion, and you must not use the benchmark endpoint.**
+
+⚠️ `POST /api/dev/llm-gating-benchmark` (`routes_dev.py:188`) **deletes all RSS
+articles and ingestion runs twice per run, by design.** It refuses to touch the
+protected corpus unconditionally. **Do not try to get past that guard.** Setting
+`ALLOW_CORPUS_DB_RESET=true` against the real DB would destroy 1,443 articles and
+256 hand-ratings. It is the wrong tool for this task regardless.
+
+Live ingestion is also the wrong tool: it hits the network, is non-reproducible,
+and adds rows to the corpus while you are measuring it.
+
+**What you actually need is far simpler.** The thing under test is one function —
+`OllamaProvider.classify_title` — so call it directly on real titles, read-only:
+
+```python
+# backend/scripts/llm_failure_probe.py  (write this; it is part of the deliverable)
+# READ-ONLY. Opens no write transaction, triggers no ingestion, sends nothing.
+import sys; sys.path.insert(0, ".")
+from dotenv import load_dotenv; load_dotenv(".env", override=False)
+from app.db.database import SessionLocal
+from app.repositories import article_repository
+from app.classification.service import ...      # build the configured provider
+
+with SessionLocal() as session:
+    articles = article_repository.get_rss_articles(session)
+
+# A fixed, reproducible slice — same articles before and after the fix.
+sample = sorted(articles, key=lambda a: a.id)[:60]
+for article in sample:
+    result = provider.classify_title(
+        title=article.translated_title or article.title,
+        language="he",
+        subtitle=article.subtitle,
+    )
+    # record: result is None or not, provider.last_failure_reason, latency,
+    # and for unparseable_json the RAW CONTENT and its length
+```
+
+Report the outcome histogram over that fixed slice, before and after. Because the
+slice is fixed and `temperature=0`, the comparison is meaningful.
+
+**Requirements for the probe:**
+
+- Read-only. It must never open a write transaction against
+  `backend/data/signal_sports.db`, and must never call anything in `routes_dev.py`.
+- Deterministic slice — same article ids each run, so before/after is comparable.
+- Capture the **raw model output** for every parse failure, with its length. That
+  artifact is the point of the whole task.
+- Commit it. The next person needs to reproduce your numbers.
+
+Ollama must be running (`curl -s http://localhost:11434/api/tags`). If it is not,
+you will get `connect_error` for everything — a different failure from the one
+under investigation, and the data says connect errors are currently **zero**.
+
 ## I3. Fix
 
 Target: **LLM success rate ≥ 80%** (from 33.6%). Report before/after from a real run.
@@ -419,9 +475,9 @@ cd backend
 
 ## I5. Verification — all four are required in the PR
 
-1. **Failure-reason breakdown** from a real run, before and after (I1's output).
-2. **Success rate** before and after, with attempt counts. Say how many articles
-   the run covered and whether it hit the network.
+1. **Failure-reason breakdown** over the fixed I2b slice, before and after.
+2. **Success rate** before and after, with attempt counts, from the same slice.
+   State explicitly that no ingestion ran and no network article fetch occurred.
 3. **Feed gate unchanged**: `scripts/feed_ground_truth.py gate` → `GATE PASSED`,
    Guy 98.3% / 18.0%, `casual_deni_fan` 91.7% / 0.8%. This change is
    **decision-neutral by design** — it does not touch stored facts, so any gate
@@ -450,6 +506,8 @@ State each of these in the PR description so review is fast:
 - [ ] Before/after success rate with attempt counts, from a real run
 - [ ] The raw model output that was failing to parse, quoted in the PR
 - [ ] `SCHEDULER_ENABLED` / `TELEGRAM_NOTIFICATIONS_ENABLED` handling stated
+- [ ] The I2b probe committed, read-only, over a fixed reproducible slice
+- [ ] `ALLOW_CORPUS_DB_RESET` never set; `/api/dev/*` never called
 
 **If the hypothesis in I2 is wrong, that is a fine outcome** — report what the
 evidence actually shows and stop before guessing at a fix. Three issues in this

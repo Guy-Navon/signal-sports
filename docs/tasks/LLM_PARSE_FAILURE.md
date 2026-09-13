@@ -1,4 +1,8 @@
-# Task brief — Two thirds of every LLM call produces nothing. Find out why, then fix the economics.
+# Task brief — The LLM answers in 4.4s and we throw the answer away
+
+**Right-sized for a focused coding model (Codex-class), not a frontier reasoning
+run.** The diagnosis is already done and is in §2; what remains is instrumentation
+and a well-specified fix with clear guardrails.
 
 Signal Sports is a personalized sports-news intelligence feed (Hebrew-first,
 FastAPI + SQLite, React). Repo root has `CLAUDE.md` and `docs/`. Assume **no prior
@@ -51,42 +55,78 @@ The failure is a property of the call, not of the article selection.
 
 ---
 
-## 2. The one question that decides everything
+## 2. It is NOT a timeout. It is a parse failure. (Answered 2026-09-13)
 
-`fallback_timeout_or_parse` **conflates two completely different faults**, and the
-entire fix branches on which it is:
+This section originally asked you to find out whether the failures are timeouts or
+parse errors, because the whole fix branches on it. **That question is now answered
+from the already-persisted metrics, and the answer narrows this task a great deal.**
 
-- **Timeout** — the model is too slow (a 3B model on CPU). Fixes live in model
-  choice, prompt length, or failing fast instead of waiting 30 seconds.
-- **Parse** — the model answers in time but returns something the parser rejects.
-  Fixes live in output formatting — Ollama supports constrained JSON output — and
-  are typically small and very high-leverage.
+Every failing run records its LLM latency:
 
-**Step 1 is to separate them.** It is cheap, it is decisive, and nothing else in
-this brief should be attempted before it is answered with real numbers. If the
-answer is "95% parse errors", this task is probably a one-day fix that triples the
-success rate. If it is "95% timeouts", it is a capacity and model-selection
-question with an entirely different shape.
+| run | attempts | successes | `llm_avg_ms` |
+|---|---:|---:|---:|
+| 2026-07-31T15:22 | 1 | 0 | 4,388.6 |
+| 2026-07-31T15:21 | 12 | 0 | 4,388.7 |
+| 2026-07-31T15:21 | 4 | 0 | 4,404.1 |
+| 2026-07-31T15:20 | 17 | 0 | 4,403.3 |
+| 2026-07-24T15:24 | 1 | 0 | 4,416.7 |
 
-Do not guess which. Instrument, run, and report.
+**~4.4 seconds against a 30-second ceiling** (`CLASSIFICATION_TIMEOUT_SECONDS=30`,
+applied as an httpx read timeout in `providers.py:181`). Nothing is timing out.
+The model answers, consistently and quickly, **and the response is then rejected.**
 
----
+The consistency matters as much as the value: 4,388–4,458 ms across hundreds of
+calls is not erratic behaviour, it is the same thing happening every time.
+
+### The leading hypothesis — test it first
+
+`backend/app/classification/providers.py` sends:
+
+```python
+"format": "json",
+"options": {"temperature": 0, "num_predict": 500},
+```
+
+`format: "json"` is already set, so Ollama is constrained to JSON. But
+**`num_predict: 500` caps generation at 500 tokens.** If the model's JSON exceeds
+that cap it is truncated mid-structure, and truncated JSON fails to parse **every
+time, after a consistent generation duration** — which is exactly the signature in
+the table above.
+
+That is a hypothesis, not a finding. It is cheap to test and it must be tested
+before anything is changed.
+
+### Why the real error is invisible today
+
+```python
+except Exception as exc:
+    logger.warning("Ollama classify failed for %r: %s", title[:60], exc)
+    return None
+```
+
+One catch-all swallows an HTTP error, a `KeyError` on the response shape, and a
+validation rejection from `parse_and_validate_llm_json` — and the metric records
+all of them as `timeout_or_parse`. **Replacing this with typed handlers that record
+what actually happened is the first commit**, and on its own it will probably make
+the cause obvious.
 
 ## 3. Goals
 
-**G1 — Split the metric and report the true breakdown.** `timeout` and
-`parse_error` become distinct counters in the #31 per-run metrics, with the parse
-failures carrying enough detail to characterise them (what did the model actually
-return?). Then produce the numbers on a real run.
+**G1 — Make the real failure visible.** Replace the catch-all with typed handlers;
+`timeout`, `http_error`, `bad_response_shape` and `parse_error` become distinct
+counters in the #31 per-run metrics, and parse failures capture **what the model
+actually returned** (truncated? valid JSON with a wrong shape? not JSON at all?).
+Run it and report. Expect ~0 timeouts, per §2.
 
-**G2 — Raise the success rate, or stop paying for failure.** Whichever the
-diagnosis supports:
+**G2 — Raise the success rate. Target ≥ 80%**, from today's 33.6%.
 
-- if parse-dominated → fix the output contract; target **success rate ≥ 80%**
-- if timeout-dominated → fail fast and/or change the model; target **median
-  wasted wall-clock per run reduced by ≥ 70%**
+Test the `num_predict` hypothesis first (§2) — raise or remove the cap and
+re-measure. If that is not the cause, the G1 instrumentation will say what is.
+Report what the model was actually returning, because that evidence is the whole
+value of this task.
 
-State which branch you are on and why, with the evidence.
+Do not "fix" it by loosening validation to accept malformed output. The validator
+rejecting bad input is correct behaviour; the goal is to stop producing bad input.
 
 **G3 — Re-tune the gate, but only afterwards.** The call rate is 51.9% against a
 ≤25% target. **Do not touch the gate before G2.** Tightening it while two thirds of

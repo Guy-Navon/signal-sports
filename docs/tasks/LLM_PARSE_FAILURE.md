@@ -4,6 +4,10 @@
 run.** The diagnosis is already done and is in §2; what remains is instrumentation
 and a well-specified fix with clear guardrails.
 
+**Implementers: read §1–§2 for context, then work from the line-level
+instructions in "Implementer instructions (Codex)" at the end. This change is
+code-reviewed before merge; the review checklist is I6.**
+
 Signal Sports is a personalized sports-news intelligence feed (Hebrew-first,
 FastAPI + SQLite, React). Repo root has `CLAUDE.md` and `docs/`. Assume **no prior
 conversation history**.
@@ -258,3 +262,196 @@ Skills encode the house workflow: `signal-classification-change`,
 Related issues: **#65** (LLM provider/prompt evaluation — this task largely
 supersedes its scope item 4), **#36** (async enrichment, deferred; its trigger is
 sustained LLM time per run, which this task directly addresses), #191, #194.
+
+---
+
+# Implementer instructions (Codex)
+
+Line-level instructions. The diagnosis above is done — do not redo it. **This
+change will be code-reviewed before merge**, and the review checklist is §I6.
+
+Work on a branch. **Open a PR and stop. Do not merge.**
+
+## I0. Before you touch anything
+
+```bash
+# 1. Ollama must be running — you cannot verify this fix without it.
+curl -s http://localhost:11434/api/tags        # must return a model list
+
+# 2. Disable two live-effect flags in backend/.env for the duration, and say
+#    in the PR that you did. With SCHEDULER_ENABLED=true, starting the backend
+#    runs live ingestion that moves the corpus under your own measurement;
+#    with TELEGRAM_NOTIFICATIONS_ENABLED=true the planner can send REAL messages.
+SCHEDULER_ENABLED=false
+TELEGRAM_NOTIFICATIONS_ENABLED=false
+
+# 3. Baseline the feed gate — it must read the same at the end.
+cd backend && .venv/Scripts/python.exe scripts/feed_ground_truth.py gate
+# expect: GATE PASSED, Guy 98.3% / 18.0%, casual_deni_fan 91.7% / 0.8%
+```
+
+## I1. Make the real failure visible — do this first, alone, and commit it alone
+
+**The bug is currently unobservable**, and that is the first thing to fix.
+`backend/app/classification/providers.py`, `OllamaProvider.classify_title`
+(~lines 188–215) ends with:
+
+```python
+        except httpx.ConnectError as exc:
+            self.last_failure_was_connect_error = True
+            logger.warning("Ollama not reachable for %r: %s", title[:60], exc)
+            return None
+        except Exception as exc:
+            logger.warning("Ollama classify failed for %r: %s", title[:60], exc)
+            return None
+```
+
+**There are two distinct paths to a failure today and they are indistinguishable:**
+
+1. An exception — `httpx.ReadTimeout`, `raise_for_status()` HTTP error, or a
+   `KeyError` on `data["message"]["content"]` — caught by `except Exception`.
+2. **No exception at all**: `parse_and_validate_llm_json(raw_content)` returns
+   `None` cleanly when the JSON will not parse. This path never raises.
+
+Path 2 is the likely one, because the HTTP call demonstrably completes in ~4.4s.
+
+**Do:**
+
+- Replace the catch-all with typed handlers that record a **distinct failure
+  reason** on the provider — alongside the existing
+  `last_failure_was_connect_error`, add something like `last_failure_reason`
+  taking `connect_error` / `timeout` / `http_error` / `bad_response_shape` /
+  `unparseable_json` / `none`. Reset it at the top of `classify_title`, exactly
+  as `last_failure_was_connect_error` is reset today (line ~189).
+- Distinguish path 2: check the parse result explicitly rather than returning it
+  blind, so `unparseable_json` is recorded when it is `None`.
+- **Capture what the model actually returned.** `validation.py::_parse_raw`
+  already logs `"Could not parse LLM JSON: %r"` with `raw_content[:200]`, which
+  is the single most valuable artifact in this task. Make sure that content
+  reaches your report — log length too, and whether the string ends mid-token.
+
+**Then carry the reason into the metrics.** `backend/app/ingestion/ingestion_service.py`
+~line 487:
+
+```python
+                elif cb == "rules_fallback_after_llm_failure":
+                    llm_attempts += 1
+                    if _LLM_PROVIDER.last_failure_was_connect_error:
+                        llm_fallback_connect_error += 1
+                    else:
+                        llm_fallback_timeout_or_parse += 1
+```
+
+Split `llm_fallback_timeout_or_parse` into distinct counters. **Keep the old key
+present in the persisted metrics payload** (as the sum, or explicitly zero) —
+`metrics` rows are already persisted for 6 historical runs and
+`docs/qa/` artifacts read them; do not break their shape. Add a
+`schema_version` bump if the existing payload carries one (it does:
+`"schema_version": 1`).
+
+**Commit this alone, and run it.** The numbers it produces determine I2. Report
+them in the PR before the fix commit.
+
+## I2. Test the leading hypothesis
+
+`providers.py` ~line 198:
+
+```python
+"options": {"temperature": 0, "num_predict": 500},
+```
+
+**Hypothesis:** the model's JSON exceeds 500 tokens, gets truncated mid-structure,
+and then cannot be parsed — every time, after a consistent generation duration.
+This matches all four observed facts: ~100% failure, uniform ~4.4s latency, zero
+connect errors, and a 30s timeout that is never reached.
+
+It is further supported by the parser's own fallback: `_parse_raw` retries with
+`re.search(r"\{.*\}", ...)`, which **requires a closing brace**. Truncated JSON
+has none, so both parse attempts fail.
+
+**Test it, do not assume it.** Raise or remove `num_predict`, re-run, and measure.
+If the raw content captured in I1 shows complete, well-formed JSON, the hypothesis
+is wrong — say so and follow the evidence you actually have.
+
+## I3. Fix
+
+Target: **LLM success rate ≥ 80%** (from 33.6%). Report before/after from a real run.
+
+**Forbidden fixes — these will fail review:**
+
+- **Do NOT loosen `parse_and_validate_llm_json` or `_parse_raw` to accept
+  malformed output.** The validator rejecting bad input is correct behaviour. The
+  goal is to stop producing bad input. Note it already falls back to safe defaults
+  for every invalid *enum* and only returns `None` for genuinely unparseable JSON —
+  that boundary is right, leave it.
+- **Do NOT make the model guess more confidently.** Abstention is a designed
+  success mode in this project; a confidently wrong fact reaches the preference
+  layer as truth, while `unknown` does not.
+- **Do NOT touch `gating.py`.** The call rate is 51.9% against a ≤25% target and
+  that is real, but tuning the gate while two thirds of calls fail would bake
+  today's brokenness into the thresholds. It is explicitly out of scope here.
+- **Do NOT change the prompt's semantics** to shorten output unless you show that
+  output length is the cause AND that the shortened prompt does not change what
+  the model classifies. Prompt content is #65's scope.
+
+## I4. ⛔ The trap that will fail this task outright
+
+**NEVER run a blanket re-classification or backfill of the corpus.**
+
+`docs/qa/N05_FEED_GROUND_TRUTH.md` finding **F-N05-6**: of 34 measured false-hides
+re-run through fresh rules-only classification, **12 were degraded** — `sport` fell
+from `basketball` to `unknown` — because those rows carry LLM-assisted facts a
+rules-only pass cannot reproduce. **The stored row is often better than what a
+re-run would write.**
+
+`backend/data/signal_sports.db` is irreplaceable replay evidence: **1,443 articles,
+256 of them hand-rated**, and the #189 gate baseline stores per-item decisions
+keyed by those article ids. A backfill would silently invalidate every measurement
+this project has made.
+
+**This fix must change NEW ingestion only.** Stored rows stay exactly as they are.
+If you want to see the fix working on real articles, ingest **into a copy**:
+
+```bash
+cd backend
+.venv/Scripts/python.exe scripts/backup_db.py     # then point DATABASE_URL at the copy
+```
+
+## I5. Verification — all four are required in the PR
+
+1. **Failure-reason breakdown** from a real run, before and after (I1's output).
+2. **Success rate** before and after, with attempt counts. Say how many articles
+   the run covered and whether it hit the network.
+3. **Feed gate unchanged**: `scripts/feed_ground_truth.py gate` → `GATE PASSED`,
+   Guy 98.3% / 18.0%, `casual_deni_fan` 91.7% / 0.8%. This change is
+   **decision-neutral by design** — it does not touch stored facts, so any gate
+   movement means something unintended happened. Investigate rather than accept it.
+4. **Suites green**: backend `pytest tests -q` (baseline **2,549 passed, 1
+   skipped**); frontend only if you touched it (**539 passed**).
+
+Add tests for the new failure-reason classification — each branch
+(`timeout`, `http_error`, `bad_response_shape`, `unparseable_json`,
+`connect_error`) with a mocked provider response. The house pattern is pure
+logic + mocked transport; `backend/tests/` has many examples. **Never let a test
+reach the live corpus or a real Ollama** — `conftest.py` pins
+`CLASSIFICATION_PROVIDER=disabled` and a temp DB; keep it that way.
+
+## I6. What the code review will check
+
+State each of these in the PR description so review is fast:
+
+- [ ] I1 committed **separately** from the fix, with its measured output
+- [ ] Failure reasons are distinct and each is covered by a test
+- [ ] The persisted metrics payload stays backward-compatible for the 6 existing runs
+- [ ] `_parse_raw` / `parse_and_validate_llm_json` **not loosened**
+- [ ] `gating.py` **untouched**
+- [ ] **Zero writes to `backend/data/signal_sports.db`** — no backfill, no reclassify, no reset
+- [ ] Gate output pasted, unchanged
+- [ ] Before/after success rate with attempt counts, from a real run
+- [ ] The raw model output that was failing to parse, quoted in the PR
+- [ ] `SCHEDULER_ENABLED` / `TELEGRAM_NOTIFICATIONS_ENABLED` handling stated
+
+**If the hypothesis in I2 is wrong, that is a fine outcome** — report what the
+evidence actually shows and stop before guessing at a fix. Three issues in this
+project (#190, #193, #208) were re-scoped or closed on well-evidenced refutations,
+and each saved real work.

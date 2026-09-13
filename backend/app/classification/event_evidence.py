@@ -471,6 +471,33 @@ _SCORE_OR_RESULT_CONTEXT = (
     phrase("score"), phrase("victory"),
 )
 
+# A LIVE SCORELINE IS A RESULT ASSERTION (#218).
+#
+# `_RESULT_VERB` requires a verb — ניצח / הפסיד / beats. Hebrew live-match headlines
+# do not use one; the house style is a bare scoreline:
+#
+#     "חי מאלוף האלופים: הפועל באר שבע - מכבי תל אביב 0:0"
+#     "רבע 3, 08:31: איטליה - ישראל 41:32"
+#     "דקה 36: מנ. יונייטד - מנ. סיטי 0:0"
+#
+# Measured on the corpus: 19 titles carry a "TeamA - TeamB N:M" scoreline and 14 were
+# stored as `news`, because the LLM proposed `match_result` and Guardrail 4b rejected
+# it for want of a verb the genre never uses.
+#
+# BOTH signals are required, and that restraint is the whole point. A preview quotes a
+# past scoreline routinely — "מתרפקת על ה-0:5 מהמפגש הקודם" — so the bare number proves
+# nothing on its own. A LIVE MARKER is what separates "this match is being played" from
+# "here is a number about a past one"; 13 of the 14 recovered rows carry one.
+#
+# Expressed as ONE pattern with two lookaheads rather than two entries, because
+# `required_any` is AND-across-groups and OR-within-a-group: this has to sit INSIDE the
+# result-verb group as an alternative to it, not beside it as an extra requirement.
+_LIVE_SCORELINE = regex(
+    r"(?=.*\d{1,3}\s?[:\-]\s?\d{1,3})"
+    r"(?=.*(?:מחצית|דקה\s*\d|רבע\s*\d|רבע ראשון|רבע שני|רבע שלישי|רבע רביעי|"
+    r"(?:^|[\s:])חי\s|halftime|half-time))"
+)
+
 # ── Title-local event types (#125) ────────────────────────────────────────────
 # Event types whose claim must be asserted in the TITLE. Subtitle-only evidence is
 # REJECTED outright, not merely downgraded.
@@ -604,7 +631,8 @@ EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
         confirmed_any=(phrase('לו"ז'), phrase("לוח משחקים"), phrase("schedule"), phrase("fixtures")),
     ),
     "match_result": EventEvidenceRule(
-        required_any=(_RESULT_VERB,),
+        # A result VERB, or a live scoreline (score + live marker together).
+        required_any=(_RESULT_VERB + (_LIVE_SCORELINE,),),
         blockers=(
             phrase("לקראת"), phrase("preview"), phrase("upcoming"),
             phrase("schedule"), phrase("fixture"), phrase("fixtures"),

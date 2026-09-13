@@ -275,8 +275,8 @@ Work on a branch. **Open a PR and stop. Do not merge.**
 ## I0. Before you touch anything
 
 ```bash
-# 1. Ollama must be running — you cannot verify this fix without it.
-curl -s http://localhost:11434/api/tags        # must return a model list
+# 1. Check Ollama. I2b/I3 need it; I1 does NOT (see I7).
+curl -s http://localhost:11434/api/tags        # empty output = not running
 
 # 2. Disable two live-effect flags in backend/.env for the duration, and say
 #    in the PR that you did. With SCHEDULER_ENABLED=true, starting the backend
@@ -492,6 +492,56 @@ logic + mocked transport; `backend/tests/` has many examples. **Never let a test
 reach the live corpus or a real Ollama** — `conftest.py` pins
 `CLASSIFICATION_PROVIDER=disabled` and a temp DB; keep it that way.
 
+## I7. Running this unattended
+
+This may be run overnight with nobody watching. **Never block waiting for input,
+and never end the night with nothing committed.**
+
+### Definition of done, in order
+
+| | Deliverable | Needs Ollama? |
+|---|---|---|
+| **Minimum** | I1 committed: typed failure reasons, split metrics, tests | **No** |
+| **Good** | I2b probe committed + the before-measurement, including the raw failing output | Yes |
+| **Ideal** | I3 fix + after-measurement showing the success rate | Yes |
+
+**I1 is pure code work and needs no Ollama, no network and no running server.**
+Do it first, always. It is the commit that makes the bug observable, and it has
+standalone value even if nothing else lands.
+
+### If Ollama is not running
+
+**Do not wait for it and do not try to start it.** Complete I1 in full — including
+its tests — commit it, open the PR, and say plainly in the description that I2b
+and I3 could not be measured because the provider was unavailable. That is a
+successful night, not a failed one.
+
+### If the I2 hypothesis is wrong
+
+The `num_predict` theory is a hypothesis, not a finding. If the raw output
+captured in I1/I2b turns out to be complete, well-formed JSON, then truncation is
+not the cause.
+
+**That is a result, not a blocker.** The raw failing output plus the failure-reason
+breakdown is the single most valuable artifact this task can produce, because it
+tells the next person exactly what is wrong. Commit it, report it, and stop before
+inventing a fix for a cause you have not established.
+
+### Rules for an unattended run
+
+- **Never** set `ALLOW_CORPUS_DB_RESET`, call any `/api/dev/*` endpoint, or write
+  to `backend/data/signal_sports.db`. There is no situation in this task where
+  any of those is the right move.
+- **Do not expand scope to fill time.** If I1–I3 finish early, stop. Do not start
+  on `gating.py`, the prompt, or the call rate — all explicitly out of scope (I3),
+  and all much easier to get wrong without review.
+- **Do not merge.** Open the PR and stop.
+- Leave `SCHEDULER_ENABLED=false` and `TELEGRAM_NOTIFICATIONS_ENABLED=false` in
+  place for the duration, and state in the PR what you set and whether you
+  restored it.
+- Commit incrementally. A night that ends mid-task should still leave reviewable
+  commits behind.
+
 ## I6. What the code review will check
 
 State each of these in the PR description so review is fast:
@@ -510,6 +560,8 @@ State each of these in the PR description so review is fast:
 - [ ] `ALLOW_CORPUS_DB_RESET` never set; `/api/dev/*` never called
 
 **If the hypothesis in I2 is wrong, that is a fine outcome** — report what the
-evidence actually shows and stop before guessing at a fix. Three issues in this
+evidence actually shows rather than guessing at a fix. Three issues in this
 project (#190, #193, #208) were re-scoped or closed on well-evidenced refutations,
 and each saved real work.
+
+**A blocked step stops THAT STEP, not the run.** See I7.

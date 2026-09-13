@@ -1,3 +1,38 @@
+> # ⚠️ SUPERSEDED IN PART — READ THIS FIRST (2026-09-13, verified live)
+>
+> **The parse failure does not reproduce on current code. Do not try to fix it.**
+>
+> Measured directly against a warm local `qwen2.5:3b-instruct`, over **70 real
+> corpus titles** through the project's own prompt and parser:
+>
+> | | |
+> |---|---|
+> | parsed successfully | **70 / 70** |
+> | unparseable | **0** |
+> | timeouts | **0** |
+> | median latency | **~11.0 s** (p90 13.3 s) |
+>
+> If the historical 65% failure rate still held, 70 consecutive successes would be
+> essentially impossible. The `num_predict: 500` truncation hypothesis in §2 is
+> also **refuted**: a real response returns `done_reason=stop` with
+> `eval_count=62` of 500 and complete, valid JSON.
+>
+> The historical data in §1 (33.6% success, ~4.4 s latency) describes a state that
+> can no longer be reproduced. `prompt.py` was modified since (commit `d6462ba`),
+> though that change alone is too small to obviously explain it. **Treat the cause
+> as unknown and historical, not as work to do.**
+>
+> ### What is actually wrong now: cost
+>
+> **~11 seconds per call, on 51.9% of articles** — more than double the ≤25% target
+> in #31. For the 1,427-article corpus that projects to **~136 minutes of LLM time
+> per full pass**.
+>
+> That is the real problem, and it is the one this work was originally requested
+> to solve. **The live scope is now I1 plus §C below.** §§I2, I2b and I3 (finding
+> and fixing the parse bug) are retained only as a record of how the refutation was
+> reached.
+
 # Task brief — The LLM answers in 4.4s and we throw the answer away
 
 **Right-sized for a focused coding model (Codex-class), not a frontier reasoning
@@ -264,6 +299,66 @@ supersedes its scope item 4), **#36** (async enrichment, deferred; its trigger i
 sustained LLM time per run, which this task directly addresses), #191, #194.
 
 ---
+
+# C. The live task — reduce what the LLM costs
+
+Read the banner at the top first. The parse bug is gone; **cost is the task.**
+
+Current state, measured: **~11 s per call**, called on **51.9%** of articles,
+**~136 min** of LLM time per full corpus pass, against a **≤25%** call-rate target.
+
+## C1. Still do I1 first — instrumentation (no Ollama needed)
+
+I1 remains fully in scope and unchanged. The failure modes are *still*
+indistinguishable in the metrics, and now that the LLM is working we need to be
+able to detect it breaking again. **Commit it on its own, with tests.**
+
+Add one thing to it: **record per-call latency alongside the failure reason**, so
+the cost question below has data going forward.
+
+## C2. Measure what the LLM is worth per second
+
+Before cutting anything, establish what is being cut. Using the read-only probe
+pattern in I2b, over a fixed slice of real corpus titles:
+
+- For each article, compute the **deterministic (rules-only)** classification and
+  the **LLM** classification.
+- Report how often the LLM **changes** the answer versus merely agreeing —
+  broken down by field (`sport`, `league`, `event_type`, `entities`) and by the
+  `gate_reason` that caused the call.
+
+**That number has never been measured and it decides everything.** If the LLM
+changes the answer on 10% of calls, ~90% of 136 minutes is waste. If it changes it
+on 70%, the gate is roughly right and the cost is the price of quality.
+
+Do not skip this and go straight to tightening thresholds.
+
+## C3. Re-tune the gate on that evidence
+
+`backend/app/classification/gating.py` decides call vs skip. The force-call
+conditions are `ambiguous_club`, `sport == "unknown"`, and `conf < 0.55`; the skip
+conditions are `clear_league_in_title`, `strong_source_sport_hint`, and
+`strong_deterministic_result`.
+
+Tighten **only** where C2 shows the LLM rarely changes the answer. Every change
+must name the measured agreement rate that justifies it.
+
+**Target: call rate ≤ 35%** (from 51.9%) **with no loss of classification quality
+on the C2 slice.** That is deliberately short of the ≤25% aspiration — hitting a
+number by skipping calls that were doing real work is the failure mode here, and
+25% has never been validated against evidence.
+
+## C4. Report the projected saving
+
+State it in minutes per corpus pass, from measured latency and the new call rate.
+
+## Out of scope — unchanged
+
+The forbidden fixes in I3 still apply: do not loosen the parser or validator, do
+not make the model guess more confidently, do not change prompt semantics (that is
+#65), and **never write to the corpus** (I4). Verification is I5; the review
+checklist is I6; unattended rules are I7 — with C1 now the "minimum" deliverable
+in place of I1.
 
 # Implementer instructions (Codex)
 

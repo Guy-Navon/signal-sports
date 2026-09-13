@@ -10,7 +10,8 @@ LLMGateDecision(should_call_llm, reason).
 Coverage:
 - Force-call conditions (sport_unknown, ambiguous_club, low_confidence)
 - Skip conditions (clear_league_in_title, strong_source_sport_hint,
-  strong_deterministic_result, known_entity_compatible)
+  strong_deterministic_result, known_entity_compatible,
+  measured_generic_news_sufficient)
 - Tightened source-hint logic (hint + sport match but missing context → call)
 - Tightened league keyword logic (keyword but no resolved league → call)
 - Feature flag (CLASSIFICATION_LLM_GATING=disabled → always call)
@@ -167,21 +168,23 @@ class TestClearLeagueInTitle:
         assert d.should_call_llm is False
         assert d.reason == "clear_league_in_title"
 
-    def test_clear_league_keyword_but_rules_league_is_none_calls_llm(self):
+    def test_clear_league_keyword_but_rules_league_is_none_uses_measured_default(self):
         """Keyword alone is not enough — the classifier must have resolved a league."""
         d = gate(
             title="NBA: עדכון ספורטיבי",
             rules=make_rules(sport="basketball", league=None, confidence=0.65),
         )
-        assert d.should_call_llm is True
+        assert d.should_call_llm is False
+        assert d.reason == "measured_generic_news_sufficient"
 
-    def test_clear_league_keyword_but_low_confidence_calls_llm(self):
-        """Even with keyword + resolved league, conf < 0.65 calls LLM."""
+    def test_clear_league_keyword_but_mid_confidence_uses_measured_default(self):
+        """Confidence >= 0.55 is outside the explicit low-confidence force call."""
         d = gate(
             title="NBA: עדכון",
             rules=make_rules(sport="basketball", league="NBA", confidence=0.60),
         )
-        assert d.should_call_llm is True
+        assert d.should_call_llm is False
+        assert d.reason == "measured_generic_news_sufficient"
 
     def test_league_keyword_in_subtitle_also_triggers_skip(self):
         d = gate(
@@ -279,17 +282,18 @@ class TestStrongSourceSportHint:
         assert d.should_call_llm is True
         assert d.reason == "source_hint_only_missing_context"
 
-    def test_hint_sport_mismatch_calls_llm(self):
-        """URL says basketball, but deterministic classifier says football → call LLM."""
+    def test_hint_sport_mismatch_uses_measured_default(self):
+        """A mismatch without unknown/ambiguity is in the measured residual bucket."""
         d = gate(
             title="צ'לסי ניצחה",
             rules=make_rules(sport="football", confidence=0.75),
             hint="basketball",
             source_id="israel_hayom_sport",
         )
-        assert d.should_call_llm is True
+        assert d.should_call_llm is False
+        assert d.reason == "measured_generic_news_sufficient"
 
-    def test_hint_with_low_confidence_calls_llm(self):
+    def test_hint_with_mid_confidence_uses_measured_default(self):
         d = gate(
             rules=make_rules(
                 sport="basketball", league="NBA", confidence=0.60,
@@ -297,7 +301,8 @@ class TestStrongSourceSportHint:
             hint="basketball",
             source_id="israel_hayom_sport",
         )
-        assert d.should_call_llm is True
+        assert d.should_call_llm is False
+        assert d.reason == "measured_generic_news_sufficient"
 
 
 # ── Skip: strong_deterministic_result ────────────────────────────────────────
@@ -318,18 +323,19 @@ class TestStrongDeterministicResult:
         assert d.should_call_llm is False
         assert d.reason == "strong_deterministic_result"
 
-    def test_sport_league_just_below_threshold_calls_llm(self):
+    def test_sport_league_just_below_threshold_uses_measured_default(self):
         d = gate(
             rules=make_rules(sport="basketball", league="EuroLeague", confidence=0.79),
         )
-        assert d.should_call_llm is True
+        assert d.should_call_llm is False
+        assert d.reason == "measured_generic_news_sufficient"
 
-    def test_sport_known_but_no_league_does_not_skip(self):
+    def test_sport_known_but_no_league_uses_measured_default(self):
         d = gate(
             rules=make_rules(sport="basketball", league=None, confidence=0.85),
         )
-        # No league → cannot use strong_deterministic_result
-        assert d.should_call_llm is True
+        assert d.should_call_llm is False
+        assert d.reason == "measured_generic_news_sufficient"
 
 
 # ── Skip: known_entity_compatible ────────────────────────────────────────────
@@ -345,17 +351,17 @@ class TestKnownEntityCompatible:
         assert d.should_call_llm is False
         assert d.reason == "known_entity_compatible"
 
-    def test_entity_news_event_type_does_not_skip(self):
-        """event_type='news' means we still want LLM to infer the real event type."""
+    def test_entity_news_event_type_uses_measured_default(self):
         d = gate(
             rules=make_rules(
                 sport="basketball", confidence=0.80,
                 entities=["Maccabi Tel Aviv Basketball"], event_type="news",
             ),
         )
-        assert d.should_call_llm is True
+        assert d.should_call_llm is False
+        assert d.reason == "measured_generic_news_sufficient"
 
-    def test_entity_sport_but_low_confidence_calls_llm(self):
+    def test_specific_event_residual_still_calls(self):
         d = gate(
             rules=make_rules(
                 sport="basketball", confidence=0.70,
@@ -363,6 +369,7 @@ class TestKnownEntityCompatible:
             ),
         )
         assert d.should_call_llm is True
+        assert d.reason == "hebrew_broad_source_unclear"
 
 
 # ── Feature flag ──────────────────────────────────────────────────────────────
@@ -410,6 +417,7 @@ class TestReasonStrings:
         "strong_source_sport_hint",
         "strong_deterministic_result",
         "known_entity_compatible",
+        "measured_generic_news_sufficient",
     }
 
     def test_sport_unknown_reason(self):

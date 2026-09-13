@@ -136,5 +136,16 @@ def should_call_llm_for_article(
     if entities and event_type != "news" and conf >= 0.75:
         return LLMGateDecision(should_call_llm=False, reason="known_entity_compatible")
 
-    # ── Default: call LLM ─────────────────────────────────────────────────────────
+    # 5. Generic-news residual. C2 fixed-slice probe (2026-09-13): the
+    # production-merged LLM changed none of 16/16 residual news articles (100%
+    # agreement with rules), while it changed 3/3 ambiguous-club and 7/9
+    # unknown-sport results. Preserve high-value force calls and the much smaller
+    # residual set where rules found a specific event.
+    if event_type == "news":
+        return LLMGateDecision(
+            should_call_llm=False, reason="measured_generic_news_sufficient"
+        )
+
+    # Default: a known sport plus a specific event, but insufficient evidence for
+    # any stronger skip above. Keep calling until this smaller bucket is measured.
     return LLMGateDecision(should_call_llm=True, reason="hebrew_broad_source_unclear")

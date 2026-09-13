@@ -17,6 +17,11 @@ class SourceIngestResult(BaseModel):
     llm_attempts: int = 0
     llm_successes: int = 0
     llm_fallback_connect_error: int = 0
+    llm_fallback_timeout: int = 0
+    llm_fallback_http_error: int = 0
+    llm_fallback_bad_response_shape: int = 0
+    llm_fallback_unparseable_json: int = 0
+    # Backward-compatible aggregate of timeout/http/shape/parse failures.
     llm_fallback_timeout_or_parse: int = 0
     llm_fallback_low_confidence: int = 0
     llm_avg_ms: Optional[float] = None

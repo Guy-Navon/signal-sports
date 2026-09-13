@@ -352,7 +352,7 @@
     "event_certainty": "confirmed",
     "importance": "low",
     "primary_competition": null,
-    "classified_by": "rules_fallback_after_llm_failure",
+    "classified_by": "rules",
     "guy": "hidden",
     "deni": "hidden"
    },
@@ -362,8 +362,7 @@
     "importance__not": "very_high",
     "guy": "hidden",
     "deni": "hidden"
-   },
-   "expect_uncovered_llm_call": true
+   }
   },
   {
    "case": "C8",

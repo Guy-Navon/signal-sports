@@ -540,13 +540,21 @@ Pure function — no I/O, no side effects. Fully unit-testable without mocking.
 | `strong_source_sport_hint` | Hint matches sport AND `confidence >= 0.65` AND at least one of: league resolved, entities non-empty, event_type ≠ news |
 | `strong_deterministic_result` | Sport + league resolved AND `confidence >= 0.80` |
 | `known_entity_compatible` | Entities non-empty AND sport known AND event_type ≠ news AND `confidence >= 0.75` |
+| `measured_generic_news_sufficient` | Residual known-sport `news` bucket: fixed-slice probe found 16/16 production-merged LLM results agreed with rules |
 
-**Call conditions (default if no skip triggered):**
+**Additional call condition:**
 
 | Reason | Condition |
 |--------|-----------|
 | `source_hint_only_missing_context` | Hint matches sport but league/entities/event all generic |
-| `hebrew_broad_source_unclear` | Nothing else matched — LLM likely to improve classification |
+| `hebrew_broad_source_unclear` | Residual result has a specific deterministic event that has not been safely measured away |
+
+The generic-news portion of the residual call bucket is now the
+`measured_generic_news_sufficient` skip reason. On the fixed 60-article C2 probe
+the LLM changed **0/16** results in this subgroup after production guardrails
+(100% rules agreement). The two sampled residual articles with specific events
+also agreed, but remain calls because that sample is too small. High-value force
+calls remain: `ambiguous_club` changed 3/3 and `sport_unknown` changed 7/9.
 
 **`CLASSIFICATION_LLM_GATING=disabled`:** skips all gating logic and always returns `(True, "gating_disabled")`. Use this to reproduce pre-gating behavior for benchmarking.
 
@@ -583,7 +591,11 @@ total_ms: Optional[float]              # full _run_source() wall time in ms
 llm_attempts: int                      # total LLM calls made (success + failure)
 llm_successes: int                     # calls that resulted in llm or llm+rules_guardrail
 llm_fallback_connect_error: int        # Ollama refused connection
-llm_fallback_timeout_or_parse: int     # timeout, HTTP error, or JSON parse failure
+llm_fallback_timeout: int              # provider timeout
+llm_fallback_http_error: int           # HTTP status or transport error
+llm_fallback_bad_response_shape: int   # invalid Ollama response envelope
+llm_fallback_unparseable_json: int     # model content rejected by the parser
+llm_fallback_timeout_or_parse: int     # compatibility sum of the four fields above
 llm_fallback_low_confidence: int       # LLM responded but confidence < 0.65
 llm_avg_ms: Optional[float]            # average LLM call duration (ms) across all attempts
 llm_p95_ms: Optional[float]            # p95 LLM call duration (ms) across all attempts
@@ -593,11 +605,11 @@ llm_skip_reasons: dict[str, int]       # reason → count for gated-skip decisio
 llm_call_reasons: dict[str, int]       # reason → count for gated-call decisions
 ```
 
-**What is measured:** LLM latency is measured around the raw provider call, including failed attempts. A `ConnectError` that takes 2 seconds is recorded. A timeout at 30 seconds is recorded. This means `llm_avg_ms` and `llm_p95_ms` reflect realistic end-to-end overhead, not only successful classifications.
+**What is measured:** LLM latency is measured around the raw provider call, including failed attempts. A `ConnectError` that takes 2 seconds is recorded. A timeout at 30 seconds is recorded. This means `llm_avg_ms` and `llm_p95_ms` reflect realistic end-to-end overhead, not only successful classifications. Metrics schema v2 also persists `failure_latency_ms_by_reason`, with count/average/p95 for each typed failure reason.
 
 **Log line (INFO level, emitted at end of each source run):**
 ```
-Timing [israel_hayom_sport]: fetch=420ms total=18.3s | LLM: attempts=12 successes=10 avg=710ms p95=1420ms | Fallbacks: connect_error=0 timeout/parse=1 low_conf=1 | Gating: skipped=9 skip_reasons={'clear_league_in_title': 5, 'strong_source_sport_hint': 4} call_reasons={'sport_unknown': 7, 'hebrew_broad_source_unclear': 5} | Slowest: ["מכבי..."(1820ms), "דיווח..."(1550ms)]
+Timing [israel_hayom_sport]: fetch=420ms total=18.3s | LLM: attempts=12 successes=10 avg=710ms p95=1420ms | Fallbacks: connect_error=0 timeout=0 http_error=0 bad_response_shape=0 unparseable_json=1 low_conf=1 | Gating: skipped=9 skip_reasons={'clear_league_in_title': 5, 'measured_generic_news_sufficient': 4} call_reasons={'sport_unknown': 7} | Slowest: ["מכבי..."(1820ms), "דיווח..."(1550ms)]
 ```
 
 A DEBUG-level line is also emitted for each individual gated-skip, showing the article title, skip reason, and the deterministic sport/league/event_type/confidence values that triggered it. The top 5 slowest articles (by LLM latency) are INFO logger-only — not included in the API response.
@@ -616,13 +628,13 @@ compatibility preserved). Computation lives in
 `ArticleQualityCounters`), pure functions over counters the pipeline already
 records — no new telemetry.
 
-**Metric families** (schema_version 1): counts (new_articles, llm_attempts/
+**Metric families** (schema_version 2; all v1 keys retained): counts (new_articles, llm_attempts/
 successes/skipped, skip/call reason dicts, fallbacks by kind, abstained,
 ambiguous, with_conflicts, weighted_evidence_overrides, events_corrected) and
 rates (deterministic_accept_rate, llm_call_rate, gate_skip_rate,
 fallback_rate, low_confidence_fallback_rate, abstention_rate, ambiguity_rate,
 conflict_rate, weighted_evidence_override_rate, event_correction_rate), plus
-latency (llm_avg_ms/llm_p95_ms/total_ms), throughput (articles_per_minute)
+latency (llm_avg_ms/llm_p95_ms/total_ms plus failure latency by reason), throughput (articles_per_minute)
 and cost estimates (`LLM_COST_PER_CALL_ESTIMATE` env × attempts; per-run and
 per-1000-articles). Rates are `None` when the denominator is zero — "not
 measurable this run" is distinct from "measured zero". The disabled-provider

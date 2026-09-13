@@ -7,6 +7,7 @@ All tests use DisabledLLMProvider, FakeLLMProvider, or monkeypatched providers.
 No test requires Ollama to be running.
 """
 
+import json
 import sys
 
 import pytest
@@ -1230,8 +1231,10 @@ class TestOllamaProvider:
 
         assert result is None
         assert provider.last_failure_was_connect_error is True
+        assert provider.last_failure_reason == "connect_error"
+        assert provider.last_call_latency_ms is not None
 
-    def test_timeout_does_not_set_connect_flag(self, monkeypatch):
+    def test_timeout_records_reason_without_connect_flag(self, monkeypatch):
         import httpx as httpx_module
         provider = self._make_provider()
 
@@ -1243,15 +1246,74 @@ class TestOllamaProvider:
 
         assert result is None
         assert provider.last_failure_was_connect_error is False
+        assert provider.last_failure_reason == "timeout"
+
+    def test_http_error_records_reason(self, monkeypatch):
+        import httpx as httpx_module
+        provider = self._make_provider()
+        request = httpx_module.Request("POST", "http://localhost:11434/api/chat")
+        response = httpx_module.Response(503, request=request)
+
+        monkeypatch.setattr("httpx.post", lambda url, json, timeout: response)
+        result = provider.classify_title("כותרת", "he")
+
+        assert result is None
+        assert provider.last_failure_reason == "http_error"
+        assert provider.last_failure_was_connect_error is False
+
+    @pytest.mark.parametrize(
+        "response_factory",
+        [
+            lambda: MagicMock(
+                raise_for_status=MagicMock(return_value=None),
+                json=MagicMock(side_effect=json.JSONDecodeError("bad", "x", 0)),
+            ),
+            lambda: MagicMock(
+                raise_for_status=MagicMock(return_value=None),
+                json=MagicMock(return_value={"unexpected": "shape"}),
+            ),
+            lambda: MagicMock(
+                raise_for_status=MagicMock(return_value=None),
+                json=MagicMock(return_value={"message": {"content": 42}}),
+            ),
+        ],
+    )
+    def test_bad_response_shape_records_reason(self, monkeypatch, response_factory):
+        provider = self._make_provider()
+        monkeypatch.setattr("httpx.post", lambda url, json, timeout: response_factory())
+
+        result = provider.classify_title("כותרת", "he")
+
+        assert result is None
+        assert provider.last_failure_reason == "bad_response_shape"
+
+    def test_unparseable_json_records_raw_content_and_reason(self, monkeypatch, caplog):
+        provider = self._make_provider()
+        raw = '{"sport":"basketball","reason":"cut off'
+        monkeypatch.setattr(
+            "httpx.post", lambda url, json, timeout: self._mock_response(raw)
+        )
+
+        result = provider.classify_title("כותרת", "he")
+
+        assert result is None
+        assert provider.last_failure_reason == "unparseable_json"
+        assert provider.last_raw_content == raw
+        assert f"length={len(raw)}" in caplog.text
+        assert "ends_mid_token=True" in caplog.text
 
     def test_last_failure_flag_reset_on_success(self, monkeypatch):
         provider = self._make_provider()
         provider.last_failure_was_connect_error = True  # simulate prior failure
+        provider.last_failure_reason = "connect_error"
+        provider.last_raw_content = "stale"
 
         monkeypatch.setattr("httpx.post", lambda url, json, timeout: self._mock_response(_VALID_OLLAMA_JSON))
         provider.classify_title("כותרת", "he")
 
         assert provider.last_failure_was_connect_error is False
+        assert provider.last_failure_reason == "none"
+        assert provider.last_raw_content == _VALID_OLLAMA_JSON
 
     def test_system_prompt_is_sent(self, monkeypatch):
         from app.classification.prompt import CLASSIFICATION_SYSTEM_PROMPT

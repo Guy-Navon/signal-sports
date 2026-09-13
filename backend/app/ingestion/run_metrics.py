@@ -17,14 +17,16 @@ Rates use `None` (not 0) when the denominator is zero — "not measurable this
 run" is different from "measured zero". The LLM-disabled path yields
 llm_call_rate=0.0 with everything else still measured.
 """
+import math
 import os
 from dataclasses import dataclass, field
 from typing import Optional
 
 from app.models.article import Article
 
-# Schema version for the persisted metrics dict — bump on breaking shape change.
-METRICS_SCHEMA_VERSION = 1
+# Schema version for the persisted metrics dict. Version 2 adds typed failure
+# counters and failure latency summaries while retaining every version-1 key.
+METRICS_SCHEMA_VERSION = 2
 
 
 def _cost_per_call_estimate() -> float:
@@ -40,6 +42,22 @@ def _rate(numerator: int, denominator: int) -> Optional[float]:
     if denominator <= 0:
         return None
     return round(numerator / denominator, 4)
+
+
+def _latency_summary(samples: dict[str, list[float]]) -> dict[str, dict[str, float | int]]:
+    """Summarize per-call failure latency without persisting article content."""
+    summary: dict[str, dict[str, float | int]] = {}
+    for reason, values in samples.items():
+        if not values:
+            continue
+        ordered = sorted(values)
+        p95_index = min(len(ordered) - 1, math.ceil(0.95 * len(ordered)) - 1)
+        summary[reason] = {
+            "count": len(ordered),
+            "avg_ms": round(sum(ordered) / len(ordered), 1),
+            "p95_ms": round(ordered[p95_index], 1),
+        }
+    return summary
 
 
 @dataclass
@@ -81,8 +99,12 @@ def compute_run_metrics(
     llm_attempts: int,
     llm_successes: int,
     llm_fallback_connect_error: int,
-    llm_fallback_timeout_or_parse: int,
+    llm_fallback_timeout: int,
+    llm_fallback_http_error: int,
+    llm_fallback_bad_response_shape: int,
+    llm_fallback_unparseable_json: int,
     llm_fallback_low_confidence: int,
+    llm_failure_latencies: dict[str, list[float]],
     llm_skipped: int,
     llm_skip_reasons: dict[str, int],
     llm_call_reasons: dict[str, int],
@@ -99,6 +121,12 @@ def compute_run_metrics(
     are not gate decisions.
     """
     new_articles = counters.articles
+    llm_fallback_timeout_or_parse = (
+        llm_fallback_timeout
+        + llm_fallback_http_error
+        + llm_fallback_bad_response_shape
+        + llm_fallback_unparseable_json
+    )
     fallbacks_total = (
         llm_fallback_connect_error
         + llm_fallback_timeout_or_parse
@@ -123,6 +151,13 @@ def compute_run_metrics(
         "llm_call_reasons": dict(llm_call_reasons),
         "fallbacks_total": fallbacks_total,
         "fallback_connect_error": llm_fallback_connect_error,
+        "fallback_timeout": llm_fallback_timeout,
+        "fallback_http_error": llm_fallback_http_error,
+        "fallback_bad_response_shape": llm_fallback_bad_response_shape,
+        "fallback_unparseable_json": llm_fallback_unparseable_json,
+        "failure_latency_ms_by_reason": _latency_summary(llm_failure_latencies),
+        # Version-1 compatibility: the old aggregate remains the sum of all
+        # non-connect provider failures that previously shared this bucket.
         "fallback_timeout_or_parse": llm_fallback_timeout_or_parse,
         "fallback_low_confidence": llm_fallback_low_confidence,
         "abstained": counters.abstained,

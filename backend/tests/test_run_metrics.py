@@ -50,8 +50,12 @@ def _compute(counters=None, **overrides) -> dict:
         llm_attempts=0,
         llm_successes=0,
         llm_fallback_connect_error=0,
-        llm_fallback_timeout_or_parse=0,
+        llm_fallback_timeout=0,
+        llm_fallback_http_error=0,
+        llm_fallback_bad_response_shape=0,
+        llm_fallback_unparseable_json=0,
         llm_fallback_low_confidence=0,
+        llm_failure_latencies={},
         llm_skipped=0,
         llm_skip_reasons={},
         llm_call_reasons={},
@@ -141,6 +145,39 @@ class TestComputeRunMetrics:
         assert m["articles_per_minute"] == 10.0
         assert m["llm_avg_ms"] == 800.0
         assert m["llm_p95_ms"] == 1500.0
+
+    def test_typed_failure_counts_keep_legacy_aggregate_and_latency(self):
+        c = ArticleQualityCounters()
+        for _ in range(6):
+            c.observe(_article())
+        m = _compute(
+            counters=c,
+            llm_attempts=6,
+            llm_fallback_connect_error=1,
+            llm_fallback_timeout=1,
+            llm_fallback_http_error=1,
+            llm_fallback_bad_response_shape=1,
+            llm_fallback_unparseable_json=1,
+            llm_fallback_low_confidence=1,
+            llm_failure_latencies={
+                "timeout": [100.0],
+                "unparseable_json": [200.0, 400.0],
+            },
+        )
+
+        assert m["schema_version"] == 2
+        assert m["fallback_timeout"] == 1
+        assert m["fallback_http_error"] == 1
+        assert m["fallback_bad_response_shape"] == 1
+        assert m["fallback_unparseable_json"] == 1
+        assert m["fallback_timeout_or_parse"] == 4
+        assert m["fallbacks_total"] == 6
+        assert m["failure_latency_ms_by_reason"]["timeout"] == {
+            "count": 1, "avg_ms": 100.0, "p95_ms": 100.0,
+        }
+        assert m["failure_latency_ms_by_reason"]["unparseable_json"] == {
+            "count": 2, "avg_ms": 300.0, "p95_ms": 400.0,
+        }
 
     def test_cost_estimate_from_env(self, monkeypatch):
         monkeypatch.setenv("LLM_COST_PER_CALL_ESTIMATE", "0.002")

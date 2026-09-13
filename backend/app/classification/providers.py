@@ -15,7 +15,9 @@ Configuration via environment variables:
   CLASSIFICATION_TIMEOUT_SECONDS=<number>              (default: 15, ollama only)
 """
 
+import json
 import logging
+import time
 from typing import Optional
 
 import httpx
@@ -30,6 +32,9 @@ logger = logging.getLogger(__name__)
 class LLMClassificationProvider:
     can_classify: bool = False
     last_failure_was_connect_error: bool = False
+    last_failure_reason: str = "none"
+    last_call_latency_ms: Optional[float] = None
+    last_raw_content: Optional[str] = None
 
     def classify_title(self, title: str, language: str, subtitle: Optional[str] = None) -> Optional[LLMClassificationResult]:
         raise NotImplementedError
@@ -180,6 +185,9 @@ class OllamaProvider(LLMClassificationProvider):
         self._model = model
         self._timeout = httpx.Timeout(connect=2.0, read=timeout, write=5.0, pool=5.0)
         self.last_failure_was_connect_error = False
+        self.last_failure_reason = "none"
+        self.last_call_latency_ms: Optional[float] = None
+        self.last_raw_content: Optional[str] = None
 
     @property
     def provider_id(self) -> str:
@@ -187,6 +195,9 @@ class OllamaProvider(LLMClassificationProvider):
 
     def classify_title(self, title: str, language: str, subtitle: Optional[str] = None) -> Optional[LLMClassificationResult]:
         self.last_failure_was_connect_error = False
+        self.last_failure_reason = "none"
+        self.last_call_latency_ms = None
+        self.last_raw_content = None
         payload = {
             "model": self._model,
             "messages": [
@@ -197,6 +208,7 @@ class OllamaProvider(LLMClassificationProvider):
             "format": "json",
             "options": {"temperature": 0, "num_predict": 500},
         }
+        started_at = time.perf_counter()
         try:
             response = httpx.post(
                 f"{self._base_url}/api/chat",
@@ -206,11 +218,42 @@ class OllamaProvider(LLMClassificationProvider):
             response.raise_for_status()
             data = response.json()
             raw_content = data["message"]["content"]
-            return parse_and_validate_llm_json(raw_content)
+            if not isinstance(raw_content, str):
+                raise TypeError("Ollama message content is not a string")
+            self.last_raw_content = raw_content
+            result = parse_and_validate_llm_json(raw_content)
+            if result is None:
+                self.last_failure_reason = "unparseable_json"
+                stripped = raw_content.rstrip()
+                logger.warning(
+                    "Ollama returned unparseable JSON for %r: length=%d "
+                    "ends_mid_token=%s raw=%r",
+                    title[:60],
+                    len(raw_content),
+                    bool(stripped) and not stripped.endswith(("}", "]")),
+                    raw_content[:200],
+                )
+            return result
         except httpx.ConnectError as exc:
             self.last_failure_was_connect_error = True
+            self.last_failure_reason = "connect_error"
             logger.warning("Ollama not reachable for %r: %s", title[:60], exc)
             return None
-        except Exception as exc:
-            logger.warning("Ollama classify failed for %r: %s", title[:60], exc)
+        except httpx.TimeoutException as exc:
+            self.last_failure_reason = "timeout"
+            logger.warning("Ollama timed out for %r: %s", title[:60], exc)
             return None
+        except httpx.HTTPStatusError as exc:
+            self.last_failure_reason = "http_error"
+            logger.warning("Ollama HTTP error for %r: %s", title[:60], exc)
+            return None
+        except httpx.RequestError as exc:
+            self.last_failure_reason = "http_error"
+            logger.warning("Ollama request failed for %r: %s", title[:60], exc)
+            return None
+        except (json.JSONDecodeError, KeyError, TypeError) as exc:
+            self.last_failure_reason = "bad_response_shape"
+            logger.warning("Ollama response shape invalid for %r: %s", title[:60], exc)
+            return None
+        finally:
+            self.last_call_latency_ms = (time.perf_counter() - started_at) * 1000

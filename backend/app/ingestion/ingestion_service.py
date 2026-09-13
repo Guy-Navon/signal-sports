@@ -434,8 +434,12 @@ def _run_source(
     llm_attempts = 0
     llm_successes = 0
     llm_fallback_connect_error = 0
-    llm_fallback_timeout_or_parse = 0
+    llm_fallback_timeout = 0
+    llm_fallback_http_error = 0
+    llm_fallback_bad_response_shape = 0
+    llm_fallback_unparseable_json = 0
     llm_fallback_low_confidence = 0
+    _llm_failure_latencies: dict[str, list[float]] = {}
     # Gating accumulators — eligible articles skipped/called by the gate.
     llm_skipped = 0
     llm_skip_reasons: dict[str, int] = {}
@@ -487,10 +491,28 @@ def _run_source(
                     llm_successes += 1
                 elif cb == "rules_fallback_after_llm_failure":
                     llm_attempts += 1
-                    if _LLM_PROVIDER.last_failure_was_connect_error:
+                    failure_reason = getattr(
+                        _LLM_PROVIDER, "last_failure_reason", "bad_response_shape"
+                    )
+                    if failure_reason == "connect_error":
                         llm_fallback_connect_error += 1
+                    elif failure_reason == "timeout":
+                        llm_fallback_timeout += 1
+                    elif failure_reason == "http_error":
+                        llm_fallback_http_error += 1
+                    elif failure_reason == "unparseable_json":
+                        llm_fallback_unparseable_json += 1
                     else:
-                        llm_fallback_timeout_or_parse += 1
+                        # A provider returning None without a typed reason is a
+                        # response-contract failure, not a timeout or parse guess.
+                        failure_reason = "bad_response_shape"
+                        llm_fallback_bad_response_shape += 1
+                    failure_latency = getattr(
+                        _LLM_PROVIDER, "last_call_latency_ms", None
+                    )
+                    _llm_failure_latencies.setdefault(failure_reason, []).append(
+                        failure_latency if failure_latency is not None else llm_ms
+                    )
                 elif cb == "rules_fallback_low_confidence":
                     llm_attempts += 1
                     llm_fallback_low_confidence += 1
@@ -566,7 +588,8 @@ def _run_source(
     logger.info(
         "Timing [%s]: fetch=%.0fms total=%.0fms | "
         "LLM: attempts=%d successes=%d avg=%s p95=%s | "
-        "Fallbacks: connect_error=%d timeout/parse=%d low_conf=%d | "
+        "Fallbacks: connect_error=%d timeout=%d http_error=%d "
+        "bad_response_shape=%d unparseable_json=%d low_conf=%d | "
         "Gating: skipped=%d skip_reasons=%s call_reasons=%s | "
         "Slowest: [%s]",
         cfg.source_id,
@@ -577,7 +600,10 @@ def _run_source(
         f"{llm_avg_ms:.0f}ms" if llm_avg_ms is not None else "n/a",
         f"{llm_p95_ms:.0f}ms" if llm_p95_ms is not None else "n/a",
         llm_fallback_connect_error,
-        llm_fallback_timeout_or_parse,
+        llm_fallback_timeout,
+        llm_fallback_http_error,
+        llm_fallback_bad_response_shape,
+        llm_fallback_unparseable_json,
         llm_fallback_low_confidence,
         llm_skipped,
         llm_skip_reasons or "{}",
@@ -593,8 +619,12 @@ def _run_source(
         llm_attempts=llm_attempts,
         llm_successes=llm_successes,
         llm_fallback_connect_error=llm_fallback_connect_error,
-        llm_fallback_timeout_or_parse=llm_fallback_timeout_or_parse,
+        llm_fallback_timeout=llm_fallback_timeout,
+        llm_fallback_http_error=llm_fallback_http_error,
+        llm_fallback_bad_response_shape=llm_fallback_bad_response_shape,
+        llm_fallback_unparseable_json=llm_fallback_unparseable_json,
         llm_fallback_low_confidence=llm_fallback_low_confidence,
+        llm_failure_latencies=_llm_failure_latencies,
         llm_skipped=llm_skipped,
         llm_skip_reasons=llm_skip_reasons,
         llm_call_reasons=llm_call_reasons,
@@ -641,7 +671,16 @@ def _run_source(
         llm_attempts=llm_attempts,
         llm_successes=llm_successes,
         llm_fallback_connect_error=llm_fallback_connect_error,
-        llm_fallback_timeout_or_parse=llm_fallback_timeout_or_parse,
+        llm_fallback_timeout=llm_fallback_timeout,
+        llm_fallback_http_error=llm_fallback_http_error,
+        llm_fallback_bad_response_shape=llm_fallback_bad_response_shape,
+        llm_fallback_unparseable_json=llm_fallback_unparseable_json,
+        llm_fallback_timeout_or_parse=(
+            llm_fallback_timeout
+            + llm_fallback_http_error
+            + llm_fallback_bad_response_shape
+            + llm_fallback_unparseable_json
+        ),
         llm_fallback_low_confidence=llm_fallback_low_confidence,
         llm_avg_ms=llm_avg_ms,
         llm_p95_ms=llm_p95_ms,

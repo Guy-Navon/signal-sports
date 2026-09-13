@@ -1,0 +1,34 @@
+{
+  "total_articles": 1427,
+  "unknown_sport": 210,
+  "unknown_share": 0.1472,
+  "threshold": 0.2,
+  "exceeds_threshold": false,
+  "buckets": {
+    "unresolved": 153,
+    "deadlock": 46,
+    "entity_without_sport": 11
+  },
+  "by_source": {
+    "walla_sport": 182,
+    "ynet_sport": 19,
+    "israel_hayom_sport": 9
+  },
+  "by_classification_method": {
+    "rules_fallback_after_llm_failure": 172,
+    "llm": 21,
+    "llm+rules_guardrail": 17
+  },
+  "deadlock_aliases": {
+    "מכבי תל אביב": 20,
+    "מכבי ת\"א": 11,
+    "הפועל ת\"א": 10,
+    "הפועל תל אביב": 5,
+    "הפועל באר שבע": 3,
+    "הפועל ב\"ש": 2,
+    "הפועל חיפה": 2
+  },
+  "note": "Reported, not gated in the feed-quality gate. `unresolved` is largely correct abstention; `deadlock` is the real defect and is sport-MIXED, so it cannot be fixed by defaulting a sport.",
+  "measured_at": "2026-09-13",
+  "corpus_note": "frozen local corpus, newest article 2026-07-31"
+}

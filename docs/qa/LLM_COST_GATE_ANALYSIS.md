@@ -98,3 +98,29 @@ The gate passed before and after with identical directional metrics:
 - `casual_deni_fan`: 91.7% shown precision / 0.8% false-hide.
 
 No stored facts were changed, so this invariance is expected.
+
+## Caveats — read before extending the gate from this report
+
+Added 2026-09-16, after the #218 investigation.
+
+1. **"Changed" is not "improved".** Every C2 figure is a *disagreement* rate
+   between rules and the merged LLM result. No ground truth was consulted.
+   `ambiguous_club` 3/3 and `sport_unknown` 7/9 justify force calls only if the
+   LLM was right on those rows, which this report did not check; conversely,
+   0/16 on residual news shows the LLM adds no information there, not that the
+   rules are correct there.
+2. **The comparison is downstream of Guardrail 4b.** "Production-merged after
+   existing guardrails" means an LLM proposal that 4b rejected counts as *no
+   change*. #218 (`docs/qa/N218_GUARDRAIL_4B.md`) measured 24 of 32 proposals
+   overridden at merge on the fresh cohort. So the residual-news skip is
+   entangled with guardrail strictness: if 4b is relaxed further, the skipped
+   bucket may regain value and nothing in this report would show it. Re-probe
+   after any event-evidence change.
+3. **The slice is the first 60 articles by stable ID, not a random sample.** It
+   over-represents the earliest-ingested sources. The corpus-wide cut of 331
+   calls rests on 16 agreeing articles; the direction is probably right, the
+   confidence stated in C3 is stronger than the sample supports.
+4. **`strong_source_sport_hint` — 5 of 17 disagreements, unexamined.** That is
+   an *existing* skip reason: 29% of rows already skipped would have changed
+   (2 event, 3 entities). Whether that is noise or lost value is the next thing
+   worth a probe; it is not addressed here.

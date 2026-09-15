@@ -128,7 +128,7 @@ must be re-audited when seasons roll over.
 |---|---|---|---|
 | NBA | 30/30 teams | Complete (franchise set is stable) | Low |
 | EuroLeague | 20/20 clubs (2025-26) | Complete for 2025-26 | Annual: promotion/licence changes each season |
-| Israeli Basketball League | 17 clubs | Near-complete; promoted/relegated edge clubs may be missing | Annual roster churn; verify at season start |
+| Israeli Basketball League | 18 clubs | Near-complete; promoted/relegated edge clubs may be missing. `team:hapoel_haemek` added 2026-09-16 (see below) | Annual roster churn; verify at season start |
 | EuroCup | 1 club (Hapoel Jerusalem) | Deliberately sparse — EuroCup lineup is volatile; register on coverage evidence | High |
 | Spanish ACB | 4 clubs (Real Madrid, Barcelona, Baskonia, Valencia) | Partial by design — EuroLeague clubs only; no non-EL ACB club has appeared in ingested coverage | Medium |
 | Turkish BSL | 2 clubs (Fenerbahce, Anadolu Efes) | Partial by design — zero non-EL BSL mentions in the real DB | Medium |
@@ -236,9 +236,18 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
   NBA. These articles name a player and never a club, so nothing else can catch
   them — but an Israeli-league roster is season-volatile and needs a maintenance
   policy first. Tracked as its own issue.
-- **`העמק`** — corpus articles say `הפועל העמק`, which may or may not be the
-  registered `team:emek_yizrael_bb`. That is a question about Israeli basketball,
-  not about this code, and was left rather than guessed.
+- ~~**`העמק`**~~ — **resolved 2026-09-16.** Owner's answer: Hapoel HaEmek is its
+  own club — the merger of Hapoel Afula and the former Hapoel Gilboa/Galil, playing
+  in the top league — and is *not* `team:emek_yizrael_bb`. Registered as
+  `team:hapoel_haemek` (`הפועל העמק`, bare `העמק`, English forms), `comp:ibl`.
+  Evidence: 7 corpus mentions, all basketball, all stored `entities=[]`; all seven
+  now resolve. Bare `העמק` passed the same bar as bare `אילת` — no football club in
+  the registry carries the form, and it is not a substring of `עמק יזרעאל`. Known
+  incidental hit: `בית החולים העמק` (the Afula hospital) — accepted, same class as
+  the mention-vs-subject limitation below. `team:hapoel_galil_gilboa` is kept for
+  historical coverage of the predecessor; no `הפועל עפולה` alias was added (zero
+  corpus mentions). Not backfilled: the 7 rows are all pre-cutoff, and #208 measured
+  this club's recall value at well under 1pp.
 - **Bare family names** (`בהפועל`) stay unresolvable. That abstention is a
   designed success mode, not a remaining gap.
 

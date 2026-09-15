@@ -1,5 +1,13 @@
 # Task brief — a fast rating surface for the fresh-cohort census
 
+> **Status (2026-09-16): delivered.** `backend/scripts/rate_census.py` — `build`
+> writes the census (`docs/qa/census_sample.json`), `serve` opens a local
+> single-keypress page and writes `docs/qa/census_ratings.json` after every
+> rating. Pure logic + tests in `backend/app/qa/census_rating.py` /
+> `backend/tests/test_census_rating.py`. The fresh cohort is 91 articles today;
+> re-run `build` after more accumulate — rated ids are kept, only unrated ones
+> are asked.
+
 Signal Sports is a personalized Hebrew sports-news feed (FastAPI + SQLite backend,
 React frontend). Repo root has `CLAUDE.md` and `docs/`. Assume **no prior
 conversation history**.

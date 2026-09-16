@@ -332,6 +332,14 @@
       ],
       "sport": "basketball"
     },
+    "team:hapoel_haemek": {
+      "kind": "team",
+      "legacy_name": "Hapoel HaEmek",
+      "memberships": [
+        "comp:ibl"
+      ],
+      "sport": "basketball"
+    },
     "team:hapoel_haifa_bb": {
       "kind": "team",
       "legacy_name": "Hapoel Haifa Basketball",
@@ -782,6 +790,7 @@
     "Hapoel Eilat": "team:hapoel_eilat",
     "Hapoel Galil Elyon": "team:hapoel_galil_elyon",
     "Hapoel Galil Gilboa": "team:hapoel_galil_gilboa",
+    "Hapoel HaEmek": "team:hapoel_haemek",
     "Hapoel Haifa Basketball": "team:hapoel_haifa_bb",
     "Hapoel Haifa Football": "team:hapoel_haifa_fc",
     "Hapoel Holon": "team:hapoel_holon",

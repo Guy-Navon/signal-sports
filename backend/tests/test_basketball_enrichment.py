@@ -173,4 +173,7 @@ class TestEnrichmentPhraseTable:
             # added in the same change but is guarded (bare "אשדוד" also names
             # M.S. Ashdod in football), so it is correctly absent here.
             "Hapoel Galil Elyon",
+            # 2026-09-16: Hapoel HaEmek (Afula + former Gilboa/Galil merger),
+            # owner-confirmed as a distinct top-league club; unguarded.
+            "Hapoel HaEmek",
         }

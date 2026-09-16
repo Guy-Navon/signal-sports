@@ -113,6 +113,17 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
           ("הפועל גלבוע גליל", "גלבוע גליל", "גליל גלבוע", "גלבוע עליון",
            "hapoel gilboa galil", "gilboa galil", "hapoel galil gilboa"),
           family="הפועל", domestic="comp:ibl"),
+    # Hapoel HaEmek — the merger of Hapoel Afula and the former Hapoel Gilboa/Galil,
+    # now in the Israeli top league (owner-confirmed, 2026-09-16; it is NOT
+    # `team:emek_yizrael_bb`, the open question in docs/TAXONOMY.md's #190 audit).
+    # Bare "העמק": 7 corpus mentions, all basketball, all stored entities=[] — the
+    # same evidence bar as bare "אילת" above. No football club in this registry
+    # carries the form, and it is not a substring of "עמק יזרעאל" (no ה prefix).
+    # `team:hapoel_galil_gilboa` stays for historical coverage of the predecessor.
+    _team("team:hapoel_haemek", "basketball", "הפועל העמק", "Hapoel HaEmek",
+          "Hapoel HaEmek",
+          ("הפועל העמק", "העמק", "hapoel haemek", "hapoel ha'emek", "haemek"),
+          family="הפועל", domestic="comp:ibl"),
     _team("team:ironi_ramat_gan", "basketball", "עירוני רמת גן", "Ironi Ramat Gan",
           "Ironi Ramat Gan",
           ("עירוני רמת גן", "ironi ramat gan"),

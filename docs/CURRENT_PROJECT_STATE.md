@@ -1,6 +1,8 @@
 # Signal Sports — Current Project State
 
-**2026-09-11 - Feed-quality implementation (#191/#192), pending PR merge.**
+**2026-09-19 - Status:** milestone 8 closed (push discipline 100%, recall at structural ceiling); census rating tool (#222) and `team:hapoel_haemek` (#226) merged; scheduler worker running on a fresh cohort. Carry-forward: #223-#225. Next direction not yet chosen.
+
+**2026-09-11 - Feed-quality implementation (#191/#192), merged.**
 The earlier diagnostic stop is superseded by the authorized relocation decision
 and implementation on `feat/feed-quality-implementation`. Positive editorial
 routing, explicit abstention traces, factual push severity, and validated Lundberg

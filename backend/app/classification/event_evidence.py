@@ -390,7 +390,7 @@ _GRAND_SLAM_CONTEXT = (
     phrase("grand slam"), phrase("גראנד סלאם"),
     phrase("roland garros"), phrase("רולאן גארוס"), phrase("french open"),
     phrase("wimbledon"), phrase("וימבלדון"),
-    phrase("us open"),
+    phrase("us open"), phrase('ארה"ב הפתוחה'), phrase('ארה״ב הפתוחה'),  # #225
     phrase("australian open"), phrase("אליפות אוסטרליה"),
 )
 _GRAND_SLAM_WIN_VERB = (
@@ -467,8 +467,18 @@ _SUBFINAL_ROUND = re.compile(
 
 def _mask_subfinal_rounds(text: str) -> str:
     return _SUBFINAL_ROUND.sub(" ", text)
+# "גבר/גברה/גברו על" — prevailed over (#225). Anchored on "על" (optionally after the
+# score: "גברה 78:80 על מקסימה רומא") because the bare forms collide: "גברים" (men),
+# "הגברה" (amplification), "עליה גברה רק בשנה שעברה" (a past meeting). On the corpus
+# the anchored form hit 26 rows, every one a result. "התגבר על" is deliberately NOT
+# included: it is just as often "התגברה על פציעה" (overcame an injury).
+PREVAILED_OVER_PATTERN = (
+    r"(?<![א-ת])[וש]?גבר(?:ה|ו)?\s+(?:\d{1,3}\s?[:\-]\s?\d{1,3}\s+)?על(?![א-ת])"
+)
+
 _RESULT_VERB = (
     phrase("ניצח"), phrase("ניצחה"), phrase("ניצחו"),
+    regex(PREVAILED_OVER_PATTERN),
     phrase("הפסיד"), phrase("הפסידה"), phrase("הפסידו"),
     phrase("הביס"), phrase("הביסה"),   # routed/crushed — a genuine result verb (#60)
     phrase("תוצאה"), phrase("beats"), phrase("beat"), phrase("defeats"),

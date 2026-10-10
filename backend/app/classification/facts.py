@@ -38,7 +38,7 @@ from app.ingestion.classifier import (
     _BASKETBALL_ONLY_SOURCES,
     _FOOTBALL_CTX_KW,
     _FOOTBALL_MACCABI_KW,
-    _TENNIS_KW,
+    tennis_keywords_for,
 )
 from app.taxonomy import (
     COMPETITIONS,
@@ -88,7 +88,7 @@ _COMPETITION_KEYWORDS: dict[str, tuple[str, ...]] = {
     # tennis (tournaments)
     "comp:wimbledon": ("wimbledon", "וימבלדון"),
     "comp:roland_garros": ("roland garros", "french open", "רולאן גארוס"),
-    "comp:us_open": ("us open",),
+    "comp:us_open": ("us open", 'ארה"ב הפתוחה', 'ארה״ב הפתוחה'),
     "comp:australian_open": ("australian open", "אליפות אוסטרליה"),
 }
 
@@ -212,7 +212,7 @@ def _collect_sport_evidence(
     _title_sets = (
         ("basketball", _BASKETBALL_CTX_KW),
         ("football", _FOOTBALL_CTX_KW + _FOOTBALL_MACCABI_KW),
-        ("tennis", _TENNIS_KW),
+        ("tennis", tennis_keywords_for(f"{title_l} {sub_l}")),
     )
     for sport, kws in _title_sets:
         kw = _first_keyword(title_l, kws)

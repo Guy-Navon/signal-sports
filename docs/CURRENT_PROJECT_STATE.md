@@ -1,6 +1,8 @@
 # Signal Sports — Current Project State
 
-**2026-09-19 - Status:** milestone 8 closed (push discipline 100%, recall at structural ceiling); census rating tool (#222) and `team:hapoel_haemek` (#226) merged; scheduler worker running on a fresh cohort. Carry-forward: #223-#225. Next direction not yet chosen.
+**2026-10-10 - Status:** milestone 9 "Census #2 & Classification Truth" open. [Census #2](qa/CENSUS_2026-10.md) rated all 804 fresh articles: shown precision 86%, feed+ recall 66% (47 of 140 wanted stories hidden), push 1 of the owner's 8. Open in the milestone: #223 (PR #228), #224, #225, #229 (institutional Maccabi news, needs a product decision), #230 (Israeli cups unregistered). The scheduler worker is NOT running; it stopped on 2026-09-20.
+
+**2026-09-19:** milestone 8 closed (push discipline 100%, recall at structural ceiling); census rating tool (#222) and `team:hapoel_haemek` (#226) merged; scheduler worker running on a fresh cohort. Carry-forward: #223-#225. Next direction not yet chosen.
 
 **2026-09-11 - Feed-quality implementation (#191/#192), merged.**
 The earlier diagnostic stop is superseded by the authorized relocation decision

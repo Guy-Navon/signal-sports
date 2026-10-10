@@ -95,6 +95,36 @@
       ],
       "sport": "basketball"
     },
+    "exec:arik_shtilman": {
+      "kind": "executive",
+      "legacy_name": "Arik Shtilman",
+      "memberships": [],
+      "sport": "basketball"
+    },
+    "exec:jason_levin": {
+      "kind": "executive",
+      "legacy_name": "Jason Levin",
+      "memberships": [],
+      "sport": "basketball"
+    },
+    "exec:recanati_family": {
+      "kind": "executive",
+      "legacy_name": "Recanati family",
+      "memberships": [],
+      "sport": "basketball"
+    },
+    "exec:richard_dietz": {
+      "kind": "executive",
+      "legacy_name": "Richard Dietz",
+      "memberships": [],
+      "sport": "basketball"
+    },
+    "exec:shimon_mizrahi": {
+      "kind": "executive",
+      "legacy_name": "Shimon Mizrahi",
+      "memberships": [],
+      "sport": "basketball"
+    },
     "player:deni_avdija": {
       "kind": "player",
       "legacy_name": "Deni Avdija",
@@ -772,6 +802,7 @@
     "AS Monaco Basketball": "team:monaco_bb",
     "ASVEL Villeurbanne": "team:asvel",
     "Anadolu Efes": "team:anadolu_efes",
+    "Arik Shtilman": "exec:arik_shtilman",
     "Atlanta Hawks": "team:atlanta_hawks",
     "Baskonia": "team:baskonia",
     "Bayern Munich Basketball": "team:bayern_munich_bb",
@@ -812,6 +843,7 @@
     "Ironi Ness Ziona": "team:ironi_ness_ziona",
     "Ironi Ramat Gan": "team:ironi_ramat_gan",
     "Jalen Brunson": "player:jalen_brunson",
+    "Jason Levin": "exec:jason_levin",
     "LA Clippers": "team:la_clippers",
     "LeBron James": "player:lebron_james",
     "Los Angeles Lakers": "team:la_lakers",
@@ -844,8 +876,11 @@
     "Phoenix Suns": "team:phoenix_suns",
     "Portland Trail Blazers": "team:portland_blazers",
     "Real Madrid Basketball": "team:real_madrid_bb",
+    "Recanati family": "exec:recanati_family",
+    "Richard Dietz": "exec:richard_dietz",
     "Sacramento Kings": "team:sacramento_kings",
     "San Antonio Spurs": "team:san_antonio_spurs",
+    "Shimon Mizrahi": "exec:shimon_mizrahi",
     "Toronto Raptors": "team:toronto_raptors",
     "Utah Jazz": "team:utah_jazz",
     "Valencia Basket": "team:valencia_bb",

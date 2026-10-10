@@ -166,6 +166,21 @@ _RELEASE_COMPLETE = (
     phrase("released"), phrase("waived"), phrase("cut by"), phrase("roster cuts"),
 )
 
+_CLUB_GOVERNANCE = (
+    # ownership / control
+    # "אחוז(ים) מהבעלות", not bare "מהבעלות": "חלק מהבעלות על המונדיאל" is FIFA.
+    phrase("אחוז מהבעלות"), phrase("אחוזים מהבעלות"), phrase("בעלי המניות"), phrase("בעל המניות"), phrase("מניות המועדון"),
+    phrase("מאבק השליטה"), phrase("מאבקי השליטה"), phrase("השליטה במועדון"),
+    phrase("הבעלים הבא"), phrase("בעלים חדש"),
+    # legal
+    phrase("סעד זמני"), phrase("בוררות"), phrase("הבורר"), phrase("צו מניעה"),
+    # home venue / league membership
+    phrase("המגרש הביתי"), phrase("משחקי הבית"), phrase("להחזיר את משחקי"),
+    phrase("יחזרו לישראל"), phrase("יחזרו ארצה"),
+    phrase('מנכ"ל היורוליג'), phrase('יו"ר היורוליג'), phrase("נציגי היורוליג"),
+    phrase("ownership"), phrase("controlling stake"), phrase("arbitration"),
+)
+
 _RELEASE_BLOCKERS = (
     phrase("לא שוחרר"), phrase("לא שוחררה"), phrase("לא שוחררו"),
     phrase("בית החולים"), phrase("hospital"), phrase("released from hospital"),
@@ -578,6 +593,15 @@ EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
         ),
         blockers=(phrase("אין לאן לעבור"), phrase("ללא יעד"),
                   phrase("לא תעבור"), phrase("will not relocate")),
+    ),
+    # Club governance (#229): ownership, control, legal dispute, home venue, league
+    # membership. Census #2: 6 of the owner's 8 pushes were Maccabi stories of this kind,
+    # all stored `news`. The vocabulary is deliberately narrow — each phrase was checked
+    # on the corpus. Excluded on purpose: "הבעלים של" (Ryan Reynolds, a federation
+    # chairman), "בעלות על" (FIFA), bare "משחקי היורוליג" (every round-up says it).
+    "club_governance": EventEvidenceRule(
+        required_any=(_CLUB_GOVERNANCE,),
+        confirmed_any=_CLUB_GOVERNANCE,
     ),
     "signing": EventEvidenceRule(
         required_any=(_SIGNING_COMPLETE,),

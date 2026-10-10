@@ -370,6 +370,10 @@ GUY_PROFILE_V2 = ProfileV2(
                      event_type="injury"),
         OverrideRule(kind="always_push", scope="team", target_id="team:maccabi_tlv_bb",
                      event_type="title_win"),
+        # #229 (owner decision 2026-10-10): club governance reaches high_feed through the
+        # Maccabi follow; push only on a concrete step (attention "concrete_step").
+        OverrideRule(kind="always_push", scope="team", target_id="team:maccabi_tlv_bb",
+                     event_type="club_governance"),
         OverrideRule(kind="always_push", scope="competition", target_id="comp:nba",
                      event_type="star_trade"),
         OverrideRule(kind="always_push", scope="competition", target_id="comp:nba",

@@ -24,6 +24,7 @@ ALLOWED_EVENT_TYPES = {
     "match_result", "regular_season_result", "finals_result", "title_win",
     "grand_slam_winner", "playoff_result", "early_round_result",
     "schedule", "release", "news", "relocation", "interview", "analysis",
+    "club_governance",
 }
 ALLOWED_IMPORTANCES = {"very_high", "high", "medium", "low"}
 

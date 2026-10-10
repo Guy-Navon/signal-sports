@@ -65,6 +65,7 @@ export const EVENT_TYPE_HE = {
   rumor: "שמועה",
   injury: "פציעה",
   relocation: "מעבר עיר",
+  club_governance: "ענייני מועדון",
   trade: "טרייד",
   major_trade: "טרייד גדול",
   star_trade: "טרייד כוכב",

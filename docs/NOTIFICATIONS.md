@@ -1,5 +1,15 @@
 # Telegram Push Pilot — Notification Contract (Milestone 7)
 
+**2026-10-10 - Club governance push (#229).** Guy gains one explicit rule:
+`always_push` on `team:maccabi_tlv_bb` x `club_governance`. It sits behind the same
+severity gate #192 built for signings. Push fires only when the attention evidence says
+`concrete_step` (the title reports a step taken: הגיש / סוכם / סיכמו / הוכרע / אושר /
+נחתם / נמכר / רכשה / השלים), and Maccabi is a title subject, either directly or through
+a linked coach or executive. A statement, a reaction or a preview of a decision stays
+high_feed. Owner decision: census #2 rated 6 of 19 such stories push. Deterministic
+corpus rerun: Guy push 14 -> 16 (the Dietz injunction, rated push; the completed Recanati
+stake purchase). Deni is unchanged. Telegram stays off.
+
 **2026-09-11 - Feed severity and recovered membership (#192).** The planner
 already runs after clustering and reads full DB membership. A display card on
 only one Madar article did not mean the other sources lacked story identity.

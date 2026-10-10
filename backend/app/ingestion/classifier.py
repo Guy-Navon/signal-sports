@@ -735,6 +735,12 @@ def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
         if validate_event_evidence(event, text, sport=sport).valid:
             proposals.append(event)
 
+    # Club governance (#229) is proposed before the transfer cycle: an ownership deal
+    # says "רכשה" / "סיכמו" and must not become a signing or a negotiation. Its
+    # vocabulary is narrow enough (event_evidence._CLUB_GOVERNANCE) to go first.
+    if validate_event_evidence("club_governance", text, sport=sport).valid:
+        proposals.append("club_governance")
+
     # Grand slam winner: needs BOTH the tournament context AND a win signal.
     if sport == "tennis" and _has(text, *_GRAND_SLAM_KW) and _has(text, *_GRAND_SLAM_WIN_KW):
         proposals.append("grand_slam_winner")

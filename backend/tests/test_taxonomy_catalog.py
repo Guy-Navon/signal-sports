@@ -32,7 +32,9 @@ class TestProjectionCompleteness:
     def test_every_entity_appears_exactly_once(self):
         catalog = build_catalog()
         ids = [t.id for t in catalog.teams] + [p.id for p in catalog.people]
-        assert sorted(ids) == sorted(ENTITIES.keys())
+        # Executives (#229) are followed through their club and deliberately unlisted.
+        listed = [eid for eid, e in ENTITIES.items() if e.kind != "executive"]
+        assert sorted(ids) == sorted(listed)
 
     def test_version_matches_registry(self):
         assert build_catalog().taxonomy_version == TAXONOMY_VERSION

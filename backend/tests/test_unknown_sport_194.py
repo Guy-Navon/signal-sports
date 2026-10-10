@@ -42,7 +42,9 @@ class _Article:
 def test_dual_sport_club_alias_is_the_deadlock_bucket():
     """`מכבי תל אביב` is a football AND a basketball club, so resolution
     correctly abstains — and the sport is unknown BECAUSE nothing resolved."""
-    assert classify_unknown_row("אריק שטילמן נגד רקנאטי על מכבי תל אביב", []) == DEADLOCK
+    # The example used to be "אריק שטילמן נגד רקנאטי על מכבי תל אביב"; since #229 the
+    # executives resolve the club, so it no longer exercises the deadlock.
+    assert classify_unknown_row("הסערה הגדולה סביב מכבי תל אביב", []) == DEADLOCK
 
 
 def test_text_with_no_recognisable_entity_is_unresolved_not_a_defect():

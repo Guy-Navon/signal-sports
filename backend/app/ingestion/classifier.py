@@ -496,13 +496,14 @@ def _resolve_text_entities(
 def _resolution_to_legacy_entities(resolution: EntityResolution) -> list[str]:
     """Convert resolved taxonomy entities to legacy display names.
 
-    Coach mentions imply their current team (Kattash → Maccabi TLV Basketball) —
-    a taxonomy data fact replacing the old hardcoded rule. The coach's own name
-    is not emitted, matching pre-taxonomy behavior.
+    Coach and executive mentions imply their current team (Kattash / Shimon
+    Mizrahi → Maccabi TLV Basketball) — a taxonomy data fact replacing the old
+    hardcoded rule. The person's own name is not emitted, matching pre-taxonomy
+    behavior for coaches (#229 extends it to club executives).
     """
     entities: list[str] = []
     for entity in resolution.resolved:
-        if entity.kind == "coach":
+        if entity.kind in ("coach", "executive"):
             team = entity_by_id(entity.team_id) if entity.team_id else None
             if team and team.legacy_name not in entities:
                 entities.append(team.legacy_name)

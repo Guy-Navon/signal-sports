@@ -25,7 +25,7 @@ from typing import Optional
 @dataclass(frozen=True)
 class TaxonomyEntity:
     id: str
-    kind: str                                   # team | player | coach
+    kind: str                                   # team | player | coach | executive
     sport: str                                  # basketball | football | tennis
     display_he: str
     display_en: str
@@ -42,7 +42,11 @@ class TaxonomyEntity:
     # like Real Madrid or Bayern Munich share their full name across sports, so
     # nothing about the name proves the sport and evidence stays mandatory.
     full_name_disambiguates: bool = False
-    team_id: Optional[str] = None               # for players/coaches: current team
+    team_id: Optional[str] = None               # for players/coaches/executives: current team
+    # Aliases that match only as a standalone Hebrew word (#229). The resolver is a raw
+    # substring scanner; a short bare surname like "דיץ" sits inside Slavic names
+    # ("מלאדיץ'"). Opt-in per alias, so every existing alias behaves exactly as before.
+    word_bounded_aliases: tuple[str, ...] = ()
 
 
 def _team(
@@ -519,6 +523,46 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
         display_he="עודד קטש", display_en="Oded Kattash", legacy_name="Oded Katash",
         aliases=("עודד קטש", "קטש", "oded kattash", "kattash"),
         memberships=(("comp:ibl", None), ("comp:euroleague", None)),
+        team_id="team:maccabi_tlv_bb",
+    ),
+    # ── Club executives (#229) ────────────────────────────────────────────────
+    # Owners, chairmen and investors. Like a coach, a mention implies the club
+    # (the classifier emits the TEAM, not the person), so the Maccabi ownership
+    # saga reaches Maccabi followers. Not followable on their own (no `exec:`
+    # profile scope; not listed in the interest catalog).
+    # Alias safety: full names only where the surname is common — bare "מזרחי"
+    # also names ex-player Avi Mizrahi and a Beer Sheva lineup; bare "לוין" is a
+    # common surname. Bare "רקנאטי" and "שטילמן": every corpus mention (16 / 9) is this
+    # saga. Bare "דיץ" is word-bounded: as a substring it also hit "רטקו מלאדיץ'".
+    TaxonomyEntity(
+        id="exec:shimon_mizrahi", kind="executive", sport="basketball",
+        display_he="שמעון מזרחי", display_en="Shimon Mizrahi", legacy_name="Shimon Mizrahi",
+        aliases=("שמעון מזרחי", "shimon mizrahi"),
+        team_id="team:maccabi_tlv_bb",
+    ),
+    TaxonomyEntity(
+        id="exec:recanati_family", kind="executive", sport="basketball",
+        display_he="משפחת רקנאטי", display_en="Recanati family", legacy_name="Recanati family",
+        aliases=("משפחת רקנאטי", "רקנאטי", "recanati"),
+        team_id="team:maccabi_tlv_bb",
+    ),
+    TaxonomyEntity(
+        id="exec:richard_dietz", kind="executive", sport="basketball",
+        display_he="ריצ'רד דיץ", display_en="Richard Dietz", legacy_name="Richard Dietz",
+        aliases=("ריצ'רד דיץ", "ריצ'ארד דיץ", "ריצ`ארד דיץ", "דיץ", "richard dietz"),
+        word_bounded_aliases=("דיץ",),  # not inside "מלאדיץ'" (a corpus false hit)
+        team_id="team:maccabi_tlv_bb",
+    ),
+    TaxonomyEntity(
+        id="exec:jason_levin", kind="executive", sport="basketball",
+        display_he="ג'ייסון לוין", display_en="Jason Levin", legacy_name="Jason Levin",
+        aliases=("ג'ייסון לוין", "jason levin"),
+        team_id="team:maccabi_tlv_bb",
+    ),
+    TaxonomyEntity(
+        id="exec:arik_shtilman", kind="executive", sport="basketball",
+        display_he="אריק שטילמן", display_en="Arik Shtilman", legacy_name="Arik Shtilman",
+        aliases=("אריק שטילמן", "שטילמן", "arik shtilman"),
         team_id="team:maccabi_tlv_bb",
     ),
 )

@@ -51,6 +51,11 @@ def validate_registry() -> list[str]:
             )
         seen_legacy[entity.legacy_name] = entity.id
 
+        # A word-bounded alias must be one of the entity's aliases (#229).
+        for a in entity.word_bounded_aliases:
+            if a not in entity.aliases:
+                errors.append(f"{entity.id}: word-bounded alias {a!r} is not an alias")
+
         # Players/coaches with a team link must point at an existing team of the same sport.
         if entity.team_id is not None:
             team = ENTITIES.get(entity.team_id)

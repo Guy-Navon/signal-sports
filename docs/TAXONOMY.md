@@ -271,6 +271,27 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
     article's competition fact stays the cup. It is not exported to the frozen JS engine.
     Child competitions are **not selectable and not listed** in the interest catalog
     (`policy.competition_selectable`, `build_catalog`): they are followed through the parent.
+- **Club executives — added 2026-10-10 (#229, taxonomy half).** Census #2 found that 6
+  of the owner's 8 pushes are Maccabi institutional stories, and two had no entity at
+  all (`דיץ הגיש בקשה לסעד זמני: ההתפתחות במכבי`: an investor plus the bare family
+  name). New entity kind **`executive`** (`exec:*` ids, `team_id` required in practice),
+  following the coach precedent: a mention emits the **team**, not the person. Registered
+  for `team:maccabi_tlv_bb`: Shimon Mizrahi, the Recanati family, Richard Dietz, Jason
+  Levin and Arik Shtilman.
+  - **Alias safety.** Full names only for common surnames: bare `מזרחי` also names
+    ex-player Avi Mizrahi and a Beer Sheva lineup, and `לוין` is common. Bare `רקנאטי`
+    (16 corpus mentions) and `שטילמן` (9) are all this saga. Bare `דיץ` hit
+    `רטקו מלאדיץ'` as a raw substring, so it is **word-bounded**. That uses a new opt-in
+    `word_bounded_aliases` field: the resolver accepts it only as a standalone Hebrew
+    word (prefix chain allowed, no letter or geresh after). Every other alias still
+    matches as before.
+  - Executives are **not followable**: they are absent from the interest catalog,
+    `policy.scope_target_selectable` rejects them, and ProfileV2 accepts only
+    `player:`/`coach:` targets. They are followed through their club.
+  - Real-corpus effect (deterministic rerun, 2,370 rows): 5 saga stories move from
+    hidden to feed for Guy (one rated push, one high). One subtitle-only Hapoel mention
+    drops, because the title now resolves its subject (Mizrahi → Maccabi). Push and
+    Deni are unchanged.
 - **Bare family names** (`בהפועל`) stay unresolvable. That abstention is a
   designed success mode, not a remaining gap.
 

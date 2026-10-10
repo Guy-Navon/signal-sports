@@ -81,6 +81,30 @@ for _e in ENTITIES.values():
             if _name:
                 _GUARDED_FULL_NAMES[normalize_alias_text(_name)] = _e.id
 
+# Opt-in whole-word aliases (#229): matched only as a standalone Hebrew word — an
+# optional prefix chain ([ו|ש][ב|ל|מ|כ|ה]) before, and neither a Hebrew letter nor a
+# geresh/apostrophe after ("מלאדיץ'" must not resolve "דיץ").
+_WORD_BOUNDED: frozenset[str] = frozenset(
+    normalize_alias_text(a) for e in ENTITIES.values() for a in e.word_bounded_aliases
+)
+_HEB_LETTERS = set("אבגדהוזחטיכךלמםנןסעפףצץקרשת")
+_HEB_PREFIX = set("בלמכה")
+_HEB_CONJ = set("וש")
+_GERESH = set("'׳`")
+
+
+def _is_standalone_word(text: str, span: tuple[int, int]) -> bool:
+    start, end = span
+    if end < len(text) and (text[end] in _HEB_LETTERS or text[end] in _GERESH):
+        return False
+    i = start
+    if i > 0 and text[i - 1] in _HEB_PREFIX:
+        i -= 1
+    if i > 0 and text[i - 1] in _HEB_CONJ:
+        i -= 1
+    return i == 0 or text[i - 1] not in _HEB_LETTERS
+
+
 # Aliases sorted longest-first so longer matches claim their span before any
 # shorter alias contained within them.
 _ALIASES_BY_LENGTH: list[str] = sorted(_ALIAS_INDEX, key=len, reverse=True)
@@ -178,6 +202,8 @@ def resolve_entities(text: str, sport_context: Optional[str] = None) -> EntityRe
 
     for alias in _ALIASES_BY_LENGTH:
         occurrences = _find_occurrences(lowered, alias)
+        if alias in _WORD_BOUNDED:
+            occurrences = [sp for sp in occurrences if _is_standalone_word(lowered, sp)]
         free = [sp for sp in occurrences if not _overlaps(sp, taken_spans)]
         if not free:
             continue

@@ -20,6 +20,7 @@ from typing import Optional
 
 from app.classification.sport_guards import committed_sport, is_unsupported_sport
 from app.classification.event_evidence import (
+    PREVAILED_OVER_PATTERN,
     EventEvidence,
     validate_event_evidence,
 )
@@ -264,6 +265,19 @@ _TENNIS_KW = (
     "סינר",                          # Sinner
 )
 
+# "גראנד סלאם" is also a judo tour (IJF Grand Slam) — #225: "מדליית גראנד סלאם ראשונה
+# לכרם פרימו" was classified tennis. A tennis slam awards no medals, so the phrase is
+# tennis evidence only without judo/medal context. Every other tennis keyword is kept.
+_GRAND_SLAM_PHRASES = ("grand slam", "גראנד סלאם")
+_NON_TENNIS_SLAM_CONTEXT = ("ג'ודו", "ג׳ודו", "ג'ודא", "ג׳ודא", "judo", "מדלי", "medal", "פודיום")
+
+
+def tennis_keywords_for(text: str) -> tuple[str, ...]:
+    """The tennis sport keywords that count as evidence for this (lowercased) text."""
+    if any(ctx in text for ctx in _NON_TENNIS_SLAM_CONTEXT):
+        return tuple(kw for kw in _TENNIS_KW if kw not in _GRAND_SLAM_PHRASES)
+    return _TENNIS_KW
+
 
 def _detect_sport(text: str, source_id: str, source_sport_hint: str | None = None) -> str:
     # Unsupported domain (issue #113) — MMA/UFC/boxing are not modelled by the taxonomy.
@@ -284,7 +298,7 @@ def _detect_sport(text: str, source_id: str, source_sport_hint: str | None = Non
         return source_sport_hint
     if source_id in _BASKETBALL_ONLY_SOURCES:
         return "basketball"
-    if _has(text, *_TENNIS_KW):
+    if _has(text, *tennis_keywords_for(text)):
         return "tennis"
     # Explicit football Maccabi clubs must be checked before the Maccabi TLV
     # phrase check — מכבי נתניה / מכבי חיפה etc. are definitively football.
@@ -570,7 +584,7 @@ _GRAND_SLAM_KW = (
     # Specific Grand Slam names: a win at any of these is grand_slam_winner
     "roland garros", "רולאן גארוס", "french open",
     "wimbledon", "וימבלדון",
-    "us open",
+    "us open", 'ארה"ב הפתוחה', 'ארה״ב הפתוחה',  # US Open in Hebrew (#225)
     "australian open", "אליפות אוסטרליה",
 )
 # Hebrew champion NOUNS are included here (#133) so a slam win phrased "סינר אלוף
@@ -780,7 +794,7 @@ def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
         proposals.append("schedule")
 
     # Generic match result
-    if _has(text, *_RESULT_KW):
+    if _has(text, *_RESULT_KW) or re.search(PREVAILED_OVER_PATTERN, text):
         proposals.append("match_result")
 
     for proposal in proposals:

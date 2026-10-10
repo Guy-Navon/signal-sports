@@ -937,6 +937,52 @@ Tests: `TestSubfinalRoundsAreNotFinals` in `tests/test_israeli_cups_230.py`.
 
 ---
 
+## 15. Three Vocabulary Gaps From Census #1 (#225, 2026-10-10)
+
+Each is a word the genre uses that one list lacked.
+
+1. **The US Open's Hebrew name.** `ארה"ב הפתוחה` was tennis sport evidence (`_TENNIS_KW`)
+   but missing from the three lists that must mirror each other (the #138 lesson):
+   `classifier._GRAND_SLAM_KW` (proposal), `event_evidence._GRAND_SLAM_CONTEXT`
+   (validation), and `facts._COMPETITION_KEYWORDS["comp:us_open"]`. Both quote forms
+   (`"` and `״`) were added. Bare `אליפות ארה"ב` was **not** added: it also names
+   American national championships in other sports.
+2. **`גבר/גברה/גברו על` is a result verb.** It is anchored on `על`, optionally after the
+   score (`גברה 78:80 על`), as `PREVAILED_OVER_PATTERN`. The validation list and the
+   classifier's proposal check both use it. The bare forms collide: `גברים` (men),
+   `הגברה` (amplification), and `עליה גברה רק בשנה שעברה` (a past meeting). On the
+   corpus the anchored form hit 26 rows, all of them results. `התגבר על` was **not**
+   added: the US Open row's own subtitle says `התגברה על פציעה` (overcame an injury).
+3. **A judo Grand Slam is not tennis.** `גראנד סלאם` stops counting as tennis evidence
+   when judo or medal context is present (`ג'ודו`, `ג'ודא…`, `מדלי…`, `פודיום`,
+   `judo`, `medal`). A tennis slam awards no medals. `tennis_keywords_for()` is the
+   single source for the classifier and the facts stage. A slam with no other tennis
+   word and no medal context stays tennis.
+
+**Real-corpus effect (2,263 rows, deterministic path, in-memory):** 17 rows change. 11
+results move from `news`/`signing`/`release` to `match_result`, Rybakina's US Open
+becomes `grand_slam_winner`, and the judo row becomes `sport=unknown`. Push is
+unchanged for both profiles.
+
+**3 decision flips, all toward a stronger decision than the owner's census rating.**
+The facts are now right; the profile weights them above the owner's taste:
+
+| row | Guy | owner |
+|---|---|---|
+| Rybakina wins the US Open | hidden → high_feed | low |
+| `הפועל ירושלים גברה על לובליאנה` | low_feed → feed | low |
+| `הפועל ירושלים ברבע גמר גביע ווינר` (subtitle `גברו על`) | low_feed → feed | low |
+
+This matches a census-wide pattern. On shown items the profile over-ranks specific
+events against the owner's ratings (candidate +1.3 notches, playoff +1.3, analysis
++1.0, signing +0.7) and under-ranks `news`. That is a profile-calibration question, not
+a classification one.
+
+Tests: `tests/test_census1_one_liners_225.py` covers 3 corpus rows plus 8 adversarial
+neighbours. Without the fix, 8 tests fail and 6 pass.
+
+---
+
 ## Next Steps
 
 - **Re-run LLM gating benchmark** — Quality fixes on branch `feature/selective-llm-gating` are now in place. Re-run the benchmark from the Sources page to measure skip rate and quality after fixes.

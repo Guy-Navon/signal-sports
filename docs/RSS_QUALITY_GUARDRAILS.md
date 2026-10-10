@@ -857,6 +857,59 @@ correcting the four existing rows is a `POST /api/classify/backfill` decision.
 
 ---
 
+## 13. A Trade Is Headlined (#223, 2026-10-10)
+
+**The defect.** Census #1's only push was wrong. `"פורטלנד הייתה צריכה לבנות על דני
+אבדיה, העתיד שלו בקבוצה הסתבך"`, an opinion column about Deni's future, was stored
+`major_trade / probable` and pushed to **both** profiles. The title carries no event, so
+title-first routing fell through to the subtitle, which *evaluates a past trade for
+another player*: `"הטרייד על ג'ה מוראנט היה נכון"`. `major_trade` had no blockers and was
+not title-local, so the subtitle mention stood as the article's event.
+
+**The shape, measured on the corpus.** Of the 8 stored `major_trade` rows, all **5**
+with trade vocabulary in the title are genuine trades, and all **3** with it only in the
+subtitle are false: the column above, detainees who `"הועברו לחקירה"` (were *taken* for
+questioning), and a World Cup final screening that `"הועבר"` (was *moved*) to Menora
+Arena. A trade in a subtitle is background to the headline's story, the same position
+trap #125 found for champion epithets.
+
+**Fix.** `major_trade` joins `TITLE_LOCAL_EVENT_TYPES`. Subtitle-only trade evidence is
+rejected in `_apply_post_facts_event_validation()` and the event falls back to `news`.
+That covers rules and LLM proposals alike. A headlined trade is untouched, including
+its certainty.
+
+**Real-corpus effect (2,247 articles, deterministic path, in-memory, no writes):**
+exactly **3** rows change, all `major_trade/probable → news`.
+
+| headline | Guy | Deni |
+|---|---|---|
+| `"פורטלנד הייתה צריכה לבנות על דני אבדיה…"` | `push` → `feed` | `push` → `high_feed` |
+| `סמים ואלימות מחוץ לאיצטדיון: חמישה עצורים…` | `hidden` | `hidden` |
+| `יותר מ-10,000 אוהדים צפו בגמר המונדיאל בהיכל מנורה` | `hidden` | `hidden` |
+
+Push counts: Guy 13 → 12, Deni 4 → 3. No new push anywhere. The genuine `"רשמי: דני
+אבדיה נסחר…"` still pushes for both.
+
+**The abstention this buys.** A real trade under a headline with no trade word (`"X
+עובר לפורטלנד"` with `"הטרייד…"` only in the subtitle) is now `news`. The corpus has no
+such row. The article stays visible for an entity follower, and other sources headline
+trades explicitly. Same reasoning as §12 and Guardrail 4c in `docs/LLM_CLASSIFICATION.md`.
+
+**Known latent risk, deliberately not fixed:** `הועבר / הועברה` stay in the trade
+vocabulary. Both are generic verbs (*moved*, *transferred*), and both corpus false
+positives used them, but only in subtitles, which this fix now rejects. A title such as
+`"המשחק הועבר לאולם אחר"` would still validate as a trade. The corpus has no title
+using either verb, so removing them would be a change without evidence.
+
+Regression tests: `TestMajorTradeIsTitleLocal` in `tests/test_event_evidence.py`. It
+covers the three corpus rows verbatim through `_normalise`, plus two headlined-trade
+neighbours that must not move (the Deni trade still pushes, and a headlined trade keeps
+`confirmed`).
+
+**Stored rows are unchanged** until a targeted correction or backfill.
+
+---
+
 ## Next Steps
 
 - **Re-run LLM gating benchmark** — Quality fixes on branch `feature/selective-llm-gating` are now in place. Re-run the benchmark from the Sources page to measure skip rate and quality after fixes.

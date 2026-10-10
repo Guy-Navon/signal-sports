@@ -518,7 +518,16 @@ _LIVE_SCORELINE = regex(
 # #125 documented for domestic titles ("מול אלופת ווימבלדון" under a match report),
 # and the certainty cap alone was already proven insufficient there. A slam win is
 # asserted in the title or it is not that event.
-TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset({"title_win", "grand_slam_winner"})
+#
+# major_trade joins them (#223). A trade in a SUBTITLE is background, not news: the
+# census's only push was an opinion column on Deni ("פורטלנד הייתה צריכה לבנות על דני
+# אבדיה") whose subtitle evaluated a PAST trade for another player ("הטרייד על ג'ה מוראנט
+# היה נכון"). On the live corpus all 3 subtitle-only major_trade rows were false — that
+# column, detainees "הועברו לחקירה", and a final screening that "הועבר" to another arena —
+# while all 5 title-asserted ones were genuine trades. A real trade is headlined.
+TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset(
+    {"title_win", "grand_slam_winner", "major_trade"}
+)
 
 
 EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {

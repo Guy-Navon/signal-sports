@@ -1,0 +1,1735 @@
+{
+  "meta": {
+    "generated_at": "2026-10-10T02:40:10.156196+00:00",
+    "git_sha": "6c1eff9864ad3e4076773646efbf466d48005d45",
+    "engine": "v2",
+    "corpus_articles": 2231,
+    "scope": "Relevance rules over the whole ingested corpus, freshness window not applied, raw profiles without learned augmentation.",
+    "rated_against_sample": "2026-10-10T02:05:15.623883+00:00"
+  },
+  "profiles": {
+    "guy": {
+      "rated": 804,
+      "sample_counts": {
+        "rated": 804,
+        "exact": 637,
+        "false_hide": 76,
+        "under_ranked": 37,
+        "false_show": 19,
+        "over_ranked": 35
+      },
+      "false_hide_by_sport": {
+        "basketball": {
+          "rows": 52,
+          "wanted_rows": 35,
+          "share_of_corpus": 0.0647
+        },
+        "football": {
+          "rows": 12,
+          "wanted_rows": 6,
+          "share_of_corpus": 0.0149
+        },
+        "unknown": {
+          "rows": 8,
+          "wanted_rows": 4,
+          "share_of_corpus": 0.01
+        },
+        "tennis": {
+          "rows": 4,
+          "wanted_rows": 2,
+          "share_of_corpus": 0.005
+        }
+      },
+      "shown_precision": {
+        "shown": 138,
+        "worth_showing": 119,
+        "precision": 0.862,
+        "note": "census of the visible tiers; not an estimate"
+      },
+      "population_estimates": {
+        "exact": 0.7923,
+        "false_show": 0.0236,
+        "false_hide": 0.0945,
+        "over_ranked": 0.0435,
+        "under_ranked": 0.046
+      },
+      "push_precision": {
+        "rated": 3,
+        "agreed_push_worthy": 1,
+        "precision": 0.333
+      },
+      "disagreements": [
+        {
+          "id": "rss_8bb009265ad894fe1146",
+          "title": "הקרב על ניו יורק: זברב מול שלטון בגמר אליפות ארה\"ב שכולו היסטוריה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "tennis",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_da08084e69a77a1a5256",
+          "title": "מכבי ת\"א סגרה את עסקת מורגן בוקלה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_49ba0f09f7170d78ed50",
+          "title": "בדרך לזהב נוסף? רז הרשקו עלתה לגמר גרנד סלאם בודפשט",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_646a49bf1e11309ef463",
+          "title": "אחרי 23 שנה: הגיבור החדש של ארצות הברית חולם לסיים את הבצורת",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_14857700621166c5fd56",
+          "title": "בריסט: \"חשוב לנו לשחק נגד יריבות חזקות\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_a451f528c6cf4a97ef54",
+          "title": "מילר: \"אנחנו במקום טוב. הפועל לא ספגה, נצטרך לשנות את זה\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_375649c3d0de48af0673",
+          "title": "קולסון כיכב, 87:92 למכבי ת\"א על אריס",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_5ba66b375d2597f07c6d",
+          "title": "אקס מכבי ת\"א חושב בגדול: \"המטרה - להיות השחקן הטוב באירופה\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_cf4dbbe8c4760e0b4f1f",
+          "title": "ישראל גבוהה מספיק? דירוג הליגות המקומיות",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_9d0646f74fac1f90e717",
+          "title": "הפועל ת\"א גברה 78:80 על מקסימה רומא",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_fb056b5520fd43f52cc0",
+          "title": "חי ממשחק ההכנה: אולימפיאקוס - מכבי תל אביב 35:35 (מחצית)",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_4dd8e230cefa1231e572",
+          "title": "גביע ווינר: מכבי ראשון לציון פותחת עונה נגד הפועל אילת",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_3febdca22278e04ceb76",
+          "title": "שטיינברג: \"הרבה זמן רדפתי אחרי ההישג הזה\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "tennis",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_e6db522119c90364988b",
+          "title": "ככה פותחים שנה: מדליית גראנד סלאם ראשונה לכרם פרימו",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": "tennis",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a9a819e0b52bbbe73a1c",
+          "title": "סדר חדש: ריבאקינה ניצחה את סבאלנקה וזכתה באליפות ארה\"ב הפתוחה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": "tennis",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2e464d7b50d152d4d37d",
+          "title": "בטופ של ה-NBA: דני אבדיה נכלל בדירוג יוקרתי",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_92f5dfb5537dd4c07f95",
+          "title": "\"הפועל תל אביב רוצה לאתגר את הדומיננטיות של מכבי בעיר\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_8e61c3db1142cbde25ea",
+          "title": "עדיין מושלמת: הפועל ת\"א ניצחה 78:80 את רומא",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_7585bbb01e76afb7cb63",
+          "title": "קטש לקראת מילאנו: \"בשלב הזה ציפינו לשחק כדורסל יותר טוב\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "high_feed",
+          "kind": "false_hide",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "never_show_override"
+        },
+        {
+          "id": "rss_1e3c4b559cfbd7108193",
+          "title": "הפועל ת\"א ליפתח זיו: קח חצי מהשכר ותעזוב",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_ec7592b9586647dd04ae",
+          "title": "\"עוצרים את הספורט ומנציחים את הנרצחים\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_397b18aa6c4b3d2a7be6",
+          "title": "החוזה של דני אבדיה מסתבך: פורטלנד נערכת לאפשרות שיעזוב",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_82cd46b5e40abf918319",
+          "title": "רבע 2, 04:20: בני הרצליה - ראשל\"צ 22:36",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_a0b3fe6fb371ba70f074",
+          "title": "הפועל ת\"א: \"המועדון לא יתבע את אוהדיו\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_83f40a05520d3edca884",
+          "title": "\"בלתי נתפס\": באירופה נדהמו מהסל של ים מדר",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_5f1d504963481f0da2af",
+          "title": "את מוכרת לי מפעם: ציון 3 על הדרבי והזרים של מכבי חיפה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_30b7a9332609cf278618",
+          "title": "אחרי ריצה משוגעת ומהפך: הפועל גליל עליון ברבע גמר גביע ווינר",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_eff882bbc1feecab83bc",
+          "title": "\"קיבלנו בוקס\": הביקורת החריפה בהפועל ת\"א והסערה סביב בראיינט",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_ebf9c2c619a534842d66",
+          "title": "משחקי היורוליג יחזרו לישראל? המהלכים הבאים של שמעון מזרחי",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "high_feed",
+          "kind": "false_hide",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "never_show_override"
+        },
+        {
+          "id": "rss_5e60824dfa7b20e8e9b6",
+          "title": "קרית אתא וגליל עליון החליטו: נשחק עם ארבעה זרים כל העונה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_af6dfe7e400f02433c68",
+          "title": "בעקבות הזיקוק לעבר צור: דרישת התובע נגד מכבי תל אביב",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_ea53f422a6e1225d77c7",
+          "title": "עצבני: צפו בטכנית של ואסה מיציץ`",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_4b80eb6b4caa96e83428",
+          "title": "מכבי רמת גן הודיעה על החתמתו של הגארד ג'יילן אדאמס",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_c3930ce858ab5ff4735a",
+          "title": "פארקר לקראת הבכורה כמאמן: \"אקח איתי גם משהו מפופוביץ'\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_de09998326c0f6de39c7",
+          "title": "שמונה נקודות לשרף ותשע לוולף בניצחון הנטס במשחק הכנה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_6b137daed16fec9ef476",
+          "title": "\"הפועל י-ם יכולה לחתוך אותי באמצע העונה\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_68fa0c75722c43c5cc65",
+          "title": "המענק של מכבי ת\"א על הזכייה בסופרקאפ",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_436c3c5e3778029c15f9",
+          "title": "הפועל חולון בוחנת להחזיר את האקס | פרסום ראשון",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_5ed3d8f2e7b4b1051a36",
+          "title": "לבן מרסר חשף שנזקק לטיפול דחוף: \"אל תזניחו את עצמכם\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_0b555371907aabe0f316",
+          "title": "צפו בשידור הישיר: מסיבת העיתונאים של מכבי והפועל ת\"א לקראת הסופרקאפ",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_3271bce67460d817a012",
+          "title": "גביע ווינר: קרית אתא הדיחה את חולון, ניצחון דרמטי לבאר שבע",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_6712b22b59a655baca55",
+          "title": "צפו בשידור החי: קטש ואיטודיס לקראת הדרבי בסופר קאפ",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "never_show_override"
+        },
+        {
+          "id": "rss_9bfa06aac93b6a54c642",
+          "title": "פתיחה נוראית: הפועל חולון הובסה 99:79 לשולה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_ced6e83efda59fa746ee",
+          "title": "\"בראינט מעניין רק את בראינט. למדר יש בייגלה מעל הראש\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_70dbf36bff421ca58bd5",
+          "title": "הספיקה להתאושש: הפועל ירושלים גברה על לובליאנה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_c36e1d3e9cd1f1cf3138",
+          "title": "\"איבדתם את הראש\": הנאום של ינאי לשחקנים",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_03472c8e812fabf8c09c",
+          "title": "גביע ווינר: גליל עליון הצעירה פותחת עונה בזיסמן",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_097b4bf672cb8fd9e1f2",
+          "title": "עדיין מושלמת: עירוני נס ציונה ניצחה את לובלין 79:85",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_5334f0f1ce5333e41265",
+          "title": "אחרי התבוסה: העונש של איטודיס לשחקנים",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_06365730e16636159613",
+          "title": "הפועל גליל עליון פתחה ברגל ימין את גביע ווינר והביסה ברמת גן",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_f885201c5b24a3a0246c",
+          "title": "דיץ הגיש בקשה לסעד זמני: ההתפתחות במכבי",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "push",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_50a76764e862cc1dd6b6",
+          "title": "דיץ נגד מזרחי ורקנאטי: \"ההודעה שלהם מטעה ומביכה\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "push",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_350ce943be79042c23fa",
+          "title": "קריסה באדום: על הערב שהפועל תל אביב תרצה לשכוח",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_a35daf51d5362843ace1",
+          "title": "\"יש דרך להפסיד\": היום שאחרי בהפועל ת\"א",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_22ddba4cb49eb94aade3",
+          "title": "ביקורת בהפועל אחרי הקריסה בדרבי: \"הלכנו אחורה\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_492687cd2a09e32c4d81",
+          "title": "יחזור לכתום? ראשון לציון מנסה לצרף את עידן זלמנסון",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_5023fcdc78c84adbf341",
+          "title": "ריצ`ארד דיץ: \"לוין לא צד במחלוקות\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "high_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_a077482f25ccf18d9b96",
+          "title": "מתאמן בצד: מה קורה בין רפי מנקו להפועל העמק?",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_c9f6ecd671befa20947d",
+          "title": "רפי מנקו יישאר בהפועל העמק עד תום העונה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_b73c70dea7363ae8d42c",
+          "title": "עבר ב-NBA: האיש שמנע ממכבי תל אביב להחתים את השחקן שרצתה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_b9898e909910f1abdd95",
+          "title": "הגנה במנוחה: בני הרצליה נכנעה 86:75 לחובנטוד",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_fe7f9f0f20bc132f7dfd",
+          "title": "הפועל ירושלים לראשונה העונה בארנה, באר שבע שוב תפתיע?",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_01c6ca4fdb0c266af0e1",
+          "title": "צפו בשידור הישיר: מכבי והפועל ת\"א מתכוננות לסופרקאפ",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_31c7697db8dcb062be74",
+          "title": "\"הרגשתי שהפועל תל אביב רוצה אותי - רק כדי שלא אחזור למכבי\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_f47fc2b99dda8605455f",
+          "title": "דרבי על תואר: מכבי תל אביב והפועל תל אביב ייפגשו בסופרקאפ",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_db8d58f3214eab1e6bdb",
+          "title": "מכבי תל אביב - הפועל תל אביב 0:0 (רבע 1)",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_62d35b792205db4db56a",
+          "title": "למרות הצגה של חיפי: וילרבאן גברה על פריז בתום מותחן",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_987cff52bf6f810efb7e",
+          "title": "שלשה אחת הספיקה: הפועל ירושלים העפילה לרבע גמר גביע ווינר",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_ceda678846e42f5b515e",
+          "title": "למרות משחק חריג מחוץ לקשת: הפועל ירושלים ברבע גמר גביע ווינר",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_d440b85265884db0ef3b",
+          "title": "בני הרצליה הביסה את מכבי ראשל\"צ ועלתה לרבע גמר גביע ווינר",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_fb60908ea6982933708d",
+          "title": "הצגת בכורה: מכבי זכתה בסופרקאפ מול הפועל",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "push",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_2eb7993d8cadc9e8449c",
+          "title": "כוכב פנאתינייקוס הצהיר: אשמח לחזור לאקסית מהיורוליג",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_92201d7c1e9c8c7b5e5b",
+          "title": "הפועל תל אביב כבר מתחרטת? \"יש בים מדר משהו קוסמי, זה לא רגיל\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_fdf0f6cb4e26a33af6ee",
+          "title": "ה-MVP של הליגה האוסטרלית בעבר חתם בר\"ג",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_9b49212690345a6153da",
+          "title": "\"אין הצהרות\": מכבי ת\"א מרוצה מהזכייה בסופרקאפ, אך לא נסחפת",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_0d5278f7bb18f81f9f53",
+          "title": "לבאן מרסר אושפז: \"תודה לאלוהים ולאשתי\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_57ebbb1973908d092749",
+          "title": "שתהיה שנת ניצחונות: שבע המשאלות שלנו מתשפ\"ז",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_cbc0da1e4f6fb8696913",
+          "title": "\"המצב במכבי תל אביב לא בריא, בעיות זולגות בסוף\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_e351a303d7561512dcd9",
+          "title": "חי, רבע ראשון: מכבי ת\"א - הפועל ת\"א 0:0",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_1a1558bed55670ebf049",
+          "title": "דרמה באיטליה: 34:34 למכבי ראשון לציון מול פלמאנו",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_60dbc2f4aa7316584e2d",
+          "title": "עם פתח להמון אוהדים: סוכם המעבר של מכבי תל אביב לקפריסין",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_9ce104a133b2ce88317b",
+          "title": "במיליוני שקלים, עם שלום אסייג: העסקה של מנכ\"ל מכבי תל אביב",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_b13a931de44b880be6cc",
+          "title": "\"זה סופר חשוב\": הסיבות לפתיחה המוחצת של מכבי תל אביב",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a2744bfbaa73791ab3ed",
+          "title": "הנסיך והמלך: מעלליהם של וויל סמית' ולברון ג'יימס באנגולה",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_9d2dde8548705dd9af75",
+          "title": "\"מה שקרה בהפועל תל אביב, לעולם לא היה קורה במכבי\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_96f3708ad1a7506933e4",
+          "title": "בגלל \"בריאות הנפש\": אחד הכוכבים הגדולים בארה\"ב פרש בהפתעה",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_21a925e0538c4918320b",
+          "title": "מי יצטיינו, מי יאכזבו - ומי יירדו? ליגת העל בכדורסל יוצאת לדרך",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_0aa99176591d388b5f1c",
+          "title": "שבע השנים הרעות: ההרפתקה המיותרת של קוואי לנארד",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_48e4a8baa785fb7ff7a3",
+          "title": "אקס היורוליג: \"אין לי שום דבר נגד סשה אוברדוביץ'\"",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_035065a367b3e4ca9804",
+          "title": "הים כבר לא אותו הים: ים מדר השאיר את הזעם מאחור",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_25591947590ce6ec0c83",
+          "title": "\"צ`דביטה יריבה חזקה. היא תגיע אגרסיבית\"",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "comp:eurocup",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_257bd204c3d413a5f68e",
+          "title": "ליגת העל בכדורסל נשים יוצאת לדרך: שיטה חדשה ויותר חשיפה",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "comp:ibl",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_f0b1391571698a2dd9d7",
+          "title": "אחרי שבועיים: הכוכב האדום בלגרד מחפשת מחליף לג'ונתן מוטלי",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_297618b4b4147079d45f",
+          "title": "כל טעות אפשרית: כך שני מיליארדרים הרסו מועדון ב-NBA",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_81a9d12375d656a40762",
+          "title": "שחקן ה-NFL נענש על מסר פרו-פלסטיני. קיירי אירווינג התנדב לשלם את הקנס",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_26a88c9172e5b03e76e1",
+          "title": "\"אני מנסה להיות הישראלי היפה שמסתדר עם כולם\": דני אבדיה בריאיון חשוף",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_37f34e9d8011c8634d08",
+          "title": "\"פורטלנד הייתה צריכה לבנות על דני אבדיה, העתיד שלו בקבוצה הסתבך\"",
+          "stratum": "census",
+          "engine": "push",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "always_push:major_trade"
+        },
+        {
+          "id": "rss_49dc84b70b1995a8e522",
+          "title": "סגל חסר מאוד לקטש: השחקנים שייעדרו מול אולימפיאקוס",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_8cf600149aaf0b65c9d2",
+          "title": "כוכב מכבי תל אביב חזר לאקסית המיתולוגית? הצעד המפתיע של ים מדר",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_f2667dd9d8474799d644",
+          "title": "\"סטורנסקי לא מה שהפועל ת\"א צריכה, פאריד מתאים למכבי ת\"א\"",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_d45381895445103310d3",
+          "title": "אקס מכבי תל אביב על ה-NBA: \"לא חושב על זה\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_fbd24a11a17c02859bd1",
+          "title": "אל תיתנו לדרבי להטעות אתכם: להפועל ת״א היה קיץ מצוין",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_ebe7304007e4ec6ed26a",
+          "title": "\"הפועל ירושלים עלולה לפספס שריון ביורוליג בגלל עופר ינאי\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_80b5f97b5d887e91c5d3",
+          "title": "הפועל שביעית, מכבי רק במקום ה-12: דירוג העוצמה של היורוליג",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_0df8ea07a79de2ea4c5d",
+          "title": "\"אם הטרייל בלייזרס יעזבו את פורטלנד, נכשלנו, אבל האולם שם רע\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a64fa940ef15b63a5ffa",
+          "title": "דני אבדיה ופורטלנד מול חצי גולדן סטייט: זו התוכנית של המאמן",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_e0da28a630034ad5e31b",
+          "title": "רבע 1, 09:03: גליל עליון - הפועל העמק  0:2",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:ibl",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_47c09ad2bde18256376a",
+          "title": "אדם סילבר: \"מתקדמים עם היורוליג, הזדמנות של פעם בחיים\"",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_5ed6bbe7e5f33997ef25",
+          "title": "חברו של דני אבדיה חושף את הצביעות של ממדאני: \"מגנה את זה?\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_c433064f3ac9ec0916a3",
+          "title": "קטש: \"להשתחל לפלייאוף יהיה הישג גדול\"",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_98e76b85e73e64f613f7",
+          "title": "כולל המועמד למכבי תל אביב: המהלכים המסקרנים של ניו יורק ניקס",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a6f43e61c7610530eccd",
+          "title": "הוצע הקיץ למכבי תל אביב - ועשוי לחתום בניו יורק ניקס",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_af1e60cc0e458a680017",
+          "title": "\"התרחיש הטוב הוא שהעזיבה של לוני ווקר תחזק את מכבי תל אביב\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2316e90a8bea40340e4f",
+          "title": "הקפיצה הושלמה: מודי מאור מונה רשמית לעוזר מאמן דאלאס",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_24c999caade913c961c0",
+          "title": "הכוכב שעלול לפגוע בדני אבדיה - ובכלל לא מתאים לפורטלנד",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a9e3f725a57bb1311ea3",
+          "title": "תחזית מפתיעה: הפועל תל אביב יכולה לזכות ביורוליג",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_e4f98e6774dbc9dfea9d",
+          "title": "עם דני אבדיה: \"מבטיח שנביא אליפות NBA לפורטלנד\"",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_f247dbe3bafa0e7127d1",
+          "title": "עם שחקנים ממכבי והפועל תל אביב: 10 ההחתמות הטובות של הקיץ",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_187eed31d4c961bcaed1",
+          "title": "סטף קרי מודה: הכוכב הענק שניסה לצרף לגולדן סטייט",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_143fb63b34a182bf278d",
+          "title": "אקס קליבלנד קאבלירס בשיחות עם קבוצה מליגת העל | פרסום ראשון",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_4849ba8bcd3f46878b23",
+          "title": "ים מדר זכה בתואר ראשון עם מכבי ת\"א: \"מאושר על ההחלטה שקיבלתי\"",
+          "stratum": "census",
+          "engine": "push",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "always_push:title_win"
+        },
+        {
+          "id": "rss_edc2585c74d03270c38a",
+          "title": "צפו: התגובה של ג'ה מוראנט לטרייד ששלח אותו לפורטלנד",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_6ede3b99fbb37f4cf053",
+          "title": "לא מוכנה ליורוליג: יריבת מכבי תל אביב הושפלה",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2ff155573eef100867b8",
+          "title": "אגדת מכבי תל אביב מבית החולים: \"תודה שאני בחיים\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_ff45959eb86c366a4d89",
+          "title": "תקדים את הפועל ת\"א והפועל ירושלים? נאפולי בדרך ליורוליג",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_d05f12e343ed809e9c51",
+          "title": "בסגל חסר: ההכנות של מכבי ת\"א לסופרקאפ",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_25339dee181cc2031f7f",
+          "title": "כך דני אבדיה ימקסם רווחים בדרך לחוזה עתק ב-NBA",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_9441013c33e11a3898a6",
+          "title": "כולל עודד קטש והרצוג: \"הנבלים\" שצריכים לבקש סליחה מהספורט הישראלי",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_582c607962a6a39d406f",
+          "title": "יריבת מכבי תל אביב בפאניקה: \"אין דרך חזרה מהמשחק הזה\"",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_90fb0cd48d239d835a99",
+          "title": "דני פרנקו מנסה לצרף לקבוצתו כוכב מליגת העל | פרסום ראשון",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:ibl",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2256225f47e558a2b1b2",
+          "title": "אטורה מסינה חוזר ל-NBA: זה יהיה תפקידו החדש",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_3680193157540c9e45df",
+          "title": "מתרחק מהיורוליג: אטורה מסינה מצא יעד חדש ב-NBA",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_8ed6cc70ac226657cbab",
+          "title": "ג'ורדי ברתומאו מזהיר מהקמת NBA אירופה: הסכומים לא מציאותיים",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2f66aeec9901a837d4a5",
+          "title": "קטש: \"מקווה שנראה שיפור נוסף נגד אריס\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_736d261303fbb3054043",
+          "title": "\"כל המהלכים מוקפאים\": התגובה של דיץ",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_095222b866063f03ca6e",
+          "title": "היסטוריה ב-NBA: ישראלי מונה לעוזר מאמן בדאלאס מאבריקס",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_88aed07dce2480d28c22",
+          "title": "\"טיפשי, פתטי\": דריימונד גרין נגד אלוף ה-NBA לשעבר",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_fa07d27ccfb2269f224e",
+          "title": "כמו תיירים בישראל: הנתק המוחלט של הפועל תל אביב",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_5e8bc03b559df9aa6d13",
+          "title": "מכבי תל אביב מעדכנת: נציגי היורוליג יגיעו לישראל",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_97b8042cd17df2fd58c7",
+          "title": "ג'ייסון לוין מגיב לראשונה על מכבי תל אביב: \"אוהב את המועדון ואת מה שהוא מייצג\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_78b09cf57685b2c35ba4",
+          "title": "ה-NBA השתלט על היורוליג: התל אביביות בצמרת הרשימה",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_17c9a1043b5374d4eeb7",
+          "title": "הדבר האמיתי: שתי התל-אביביות מגיעות לדרבי שהוא הכל חוץ ממשחק הכנה",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_4c4bdbb0f21e2f91de62",
+          "title": "מאבקי השליטה במכבי ת\"א: השופט יכריע האם לוין יהיה חלק מהבוררות",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2275e237a6ae2387e13b",
+          "title": "\"אמרו שלא נוכל לשחק יחד במכבי תל אביב - ונבחרנו לחמישיית העונה\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a9671730a921698f003d",
+          "title": "היורוליג יחזור לישראל? \"המטרה לתת ערבויות שהקבוצות בטוחות\"",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_6a389a7dc18025f6df39",
+          "title": "\"מהרגע הראשון, ים מדר הכוכב הבלתי מעורער של מכבי תל אביב\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_de0d13948c8c0e9bb9d4",
+          "title": "במכבי חגגו: \"ים הראה לכולם מה הוא שווה\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_9add2786e54a2305bbfb",
+          "title": "כמות המנויים שמכרה מכבי ת\"א העונה",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_b7637deb3ec8fea492ef",
+          "title": "בסימן שאלה: דניאל תייס ייעדר מול הפועל ת\"א?",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_9f878b3a8c469755601a",
+          "title": "מעכב רישום ליורוליג: הפער בין מדר להפועל",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_e3047f7f68d73f6b378e",
+          "title": "רבע 3, 04:35: הפועל י-ם - הפועל ב\"ש 40:54",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:ibl",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_096fc948eaaa3a803163",
+          "title": "אל תתרגלו: ביורוליג, הפועל תל אביב עדיין עדיפה על מכבי",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_8c94688e3cd48ccadf09",
+          "title": "ואסה מיציץ' בראש: אלה 10 המשתכרים הבכירים ביורוליג",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_d31972a957985cf8790e",
+          "title": "קולסון עקץ את הפועל: \"כיום האוהדים שלהם קצת נעלמו\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a6894ddcfc3c7ee75a36",
+          "title": "ינאקופולוס: \"אעשה כל שביכולתי כדי להביא את יוקיץ'\"",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_451e4adaf0c4818d50a6",
+          "title": "המשחקים יחזרו ארצה? מנכ\"ל היורוליג יגיע לביקור בישראל",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "push",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_6e65a43b43136dfb2e4c",
+          "title": "\"איזה כבוד ה-NBA מראה לנו?\": המאבק על אירופה נכנס לשלב הבא",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_cd851f52c5e4f006d44c",
+          "title": "זה המגרש הביתי החדש של מכבי ת\"א ביורוליג",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "push",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_af48051901da89201253",
+          "title": "רשמית: מודי מאור מונה לעוזר מאמן בדאלאס מאבריקס",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_ce9cf3a21937bc716157",
+          "title": "ווייד בולדווין: \"רוצה להפוך לאחד הגארדים הגדולים בתולדות היורוליג\"",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_d619c57e00020f5f6196",
+          "title": "שמעון מזרחי: \"ביקשנו פגישה מיוחדת עם יו\"ר היורוליג\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "push",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_41bf712aa297af6fe09d",
+          "title": "\"אף אחד במכבי תל אביב כבר לא קובע בשביל עודד קטש\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_1dbcf2fbdf2ac2d66dab",
+          "title": "צפו: ים מדר חתם מחצית עם שלשה ממגרש שלם",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "push",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_fff1465cfabd1a09f397",
+          "title": "כוכבת ה-WNBA חשפה: כך שחקני NBA מתחילים איתה",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_6a70ad86b8e58a1c7f3c",
+          "title": "סגר חשבון. מעתה אמרו: ים מדר - מכביסט",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_bf37497076d7863c0e81",
+          "title": "בונזי קולסון: \"זה הבית, אתה לא מקבל את האהבה הזאת בכל מקום\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_9b4322873541b0761fe3",
+          "title": "דיץ נגד מזרחי ורקנאטי: \"מטשטשים את האמת\"; השניים: \"משחק כפול\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        }
+      ]
+    }
+  }
+}

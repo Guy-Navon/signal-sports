@@ -230,8 +230,8 @@ If rules detected a specific event type (signing, injury, negotiation, etc.) but
 **Guardrail 4b — Semantic event evidence contract:**
 Rules and LLM event proposals both pass through `classification/event_evidence.py`. Specific non-news events require positive evidence in title/subtitle context; on doubt the event falls back to `news` (or a validated rules event). This replaces the old title-only `title_win` keyword guardrail and generalizes it to signing, release, negotiation, candidate, schedule/result, tennis round results, and championship events. Examples: `title_win` needs champion/title-win evidence and blocks "wants/dreams of a title"; signing blocks candidate/negotiation language; release blocks hospital-release/negated-release language; schedule blocks match-result promotion.
 
-**Guardrail 4c — title-local event types (#125, #133, #223):**
-`title_win`, `grand_slam_winner` and `major_trade` must be asserted in the **title**. Subtitle-only evidence is *rejected* (falls back to `news`), not merely downgraded in certainty. Registered in `TITLE_LOCAL_EVENT_TYPES`; enforced in `_apply_post_facts_event_validation()`. Every other event type keeps the #60 rule: subtitle-only evidence is valid but capped at `probable`.
+**Guardrail 4c — title-local event types (#125, #133, #223, #224):**
+`title_win`, `grand_slam_winner`, `major_trade` and `schedule` must be asserted in the **title**. Subtitle-only evidence is *rejected* (falls back to `news`), not merely downgraded in certainty. Registered in `TITLE_LOCAL_EVENT_TYPES`; enforced in `_apply_post_facts_event_validation()`. Every other event type keeps the #60 rule: subtitle-only evidence is valid but capped at `probable`.
 
 `major_trade` joined in #223. A trade in a subtitle is background. Census #1's only push was an opinion column on Deni whose subtitle evaluated a past trade for another player. On the corpus, all 3 subtitle-only trades were false and all 5 headlined ones were genuine. See `docs/RSS_QUALITY_GUARDRAILS.md` §13.
 

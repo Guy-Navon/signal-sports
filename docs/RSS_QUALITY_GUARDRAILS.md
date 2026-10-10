@@ -1023,6 +1023,41 @@ Tests: `tests/test_club_governance_229.py`.
 
 ---
 
+## 17. A Season Preview Is Not a Fixture (#224, 2026-10-10)
+
+**The defect.** `schedule` is the most aggressively hidden event in Guy's profile (-2 for
+NBA and IBL) and was the least precise. 59 of 99 corpus `schedule` rows rested only on
+`לקראת` (ahead of) in the subtitle, e.g. `לקראת העונה` and `לקראת האפשרות שלא יישאר`. Census #2:
+`בטופ של ה-NBA: דני אבדיה נכלל בדירוג יוקרתי` and `החוזה של דני אבדיה מסתבך` were hidden
+from both profiles, the Deni one included.
+
+**Fix.**
+1. `schedule` joins `TITLE_LOCAL_EVENT_TYPES`: subtitle-only schedule evidence falls
+   back to `news`, the same position rule #223 applied to trades.
+2. A press conference is not a fixture. `מסיבת (ה)עיתונאים` / `press conference` block
+   `schedule`; `צפו בשידור הישיר: מסיבת העיתונאים` was a schedule only because of `שידור`.
+
+A headlined fixture or pre-match story is untouched: `בכר לקראת קריית שמונה` stays
+`schedule`.
+
+**Measured (deterministic rerun, 2,373 rows, against main).** 75 rows move off `schedule`;
+push is unchanged (16/16, 4/4).
+
+| census #2 (Guy) | main | branch |
+|---|---:|---:|
+| feed+ recall | 103/140 | **107/140** |
+| shown precision | 136/157 (86.6%) | 140/163 (85.9%) |
+| exact | 646 | 644 |
+
+Of 6 census-rated flips, 4 were rated feed and move up from hidden (two Deni stories, the
+Hapoel-challenges-Maccabi quote, a Panathinaikos interview). 2 Hapoel Tel Aviv stories
+rated hide now reach low_feed. Exact drops by 2 because the wanted ones land near, not
+on, their rating. Deni gains 3 Deni stories at high_feed, which is the profile working.
+
+Tests: `tests/test_schedule_precision_224.py`.
+
+---
+
 ## Next Steps
 
 - **Re-run LLM gating benchmark** — Quality fixes on branch `feature/selective-llm-gating` are now in place. Re-run the benchmark from the Sources page to measure skip rate and quality after fixes.

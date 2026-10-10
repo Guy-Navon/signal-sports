@@ -89,7 +89,8 @@ def _apply_post_facts_event_validation(
     For TITLE_LOCAL_EVENT_TYPES (#125) the title-first rule is STRONGER than a certainty
     cap: subtitle-only evidence is rejected outright and the event falls back to `news`.
     A championship word in a subtitle is normally an epithet for a third party, and the
-    live corpus proved the certainty cap alone was not enough to stop it.
+    live corpus proved the certainty cap alone was not enough to stop it. The same holds
+    for a trade in a subtitle (#223): it is background to the headline's story.
     """
     evidence_text = f"{title_lower} {subtitle_lower}".strip()
     proposed_event = final_result.event_type
@@ -112,7 +113,8 @@ def _apply_post_facts_event_validation(
             if final_result.event_type in TITLE_LOCAL_EVENT_TYPES:
                 # A title-local claim with NO title evidence is not that event at all (#125).
                 # Championship vocabulary in a subtitle is almost always an epithet for a
-                # third party ("מול אנגליה אלופת העולם"), not an announcement that anyone won.
+                # third party ("מול אנגליה אלופת העולם"), not an announcement that anyone won;
+                # a subtitle trade is a past deal being discussed, not a trade (#223).
                 event_evidence = EventEvidence("news", False, "confirmed")
             else:
                 certainty = "probable"  # subtitle-only evidence caps at probable (#60)

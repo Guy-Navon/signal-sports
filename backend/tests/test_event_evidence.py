@@ -1,3 +1,5 @@
+import pytest
+
 from app.classification.event_evidence import validate_event_evidence
 from app.classification.merge import merge_with_guardrails
 from app.ingestion.classifier import classify
@@ -368,3 +370,88 @@ class TestGrandSlamWinnerIsTitleLocal:
 
         assert "grand_slam_winner" in TITLE_LOCAL_EVENT_TYPES
         assert "title_win" in TITLE_LOCAL_EVENT_TYPES
+
+
+class TestMajorTradeIsTitleLocal:
+    """#223: a trade in a SUBTITLE is background, not the story.
+
+    Census #1's only push was an opinion column on Deni whose subtitle evaluated a PAST
+    trade for another player. On the live corpus all 3 subtitle-only major_trade rows were
+    false and all 5 title-asserted ones were genuine. These run the real ingestion path
+    (`_normalise`, LLM disabled by conftest) on rows frozen verbatim from the corpus.
+    """
+
+    @staticmethod
+    def _ingest(source_id: str, url: str, title: str, subtitle: str):
+        from app.ingestion import ingestion_service
+        from app.ingestion.adapters.base import RawSourceItem
+        from app.ingestion.config import get_source_config
+
+        item = RawSourceItem(
+            source_id=source_id, url=url, title=title, published_at=None, summary=subtitle,
+        )
+        article, _llm_ms, _gate = ingestion_service._normalise(item, get_source_config(source_id))
+        return article
+
+    @staticmethod
+    def _decisions(article):
+        from app.seed.seed_profiles import SEED_PROFILES
+        from app.services.preference_engine import score_article_v2
+
+        profiles = {p.user_id: p for p in SEED_PROFILES}
+        return {
+            uid: score_article_v2(article, profiles[uid]).decision
+            for uid in ("guy", "casual_deni_fan")
+        }
+
+    def test_major_trade_is_title_local(self):
+        from app.classification.event_evidence import TITLE_LOCAL_EVENT_TYPES
+
+        assert "major_trade" in TITLE_LOCAL_EVENT_TYPES
+
+    def test_opinion_column_on_a_past_trade_is_not_a_trade_and_not_a_push(self):
+        article = self._ingest(
+            "israel_hayom_sport",
+            "https://www.israelhayom.co.il/sport/world-basketball/article/21410655",
+            '"פורטלנד הייתה צריכה לבנות על דני אבדיה, העתיד שלו בקבוצה הסתבך"',
+            "בארצות הברית טוענים כי הטרייד על ג'ה מוראנט היה נכון מבחינת העלאת התקרה של "
+            'הטרייל בלייזרס, אבל זה פגע באולסטאר הישראלי: "האם הסיכונים לפגיעה בהתפתחות של '
+            'אבדיה ולכך שהוא עלול להגיע לשוק השחקנים החופשיים ב-2028 מצדיקים את ההימור?"',
+        )
+        assert article.event_type == "news"
+        assert "push" not in self._decisions(article).values()
+
+    @pytest.mark.parametrize("source_id,url,title,subtitle", [
+        # Detainees "were transferred" to questioning — a police story, not a trade.
+        ("ynet_sport", "https://www.ynet.co.il/sport/israelisoccer/article/r1c8z4tvzl",
+         'סמים ואלימות מחוץ לאיצטדיון: חמישה עצורים לפני המשחק בין הפועל ת"א לבית"ר ירושלים',
+         'המשטרה עצרה קטין וארבעה בגירים בסמוך לאצטדיון בנתניה. ברשות חלק מהחשודים נתפס סם '
+         'מסוג "דוסה", האחרים היו מעורבים בקטטה. מהמשטרה נמסר כי כל העצורים הועברו לחקירה'),
+        # A screening "was moved" to another arena.
+        ("walla_sport", "https://sports.walla.co.il/item/3854725",
+         "יותר מ-10,000 אוהדים צפו בגמר המונדיאל בהיכל מנורה",
+         "אירוע הגמר הועבר מגן צ'רלס קלור להיכל מנורה מבטחים בעקבות הביקוש הרב, וכל הכרטיסים "
+         "אזלו בתוך זמן קצר. המשחק הוקרן על גבי מסכי 360"),
+    ], ids=["detainees_transferred", "screening_moved"])
+    def test_subtitle_only_transfer_verb_is_not_a_trade(self, source_id, url, title, subtitle):
+        assert self._ingest(source_id, url, title, subtitle).event_type == "news"
+
+    # ── Adversarial neighbours: headlined trades must not move ───────────────
+    def test_headlined_deni_trade_still_pushes(self):
+        article = self._ingest(
+            "ynet_sport", "https://www.ynet.co.il/sport/worldbasketball/article/test223",
+            "רשמי: דני אבדיה נסחר לפורטלנד",
+            "הטרייד יצא לפועל אחרי שבועות של מגעים בין הקבוצות",
+        )
+        assert article.event_type == "major_trade"
+        assert self._decisions(article) == {"guy": "push", "casual_deni_fan": "push"}
+
+    def test_headlined_trade_with_background_subtitle_keeps_confirmed(self):
+        article = self._ingest(
+            "ynet_sport", "https://www.ynet.co.il/sport/worldbasketball/article/rj4v4k9vgx",
+            "טרייד משולש ב-NBA: לו דורט עובר לאטלנטה, זקארי ריזאשה לדאלאס",
+            "אלופת ה-NBA אוקלהומה נפרדה מאחד משחקני ההגנה הבולטים בליגה תמורת בתמורה שלוש "
+            "בחירות בסיבוב השני. הבחירה מספר 1 בדראפט 2024 יפתח דף חדש לצד קופר פלאג במאבריקס",
+        )
+        assert article.event_type == "major_trade"
+        assert article.event_certainty == "confirmed"

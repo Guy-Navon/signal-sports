@@ -35,6 +35,8 @@ CLUSTERABLE_EVENT_STATES: frozenset[str] = frozenset({
     # SIMILARITY. In the real feed that produced FOUR near-identical high_feed cards for
     # one Maccabi release.
     "release", "major_trade", "relocation",
+    # Club governance (#229): every source reports the same ownership/venue development.
+    "club_governance",
     # ── Injury ────────────────────────────────────────────────────────────────
     "injury",
     # ── Results ───────────────────────────────────────────────────────────────
@@ -82,6 +84,7 @@ DEFAULT_TIME_WINDOW_HOURS: dict[str, float] = {
     "release": 24.0,          # a release is a transfer-cycle event, like a signing (#121)
     "major_trade": 24.0,
     "relocation": 24.0,
+    "club_governance": 24.0,
     "negotiation": 24.0,
     "candidate": 24.0,
     "rumor": 24.0,

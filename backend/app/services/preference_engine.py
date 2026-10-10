@@ -370,8 +370,13 @@ def score_article_v2(
         for rule in v2.overrides:
             if rule.kind == "always_push" and _override_matches(article, rule):
                 attention = (article.classification_trace or {}).get("attention")
-                if attention is not None and article.event_type in {"signing", "major_signing", "negotiation", "injury"}:
-                    if attention.get("development") not in {"agreement_or_completion", "imminent_renewal", "current_injury"} or (
+                if attention is not None and article.event_type in {
+                    "signing", "major_signing", "negotiation", "injury", "club_governance",
+                }:
+                    if attention.get("development") not in {
+                        "agreement_or_completion", "imminent_renewal", "current_injury",
+                        "concrete_step",  # club_governance (#229)
+                    } or (
                         rule.scope in {"team", "player"}
                         and rule.target_id not in attention.get("subject_entity_ids", [])
                     ):

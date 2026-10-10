@@ -1,5 +1,13 @@
 # LLM Classification — PR 11 + Post-QA Fixes
 
+**2026-10-10 - `club_governance` event type (#229).** Added to `ALLOWED_EVENT_TYPES`
+and the prompt enum, with one definition line ("ownership, control, legal dispute, home
+venue or league membership - not a player transaction and not an opinion about how the
+club is run"). Like every type, an LLM proposal must pass the semantic evidence rule
+(`event_evidence._CLUB_GOVERNANCE`); the LLM cannot create the event alone. The rules
+classifier proposes it right after the editorial formats and before the transfer cycle,
+so an ownership purchase ("רכשה", "סיכמו") is not a signing.
+
 **2026-09-11 - Event routing (#191).** The prompt and allowed values include
 the authorized franchise `relocation` type and the previously existing product
 types `analysis` and `interview`. Each requires positive semantic evidence;

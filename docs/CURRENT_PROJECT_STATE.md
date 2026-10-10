@@ -388,6 +388,11 @@ basketball cups (`comp:winner_cup`, `comp:il_super_cup`). This is a relevance-ti
 `match_competition_names()` tier 1b; the article's competition fact stays the cup. See
 `RELEVANCE_VISIBILITY_CONTRACT.md`.
 
+**Club governance (#229, 2026-10-10):** Maccabi ownership, control, venue and league
+stories are `club_governance` and reach Guy at high_feed through the Maccabi follow.
+Push requires a concrete step in the title (`attention.development == "concrete_step"`).
+Club executives (`exec:*`) imply their club, like a coach does.
+
 **2026-07-11 — Explicit Interests & Onboarding v2 (Milestone 4).** How a user's
 ProfileV2 gets POPULATED changed; how it is SCORED did not (engine frozen; the
 decision-contract locks in `backend/tests/test_decision_contract.py` prove the

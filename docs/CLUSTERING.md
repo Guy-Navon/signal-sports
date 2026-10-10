@@ -1,5 +1,10 @@
 # Story Clustering — v1 Contract
 
+**2026-10-10 - `club_governance` is clusterable (#229).** It uses the same 24-hour
+strict same-state window as `relocation`: every source reports the same ownership or
+venue development, and one story must be one notification. The rule version is
+unchanged, since no stored row carries the new state.
+
 **2026-09-11 - Validated subject-anchor recovery (#192).** A title surname
 immediately before a transaction verb is additionally proposed to the same
 lexical validator; Hebrew apostrophe fragments are excluded. Lexical thresholds,

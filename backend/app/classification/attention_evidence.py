@@ -9,6 +9,25 @@ import re
 from app.taxonomy.entities import ENTITIES
 
 
+_CONCRETE_STEP = (
+    r"(?<![א-ת])(?:הגיש|הגישה|הגישו|סוכם|סוכמה|סיכמו|סיכם|סיכמה|הוכרע|הכריע|הכריעה|"
+    r"החליט|החליטה|החליטו|אושר|אושרה|אישר|אישרה|אישרו|נחתם|נחתמה|נמכר|נמכרה|"
+    r"נרכש|נרכשה|רכש|רכשה|רכשו|השלים|השלימה|השלימו)(?![א-ת])"
+    r"|\b(?:filed|agreed|approved|sold|bought|completed)\b"
+)
+
+
+def _with_linked_people(subjects: list, entity_ids: list, title: str) -> list:
+    """Add a team as a subject when a coach/executive linked to it is named in the title."""
+    out = list(subjects)
+    for person in ENTITIES.values():
+        if person.kind not in ("coach", "executive") or person.team_id not in entity_ids:
+            continue
+        if person.team_id not in out and any(a.lower() in title for a in person.aliases):
+            out.append(person.team_id)
+    return out
+
+
 def attention_evidence(title: str, subtitle: str, event_type: str, entity_ids: list[str]) -> dict:
     title, subtitle = title.lower(), (subtitle or "").lower()
     # A transaction involving an ex-club or rejected destination is not a new
@@ -33,6 +52,15 @@ def attention_evidence(title: str, subtitle: str, event_type: str, entity_ids: l
             development = "agreement_or_completion"
         elif "פרטים קטנים" in subtitle and "הארכת חוזה" in subtitle:
             development = "imminent_renewal"
+    elif event_type == "club_governance":
+        # #229: push only on a concrete step taken (filed, agreed, decided, approved,
+        # sold, bought) — not on statements, reactions or previews of a decision.
+        if re.search(_CONCRETE_STEP, title):
+            development = "concrete_step"
+        # The story's subject may be named through a person linked to the club
+        # ("דיץ הגיש בקשה … במכבי"): the club alias itself is often only the bare
+        # family name, which never resolves.
+        subjects = _with_linked_people(subjects, entity_ids, title)
     elif event_type == "injury":
         if any(word in title for word in ("נפצע", "קרע", "ייעדר", "injured", "out for")):
             development = "current_injury"

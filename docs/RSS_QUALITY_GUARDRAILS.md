@@ -983,6 +983,46 @@ neighbours. Without the fix, 8 tests fail and 6 pass.
 
 ---
 
+## 16. Club Governance Is Its Own Event (#229, 2026-10-10)
+
+**The defect.** Census #2's headline finding: 6 of the owner's 8 pushes were Maccabi
+institutional stories (the ownership fight, the home venue, EuroLeague games returning to
+Israel), and all were stored `news`. There was no event for them, so no push rule could
+reach them. The one that did push got there by accident: it was stored `signing`.
+
+**Fix.** A new `club_governance` event with a deliberately narrow vocabulary
+(`_CLUB_GOVERNANCE`), every phrase checked on the corpus:
+
+- ownership: `אחוז(ים) מהבעלות`, `בעלי/בעל המניות`, `מניות המועדון`
+- control: `מאבק(י) השליטה`, `השליטה במועדון`, `הבעלים הבא`, `בעלים חדש`
+- legal: `סעד זמני`, `בוררות`, `הבורר`, `צו מניעה`
+- venue and league: `המגרש הביתי`, `משחקי הבית`, `להחזיר את משחקי`, `יחזרו לישראל/ארצה`, `מנכ"ל/יו"ר/נציגי היורוליג`
+
+Excluded on purpose:
+
+- `הבעלים של`: Ryan Reynolds, a federation chairman.
+- bare `מהבעלות`: "חלק מהבעלות על המונדיאל" is FIFA. It hit in the first measurement.
+- bare `משחקי היורוליג`: every round-up uses it.
+
+The classifier proposes the event before the transfer cycle.
+
+**Real-corpus effect (2,370 rows, deterministic path, against main with the executives
+from part 1):**
+
+- 26 rows become `club_governance`, including Liverpool/Bezos and a Beitar transfer-fee
+  arbitration (football, decision-neutral).
+- 20 Guy flips; Deni has none.
+- Against the census #2 ratings: push precision 1/2 -> 2/3, push recall 1/8 -> 2/8, exact
+  640 -> 646. 12 of 14 rated flips are exact or closer; 2 land one notch above a feed
+  rating.
+
+The relevance side (high_feed through the Maccabi follow, push on a concrete step only)
+is in `NOTIFICATIONS.md`.
+
+Tests: `tests/test_club_governance_229.py`.
+
+---
+
 ## Next Steps
 
 - **Re-run LLM gating benchmark** — Quality fixes on branch `feature/selective-llm-gating` are now in place. Re-run the benchmark from the Sources page to measure skip rate and quality after fixes.

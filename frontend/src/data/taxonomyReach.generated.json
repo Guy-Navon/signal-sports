@@ -36,6 +36,10 @@
       "display_en": "Israeli Basketball League",
       "sport": "basketball"
     },
+    "comp:il_super_cup": {
+      "display_en": "Israeli Basketball Super Cup",
+      "sport": "basketball"
+    },
     "comp:la_liga": {
       "display_en": "La Liga",
       "sport": "football"
@@ -75,6 +79,10 @@
     "comp:wimbledon": {
       "display_en": "Wimbledon",
       "sport": "tennis"
+    },
+    "comp:winner_cup": {
+      "display_en": "Winner Cup",
+      "sport": "basketball"
     }
   },
   "entities": {

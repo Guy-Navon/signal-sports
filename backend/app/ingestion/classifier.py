@@ -113,6 +113,10 @@ _BASKETBALL_CTX_KW = (
     "euroleague", "eurocup",                       # English league names
     "nba",
     "ווינר סל", "ליגת העל סל", "ליגת ווינר",     # Israeli Basketball League
+    # Israeli basketball cups (#230) — mirror facts._COMPETITION_KEYWORDS; bare
+    # "סופרקאפ" is excluded there for cross-sport/cross-country collisions.
+    "גביע ווינר", "גביע וינר",
+    "סופרקאפ החברתי", "סופר קאפ החברתי", "סופרקאפ הישראלי", "סופר קאפ הישראלי",
     "קטש", "עודד קטש", "kattash",                # Maccabi TLV head coach
     "הפועל חולון",                               # Hapoel Holon Basketball (unambiguous)
     # NOTE: "הפועל ירושלים" was removed here (taxonomy PR) — the club exists in

@@ -454,6 +454,19 @@ _FINALS_CONTEXT = (
     hword("גמר"), phrase("finals"), word("final"), phrase("championship game"),
     phrase("championship series"),
 )
+
+# A quarter-/semi-final is not a final (#230). `hword("גמר")` accepts the "ה" prefix, so
+# "לעלות לרבע הגמר" satisfied the finals context and every Winner Cup group-stage story
+# became finals_result (6 corpus rows, all of them). The rounds are MASKED before the
+# context check rather than blocked: "ניצחה בחצי הגמר ותפגוש את מכבי בגמר" still names
+# a real final elsewhere in the text.
+_SUBFINAL_ROUND = re.compile(
+    r"(?:רבע|חצי|שמינית)[\s\-־]+ה?גמר|(?:quarter|semi)[\s\-]?finals?"
+)
+
+
+def _mask_subfinal_rounds(text: str) -> str:
+    return _SUBFINAL_ROUND.sub(" ", text)
 _RESULT_VERB = (
     phrase("ניצח"), phrase("ניצחה"), phrase("ניצחו"),
     phrase("הפסיד"), phrase("הפסידה"), phrase("הפסידו"),
@@ -711,6 +724,9 @@ def validate_event_evidence(
         # Validity is now assertion-strict, so a rules-sourced title_win is
         # confirmed by construction; LLM proposals remain weak per contract.
         return EventEvidence("title_win", True, "weak" if source == "llm" else "confirmed")
+
+    if event_type == "finals_result":
+        normalized = _mask_subfinal_rounds(normalized)
 
     valid = _rule_valid(rule, normalized)
     if not valid:

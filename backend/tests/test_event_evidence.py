@@ -218,6 +218,13 @@ class TestFinalsResultRequiresResult:
 
     def test_finals_with_score_is_valid(self):
         assert validate_event_evidence(
+            "finals_result", "צרפת בגמר אחרי 0:1 על פרגוואי"
+        ).valid
+
+    def test_quarter_final_with_score_is_not_finals_result(self):
+        # #230: this was the positive control above until a quarter-final stopped
+        # counting as a final. A knockout-round win is a match result.
+        assert not validate_event_evidence(
             "finals_result", "צרפת ברבע גמר אחרי 0:1 על פרגוואי"
         ).valid
 

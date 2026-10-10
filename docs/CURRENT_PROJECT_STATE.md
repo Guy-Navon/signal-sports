@@ -383,6 +383,11 @@ The endpoint table above is a core summary, **not exhaustive** — Calibration V
 
 Push must be rare. If more than a handful of articles per day reach push, the engine is too aggressive.
 
+**Competition parents (#230, 2026-10-10):** following `comp:ibl` also follows the Israeli
+basketball cups (`comp:winner_cup`, `comp:il_super_cup`). This is a relevance-time lift in
+`match_competition_names()` tier 1b; the article's competition fact stays the cup. See
+`RELEVANCE_VISIBILITY_CONTRACT.md`.
+
 **2026-07-11 — Explicit Interests & Onboarding v2 (Milestone 4).** How a user's
 ProfileV2 gets POPULATED changed; how it is SCORED did not (engine frozen; the
 decision-contract locks in `backend/tests/test_decision_contract.py` prove the

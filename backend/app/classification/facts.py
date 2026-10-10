@@ -64,6 +64,16 @@ _COMPETITION_KEYWORDS: dict[str, tuple[str, ...]] = {
         "winner league", "ligat winner", "israeli basketball league",
         "super league basketball",
     ),
+    # Israeli basketball cups (#230). "גביע ווינר" is unique to basketball (Winner
+    # sponsors the basketball league; football's league cup is גביע הטוטו).
+    "comp:winner_cup": ("גביע ווינר", "גביע וינר", "winner cup"),
+    # Qualified forms ONLY. Bare "סופרקאפ" is deliberately not an alias: the corpus
+    # uses it for the EuroLeague super cup, a French basketball super cup, and a
+    # French football one (Lens). The Israeli game is "הסופרקאפ החברתי" / "הישראלי".
+    "comp:il_super_cup": (
+        "סופרקאפ החברתי", "סופר קאפ החברתי",
+        "סופרקאפ הישראלי", "סופר קאפ הישראלי",
+    ),
     "comp:acb": ("acb", "liga acb"),
     "comp:bsl": ("bsl", "turkish basketball"),
     "comp:greek_basket": ("greek basket", "basket league", "greek league"),

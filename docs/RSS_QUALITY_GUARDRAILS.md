@@ -910,6 +910,33 @@ neighbours that must not move (the Deni trade still pushes, and a headlined trad
 
 ---
 
+## 14. A Quarter-Final Is Not a Final (#230, 2026-10-10)
+
+**The defect.** `finals_result` requires a finals context, and `hword("גמר")` accepts
+the `ה` prefix, so `רבע הגמר` (the quarter-final) satisfied it. Every Winner Cup
+group-stage story ("ינסו לעשות צעד לעבר רבע הגמר", plus a tip-off time `(20:30)` read
+as a score) was stored `finals_result`: 6 of 6 corpus rows. So were about 30 World Cup
+"עלתה לחצי הגמר" stories.
+
+**Fix.** `_mask_subfinal_rounds()` removes `רבע / חצי / שמינית (ה)גמר` and
+`quarter-/semi-final(s)` before the `finals_result` rule is checked. They are masked,
+not blocked: `"אחרי חצי הגמר: מכבי ניצחה 85:80 בגמר"` still names a real final.
+
+**Semantics change, stated:** a knockout-round win is a `match_result` (or `news`
+without a result verb), not a `finals_result`. #60's positive control
+`"צרפת ברבע גמר אחרי 0:1 על פרגוואי"` relied on the old reading; it now pins the new one,
+and a real final replaced it as the positive control.
+
+**Real-corpus effect (2,240 rows, deterministic path, in-memory):** about 40 event
+changes, all `finals_result` moving to `match_result` / `news` / `schedule`. No push
+changed for either profile. The tip-off-time-as-score weakness
+(`regex(r"\d+[:-]\d+")` matching `20:30`) is recorded, not fixed: once the round is
+masked, no corpus row still depends on it.
+
+Tests: `TestSubfinalRoundsAreNotFinals` in `tests/test_israeli_cups_230.py`.
+
+---
+
 ## Next Steps
 
 - **Re-run LLM gating benchmark** — Quality fixes on branch `feature/selective-llm-gating` are now in place. Re-run the benchmark from the Sources page to measure skip rate and quality after fixes.

@@ -129,6 +129,7 @@ must be re-audited when seasons roll over.
 | NBA | 30/30 teams | Complete (franchise set is stable) | Low |
 | EuroLeague | 20/20 clubs (2025-26) | Complete for 2025-26 | Annual: promotion/licence changes each season |
 | Israeli Basketball League | 18 clubs | Near-complete; promoted/relegated edge clubs may be missing. `team:hapoel_haemek` added 2026-09-16 (see below) | Annual roster churn; verify at season start |
+| Israeli basketball cups | `comp:winner_cup`, `comp:il_super_cup` (parent `comp:ibl`) | Added 2026-10-10 (#230). No memberships: every IBL club plays them, and following the IBL follows them | Super Cup aliases are qualified forms only (see below) |
 | EuroCup | 1 club (Hapoel Jerusalem) | Deliberately sparse — EuroCup lineup is volatile; register on coverage evidence | High |
 | Spanish ACB | 4 clubs (Real Madrid, Barcelona, Baskonia, Valencia) | Partial by design — EuroLeague clubs only; no non-EL ACB club has appeared in ingested coverage | Medium |
 | Turkish BSL | 2 clubs (Fenerbahce, Anadolu Efes) | Partial by design — zero non-EL BSL mentions in the real DB | Medium |
@@ -248,6 +249,28 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
   historical coverage of the predecessor; no `הפועל עפולה` alias was added (zero
   corpus mentions). Not backfilled: the 7 rows are all pre-cutoff, and #208 measured
   this club's recall value at well under 1pp.
+- **Israeli basketball cups — added 2026-10-10 (#230).** Census #2 found `גביע ווינר`
+  (16 corpus rows, 14 with no competition, 4 stored football) and the Super Cup (33 rows
+  mention it, 25 with no competition) missing. Registered `comp:winner_cup`
+  (`גביע ווינר`, `גביע וינר`, `winner cup`) and `comp:il_super_cup`. The cup names are
+  also basketball context in `classifier._BASKETBALL_CTX_KW`, mirroring `ליגת ווינר`, so
+  `הפועל ירושלים` / `מכבי תל אביב` resolve to their basketball twins in cup coverage.
+  - **Bare `סופרקאפ` is deliberately NOT an alias.** The corpus uses it for a EuroLeague
+    pre-season super cup, a French basketball one (ASVEL) and French football (Lens).
+    Only the qualified forms `הסופרקאפ החברתי` / `הסופר קאפ הישראלי` (and spacing
+    variants) are aliases, so most Super Cup coverage still has no competition. Context
+    rules (`מכבי`/`הפועל` + `היכל מנורה`) were considered and not added: that is
+    classifier logic, not registry data.
+  - `גביע ווינר` is safe as a bare alias: Winner sponsors the basketball league, and
+    football's league cup is `גביע הטוטו`. Longest-first matching makes
+    `גביע ווינר סל` the cup, not the league (`ווינר סל` used to claim it as IBL).
+  - **`parent="comp:ibl"`** (new optional `Competition` field, validated in
+    `integrity.py`: the parent must exist, share the sport, and be a root). The owner
+    decided that following the IBL follows its cups. The relation is
+    **relevance-time only** (`RELEVANCE_VISIBILITY_CONTRACT.md` tier 1b); the
+    article's competition fact stays the cup. It is not exported to the frozen JS engine.
+    Child competitions are **not selectable and not listed** in the interest catalog
+    (`policy.competition_selectable`, `build_catalog`): they are followed through the parent.
 - **Bare family names** (`בהפועל`) stay unresolvable. That abstention is a
   designed success mode, not a remaining gap.
 

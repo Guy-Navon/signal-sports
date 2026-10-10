@@ -563,8 +563,13 @@ _LIVE_SCORELINE = regex(
 # היה נכון"). On the live corpus all 3 subtitle-only major_trade rows were false — that
 # column, detainees "הועברו לחקירה", and a final screening that "הועבר" to another arena —
 # while all 5 title-asserted ones were genuine trades. A real trade is headlined.
+#
+# schedule joins them (#224). "לקראת" (ahead of) in a SUBTITLE is background — "לקראת
+# העונה", "לקראת האפשרות שלא יישאר" — not a fixture. Census #2: 59 of 99 corpus schedule
+# rows rested on a subtitle-only "לקראת", and schedule is the most aggressively hidden
+# event in Guy's profile, so a Deni ranking story and a Deni contract story were hidden.
 TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset(
-    {"title_win", "grand_slam_winner", "major_trade"}
+    {"title_win", "grand_slam_winner", "major_trade", "schedule"}
 )
 
 
@@ -684,6 +689,9 @@ EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
             phrase("לקראת"), phrase("תאריכים"), phrase("schedule"), phrase("preview"),
             phrase("upcoming"), phrase("fixture"), phrase("fixtures"),
         ),),
+        # A live stream of a press conference is not a fixture (#224): "צפו בשידור הישיר:
+        # מסיבת העיתונאים של מכבי והפועל" was schedule only because "שידור" (broadcast).
+        blockers=(phrase("מסיבת העיתונאים"), phrase("מסיבת עיתונאים"), phrase("press conference")),
         confirmed_any=(phrase('לו"ז'), phrase("לוח משחקים"), phrase("schedule"), phrase("fixtures")),
     ),
     "match_result": EventEvidenceRule(

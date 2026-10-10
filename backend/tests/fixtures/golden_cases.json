@@ -314,8 +314,8 @@
     "entity_ids": [
      "team:hapoel_beer_sheva_fc"
     ],
-    "event_type": "schedule",
-    "event_certainty": "probable",
+    "event_type": "news",
+    "event_certainty": "confirmed",
     "importance": "low",
     "primary_competition": null,
     "classified_by": "rules",

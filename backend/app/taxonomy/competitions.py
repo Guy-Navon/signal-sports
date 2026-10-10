@@ -8,12 +8,17 @@ Competition registry — leagues, international club competitions, and tournamen
 
 *NBA is modeled as a domestic league (single governing national league).
 
+``parent`` (optional) names the competition a follower of which also follows this
+one — the Israeli basketball cups under ``comp:ibl`` (#230). It is a RELEVANCE-time
+relation only: an article about a cup keeps the cup as its competition fact.
+
 Competition IDs are stable strings (``comp:*``). ``display_en`` values match the
 league strings the classifier and relevance engine already use, so PR 1 needs no
 schema or profile changes.
 """
 
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -23,11 +28,17 @@ class Competition:
     kind: str                 # league | international_league | tournament
     display_he: str
     display_en: str           # equals the legacy `article.league` string
+    parent: Optional[str] = None  # following the parent follows this one (#230)
 
 
 _ALL_COMPETITIONS: tuple[Competition, ...] = (
     # ── Basketball ────────────────────────────────────────────────────────────
     Competition("comp:ibl", "basketball", "league", "ליגת ווינר סל", "Israeli Basketball League"),
+    # Israeli domestic cups (#230). Not the league: a cup article is not IBL evidence.
+    Competition("comp:winner_cup", "basketball", "tournament", "גביע ווינר", "Winner Cup",
+                parent="comp:ibl"),
+    Competition("comp:il_super_cup", "basketball", "tournament", "הסופרקאפ בכדורסל",
+                "Israeli Basketball Super Cup", parent="comp:ibl"),
     Competition("comp:euroleague", "basketball", "international_league", "יורוליג", "EuroLeague"),
     Competition("comp:eurocup", "basketball", "international_league", "יורוקאפ", "EuroCup"),
     Competition("comp:nba", "basketball", "league", "NBA", "NBA"),

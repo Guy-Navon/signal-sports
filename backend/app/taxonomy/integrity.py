@@ -71,4 +71,17 @@ def validate_registry() -> list[str]:
             if len(sports) != len(owners):
                 errors.append(f"alias {alias!r} shared by same-sport entities: {owners}")
 
+    # A competition parent (#230) must exist, share the sport, and be a root:
+    # matching lifts a child to its parent exactly one level.
+    for comp in COMPETITIONS.values():
+        if comp.parent is None:
+            continue
+        parent = COMPETITIONS.get(comp.parent)
+        if parent is None:
+            errors.append(f"{comp.id}: parent {comp.parent} does not exist")
+        elif parent.sport != comp.sport:
+            errors.append(f"{comp.id} ({comp.sport}): parent {parent.id} is a {parent.sport} competition")
+        elif parent.parent is not None:
+            errors.append(f"{comp.id}: parent {parent.id} has a parent of its own")
+
     return errors

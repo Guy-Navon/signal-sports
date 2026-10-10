@@ -35,7 +35,13 @@ NON_SELECTABLE_COMPETITIONS: frozenset[str] = frozenset({
 
 
 def competition_selectable(comp_id: str) -> bool:
-    return comp_id in COMPETITIONS and comp_id not in NON_SELECTABLE_COMPETITIONS
+    # A child competition (#230: the Israeli cups under comp:ibl) is followed
+    # through its parent, never on its own — it is not even listed in the catalog.
+    return (
+        comp_id in COMPETITIONS
+        and comp_id not in NON_SELECTABLE_COMPETITIONS
+        and COMPETITIONS[comp_id].parent is None
+    )
 
 
 def scope_target_selectable(scope: str, target_id: str) -> bool:

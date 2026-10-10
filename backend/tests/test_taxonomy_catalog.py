@@ -24,7 +24,10 @@ class TestProjectionCompleteness:
         catalog_comp_ids = [
             c.id for sport in catalog.sports for c in sport.competitions
         ]
-        assert sorted(catalog_comp_ids) == sorted(COMPETITIONS.keys())
+        # Child competitions (#230) are followed through their parent and are
+        # deliberately not listed; every ROOT competition still appears exactly once.
+        roots = [cid for cid, c in COMPETITIONS.items() if c.parent is None]
+        assert sorted(catalog_comp_ids) == sorted(roots)
 
     def test_every_entity_appears_exactly_once(self):
         catalog = build_catalog()

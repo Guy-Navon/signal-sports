@@ -109,7 +109,8 @@ def build_catalog() -> TaxonomyCatalog:
     sports: List[CatalogSport] = []
     for sport in SELECTABLE_SPORTS:
         comp_ids = sorted(
-            (c.id for c in COMPETITIONS.values() if c.sport == sport),
+            # Child competitions ride on their parent's follow (#230) — not listed.
+            (c.id for c in COMPETITIONS.values() if c.sport == sport and c.parent is None),
             key=_competition_sort_key(sport),
         )
         sports.append(CatalogSport(

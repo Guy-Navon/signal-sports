@@ -50,6 +50,16 @@ are unchanged.
 1. **Explicit** — `{primary_competition, *article_competitions}` (ids, from
    ArticleFacts) → `display_en` → intersect with `topic.leagues`. Works for
    *any* event type; always the highest-authority match.
+   - **1b. Parent competition** (#230, 2026-10-10). When no explicit id matches
+     directly, an explicit competition whose `parent` is wanted matches the parent:
+     a Winner Cup article matches a `comp:ibl` follow, provenance
+     `via_parent_competition: comp:winner_cup`. It is still `explicit`, so it is never
+     capped, and the parent's event affinities apply (Guy's `comp:ibl × schedule = -2`
+     hides a cup fixture exactly like a league one). One-way: following a cup does not
+     follow the league. The persisted fact is untouched. Owner decision: following the
+     league follows its cups. Census #2 effect on Guy (rules-only rerun, 804 rated
+     rows): feed+ recall 93/140 → 100/140, shown precision 85.6% → 86.3%, push
+     unchanged. Deni is unchanged.
 2. **Legacy fallback** — only when `taxonomy_version is None` (the article
    predates ArticleFacts): fall back to `article.league ∈ topic.leagues`,
    exactly as before. Every pre-existing seed/mock article has

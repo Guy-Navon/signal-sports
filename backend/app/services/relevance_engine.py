@@ -473,6 +473,14 @@ def match_competition_names(
     hit = next((name for name in wanted if name in explicit_names), None)
     if hit:
         return ("explicit", hit, "explicit_competition_evidence")
+    # 1b. Explicit evidence of a CHILD competition (#230): following the IBL follows
+    # its cups. The article's fact stays the cup; only this match is lifted to the
+    # parent, so the parent's event affinities apply. Still explicit, never capped.
+    for comp_id in [article.primary_competition, *(article.article_competitions or [])]:
+        comp = COMPETITIONS.get(comp_id) if comp_id else None
+        parent = COMPETITIONS.get(comp.parent) if comp and comp.parent else None
+        if parent and parent.display_en in wanted:
+            return ("explicit", parent.display_en, f"via_parent_competition: {comp_id}")
 
     # 2. Legacy fallback — only for rows that predate ArticleFacts, where
     # the explicit/membership distinction was never persisted.

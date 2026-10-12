@@ -48,6 +48,17 @@ Backend: `cd backend && .venv\Scripts\python.exe -m uvicorn app.main:app --reloa
 Scoring endpoints need no LLM provider. Confirm the serving engine first: `GET /api/feed-engine`
 (v2 unless `PREFERENCE_ENGINE=legacy`). Profiles: `guy`, `casual_deni_fan`.
 
+## Fastest classification check — in-memory corpus rerun (no server, no writes)
+
+For a classifier/taxonomy/evidence change, `backend/scripts/corpus_rerun_diff.py` re-runs the
+deterministic ingestion path over EVERY corpus row in memory (LLM + translation disabled),
+scores both seed profiles, and diffs two snapshots: changed facts, every decision flip (with
+the owner's census rating), push/visible counts, census metrics. Snapshot the working tree,
+`git stash`, snapshot main, `git stash pop`, `compare old new --ratings
+../docs/qa/census2_ratings.json`. This is how every milestone-9 change was measured. It is
+rules-only — an approximation of production; say so when quoting numbers. Stored rows still
+need the procedure below (or a backfill) to change.
+
 ## Core procedure — before/after decision diff
 
 Scoring is computed at read time, so relevance-layer changes show up without re-ingesting;

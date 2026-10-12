@@ -23,6 +23,16 @@ Then score it with the existing tooling, unchanged:
     .venv\\Scripts\\python.exe scripts/feed_ground_truth.py score \\
         --ratings ../docs/qa/census_ratings.json --sample ../docs/qa/census_sample.json --live
 
+Before acting on a big disagreement, re-rate it (census #2: 28 of the 58 largest gaps
+changed on a blind re-rate, 26 toward the engine):
+    .venv\\Scripts\\python.exe scripts/rate_census.py review --sample ../docs/qa/census_sample.json \\
+        --ratings ../docs/qa/census_ratings.json --out review_sample.json [--snapshot snap.json]
+    .venv\\Scripts\\python.exe scripts/rate_census.py serve --sample review_sample.json --ratings review.json
+    .venv\\Scripts\\python.exe scripts/rate_census.py merge-review --ratings ../docs/qa/census_ratings.json \\
+        --review review.json
+``--snapshot`` (from scripts/corpus_rerun_diff.py) measures gaps against the CURRENT engine
+instead of the decision recorded at build time. merge-review edits only changed lines.
+
 Read-only against the corpus: no write transaction, no /api/dev/*, no
 ALLOW_CORPUS_DB_RESET, no network.
 """
@@ -261,6 +271,33 @@ def cmd_serve(args) -> None:
         print(f"\n{len(store.ratings)} rated, saved at {store.path}")
 
 
+# ── review / merge-review ─────────────────────────────────────────────────────
+
+def cmd_review(args) -> None:
+    """Sample of the largest engine-vs-owner gaps, for a blind re-rate before acting."""
+    sample = json.loads(Path(args.sample).read_text(encoding="utf-8"))
+    ratings = json.loads(Path(args.ratings).read_text(encoding="utf-8"))["ratings"][args.profile]
+    if args.snapshot:  # current engine, from scripts/corpus_rerun_diff.py snapshot
+        snap = json.loads(Path(args.snapshot).read_text(encoding="utf-8"))
+        engine = {k: v[args.profile] for k, v in snap.items()}
+    else:  # the engine decision recorded when the census was built
+        engine = {it["id"]: it["engine_decision"] for it in sample["profiles"][args.profile]["items"]}
+    doc = cr.build_review(sample, ratings, engine, profile=args.profile, min_gap=args.min_gap)
+    Path(args.out).write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8", newline="")
+    n = len(doc["profiles"][args.profile]["items"])
+    print(f"{n} rows differ by >={args.min_gap} notches -> {args.out}")
+    print(f"next: serve --sample {args.out} --ratings <new review ratings file>, then merge-review")
+
+
+def cmd_merge_review(args) -> None:
+    """Fold a finished review into the census ratings, editing only changed lines."""
+    path = Path(args.ratings)
+    review = json.loads(Path(args.review).read_text(encoding="utf-8"))["ratings"][args.profile]
+    text, changed = cr.merge_review_text(path.read_text(encoding="utf-8"), review, profile=args.profile)
+    path.write_text(text, encoding="utf-8", newline="")
+    print(f"{len(review)} re-rated, {len(changed)} changed -> {path}")
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -282,6 +319,21 @@ def main() -> None:
     p_serve.add_argument("--port", type=int, default=DEFAULT_PORT)
     p_serve.add_argument("--no-browser", action="store_true")
     p_serve.set_defaults(func=cmd_serve)
+
+    p_review = sub.add_parser("review", help="sample of the largest engine-vs-owner gaps (blind re-rate)")
+    p_review.add_argument("--sample", required=True)
+    p_review.add_argument("--ratings", required=True)
+    p_review.add_argument("--out", required=True)
+    p_review.add_argument("--snapshot", help="corpus_rerun_diff.py snapshot = the CURRENT engine")
+    p_review.add_argument("--min-gap", type=int, default=2)
+    p_review.add_argument("--profile", default="guy")
+    p_review.set_defaults(func=cmd_review)
+
+    p_merge = sub.add_parser("merge-review", help="fold a finished review into the census ratings")
+    p_merge.add_argument("--ratings", required=True)
+    p_merge.add_argument("--review", required=True)
+    p_merge.add_argument("--profile", default="guy")
+    p_merge.set_defaults(func=cmd_merge_review)
 
     args = parser.parse_args()
     if args.cmd == "build" and not args.profile:

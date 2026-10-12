@@ -183,3 +183,40 @@ def test_rating_keys_cover_the_scorer_vocabulary():
 
     assert set(cr.RATINGS) == set(feed_ground_truth.RATING_TO_TIER)
     assert set(cr.RATING_KEYS) == {"1", "2", "3", "4", "5"}
+
+
+# ── review / merge-review (#237 lesson) ──────────────────────────────────────
+
+def _sample(ids):
+    return {"meta": {"seed": 1, "scope": "x"}, "profiles": {"guy": {
+        "strata": {"census": {"population": len(ids), "sampled": len(ids), "weight": 1.0}},
+        "items": [{"id": i, "title": i} for i in ids]}}}
+
+
+def test_build_review_keeps_only_large_gaps():
+    from app.qa.census_rating import build_review
+
+    ratings = {"a": "hide", "b": "feed", "c": "push", "d": "low"}
+    engine = {"a": "feed", "b": "feed", "c": "low_feed", "d": "feed"}
+    doc = build_review(_sample(["a", "b", "c", "d"]), ratings, engine, min_gap=2)
+    ids = [it["id"] for it in doc["profiles"]["guy"]["items"]]
+    assert ids == ["a", "c"]                     # gaps 2 and 3; b=0, d=1
+    assert doc["profiles"]["guy"]["strata"]["census"]["population"] == 2
+    assert doc["meta"]["seed"] == 1              # same seed → RatingsStore accepts it
+
+
+def test_merge_review_edits_only_changed_lines():
+    from app.qa.census_rating import merge_review_text
+
+    text = '{\n "seed": 1,\n "ratings": {\n  "guy": {\n   "a": "hide",\n   "b": "feed"\n  }\n }\n}'
+    new, changed = merge_review_text(text, {"a": "low", "b": "feed"})
+    assert changed == ["a"]
+    assert new.splitlines() == [l.replace('"a": "hide"', '"a": "low"') for l in text.splitlines()]
+
+
+def test_merge_review_refuses_unknown_ids():
+    import pytest
+    from app.qa.census_rating import merge_review_text
+
+    with pytest.raises(KeyError):
+        merge_review_text('{"ratings": {"guy": {"a": "hide"}}}', {"zzz": "low"})

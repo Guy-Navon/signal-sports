@@ -305,6 +305,9 @@ GUY_PROFILE_V2 = ProfileV2(
         _ev("comp:euroleague", "final_four", 1),
         _ev("comp:euroleague", "generic_preview", -1),
         _ev("comp:euroleague", "schedule", -1),
+        # #237 (owner-approved calibration from census #2): general EuroLeague
+        # stories were rated feed but scored low_feed.
+        _ev("comp:euroleague", "news", 1),
         _ev("comp:eurocup", "signing", 1),
         _ev("comp:eurocup", "major_signing", 1),
         _ev("comp:eurocup", "negotiation", 1),
@@ -330,6 +333,9 @@ GUY_PROFILE_V2 = ProfileV2(
         _ev("team:maccabi_tlv_bb", "analysis", -1),
         _ev("team:maccabi_tlv_bb", "opinion", -1),
         _ev("team:maccabi_tlv_bb", "friendly_match", -2),
+        # #237 (owner-approved calibration from census #2): speculation around
+        # Maccabi is feed, not high_feed — the high base stays for real transactions.
+        _ev("team:maccabi_tlv_bb", "candidate", -1),
         # Secondary European leagues (base 0): only genuinely major events.
         _ev("comp:acb", "title_win", 2),
         _ev("comp:acb", "major_match_result", 2),

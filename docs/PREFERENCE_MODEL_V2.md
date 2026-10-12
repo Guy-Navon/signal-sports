@@ -1,5 +1,16 @@
 # Preference Model V2 — Affinity Scorer (issue #32)
 
+**2026-10-12 - First census calibration (#237).** Two owner-approved explicit entries
+in Guy's profile: `team:maccabi_tlv_bb × candidate = -1` (Maccabi speculation: high_feed
+-> feed) and `comp:euroleague × news = +1` (general EuroLeague stories: low_feed -> feed).
+Method: census #2 after the owner's blind review of the 58 largest disagreements, split
+into seeded fit and held-out halves. Only biases found on the fit half and confirmed on
+the held-out half were proposed. Held-out exact went 324 -> 333 of 402, and 17 of 18 flips
+moved closer to the owner's rating. Shown precision, recall and push did not change. A
+third candidate (`comp:ibl × match_result = -1`) was dropped: its signal was mixed (5
+closer, 3 further). Persisted via `scripts/apply_237_profile_calibration.py`.
+[Census review and method](qa/CENSUS_2026-10.md).
+
 **2026-09-11 - Additional push evidence (#192).** Step 8 remains the only path
 to push. When `classification_trace.attention` is present, signing,
 major_signing, negotiation and injury overrides additionally require a current

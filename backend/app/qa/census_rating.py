@@ -126,6 +126,64 @@ def rater_view(item: dict) -> dict:
     return {k: item.get(k) for k in RATER_FIELDS}
 
 
+# ── Review of the largest disagreements (census #2 lesson, #237) ─────────────
+# A blind re-rate of the 58 rows where engine and owner differed by >=2 notches changed
+# 28 ratings, 26 of them toward the engine: on borderline rows a single rating is noisy.
+# Re-rate the big gaps before treating them as engine errors.
+
+ENGINE_NOTCH = {"hidden": 0, "low_feed": 1, "feed": 2, "high_feed": 3, "push": 4}
+OWNER_NOTCH = {"hide": 0, "low": 1, "feed": 2, "high": 3, "push": 4}
+
+
+def build_review(
+    sample: dict,
+    ratings: dict[str, str],
+    engine: dict[str, str],
+    *,
+    profile: str = "guy",
+    min_gap: int = 2,
+) -> dict:
+    """A census-shaped sample holding only the rows where ``engine`` (id → decision)
+    and the owner's ``ratings`` differ by ``min_gap`` notches or more. Served by the
+    same blind rating page, so the reviewer sees neither number."""
+    import copy
+
+    out = copy.deepcopy(sample)
+    block = out["profiles"][profile]
+    block["items"] = [
+        it for it in block["items"]
+        if it["id"] in ratings and it["id"] in engine
+        and abs(ENGINE_NOTCH[engine[it["id"]]] - OWNER_NOTCH[ratings[it["id"]]]) >= min_gap
+    ]
+    n = len(block["items"])
+    block["strata"] = {STRATUM: {"population": n, "sampled": n, "weight": 1.0}}
+    out["meta"] = {**out["meta"], "scope": (
+        f"REVIEW: rows where engine and owner differ by >={min_gap} notches; blind re-rate."
+    )}
+    return out
+
+
+def merge_review_text(ratings_text: str, review: dict[str, str], *, profile: str = "guy") -> tuple[str, list[str]]:
+    """Fold re-rated values into a ratings JSON *text*, editing only the changed lines
+    so the committed file's formatting (and its diff) stays minimal."""
+    import re
+
+    current = json.loads(ratings_text)["ratings"][profile]
+    missing = [k for k in review if k not in current]
+    if missing:
+        raise KeyError(f"review ids not in the census ratings: {missing[:3]}")
+    changed = [k for k, v in review.items() if current[k] != v]
+    text = ratings_text
+    for k in changed:
+        text, count = re.subn(r'("' + re.escape(k) + r'":\s*")[a-z]+(")',
+                              lambda m, v=review[k]: m.group(1) + v + m.group(2), text, count=1)
+        if count != 1:
+            raise ValueError(f"could not locate {k} in the ratings text")
+    after = json.loads(text)["ratings"][profile]
+    assert all(after[k] == v for k, v in review.items()) and len(after) == len(current)
+    return text, changed
+
+
 class RatingsStore:
     """``{generated, seed, ratings: {profile: {id: rating}}}`` — the file shape
     ``feed_ground_truth.py score`` reads. Saved after EVERY rating; re-opening

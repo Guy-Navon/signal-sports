@@ -848,6 +848,8 @@ Set `CSRF_ALLOWED_ORIGINS=https://<machine>.<tailnet>.ts.net` as a local value w
 Set `ALLOW_INSECURE_AUTH_BYPASS=true` only for explicit local legacy/ops development. Startup refuses this flag when `AUTH_COOKIE_SECURE=true`; `/api/auth/*` is never bypassed.
 Automatic ingestion is the **worker process** (M7): set `SCHEDULER_ENABLED=true` and run `python -m app.worker` alongside the API (production default since M7-10; see `docs/SCHEDULER.md` for the full launch/runbook). Verify from the Sources page ("סטטוס ייבוא אוטומטי" — shows the worker-truth `automatic_ingestion_active` signal) or `GET /api/scheduler/health`.
 
+**Convenience (2026-10-12):** `powershell -File scripts\worker.ps1` starts Ollama (if it is down) and the worker, detached and logging to `backend/data/worker.log.err`. The previous log is kept with a timestamp. Use `-Status` to check whether it runs and see the last log lines, and `-Stop` to stop it. Nothing restarts the worker after a reboot, so run `-Status` first in any session that depends on fresh ingestion.
+
 ### Frontend in backend mode
 Create `frontend/.env.local`:
 ```

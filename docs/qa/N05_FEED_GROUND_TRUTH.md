@@ -10,7 +10,7 @@ is 7, distinct from four notification stories. See the
 [implementation report](N05_FEED_QUALITY_IMPLEMENTATION.md) for both directions,
 accepted Deni gate changes, exact traces and contract-preserving stop evidence.
 
-> 2026-09-11 milestone follow-up: [whole-corpus census and principled stop](N05_MILESTONE_FEED_QUALITY_FINDINGS.md). The Deni Oklahoma example concerns franchise relocation, not a player trade; the existing trade/injury overrides cannot express its owner-rated push preference. No engine or corpus changes were made, and the gate remains green with unchanged metrics.
+> 2026-09-11 milestone follow-up: a whole-corpus census and principled stop (report retired on 2026-10-12, superseded by the implementation report above; in git history as `N05_MILESTONE_FEED_QUALITY_FINDINGS.md`). The Deni Oklahoma example concerns franchise relocation, not a player trade; the existing trade/injury overrides cannot express its owner-rated push preference. No engine or corpus changes were made, and the gate remains green with unchanged metrics.
 
 הסוויטה מוכיחה שהמנוע עושה מה שנאמר לו. שום דבר לא הוכיח שמה שנאמר לו נכון.
 זה המסמך של הפער הזה.

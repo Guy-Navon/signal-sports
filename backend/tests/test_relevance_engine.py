@@ -1,6 +1,7 @@
 """
 Unit tests for the backend relevance engine.
-All tests mirror the product semantics documented in CLAUDE.md and IMPLEMENTATION_AUDIT.md.
+All tests mirror the product semantics documented in CLAUDE.md (legacy topic engine;
+the decision contract is docs/RELEVANCE_CONTRACT.md).
 """
 import pytest
 from app.seed.seed_articles import SEED_ARTICLES

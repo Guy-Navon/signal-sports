@@ -9,46 +9,53 @@ the topology below is what prevents it.
 
 ## The docs/ topology
 
+The doc set was pruned and re-verified against the code on **2026-10-12** (67 → 40 markdown
+files). Superseded docs, closed-milestone QA reports and delivered task briefs were deleted —
+they live in git history (`git log --diff-filter=D --name-only -- docs/`). Do not recreate them;
+put a still-binding conclusion into the layer contract instead.
+
 **Living contracts (authoritative for their layer — keep these true):**
 
 | Doc | Layer |
 |---|---|
-| `CURRENT_PROJECT_STATE.md` | Top-level truth; almost every behavior change touches it |
-| `RELEVANCE_CONTRACT.md` | Umbrella: pipeline map + decision semantics (issue #35) |
+| `CURRENT_PROJECT_STATE.md` | Top-level truth + cold-start orientation: §0 status at a glance, §3 architecture, §4 sources, §5 backend (tables, API, runtime flags), §6 frontend, §7 profiles/relevance (incl. LIVE profile contents), §8 classification, §9 quality measurement, §10 limitations, §11 next-milestone candidates, §13 handoff + doc map, §14 milestone history. Almost every behavior change touches it |
+| `RELEVANCE_CONTRACT.md` | Umbrella: pipeline map, **architecture invariants** (moved here from the retired v2 roadmap), decision semantics, push discipline, the N05 quality gate |
 | `TAXONOMY.md` | Registry rules + coverage audit table |
 | `ARTICLE_FACTS.md` | Facts stage: evidence weights, triangle, trace shape |
-| `RELEVANCE_VISIBILITY_CONTRACT.md` | Four-tier matching, reach allowlists, feed ceiling |
-| `PREFERENCE_MODEL_V2.md` | ProfileV2, scorer layers, shadow checkpoint record |
-| `CALIBRATION_V2.md` | Calibration dataset/inference/apply |
-| `FEEDBACK_LEARNING.md` | Learning pipeline + safety invariants |
-| `LLM_CLASSIFICATION.md` | Providers, gating, merge guardrails, run metrics (#31) |
-| `RSS_INGESTION.md`, `RSS_QUALITY_GUARDRAILS.md`, `HEBREW_RSS_SOURCE.md` | Ingestion + classifier changelog |
-| `FRONTEND_DESIGN_SYSTEM.md` | Tokens, product-vs-console split, RTL rules |
-| `INTELLIGENCE_ROADMAP.md` | Initiative plan — milestone marked COMPLETE; §2 invariants still bind |
-| `MOBILE_REMOTE_ACCESS.md`, `BACKEND_FOUNDATION.md` | Ops/foundation reference |
-| `USER_PLATFORM.md` | User Platform milestone (auth/accounts/onboarding/ownership) — **approved architecture contract, not yet implemented**; design authority for that milestone's PRs. Until they land, "no auth" statements in other docs remain the current-state truth |
+| `RELEVANCE_VISIBILITY_CONTRACT.md` | Four-tier matching, reach allowlists, feed ceiling, competition parents |
+| `PREFERENCE_MODEL_V2.md` | ProfileV2, scorer layers, shadow checkpoint record, census calibration (#237) |
+| `INTERESTS.md`, `CALIBRATION_V2.md`, `FEEDBACK_LEARNING.md` | Explicit interests; calibration dataset/inference/apply; learning pipeline + safety invariants |
+| `LLM_CLASSIFICATION.md` | Providers, gating (+ the binding #217 caveats), merge guardrails (4b), run metrics (#31) |
+| `RSS_QUALITY_GUARDRAILS.md` | Source filters + numbered deterministic-rule changelog (§1–§18) |
+| `RSS_INGESTION.md` | Sources (code default vs **live** override state), URL hints, probe history, the ingestion pass, run persistence |
+| `CLUSTERING.md` | Clustering contract — code comments name it as the authority |
+| `FEED_FRESHNESS.md`, `SCHEDULER.md`, `NOTIFICATIONS.md`, `RESULTS.md` | 36h window (+ the retention hazard), worker/lease, Telegram pilot, results |
+| `USER_PLATFORM.md` | Accounts/auth/authorization contract — **implemented** (milestone 2 closed 2026-07-10) |
+| `FRONTEND_DESIGN_SYSTEM.md` | Orbit tokens, product-vs-console split, RTL rules |
+| `MOBILE_REMOTE_ACCESS.md` | Tailscale Serve ops guide (#16) |
+| `qa/N05_FEED_GROUND_TRUTH.md`, `qa/N05_FEED_QUALITY_IMPLEMENTATION.md` | Method + current ratcheted baseline of the ACTIVE gate (`n05_*.json` is read by the gate) |
+| `qa/CENSUS_2026-10.md` | Census #2 (the fresh-cohort baseline) + the re-rate protocol |
 | `docs/fixtures/profile_parity.json` | Canonical legacy-profile snapshot — changes only with both seeds |
 
-**Historical / superseded (never cite as current behavior):**
+**Kept, but not implementation references:**
 
-- `IMPLEMENTATION_AUDIT.md` — explicitly-marked snapshot predating the backend.
-- `CALIBRATION_V0.md`, `CALIBRATION_APPLY.md` — superseded by `CALIBRATION_V2.md`; they
-  describe a deleted frontend-only flow. Reimplementing anything from them is a regression.
-- `TITLE_TRANSLATION.md` — post-MVP capability, module preserved but disabled.
-- `PRODUCT_UNDERSTANDING.md` — product vision, still conceptually valid, not an implementation
-  reference.
-- `SQLITE_PERSISTENCE.md` — schema/seed/test-isolation sections are current, but its "What Is
-  Still Not Persisted or Applied" table predates v2 (calibration inference, profile mutation,
-  and feedback learning DO exist now). Trust the v2 layer docs over it on those points.
+- `PRODUCT_UNDERSTANDING.md` — product vision (status bullets refreshed 2026-10-12).
+- `TITLE_TRANSLATION.md` — post-MVP capability; module preserved but disabled.
+- `audits/2026-09-05.md` (+ `.html`/`.json`, generated by `scripts/generate_audit_report.py`) —
+  a dated audit snapshot; its open items are issues #196–#200. Do not edit it to "fix" it.
+- `frontend-concepts/orbit/README.md` — screenshots of Orbit as shipped (2026-07-31).
 
 **Known drift patterns (check these, don't propagate them):**
 
-- **Test counts.** `CURRENT_PROJECT_STATE.md` cites multiple conflicting suite counts and all
-  go stale. When editing near one, either update it from an actual run
-  (`pytest tests/ --collect-only -q` / `npm run test`) or replace the hard number with "see the
-  suite output". Never copy a count from one doc section to another.
-- **`CURRENT_PROJECT_STATE.md` §11/§13** (next steps / handoff prompt) predate the v2
-  milestone in places; the roadmap pointer at the top of §11 is the corrective.
+- **Test counts.** Never hard-code a suite count; cite the collector
+  (`pytest tests/ --collect-only -q` / `npm run test`). Never copy a count between docs.
+- **Runtime state vs code defaults.** Several facts live only in the local DB or the untracked
+  `backend/.env`: source overrides (Sport5 on / ONE off), `TELEGRAM_NOTIFICATIONS_ENABLED`
+  (off since 2026-09-13), live ProfileV2 rows (changed only by reviewed `scripts/apply_*.py`).
+  Re-check them (read-only) instead of inferring from `config.py`/`.env.example`/seeds.
+- **Changelog-at-the-top accretion.** Layer docs carry dated entries at the top; when an entry
+  changes the mechanism, also fix the section that describes the mechanism. `CURRENT_PROJECT_STATE.md`
+  must not regrow a changelog — history goes in §14 (one row) and the issue/PR.
 - Timestamps and "Last updated" lines — update them when materially editing a doc.
 
 ## Truth-sweep procedure (after a behavior change, or on request)
@@ -68,5 +75,5 @@ the topology below is what prevents it.
 ## Done means
 
 Every doc in the diff-driven scope updated or explicitly judged unaffected, no new hard-coded
-counts/hashes introduced, superseded docs untouched (they are history, not to be "fixed"), and
-`CURRENT_PROJECT_STATE.md` still reads as a correct cold-start orientation.
+counts/hashes introduced, every relative link still resolves, dated snapshots (the audit)
+untouched, and `CURRENT_PROJECT_STATE.md` still reads as a correct cold-start orientation.

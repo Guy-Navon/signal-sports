@@ -33,6 +33,38 @@ RAW ITEM (RSS)
   → DECISION: hidden | low_feed | feed | high_feed | push
 ```
 
+## Architecture invariants (bind every change)
+
+These were set by the Signal Intelligence Architecture v2 initiative (Epic #27, closed
+2026-07-08; its roadmap document was retired on 2026-10-12, and its history is in git and on
+Milestone 1).
+
+- **The LLM reduces uncertainty; it does not define truth.** Deterministic evidence resolves
+  first: source URL hints, canonical aliases, competition names, taxonomy relations. The LLM
+  is called only on residual ambiguity, as a candidate generator, and its proposals always pass
+  normalisation and semantic validation. Abstention (`sport=unknown`, no entity, `news`) beats
+  guessing.
+- **LLM optionality.** The product stays useful with `CLASSIFICATION_PROVIDER=disabled`. The
+  no-LLM path is first-class.
+- **Facts ≠ personalization.** Classification answers "what is this article about", and the
+  relevance engine answers "how much does this user care". User preferences never
+  contaminate article facts.
+- **Competition model, three distinct relations.** `primary_competition` is what the article
+  is about, from explicit evidence only. `article_competitions` holds additional explicitly
+  evidenced competitions. Entity **memberships** are taxonomy data only: membership reach is
+  computed at scoring time and never persisted per article. Team-anchored events (signing,
+  injury, roster) reach all of a team's competitions. Competition-anchored events (results,
+  titles, schedules) reach explicit competitions only.
+- **Push discipline.** `push` comes only from an explicit rule, and boosts cap at `high_feed`
+  (detail below).
+- **Decision contracts.** "Globally important" is never a visibility reason by itself (see
+  the decision semantics below).
+- **The backend is authoritative for intelligence.** The JS engine
+  (`frontend/src/engine/relevanceEngine.js`) is frozen at its legacy feature set for local
+  demo mode. No taxonomy, affinity or learning work is ported to it.
+- **Taxonomy growth should reduce LLM dependency**, but a lower call rate is never bought with
+  accuracy or false-positive control.
+
 ## Decision semantics
 
 - `hidden` — no legitimate relevance scope matched, an exclude/override
@@ -101,16 +133,22 @@ Push requires an explicit rule: legacy `event_rules`/`entity_event_rules`
 declaring push, or a v2 `always_push` override. Boosts cap at high_feed.
 Calibration and learning can never write push rules.
 
-Measured against human ratings on the real corpus (2026-09-05, a census of
-every push — `docs/qa/N05_FEED_GROUND_TRUTH.md`): **17 pushes for Guy at 41%
-precision, 0 for the Deni fan.** The rejected pushes were almost all rated
-`feed`, not `hide` — real stories that do not deserve a phone buzz. Push
-volume and push precision are both gated (see below); volume may not rise
-without a precision gain.
+Measured against human ratings:
 
-> The earlier "13 pushes for Guy, 2 for the Deni fan (Fable checkpoint)" line
-> recorded engine-vs-engine agreement, not quality, and predates both the
-> corpus as it stands and the former-affiliation fix. It is superseded.
+- **2026-09-05, frozen corpus** ([qa/N05_FEED_GROUND_TRUTH.md](qa/N05_FEED_GROUND_TRUTH.md)):
+  17 Guy pushes at 41% precision. The rejected pushes were mostly rated `feed`, not `hide`:
+  real stories that do not deserve a phone buzz.
+- **2026-09-11, after #191/#192** ([qa/N05_FEED_QUALITY_IMPLEMENTATION.md](qa/N05_FEED_QUALITY_IMPLEMENTATION.md)):
+  7 push articles, all approved, forming 4 notification stories. Push overrides on
+  transfer/injury/governance events additionally require factual severity
+  (`attention.development`) and the followed scope as a title subject.
+- **2026-10-10, fresh cohort, census #2** ([qa/CENSUS_2026-10.md](qa/CENSUS_2026-10.md)):
+  the remaining failure is push **recall**. Of 8 owner-rated pushes the engine pushed 1, and 6
+  of the 8 were Maccabi institutional stories. `club_governance` (#229) raised this to 2/8 on
+  the census rerun.
+
+Push volume and push precision are both gated (see below). Volume may not rise without a
+precision gain.
 
 ## Signal hierarchy (learning layer)
 
@@ -150,7 +188,7 @@ traces stay in Debug/ops.
 
 The suite proves the engine does what it was told. It does not prove that what
 it was told is any good. That question is answered against 282 hand-rated real
-corpus items (`docs/qa/N05_FEED_GROUND_TRUTH.md`):
+corpus items ([qa/N05_FEED_GROUND_TRUTH.md](qa/N05_FEED_GROUND_TRUTH.md)):
 
 ```
 cd backend
@@ -175,10 +213,19 @@ The gate reports and enforces both directions instead:
 | `push_volume` | may not rise | **none**, unless precision improved |
 | `<profile>.no_drift` | `casual_deni_fan` must not move | **none** |
 
-Baseline: `docs/qa/n05_gate_baseline.json` (Guy 98% shown / 19.4% false hide /
-41% push; Deni 92% shown / 0.8% false hide). Regenerating it is a deliberate
-act (`gate --update-baseline`) and needs its own justification in the commit —
-it redefines what every later change is measured against.
+Baseline: `docs/qa/n05_gate_baseline.json`, generated at `87d3170` (2026-09-11) on the frozen
+1,427-article corpus. Guy: 98.3% shown precision / 18.0% false hide / push 7/7. Deni:
+91.7% / 0.8% / push 1/1. It was ratcheted forward twice (#190, #192) from the first
+measurement (98% / 19.4% / 41%). Regenerating it is a deliberate act
+(`gate --update-baseline`) and needs its own justification in the commit, because it redefines
+what every later change is measured against.
+
+**This is still the only regression gate.** Census #2 (804 fresh articles,
+[qa/CENSUS_2026-10.md](qa/CENSUS_2026-10.md)) measures the live engine on newer ingestion and
+is used for before/after reruns. Promoting a census to the gate is an open decision (#241).
+Census ratings carry a test-retest noise band of about one notch: in census #2's blind
+re-rate, 28 of 58 large disagreements changed and 26 of those moved toward the engine. Re-rate
+large disagreements before treating them as engine errors.
 
 A change that genuinely needs to regress a check says so explicitly:
 

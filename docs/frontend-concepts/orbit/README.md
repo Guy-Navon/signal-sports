@@ -6,9 +6,9 @@ Guy's feed, RTL Hebrew — with `document.fonts.ready` awaited before every
 measurement and screenshot.
 
 The design contract is [`docs/FRONTEND_DESIGN_SYSTEM.md`](../../FRONTEND_DESIGN_SYSTEM.md).
-The exploration that selected Orbit over Pulse and Vector is archived in
-[`docs/SPORTS_INTELLIGENCE_OS_CONCEPTS.md`](../../SPORTS_INTELLIGENCE_OS_CONCEPTS.md)
-with its comparison screenshots in [`../sports-intelligence-os/`](../sports-intelligence-os/).
+Orbit was selected over two other concepts, Pulse and Vector, in a July 2026 exploration. That
+write-up and its comparison screenshots were retired on 2026-10-12 and are in git history
+(`docs/SPORTS_INTELLIGENCE_OS_CONCEPTS.md`, `docs/frontend-concepts/sports-intelligence-os/`).
 
 Capture conditions: `FEED_FRESHNESS_ENABLED=false` (the corpus is older than the
 production 36-hour window) and `ALLOW_INSECURE_AUTH_BYPASS=true` (the documented

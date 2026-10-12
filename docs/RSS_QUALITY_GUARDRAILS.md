@@ -1,4 +1,8 @@
-# RSS Quality Guardrails — PR 7.1
+# Classification Quality Guardrails — Source Filters & Deterministic Rules
+
+**Status: living changelog** of source-level filters and deterministic classification rules,
+numbered in the order they shipped. It began as PR 7.1. Each section records the defect, the
+rule, and its measured effect. Append new rule changes as numbered sections in the same style.
 
 **2026-09-11 - Feed-quality routing (#191/#192).** Positive analysis/interview
 format evidence now routes to those existing editorial types. Title-supported
@@ -1058,11 +1062,23 @@ Tests: `tests/test_schedule_precision_224.py`.
 
 ---
 
-## Next Steps
+## 18. A Live Scoreline Is a Result (#218, 2026-09-15)
 
-- **Re-run LLM gating benchmark** — Quality fixes on branch `feature/selective-llm-gating` are now in place. Re-run the benchmark from the Sources page to measure skip rate and quality after fixes.
-- ~~Expand entity normalization map~~ — done in PR 13 (section 10a).
-- ~~Automate ingestion~~ — done in PR 13 (scheduler, disabled by default; see `docs/RSS_INGESTION.md`).
-- **Extended entity detection** — Detect more players and teams from Hebrew and English text in the deterministic classifier (the normalizer only canonicalizes LLM output).
-- **Fuzzy dedup** — Group near-duplicate headlines from different sources via
-  `difflib.SequenceMatcher` + `cluster_id`.
+Recorded out of order: this landed before §13–§17. `match_result` evidence used to require a
+result verb (`ניצח` / `הפסיד` / `beats`). Hebrew live-match headlines carry a bare scoreline,
+so a live scoreline now also qualifies, **but only a score together with a live marker** (`חי`,
+`מחצית`, `דקה N`, `רבע N`). A bare score is often a preview quoting the last meeting. Full
+rationale, the AND/OR structure of `required_any`, and the "do not loosen Guardrail 4b" finding:
+[LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md), 2026-09-15 entry. Tests:
+`tests/test_live_scoreline_evidence_218.py`.
+
+---
+
+## Where open classification work is tracked
+
+This file is a changelog of shipped rules. Open gaps live in GitHub issues (for example #242,
+the venue-move vocabulary for `club_governance`) and in the "known limitations" section of
+[CURRENT_PROJECT_STATE.md](CURRENT_PROJECT_STATE.md). The structural recall limits are
+person-level coverage (the registry holds 3 players, all NBA) and the cross-sport club deadlock
+(#194). Story clustering, which an earlier "next steps" list here called fuzzy dedup, has shipped:
+see [CLUSTERING.md](CLUSTERING.md).

@@ -1,6 +1,7 @@
 # Personalized Results — Contract (issue #178)
 
-**Status:** implemented (branch `feature/personalized-results-178`, PR for #178).
+**Status:** implemented and merged (#178, PR #179, 2026-08-23). The production `.env` runs
+`RESULTS_SYNC_ENABLED=true`, so the worker refreshes results every 30 minutes at most.
 This is the authoritative contract for the Results feature; where another doc
 disagrees, this wins for results behavior.
 

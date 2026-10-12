@@ -1,7 +1,13 @@
 # Calibration V2 — Backend-Owned Dataset + Hierarchical Inference (issue #33)
 
-**Status: ACTIVE.** Supersedes `CALIBRATION_V0.md` and `CALIBRATION_APPLY.md`
-(kept for history — the frontend-only flow they describe was removed).
+**Status: ACTIVE.** It superseded the frontend-only V0 calibration and its sandbox "apply"
+flow. That code was removed, and their docs (`CALIBRATION_V0.md`, `CALIBRATION_APPLY.md`) were
+retired on 2026-10-12 and are in git history. Reimplementing anything from them would be a
+regression.
+
+**Census calibration is a separate, offline path (#237, 2026-10-12).** Guy's live profile was
+tuned from owner census ratings with a fit/held-out split, not through this dataset. See
+[PREFERENCE_MODEL_V2.md](PREFERENCE_MODEL_V2.md).
 
 ## Dataset v3 (issue #80 — coverage-driven expansion)
 

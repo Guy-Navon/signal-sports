@@ -23,13 +23,20 @@ pilot. [Metrics, traces and limitations](qa/N05_FEED_QUALITY_IMPLEMENTATION.md).
 
 **Status:** authoritative living contract for M7-5/#151 (story identity + outbox),
 M7-6/#152 (planner), M7-7/#153 (delivery).
-**ACTIVE IN PRODUCTION since 2026-07-18 (M7-10 #156):** the guarded watermark
-initialization (`scripts/init_notification_watermark.py`) ran at 2026-07-18T12:43:48Z
-suppressing the 7 historical PUSH stories, then the production `backend/.env` enabled
-`TELEGRAM_NOTIFICATIONS_ENABLED=true` with `TELEGRAM_REQUEST_TIMEOUT_SECONDS=20`.
-The `.env.example` default stays false; enabling without a watermark is fail-closed.
-First deliveries: controlled probe (Telegram message 5) and a genuine Israel Hayom
-story (message 6), both exactly once — see `docs/qa/M7_ACCEPTANCE_155.md`.
+**Activated 2026-07-18 (M7-10 #156); currently OFF (since 2026-09-13).** The guarded watermark
+initialization (`scripts/init_notification_watermark.py`) ran at 2026-07-18T12:43:48Z,
+suppressing the 7 historical PUSH stories. The production `backend/.env` then enabled
+`TELEGRAM_NOTIFICATIONS_ENABLED=true` with `TELEGRAM_REQUEST_TIMEOUT_SECONDS=20`. The first
+deliveries were a controlled probe (Telegram message 5) and a genuine Israel Hayom story
+(message 6), each sent exactly once. The acceptance record is on issue #155. The outbox holds
+14 `sent` events, the last on 2026-07-24.
+
+On 2026-09-13 the flag was set to `false` before an agent run and corpus re-ingestion, as a
+burst-risk precaution, and it has stayed off. Re-enabling is one flag plus a worker restart,
+and it is an owner decision. It cannot flood: disabling pauses *planning*, and a story from the
+gap notifies only if it is still push-visible in the 36-hour feed and was never notified (see
+the planning rules below). The `.env.example` default stays false, and enabling without a
+watermark is fail-closed.
 
 ## The delivery-semantics statement (exact required language)
 

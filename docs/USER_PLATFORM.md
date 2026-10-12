@@ -493,7 +493,8 @@ bypass semantics).
 - 2026-07-09 (later) — Cross-track gate added: #52 (onboarding) is hard-blocked by the
   Classification & Feed Reliability sign-off (#63, Epic #58, Milestone 3) because
   onboarding feeds Calibration V2 inference and first impressions off classification
-  facts (evidence: docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md). #52 may now land
+  facts (evidence: the 2026-07-09 reliability investigation on Epic #58, retired from
+  `docs/` on 2026-10-12 and in git history). #52 may now land
   before or after #54; both orders are handled in the issue bodies. All review
   checkpoints converted to model-independent contracts (Product Review for #52,
   Security/Authorization + Regression for #54) defined in the issue bodies; Epic #48

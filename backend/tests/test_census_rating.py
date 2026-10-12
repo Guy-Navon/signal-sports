@@ -1,4 +1,4 @@
-"""Census rating tool (docs/tasks/RATING_SURFACE.md) — the pure half.
+"""Census rating tool (scripts/rate_census.py; docs/qa/CENSUS_2026-10.md) — the pure half.
 
 Pins: the rater never sees an engine field; order is a seeded shuffle, not tier
 order; the store saves after every mutation, resumes, never re-asks, and undo

@@ -4,7 +4,7 @@ description: Use when changing how Signal Sports determines what an article IS �
 ---
 
 Classification answers "what is this article about"; it must never encode "does a user care"
-(**facts ≠ personalization** — a hard invariant from `docs/INTELLIGENCE_ROADMAP.md` §2).
+(**facts ≠ personalization** — a hard invariant, `docs/RELEVANCE_CONTRACT.md` §Architecture invariants).
 If the classification is correct but the feed decision is wrong, stop — that is
 `signal-relevance-change` territory. If the fix is "this club/player/competition is missing or
 mis-aliased", stop — that is `signal-taxonomy-change` (registry data, not classifier code).

@@ -115,10 +115,15 @@ intended and unchanged.
 
 ## 8. What was deliberately NOT done
 
-- **Physical retention stays disabled** (M8-6 #176). It is not needed to fix visibility, and
-  the corpus (oldest row 2026-07-10) is entirely inside the 30-day retention window — cleanup
-  would delete zero rows today. Revisit when the corpus approaches 30 days (~2026-08-09);
-  activation preconditions are documented in `retention.py` / `.env.example`.
+- **Physical retention stays disabled** (M8-6 #176). It is not needed to fix visibility. When it
+  was decided, the whole corpus sat inside the 30-day window. **Still disabled as of
+  2026-10-12, and it must stay off until rated rows are protected.** `retention.py` protects
+  in-window clusters and feedback-referenced articles only, **not** articles carrying human
+  ratings. At a 30-day window it would delete the frozen N05 gate corpus (published up to
+  2026-07-31) and most of census #2 (published since 2026-08-01), so the quality gate and the
+  census rescoring would stop working. Enabling it needs a protection for rated ids first. That
+  is an owner decision. The other activation preconditions are in `retention.py` and
+  `.env.example`.
 - No per-league / per-source / per-user freshness windows; one product-wide rule.
 - No clustering redesign; freshness composes with §9 collapse purely by input filtering.
 - The `rss_adapter` `published_parsed` handling was left untouched: changing
@@ -130,5 +135,8 @@ intended and unchanged.
 
 - Implementation + tests: PR for #171–#174 (`test_feed_freshness_m8.py`, 27 tests; full
   backend + frontend suites green).
-- Before/after real-data QA and activation record: `docs/qa/FEED_FRESHNESS_QA_M8.md`
-  (M8-5 #175).
+- Before/after real-data QA and activation record: issue #175. Raw metrics are in
+  `docs/qa/feed_freshness_m8_report.json`. The narrative report was retired on 2026-10-12 and is
+  in git history as `docs/qa/FEED_FRESHNESS_QA_M8.md`. Headline: Guy went from 85 to 21 cards,
+  the oldest visible card from 202h to 35h, and the push surface from 8 to 2. There was zero
+  decision drift among fresh articles.

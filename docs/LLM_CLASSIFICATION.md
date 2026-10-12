@@ -1,4 +1,9 @@
-# LLM Classification — PR 11 + Post-QA Fixes
+# LLM Classification — Providers, Gating, Merge Guardrails & Run Metrics
+
+**Status: living contract** for the optional LLM overlay. Production runs Ollama with
+`qwen2.5:3b-instruct` (`CLASSIFICATION_TIMEOUT_SECONDS=30`). `CLASSIFICATION_PROVIDER=disabled`
+is the code default and a first-class path. Changelog entries are newest first, and the
+sections below them describe the current mechanism.
 
 **2026-10-10 - `club_governance` event type (#229).** Added to `ALLOWED_EVENT_TYPES`
 and the prompt enum, with one definition line ("ownership, control, legal dispute, home
@@ -7,6 +12,30 @@ club is run"). Like every type, an LLM proposal must pass the semantic evidence 
 (`event_evidence._CLUB_GOVERNANCE`); the LLM cannot create the event alone. The rules
 classifier proposes it right after the editorial formats and before the transfer cycle,
 so an ownership purchase ("רכשה", "סיכמו") is not a signing.
+
+**2026-09-15 - Guardrail 4b is mostly right; one gap closed (#218).** With the LLM working
+(3% failure on the fresh cohort, down from 65%), the event-type bottleneck moved to the merge:
+4b overrode 24 of 32 proposals in one live run. A hand review found most rejections **correct**:
+a "match_result" that was a signing story, an "analysis" on a non-sports item, and a preview
+quoting a past score. **Do not loosen 4b in general.** The one systematic gap: Hebrew live-match
+headlines are bare scorelines with no result verb (`דקה 36: מנ. יונייטד - מנ. סיטי 0:0`). A
+live scoreline now satisfies `match_result`, but **only with a score AND a live marker together**
+(`_LIVE_SCORELINE` in `event_evidence.py`), because a bare number is often a preview quoting the
+last meeting. It sits *inside* the result-verb group: `required_any` is AND across groups and OR
+within a group, and a test pins that structure. Effect: 21 stored rows would move
+`news → match_result` with zero decision flips, so no stored row was corrected.
+
+**2026-09-13 - Failure taxonomy, measured value, gate retune (#217).** Provider failures are typed
+(`connect_error`, `timeout`, `http_error`, `bad_response_shape`, `unparseable_json`), and
+latency is recorded per call. The legacy `fallback_timeout_or_parse` key stays as a compatibility
+sum (metrics schema v2). The historical parse failure does not reproduce on current code: 70/70
+titles parsed live, with about 11 s mean latency on a warm `qwen2.5:3b-instruct`. A fixed
+60-article probe (`scripts/llm_failure_probe.py`, read-only) found the merged LLM changed a
+field on 16/60 calls. All the value sat in the force-call buckets (`ambiguous_club` 3/3,
+`sport_unknown` 7/9), and residual generic `news` changed 0/16. That subgroup is now skipped as
+`measured_generic_news_sufficient`. Projected call rate: 51.2% → **28.0%** of eligible
+articles, about 63 minutes less per full corpus pass. The gate passed with identical metrics.
+**Read the caveats in "Selective LLM Gating" before extending the gate.**
 
 **2026-09-11 - Event routing (#191).** The prompt and allowed values include
 the authorized franchise `relocation` type and the previously existing product
@@ -465,7 +494,7 @@ POST /api/classify/backfill
 Response shape:
 ```json
 {
-  "provider": "ollama:llama3.2:3b",
+  "provider": "ollama:qwen2.5:3b-instruct",
   "processed": 18,
   "llm_classified": 12,
   "guardrail_corrections": 3,
@@ -485,8 +514,8 @@ Response shape:
 # Provider selection
 CLASSIFICATION_PROVIDER=disabled          # disabled | fake | gemini | ollama
 
-# Model (default per provider shown below):
-#   ollama:  qwen2.5:3b-instruct
+# Model. Code defaults when unset (app/classification/service.py):
+#   ollama:  llama3.2:3b          ← production sets qwen2.5:3b-instruct explicitly
 #   gemini:  gemini-2.5-flash-lite
 CLASSIFICATION_MODEL=qwen2.5:3b-instruct
 
@@ -565,6 +594,19 @@ the LLM changed **0/16** results in this subgroup after production guardrails
 (100% rules agreement). The two sampled residual articles with specific events
 also agreed, but remain calls because that sample is too small. High-value force
 calls remain: `ambiguous_club` changed 3/3 and `sport_unknown` changed 7/9.
+
+**Caveats that bind any further gate change (#217 review):**
+
+1. **"Changed" is not "improved".** Every figure above is a rules-vs-merged *disagreement*
+   rate, and no ground truth was consulted. The force calls are justified only if the LLM was
+   right on those rows.
+2. **The probe is downstream of Guardrail 4b.** A proposal 4b rejects counts as "no change".
+   If 4b is ever relaxed, the skipped bucket may regain value invisibly. Re-probe after any
+   event-evidence change.
+3. **The slice was the first 60 articles by stable id, not a random sample.** The direction is
+   probably right, but the confidence is lower than 16/16 suggests.
+4. **`strong_source_sport_hint` disagreed on 5 of 17** (2 event, 3 entities). It is an existing
+   skip reason, and nobody has examined it.
 
 **`CLASSIFICATION_LLM_GATING=disabled`:** skips all gating logic and always returns `(True, "gating_disabled")`. Use this to reproduce pre-gating behavior for benchmarking.
 
@@ -693,7 +735,7 @@ All timing numbers above are now observable via the `SourceIngestResult` fields 
 
 All tests use `FakeLLMProvider`, mocked `httpx`, or mocked `google.genai`. No test requires Ollama or a real API key.
 
-**Total: 1215 tests** (as of issue #30 event semantic validation rebased on ArticleFacts). The suite is hermetic — `conftest.py` forces `CLASSIFICATION_PROVIDER=disabled` and `INGESTION_SCHEDULER_ENABLED=false` regardless of `backend/.env`.
+For the current count run `pytest tests/ --collect-only -q`; counts quoted in docs go stale. The suite is hermetic. `conftest.py` selects a disposable database, forces `CLASSIFICATION_PROVIDER=disabled`, and clears Telegram credentials regardless of `backend/.env`. The class list below is the original PR 11 inventory: later issues added their own `test_<topic>_<issue>.py` files.
 
 **`backend/tests/test_llm_classification.py`** (added in PR 11, extended with subtitle/Gemini/Ollama/guardrail tests):
 - `TestValidation` (10 tests) — JSON parsing, enum validation, regex fallback, all leagues accepted
@@ -759,8 +801,7 @@ A one-click benchmark is available on the Sources page (backend mode only).
 > cp data/signal_sports.db data/benchmark_copy.db
 > DATABASE_URL=sqlite:///./data/benchmark_copy.db
 > ```
-> This guard is what makes issue **#65 (R7 — LLM provider/prompt evaluation)** safe
-> to run; #65 must use a corpus copy.
+> Any provider, prompt or gating evaluation must therefore use a corpus copy.
 
 **Setup:** `ALLOW_DEV_RESET=true` + `CLASSIFICATION_PROVIDER=ollama` in `.env`, **`DATABASE_URL` pointed at a corpus copy**, restart backend.
 
@@ -787,42 +828,22 @@ The run-level override (`gating_enabled_override`) is threaded through `run_inge
 
 ---
 
-## Benchmark Plan
+## Evaluating a model, prompt or gate change
 
-After setting up Ollama with Qwen:
+> **Never delete or reset `backend/data/signal_sports.db` to "start clean".** It is the
+> unrecoverable real corpus and the replay evidence behind every quality measurement (#106).
+> An earlier version of this section said to delete it.
 
-```bash
-ollama pull qwen2.5:3b-instruct
-```
-
-In `backend/.env`:
-```
-CLASSIFICATION_PROVIDER=ollama
-CLASSIFICATION_MODEL=qwen2.5:3b-instruct
-CLASSIFICATION_TIMEOUT_SECONDS=30
-```
-
-Restart backend, then:
-```
-del backend\data\signal_sports.db
-POST /api/ingest/run?source_id=walla_sport
-POST /api/ingest/run?source_id=israel_hayom_sport
-POST /api/ingest/run?source_id=ynet_sport
-POST /api/ingest/run?source_id=one_sport
-GET /api/ingest/quality
-GET /api/debug/feed/guy
-```
-
-Compare against baseline (`CLASSIFICATION_PROVIDER=disabled`):
-
-| Metric | Baseline | Ollama/Qwen target |
-|--------|---------|--------------|
-| `sport=unknown` count | X | -30% to -60% |
-| Guy hidden articles | H | Reduced |
-| Football false positives | 0 | Must stay 0 or near-0 |
-| LLM fallback count | 0 | <10% of processed |
-| 30-article ingestion time | ~2s | ~30–150s |
-
-If `qwen2.5:3b-instruct` produces too many JSON parse errors or poor sport classification, try `qwen3:4b` as a fallback (`ollama pull qwen3:4b`, then change `CLASSIFICATION_MODEL`).
-
-Inspect each article in the debug view where `classified_by` contains "llm". For any article that seems wrong, check `classification_reason` — it explains the LLM's reasoning. If a systematic error appears (e.g., LLM confusing a football Maccabi club for basketball), verify that the guardrail fires correctly or extend `_FOOTBALL_MACCABI_KW`.
+1. **Probe read-only first.** `backend/scripts/llm_failure_probe.py` opens the corpus with
+   SQLite `mode=ro` and runs the configured provider over a fixed slice, comparing rules and
+   the merged result per field. The gating caveats above apply to anything you conclude from it.
+2. **Anything that writes runs on a copy.** Use `scripts/backup_db.py` (the WAL-safe copy)
+   or `scripts/reclassify_copy.py`, and point `DATABASE_URL` at the copy. The benchmark endpoint
+   refuses the real corpus.
+3. **Judge by decisions, not by agreement.** Score the before/after facts against the human
+   ratings: the `feed_ground_truth.py gate` and the census (`corpus_rerun_diff.py snapshot|compare`).
+   See [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) §Quality gate and the
+   `signal-real-data-qa` skill. Report shown precision, recall and push. Do not report
+   "LLM agreement".
+4. **Stored rows are not corrected by a model change.** A correction is a separate, targeted
+   and reviewed decision. Never run a blanket rules-only backfill.

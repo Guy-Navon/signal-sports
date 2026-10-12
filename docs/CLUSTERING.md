@@ -24,7 +24,8 @@ is a different measure. [Reviewed changes and rejected expansion](qa/N05_FEED_QU
 > impure components, 0 material updates hidden**, every persisted component manually
 > reviewed as a genuine single story, and the ranked Guy feed showing **each story once
 > and pushing each story at most once** (52→39 cards, pushes 5→3, the Madar signing
-> 3 pushes→1). Evidence: `docs/qa/FEED_DEDUP_124_REPORT.md`,
+> 3 pushes→1). Evidence: the #124 evaluation and #126 activation records on those issues
+> (the #124 report was retired from `docs/qa/` on 2026-10-12 and is in git history),
 > `docs/qa/feed_live_final_ranked_guy_126_20260715.json`, and the activation artifacts in
 > `docs/qa/*_126_20260715.*`. The flag lives in `backend/.env`.
 >
@@ -146,7 +147,8 @@ Two rules follow, and everything else in this document is downstream of them:
 >
 > Tracked in **#135** (candidate-scoped evidence frequency), **#136** (story-identifying named
 > anchors), **#137** (transliteration normalization), **#138** (cross-source event-state
-> consistency). Full evidence: `docs/qa/CLUSTERING_122_ANALYSIS.md`.
+> consistency). Full evidence: the #122/#132 pairwise analysis (retired from `docs/qa/` on
+> 2026-10-12; in git history as `docs/qa/CLUSTERING_122_ANALYSIS.md`).
 >
 > **The fixture negatives cannot certify a mechanism.** Only 4 of the 7 `must_not_cluster`
 > groups survive the hard gates. Precision must be measured by **corpus-wide pair enumeration**
@@ -591,8 +593,10 @@ jaccard floor (#122/#132 refutation) — is answered by **persisted, validated s
   Hebrew language-frequency resource (`wordfreq==3.1.1`): *rare in the corpus is not rare in
   the language* — `מדר` (zipf 3.25) is a name; `אדום` (4.99) is a word; the band between is
   abstention. Span precision 1.00 / recall 0.68 on the adjudicated ground truth; deterministic;
-  fails closed to canonical-taxonomy-only anchors. Full selection evidence:
-  `docs/qa/ANCHOR_VALIDATOR_141_REPORT.md`.
+  fails closed to canonical-taxonomy-only anchors. Selection: V2 did not ship, and V3 failed its
+  retention conditions and stays default-off reference code. Raw evaluation output:
+  `docs/qa/anchor_validator_eval_141_20260715.txt`. The full comparison report is in git history
+  (`docs/qa/ANCHOR_VALIDATOR_141_REPORT.md`, retired 2026-10-12).
 - **Pair evaluation READS persisted anchors only** — never a model or analyzer per pair.
 - **Tier N is a rescue, never a relabel, and never sufficient by itself.** It fires only after
   EVERY hard gate (incl. §7.6 claim compatibility) has passed, and only when:

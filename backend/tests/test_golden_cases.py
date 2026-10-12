@@ -1,5 +1,5 @@
-"""Golden-15 reliability regression suite (issue #59; evidence: issue #58 /
-docs/CLASSIFICATION_RELIABILITY_INVESTIGATION.md §3).
+"""Golden-15 reliability regression suite (issue #59; evidence: issue #58 and the
+2026-07-09 reliability investigation, §3, retired from docs/ on 2026-10-12, in git history).
 
 Seventeen real production articles (15 investigation cases + the C2 sibling and
 the C5 walla variant) replayed through the REAL ingestion pipeline

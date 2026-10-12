@@ -121,16 +121,16 @@ The MVP does not need real sources, real scraping, backend persistence, or produ
 
 ## What Should Not Be Built Yet (as of the original MVP scoping)
 
-The following were explicitly out of scope when this document was first written. **Status update — most of this has since been built; see `docs/CURRENT_PROJECT_STATE.md` for current, authoritative state:**
+The following were explicitly out of scope when this document was first written. **Status update (2026-10-12): most of this has since been built. For current, authoritative state, see `docs/CURRENT_PROJECT_STATE.md`.**
 
-- ~~Real RSS or scraping from live sources~~ — **done.** Walla Sport + Israel Hayom Sport are live RSS sources; Sport5 is a working HTML-scraping pilot (disabled by default).
-- ~~Backend server, database, or API layer~~ — **done.** FastAPI + SQLite, `backend/app/`.
-- User authentication or accounts — **built (User Platform, 2026-07-10):** email/password accounts, cookie sessions, session-derived `/api/me/*`, fail-closed admin gating. The two seeded demo profiles remain permanent QA fixtures alongside real accounts.
-- Push notifications to devices — **still not built.** `push` is a decision level only; no device delivery.
-- ~~Natural language processing / LLM-based classification~~ — **done.** Deterministic classifier + optional LLM overlay (Gemini/Ollama) with 7 merge guardrails; see `docs/LLM_CLASSIFICATION.md`.
-- Natural language preference input (free text → structured profile) — **intentionally not built, and no longer the intended primary path (Milestone 4).** Explicit taxonomy-backed interest selection (Follow/Star over the taxonomy catalog, #77/#78/#82) is the deterministic onboarding foundation instead — no LLM interprets a known taxonomy choice. Calibration (#33, now interest-aware, #81) is the second stage, and the feedback loop (#34; explicit > learned > calibration) keeps refining. Explicit interests are stored as ordinary `source="explicit"` ProfileV2 affinities.
-- Production deployment — **still not applicable.** Local dev only.
-- ~~Multi-language translation engine~~ — **built, but intentionally disabled.** `backend/app/translation/` is intact (Claude/Fake/Noop providers); `TRANSLATION_PROVIDER=disabled` is correct for the current Hebrew-only MVP. Re-enable when English sources (Eurohoops, Sportando) return.
-- Real clustering algorithm (TF-IDF, semantic similarity, time windowing) — **still not built.** Dedup is URL-only; `cluster_id` exists on the model but nothing populates it. This is the most-cited "still fake" gap across every audit pass.
+- ~~Real RSS or scraping from live sources~~: **done.** Walla, Israel Hayom and Ynet run over RSS. Sport5 is scraped and runs live. ONE (public JSON) is implemented but currently switched off.
+- ~~Backend server, database, or API layer~~: **done.** FastAPI + SQLite, `backend/app/`.
+- ~~User authentication or accounts~~: **built** (User Platform, 2026-07-10). Email/password accounts, cookie sessions, session-derived `/api/me/*`, fail-closed admin gating. The two seeded demo profiles remain permanent QA fixtures.
+- ~~Push notifications to devices~~: **built as a single-user pilot** (Milestone 7, 2026-07-18). PUSH-tier stories go to Guy's private Telegram chat at most once per story. It is currently switched off; see `docs/NOTIFICATIONS.md`. There is no native mobile/web push and no multi-user delivery.
+- ~~Natural language processing / LLM-based classification~~: **done.** A deterministic classifier plus an optional local LLM overlay (Ollama `qwen2.5:3b-instruct` in production) behind merge guardrails and semantic event evidence. See `docs/LLM_CLASSIFICATION.md`.
+- Natural language preference input (free text → structured profile): **intentionally not built, and no longer the intended primary path (Milestone 4).** Explicit, taxonomy-backed interest selection (Follow/Star over the taxonomy catalog, #77/#78/#82) is the deterministic onboarding foundation instead, and no LLM interprets a known taxonomy choice. Calibration (#33, interest-aware since #81) is the second stage, and the feedback loop (#34; explicit > learned > calibration) keeps refining. Explicit interests are stored as ordinary `source="explicit"` ProfileV2 affinities.
+- Production deployment: **still not applicable.** Everything runs on the owner's Windows machine and is reached privately from the phone over Tailscale.
+- ~~Multi-language translation engine~~: **built, but intentionally disabled.** `backend/app/translation/` is intact; `TRANSLATION_PROVIDER=disabled` is correct for the Hebrew-only MVP.
+- ~~Real clustering algorithm~~: **built and active since 2026-07-15** (Milestones 5–6). It is deterministic cross-source and intra-source story clustering with validated story anchors and zero accepted over-merges; see `docs/CLUSTERING.md`.
 
-The original reasoning still holds for what's left: don't build fuzzy clustering on top of an unvalidated scoring engine. The scoring engine and classification pipeline are validated (current counts via the test collectors) and feedback-driven learning (#34) plus authentication (User Platform) have since been built; the remaining gaps (push delivery, NL preference input, real clustering) are genuine product features, not scaffolding risk.
+What is still genuinely open is product validation, not scaffolding: real daily use, feedback that actually trains the profile, and recall on Israeli basketball stories.

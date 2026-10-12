@@ -3,8 +3,17 @@
 **Status:** authoritative living contract for scheduled ingestion (M7-1 #147, M7-2 #148).
 **ACTIVE IN PRODUCTION since 2026-07-18 (M7-10 #156):** the production `backend/.env`
 runs `SCHEDULER_ENABLED=true` at `SCHEDULER_INTERVAL_SECONDS=300`. The `.env.example`
-default stays false so a fresh checkout never polls by accident. Activation evidence:
-`docs/qa/M7_SOAK_REPORT_155.md` (44.8h soak) + `docs/qa/M7_ACCEPTANCE_155.md`.
+default stays false so a fresh checkout never polls by accident. Activation evidence is on
+issue #155: a 44.8h soak with 524 cycles, 521 succeeded, 0 source failures and zero duplicate
+articles, plus the end-to-end acceptance record. The narrative reports were retired from
+`docs/qa/` on 2026-10-12 and are in git history.
+
+**Operational reality (2026-10-12):** "enabled" means the worker *will* poll **when it is
+running**. Nothing starts it at boot or restarts it after a crash or reboot. The
+`scheduler_cycles` history shows the worker absent for long stretches: 07-24→07-31,
+07-31→09-15, 09-20→10-08 and 10-08→10-10. Some of that time was deliberate, while the corpus was
+frozen for measurement. Start it with `scripts\worker.ps1` (repo root) and check with
+`scripts\worker.ps1 -Status` at the start of any session that depends on fresh ingestion.
 
 ## Topology
 

@@ -1,64 +1,67 @@
 # Signal Sports
 
-Personalized sports news intelligence feed. Surfaces only the stories that matter to a specific user — not a generic sports feed.
+A personalized, Hebrew-first sports news intelligence feed. It surfaces only the stories that
+matter to a specific user, so they do not have to read seven sports sites to find them.
 
 ## Repository structure
 
 ```
 signal-sports/
-├── frontend/       React + Vite + Tailwind frontend
-├── backend/        FastAPI Python backend
-├── docs/           Product and architecture documentation
-├── .claude/skills/ Project-level Claude Code skills (classification / relevance / taxonomy changes, source onboarding, feed audit, real-data QA, doc truth, PR finish, handoff)
-└── CLAUDE.md       Project context for AI-assisted development
+├── frontend/        React + Vite + Tailwind (Hebrew/RTL product UI + ops console)
+├── backend/         FastAPI + SQLite: ingestion, classification, relevance, clustering, push, results
+├── scripts/         repo-level tools (worker.ps1 start/stop/status, audit report generator)
+├── docs/            contracts, current state, QA evidence
+├── .claude/skills/  project skills for Claude Code (classification / relevance / taxonomy changes,
+│                    source onboarding, feed audit, real-data QA, doc truth, PR finish, handoff)
+└── CLAUDE.md        product intent for AI-assisted development
 ```
 
-## Frontend
+## Quick start
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Tests: `npm run test` | Lint: `npm run lint` | Build: `npm run build`
-
-See [frontend/README.md](frontend/README.md) for full details.
-
-## Backend
-
-```bash
-cd backend
+```powershell
+# backend (from backend/)
 python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt   # Windows
-.venv\Scripts\uvicorn app.main:app --reload
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python -m uvicorn app.main:app --reload        # http://127.0.0.1:8000/docs
+
+# scheduler worker (from the repo root; needs SCHEDULER_ENABLED=true in backend/.env)
+powershell -File scripts\worker.ps1 -Status
+
+# frontend (from frontend/)
+npm install
+npm run dev                                                 # http://localhost:5173
 ```
 
-Tests: `.venv\Scripts\python -m pytest tests/ -v`
-
-See [backend/README.md](backend/README.md) for full details.
-
-## Repository audit
-
-The September 2026 repair branch is documented in [the audit report](docs/audits/2026-09-05.md), with a standalone [interactive Hebrew report](docs/audits/2026-09-05.html).
+Checks (the same as CI): `cd backend; .venv\Scripts\python -m pytest tests -q` and
+`cd frontend; npm run lint; npm run typecheck; npm run test; npm run build`.
+Details: [backend/README.md](backend/README.md), [frontend/README.md](frontend/README.md).
 
 ## Docs
 
-Start here for orientation (any agent picking up the project cold):
+Start here (cold start, no history needed):
 
-- [CURRENT_PROJECT_STATE.md](docs/CURRENT_PROJECT_STATE.md) — **the authoritative, up-to-date summary**; §13 is a self-sufficient handoff prompt
-- [RELEVANCE_CONTRACT.md](docs/RELEVANCE_CONTRACT.md) — umbrella contract for the intelligence pipeline (FACTS → VISIBILITY → PREFERENCE → LEARNING)
-- [USER_PLATFORM.md](docs/USER_PLATFORM.md) — implemented accounts, auth, onboarding and per-user isolation; architecture and API contract (Epic #48, issues #49–#55)
+- [docs/CURRENT_PROJECT_STATE.md](docs/CURRENT_PROJECT_STATE.md): **the authoritative current
+  state**. Status at a glance, architecture, open work, next-milestone candidates, how to run,
+  a handoff prompt and a doc map.
+- [docs/RELEVANCE_CONTRACT.md](docs/RELEVANCE_CONTRACT.md): the umbrella contract (pipeline map,
+  decision semantics, architecture invariants, quality gate).
+- [CLAUDE.md](CLAUDE.md) and [docs/PRODUCT_UNDERSTANDING.md](docs/PRODUCT_UNDERSTANDING.md):
+  product intent and vision.
 
-Reference:
+Layer contracts: [ARTICLE_FACTS](docs/ARTICLE_FACTS.md) ·
+[RELEVANCE_VISIBILITY_CONTRACT](docs/RELEVANCE_VISIBILITY_CONTRACT.md) ·
+[PREFERENCE_MODEL_V2](docs/PREFERENCE_MODEL_V2.md) · [INTERESTS](docs/INTERESTS.md) ·
+[CALIBRATION_V2](docs/CALIBRATION_V2.md) · [FEEDBACK_LEARNING](docs/FEEDBACK_LEARNING.md) ·
+[TAXONOMY](docs/TAXONOMY.md) · [LLM_CLASSIFICATION](docs/LLM_CLASSIFICATION.md) ·
+[RSS_QUALITY_GUARDRAILS](docs/RSS_QUALITY_GUARDRAILS.md) · [RSS_INGESTION](docs/RSS_INGESTION.md) ·
+[CLUSTERING](docs/CLUSTERING.md) · [FEED_FRESHNESS](docs/FEED_FRESHNESS.md) ·
+[SCHEDULER](docs/SCHEDULER.md) · [NOTIFICATIONS](docs/NOTIFICATIONS.md) ·
+[RESULTS](docs/RESULTS.md) · [USER_PLATFORM](docs/USER_PLATFORM.md) ·
+[FRONTEND_DESIGN_SYSTEM](docs/FRONTEND_DESIGN_SYSTEM.md) ·
+[MOBILE_REMOTE_ACCESS](docs/MOBILE_REMOTE_ACCESS.md) · [TITLE_TRANSLATION](docs/TITLE_TRANSLATION.md) (post-MVP)
 
-- [PRODUCT_UNDERSTANDING.md](docs/PRODUCT_UNDERSTANDING.md) — what Signal Sports is and isn't (vision; not an implementation reference)
-- [BACKEND_FOUNDATION.md](docs/BACKEND_FOUNDATION.md) — backend architecture and engine design
-- [FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md) — design tokens, product-vs-console split, RTL rules
-- [MOBILE_REMOTE_ACCESS.md](docs/MOBILE_REMOTE_ACCESS.md) — private phone access via Tailscale Serve
-- [RESULTS.md](docs/RESULTS.md) — personalized game-results feature (provider abstraction, relevance, sync, API)
-
-Historical (kept for record, superseded — do not cite as current behavior):
-
-- [IMPLEMENTATION_AUDIT.md](docs/IMPLEMENTATION_AUDIT.md) — pre-backend snapshot
-- [CALIBRATION_V0.md](docs/CALIBRATION_V0.md) / [CALIBRATION_APPLY.md](docs/CALIBRATION_APPLY.md) — superseded by [CALIBRATION_V2.md](docs/CALIBRATION_V2.md)
+Evidence: [docs/qa/](docs/qa/) holds the N05 ground truth and gate baseline, census #2, and
+their data files. [docs/audits/2026-09-05.md](docs/audits/2026-09-05.md) is the September
+repository audit snapshot, with an [interactive Hebrew version](docs/audits/2026-09-05.html).
+Superseded docs, closed-milestone QA reports and delivered task briefs were removed on
+2026-10-12 and remain in git history.

@@ -1,11 +1,11 @@
 # Signal Sports — Frontend
 
-A personalized, Hebrew-first sports news intelligence feed that surfaces only the
-stories worth a specific user's attention. React 18 + Vite 6, JavaScript/JSX.
+The Hebrew-first, RTL product UI and the ops console for Signal Sports. React 18 + Vite 6,
+JavaScript/JSX (type-checked through `jsconfig.json`).
 
-The UI runs on the **"Court Vision" design system** — a premium dark, RTL-first
-product with a signal-rail decision system and a product-vs-console split.
-See [`../docs/FRONTEND_DESIGN_SYSTEM.md`](../docs/FRONTEND_DESIGN_SYSTEM.md).
+The consumer UI is **Orbit**: one story at the centre, its sources in orbit, everything else
+queued behind it. Design contract: [`../docs/FRONTEND_DESIGN_SYSTEM.md`](../docs/FRONTEND_DESIGN_SYSTEM.md).
+Whole-project state: [`../docs/CURRENT_PROJECT_STATE.md`](../docs/CURRENT_PROJECT_STATE.md).
 
 ## Getting started
 
@@ -14,59 +14,65 @@ npm install
 npm run dev
 ```
 
-Opens on [http://localhost:5173](http://localhost:5173) — the port is fixed
-(`strictPort: true` in `vite.config.js`): if 5173 is occupied, startup fails
-loudly instead of drifting to another port (the same-origin proxy and
-Tailscale Serve chain depend on it).
+It opens on [http://localhost:5173](http://localhost:5173). The port is fixed
+(`strictPort: true` in `vite.config.js`): if 5173 is taken, startup fails loudly. The
+same-origin proxy and the Tailscale Serve chain depend on that port
+([`../docs/MOBILE_REMOTE_ACCESS.md`](../docs/MOBILE_REMOTE_ACCESS.md)).
 
 ## Data modes
 
-The app runs in two modes via `VITE_DATA_MODE` (in `.env.local`):
+`VITE_DATA_MODE` (set in `.env.local`) picks one of two modes:
 
-- `local` (default) — mock data + the in-browser relevance engine, no backend.
-- `backend` — fetches from the FastAPI backend. `VITE_API_BASE_URL` defaults
-  to an **empty string**: normal behavior is same-origin relative paths
-  (`/api/...`, `/health`) forwarded to `http://127.0.0.1:8000` by the Vite
-  dev proxy (see `vite.config.js`). Setting `VITE_API_BASE_URL` explicitly is
-  an override/debug path only (direct cross-origin calls bypassing the proxy;
-  supported for explicitly allowed same-site development origins with credentialed fetch; the same-origin proxy remains the default).
+- `local` (default): mock data in `src/data/`, scored in the browser by the **frozen** legacy
+  JS engine (`src/engine/relevanceEngine.js`). No backend, no login. It is a demo mode, and it
+  gets no new intelligence: the backend is authoritative for every real decision.
+- `backend`: the real product. Requests go to same-origin relative paths (`/api/...`,
+  `/health`), which the Vite dev proxy forwards to `http://127.0.0.1:8000`. Accounts, sessions,
+  onboarding, the personalized feed, results, feedback and the admin-only ops console all need
+  this mode. `VITE_API_BASE_URL` is an explicit override for direct cross-origin calls only.
 
 ```bash
-# local mode
-VITE_DATA_MODE=local npm run dev
-# backend mode (start the backend first — see ../backend)
-VITE_DATA_MODE=backend npm run dev
+# backend mode (start the backend first — see ../backend/README.md)
+echo VITE_DATA_MODE=backend > .env.local
+npm run dev
 ```
 
 ## Scripts
 
-- `npm run dev` — start the dev server
-- `npm run build` — production build
-- `npm run preview` — preview the production build
-- `npm run test` — Vitest (node environment; engine, API, and config/module tests)
-- `npm run lint` — ESLint
-- `npm run typecheck` — `tsc` over `jsconfig.json` (checkJs)
+- `npm run dev`: dev server · `npm run build`: production build · `npm run preview`: preview the build
+- `npm run test`: Vitest (node environment: models, API client, context, engine, drift guard)
+- `npm run lint`: ESLint with `--max-warnings=0` · `npm run typecheck`: `tsc` over `jsconfig.json`
+- `npm run capture:orbit`: a hermetic browser harness that asserts what the browser *paints*
+  (type scale, filter latency, focus, dock occlusion, motion preferences)
+
+CI runs lint, typecheck, test and build on every PR (`.github/workflows/checks.yml`).
 
 ## Structure
 
 ```
 src/
+├── pages/            Feed, Preferences, InterestSelection, Calibration, Results, Account,
+│                     Login, Signup, Onboarding (/welcome) · ops: Sources, Debug, LlmQa
 ├── components/
-│   ├── ui/           shadcn/Radix primitives
-│   ├── shared/       EmptyState, ErrorState, LoadingSkeleton, StatCard, …
-│   ├── shell/        AppShell, ProductNav, OpsNav, DataModeBadge, ProfileSwitcher
-│   ├── feed/         ArticleCard, SignalRail, DecisionBadge, RelevanceReason, …
-│   ├── ops/          SchedulerPanel, IngestionPanel, BenchmarkPanel, HealthCard
-│   ├── debug/        DebugArticleCard, ProfileComparisonTable, ReasoningTrace
-│   └── preferences/  TopicCard
-├── context/          AppContext — the single data layer (frozen)
-├── api/              client + normalizers (frozen contract)
-├── engine/           relevance/calibration engines (local mode; frozen)
-├── data/             mock data (frozen)
-├── pages/            Feed, Preferences, Calibration, Results, Sources, Debug, LlmQa
-├── index.css         design tokens
-└── main.jsx          routes (product / ops AppShell groups)
+│   ├── feed/         Orbit (orbit/: OrbitFeedView, OrbitStoryField, story/focus/queue models),
+│   │                 DecisionBadge, DeskVoice, FeedbackControls, SourceMeta, decisionConfig, clusterModel
+│   ├── interests/    InterestPicker, InterestsManager, CatalogSearch, FollowChip, EventPresetControls
+│   ├── preferences/  TopicCard, LearnedAdjustmentsPanel
+│   ├── results/      ResultCard, DayHeading, grouping/format/relevance models
+│   ├── debug/        DebugArticleCard, FactsTracePanel, ReasoningTrace, ClusterEvidence, ShadowComparisonPanel
+│   ├── ops/          IngestionPanel, SchedulerPanel, NotificationsPanel, SourceToggleCard, HealthCard, BenchmarkPanel
+│   ├── shell/        AppShell, Masthead, MobileNav, ProductNav, OpsNav, RequireSession, RequireOpsRole, ProfileSwitcher
+│   ├── shared/       DeskIntro, EmptyState, ErrorState, LoadingSkeleton, PageHeader, …
+│   └── ui/           shadcn/Radix primitives
+├── context/          AppContext (the data layer), AuthContext, onboarding flow, data routing
+├── api/              client + normalizers (the backend contract)
+├── engine/           the frozen legacy relevance engine (local mode only) + taxonomy reach
+├── data/             mock data, the demo profiles, the generated taxonomy reach export
+└── main.jsx          routes: public auth → session → product AppShell / admin ops AppShell
 ```
 
-`context/`, `api/`, `engine/`, and `data/` are the data contract — UI components
-never modify them. The `useApp()` hook is the only bridge between pages and data.
+`context/`, `api/`, `engine/` and `data/` form the data contract, and UI components never
+modify them. `src/data/taxonomyReach.generated.json` is generated by
+`backend/scripts/generate_taxonomy_export.py`, and a backend test guards its freshness.
+`src/data/userProfiles.js` is pinned to `docs/fixtures/profile_parity.json` by a drift test.
+All UI strings are Hebrew; use logical (RTL-safe) Tailwind utilities.

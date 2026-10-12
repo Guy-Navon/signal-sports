@@ -3,8 +3,12 @@
 Last updated: 2026-07-31 — this describes the **shipped** consumer frontend.
 Orbit replaced the previous "Court Vision / The Edition" frontend entirely; that
 direction, its tier composer and its story species no longer exist in the
-codebase. The exploration that selected Orbit is archived in
-[`SPORTS_INTELLIGENCE_OS_CONCEPTS.md`](./SPORTS_INTELLIGENCE_OS_CONCEPTS.md).
+codebase. Orbit was selected over the Pulse and Vector concepts in a July 2026
+exploration. That record was retired on 2026-10-12 and is in git history
+(`docs/SPORTS_INTELLIGENCE_OS_CONCEPTS.md`). Screenshots of the shipped state are in
+[`frontend-concepts/orbit/`](./frontend-concepts/orbit/README.md). Later frontend
+changes, such as the Results page (#178) and `viewport-fit=cover` (#20 item 1), are
+recorded in their issues.
 
 Read this before adding any consumer UI. `docs/CURRENT_PROJECT_STATE.md` carries
 the whole-project summary; this file is the frontend deep reference.

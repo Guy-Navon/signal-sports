@@ -1,4 +1,4 @@
-"""Rate the fresh cohort as a CENSUS, fast — docs/tasks/RATING_SURFACE.md.
+"""Rate the fresh cohort as a CENSUS, fast — method and results: docs/qa/CENSUS_2026-10.md.
 
 Usage (from backend/):
     .venv\\Scripts\\python.exe scripts/rate_census.py build --out ../docs/qa/census_sample.json

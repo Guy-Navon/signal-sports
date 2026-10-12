@@ -40,6 +40,9 @@ run a separate worker with the appropriate opt-in settings:
 The API and worker share a durable ingestion lease and the same SQLite file.
 See [SCHEDULER.md](../docs/SCHEDULER.md) for flags, ownership and recovery.
 Results synchronization, retention and Telegram delivery have separate flags.
+On the owner's machine the worker (and Ollama) are started detached with
+`powershell -File scripts\worker.ps1` from the repo root (`-Status`, `-Stop`). Nothing
+restarts the worker after a reboot, so check `-Status` first.
 
 ## API surfaces
 
@@ -91,11 +94,12 @@ arguments before backups; copying only the `.db` file can omit recent WAL writes
 
 ## References and remaining work
 
-- [Current project state](../docs/CURRENT_PROJECT_STATE.md)
-- [September 2026 audit and next steps](../docs/audits/2026-09-05.md)
-- [Relevance contract](../docs/RELEVANCE_CONTRACT.md)
+- [Current project state](../docs/CURRENT_PROJECT_STATE.md): status, runtime flags, open work, doc map
+- [Relevance contract](../docs/RELEVANCE_CONTRACT.md): pipeline, invariants, the quality gate (`scripts/feed_ground_truth.py gate`)
+- [Sources & ingestion](../docs/RSS_INGESTION.md), [LLM classification](../docs/LLM_CLASSIFICATION.md)
 - [Clustering](../docs/CLUSTERING.md), [freshness](../docs/FEED_FRESHNESS.md)
 - [Results](../docs/RESULTS.md), [notifications](../docs/NOTIFICATIONS.md)
+- [September 2026 audit snapshot](../docs/audits/2026-09-05.md); its open items are #196–#200
 
 Backend dependency versions still use mostly lower bounds rather than a tested
 lock file. Production restore drills, real-provider QA and broader browser

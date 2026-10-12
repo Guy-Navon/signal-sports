@@ -1,7 +1,7 @@
 # Title Translation
 
-> **Post-MVP note:** Translation is not active in the current Hebrew MVP. All active sources
-> (`walla_sport`, `israel_hayom_sport`, `ynet_sport`, `one_sport`) are Hebrew-native — no translation is needed or used.
+> **Post-MVP note:** Translation is not active in the current Hebrew MVP. Every MVP source
+> (`walla_sport`, `israel_hayom_sport`, `ynet_sport`, `sport5_sport`, `one_sport`) is Hebrew-native — no translation is needed or used.
 > `TRANSLATION_PROVIDER=disabled` is the correct MVP default. The backend pipeline described in
 > this document is fully preserved and can be re-enabled when English sources (eurohoops, sportando)
 > are added post-MVP. The translation UI (ProviderStatusBadge, backfill panel, "לא תורגם" card

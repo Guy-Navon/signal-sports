@@ -18,7 +18,7 @@ put a still-binding conclusion into the layer contract instead.
 
 | Doc | Layer |
 |---|---|
-| `CURRENT_PROJECT_STATE.md` | Top-level truth + cold-start orientation: §0 status at a glance, §3 architecture, §4 sources, §5 backend (tables, API, runtime flags), §6 frontend, §7 profiles/relevance (incl. LIVE profile contents), §8 classification, §9 quality measurement, §10 limitations, §11 next-milestone candidates, §13 handoff + doc map, §14 milestone history. Almost every behavior change touches it |
+| `CURRENT_PROJECT_STATE.md` | Top-level truth + cold-start orientation: §0 status at a glance, §3 architecture, §4 sources, §5 backend (tables, API, runtime flags), §6 frontend, §7 profiles/relevance (incl. LIVE profile contents), §8 classification, §9 quality measurement, §10 limitations, §11 next steps (open milestones 10–12), §13 handoff + doc map, §14 milestone history. Almost every behavior change touches it |
 | `RELEVANCE_CONTRACT.md` | Umbrella: pipeline map, **architecture invariants** (moved here from the retired v2 roadmap), decision semantics, push discipline, the N05 quality gate |
 | `TAXONOMY.md` | Registry rules + coverage audit table |
 | `ARTICLE_FACTS.md` | Facts stage: evidence weights, triangle, trace shape |

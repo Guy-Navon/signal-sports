@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-10-12** (documentation truth sweep). This is the cold-start orientation
+**Last updated: 2026-10-13** (truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
 for any agent or human picking the project up with no conversation history. Present-tense
 statements were checked against the code and the owner's local runtime on that date. History
 is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
@@ -13,14 +13,14 @@ issue numbers in §14 lead to their evidence.
 
 | Area | State (2026-10-12) |
 |---|---|
-| Milestones | 1–9 all **closed**. No open milestone and no open PR. Open issues: #241 #242 (quality), #196–#200 (audit debt), #16 #19–#23 (mobile) |
-| Runtime (owner's Windows PC) | Scheduler worker **running** (`scripts\worker.ps1 -Status`). LLM: Ollama `qwen2.5:3b-instruct`. Clustering on, 36h freshness on, results sync on. **Telegram push OFF since 2026-09-13** |
+| Milestones | 1–9 **closed**. **10–12 open** (filed 2026-10-13; see §11): Live Pilot, Census #3 & gate, Israeli-basketball recall. Outside them: #196 #198–#200 (audit debt), #16 #21 (mobile) |
+| Runtime (owner's Windows PC) | Scheduler worker **running** (`scripts\worker.ps1 -Status`). **The API and Vite were not running on 2026-10-12, so the app was unreachable from the phone.** LLM: Ollama `qwen2.5:3b-instruct`. Clustering on, 36h freshness on, results sync on. **Telegram push OFF since 2026-09-13** |
 | Live sources | Walla, Israel Hayom, Ynet, **Sport5** (a code-default "pilot", enabled by runtime override). **ONE is disabled by override and has never ingested into this corpus** |
 | Corpus | 2,715 RSS articles published 2026-07-10 → today. 340 were published after the milestone-9 worker restart (2026-10-10 14:23 UTC) |
 | Feed quality (fresh cohort) | Census #2 (804 articles, owner-rated): shown precision 92–95% after the owner's blind re-review. **Feed+ recall 66%** when rated, before milestone 9: about one wanted story in three was hidden. Push recall 1/8, and 2/8 on the rerun after #229 |
 | Regression gate | N05 frozen-corpus gate (282 ratings): Guy 98.3% shown / 18.0% false hide / push 7/7. Deni 91.7% / 0.8% / 1/1 |
 | **Real usage** | **8 feedback events ever, all in July. No login session since 2026-09-16. 14 Telegram pushes, the last on 2026-07-24.** The learning loop has never run on real usage |
-| Next | §11: three candidates for milestone 10, awaiting the owner's choice |
+| Next | §11: milestones 10–12 are filed; the recommended start is milestone 10 (Live Pilot) plus #241 |
 
 ---
 
@@ -149,7 +149,7 @@ untracked `backend/.env`):
 | `FEED_FRESHNESS_ENABLED` / `FEED_MAX_AGE_HOURS` | false / 36 | true / 36 |
 | `TELEGRAM_NOTIFICATIONS_ENABLED` | false | **false since 2026-09-13** (was true from 2026-07-18) |
 | `RESULTS_ENABLED` / `RESULTS_SYNC_ENABLED` | true / false | true / true |
-| `RETENTION_CLEANUP_ENABLED` | false | false (**must stay off until rated rows are protected**; see §10) |
+| `RETENTION_CLEANUP_ENABLED` | false | false (**must stay off until rated rows are protected**, #255; see §10) |
 | `TRANSLATION_PROVIDER` | disabled | disabled |
 | `ALLOW_DEV_RESET` / `ALLOW_CORPUS_DB_RESET` / `ALLOW_INSECURE_AUTH_BYPASS` | false | false |
 | `PREFERENCE_ENGINE` | (unset = v2) | unset; `legacy` is the rollback |
@@ -298,15 +298,19 @@ deterministic rule changelog, §1–§18).
 ## 10. Known limitations & risks
 
 **Operational**
-- **The worker is not always on.** Nothing starts it at boot or restarts it after a crash. The
-  `scheduler_cycles` history shows it absent 07-24→07-31, 07-31→09-15, 09-20→10-08 and
-  10-08→10-10. Part of that was deliberate (a frozen corpus for measurement); the 09-20 gap was
-  not noticed for weeks. A stopped worker means a stale feed, with no alert.
+- **The stack is not always on.** Nothing starts the API, Vite or the worker at boot, or restarts
+  them after a crash. On 2026-10-12 the worker was running but the API and Vite were not, so the
+  app was unreachable from the phone. The `scheduler_cycles` history shows the worker absent
+  07-24→07-31, 07-31→09-15, 09-20→10-08 and 10-08→10-10. Part of that was deliberate (a frozen
+  corpus for measurement); the 09-20 gap went unnoticed for weeks. A stopped worker means a stale
+  feed, and nothing alerts anyone (#248, #249).
 - **Telegram is off** (since 2026-09-13), so push stories reach nobody.
 - **ONE is off**, and **Sport5 runs as an untracked "pilot"**. Neither state is recorded anywhere
   except the `source_overrides` table.
-- **Retention cleanup must stay disabled.** It does not protect human-rated articles: at 30 days
-  it would delete the N05 gate corpus and most of census #2 ([FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8).
+- **Retention cleanup must stay disabled.** It does not protect human-rated articles. At 30 days
+  it would delete today all 256 N05-rated articles (the whole gate corpus) and 29 of census #2's
+  804, and all of census #2 by about mid-November. Tracked in #255; see
+  [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8.
 - Single machine and single SQLite file. Backups are manual (`scripts/backup_db.py`, WAL-safe).
 
 **Product**
@@ -323,30 +327,40 @@ origin lists, #197 silent feedback failures and results-sync lease, #198 no lock
 migration history, #199 bundle weight and unfiltered feed query, #200 signup/login abuse
 protection (a **gate before widening access**, not needed while single-user behind Tailscale).
 
-**Mobile** (#16 epic): Tailscale access works. #19 feed touch targets, #20 navigation and
-safe-area (item 1 done), #21 ops pages, #22 PWA-lite install, #23 startup script + docs
-consolidation.
+**Mobile** (#16 epic): Tailscale access works when the stack is up. #19 feed touch targets, #20
+navigation and safe-area (item 1 done), #22 PWA-lite install and #23 startup script (its docs
+part was done by #247) are in milestone 10. #21 (ops pages) is not.
 
 ---
 
-## 11. Next steps — candidates for milestone 10 (owner to choose)
+## 11. Next steps — milestones 10–12 (filed 2026-10-13; the owner picks the order)
 
-Proposed 2026-10-12. Nothing is filed yet; issues get created once a direction is chosen.
+The three candidates are filed as GitHub milestones, each with self-contained issues. The
+recommended order is 10 first, with #241 from milestone 11 in parallel (its cohort is ready and it
+costs about half an hour of rating), then 12 measured against 11's gate.
 
-1. **Live pilot: Signal runs itself and gets used every day** (recommended). Always-on worker
-   (auto-start, restart, staleness signal); re-enable Telegram; #197 honest feedback saves;
-   phone UX (#19, #20, #22); a usage and feedback report. Exit: 14 days of near-complete cycle
-   uptime, daily owner use, real feedback reaching learned adjustments, and every push reviewed.
-2. **Census #3 and a fresh regression gate.** #241 on the post-milestone-9 cohort, with the
-   re-rate protocol. Promote a census to the regression gate, encoding the one-notch noise band.
-   Protect rated rows from retention. #242 if enough examples appear.
-3. **Israeli-basketball recall: people, not only clubs.** Register Israeli-league
-   players/coaches so person mentions give sport and team evidence and break the #194 deadlock.
-   Decide how non-Maccabi Israeli club narrative should score for Guy. Probe and decide on ONE.
-   Measure on censuses #2 and #3, holding precision.
+1. **Milestone 10, Live Pilot: Signal runs itself and gets used daily** (recommended):
+   - #248 always-on stack (auto-start at logon plus a watchdog for API, Vite, worker and Ollama; builds on #23)
+   - #249 freshness signal in the feed
+   - #250 record real usage
+   - #251 re-enable Telegram after a read-only preflight
+   - #252 pilot report
+   - #197 honest feedback saves
+   - phone UX: #19, #20, #22
+   - **#253 owner-run 14-day acceptance**, which no PR may close
+2. **Milestone 11, Census #3 & a fresh regression gate:**
+   - #241 census #3
+   - #254 census-based gate (feed+ recall, push recall, noise band)
+   - #255 protect rated rows from retention
+   - #242 venue-move vocabulary, if census #3 brings enough examples
+3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
+   - #256 measure which people matter (no registry change)
+   - #259 register the approved batch, blocked by #256
+   - #257 product decision on non-Maccabi club narrative
+   - #258 ONE probe and decision
 
-Deliberately not in the top three: platform hardening (#196, #198–#200). It matters before
-wider access or a split deployment, and neither is planned.
+Deliberately not in these milestones: platform hardening (#196, #198–#200), which matters
+before wider access or a split deployment, and #21 (mobile ops pages).
 
 ---
 

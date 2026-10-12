@@ -393,6 +393,11 @@ stories are `club_governance` and reach Guy at high_feed through the Maccabi fol
 Push requires a concrete step in the title (`attention.development == "concrete_step"`).
 Club executives (`exec:*`) imply their club, like a coach does.
 
+**Census calibration (#237, 2026-10-12):** Guy's profile carries two owner-approved
+explicit entries from census #2: `team:maccabi_tlv_bb × candidate -1` and
+`comp:euroleague × news +1`. Both were confirmed on a held-out half after the owner's
+blind review.
+
 **2026-07-11 — Explicit Interests & Onboarding v2 (Milestone 4).** How a user's
 ProfileV2 gets POPULATED changed; how it is SCORED did not (engine frozen; the
 decision-contract locks in `backend/tests/test_decision_contract.py` prove the

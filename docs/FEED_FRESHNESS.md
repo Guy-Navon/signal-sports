@@ -119,11 +119,12 @@ intended and unchanged.
   was decided, the whole corpus sat inside the 30-day window. **Still disabled as of
   2026-10-12, and it must stay off until rated rows are protected.** `retention.py` protects
   in-window clusters and feedback-referenced articles only, **not** articles carrying human
-  ratings. At a 30-day window it would delete the frozen N05 gate corpus (published up to
-  2026-07-31) and most of census #2 (published since 2026-08-01), so the quality gate and the
-  census rescoring would stop working. Enabling it needs a protection for rated ids first. That
-  is an owner decision. The other activation preconditions are in `retention.py` and
-  `.env.example`.
+  ratings. A read-only count on 2026-10-12 at the 30-day window found 1,455 deletable articles.
+  They include **all 256 N05-rated articles**, the gate's whole frozen corpus, and 29 of census
+  #2's 804. Every census #2 row ages past the window by about mid-November 2026. Enabling it
+  would silently break the quality gate and the census rescoring. The fix is tracked in #255
+  (a fourth, ground-truth protection). Enabling retention afterwards is still an owner decision.
+  The other activation preconditions are in `retention.py` and `.env.example`.
 - No per-league / per-source / per-user freshness windows; one product-wide rule.
 - No clustering redesign; freshness composes with §9 collapse purely by input filtering.
 - The `rss_adapter` `published_parsed` handling was left untouched: changing

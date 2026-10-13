@@ -20,7 +20,7 @@ issue numbers in §14 lead to their evidence.
 | Feed quality (fresh cohort) | Census #2 (804 articles, owner-rated): shown precision 92–95% after the owner's blind re-review. **Feed+ recall 66%** when rated, before milestone 9: about one wanted story in three was hidden. Push recall 1/8, and 2/8 on the rerun after #229 |
 | Regression gate | N05 frozen-corpus gate (282 ratings): Guy 98.3% shown / 18.0% false hide / push 7/7. Deni 91.7% / 0.8% / 1/1 |
 | **Real usage** | **8 feedback events ever, all in July. No login session since 2026-09-16. 14 Telegram pushes, the last on 2026-07-24.** The learning loop has never run on real usage |
-| Next | §11: milestone 13 first. #261 and #262 move the LLM off the PC, and #267 is the owner's host decision. Then milestone 10, with #241 in parallel |
+| Next | §11: milestone 13 first. #261 and #262 move the LLM off the PC. Then the owner decides from [HOSTING_PLAN.md](HOSTING_PLAN.md) v2: the live-system host, the dev environment and the budget (nothing chosen yet). Then milestone 10, with #241 in parallel |
 
 ---
 
@@ -337,23 +337,35 @@ pages) and #23 (a local startup script, optional now that the stack moves to a h
 ## 11. Next steps — milestone 13 first, then 10–12 (filed 2026-10-13)
 
 **Top priority (owner, 2026-10-13): milestone 13, "Off the owner's machine — hosted model,
-backend and frontend".** The owner's PC cannot keep running the product. The model moves to a
-hosted API, and the stack (API, worker, frontend) moves to a small always-on host that is reached
-privately over Tailscale, as today. **The full plan, under owner review, is
-[HOSTING_PLAN.md](HOSTING_PLAN.md):** measured requirements, the options with evidence, the
-target architecture, cost, risks, open decisions, and questions for a reviewer.
+backend and frontend".**
+
+**The requirement, clarified on 2026-10-13:** stop depending on the owner's weak PC both for the
+running system *and* for development. The PC remains only an access station: editor UI, browser
+and SSH. This is urgent **independent of the pilot or product readiness**.
+
+**The plan is a decision document, [HOSTING_PLAN.md](HOSTING_PLAN.md) v2, under the owner's
+review. Nothing in it is implemented, and no host has been chosen.** It compares three full
+architectures:
+
+- **B (recommended):** a small x86 VM running the live system with Docker Compose (Hetzner CX23,
+  ~€6 a month), plus GitHub Codespaces for development
+- **A:** one larger VM (CX33, ~€9 a month) for both the live system and development
+- **C:** $0 free tiers, GCP e2-micro or Oracle, with trade-offs
+
+It also proposes Compose instead of k3s for now, and changes to #261–#270 (not yet applied to the
+issues).
 
 - **Immediate relief, with no hosting needed:**
   - #261 an OpenAI-compatible LLM provider (Groq, Cloudflare, Cerebras or OpenRouter free tiers; our load is ~45 calls and ~60K tokens a day)
   - #262 evaluate the candidates against the census, then switch production and stop Ollama
-- **Host:**
-  - #267 the owner's decision. The free OpenShift Developer Sandbox can't host the 24/7 worker (a 30-day trial, and pods are deleted after 12 h). The recommendation is Hetzner CAX11 with k3s (~€6–7 a month), or Oracle Always Free at $0 with reclamation and capacity risk.
-  - #263 images: backend = API + worker on one SQLite volume; web = nginx, same-origin; built by CI, multi-arch
-  - #264 Kubernetes/OpenShift manifests, validated on the Sandbox
+- **Host:** the issue texts below predate v2 of the plan; see the plan's §16 for the proposed amendments.
+  - #267 the owner's decision, now covering the prod host *and* the dev environment *and* the budget tier. The free OpenShift Developer Sandbox can't host the 24/7 worker (a 30-day trial, and pods are deleted after 12 h).
+  - #263 images: backend = API + worker on one SQLite volume; web = nginx, same-origin; built by CI
+  - #264 Kubernetes/OpenShift manifests: **proposed for deferral**
   - #265 hosted-mode safety (signup closed, dangerous flags refused)
   - #268 provision the host with private access
   - #266 nightly off-host backups plus a rehearsed restore
-  - **#269 cutover (one corpus, one writer); owner-run; exit: the PC stays off for 48 h**
+  - **#269 cutover (one corpus, one writer); owner-run; exit in the issue today: the PC stays off for 48 h** (v2 of the plan proposes 7 days)
   - #270 QA from snapshots, writes on the host only
 
 Recommended order after milestone 13: milestone 10, with #241 from milestone 11 in parallel (its

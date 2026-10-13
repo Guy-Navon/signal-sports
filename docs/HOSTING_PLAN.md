@@ -612,10 +612,35 @@ quotas.
 
 **Overall bound:** ~500 calls and ~$2 at most [E]. Stop at the first candidate that passes.
 
-**Order:**
-1. Gemini, which needs no code
-2. Groq `gpt-oss-20b`, which needs #261
-3. `gpt-oss-120b`, only if the 20b fails on accuracy
+**Order (corrected 2026-10-13, owner):** Gemini is **not** the default just because its provider
+already existed. Every candidate runs through the same bake-off and the cheapest one that passes
+wins: `backend/scripts/llm_bakeoff.py` (dry run by default; `--live` to call).
+
+| Candidate (`--candidate`) | List price per 1M, in / out [O] | Free tier [O] | Notes |
+|---|---|---|---|
+| `groq-gpt-oss-20b` | $0.075 / $0.30; cached input half price | 30 RPM, 8K TPM, 1K RPD, 200K TPD per org; cached tokens don't count | production; strict JSON schema |
+| `groq-gpt-oss-120b` | $0.15 / $0.60 | same | production; MMMLU 81 vs 76 for the 20b [O] |
+| `gemini-3.1-flash-lite` | $0.25 / $1.50 | yes; free-tier content may train Google's products | control; existing provider |
+| `openai-gpt-5-nano` | $0.05 / $0.40; cached $0.005 | none | optional control; paid |
+
+**Out (re-checked 2026-10-13 [O]):** Cerebras replaced its free tier with a 30-day trial in July
+2026 and charges $0.35 / $0.75 for the same 120b; Groq's Qwen 3.8 is still a preview at $0.80 /
+$4.00; Llama on Groq is enterprise-only; Gemini 2.5 Flash-Lite is closed to new projects. Groq now
+documents **spend limits** on the Developer plan, and **projects** with per-model limits for
+separating dev from prod.
+
+**At our load every candidate costs between $0 and about $1 a month, so price does not decide.**
+Hebrew accuracy does, and nothing published measures it for these models.
+
+**What the census says about the bake-off's power (read-only dry run, 2026-10-13):** of 804
+census #2 rows, the gate sends 262 to the LLM (225 selected). The owner rated only **6 of those
+225 as worth showing**. Five are Maccabi Tel Aviv basketball stories (the Super Cup, the Aris win)
+whose stored LLM facts lacked a league or entity, so they were hidden. Decision-level metrics on
+the LLM rows therefore rest on six rows (one row = 17 pp of recall). Also, current code **without
+any LLM** already reaches 82.5% feed+ recall on all rated rows, against 72.3% for the stored
+(Ollama-era) facts, so the stored baseline is stale. Read stage 1 as: reliability (valid JSON,
+no truncation, latency), **no new wrong push**, and whether the six wanted stories are recovered,
+not as a fine-grained precision contest.
 
 ### 10.5 Cost scenarios: usage estimates, not caps [E]
 
@@ -939,7 +964,7 @@ These are separate from the product pilot (#253) and run over T4: seven consecut
 ## 16. Recommendation and a day in the life
 
 **Proposed (not approved):**
-1. **T1 now:** Gemini through the existing provider, with Groq as the fallback.
+1. **T1 now:** the bake-off of §10.4 (Groq 20b and 120b, Gemini 3.1 Flash-Lite as a control); the cheapest passing candidate replaces Ollama.
 2. **Start B:** a CX23 plus Codespaces, on Compose and the `ts.net` address.
 3. **Measure the running hours.**
 4. **Rescale to A only if the A conditions of §5.5 appear.**
@@ -1010,8 +1035,8 @@ These are proposals. **No remote issue was changed.**
 
 **The minimal set of decisions for T1 and T2.** The rest can wait.
 
-1. **T1:** try the existing Gemini provider first, with Groq (#261) as the fallback, and **create
-   the one API key** that path needs.
+1. **T1:** create a Groq key (free, no card) and a Gemini key, put them in `backend/.env` as
+   `GROQ_API_KEY` and `GEMINI_API_KEY`, and authorize the bounded bake-off (§10.4).
 2. **GitHub:** confirm your plan (Free or Pro) and whether a payment method is on file. Then
    either choose a Codespaces budget amount, with stop usage on, or keep no payment method for a
    hard $0.

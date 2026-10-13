@@ -337,6 +337,7 @@ def classification_json_schema() -> dict:
 
 
 RESPONSE_FORMATS = ("json_schema", "json_object", "none")
+TOKEN_LIMIT_PARAMS = ("max_tokens", "max_completion_tokens")
 
 # A 429 pauses the provider for Retry-After seconds, capped here, so one cycle
 # can never hammer a rate-limited endpoint. No request is sent while paused.
@@ -387,9 +388,13 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
         max_output_tokens: int = 1000,
         response_format: str = "json_schema",
         reasoning_effort: str = "low",
+        token_limit_param: str = "max_tokens",
+        send_temperature: bool = True,
     ) -> None:
         if response_format not in RESPONSE_FORMATS:
             raise ValueError(f"response_format must be one of {RESPONSE_FORMATS}")
+        if token_limit_param not in TOKEN_LIMIT_PARAMS:
+            raise ValueError(f"token_limit_param must be one of {TOKEN_LIMIT_PARAMS}")
         self._url = base_url.rstrip("/") + "/chat/completions"
         self._api_key = api_key
         self._model = model
@@ -397,6 +402,10 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
         self._max_output_tokens = max_output_tokens
         self._response_format = response_format
         self._reasoning_effort = reasoning_effort.strip()
+        # OpenAI's reasoning models reject max_tokens and any temperature other
+        # than the default; Groq accepts both spellings and temperature 0.
+        self._token_limit_param = token_limit_param
+        self._send_temperature = send_temperature
         self._paused_until = 0.0
         self.last_failure_was_connect_error = False
         self.last_failure_reason = "none"
@@ -423,10 +432,11 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
                 {"role": "system", "content": CLASSIFICATION_SYSTEM_PROMPT},
                 {"role": "user", "content": build_user_message(title, subtitle)},
             ],
-            "temperature": 0,
-            "max_tokens": self._max_output_tokens,
+            self._token_limit_param: self._max_output_tokens,
             "stream": False,
         }
+        if self._send_temperature:
+            payload["temperature"] = 0
         if self._response_format == "json_schema":
             payload["response_format"] = {
                 "type": "json_schema",
@@ -453,10 +463,15 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
 
         details = usage.get("completion_tokens_details")
         reasoning = _count(details.get("reasoning_tokens")) if isinstance(details, dict) else None
+        prompt_details = usage.get("prompt_tokens_details")
+        cached = _count(prompt_details.get("cached_tokens")) if isinstance(prompt_details, dict) else None
         return {
             "prompt_tokens": _count(usage.get("prompt_tokens")),
             "completion_tokens": _count(usage.get("completion_tokens")),
             "reasoning_tokens": reasoning,
+            # Part of prompt_tokens served from the provider's prompt cache
+            # (billed at a discount by Groq and OpenAI).
+            "cached_prompt_tokens": cached,
         }
 
     def classify_title(self, title: str, language: str, subtitle: Optional[str] = None) -> Optional[LLMClassificationResult]:

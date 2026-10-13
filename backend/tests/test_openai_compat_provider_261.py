@@ -88,7 +88,8 @@ def test_success_parses_and_records_usage(post):
     assert result is not None
     assert (result.sport, result.league, result.event_type) == ("basketball", "EuroLeague", "signing")
     assert p.last_failure_reason == "none"
-    assert p.last_usage == {"prompt_tokens": 1180, "completion_tokens": 140, "reasoning_tokens": 64}
+    assert p.last_usage == {"prompt_tokens": 1180, "completion_tokens": 140, "reasoning_tokens": 64,
+                            "cached_prompt_tokens": None}
     assert p.last_finish_reason == "stop"
     assert p.last_call_latency_ms is not None
     assert p.provider_id == f"openai_compat:{MODEL}"
@@ -272,6 +273,7 @@ def test_key_never_logged_or_repr(post, caplog):
 @pytest.fixture
 def compat_env(monkeypatch):
     for name in ("CLASSIFICATION_RESPONSE_FORMAT", "CLASSIFICATION_REASONING_EFFORT",
+                 "CLASSIFICATION_TOKEN_LIMIT_PARAM", "CLASSIFICATION_SEND_TEMPERATURE",
                  "CLASSIFICATION_MAX_OUTPUT_TOKENS", "CLASSIFICATION_TIMEOUT_SECONDS"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("CLASSIFICATION_PROVIDER", "openai_compat")
@@ -427,3 +429,44 @@ def test_gemini_max_output_tokens_env(monkeypatch):
     assert get_llm_provider()._max_output_tokens == 900
     monkeypatch.delenv("CLASSIFICATION_MAX_OUTPUT_TOKENS")
     assert get_llm_provider()._max_output_tokens == 500
+
+
+# ── OpenAI reasoning models and prompt-cache accounting (#262 bake-off) ──────
+
+def test_reasoning_model_options_shape_the_payload():
+    payload = _provider(token_limit_param="max_completion_tokens", send_temperature=False,
+                        reasoning_effort="minimal").build_payload("x")
+    assert payload["max_completion_tokens"] == 1000
+    assert "max_tokens" not in payload and "temperature" not in payload
+    assert payload["reasoning_effort"] == "minimal"
+
+
+def test_defaults_keep_the_groq_shape():
+    payload = _provider().build_payload("x")
+    assert payload["max_tokens"] == 1000 and payload["temperature"] == 0
+    assert "max_completion_tokens" not in payload
+
+
+def test_unknown_token_param_is_rejected():
+    with pytest.raises(ValueError):
+        _provider(token_limit_param="max_output")
+
+
+def test_cached_prompt_tokens_are_recorded(post):
+    body = _completion(json.dumps(VALID))
+    body["usage"]["prompt_tokens_details"] = {"cached_tokens": 1024}
+    post(_response(body=body))
+    p = _provider()
+    p.classify_title("x", "he")
+    assert p.last_usage["cached_prompt_tokens"] == 1024
+
+
+def test_wiring_reasoning_model_env(compat_env):
+    from app.classification.service import get_llm_provider
+
+    compat_env.setenv("CLASSIFICATION_TOKEN_LIMIT_PARAM", "max_completion_tokens")
+    compat_env.setenv("CLASSIFICATION_SEND_TEMPERATURE", "false")
+    payload = get_llm_provider().build_payload("x")
+    assert "max_completion_tokens" in payload and "temperature" not in payload
+    compat_env.setenv("CLASSIFICATION_TOKEN_LIMIT_PARAM", "bogus")
+    assert isinstance(get_llm_provider(), DisabledLLMProvider)

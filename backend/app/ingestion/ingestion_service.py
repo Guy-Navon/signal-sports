@@ -76,7 +76,7 @@ def _accumulate_usage(totals: dict, usage) -> None:
     if not isinstance(usage, dict):
         return
     totals["calls_with_usage"] = totals.get("calls_with_usage", 0) + 1
-    for key in ("prompt_tokens", "completion_tokens", "reasoning_tokens"):
+    for key in ("prompt_tokens", "completion_tokens", "reasoning_tokens", "cached_prompt_tokens"):
         value = usage.get(key)
         if isinstance(value, int) and not isinstance(value, bool):
             totals[key] = totals.get(key, 0) + value

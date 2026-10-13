@@ -4,10 +4,26 @@ The corpus is opened through SQLite's ``mode=ro`` URI. The probe never imports
 ingestion routes, starts a server, fetches articles, or opens a write-capable DB
 connection. It evaluates a fixed ID-sorted slice of eligible corpus articles:
 
-    .venv/Scripts/python.exe scripts/llm_failure_probe.py --limit 60
+    .venv/Scripts/python.exe scripts/llm_failure_probe.py --limit 60 --max-calls 60
 
 JSON is written to stdout so a before/after result can be captured by CI or a
 human without changing the corpus.
+
+Bounded evaluation of a hosted model (#262, docs/HOSTING_PLAN.md section 10.4).
+Plan first (no provider is built, no request is sent), then the stage-0 smoke:
+
+    python scripts/llm_failure_probe.py --ids-file ../docs/qa/census2_sample.json --limit 30 --max-calls 30 --dry-run --price-in-per-m 0.075 --price-out-per-m 0.30
+    python scripts/llm_failure_probe.py --ids-file ../docs/qa/census2_sample.json --limit 30 --max-calls 30 --price-in-per-m 0.075 --price-out-per-m 0.30
+
+- ``--max-calls`` is a hard ceiling on provider calls (default 30, never above
+  500); the report says whether it cut the sample.
+- ``--dry-run`` reads the DB read-only to size the sample and prints the plan
+  with token and cost ESTIMATES. It never constructs the provider.
+- ``mode`` in the report is ``dry_run``, ``live`` (a networked provider:
+  gemini, ollama, openai_compat) or ``offline`` (disabled, fake, a test stub),
+  so mocked numbers can never pass for a live evaluation.
+- Prices are the operator's assumptions (USD per 1M tokens), echoed in the
+  report. Measured cost uses only the token counts the provider reported.
 """
 
 from __future__ import annotations
@@ -45,6 +61,52 @@ ELIGIBLE_SOURCES = frozenset(
     }
 )
 COMPARE_FIELDS = ("sport", "league", "event_type", "entities")
+MAX_CALLS_CEILING = 500
+NETWORKED_PROVIDERS = frozenset({"gemini", "ollama", "openai_compat"})
+# Dry-run estimate per call (HOSTING_PLAN F4: ~1,300 tokens a call, ~1,100 of
+# them the system prompt). Reasoning tokens are unknown until measured.
+ASSUMED_PROMPT_TOKENS = 1200
+ASSUMED_OUTPUT_TOKENS = 150
+
+
+def load_ids(path: Path) -> list[str]:
+    """Article ids from a JSON file: a list of ids, a list of {"id": ...}, or a
+    census sample ({"profiles": {name: {"items": [{"id": ...}]}}})."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(data, dict) and isinstance(data.get("profiles"), dict):
+        rows = [item for profile in data["profiles"].values()
+                for item in (profile.get("items") or [])]
+    elif isinstance(data, list):
+        rows = data
+    else:
+        raise ValueError(f"{path}: expected a list or a census sample")
+    ids: list[str] = []
+    for row in rows:
+        value = row.get("id") if isinstance(row, dict) else row
+        if isinstance(value, str) and value not in ids:
+            ids.append(value)
+    return ids
+
+
+def _provider_settings() -> dict[str, Any]:
+    """What the env would configure, without the key and without a client."""
+    import os
+    from urllib.parse import urlparse
+
+    base = os.environ.get("CLASSIFICATION_BASE_URL", "")
+    return {
+        "provider": os.environ.get("CLASSIFICATION_PROVIDER", "disabled").strip().lower(),
+        "model": os.environ.get("CLASSIFICATION_MODEL") or None,
+        "base_url_host": urlparse(base).hostname if base else None,
+        "api_key_set": bool(os.environ.get("CLASSIFICATION_API_KEY", "").strip()),
+    }
+
+
+def _cost(prompt_tokens: int, output_tokens: int,
+          price_in: float | None, price_out: float | None) -> float | None:
+    if price_in is None or price_out is None:
+        return None
+    return round(prompt_tokens / 1e6 * price_in + output_tokens / 1e6 * price_out, 6)
 
 
 def _read_articles(db_path: Path) -> list[dict[str, Any]]:
@@ -109,8 +171,22 @@ def _round_latency(values: list[float]) -> dict[str, float | int | None]:
     }
 
 
-def run_probe(db_path: Path, limit: int) -> dict[str, Any]:
+def run_probe(
+    db_path: Path,
+    limit: int,
+    *,
+    max_calls: int = 30,
+    dry_run: bool = False,
+    ids: list[str] | None = None,
+    price_in_per_m: float | None = None,
+    price_out_per_m: float | None = None,
+) -> dict[str, Any]:
+    if not 0 < max_calls <= MAX_CALLS_CEILING:
+        raise ValueError(f"max_calls must be 1..{MAX_CALLS_CEILING}")
     articles = _read_articles(db_path)
+    if ids is not None:
+        wanted = set(ids)
+        articles = [a for a in articles if a["id"] in wanted]
     eligible: list[tuple[dict[str, Any], tuple[Any, ...]]] = []
     corpus_call_reasons: Counter[str] = Counter()
     corpus_skip_reasons: Counter[str] = Counter()
@@ -125,9 +201,46 @@ def run_probe(db_path: Path, limit: int) -> dict[str, Any]:
         target[gate.reason] += 1
 
     sample = eligible[:limit]
+    planned = sample[:max_calls]
+    bounds = {
+        "max_calls": max_calls,
+        "calls_planned": len(planned),
+        "cut_by_max_calls": len(sample) > len(planned),
+        "ids_requested": len(ids) if ids is not None else None,
+        "ids_found_eligible": len(eligible) if ids is not None else None,
+    }
+    prices = {"usd_per_1m_input": price_in_per_m, "usd_per_1m_output": price_out_per_m,
+              "source": "operator-supplied assumption"}
+
+    if dry_run:
+        est_in = len(planned) * ASSUMED_PROMPT_TOKENS
+        est_out = len(planned) * ASSUMED_OUTPUT_TOKENS
+        return {
+            "probe_version": 2,
+            "mode": "dry_run",
+            "requests_sent": 0,
+            "database": db_path.name,
+            "provider_settings": _provider_settings(),
+            "bounds": bounds,
+            "sample_ids": [article["id"] for article, _ in planned],
+            "estimate": {
+                "assumed_prompt_tokens_per_call": ASSUMED_PROMPT_TOKENS,
+                "assumed_output_tokens_per_call": ASSUMED_OUTPUT_TOKENS,
+                "note": "reasoning/thinking tokens are not estimated; stage 0 measures them",
+                "input_tokens": est_in,
+                "output_tokens": est_out,
+                "prices": prices,
+                "estimated_cost_usd": _cost(est_in, est_out, price_in_per_m, price_out_per_m),
+            },
+        }
+
+    sample = planned
     provider = get_llm_provider()
     if not provider.can_classify:
         raise RuntimeError("Configured LLM provider is disabled")
+    provider_kind = provider.provider_id.split(":", 1)[0]
+    mode = "live" if provider_kind in NETWORKED_PROVIDERS else "offline"
+    usage_totals: Counter[str] = Counter()
 
     failure_reasons: Counter[str] = Counter()
     latencies: list[float] = []
@@ -150,6 +263,12 @@ def run_probe(db_path: Path, limit: int) -> dict[str, Any]:
         title, subtitle, hint, rules, gate = replay
         llm_result = provider.classify_title(title, "he", subtitle=subtitle)
         latency_ms = provider.last_call_latency_ms
+        usage = getattr(provider, "last_usage", None)
+        if isinstance(usage, dict):
+            usage_totals["calls_with_usage"] += 1
+            for key in ("prompt_tokens", "completion_tokens", "reasoning_tokens"):
+                if isinstance(usage.get(key), int):
+                    usage_totals[key] += usage[key]
         if latency_ms is not None:
             latencies.append(latency_ms)
 
@@ -237,8 +356,24 @@ def run_probe(db_path: Path, limit: int) -> dict[str, Any]:
         }
 
     current_calls = sum(corpus_call_reasons.values())
+    # Gemini reports thinking apart from the candidates; OpenAI-style APIs count
+    # reasoning inside completion_tokens. Bill the output as each one reports it.
+    output_tokens = usage_totals["completion_tokens"] + (
+        usage_totals["reasoning_tokens"] if provider_kind == "gemini" else 0
+    )
     return {
-        "probe_version": 1,
+        "probe_version": 2,
+        "mode": mode,
+        "provider_id": provider.provider_id,
+        "requests_sent": len(sample),
+        "bounds": bounds,
+        "usage": {
+            **dict(usage_totals),
+            "prices": prices,
+            "measured_cost_usd": _cost(
+                usage_totals["prompt_tokens"], output_tokens, price_in_per_m, price_out_per_m
+            ) if usage_totals["calls_with_usage"] else None,
+        },
         "database": db_path.name,
         "selection": "eligible RSS articles ordered by id, first N",
         "sample_limit": limit,
@@ -275,6 +410,14 @@ def run_probe(db_path: Path, limit: int) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--limit", type=int, default=60)
+    parser.add_argument("--max-calls", type=int, default=30,
+                        help=f"hard ceiling on provider calls (1..{MAX_CALLS_CEILING})")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="plan and estimate only; build no provider, send nothing")
+    parser.add_argument("--ids-file", type=Path,
+                        help="restrict to these article ids (a list, or a census sample JSON)")
+    parser.add_argument("--price-in-per-m", type=float, help="USD per 1M input tokens (assumption)")
+    parser.add_argument("--price-out-per-m", type=float, help="USD per 1M output tokens (assumption)")
     parser.add_argument(
         "--include-details",
         action="store_true",
@@ -288,9 +431,15 @@ def main() -> None:
     args = parser.parse_args()
     if args.limit <= 0:
         parser.error("--limit must be positive")
-    report = run_probe(args.db, args.limit)
+    if not 0 < args.max_calls <= MAX_CALLS_CEILING:
+        parser.error(f"--max-calls must be 1..{MAX_CALLS_CEILING}")
+    report = run_probe(
+        args.db, args.limit, max_calls=args.max_calls, dry_run=args.dry_run,
+        ids=load_ids(args.ids_file) if args.ids_file else None,
+        price_in_per_m=args.price_in_per_m, price_out_per_m=args.price_out_per_m,
+    )
     if not args.include_details:
-        report.pop("articles")
+        report.pop("articles", None)
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 

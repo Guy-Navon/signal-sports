@@ -89,6 +89,11 @@ class TelegramSender:
             self._timeout = 10.0
 
     def configured(self) -> bool:
+        # A dev environment never delivers, whatever its env says (#265). The
+        # startup check refuses these settings too; this is the second gate.
+        from app.core.deploy_mode import telegram_delivery_forbidden
+        if telegram_delivery_forbidden():
+            return False
         return bool(self._token and self._chat_id)
 
     def send(self, text: str) -> SendResult:

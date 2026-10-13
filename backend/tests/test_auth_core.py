@@ -341,7 +341,9 @@ def test_session_bootstrap_shape(client, monkeypatch):
     monkeypatch.setenv("ALLOW_INSECURE_AUTH_BYPASS", "false")
     anon = client.get("/api/auth/session")
     assert anon.status_code == 200
-    assert anon.json() == {"auth_enforced": True, "user": None, "onboarding": None}
+    assert anon.json() == {
+        "auth_enforced": True, "signup_enabled": True, "user": None, "onboarding": None,
+    }
 
     assert _signup(client, "bootstrap@example.com").status_code == 201
     login = client.post(

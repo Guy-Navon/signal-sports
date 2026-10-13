@@ -134,6 +134,7 @@ export function AuthProvider({ children }) {
       authEnforced: view.authEnforced,
       user: view.user,
       onboarding: view.onboarding,
+      signupEnabled: view.signupEnabled,
       login,
       signup,
       logout,

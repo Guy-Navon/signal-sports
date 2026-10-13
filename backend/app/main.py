@@ -65,6 +65,9 @@ def create_app() -> FastAPI:
         from app.repositories.seed_runner import seed_all_if_empty
         from app.services.auth_service import bootstrap_admin, ensure_users_for_profiles
 
+        from app.core.deploy_mode import validate_deploy_startup_config
+
+        validate_deploy_startup_config()
         validate_auth_startup_config()
         _ensure_db_dir(settings.database_url)
         init_db()

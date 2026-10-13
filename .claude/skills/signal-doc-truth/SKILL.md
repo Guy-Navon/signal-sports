@@ -46,7 +46,7 @@ put a still-binding conclusion into the layer contract instead.
 - `frontend-concepts/orbit/README.md` — screenshots of Orbit as shipped (2026-07-31).
 - `HOSTING_PLAN.md` — a PROPOSAL (milestone 13), not shipped behavior. When the deployment
   lands, `DEPLOYMENT.md` (#263) becomes the living contract; then retire this file and move its
-  still-true parts there. v2 (2026-10-13) proposes amendments to #261–#270 in its §16 that the
+  still-true parts there. v3 (2026-10-13) proposes amendments to #261–#270 in its §17 that the
   owner has not yet applied — until he does, the plan is ahead of the issue bodies; don't
   "fix" either to match the other without his decision.
 

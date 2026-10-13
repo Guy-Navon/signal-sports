@@ -20,7 +20,7 @@ issue numbers in §14 lead to their evidence.
 | Feed quality (fresh cohort) | Census #2 (804 articles, owner-rated): shown precision 92–95% after the owner's blind re-review. **Feed+ recall 66%** when rated, before milestone 9: about one wanted story in three was hidden. Push recall 1/8, and 2/8 on the rerun after #229 |
 | Regression gate | N05 frozen-corpus gate (282 ratings): Guy 98.3% shown / 18.0% false hide / push 7/7. Deni 91.7% / 0.8% / 1/1 |
 | **Real usage** | **8 feedback events ever, all in July. No login session since 2026-09-16. 14 Telegram pushes, the last on 2026-07-24.** The learning loop has never run on real usage |
-| Next | §11: milestone 13 first. #261 and #262 move the LLM off the PC. Then the owner decides from [HOSTING_PLAN.md](HOSTING_PLAN.md) v2: the live-system host, the dev environment and the budget (nothing chosen yet). Then milestone 10, with #241 in parallel |
+| Next | §11: milestone 13 first. #261 and #262 move the LLM off the PC; the existing Gemini provider may make the first switch configuration only. Then the owner decides from [HOSTING_PLAN.md](HOSTING_PLAN.md) v3: the topology, the GitHub plan and budget, the LLM path and the backup target. Nothing is chosen yet; the plan's recommendation is a proposal. Then milestone 10, with #241 in parallel |
 
 ---
 
@@ -343,29 +343,37 @@ backend and frontend".**
 running system *and* for development. The PC remains only an access station: editor UI, browser
 and SSH. This is urgent **independent of the pilot or product readiness**.
 
-**The plan is a decision document, [HOSTING_PLAN.md](HOSTING_PLAN.md) v2, under the owner's
-review. Nothing in it is implemented, and no host has been chosen.** It compares three full
-architectures:
+**The plan is a decision document, [HOSTING_PLAN.md](HOSTING_PLAN.md) v3, under the owner's
+review. Nothing in it is implemented, no host has been chosen, and its recommendation is a
+proposal, not an approved decision.** It compares:
 
-- **B (recommended):** a small x86 VM running the live system with Docker Compose (Hetzner CX23,
-  ~€6 a month), plus GitHub Codespaces for development
-- **A:** one larger VM (CX33, ~€9 a month) for both the live system and development
-- **C:** $0 free tiers, GCP e2-micro or Oracle, with trade-offs
+- **B (proposed as the reversible start):** a small x86 VM running the live system with Docker
+  Compose (Hetzner CX23, €5.99 a month excl. tax), plus GitHub Codespaces for development, which
+  is free up to 60 *running* hours a month on GitHub Free
+- **A:** one larger VM (CX33, €8.99 a month excl. tax) for both. It wins above ~79 running hours a
+  month, or when long unattended agent runs matter more than isolation. B becomes A by a rescale
+  that keeps the disk
+- **C:** GCP e2-micro (≈ $3.65 a month for its IPv4, not $0, and conditional on a load test) or
+  Oracle ($0, reclamation risk)
 
-It also proposes Compose instead of k3s for now, and changes to #261–#270 (not yet applied to the
-issues).
+It also proposes:
+- Compose for prod: k3s would fit, but it stays off the critical path
+- the `ts.net` address at the cutover, with `guynavon.net` attached afterwards (no DNS change now)
+- deploys from the PC with a separate identity
+- a write-only backup key and a sanitized dev snapshot
+- changes to #261–#270, not yet applied to the issues
 
 - **Immediate relief, with no hosting needed:**
   - #261 an OpenAI-compatible LLM provider (Groq, Cloudflare, Cerebras or OpenRouter free tiers; our load is ~45 calls and ~60K tokens a day)
   - #262 evaluate the candidates against the census, then switch production and stop Ollama
-- **Host:** the issue texts below predate v2 of the plan; see the plan's §16 for the proposed amendments.
+- **Host:** the issue texts below predate the plan; see its §17 for the proposed amendments.
   - #267 the owner's decision, now covering the prod host *and* the dev environment *and* the budget tier. The free OpenShift Developer Sandbox can't host the 24/7 worker (a 30-day trial, and pods are deleted after 12 h).
   - #263 images: backend = API + worker on one SQLite volume; web = nginx, same-origin; built by CI
   - #264 Kubernetes/OpenShift manifests: **proposed for deferral**
   - #265 hosted-mode safety (signup closed, dangerous flags refused)
   - #268 provision the host with private access
   - #266 nightly off-host backups plus a rehearsed restore
-  - **#269 cutover (one corpus, one writer); owner-run; exit in the issue today: the PC stays off for 48 h** (v2 of the plan proposes 7 days)
+  - **#269 cutover (one corpus, one writer); owner-run; exit in the issue today: the PC stays off for 48 h** (v3 of the plan proposes 7 days with thresholds)
   - #270 QA from snapshots, writes on the host only
 
 Recommended order after milestone 13: milestone 10, with #241 from milestone 11 in parallel (its

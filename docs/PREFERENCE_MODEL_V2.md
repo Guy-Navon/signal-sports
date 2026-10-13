@@ -8,7 +8,9 @@ into seeded fit and held-out halves. Only biases found on the fit half and confi
 the held-out half were proposed. Held-out exact went 324 -> 333 of 402, and 17 of 18 flips
 moved closer to the owner's rating. Shown precision, recall and push did not change. A
 third candidate (`comp:ibl × match_result = -1`) was dropped: its signal was mixed (5
-closer, 3 further). Persisted via `scripts/apply_237_profile_calibration.py`.
+closer, 3 further). Persisted via `scripts/apply_237_profile_calibration.py`. The fit/held-out
+analysis is reproducible with `scripts/census_calibration_fit.py` (read-only; `--candidate` scores
+a proposed change on both halves).
 [Census review and method](qa/CENSUS_2026-10.md).
 
 **2026-09-11 - Additional push evidence (#192).** Step 8 remains the only path

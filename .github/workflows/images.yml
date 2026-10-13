@@ -1,0 +1,46 @@
+name: Images
+# Builds both images and runs deploy/smoke-test.sh against them (#263).
+# Nothing is pushed anywhere: publishing is a separate, manual workflow
+# (publish-images.yml). Uses only the docker CLI, no third-party actions.
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'deploy/**'
+      - '.github/workflows/images.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'deploy/**'
+      - '.github/workflows/images.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image (amd64)
+        run: docker build --build-arg GIT_SHA=${{ github.sha }} -t signal-backend:ci backend
+      - name: Build web image (amd64)
+        run: docker build --build-arg GIT_SHA=${{ github.sha }} -t signal-web:ci frontend
+      - name: Image sizes
+        run: docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep ':ci'
+      - name: Smoke test (empty DB, no external side effects)
+        env:
+          KEEP_SMOKE_LOGS: '1'
+        run: bash deploy/smoke-test.sh signal-backend:ci signal-web:ci
+      - name: Compose logs
+        if: always()
+        run: cat smoke-compose.log 2>/dev/null || true

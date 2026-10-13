@@ -49,6 +49,8 @@ Start here (cold start, no history needed):
   product intent and vision.
 - [docs/HOSTING_PLAN.md](docs/HOSTING_PLAN.md): **the plan under review** for moving the model,
   backend and frontend off the owner's machine (milestone 13, the top priority).
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): the hosted stack as implemented so far (images,
+  Compose, CI). Validated in CI only; nothing is deployed.
 
 Layer contracts: [ARTICLE_FACTS](docs/ARTICLE_FACTS.md) ·
 [RELEVANCE_VISIBILITY_CONTRACT](docs/RELEVANCE_VISIBILITY_CONTRACT.md) ·

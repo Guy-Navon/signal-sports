@@ -78,15 +78,19 @@ EOF
 compose config --quiet && pass "compose file is valid"
 compose up -d --wait --wait-timeout 120 api web && pass "api and web are healthy"
 
+# Substring tests without pipes: `curl | grep -q` can fail under pipefail when
+# grep exits before curl has finished writing.
+has() { [[ "$1" == *"$2"* ]]; }
+
 body=$(curl -fsS "$BASE/health")
-echo "$body" | grep -q '"ok"' && pass "/health through web: $body" || fail "/health: $body"
-curl -fsS "$BASE/" | grep -q '<div id="root">' && pass "SPA index served" || fail "index not served"
-curl -fsS "$BASE/login" | grep -q '<div id="root">' && pass "/login falls back to the SPA" || fail "/login fallback"
-curl -fsS "$BASE/healthz" | grep -q ok && pass "nginx /healthz" || fail "/healthz"
+has "$body" '"ok"' && pass "/health through web: $body" || fail "/health: $body"
+has "$(curl -fsS "$BASE/")" '<div id="root">' && pass "SPA index served" || fail "index not served"
+has "$(curl -fsS "$BASE/login")" '<div id="root">' && pass "/login falls back to the SPA" || fail "/login fallback"
+has "$(curl -fsS "$BASE/healthz")" ok && pass "nginx /healthz" || fail "/healthz"
 
 session=$(curl -fsS "$BASE/api/auth/session")
-echo "$session" | grep -q '"auth_enforced":true' && pass "auth enforced: $session" || fail "session: $session"
-echo "$session" | grep -q '"signup_enabled":false' && pass "signup reported closed" || fail "signup not closed: $session"
+has "$session" '"auth_enforced":true' && pass "auth enforced: $session" || fail "session: $session"
+has "$session" '"signup_enabled":false' && pass "signup reported closed" || fail "signup not closed: $session"
 
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/auth/signup" \
   -H "Origin: $ORIGIN" -H 'Content-Type: application/json' \
@@ -101,12 +105,12 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/auth/login" \
 headers=$(curl -s -D - -o /dev/null -X POST "$BASE/api/auth/login" \
   -H "Origin: $ORIGIN" -H 'Content-Type: application/json' \
   -d '{"email":"smoke-admin@example.invalid","password":"smoke-test-only-password"}')
-echo "$headers" | head -1 | grep -q ' 200' && echo "$headers" | grep -qi '^set-cookie: signal_session=' \
+status_line=${headers%%$'\r'*}
+has "$status_line" ' 200' && has "${headers,,}" 'set-cookie: signal_session=' \
   && pass "same-origin admin login through the proxy sets signal_session" || fail "login: $headers"
 
-owner=$(sudo stat -c '%u:%a' "$WORK/data/signal_sports.db")
-[ "$owner" = "10001:644" ] || [ "${owner%%:*}" = "10001" ] \
-  && pass "corpus file owned by the service uid ($owner)" || fail "corpus owner $owner"
+owner=$(sudo stat -c '%u' "$WORK/data/signal_sports.db")
+[ "$owner" = "10001" ] && pass "corpus file owned by the service uid" || fail "corpus owner uid $owner"
 
 # ── Worker: starts, is healthy, stops gracefully. Never runs a cycle. ────────
 cat >> "$WORK/signal.env" <<EOF
@@ -134,7 +138,7 @@ set +e
 refusal=$(compose run --rm -T --no-deps -e ALLOW_DEV_RESET=true api 2>&1)
 rc=$?
 set -e
-[ "$rc" -ne 0 ] && echo "$refusal" | grep -q "ALLOW_DEV_RESET" \
+[ "$rc" -ne 0 ] && has "$refusal" "ALLOW_DEV_RESET" \
   && pass "DEPLOY_ENV=hosted refuses ALLOW_DEV_RESET (exit $rc)" || fail "no refusal (exit $rc): $refusal"
 
 echo "smoke test passed"

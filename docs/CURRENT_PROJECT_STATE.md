@@ -434,7 +434,7 @@ cd backend;  .venv\Scripts\python.exe scripts/feed_ground_truth.py gate   # loca
 Use the collectors for test counts (`pytest --collect-only -q`); counts copied into docs go stale.
 
 **Corpus safety.** Back up before any write: `.venv\Scripts\python.exe scripts/backup_db.py`.
-That writes `data/backups/backup_<UTC>.db` through the SQLite backup API, which is WAL-safe. Run
+That writes `data/backups/backup_<UTC>.db` through the SQLite backup API, which is WAL-safe, and verifies integrity, foreign keys and counts (`--manifest` records them; `scripts/verify_db.py` re-checks a file). Run
 destructive or benchmark work only against a copy (`DATABASE_URL=sqlite:///./data/<copy>.db`).
 The benchmark route hard-refuses the real corpus. Never delete `backend/data/signal_sports.db`.
 

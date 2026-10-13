@@ -137,7 +137,114 @@ cycle** (no source is fetched); and `DEPLOY_ENV=hosted` refusing `ALLOW_DEV_RESE
 account starts **private**. Either make it public (the images contain code only, no secrets)
 or give the host a token limited to `read:packages`. Deploy by **digest**, never by a moving tag.
 
-## 7. Hard rules
+## 7. Backups, dev snapshots and restore
+
+**Implemented and rehearsed end to end in CI on a throwaway stack** (`deploy/rehearse-backup-restore.sh`
+in `images.yml`: real Docker, real `age`, a local "off-host" directory and a fake monitor).
+**Never run against B2, a real host or the real corpus.** The B2 path is tested with mocked
+HTTP only [A]. The backup target (B2 or R2) and who keeps the offline key are owner decisions
+(HOSTING_PLAN §18).
+
+### 7.1 What runs where
+
+| Step | Tool | Runs as | Notes |
+|---|---|---|---|
+| 1. Copy | `scripts/backup_db.py` in the backend image (`compose run --no-deps api`) | uid 10001 | sqlite3 **backup API** (consistent while API and worker write), made one self-contained file (`journal_mode=DELETE`), then **verified**: `integrity_check`, `foreign_key_check`, per-table counts. `--manifest` writes sha256, size and counts. Lands in `$SIGNAL_DATA_DIR/backups/` |
+| 2. Encrypt | `gzip -9 \| age -R <recipients>` on the host | root | **public** recipients only; the script refuses a file containing `AGE-SECRET-KEY`. The private key stays offline with the owner |
+| 3. Upload | `deploy/offsite_upload.py` (stdlib, host `python3`) | root | only `*.age` files leave. `b2:<bucket>` or `local:<dir>` (a second disk, or rehearsals). SHA-1 sent and checked against B2's answer; at most 3 attempts on transient errors |
+| 4. Report | `MONITOR_BACKUP_URL` | root | pinged **only after a successful upload**; any failure (a failed command or a refusal) pings `/fail` and exits non-zero |
+| 5. Prune | `find -mtime +LOCAL_KEEP_DAYS` | root | **local** copies only (our file-name patterns). Remote cleanup is the bucket's lifecycle rules, so the host never holds a delete permission |
+
+`deploy/backup.sh` runs steps 1–5 under one ops lock (backup, dev snapshot, restore and deploy
+never overlap). `deploy/backup.sh --validate` checks the config, recipients, tools, Compose and
+the uploader's config **without backing up or uploading anything**. Config: `/etc/signal/backup.env`
+(root 0600; the scripts refuse another mode), template `deploy/backup.env.example`. Timers:
+`deploy/systemd/signal-backup.{service,timer}` (nightly 01:30 UTC ± 15 min, `Persistent=true`,
+idle I/O priority). Object names: `<prefix>/<daily|weekly|monthly>/signal_<UTC>.db.gz.age`, one
+tier per night (the 1st of the month: monthly; Sunday: weekly; otherwise daily).
+
+### 7.2 Backblaze B2 setup (owner; nothing was created)
+
+1. A **private** bucket for backups, and a separate one for dev snapshots.
+2. **Object Lock** with a default retention (governance or compliance, e.g. 14 days) on the
+   backup bucket, set when the bucket is created [A: confirm the B2 options at creation].
+3. **Lifecycle rules per prefix**, set once with the owner's own (admin) credentials:
+   `prod/daily/` hide after 15 days, `prod/weekly/` after 57, `prod/monthly/` after 190; delete
+   hidden versions after 1 day. That keeps 14 daily + 8 weekly + 6 monthly (HOSTING_PLAN §12.2).
+   Locked versions are only deleted once their retention expires [A].
+4. An **application key restricted to that one bucket**, with `writeFiles` and nothing that can
+   destroy or rewrite history. `offsite_upload.py` reads the key's capabilities at authorization
+   and **refuses** to upload with `deleteFiles`, `bypassGovernance`, `writeFileRetentions`,
+   `writeFileLegalHolds`, `writeBuckets`, `deleteBuckets`, `writeBucketRetentions`, `writeKeys`,
+   `deleteKeys`, `writeBucketEncryption` or `writeBucketReplications`, or when the key allows a
+   different bucket or more than one.
+5. **"Write-only" does not make deletion impossible.** `writeFiles` can still *hide* a file and
+   upload a newer version under the same name [A: B2 docs]. What protects history is: unique
+   names (a timestamp per object), Object Lock, and lifecycle rules owned by the owner, not by
+   the host.
+
+Credentials go only into `/etc/signal/backup.env` on the host (root 0600), never into chat,
+issues, git or an image. R2 is not implemented: its tokens can't be write-only (HOSTING_PLAN §12.2);
+choosing R2 would need an S3 uploader and a different deletion argument.
+
+### 7.3 Dev snapshots (a separate path)
+
+`deploy/devsnap.sh` (weekly timer `signal-devsnap`) runs `scripts/make_dev_snapshot.py` on a
+copy and keeps every id and relation while removing what dev must not have:
+
+| Table / column | In the snapshot |
+|---|---|
+| `auth_sessions`, `scheduler_lease`, `worker_status` | emptied |
+| `users.email` | `user-<id>@example.invalid` (demo users keep `NULL`) |
+| `users.password_hash`, `users.last_login_at` | `NULL` |
+| `profiles.display_name` of real accounts | `user-<id>` (signup stored the email's local part there); demo profiles unchanged |
+| `scheduler_cycles.process_identity` | `NULL` (it held the machine name) |
+| everything else (articles, clusters, profiles, feedback, calibration, notifications, runs, results) | unchanged, ids included |
+
+The file is rebuilt with `VACUUM INTO` (deleted values don't survive in free pages) and
+**verified before it is kept**: integrity, foreign keys, unchanged counts outside the cleared
+tables, no email outside `@example.invalid`, no hash, and **no original email or machine name
+anywhere in the file's bytes**. A failure leaves no file. It is encrypted to the **dev** key
+(`DEVSNAP_RECIPIENTS_FILE`; the script refuses a file that contains a backup recipient) and
+uploaded with **its own** write-only credential to its own target. The plaintext snapshot is
+not kept on the host. Dev never holds a key that decrypts a full backup; the CI rehearsal checks
+both directions (the dev key can't open a backup, the backup key can't open a dev snapshot).
+
+`restore.sh apply` refuses a file that looks sanitized (all emails rewritten, no hashes): a dev
+snapshot must never become production.
+
+### 7.4 Restore (HOSTING_PLAN §12.4)
+
+Decrypt **on the PC** (the backup private key never goes to the host or to dev):
+`age -d -i <offline key> signal_<UTC>.db.gz.age | gunzip > restored.db`, then copy
+`restored.db` to the host over the admin path.
+
+```bash
+deploy/restore.sh verify   restored.db              # integrity, FKs, counts; read-only
+deploy/restore.sh rehearse restored.db              # second API on 127.0.0.1:18081 over a scratch copy
+deploy/restore.sh rehearse --stop
+deploy/restore.sh apply    restored.db --confirm    # the real swap
+deploy/restore.sh outbox                            # notification outbox by status
+deploy/restore.sh resume                            # normal settings, timers back on
+deploy/restore.sh undo     <data>/pre-restore-<UTC> --confirm
+```
+
+`apply`: verifies the candidate and refuses a dev snapshot → takes the ops lock → **stops every
+writer** (worker, then API; pauses the backup and snapshot timers; refuses if any container still
+mounts the data dir or `fuser` sees the files open) → moves `signal_sports.db`, `-wal` and `-shm`
+**together** into `pre-restore-<UTC>/` (never deletes them) → installs the candidate (uid 10001,
+0600) with no stale `-wal`/`-shm`, re-verifies it in place → starts the API, then the worker,
+**with Telegram forced off**, because the restored outbox and watermarks date from the backup.
+Watch one cycle, check `outbox`, then `resume`. Record the loss window (everything written after
+the backup) and re-apply what can be re-applied. `undo` moves the failed set to
+`failed-restore-<UTC>/` and puts the previous set back, again with Telegram off.
+
+The CI rehearsal proves on a throwaway stack: validate uploads nothing; the backup is ciphertext
+and the monitor is pinged once, after the upload; a post-backup change disappears after `apply`
+and comes back after `undo`; the previous set is kept; a dev snapshot is refused as production;
+the dev snapshot has no real email, hash or session.
+
+## 8. Hard rules
 
 1. One worker, one corpus. The PC never runs a worker after the cutover.
 2. SQLite on a local filesystem only.
@@ -146,7 +253,7 @@ or give the host a token limited to `read:packages`. Deploy by **digest**, never
 5. Images are built in CI, never on the host, and deployed by digest.
 6. Dev environments hold no production credential (HOSTING_PLAN §9).
 
-## 8. Not yet in this file
+## 9. Not yet in this file
 
-These land with their own PRs: deploy/rollback tooling, off-host backups and restore,
-monitoring, the source probe, the cutover runbook (#266, #268, #269).
+These land with their own PRs: deploy/rollback tooling, monitoring, the source probe, the
+cutover runbook (#268, #269).

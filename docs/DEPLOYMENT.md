@@ -137,7 +137,50 @@ cycle** (no source is fetched); and `DEPLOY_ENV=hosted` refusing `ALLOW_DEV_RESE
 account starts **private**. Either make it public (the images contain code only, no secrets)
 or give the host a token limited to `read:packages`. Deploy by **digest**, never by a moving tag.
 
-## 7. Hard rules
+## 7. Monitoring
+
+**Implemented and tested with fake HTTP only; no monitor account or check exists yet.**
+`app/monitoring.py` sends healthchecks.io-style pings (POST `<url>`, or `<url>/fail`) from the
+worker after each **finished** cycle. Each signal is its own check, and an unset URL turns it
+off; nothing is configured by default.
+
+| Env (app settings file) | Pinged when | `/fail` when | Suggested period / grace | Catches |
+|---|---|---|---|---|
+| `MONITOR_CYCLE_URL` | a cycle completed (`succeeded` or `succeeded_with_warnings`) | the cycle ended `failed` | 5 min / 15 min | a dead worker, a down host, a stuck cycle (cycles are capped at 900 s, so silence covers "alive but stuck"), failing cycles |
+| `MONITOR_SOURCES_URL` | at least one source returned items, **new or not** | no source returned anything | 5 min / 55 min | blocked or unreachable sources, DNS or egress failures. A quiet night still pings, because feeds always list their latest items |
+| `MONITOR_FRESH_URL` | at least one **new** article was stored | never | 1 h / 7 h | ingestion that runs but stores nothing; the long grace absorbs natural quiet |
+| `MONITOR_BACKUP_URL` | `deploy/backup.sh` **after the off-host upload succeeded** | any backup step failed | 24 h / 6 h | failing or missing backups |
+
+- **A ping never fails or delays a cycle**: one POST with `MONITOR_TIMEOUT_SECONDS` (default 5,
+  capped at 10); every error is swallowed and logged by check **name**.
+- **The URLs are credentials** (anyone holding one can fake a success): they live in the host's
+  env file, are never logged, and the ping body carries only counts and source ids.
+- A coalesced tick (another run held the lease) sends nothing; the next tick reports.
+- `DEPLOY_ENV=dev` never pings, and its startup check refuses any `MONITOR_*` URL.
+- Not monitored by these pings: phone reachability over Tailscale (a manual daily check in T4).
+
+## 8. Source probe
+
+**Implemented and tested with fake adapters; never run from a host.**
+`scripts/source_probe.py` answers "can **this** machine read the sources?" before the cutover
+(HOSTING_PLAN §14: HTTP 200 alone doesn't count). Inside the image:
+
+```bash
+docker compose run --rm -T --no-deps api python scripts/source_probe.py          # the five Hebrew sources
+docker compose run --rm -T --no-deps api python scripts/source_probe.py --json   # for the record
+```
+
+For each source it runs the **same adapter ingestion uses**, plus one plain GET per endpoint to
+name a failure (DNS, connect, TLS, HTTP status), and judges the **content**: items parsed, most
+dated, the newest younger than `--max-age-hours` (24), titles in Hebrew, links on the source's
+own site. It captures the adapters' error lines instead of returning a bare "0 items". Verdicts:
+`ok`, `degraded` (items, but a content check failed), `empty`, `error`; exit 0 only when every
+probed source is `ok`. **It never opens the database** (a test proves the module does not even
+import it), never changes source enablement and never calls an LLM. It reports the static
+config's enablement only; the PC's DB overrides (Sport5 on, ONE off) are not read. Compare one
+run with the PC worker's fetches for the same hour.
+
+## 9. Hard rules
 
 1. One worker, one corpus. The PC never runs a worker after the cutover.
 2. SQLite on a local filesystem only.
@@ -146,7 +189,7 @@ or give the host a token limited to `read:packages`. Deploy by **digest**, never
 5. Images are built in CI, never on the host, and deployed by digest.
 6. Dev environments hold no production credential (HOSTING_PLAN §9).
 
-## 8. Not yet in this file
+## 10. Not yet in this file
 
-These land with their own PRs: deploy/rollback tooling, off-host backups and restore,
-monitoring, the source probe, the cutover runbook (#266, #268, #269).
+These land with their own PRs: deploy/rollback tooling, off-host backups and restore, the
+cutover runbook (#266, #268, #269).

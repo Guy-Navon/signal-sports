@@ -53,3 +53,10 @@ jobs:
       - name: Rehearsal logs
         if: always()
         run: cat rehearsal-compose.log 2>/dev/null || true
+      - name: Rehearse validate, deploy, rollback and auto-rollback (local registry)
+        env:
+          KEEP_REHEARSAL_LOGS: '1'
+        run: bash deploy/rehearse-deploy.sh signal-backend:ci signal-web:ci
+      - name: Deploy rehearsal logs
+        if: always()
+        run: cat deploy-rehearsal-compose.log 2>/dev/null || true

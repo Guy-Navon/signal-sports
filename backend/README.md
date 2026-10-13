@@ -10,7 +10,7 @@ Run from `backend/` (relative SQLite paths resolve against this directory):
 
 ```powershell
 python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt
+.venv/Scripts/python -m pip install --require-hashes -r requirements.lock
 .venv/Scripts/python -m uvicorn app.main:app --reload
 ```
 
@@ -101,6 +101,7 @@ arguments before backups; copying only the `.db` file can omit recent WAL writes
 - [Results](../docs/RESULTS.md), [notifications](../docs/NOTIFICATIONS.md)
 - [September 2026 audit snapshot](../docs/audits/2026-09-05.md); its open items are #196–#200
 
-Backend dependency versions still use mostly lower bounds rather than a tested
-lock file. Production restore drills, real-provider QA and broader browser
+Dependencies install from the hash-pinned `requirements.lock` (CI, the image and the
+devcontainer use the same file); `requirements.txt` holds the ranges, and the lock's header
+states the update policy. Schema migrations are still startup `ALTER`s (#198). Production restore drills, real-provider QA and broader browser
 journeys remain separate from the offline unit/integration suite.

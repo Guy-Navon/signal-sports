@@ -326,8 +326,7 @@ deterministic rule changelog, §1–§18).
   #242 (venue move) is waiting for more examples.
 
 **Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #196 the CSRF vs CORS
-origin lists, #197 silent feedback failures and results-sync lease, #198 no lock file and no
-migration history, #199 bundle weight and unfiltered feed query, #200 signup/login abuse
+origin lists, #197 silent feedback failures and results-sync lease, #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #199 bundle weight and unfiltered feed query, #200 signup/login abuse
 protection (a **gate before widening access**, not needed while single-user behind Tailscale).
 
 **Mobile** (#16 epic): Tailscale access works when the stack is up. #19 feed touch targets, #20

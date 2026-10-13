@@ -54,6 +54,7 @@ docker push -q "$REG/signal-web:sha-$SHA_B" > /dev/null
 # C: the API module graph is broken, but deploy_mode (the preflight) still imports.
 printf 'FROM %s\nUSER root\nRUN rm /app/app/api/routes_health.py\nUSER 10001:10001\n' "$BACKEND_IMAGE" \
   | docker build -q -t "$REG/signal-backend:sha-$SHA_C" - > /dev/null
+docker push -q "$REG/signal-backend:sha-$SHA_C" > /dev/null
 push "$WEB_IMAGE" "$REG/signal-web:sha-$SHA_C"
 pass "registry with releases A, B (new digests) and C (broken)"
 

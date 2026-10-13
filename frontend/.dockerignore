@@ -1,0 +1,19 @@
+# Allowlist (#263): only the build inputs. Excludes .env.local (which would
+# silently change VITE_DATA_MODE), node_modules, dist and every other local file.
+**
+!package.json
+!package-lock.json
+!index.html
+!vite.config.js
+!postcss.config.js
+!tailwind.config.js
+!jsconfig.json
+!components.json
+!public/
+!public/**
+!src/
+!src/**
+!nginx/
+!nginx/**
+**/.env
+**/.env.*

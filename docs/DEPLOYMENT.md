@@ -287,7 +287,120 @@ import it), never changes source enablement and never calls an LLM. It reports t
 config's enablement only; the PC's DB overrides (Sport5 on, ONE off) are not read. Compare one
 run with the PC worker's fetches for the same hour.
 
-## 10. Hard rules
+## 10. Deploy and rollback
+
+**Implemented and rehearsed in CI against a local registry** (`deploy/rehearse-deploy.sh` in
+`images.yml`): validate, a first deploy on an empty host, a second release, rollback, and the
+automatic rollback of a broken release, plus the SSH forced command's allowlist. **Never run on a
+host or against GHCR.**
+
+One workflow for A and B (HOSTING_PLAN §9.1): CI builds; the owner publishes a commit's images
+(`publish-images.yml`, manual); the owner deploys **from the PC** with a separate SSH identity
+whose only power is a forced command. No dev environment holds a production credential.
+
+```bash
+ssh deploy@<host> validate <40-hex sha>          # resolve digests + preflight; changes nothing
+ssh deploy@<host> deploy   <40-hex sha>          # class 1 (default) or --class 2
+ssh deploy@<host> rollback
+ssh deploy@<host> status
+```
+
+`deploy/signal-deploy.sh` (run as root by the forced command `deploy/host/signal-deploy-ssh`,
+through one sudoers line, `deploy/host/sudoers.signal-deploy`):
+
+1. **Resolve** `<SIGNAL_IMAGE_REPO>/signal-{backend,web}:sha-<sha>` to immutable **digests**.
+2. **Preflight**: Compose config with the new digests; free disk; data-dir ownership; env-file
+   mode; and the **new image's own `DEPLOY_ENV` checks against the real settings**, so a refused
+   configuration stops here, before anything changes. `validate` stops after this step; it only
+   pulls images into the local cache.
+3. **Backup**: a verified local copy (`backups/pre-deploy_<sha12>_<UTC>.db`), or the full
+   off-host `backup.sh` for class 3. A first deploy on an empty host has nothing to back up.
+4. **Pin** the digests in `deploy/.env` (the previous file is kept as `.env.previous`).
+5. **Recreate** api + web, then the worker (it finishes its cycle: 300 s stop grace).
+6. **Verify**: health through nginx; the worker's health; and, when the worker runs, **one
+   completed cycle after the deploy** (`--no-wait-cycle` skips it).
+7. **On failure**: classes 1 and 2 roll back automatically to the previous digests and say so.
+   **Class 3** (data semantics, HOSTING_PLAN §12.5) is never rolled back automatically, because
+   old code may misread new data: restore the pre-deploy backup or roll forward. Class 3 is not
+   allowed through the forced command at all; it needs the admin identity, a written plan and
+   `--class 3 --plan-acknowledged`.
+
+Every release, failure and rollback is appended to `deploy/releases.log`. `rollback` returns to
+the previous release's digests; a second `rollback` returns to the same release, not back and
+forth.
+
+## 11. Host setup checklist (#268; owner-run, nothing done)
+
+Templates are in `deploy/host/` and `deploy/systemd/`; none is installed anywhere. Personal values
+(hostnames, tailnet names, IPs, keys) never go into the repository.
+
+1. **Accounts and the VM** (owner): per the topology decision (HOSTING_PLAN §18). Unattended
+   security updates on.
+2. **Packages**: Docker Engine with the Compose plugin, `age`, `python3`, `curl`, `util-linux`
+   (`flock`), `psmisc` (`fuser`). `deploy/host/docker-daemon.json` (log rotation, live-restore)
+   and `deploy/host/journald-signal.conf` (a journal size cap).
+3. **Layout**: `/opt/signal/deploy/` (this repo's `deploy/` directory), `/etc/signal/`
+   (root 0700: `prod.env` from `deploy/signal.env.example`, `backup.env` from
+   `deploy/backup.env.example`, the two **public** recipient files), and
+   `/srv/signal/prod/data` owned by `10001:10001`, mode 0700. `deploy/.env` from
+   `deploy/.env.example`.
+4. **Identities**: `admin` (sudo, the owner's key plus an offline emergency key); `deploy`
+   (`deploy/host/signal-deploy-ssh` as the forced command for a key that exists **only on the
+   PC**, plus `deploy/host/sudoers.signal-deploy`; **not** in the `docker` group). Topology A only:
+   a `dev` user with no sudo, no `docker` group, no access to `/srv/signal` or `/etc/signal`, and
+   `deploy/host/user-1001.slice.limits.conf`.
+5. **Private access**: Tailscale on the host (tagged node); `tailscale serve` HTTPS → 
+   `127.0.0.1:8080`; **never Funnel**; a provider firewall with no inbound rules [A: Tailscale
+   still connects]. `CSRF_ALLOWED_ORIGINS` = the exact `https://<machine>.<tailnet>.ts.net` origin.
+6. **First deploy on an empty DB**: publish the images, then `signal-deploy.sh validate <sha>`
+   and `deploy <sha>`. `COMPOSE_PROFILES` empty and `SCHEDULER_ENABLED=false`: **no worker**.
+7. **Checks before data arrives**: `/health` and the login page through Serve from the phone;
+   `scripts/source_probe.py` from the host (§9); the healthchecks
+   checks created (owner) with their URLs in `prod.env` / `backup.env`; `backup.sh --validate`
+   and `devsnap.sh --validate`; then enable `signal-backup.timer` and `signal-devsnap.timer`.
+
+## 12. Cutover runbook (#269; owner-run)
+
+**One corpus, one writer**: at no moment may the PC and the host both run a worker or accept
+writes against their own copy.
+
+1. **Freeze every local write on the PC.** `powershell -File scripts\worker.ps1 -Stop`; stop the
+   local API (uvicorn) and Vite; run no `apply_*`, backfill or QA script that writes. Confirm
+   nothing is left: `scripts\worker.ps1 -Status` says not running, and no process command line
+   contains `app.worker` or `uvicorn`.
+2. **Confirm the host's worker is disabled.** On the host, `COMPOSE_PROFILES` is empty,
+   `SCHEDULER_ENABLED=false`, and `signal-deploy.sh status` shows no worker container.
+3. **Final consistent backup on the PC**, with every writer stopped:
+   `.venv\Scripts\python.exe scripts\backup_db.py data\cutover\final_<UTC>.db --expect-quiescent --manifest`.
+   `--expect-quiescent` fails if anything still writes. Keep the PC's corpus and this file
+   **read-only** as the archive; encrypt one copy to the backup key and upload it once as the
+   pre-cutover archive (HOSTING_PLAN §12.2).
+4. **Copy and verify.** Copy `final_<UTC>.db` and its `.manifest.json` to the host over the admin
+   path (Tailscale). On the host: `deploy/restore.sh verify final_<UTC>.db final_<UTC>.db.manifest.json`
+   must report integrity ok, no foreign-key violations, **the same sha256 and the same row
+   count for every table**.
+5. **Install and start in order**: `deploy/restore.sh apply final_<UTC>.db --confirm` moves the
+   empty staging DB aside, installs the corpus, starts the **API and web first, with Telegram
+   off**. Check `/health`, log in from the phone through Serve, open the feed and results.
+6. **Start the worker last.** Set `SCHEDULER_ENABLED=true` in `prod.env` and
+   `COMPOSE_PROFILES=worker` in `deploy/.env`, then `deploy/restore.sh resume`. The LLM provider
+   must already be a hosted one or `disabled` (#262): the host cannot reach the PC's Ollama.
+7. **Verify**: the first cycles complete (`signal-deploy.sh status`, `GET /api/scheduler/health`),
+   new articles appear, results sync runs, the healthchecks `cycle`, `sources` and `fresh`
+   checks go green, the phone reaches the feed. Telegram stays off until #251's preflight.
+8. **The PC never runs a worker again.** Remove any local autostart.
+
+**Rollback to the PC** (only if the host must be abandoned), preserving a single writer:
+
+1. On the host: stop the worker **and** the API (`docker compose --profile worker stop worker api`),
+   then set `COMPOSE_PROFILES=` and `SCHEDULER_ENABLED=false` so nothing restarts them.
+2. Take the host's DB with `backup_db.py --expect-quiescent --manifest` (it is newer than the
+   PC's frozen copy if any cycle ran on the host), copy it to the PC, verify it with
+   `scripts\verify_db.py <file> --expect <manifest>`.
+3. Move the PC's frozen corpus aside (never delete it), put the host's copy in its place.
+4. Only then start the PC's API and worker. The host stays stopped.
+
+## 13. Hard rules
 
 1. One worker, one corpus. The PC never runs a worker after the cutover.
 2. SQLite on a local filesystem only.
@@ -296,6 +409,8 @@ run with the PC worker's fetches for the same hour.
 5. Images are built in CI, never on the host, and deployed by digest.
 6. Dev environments hold no production credential (HOSTING_PLAN §9).
 
-## 11. Not yet in this file
+## 14. Not done yet
 
-These land with their own PRs: deploy/rollback tooling and the cutover runbook (#268, #269).
+Everything above is repository preparation. Still open: the owner's decisions and accounts
+(HOSTING_PLAN §18), the first image publication, the host itself (#268), the hosted LLM
+evaluation and switch (#262), the cutover (#269) and the 7-day observation (HOSTING_PLAN §15).

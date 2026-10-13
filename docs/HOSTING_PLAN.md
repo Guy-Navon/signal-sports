@@ -1,9 +1,11 @@
 # Hosting Plan — Signal Sports off the owner's machine
 
-**Status: PROPOSAL under owner review. Version 3, 2026-10-13.** Nothing here is implemented.
-No server was created, nothing was bought, no DNS record was touched, no provider was switched
-and no remote issue was edited. **The recommendation is a proposal. The owner has not approved
-it as a decision.**
+**Status: PROPOSAL under owner review. Version 3.1, 2026-10-13.** The repository preparation
+shared by every option is now implemented and validated in CI only (images, Compose, safety
+guards, the devcontainer, the OpenAI-compatible provider, monitoring, backups, restore and deploy
+tooling): its living contract is [DEPLOYMENT.md](DEPLOYMENT.md). **No server was created, nothing
+was bought, no account or key exists, no DNS record was touched and no provider was switched.**
+The recommendation is a proposal. The owner has not approved it as a decision.
 
 v3 is a correction round on v2 (same date) after the owner's review. It closes assumptions,
 contradictions and cost errors without restarting the study or widening the architecture.
@@ -50,8 +52,9 @@ file is retired.
     also wins when long unattended agent runs and persistent processes matter more than isolation
     (§5.5).
   - **B is the reversible start.** Hetzner can rescale a CX23 to a CX33 **while keeping the
-    disk**, which keeps a later downgrade possible [O]. B → A is therefore a rescale plus a dev-user
-    setup, not a migration.
+    disk**, which keeps a later downgrade possible [O]. B → A is therefore a rescale plus setting
+    up the dev environment on the VM and moving work in progress over (§5.2); it is not a data
+    migration.
 - **The domain `guynavon.net`:** phase one uses the Tailscale `ts.net` address and needs **no DNS
   change**. Attach `signal.guynavon.net` **after** the cutover, as a private name, and only if the
   owner approves a DNS change (§4).
@@ -272,7 +275,7 @@ Why after:
 | Quota blocking | None | Once the free quota (or the budget) is used up, you **can't create or resume** codespaces until the next cycle or a higher budget. Work in progress can still be exported to a branch [O]. What happens to an already-running codespace is undocumented [A] |
 | Isolation | Same kernel and host as prod. User separation, no sudo, no docker group and slices (§9.2). **An agent with a shell on the prod host is the main residual risk** | Separate machines. The codespace holds no prod credential and isn't on the tailnet |
 | Setup and upkeep | Dev user, slice limits, a disk limit, VS Code Server, and toolchain updates on the prod host: **6–10 h** setup [E], ~1–2 h/month [E] | The devcontainer: **2–4 h** [E]. GitHub maintains the dev VM, and the prod host stays minimal: ~0.5–1 h/month [E] |
-| Switching later | A → B: write the devcontainer, then rescale down to a CX23. That works **only if the disk was kept at 40 GB** [O] | B → A: rescale the CX23 to a CX33, keeping the disk (likely a power-off [A]), then add the dev user: 6–10 h [E] |
+| Switching later | A → B: the devcontainer exists now (`.devcontainer/`); move work to a codespace, then rescale down to a CX23. That works **only if the disk was kept at 40 GB** [O] | B → A is more than a resize: rescale the CX23 to a CX33, keeping the disk (likely a power-off [A]); then **set up the dev environment** on the VM (the `dev` user, slice limits, VS Code Server, the toolchain via `scripts/dev.sh`, a Claude Code login) and **move work in progress** (push every branch from the codespace, copy the Claude Code memory, then delete the codespace): 6–10 h [E] |
 | Monthly cost | €8.99, flat | €5.99 + Codespaces by running hours (§5.4) |
 
 ### 5.3 Codespaces facts behind the comparison
@@ -283,6 +286,8 @@ All [O] unless tagged otherwise.
   - **GitHub Free:** 120 core-hours plus 15 GB-month of storage
   - **GitHub Pro:** 180 core-hours plus 20 GB-month
   - On a 2-core machine that is **60 h (Free) or 90 h (Pro)**; on a 4-core, 30 h or 45 h.
+  - **Every Pro figure in this plan assumes the owner already pays for Pro.** Buying Pro only
+    for this adds its subscription price to B, and the extra 30 free hours rarely pay for it.
   - Codespaces billed to an organization don't use the personal quota.
 - **Over the quota:** $0.18/h on a 2-core, $0.36/h on a 4-core, and $0.07 per GB-month.
 - **Compute bills running time, not your attention.** A codespace is billed until it stops,
@@ -373,6 +378,11 @@ is a rescale, not a migration.
 - you prefer a fixed price to watching a quota
 
 …and in every case you accept the shared-host risk and the hardening work in §9.2.
+
+**What a fixed VM price does not fix.** A's flat price covers the machine only. Claude Code on
+the VM still counts against the owner's Claude plan limits, exactly as in a codespace or on the
+PC, and every LLM API call (classification, evaluations) is billed per use whatever the topology.
+Neither A nor B turns those into fixed costs.
 
 **Below 60 h, cost doesn't decide it.** B is €3.00/month cheaper there, and the choice rests on
 experience and isolation.
@@ -877,13 +887,18 @@ no host at all. **No tens of hours are required before the first relief.**
 - the dev guards (#265)
 - the lock file
 
-**Cutover order:**
+**Cutover order** (corrected in v3.1; the step-by-step runbook is DEPLOYMENT.md §12):
 
-1. Stop the PC's worker.
-2. Take a final PC backup (the pre-cutover archive).
-3. Copy it to the host and start the host's worker.
-4. Verify.
-5. **The PC never runs a worker again.**
+1. **Freeze every local write** on the PC: the worker, the API, Vite, and any script that writes.
+2. **Confirm the host's worker is disabled** (no `worker` profile, `SCHEDULER_ENABLED=false`).
+3. Take a **consistent final backup** with every writer stopped (`backup_db.py --expect-quiescent
+   --manifest`); it is also the pre-cutover archive.
+4. **Copy and verify** on the host: checksum, integrity, and the expected row count in every table.
+5. **Start the services in order**: API and web first (Telegram off), checked from the phone.
+6. **Start the worker last.**
+7. **Verify** phone access, completed cycles and the monitoring checks.
+8. **The PC never runs a worker again.** The rollback path keeps a single authoritative runtime:
+   stop the host's writers before the PC starts again, and carry the host's newer DB back.
 
 ---
 
@@ -1004,7 +1019,8 @@ These are proposals. **No remote issue was changed.**
 4. **Backups:** B2 (proposed) or R2, and who keeps the offline `age` key.
 
 **Not needed now:**
-- the domain (default: after the cutover)
+- the domain: custom-domain configuration stays **deferred** until after the cutover and the
+  observation period, and needs the owner's DNS approval (§4.4)
 - the Hetzner location (any EU location)
 - re-enabling Telegram (#251) and ONE (#258)
 
@@ -1165,6 +1181,11 @@ These are proposals. **No remote issue was changed.**
 
 ### Change log
 
+- **2026-10-13 (v3.1):** implementation status (the shared preparation exists; see
+  DEPLOYMENT.md) and four clarifications: B → A includes the dev environment and moving work in
+  progress, not just a resize (§5.2); Pro figures assume an existing subscription (§5.3); a fixed
+  VM price doesn't remove Claude usage limits or API charges (§5.5); the domain stays deferred
+  (§18). The cutover order is corrected (§14).
 - **2026-10-13 (v3):** the correction round above. Planning and documentation only.
 - **2026-10-13 (v2):** rewritten after the owner's clarified requirements. Dev in scope; three
   architectures; Compose over k3s; x86 over Arm; new must-haves; "PC off for 7 days".

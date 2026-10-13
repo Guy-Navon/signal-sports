@@ -20,7 +20,7 @@ issue numbers in §14 lead to their evidence.
 | Feed quality (fresh cohort) | Census #2 (804 articles, owner-rated): shown precision 92–95% after the owner's blind re-review. **Feed+ recall 66%** when rated, before milestone 9: about one wanted story in three was hidden. Push recall 1/8, and 2/8 on the rerun after #229 |
 | Regression gate | N05 frozen-corpus gate (282 ratings): Guy 98.3% shown / 18.0% false hide / push 7/7. Deni 91.7% / 0.8% / 1/1 |
 | **Real usage** | **8 feedback events ever, all in July. No login session since 2026-09-16. 14 Telegram pushes, the last on 2026-07-24.** The learning loop has never run on real usage |
-| Next | §11: milestone 13 first. #261 and #262 move the LLM off the PC; the existing Gemini provider may make the first switch configuration only. Then the owner decides from [HOSTING_PLAN.md](HOSTING_PLAN.md) v3: the topology, the GitHub plan and budget, the LLM path and the backup target. Nothing is chosen yet; the plan's recommendation is a proposal. Then milestone 10, with #241 in parallel |
+| Next | §11: milestone 13 first. The repository preparation is done and CI-validated ([DEPLOYMENT.md](DEPLOYMENT.md)); what remains needs the owner: the decisions in [HOSTING_PLAN.md](HOSTING_PLAN.md) §18 (LLM path and key, GitHub plan and budget, topology A or B, backup target and offline key), then the hosted-LLM evaluation (#262), the host (#268) and the cutover (#269). Nothing is chosen, bought or deployed. Then milestone 10, with #241 in parallel |
 
 ---
 
@@ -314,7 +314,9 @@ deterministic rule changelog, §1–§18).
   it would delete today all 256 N05-rated articles (the whole gate corpus) and 29 of census #2's
   804, and all of census #2 by about mid-November. Tracked in #255; see
   [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8.
-- Single machine and single SQLite file. Backups are manual (`scripts/backup_db.py`, WAL-safe).
+- Single machine and single SQLite file. On the PC, backups are still manual (`scripts/backup_db.py`,
+  WAL-safe and verified). The hosted nightly off-host backup exists in the repository
+  ([DEPLOYMENT.md](DEPLOYMENT.md) §7) but runs nowhere until a host exists.
 
 **Product**
 - **No real usage yet** (§0). Feedback learning, the third personalization path, has no real
@@ -344,9 +346,9 @@ backend and frontend".**
 running system *and* for development. The PC remains only an access station: editor UI, browser
 and SSH. This is urgent **independent of the pilot or product readiness**.
 
-**The plan is a decision document, [HOSTING_PLAN.md](HOSTING_PLAN.md) v3, under the owner's
+**The plan is a decision document, [HOSTING_PLAN.md](HOSTING_PLAN.md) v3.1, under the owner's
 review. No host has been chosen, and its recommendation is a proposal, not an approved
-decision.** The preparation shared by every option is being implemented and is described in
+decision.** The preparation shared by every option is implemented and described in
 [DEPLOYMENT.md](DEPLOYMENT.md): it is validated in CI only, and **nothing runs on a host yet**.
 The plan compares:
 
@@ -366,18 +368,26 @@ It also proposes:
 - a write-only backup key and a sanitized dev snapshot
 - changes to #261–#270, not yet applied to the issues
 
-- **Immediate relief, with no hosting needed:**
-  - #261 an OpenAI-compatible LLM provider (Groq, Cloudflare, Cerebras or OpenRouter free tiers; our load is ~45 calls and ~60K tokens a day)
-  - #262 evaluate the candidates against the census, then switch production and stop Ollama
-- **Host:** the issue texts below predate the plan; see its §17 for the proposed amendments.
-  - #267 the owner's decision, now covering the prod host *and* the dev environment *and* the budget tier. The free OpenShift Developer Sandbox can't host the 24/7 worker (a 30-day trial, and pods are deleted after 12 h).
-  - #263 images: backend = API + worker on one SQLite volume; web = nginx, same-origin; built by CI
-  - #264 Kubernetes/OpenShift manifests: **proposed for deferral**
-  - #265 hosted-mode safety (signup closed, dangerous flags refused)
-  - #268 provision the host with private access
-  - #266 nightly off-host backups plus a rehearsed restore
-  - **#269 cutover (one corpus, one writer); owner-run; exit in the issue today: the PC stays off for 48 h** (v3 of the plan proposes 7 days with thresholds)
-  - #270 QA from snapshots, writes on the host only
+**Milestone 13 status (2026-10-13).** "Done" means implemented and tested in the repository
+(mocked or CI-rehearsed); nothing has run on a host, against a cloud account or with a real key.
+
+| Item | In the repository | Still needs the owner |
+|---|---|---|
+| #265 hosted-mode safety | **done** (PR #275): `AUTH_SIGNUP_ENABLED`, `DEPLOY_ENV` checks, dev guards | — |
+| dependency lock (#198, lock half) | **done** (PR #276): hash-pinned `requirements.lock`, CI installs from it | — (#198's migrations half stays open) |
+| #261 OpenAI-compatible provider | **done** (PR #277), mocked HTTP only | a key, for #262 |
+| #262 evaluate + switch | bounded tooling (`llm_failure_probe.py --max-calls --dry-run --ids-file`) | the LLM path and key; stages 0–1; the switch; stopping Ollama |
+| #263 images + Compose | **done** (PR #278); CI builds and smoke-tests every change | the first publication (package visibility); amd64 only |
+| remote development | devcontainer + `scripts/dev.sh` (PR #279), CI-exercised | the first codespace run (checklist in `.devcontainer/README.md`) |
+| monitoring + source probe | PR #281: cycle/sources/fresh/backup pings; fetch-only probe | a healthchecks account and checks; a probe run from the host |
+| #266 backups | PR #280: copy → age → off-host → ping, restore/undo, rehearsed end to end in CI | the B2 account, buckets, Object Lock, lifecycle, keys; the offline key; timers on the host; a drill there |
+| #270 snapshots | sanitized dev snapshot with a separate key and target (PR #280) | the dev key; moving a snapshot into dev; checking the gate on it |
+| #268 provision | deploy/rollback/auto-rollback tooling, host templates, checklist (PR #283), rehearsed in CI | the VM, accounts, Tailscale, identities |
+| #269 cutover | runbook, DEPLOYMENT.md §12 | owner-run |
+| #267 decisions, #264 k8s | — | the owner's decisions; #264 proposed for deferral |
+| `calib.py` (#237 tool) | integrated as `scripts/census_calibration_fit.py` (PR #282) | — |
+
+The issue texts predate the plan; its §17 proposes their amendments (not applied).
 
 Recommended order after milestone 13: milestone 10, with #241 from milestone 11 in parallel (its
 cohort is ready and it costs about half an hour of rating), then milestone 12, measured against

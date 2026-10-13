@@ -21,7 +21,7 @@ signal-sports/
 ```powershell
 # backend (from backend/)
 python -m venv .venv
-.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python -m pip install --require-hashes -r requirements.lock
 .venv\Scripts\python -m uvicorn app.main:app --reload        # http://127.0.0.1:8000/docs
 
 # scheduler worker (from the repo root; needs SCHEDULER_ENABLED=true in backend/.env)

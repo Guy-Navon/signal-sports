@@ -1,3 +1,6 @@
+# Ranges only. Installs use the hash-pinned requirements.lock generated from this
+# file; regenerate it in its own PR when a range changes (policy: its header).
+#
 # Upper bound is deliberate. FastAPI 0.141 stopped flattening include_router
 # into APIRoute objects on app.routes, which makes the authorization
 # inventory in tests/test_authz_inventory.py walk an empty route table and

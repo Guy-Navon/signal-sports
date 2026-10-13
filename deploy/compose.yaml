@@ -1,0 +1,113 @@
+# Signal Sports — production stack (#263). The contract is docs/DEPLOYMENT.md.
+#
+#   web    nginx: the SPA + a same-origin proxy to api. The ONLY published port,
+#          bound to loopback; Tailscale Serve fronts it. Never use Funnel.
+#   api    uvicorn, one process, no scheduler.
+#   worker the ingestion scheduler. Behind the "worker" profile, so it starts
+#          only when explicitly enabled (COMPOSE_PROFILES=worker).
+#
+# api and worker share ONE SQLite file on a host bind mount. SQLite WAL needs a
+# local filesystem: never NFS/SMB/network storage. Exactly one worker, ever.
+#
+# Variables (put them in deploy/.env next to this file, or export them):
+#   SIGNAL_BACKEND_IMAGE  required, e.g. ghcr.io/<owner>/signal-backend@sha256:...
+#   SIGNAL_WEB_IMAGE      required, e.g. ghcr.io/<owner>/signal-web@sha256:...
+#   SIGNAL_ENV_FILE       app settings and secrets   (default ./signal.env)
+#   SIGNAL_DATA_DIR       host dir for the corpus    (default ./data)
+#   SIGNAL_WEB_BIND       listen address             (default 127.0.0.1)
+#   SIGNAL_WEB_PORT       listen port                (default 8080)
+#   COMPOSE_PROFILES      "worker" to run the worker (default: no worker)
+
+name: signal
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-backend: &backend
+  image: ${SIGNAL_BACKEND_IMAGE:?set SIGNAL_BACKEND_IMAGE (an image digest)}
+  env_file:
+    - path: ${SIGNAL_ENV_FILE:-./signal.env}
+      required: true
+  environment:
+    # The image default, restated so an env file cannot move the corpus off the
+    # bind mount by accident.
+    DATABASE_URL: sqlite:////app/data/signal_sports.db
+  volumes:
+    - type: bind
+      source: ${SIGNAL_DATA_DIR:-./data}
+      target: /app/data
+  user: "10001:10001"
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  init: true
+  restart: unless-stopped
+  logging: *logging
+
+services:
+  api:
+    <<: *backend
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.healthcheck", "api"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    # uvicorn drains in-flight requests on SIGTERM; requests are short.
+    stop_grace_period: 30s
+    mem_limit: 768m
+    oom_score_adj: -500
+
+  worker:
+    <<: *backend
+    profiles: ["worker"]
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.healthcheck", "worker"]
+      interval: 60s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    # SIGTERM makes the worker finish the CURRENT cycle, then exit (app/worker.py).
+    # Measured cycles on the PC: median 3 s, p95 37 s, max 71 s, with Ollama
+    # (docs/HOSTING_PLAN.md F4). 300 s covers the observed max four times over,
+    # plus the bounded network stages (LLM, Telegram, results sync timeouts).
+    # If a cycle still runs at 300 s, Docker sends SIGKILL: every committed
+    # transaction stays committed, the cycle row stays "running", and the lease
+    # stays held until its heartbeat is SCHEDULER_STALE_AFTER_SECONDS (1800 s)
+    # old. The next worker then takes it over and marks that cycle "abandoned",
+    # so up to ~30 min of cycles are skipped. A Telegram send killed between
+    # claim and delivery stays "claimed" and is never resent (by design).
+    stop_grace_period: 300s
+    mem_limit: 1g
+    oom_score_adj: -500
+
+  web:
+    image: ${SIGNAL_WEB_IMAGE:?set SIGNAL_WEB_IMAGE (an image digest)}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${SIGNAL_WEB_BIND:-127.0.0.1}:${SIGNAL_WEB_PORT:-8080}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 10s
+    mem_limit: 128m
+    restart: unless-stopped
+    logging: *logging

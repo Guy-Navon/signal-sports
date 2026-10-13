@@ -1,0 +1,57 @@
+name: Publish images
+# MANUAL ONLY (#263). Never runs on push or merge. Builds the images for the
+# commit it is dispatched on (main only), smoke-tests them, pushes them to GHCR
+# tagged sha-<commit>, and prints the immutable digests to deploy with.
+#
+# Before the first run, the owner decides the package visibility (a new GHCR
+# package under a personal account starts PRIVATE; a private package needs a
+# read:packages token on the host). See docs/DEPLOYMENT.md.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "publish" to push both images to GHCR'
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-images
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'publish'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "BACKEND=ghcr.io/${owner}/signal-backend:sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "WEB=ghcr.io/${owner}/signal-web:sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
+          docker build --build-arg GIT_SHA="$GITHUB_SHA" -t "ghcr.io/${owner}/signal-backend:sha-${GITHUB_SHA}" backend
+          docker build --build-arg GIT_SHA="$GITHUB_SHA" -t "ghcr.io/${owner}/signal-web:sha-${GITHUB_SHA}" frontend
+      - name: Smoke test before pushing
+        run: bash deploy/smoke-test.sh "$BACKEND" "$WEB"
+      - name: Push and record digests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker push "$BACKEND"
+          docker push "$WEB"
+          backend_digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$BACKEND")
+          web_digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$WEB")
+          docker logout ghcr.io
+          {
+            echo "### Images for ${GITHUB_SHA}"
+            echo '```'
+            echo "SIGNAL_BACKEND_IMAGE=${backend_digest}"
+            echo "SIGNAL_WEB_IMAGE=${web_digest}"
+            echo '```'
+            echo "Deploy by digest: deploy/signal-deploy.sh deploy ${GITHUB_SHA} (docs/DEPLOYMENT.md)."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,22 @@
+# Allowlist (#263): only what the image needs enters the build context. This is
+# what keeps .env files, the corpus, backups, logs and venvs out of images.
+**
+!app/
+!app/**
+!scripts/
+!scripts/**
+!requirements.lock
+
+# Never, even inside the allowed directories.
+**/__pycache__
+**/*.pyc
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/*.sqlite*
+**/*.log
+**/.env
+**/.env.*
+**/*.age
+**/*.key
+**/*.pem

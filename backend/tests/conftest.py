@@ -59,6 +59,13 @@ os.environ["ALLOW_INSECURE_AUTH_BYPASS"] = "false"
 os.environ["AUTH_ADMIN_EMAIL"] = ""
 os.environ["AUTH_ADMIN_PASSWORD"] = ""
 os.environ["AUTH_COOKIE_SECURE"] = "false"
+# Deployment mode (#265): the suite runs in local mode with signup open, whatever
+# the surrounding shell sets (a codespace exports DEPLOY_ENV=dev). Tests that
+# exercise dev/hosted checks or closed signup monkeypatch these explicitly.
+os.environ["DEPLOY_ENV"] = ""
+os.environ["SIGNAL_PROD_DATA_DIRS"] = ""
+os.environ["AUTH_SIGNUP_ENABLED"] = "true"
+os.environ.pop("AUTH_COOKIE_NAME", None)
 os.environ["CSRF_ALLOWED_ORIGINS"] = ",".join(
     [
         "http://localhost:5173",

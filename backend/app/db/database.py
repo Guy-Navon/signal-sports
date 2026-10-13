@@ -6,6 +6,13 @@ from app.db.orm_models import Base
 # Read DATABASE_URL at import time so tests can set it via os.environ before importing.
 DATABASE_URL: str = os.environ.get("DATABASE_URL", "sqlite:///./data/signal_sports.db")
 
+# DEPLOY_ENV=dev must never open a production database (#265). Checked here, at
+# engine creation, so every script and tool is covered — not just the API and
+# the worker. A no-op in local and hosted modes.
+from app.core.deploy_mode import assert_database_allowed  # noqa: E402
+
+assert_database_allowed(DATABASE_URL)
+
 engine = create_engine(
     DATABASE_URL,
     # M7 topology (#147/#155): TWO writer processes (API + scheduler worker)

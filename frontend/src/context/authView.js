@@ -12,16 +12,19 @@
 export function deriveAuthView(dataMode, bootstrap) {
   if (dataMode !== "backend") {
     // Local demo mode stays fully authless — no fetch ever happens.
-    return { mode: "local", authEnforced: false, user: null, onboarding: null };
+    return { mode: "local", authEnforced: false, user: null, onboarding: null, signupEnabled: true };
   }
   if (!bootstrap) {
-    return { mode: "loading", authEnforced: false, user: null, onboarding: null };
+    return { mode: "loading", authEnforced: false, user: null, onboarding: null, signupEnabled: true };
   }
   return {
     mode: bootstrap.auth_enforced ? "enforced" : "bypass",
     authEnforced: Boolean(bootstrap.auth_enforced),
     user: bootstrap.user || null,
     onboarding: bootstrap.onboarding || null,
+    // AUTH_SIGNUP_ENABLED (#265). Only an explicit false closes signup, so a
+    // backend that predates the field keeps today's behaviour.
+    signupEnabled: bootstrap.signup_enabled !== false,
   };
 }
 

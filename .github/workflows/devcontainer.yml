@@ -1,0 +1,82 @@
+name: Dev environment
+# Exercises the devcontainer's setup script and scripts/dev.sh on a plain Linux
+# runner with the same Python/Node as CI. It does NOT build the devcontainer
+# image or create a codespace; the first real codespace start is a manual check
+# (.devcontainer/README.md).
+on:
+  pull_request:
+    paths:
+      - '.devcontainer/**'
+      - 'scripts/dev.sh'
+      - 'backend/requirements.lock'
+      - 'frontend/package-lock.json'
+      - '.github/workflows/devcontainer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup-and-api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: devcontainer.json is valid JSON and keeps the dev guards
+        run: |
+          python - <<'PY'
+          import json
+          cfg = json.load(open(".devcontainer/devcontainer.json"))
+          env = cfg["containerEnv"]
+          assert env["DEPLOY_ENV"] == "dev", env
+          assert env["TELEGRAM_NOTIFICATIONS_ENABLED"] == "false"
+          assert env["SCHEDULER_ENABLED"] == "false"
+          assert env["CLASSIFICATION_PROVIDER"] == "disabled"
+          assert "signal_sports.db" not in cfg["remoteEnv"]["DATABASE_URL"]
+          for key in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "CLASSIFICATION_API_KEY"):
+              assert key not in env and key not in cfg.get("remoteEnv", {}), key
+          print("devcontainer.json ok")
+          PY
+      - name: post-create.sh (Claude Code install skipped)
+        env:
+          SIGNAL_SKIP_CLAUDE_CODE: '1'
+        run: bash .devcontainer/post-create.sh
+      - name: backend/.env is dev-only
+        run: |
+          test -f backend/.env
+          grep -q '^AUTH_ADMIN_EMAIL=dev-admin@example.invalid$' backend/.env
+          # (`! grep` would be ignored by `set -e`, hence the explicit if.)
+          if grep -q TELEGRAM backend/.env; then echo "Telegram setting in dev .env" >&2; exit 1; fi
+          test "$(stat -c %a backend/.env)" = "600"
+      - name: dev.sh api serves an empty dev DB, never the canonical corpus
+        run: |
+          scripts/dev.sh env
+          (scripts/dev.sh api > api.log 2>&1 &)
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:8000/health && break; sleep 1; done
+          session=$(curl -fsS http://127.0.0.1:8000/api/auth/session)
+          echo "$session"
+          [[ "$session" == *'"signup_enabled":true'* ]]
+          test -f backend/data/dev/signal_dev.db
+          test ! -e backend/data/signal_sports.db
+          password=$(sed -n 's/^AUTH_ADMIN_PASSWORD=//p' backend/.env)
+          headers=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/api/auth/login \
+            -H 'Content-Type: application/json' -H 'Origin: http://127.0.0.1:5173' \
+            --data "{\"email\":\"dev-admin@example.invalid\",\"password\":\"${password}\"}")
+          [[ "$headers" == *"signal_dev_session="* ]]
+      - name: dev.sh refuses a non-dev DEPLOY_ENV
+        run: |
+          set +e
+          DEPLOY_ENV=hosted scripts/dev.sh env; rc=$?
+          set -e
+          test "$rc" = "2"
+      - name: API log
+        if: always()
+        run: |
+          cat api.log 2>/dev/null || true
+          pkill -f "uvicorn app.main:app" || true

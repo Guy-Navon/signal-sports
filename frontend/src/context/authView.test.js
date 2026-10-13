@@ -15,7 +15,16 @@ describe("deriveAuthView", () => {
       authEnforced: false,
       user: null,
       onboarding: null,
+      signupEnabled: true,
     });
+  });
+
+  it("signup stays open unless the backend explicitly closes it (#265)", () => {
+    const base = { auth_enforced: true, user: null, onboarding: null };
+    expect(deriveAuthView("backend", base).signupEnabled).toBe(true);
+    expect(deriveAuthView("backend", { ...base, signup_enabled: true }).signupEnabled).toBe(true);
+    expect(deriveAuthView("backend", { ...base, signup_enabled: false }).signupEnabled).toBe(false);
+    expect(deriveAuthView("backend", null).signupEnabled).toBe(true);
   });
 
   it("backend mode without a bootstrap payload is loading", () => {

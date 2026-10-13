@@ -153,6 +153,8 @@ untracked `backend/.env`):
 | `TRANSLATION_PROVIDER` | disabled | disabled |
 | `ALLOW_DEV_RESET` / `ALLOW_CORPUS_DB_RESET` / `ALLOW_INSECURE_AUTH_BYPASS` | false | false |
 | `PREFERENCE_ENGINE` | (unset = v2) | unset; `legacy` is the rollback |
+| `DEPLOY_ENV` (#265) | unset = `local`: no extra checks | unset. `hosted` refuses the `ALLOW_*` flags and the fake classifier; `dev` refuses Telegram and any production DB path |
+| `AUTH_SIGNUP_ENABLED` (#265) | true | unset (true). A host sets false |
 
 Authentication: email/password (Argon2), HttpOnly cookie sessions, origin/fetch-metadata CSRF,
 and admin role gating ([USER_PLATFORM.md](USER_PLATFORM.md)). CSRF origins come from

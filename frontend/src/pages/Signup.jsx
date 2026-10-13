@@ -28,6 +28,24 @@ export default function Signup() {
     return <Navigate to="/" replace />;
   }
 
+  // Signup closed by the server (AUTH_SIGNUP_ENABLED=false, #265): say so
+  // instead of showing a form that can only fail with 403.
+  if (auth.status !== "loading" && !auth.signupEnabled) {
+    return (
+      <AuthScene kicker="מצטרפים לסיגנל" title="ההרשמה סגורה">
+        <p className="text-sm text-text-secondary text-center">
+          פתיחת חשבונות חדשים אינה זמינה כרגע.
+        </p>
+        <p className="mt-6 text-sm text-text-secondary text-center">
+          כבר יש לכם חשבון?{" "}
+          <Link to="/login" className="text-foreground underline underline-offset-4">
+            התחברות
+          </Link>
+        </p>
+      </AuthScene>
+    );
+  }
+
   async function onSubmit(event) {
     event.preventDefault();
     const validation = validateSignupForm({ email, password });

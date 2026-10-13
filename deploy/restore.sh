@@ -3,7 +3,8 @@
 # §12.4). Run as root on the host. Decrypt on the PC (the backup private key
 # never comes to the host), then copy the plain .db here over the admin path.
 #
-#   deploy/restore.sh verify   <backup.db>           integrity, FKs, counts (read-only)
+#   deploy/restore.sh verify   <backup.db> [manifest] integrity, FKs, counts (read-only);
+#                                                    with a manifest: sha256 + counts must match
 #   deploy/restore.sh rehearse <backup.db>           a second API on 127.0.0.1:18081 over a
 #                                                    scratch copy; side effects off
 #   deploy/restore.sh rehearse --stop                remove the rehearsal container
@@ -36,13 +37,19 @@ usage() { sed -n '2,25p' "$0"; exit 2; }
 
 verify_file() {
   # Read-only mount + immutable open: verification cannot change the file.
-  local file
+  # With a manifest ($2), sha256 and every table's row count must match it.
+  local file manifest="" extra=()
   file=$(readlink -f "$1")
   [ -f "$file" ] || die "no such file: $1"
+  if [ -n "${2:-}" ]; then
+    manifest=$(readlink -f "$2")
+    [ -f "$manifest" ] || die "no such manifest: $2"
+    extra=(-v "$manifest:/restore/expect.json:ro")
+  fi
   # Root inside the throwaway container: the candidate may be a root-owned 0600 file.
   docker run --rm --network none --read-only --user 0:0 \
-    -v "$file:/restore/candidate.db:ro" --entrypoint python "$SIGNAL_BACKEND_IMAGE" \
-    scripts/verify_db.py /restore/candidate.db
+    -v "$file:/restore/candidate.db:ro" "${extra[@]}" --entrypoint python "$SIGNAL_BACKEND_IMAGE" \
+    scripts/verify_db.py /restore/candidate.db ${manifest:+--expect /restore/expect.json}
 }
 
 refuse_dev_snapshot() {
@@ -132,8 +139,8 @@ require_tools docker
 
 case "$cmd" in
   verify)
-    [ $# -eq 1 ] || usage
-    verify_file "$1"
+    [ $# -eq 1 ] || [ $# -eq 2 ] || usage
+    verify_file "$1" "${2:-}"
     ;;
 
   rehearse)

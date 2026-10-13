@@ -133,6 +133,18 @@ fi
 pass "only the backup key decrypts the backup; the dev key cannot"
 
 sudo -E bash ./restore.sh verify "$WORK/restored.db" > "$WORK/verify.txt" && pass "restore.sh verify" || fail "verify: $(cat "$WORK/verify.txt")"
+# The cutover check: the copy must match the manifest written with the backup
+# (same sha256, same row count in every table); a different file must not.
+manifest=$(sudo find "$WORK/data/backups" -name 'backup_*.db.manifest.json' | head -1)
+sudo cp "$manifest" "$WORK/expect.json"
+sudo -E bash ./restore.sh verify "$WORK/restored.db" "$WORK/expect.json" > /dev/null \
+  && pass "verify against the backup's manifest (sha256 + counts)" || fail "manifest verify"
+docker compose run --rm -T --no-deps api python scripts/backup_db.py /app/data/backups/other.db > /dev/null
+sudo cp "$WORK/data/backups/other.db" "$WORK/other.db"
+if sudo -E bash ./restore.sh verify "$WORK/other.db" "$WORK/expect.json" > /dev/null 2>&1; then
+  fail "a different database matched the manifest"
+fi
+pass "a different database does not match the manifest"
 
 # ── Restore: stop writers, swap the set, start with Telegram off ─────────────
 sudo -E bash ./restore.sh apply "$WORK/restored.db" --confirm > "$WORK/apply.txt" 2>&1 || fail "apply: $(cat "$WORK/apply.txt")"

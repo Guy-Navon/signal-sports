@@ -1,0 +1,20 @@
+#!/bin/sh
+# Signal Sports — SSH forced command for the `deploy` identity (HOSTING_PLAN §9.1).
+# TEMPLATE: install as /usr/local/sbin/signal-deploy-ssh (root:root 0755) and use
+# it in ~deploy/.ssh/authorized_keys, one line per key held ONLY on the owner's PC:
+#
+#   restrict,command="/usr/local/sbin/signal-deploy-ssh" ssh-ed25519 AAAA... deploy-from-pc
+#
+# `restrict` turns off forwarding, PTY and agent; the key can do nothing but this.
+# Allowed: deploy <sha> [--class 1|2] | validate <sha> | rollback | status.
+# Class 3 (data semantics) is deliberately NOT allowed here: it needs the admin
+# identity and a written plan (docs/DEPLOYMENT.md).
+set -eu
+cmd=${SSH_ORIGINAL_COMMAND:-}
+if printf '%s\n' "$cmd" | grep -Eqx '(deploy|validate) [0-9a-f]{40}( --class [12])?( --no-wait-cycle)?|rollback|status'; then
+  # Word splitting is intended: the whole line already matched the allowlist.
+  # shellcheck disable=SC2086
+  exec sudo -n /opt/signal/deploy/signal-deploy.sh $cmd
+fi
+echo "refused. Allowed: deploy <40-hex sha> [--class 1|2] [--no-wait-cycle], validate <sha>, rollback, status" >&2
+exit 2

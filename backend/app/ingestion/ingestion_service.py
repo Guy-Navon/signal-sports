@@ -71,6 +71,17 @@ _HEBREW_BROAD_SOURCES = frozenset({
 })
 
 
+def _accumulate_usage(totals: dict, usage) -> None:
+    """Add one call's reported token counts (#261). Counts only, never content."""
+    if not isinstance(usage, dict):
+        return
+    totals["calls_with_usage"] = totals.get("calls_with_usage", 0) + 1
+    for key in ("prompt_tokens", "completion_tokens", "reasoning_tokens"):
+        value = usage.get(key)
+        if isinstance(value, int) and not isinstance(value, bool):
+            totals[key] = totals.get(key, 0) + value
+
+
 def _apply_post_facts_event_validation(
     final_result,
     *,
@@ -442,6 +453,8 @@ def _run_source(
     llm_fallback_unparseable_json = 0
     llm_fallback_low_confidence = 0
     _llm_failure_latencies: dict[str, list[float]] = {}
+    # Reported token usage (#261), summed over the calls that report it.
+    _llm_usage: dict[str, int] = {}
     # Gating accumulators — eligible articles skipped/called by the gate.
     llm_skipped = 0
     llm_skip_reasons: dict[str, int] = {}
@@ -487,6 +500,7 @@ def _run_source(
             if llm_ms is not None:
                 _llm_latencies.append(llm_ms)
                 _llm_title_samples.append((item.title[:50], llm_ms))
+                _accumulate_usage(_llm_usage, getattr(_LLM_PROVIDER, "last_usage", None))
                 cb = article.classified_by
                 if cb in ("llm", "llm+rules_guardrail"):
                     llm_attempts += 1
@@ -633,6 +647,7 @@ def _run_source(
         llm_avg_ms=llm_avg_ms,
         llm_p95_ms=llm_p95_ms,
         total_ms=total_ms,
+        llm_usage=_llm_usage or None,
     )
 
     # skipped_filtered is intentionally NOT stored in the run log — the DB schema

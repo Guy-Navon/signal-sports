@@ -2,6 +2,10 @@
 .env
 .env.*
 !frontend/.env.example
+!deploy/.env.example
+# Hosted stack (#263): real settings and any local data dir stay untracked.
+deploy/signal.env
+deploy/data/
 
 # Logs
 /logs

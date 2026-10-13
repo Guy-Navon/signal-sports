@@ -108,6 +108,7 @@ The LLM module is completely separate from `backend/app/ingestion/`. The ingesti
 | `fake` | `FakeLLMProvider` | Pre-set results for known test headlines; unknown → None → rules fallback |
 | `gemini` | `GeminiLLMProvider` | Google Gemini API via `google-genai` SDK; requires `CLASSIFICATION_API_KEY` |
 | `ollama` | `OllamaProvider` | HTTP call to local Ollama; `format:json`, `temperature:0`, `num_predict:500` |
+| `openai_compat` | `OpenAICompatibleProvider` | any OpenAI Chat Completions endpoint (Groq, Cerebras, OpenRouter, …); strict JSON schema, no retries (#261). **Implemented and tested with mocked HTTP only; no hosted model has been evaluated (#262)** |
 
 The provider is instantiated once at module import time in `ingestion_service.py`:
 ```python
@@ -140,6 +141,44 @@ Calls the Google Gemini API via the `google-genai` SDK (`google-genai>=1.0.0` in
 - On any other error: logs warning, returns `None` → rules fallback
 - **Free-tier limitation:** `gemini-2.5-flash-lite` (preview) is capped at 20 requests/day on the free tier — not enough for production-scale ingestion. Use Ollama for uncapped local classification.
 - No circuit breaker needed: cloud API failures are transient and do not indicate "server not running"
+
+**Evaluation metadata (#261, behaviour unchanged):** the provider records `last_usage`
+(prompt, candidates and **thinking** token counts), the finish reason (`MAX_TOKENS` shows a
+thinking model truncating the JSON) and a typed failure reason (`unparseable_json`,
+`http_error`). The output cap is `CLASSIFICATION_MAX_OUTPUT_TOKENS`, default 500 as before.
+
+### OpenAICompatibleProvider (#261)
+
+`CLASSIFICATION_PROVIDER=openai_compat`. One provider for every host that speaks OpenAI Chat
+Completions, so a free-tier change is a config change. **Status: mocked tests only.** Which
+hosted model replaces Ollama is #262's evaluation and the owner's decision.
+
+- Endpoint: `POST {CLASSIFICATION_BASE_URL}/chat/completions`, `Authorization: Bearer
+  {CLASSIFICATION_API_KEY}`. `CLASSIFICATION_MODEL` has no default. Missing settings, a
+  non-https remote URL or an unknown format fall back to `disabled` with a warning that names
+  the variable, never its value.
+- Same contract as Ollama: the same system prompt and user message, `temperature: 0`,
+  `parse_and_validate_llm_json`, the #217 failure taxonomy (`connect_error`, `timeout`,
+  `http_error`, `bad_response_shape`, `unparseable_json`) and per-call latency. A connect
+  error opens the per-run circuit breaker exactly as it does for Ollama.
+- `CLASSIFICATION_RESPONSE_FORMAT`: `json_schema` (default: **strict** schema built from the
+  same allowed values as validation, so the two cannot drift), `json_object` (JSON mode) or
+  `none`.
+- `CLASSIFICATION_REASONING_EFFORT` (default `low`; `none` omits it) and
+  `CLASSIFICATION_MAX_OUTPUT_TOKENS` (default 1000, reasoning included). The finish reason is
+  recorded, so `length` truncation is visible.
+- **429:** that article falls back to rules as `http_error`; the provider then sends **no
+  request** for `Retry-After` seconds (default 60, capped at 300). Calls in that window fall
+  back at once, also as `http_error`. There is no retry loop.
+- **Usage:** `last_usage` (prompt, completion, reasoning token counts) feeds the run's
+  `metrics.llm_tokens`.
+- **Secrets:** the key travels only in the header. It is never logged; error logs carry the
+  status code, not the body. `repr()` omits it.
+- **Separate credentials are not separate quotas.** On Groq, limits are per organization, so a
+  second key in the same org shares the quota (HOSTING_PLAN §10.3). Dev runs with
+  `disabled` unless it is evaluating, and evaluations are bounded by `--max-calls`.
+- Gemini also publishes an OpenAI-compatible endpoint; using it through this provider is
+  possible but unverified [A].
 
 ### FakeLLMProvider
 
@@ -512,7 +551,7 @@ Response shape:
 
 ```
 # Provider selection
-CLASSIFICATION_PROVIDER=disabled          # disabled | fake | gemini | ollama
+CLASSIFICATION_PROVIDER=disabled          # disabled | fake | gemini | ollama | openai_compat (#261)
 
 # Model. Code defaults when unset (app/classification/service.py):
 #   ollama:  llama3.2:3b          ← production sets qwen2.5:3b-instruct explicitly
@@ -687,7 +726,7 @@ rates (deterministic_accept_rate, llm_call_rate, gate_skip_rate,
 fallback_rate, low_confidence_fallback_rate, abstention_rate, ambiguity_rate,
 conflict_rate, weighted_evidence_override_rate, event_correction_rate), plus
 latency (llm_avg_ms/llm_p95_ms/total_ms plus failure latency by reason), throughput (articles_per_minute)
-and cost estimates (`LLM_COST_PER_CALL_ESTIMATE` env × attempts; per-run and
+and reported token usage (`llm_tokens`, #261: prompt/completion/reasoning sums, `None` when no call reported usage), and cost estimates (`LLM_COST_PER_CALL_ESTIMATE` env × attempts; per-run and
 per-1000-articles). Rates are `None` when the denominator is zero — "not
 measurable this run" is distinct from "measured zero". The disabled-provider
 path records `llm_call_rate=0.0` with everything else still measured.
@@ -837,6 +876,14 @@ The run-level override (`gating_enabled_override`) is threaded through `run_inge
 1. **Probe read-only first.** `backend/scripts/llm_failure_probe.py` opens the corpus with
    SQLite `mode=ro` and runs the configured provider over a fixed slice, comparing rules and
    the merged result per field. The gating caveats above apply to anything you conclude from it.
+   **Bounds (#262):** `--max-calls` is a hard ceiling (default 30, at most 500); `--dry-run`
+   prints the plan and a token/cost *estimate* without building the provider or sending a
+   request; `--ids-file` takes a census sample or an id list; `--price-in-per-m` and
+   `--price-out-per-m` are the operator's price assumptions. The report's `mode` is
+   `dry_run`, `live` (gemini, ollama, openai_compat) or `offline` (a fake or stub), so a mocked
+   run can never pass for a live evaluation, and `usage` sums the tokens the provider reported.
+   The decision-level comparison against the owner's ratings that #262 asks for is a separate
+   step (`corpus_rerun_diff.py`, the N05 gate) and is not automated by the probe.
 2. **Anything that writes runs on a copy.** Use `scripts/backup_db.py` (the WAL-safe copy)
    or `scripts/reclassify_copy.py`, and point `DATABASE_URL` at the copy. The benchmark endpoint
    refuses the real corpus.

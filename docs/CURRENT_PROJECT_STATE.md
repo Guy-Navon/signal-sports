@@ -345,8 +345,10 @@ running system *and* for development. The PC remains only an access station: edi
 and SSH. This is urgent **independent of the pilot or product readiness**.
 
 **The plan is a decision document, [HOSTING_PLAN.md](HOSTING_PLAN.md) v3, under the owner's
-review. Nothing in it is implemented, no host has been chosen, and its recommendation is a
-proposal, not an approved decision.** It compares:
+review. No host has been chosen, and its recommendation is a proposal, not an approved
+decision.** The preparation shared by every option is being implemented and is described in
+[DEPLOYMENT.md](DEPLOYMENT.md): it is validated in CI only, and **nothing runs on a host yet**.
+The plan compares:
 
 - **B (proposed as the reversible start):** a small x86 VM running the live system with Docker
   Compose (Hetzner CX23, €5.99 a month excl. tax), plus GitHub Codespaces for development, which
@@ -435,6 +437,10 @@ Use the collectors for test counts (`pytest --collect-only -q`); counts copied i
 That writes `data/backups/backup_<UTC>.db` through the SQLite backup API, which is WAL-safe. Run
 destructive or benchmark work only against a copy (`DATABASE_URL=sqlite:///./data/<copy>.db`).
 The benchmark route hard-refuses the real corpus. Never delete `backend/data/signal_sports.db`.
+
+**Container stack** (the future host; CI-validated, not deployed): `deploy/compose.yaml` with the
+`backend` and `web` images, and `deploy/smoke-test.sh` for an isolated empty-DB check. See
+[DEPLOYMENT.md](DEPLOYMENT.md).
 
 **Manual ingestion** (admin session, or a local bypass): `POST /api/ingest/run[?source_id=X]`,
 `POST /api/ingest/scheduler/run-now`. Source health: `GET /api/ingest/source-health`. Mobile:

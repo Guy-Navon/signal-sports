@@ -339,7 +339,9 @@ pages) and #23 (a local startup script, optional now that the stack moves to a h
 **Top priority (owner, 2026-10-13): milestone 13, "Off the owner's machine — hosted model,
 backend and frontend".** The owner's PC cannot keep running the product. The model moves to a
 hosted API, and the stack (API, worker, frontend) moves to a small always-on host that is reached
-privately over Tailscale, as today.
+privately over Tailscale, as today. **The full plan, under owner review, is
+[HOSTING_PLAN.md](HOSTING_PLAN.md):** measured requirements, the options with evidence, the
+target architecture, cost, risks, open decisions, and questions for a reviewer.
 
 - **Immediate relief, with no hosting needed:**
   - #261 an OpenAI-compatible LLM provider (Groq, Cloudflare, Cerebras or OpenRouter free tiers; our load is ~45 calls and ~60K tokens a day)

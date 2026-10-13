@@ -47,6 +47,8 @@ Start here (cold start, no history needed):
   decision semantics, architecture invariants, quality gate).
 - [CLAUDE.md](CLAUDE.md) and [docs/PRODUCT_UNDERSTANDING.md](docs/PRODUCT_UNDERSTANDING.md):
   product intent and vision.
+- [docs/HOSTING_PLAN.md](docs/HOSTING_PLAN.md): **the plan under review** for moving the model,
+  backend and frontend off the owner's machine (milestone 13, the top priority).
 
 Layer contracts: [ARTICLE_FACTS](docs/ARTICLE_FACTS.md) ·
 [RELEVANCE_VISIBILITY_CONTRACT](docs/RELEVANCE_VISIBILITY_CONTRACT.md) ·

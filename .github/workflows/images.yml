@@ -44,3 +44,12 @@ jobs:
       - name: Compose logs
         if: always()
         run: cat smoke-compose.log 2>/dev/null || true
+      - name: Install age (backup encryption)
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends age
+      - name: Rehearse backup, restore, undo and the dev snapshot (throwaway stack)
+        env:
+          KEEP_REHEARSAL_LOGS: '1'
+        run: bash deploy/rehearse-backup-restore.sh signal-backend:ci signal-web:ci
+      - name: Rehearsal logs
+        if: always()
+        run: cat rehearsal-compose.log 2>/dev/null || true

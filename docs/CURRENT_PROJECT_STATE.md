@@ -314,7 +314,9 @@ deterministic rule changelog, §1–§18).
   it would delete today all 256 N05-rated articles (the whole gate corpus) and 29 of census #2's
   804, and all of census #2 by about mid-November. Tracked in #255; see
   [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8.
-- Single machine and single SQLite file. Backups are manual (`scripts/backup_db.py`, WAL-safe).
+- Single machine and single SQLite file. On the PC, backups are still manual (`scripts/backup_db.py`,
+  WAL-safe and verified). The hosted nightly off-host backup exists in the repository
+  ([DEPLOYMENT.md](DEPLOYMENT.md) §7) but runs nowhere until a host exists.
 
 **Product**
 - **No real usage yet** (§0). Feedback learning, the third personalization path, has no real

@@ -1,0 +1,55 @@
+{
+  "name": "Signal Sports (dev)",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.13",
+      "installTools": false
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
+  },
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "8gb"
+  },
+  "containerEnv": {
+    "DEPLOY_ENV": "dev",
+    "CLASSIFICATION_PROVIDER": "disabled",
+    "TRANSLATION_PROVIDER": "disabled",
+    "SCHEDULER_ENABLED": "false",
+    "TELEGRAM_NOTIFICATIONS_ENABLED": "false",
+    "RESULTS_SYNC_ENABLED": "false",
+    "RETENTION_CLEANUP_ENABLED": "false",
+    "VITE_DATA_MODE": "backend"
+  },
+  "remoteEnv": {
+    "DATABASE_URL": "sqlite:///${containerWorkspaceFolder}/backend/data/dev/signal_dev.db",
+    "CLAUDE_CONFIG_DIR": "/workspaces/.persist/claude"
+  },
+  "forwardPorts": [5173, 8000],
+  "portsAttributes": {
+    "5173": {
+      "label": "web (Vite; proxies /api to 8000)",
+      "onAutoForward": "notify"
+    },
+    "8000": {
+      "label": "api (uvicorn)",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "dbaeumer.vscode-eslint",
+        "anthropic.claude-code"
+      ]
+    },
+    "codespaces": {
+      "openFiles": [".devcontainer/README.md"]
+    }
+  }
+}

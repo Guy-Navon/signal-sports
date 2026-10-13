@@ -882,8 +882,11 @@ The run-level override (`gating_enabled_override`) is threaded through `run_inge
    `--price-out-per-m` are the operator's price assumptions. The report's `mode` is
    `dry_run`, `live` (gemini, ollama, openai_compat) or `offline` (a fake or stub), so a mocked
    run can never pass for a live evaluation, and `usage` sums the tokens the provider reported.
-   The decision-level comparison against the owner's ratings that #262 asks for is a separate
-   step (`corpus_rerun_diff.py`, the N05 gate) and is not automated by the probe.
+   The decision-level comparison against the owner's ratings is `scripts/llm_bakeoff.py`: it
+   replays each rated census row through the production `_normalise` with only the provider
+   swapped, scores it with the live profile, and compares with the ratings and with two baselines
+   (stored facts, current rules-only). Dry run by default; `--live` calls; responses are cached in
+   `backend/data/bakeoff/`; candidates and prices are listed by `--list-candidates`.
 2. **Anything that writes runs on a copy.** Use `scripts/backup_db.py` (the WAL-safe copy)
    or `scripts/reclassify_copy.py`, and point `DATABASE_URL` at the copy. The benchmark endpoint
    refuses the real corpus.

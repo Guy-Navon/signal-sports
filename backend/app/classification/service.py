@@ -36,10 +36,18 @@ def _openai_compat_from_env() -> LLMClassificationProvider:
       CLASSIFICATION_MAX_OUTPUT_TOKENS        default 1000 (includes reasoning)
       CLASSIFICATION_RESPONSE_FORMAT          json_schema (default) | json_object | none
       CLASSIFICATION_REASONING_EFFORT         default low; empty or "none" omits it
+      CLASSIFICATION_TOKEN_LIMIT_PARAM        max_tokens (default) | max_completion_tokens
+                                              (OpenAI reasoning models need the latter)
+      CLASSIFICATION_SEND_TEMPERATURE         true (default: temperature 0) | false (omit it;
+                                              OpenAI reasoning models accept only the default)
     Anything missing or invalid falls back to disabled, with a warning that
     names the variable and never its value.
     """
-    from app.classification.providers import RESPONSE_FORMATS, OpenAICompatibleProvider
+    from app.classification.providers import (
+        RESPONSE_FORMATS,
+        TOKEN_LIMIT_PARAMS,
+        OpenAICompatibleProvider,
+    )
 
     base_url = os.environ.get("CLASSIFICATION_BASE_URL", "").strip()
     api_key = os.environ.get("CLASSIFICATION_API_KEY", "").strip()
@@ -69,6 +77,13 @@ def _openai_compat_from_env() -> LLMClassificationProvider:
     if effort == "none":
         effort = ""
     max_tokens = int(_float_env("CLASSIFICATION_MAX_OUTPUT_TOKENS", 1000))
+    token_param = os.environ.get("CLASSIFICATION_TOKEN_LIMIT_PARAM", "max_tokens").strip().lower()
+    if token_param not in TOKEN_LIMIT_PARAMS:
+        logger.warning("Invalid CLASSIFICATION_TOKEN_LIMIT_PARAM=%r — using disabled", token_param)
+        return DisabledLLMProvider()
+    send_temperature = os.environ.get("CLASSIFICATION_SEND_TEMPERATURE", "true").strip().lower() not in {
+        "0", "false", "no", "off",
+    }
 
     provider = OpenAICompatibleProvider(
         base_url=base_url,
@@ -78,6 +93,8 @@ def _openai_compat_from_env() -> LLMClassificationProvider:
         max_output_tokens=max_tokens,
         response_format=response_format,
         reasoning_effort=effort,
+        token_limit_param=token_param,
+        send_temperature=send_temperature,
     )
     logger.info(
         "LLM classification provider: openai_compat (model=%s, format=%s, reasoning=%s)",

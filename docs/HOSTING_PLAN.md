@@ -834,12 +834,11 @@ Each PR states its class.
     `data/signal_sports.db` opened read-only (`mode=ro`)
   - it uses `SEED_PROFILES` and `score_article_v2` [C]
   - **it was not run.**
-- **Proposed integration (not done):**
-  - move it to `backend/scripts/census_calibration_fit.py`
-  - accept `--db` (default: the canonical path, read-only), `--ratings` and `--sample`
-  - add a smoke test on a tiny fixture
-  - link to it from `PREFERENCE_MODEL_V2.md` (census calibration, #237) and
-    `qa/CENSUS_2026-10.md`
+- **Integrated (2026-10-13):** `backend/scripts/census_calibration_fit.py`, with `--db`
+  (default: the canonical path, read-only), `--ratings`, `--sample`, `--review`,
+  `--candidate` and `--show`; the app engine is pinned to an in-memory DB so the script cannot
+  write anywhere; a smoke test runs it on a tiny fixture. Linked from `PREFERENCE_MODEL_V2.md`
+  and `qa/CENSUS_2026-10.md`. It was not run on the real corpus.
 
 ---
 

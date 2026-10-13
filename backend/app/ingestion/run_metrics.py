@@ -111,6 +111,7 @@ def compute_run_metrics(
     llm_avg_ms: Optional[float],
     llm_p95_ms: Optional[float],
     total_ms: float,
+    llm_usage: Optional[dict] = None,
 ) -> dict:
     """Derive the per-run dependency/quality metrics dict.
 
@@ -186,6 +187,10 @@ def compute_run_metrics(
         # Cost estimates (LLM_COST_PER_CALL_ESTIMATE env; 0.0 for local Ollama)
         "cost_per_call_estimate": cost_per_call,
         "estimated_cost_per_run": cost_per_run,
+        # Reported token usage (#261): prompt/completion/reasoning sums and
+        # calls_with_usage. None when no provider call reported usage
+        # (Ollama, Gemini, disabled), not zero. Additive key, schema v2.
+        "llm_tokens": dict(llm_usage) if llm_usage else None,
         "estimated_cost_per_1000_articles": (
             round((cost_per_run / new_articles) * 1000, 4) if new_articles > 0 else None
         ),

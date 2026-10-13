@@ -6,13 +6,17 @@ LLM classification provider interface and implementations.
 - FakeLLMProvider:            dev-only; returns pre-set results for known headlines
 - GeminiLLMProvider:          Google Gemini API (recommended free cloud option)
 - OllamaProvider:             calls a locally running Ollama instance
+- OpenAICompatibleProvider:   any OpenAI Chat Completions endpoint (Groq, Cerebras,
+                              OpenRouter, ...) — issue #261
 
 Configuration via environment variables:
-  CLASSIFICATION_PROVIDER=disabled|fake|gemini|ollama  (default: disabled)
+  CLASSIFICATION_PROVIDER=disabled|fake|gemini|ollama|openai_compat  (default: disabled)
   CLASSIFICATION_MODEL=<model name>                    (default varies by provider)
-  CLASSIFICATION_API_KEY=<gemini key>                  (required for gemini)
+  CLASSIFICATION_API_KEY=<key>                         (required for gemini, openai_compat)
   CLASSIFICATION_OLLAMA_BASE_URL=<url>                 (default: http://localhost:11434)
-  CLASSIFICATION_TIMEOUT_SECONDS=<number>              (default: 15, ollama only)
+  CLASSIFICATION_BASE_URL=<url>                        (openai_compat, e.g. .../openai/v1)
+  CLASSIFICATION_TIMEOUT_SECONDS=<number>              (default: 15; ollama, openai_compat)
+  The openai_compat tuning variables are documented in app/classification/service.py.
 """
 
 import json
@@ -35,6 +39,9 @@ class LLMClassificationProvider:
     last_failure_reason: str = "none"
     last_call_latency_ms: Optional[float] = None
     last_raw_content: Optional[str] = None
+    # Token usage of the last call, when the provider reports it (#261):
+    # {"prompt_tokens", "completion_tokens", "reasoning_tokens"}; counts only.
+    last_usage: Optional[dict] = None
 
     def classify_title(self, title: str, language: str, subtitle: Optional[str] = None) -> Optional[LLMClassificationResult]:
         raise NotImplementedError
@@ -117,16 +124,45 @@ class GeminiLLMProvider(LLMClassificationProvider):
     """
     can_classify = True
 
-    def __init__(self, api_key: str, model: str) -> None:
+    def __init__(self, api_key: str, model: str, max_output_tokens: int = 500) -> None:
         import google.genai as genai  # guarded import — only when provider is active
         self._client = genai.Client(api_key=api_key)
         self._model = model
+        self._max_output_tokens = max_output_tokens
+        self.last_usage: Optional[dict] = None
+        self.last_finish_reason: Optional[str] = None
 
     @property
     def provider_id(self) -> str:
         return f"gemini:{self._model}"
 
+    def _record_response(self, response) -> None:
+        """Usage (incl. thinking tokens) and finish reason, for evaluation (#262).
+
+        A thinking model can spend the max_output_tokens budget before the
+        JSON ends; a MAX_TOKENS finish reason with unparseable JSON shows that.
+        """
+        def _count(value) -> Optional[int]:
+            return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+        meta = getattr(response, "usage_metadata", None)
+        if meta is not None:
+            self.last_usage = {
+                "prompt_tokens": _count(getattr(meta, "prompt_token_count", None)),
+                "completion_tokens": _count(getattr(meta, "candidates_token_count", None)),
+                "reasoning_tokens": _count(getattr(meta, "thoughts_token_count", None)),
+            }
+        candidates = getattr(response, "candidates", None)
+        if isinstance(candidates, list) and candidates:
+            reason = getattr(candidates[0], "finish_reason", None)
+            name = getattr(reason, "name", reason)
+            self.last_finish_reason = name if isinstance(name, str) else None
+
     def classify_title(self, title: str, language: str, subtitle: Optional[str] = None) -> Optional[LLMClassificationResult]:
+        self.last_failure_reason = "none"
+        self.last_usage = None
+        self.last_finish_reason = None
+        self.last_raw_content = None
         # Two attempts: first try, then one retry after a rate-limit sleep.
         for attempt in range(2):
             try:
@@ -137,11 +173,16 @@ class GeminiLLMProvider(LLMClassificationProvider):
                     config=types.GenerateContentConfig(
                         system_instruction=CLASSIFICATION_SYSTEM_PROMPT,
                         temperature=0.0,
-                        max_output_tokens=500,
+                        max_output_tokens=self._max_output_tokens,
                         response_mime_type="application/json",
                     ),
                 )
-                return parse_and_validate_llm_json(response.text)
+                self._record_response(response)
+                self.last_raw_content = response.text
+                result = parse_and_validate_llm_json(response.text or "")
+                if result is None:
+                    self.last_failure_reason = "unparseable_json"
+                return result
             except Exception as exc:
                 exc_str = str(exc)
                 if attempt == 0 and ("429" in exc_str or "RESOURCE_EXHAUSTED" in exc_str):
@@ -161,8 +202,10 @@ class GeminiLLMProvider(LLMClassificationProvider):
                     )
                     time.sleep(delay)
                     continue
+                self.last_failure_reason = "http_error"
                 logger.warning("Gemini classify failed for %r: %s", title[:60], exc)
                 return None
+        self.last_failure_reason = "http_error"
         return None
 
 
@@ -257,3 +300,241 @@ class OllamaProvider(LLMClassificationProvider):
             return None
         finally:
             self.last_call_latency_ms = (time.perf_counter() - started_at) * 1000
+
+
+# ── OpenAI-compatible endpoints (#261) ────────────────────────────────────────
+
+def classification_json_schema() -> dict:
+    """The classification output as a strict JSON Schema.
+
+    Built from the same allowed values ``parse_and_validate_llm_json`` enforces,
+    so the two cannot drift. Strict mode needs every property required and no
+    extra properties; ``league`` is nullable through ``["string", "null"]`` with
+    ``None`` in its enum.
+    """
+    from app.classification.validation import (
+        ALLOWED_EVENT_TYPES,
+        ALLOWED_IMPORTANCES,
+        ALLOWED_LEAGUES,
+        ALLOWED_SPORTS,
+    )
+
+    properties = {
+        "sport": {"type": "string", "enum": sorted(ALLOWED_SPORTS)},
+        "league": {"type": ["string", "null"], "enum": sorted(ALLOWED_LEAGUES) + [None]},
+        "entities": {"type": "array", "items": {"type": "string"}},
+        "event_type": {"type": "string", "enum": sorted(ALLOWED_EVENT_TYPES)},
+        "importance": {"type": "string", "enum": sorted(ALLOWED_IMPORTANCES)},
+        "confidence": {"type": "number"},
+        "reason": {"type": "string"},
+    }
+    return {
+        "type": "object",
+        "properties": properties,
+        "required": list(properties),
+        "additionalProperties": False,
+    }
+
+
+RESPONSE_FORMATS = ("json_schema", "json_object", "none")
+
+# A 429 pauses the provider for Retry-After seconds, capped here, so one cycle
+# can never hammer a rate-limited endpoint. No request is sent while paused.
+MAX_RATE_LIMIT_PAUSE_SECONDS = 300.0
+DEFAULT_RATE_LIMIT_PAUSE_SECONDS = 60.0
+
+
+def _retry_after_seconds(response: httpx.Response) -> Optional[float]:
+    value = response.headers.get("retry-after")
+    if not value:
+        return None
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        return None  # an HTTP-date: use the default pause
+
+
+class OpenAICompatibleProvider(LLMClassificationProvider):
+    """
+    Classifies through any OpenAI Chat Completions endpoint (Groq, Cerebras,
+    OpenRouter, Cloudflare's OpenAI-compatible API, OpenAI itself).
+
+    Same contract as OllamaProvider: the same prompt and user message,
+    ``temperature 0``, ``parse_and_validate_llm_json``, the typed failure
+    taxonomy (#217) and per-call latency. It never retries.
+
+    - ``response_format``: ``json_schema`` (strict, the classification schema;
+      Groq's gpt-oss models support it), ``json_object`` (JSON mode), or
+      ``none`` for endpoints that support neither.
+    - ``reasoning_effort``: sent when set (gpt-oss, Qwen3), so hidden reasoning
+      does not eat the output budget. Empty omits it for endpoints that reject
+      the parameter.
+    - 429: that article falls back as ``http_error``, then the provider pauses
+      for ``Retry-After`` (default 60 s, capped at 300 s). Calls during the
+      pause return None at once, also as ``http_error``, without a request.
+    - ``last_usage`` holds the reported token counts (never content).
+    - The key travels only in the Authorization header. It is never logged, and
+      error logs carry the status code, not the response body.
+    """
+    can_classify = True
+
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str,
+        model: str,
+        timeout: float,
+        max_output_tokens: int = 1000,
+        response_format: str = "json_schema",
+        reasoning_effort: str = "low",
+    ) -> None:
+        if response_format not in RESPONSE_FORMATS:
+            raise ValueError(f"response_format must be one of {RESPONSE_FORMATS}")
+        self._url = base_url.rstrip("/") + "/chat/completions"
+        self._api_key = api_key
+        self._model = model
+        self._timeout = httpx.Timeout(connect=5.0, read=timeout, write=10.0, pool=5.0)
+        self._max_output_tokens = max_output_tokens
+        self._response_format = response_format
+        self._reasoning_effort = reasoning_effort.strip()
+        self._paused_until = 0.0
+        self.last_failure_was_connect_error = False
+        self.last_failure_reason = "none"
+        self.last_call_latency_ms: Optional[float] = None
+        self.last_raw_content: Optional[str] = None
+        self.last_usage: Optional[dict] = None
+        self.last_http_status: Optional[int] = None
+        self.last_finish_reason: Optional[str] = None
+
+    @property
+    def provider_id(self) -> str:
+        return f"openai_compat:{self._model}"
+
+    def __repr__(self) -> str:  # never include the key
+        return f"OpenAICompatibleProvider(url={self._url!r}, model={self._model!r})"
+
+    def rate_limit_paused(self) -> bool:
+        return time.monotonic() < self._paused_until
+
+    def build_payload(self, title: str, subtitle: Optional[str] = None) -> dict:
+        payload: dict = {
+            "model": self._model,
+            "messages": [
+                {"role": "system", "content": CLASSIFICATION_SYSTEM_PROMPT},
+                {"role": "user", "content": build_user_message(title, subtitle)},
+            ],
+            "temperature": 0,
+            "max_tokens": self._max_output_tokens,
+            "stream": False,
+        }
+        if self._response_format == "json_schema":
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "article_classification",
+                    "strict": True,
+                    "schema": classification_json_schema(),
+                },
+            }
+        elif self._response_format == "json_object":
+            payload["response_format"] = {"type": "json_object"}
+        if self._reasoning_effort:
+            payload["reasoning_effort"] = self._reasoning_effort
+        return payload
+
+    @staticmethod
+    def _usage(data: dict) -> Optional[dict]:
+        usage = data.get("usage")
+        if not isinstance(usage, dict):
+            return None
+
+        def _count(value) -> Optional[int]:
+            return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+        details = usage.get("completion_tokens_details")
+        reasoning = _count(details.get("reasoning_tokens")) if isinstance(details, dict) else None
+        return {
+            "prompt_tokens": _count(usage.get("prompt_tokens")),
+            "completion_tokens": _count(usage.get("completion_tokens")),
+            "reasoning_tokens": reasoning,
+        }
+
+    def classify_title(self, title: str, language: str, subtitle: Optional[str] = None) -> Optional[LLMClassificationResult]:
+        self.last_failure_was_connect_error = False
+        self.last_failure_reason = "none"
+        self.last_call_latency_ms = None
+        self.last_raw_content = None
+        self.last_usage = None
+        self.last_http_status = None
+        self.last_finish_reason = None
+
+        if self.rate_limit_paused():
+            self.last_failure_reason = "http_error"
+            self.last_http_status = 429
+            self.last_call_latency_ms = 0.0
+            return None
+
+        started_at = time.perf_counter()
+        try:
+            response = httpx.post(
+                self._url,
+                json=self.build_payload(title, subtitle),
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                timeout=self._timeout,
+            )
+            self.last_http_status = response.status_code
+            if response.status_code == 429:
+                retry_after = _retry_after_seconds(response)
+                pause = min(
+                    DEFAULT_RATE_LIMIT_PAUSE_SECONDS if retry_after is None else retry_after,
+                    MAX_RATE_LIMIT_PAUSE_SECONDS,
+                )
+                self._paused_until = time.monotonic() + pause
+                self.last_failure_reason = "http_error"
+                logger.warning(
+                    "%s rate-limited (429, retry-after=%s): no LLM calls for %.0fs",
+                    self.provider_id, response.headers.get("retry-after"), pause,
+                )
+                return None
+            response.raise_for_status()
+            data = response.json()
+            self.last_usage = self._usage(data)
+            choice = data["choices"][0]
+            self.last_finish_reason = choice.get("finish_reason")
+            raw_content = choice["message"]["content"]
+            if not isinstance(raw_content, str):
+                raise TypeError("message content is not a string")
+            self.last_raw_content = raw_content
+            result = parse_and_validate_llm_json(raw_content)
+            if result is None:
+                self.last_failure_reason = "unparseable_json"
+                logger.warning(
+                    "%s returned unparseable JSON for %r: length=%d finish_reason=%s",
+                    self.provider_id, title[:60], len(raw_content), self.last_finish_reason,
+                )
+            return result
+        except httpx.ConnectError as exc:
+            self.last_failure_was_connect_error = True
+            self.last_failure_reason = "connect_error"
+            logger.warning("%s not reachable for %r: %s", self.provider_id, title[:60], type(exc).__name__)
+            return None
+        except httpx.TimeoutException as exc:
+            self.last_failure_reason = "timeout"
+            logger.warning("%s timed out for %r: %s", self.provider_id, title[:60], type(exc).__name__)
+            return None
+        except httpx.HTTPStatusError:
+            self.last_failure_reason = "http_error"
+            logger.warning("%s HTTP %s for %r", self.provider_id, self.last_http_status, title[:60])
+            return None
+        except httpx.RequestError as exc:
+            self.last_failure_reason = "http_error"
+            logger.warning("%s request failed for %r: %s", self.provider_id, title[:60], type(exc).__name__)
+            return None
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
+            # ValueError covers a non-JSON body (json.JSONDecodeError subclasses it).
+            self.last_failure_reason = "bad_response_shape"
+            logger.warning("%s response shape invalid for %r: %s", self.provider_id, title[:60], type(exc).__name__)
+            return None
+        finally:
+            if self.last_call_latency_ms is None:
+                self.last_call_latency_ms = (time.perf_counter() - started_at) * 1000

@@ -148,6 +148,10 @@ def run_tick(cfg: SchedulerConfig, trigger: str) -> "object":
                                "(%.1fs > %ds)", outcome.cycle_id, secs,
                                cfg.max_run_seconds)
         logger.info("cycle %s finished: %s%s", outcome.cycle_id, outcome.status, dur)
+    # External heartbeats (docs/DEPLOYMENT.md, Monitoring). Off unless MONITOR_*
+    # URLs are set; never raises, never delays more than a few seconds.
+    from app.monitoring import report_cycle
+    report_cycle(outcome)
     return outcome
 
 

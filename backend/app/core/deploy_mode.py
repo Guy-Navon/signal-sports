@@ -166,6 +166,9 @@ def _dev_checks() -> tuple[list[str], list[str]]:
         if os.environ.get(secret, "").strip():
             # Name only: never echo a secret value.
             errors.append(f"{secret} is set; dev must not hold the production bot credentials")
+    for name in ("MONITOR_CYCLE_URL", "MONITOR_SOURCES_URL", "MONITOR_FRESH_URL", "MONITOR_BACKUP_URL"):
+        if os.environ.get(name, "").strip():
+            errors.append(f"{name} is set; dev must not ping production's monitor")
     url = os.environ.get("DATABASE_URL", "sqlite:///./data/signal_sports.db")
     reason = production_database_reason(url)
     if reason:

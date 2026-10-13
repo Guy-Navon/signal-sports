@@ -1,0 +1,16 @@
+# Signal Sports — nightly off-host backup (deploy/backup.sh). TEMPLATE: install
+# to /etc/systemd/system/ on the host (docs/DEPLOYMENT.md). Not active anywhere yet.
+[Unit]
+Description=Signal Sports nightly backup (copy, encrypt, upload off-host)
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+Environment=SIGNAL_DEPLOY_DIR=/opt/signal/deploy
+Environment=SIGNAL_BACKUP_CONF=/etc/signal/backup.env
+ExecStart=/opt/signal/deploy/backup.sh
+# Stay out of the live system's way.
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=1h

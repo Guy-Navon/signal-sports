@@ -431,6 +431,10 @@ cd backend;  .venv\Scripts\python.exe scripts/feed_ground_truth.py gate   # loca
 
 Use the collectors for test counts (`pytest --collect-only -q`); counts copied into docs go stale.
 
+**Remote development (Linux, a codespace or a dev user):** `scripts/dev.sh api|web|test|check|gate`
+and the devcontainer in [.devcontainer/README.md](../.devcontainer/README.md). It always runs
+`DEPLOY_ENV=dev` on its own empty DB. **Prepared and CI-exercised; no codespace has been created yet.**
+
 **Corpus safety.** Back up before any write: `.venv\Scripts\python.exe scripts/backup_db.py`.
 That writes `data/backups/backup_<UTC>.db` through the SQLite backup API, which is WAL-safe. Run
 destructive or benchmark work only against a copy (`DATABASE_URL=sqlite:///./data/<copy>.db`).

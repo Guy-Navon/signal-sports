@@ -18,6 +18,17 @@ def allow_insecure_auth_bypass() -> bool:
     }
 
 
+def signup_enabled() -> bool:
+    """Whether POST /api/auth/signup may create accounts (#265).
+
+    Default true, so local development and the test suite behave as before; a
+    hosted deployment sets AUTH_SIGNUP_ENABLED=false (deploy/.env.example).
+    """
+    return os.environ.get("AUTH_SIGNUP_ENABLED", "true").strip().lower() not in {
+        "0", "false", "no", "off",
+    }
+
+
 def validate_auth_startup_config() -> None:
     if allow_insecure_auth_bypass() and settings.auth_cookie_secure:
         raise RuntimeError(

@@ -173,6 +173,20 @@ They are separate tables; identity concerns never enter `profiles`.
   the bypass is a localhost/tailnet-dev affordance only). When the bypass is active on
   plain HTTP, a loud warning banner is logged at startup. An ordinary config mistake (unset
   flag) therefore yields *more* security, never less.
+- **Signup switch (#265)**: `AUTH_SIGNUP_ENABLED` (default `true`). When `false`,
+  `POST /api/auth/signup` returns 403 `"Signup is closed"` before anything is created (no
+  user, profile or session); login, admin bootstrap and demo users are unaffected.
+  `GET /api/auth/session` carries `signup_enabled`, so the login page hides its signup link
+  and `/signup` shows "ההרשמה סגורה" instead of a form that can only fail. No new route.
+- **Deployment mode (#265)**: `DEPLOY_ENV` (`app/core/deploy_mode.py`), checked by the API
+  lifespan and the worker before the DB is opened. Unset/`local` changes nothing.
+  `hosted` refuses `ALLOW_DEV_RESET`, `ALLOW_CORPUS_DB_RESET`, `ALLOW_INSECURE_AUTH_BYPASS`
+  and `CLASSIFICATION_PROVIDER=fake`, and warns on `AUTH_COOKIE_SECURE` not true, signup
+  open, `CSRF_ALLOWED_ORIGINS` unset and retention on. `dev` refuses Telegram (the flag or
+  either secret) and any production DB (the canonical corpus filename, or a path under
+  `/srv/signal/prod` or `SIGNAL_PROD_DATA_DIRS`; this check also runs at engine creation,
+  so it covers every script), the Telegram sender is never "configured" in dev, and the
+  default cookie name becomes `signal_dev_session`. An unknown value refuses startup.
 - `/me` routes never accept a user id from the caller (`POST /api/me/feedback` rejects a
   body `user_id`); identity comes only from the session. Horizontal access by editing a
   path parameter becomes structurally impossible on the consumer surface.
@@ -457,6 +471,10 @@ changes); **signal-real-data-qa** (demo diffs will require an admin session);
 bypass semantics).
 
 ## Changelog
+
+- 2026-10-13 — #265: `AUTH_SIGNUP_ENABLED` (closed signup → 403, UI hides it) and the
+  `DEPLOY_ENV` startup checks (hosted refuses dev flags; dev refuses Telegram and production
+  DB paths). Defaults unchanged for the local installation.
 
 - 2026-07-10 (milestone completion) — #54 merged (PR #75) after two independent-review
   rounds (consumer learning identity boundary, route-derived authz inventory with

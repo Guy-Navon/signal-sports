@@ -13,7 +13,14 @@ class Settings:
     version: str = "0.1.0"
     debug: bool = True
     database_url: str = os.environ.get("DATABASE_URL", "sqlite:///./data/signal_sports.db")
-    auth_cookie_name: str = os.environ.get("AUTH_COOKIE_NAME", "signal_session")
+    # A dev environment gets its own cookie name by default (#265), so a dev
+    # server on the same hostname as production never reads or overwrites the
+    # production session cookie. Local and hosted keep "signal_session".
+    auth_cookie_name: str = os.environ.get("AUTH_COOKIE_NAME") or (
+        "signal_dev_session"
+        if os.environ.get("DEPLOY_ENV", "").strip().lower() == "dev"
+        else "signal_session"
+    )
     auth_cookie_secure: bool = env_bool("AUTH_COOKIE_SECURE", False)
     csrf_allowed_origins: tuple[str, ...] = tuple(
         origin.strip()

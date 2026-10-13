@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security_deps import auth_enforced_for_legacy_surface
+from app.core.security_deps import auth_enforced_for_legacy_surface, signup_enabled
 from app.db.database import get_session
 from app.db.orm_models import UserRow
 from app.services import auth_service
@@ -76,6 +76,8 @@ class OnboardingBootstrap(BaseModel):
 
 class SessionBootstrap(BaseModel):
     auth_enforced: bool
+    # AUTH_SIGNUP_ENABLED (#265): lets the UI hide signup when it is closed.
+    signup_enabled: bool
     user: AuthUser | None
     onboarding: OnboardingBootstrap | None
 
@@ -147,6 +149,7 @@ def _session_bootstrap(session: Session, user: UserRow | None) -> SessionBootstr
         )
     return SessionBootstrap(
         auth_enforced=auth_enforced_for_legacy_surface(),
+        signup_enabled=signup_enabled(),
         user=_user_out(user) if user is not None else None,
         onboarding=onboarding,
     )
@@ -159,6 +162,10 @@ def signup(
     response: Response,
     session: Session = Depends(get_session),
 ):
+    # Closed signup (#265) refuses before anything is created: no user, no
+    # profile, no session. Admin bootstrap and demo users are unaffected.
+    if not signup_enabled():
+        raise HTTPException(status_code=403, detail="Signup is closed")
     try:
         user = auth_service.create_user_with_profile(
             session,

@@ -89,12 +89,14 @@ export default function Login() {
         </Button>
       </form>
 
-      <p className="mt-6 text-sm text-text-secondary text-center">
-        עדיין אין לכם חשבון?{" "}
-        <Link to="/signup" className="text-foreground underline underline-offset-4">
-          הרשמה
-        </Link>
-      </p>
+      {auth.signupEnabled && (
+        <p className="mt-6 text-sm text-text-secondary text-center">
+          עדיין אין לכם חשבון?{" "}
+          <Link to="/signup" className="text-foreground underline underline-offset-4">
+            הרשמה
+          </Link>
+        </p>
+      )}
     </AuthScene>
   );
 }

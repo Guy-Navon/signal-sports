@@ -200,6 +200,15 @@ def main() -> int:
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    # DEPLOY_ENV checks (#265) run before the enable check, so a refused
+    # configuration is reported even when the worker would not loop anyway.
+    from app.core.deploy_mode import UnsafeDeployConfig, validate_deploy_startup_config
+    try:
+        validate_deploy_startup_config()
+    except UnsafeDeployConfig as exc:
+        logger.error("%s", exc)
+        return 2
+
     cfg = read_scheduler_config()
     if not cfg.enabled:
         logger.error(

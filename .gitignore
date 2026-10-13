@@ -5,6 +5,7 @@
 !deploy/.env.example
 # Hosted stack (#263): real settings and any local data dir stay untracked.
 deploy/signal.env
+deploy/backup.env
 deploy/data/
 
 # Logs

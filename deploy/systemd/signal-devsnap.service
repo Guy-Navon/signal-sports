@@ -1,0 +1,14 @@
+# Signal Sports — weekly sanitized dev snapshot (deploy/devsnap.sh). TEMPLATE.
+[Unit]
+Description=Signal Sports weekly dev snapshot (sanitized, dev key)
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+Environment=SIGNAL_DEPLOY_DIR=/opt/signal/deploy
+Environment=SIGNAL_BACKUP_CONF=/etc/signal/backup.env
+ExecStart=/opt/signal/deploy/devsnap.sh
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=1h

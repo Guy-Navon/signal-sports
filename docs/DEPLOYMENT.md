@@ -244,7 +244,50 @@ and the monitor is pinged once, after the upload; a post-backup change disappear
 and comes back after `undo`; the previous set is kept; a dev snapshot is refused as production;
 the dev snapshot has no real email, hash or session.
 
-## 8. Deploy and rollback
+## 8. Monitoring
+
+**Implemented and tested with fake HTTP only; no monitor account or check exists yet.**
+`app/monitoring.py` sends healthchecks.io-style pings (POST `<url>`, or `<url>/fail`) from the
+worker after each **finished** cycle. Each signal is its own check, and an unset URL turns it
+off; nothing is configured by default.
+
+| Env (app settings file) | Pinged when | `/fail` when | Suggested period / grace | Catches |
+|---|---|---|---|---|
+| `MONITOR_CYCLE_URL` | a cycle completed (`succeeded` or `succeeded_with_warnings`) | the cycle ended `failed` | 5 min / 15 min | a dead worker, a down host, a stuck cycle (cycles are capped at 900 s, so silence covers "alive but stuck"), failing cycles |
+| `MONITOR_SOURCES_URL` | at least one source returned items, **new or not** | no source returned anything | 5 min / 55 min | blocked or unreachable sources, DNS or egress failures. A quiet night still pings, because feeds always list their latest items |
+| `MONITOR_FRESH_URL` | at least one **new** article was stored | never | 1 h / 7 h | ingestion that runs but stores nothing; the long grace absorbs natural quiet |
+| `MONITOR_BACKUP_URL` | `deploy/backup.sh` **after the off-host upload succeeded** | any backup step failed | 24 h / 6 h | failing or missing backups |
+
+- **A ping never fails or delays a cycle**: one POST with `MONITOR_TIMEOUT_SECONDS` (default 5,
+  capped at 10); every error is swallowed and logged by check **name**.
+- **The URLs are credentials** (anyone holding one can fake a success): they live in the host's
+  env file, are never logged, and the ping body carries only counts and source ids.
+- A coalesced tick (another run held the lease) sends nothing; the next tick reports.
+- `DEPLOY_ENV=dev` never pings, and its startup check refuses any `MONITOR_*` URL.
+- Not monitored by these pings: phone reachability over Tailscale (a manual daily check in T4).
+
+## 9. Source probe
+
+**Implemented and tested with fake adapters; never run from a host.**
+`scripts/source_probe.py` answers "can **this** machine read the sources?" before the cutover
+(HOSTING_PLAN §14: HTTP 200 alone doesn't count). Inside the image:
+
+```bash
+docker compose run --rm -T --no-deps api python scripts/source_probe.py          # the five Hebrew sources
+docker compose run --rm -T --no-deps api python scripts/source_probe.py --json   # for the record
+```
+
+For each source it runs the **same adapter ingestion uses**, plus one plain GET per endpoint to
+name a failure (DNS, connect, TLS, HTTP status), and judges the **content**: items parsed, most
+dated, the newest younger than `--max-age-hours` (24), titles in Hebrew, links on the source's
+own site. It captures the adapters' error lines instead of returning a bare "0 items". Verdicts:
+`ok`, `degraded` (items, but a content check failed), `empty`, `error`; exit 0 only when every
+probed source is `ok`. **It never opens the database** (a test proves the module does not even
+import it), never changes source enablement and never calls an LLM. It reports the static
+config's enablement only; the PC's DB overrides (Sport5 on, ONE off) are not read. Compare one
+run with the PC worker's fetches for the same hour.
+
+## 10. Deploy and rollback
 
 **Implemented and rehearsed in CI against a local registry** (`deploy/rehearse-deploy.sh` in
 `images.yml`): validate, a first deploy on an empty host, a second release, rollback, and the
@@ -286,7 +329,7 @@ Every release, failure and rollback is appended to `deploy/releases.log`. `rollb
 the previous release's digests; a second `rollback` returns to the same release, not back and
 forth.
 
-## 9. Host setup checklist (#268; owner-run, nothing done)
+## 11. Host setup checklist (#268; owner-run, nothing done)
 
 Templates are in `deploy/host/` and `deploy/systemd/`; none is installed anywhere. Personal values
 (hostnames, tailnet names, IPs, keys) never go into the repository.
@@ -312,11 +355,11 @@ Templates are in `deploy/host/` and `deploy/systemd/`; none is installed anywher
 6. **First deploy on an empty DB**: publish the images, then `signal-deploy.sh validate <sha>`
    and `deploy <sha>`. `COMPOSE_PROFILES` empty and `SCHEDULER_ENABLED=false`: **no worker**.
 7. **Checks before data arrives**: `/health` and the login page through Serve from the phone;
-   `scripts/source_probe.py` from the host (§8 of the monitoring docs); the healthchecks
+   `scripts/source_probe.py` from the host (§9); the healthchecks
    checks created (owner) with their URLs in `prod.env` / `backup.env`; `backup.sh --validate`
    and `devsnap.sh --validate`; then enable `signal-backup.timer` and `signal-devsnap.timer`.
 
-## 10. Cutover runbook (#269; owner-run)
+## 12. Cutover runbook (#269; owner-run)
 
 **One corpus, one writer**: at no moment may the PC and the host both run a worker or accept
 writes against their own copy.
@@ -357,7 +400,7 @@ writes against their own copy.
 3. Move the PC's frozen corpus aside (never delete it), put the host's copy in its place.
 4. Only then start the PC's API and worker. The host stays stopped.
 
-## 11. Hard rules
+## 13. Hard rules
 
 1. One worker, one corpus. The PC never runs a worker after the cutover.
 2. SQLite on a local filesystem only.
@@ -366,7 +409,7 @@ writes against their own copy.
 5. Images are built in CI, never on the host, and deployed by digest.
 6. Dev environments hold no production credential (HOSTING_PLAN §9).
 
-## 12. Not done yet
+## 14. Not done yet
 
 Everything above is repository preparation. Still open: the owner's decisions and accounts
 (HOSTING_PLAN §18), the first image publication, the host itself (#268), the hosted LLM

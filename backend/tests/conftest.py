@@ -65,6 +65,10 @@ os.environ["AUTH_COOKIE_SECURE"] = "false"
 os.environ["DEPLOY_ENV"] = ""
 os.environ["SIGNAL_PROD_DATA_DIRS"] = ""
 os.environ["AUTH_SIGNUP_ENABLED"] = "true"
+# Monitoring pings (docs/DEPLOYMENT.md): never configured in tests; the tests
+# that exercise pings set a fake URL and patch httpx.
+for _name in ("MONITOR_CYCLE_URL", "MONITOR_SOURCES_URL", "MONITOR_FRESH_URL", "MONITOR_BACKUP_URL"):
+    os.environ[_name] = ""
 os.environ.pop("AUTH_COOKIE_NAME", None)
 os.environ["CSRF_ALLOWED_ORIGINS"] = ",".join(
     [

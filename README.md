@@ -32,7 +32,7 @@ npm install
 npm run dev                                                 # http://localhost:5173
 ```
 
-Checks (the same as CI): `cd backend; .venv\Scripts\python -m pytest tests -q` and
+Checks (the same as CI; or run `powershell -File scriptseck.ps1`): `cd backend; .venv\Scripts\python -m pytest tests -q` and
 `cd frontend; npm run lint; npm run typecheck; npm run test; npm run build`.
 Details: [backend/README.md](backend/README.md), [frontend/README.md](frontend/README.md).
 

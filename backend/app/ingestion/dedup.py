@@ -4,9 +4,8 @@ URL-based deduplication.
 Rules:
 - Two articles with the same URL are considered duplicates.
 - The article ID is a deterministic hash of the URL, so ID collision == URL collision.
-- Fuzzy title dedup (near-duplicate clustering) is deferred to a future PR.
-
-TODO: Add fuzzy title dedup after ingestion volume justifies it.
+- Near-duplicate stories (same event, different URLs) are not handled here; they are
+  grouped downstream by story clustering (see docs/CLUSTERING.md).
 """
 
 import hashlib

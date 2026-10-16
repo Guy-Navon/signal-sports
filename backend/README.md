@@ -16,7 +16,7 @@ python -m venv .venv
 
 On macOS/Linux use `.venv/bin/python`. Configuration examples are in
 [.env.example](.env.example); `.env` is optional and must not be committed.
-The API listens on `http://127.0.0.1:8000`; OpenAPI is at `/docs`.
+The API listens on `http://127.0.0.1:8000`; OpenAPI is at `/docs`. `GET /health` is the public liveness probe.
 
 ## Tests
 

@@ -1,6 +1,6 @@
 ---
 name: test-driven-development
-description: Use when implementing a meaningful Signal Sports logic change (classification/facts, relevance and scoring, clustering, dedup, ingestion/orchestration, notifications, auth, API behavior, pure frontend models) or fixing a reproducible bug - establish a failing test first and watch it pass. NOT required for documentation, styling/CSS, copy or trivial configuration edits, and never a reason to add tests that mirror the implementation.
+description: Load BEFORE editing production code (backend/app, frontend/src logic) to change Signal Sports behavior or fix a reproducible bug - classification/facts, relevance and scoring, clustering, dedup, ingestion/orchestration, notifications, auth, API behavior, pure frontend models. Write or identify a failing test first, then implement and watch it pass. NOT required for documentation, styling/CSS, copy or trivial configuration edits, and never a reason to add tests that mirror the implementation.
 ---
 
 # Test-Driven Development (TDD)

@@ -1,5 +1,7 @@
 # Signal Sports
 
+[![Repository checks](https://github.com/Guy-Navon/signal-sports/actions/workflows/checks.yml/badge.svg)](https://github.com/Guy-Navon/signal-sports/actions/workflows/checks.yml)
+
 A personalized, Hebrew-first sports news intelligence feed. It surfaces only the stories that
 matter to a specific user, so they do not have to read seven sports sites to find them.
 

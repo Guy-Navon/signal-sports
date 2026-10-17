@@ -1,6 +1,6 @@
 ---
 name: signal-pr-finish
-description: Use to verify a substantial Signal Sports change is actually done before presenting it — checks scope, runs the relevant test suites, verifies generated artifacts and contracts, and confirms docs match reality. Triggers on requests like "is this ready", "finish this up", "wrap up this change" at the end of implementation work. Not for cross-session handoffs — use signal-handoff for that.
+description: Use to verify a substantial Signal Sports change is actually done before presenting it — checks scope, runs the relevant test suites, verifies generated artifacts and contracts, and confirms docs match reality. Triggers on requests like "is this ready", "finish this up", "wrap up this change" at the end of implementation work. Not for cross-session handoffs — use signal-handoff for that. Whether a PR should exist / be opened / be merged is signal-pr-gate.
 ---
 
 This is a pre-presentation quality gate for work just completed in this session, not a handoff

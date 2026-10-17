@@ -114,6 +114,7 @@ no third competing concept.
 | Worker/API crash mid-run | `running` row remains; heartbeat goes stale; the next acquirer takes over and marks it `abandoned`. |
 | Machine sleep / offline period | On worker start: ONE `startup_catchup` cycle iff the last success is stale. Missed ticks are never replayed — URL dedup makes the next fetch idempotent. |
 | One source fails | Isolated (existing contract): the cycle continues, ends `succeeded_with_warnings`. |
+| One article fails to persist (e.g. a constraint error at insert) | Isolated to that article (#318): the shared session is rolled back, later articles and later sources are still processed, each source's run record is written, and the cycle ends `succeeded_with_warnings`. The article is not stored, so a later cycle re-attempts it while the source still lists it — and fails again if the cause persists. |
 | Total pipeline failure | Cycle `failed` with a sanitized error; the lease is released on every exit path. |
 | Retry/restart | Article identity (`rss_`+sha1(url), per-article commit) makes re-ingestion idempotent — no duplicate articles, clusters, or (M7-5) notifications. |
 | Classification/validator unavailable | Existing fail-closed behavior preserved (rules fallback / anchor abstention). |

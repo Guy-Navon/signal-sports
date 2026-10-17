@@ -561,6 +561,13 @@ def _run_source(
             inserted_ids.append(article.id)
             quality_counters.observe(article)
         except Exception as exc:
+            # The session is shared by every item, both stages below and the run record.
+            # After a failed flush/commit SQLAlchemy refuses further use until rollback,
+            # so without this one bad item fails every later item — and, when nothing
+            # else rolls back, the run record too, aborting the whole cycle (#318).
+            # Earlier articles are already committed one by one, so this discards only
+            # the failed item's pending state.
+            session.rollback()
             msg = f"Item error [{item.url}]: {exc}"
             logger.error(msg)
             errors.append(msg)

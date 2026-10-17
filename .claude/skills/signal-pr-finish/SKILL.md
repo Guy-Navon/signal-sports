@@ -11,7 +11,9 @@ document (see `signal-handoff`) and not a commit/push action.
 1. **Inspect the actual diff**: `git status` and `git diff` (against `main`/the base branch).
    Read the real change, don't rely on memory of what you intended.
 2. **Match implementation to the stated task.** Anything touched that isn't explained by the
-   task gets called out explicitly — scope creep is named, not silently left in.
+   task gets called out explicitly — scope creep is named, not silently left in. If
+   `signal-pr-open` §5 (passes A–D and the final-diff questions) has not already been run on this
+   exact diff, run it now; otherwise reuse it rather than repeating the review.
 3. **Backend tests if `backend/` changed**:
    `cd backend && .venv\Scripts\python.exe -m pytest tests/ -v` (hermetic; no Ollama/API key).
    Do NOT trust hard-coded suite counts in docs — they drift. The gates are: zero failures, and
@@ -33,8 +35,15 @@ document (see `signal-handoff`) and not a commit/push action.
      A change there needs an explicit product reason, not "keeping it in sync".
    - Changed an API response shape → check the frontend consumer (`frontend/src/api/client.js`
      and the consuming page/component) in the same change.
+   - Touched ingestion, clustering, notifications, the worker, retention or backfill/apply
+     scripts → `signal-pipeline-review` findings are part of the self-review evidence.
+   - Touched auth, sessions, authorization, CSRF/CORS, secrets, untrusted input, deploy
+     boundaries or CI permissions/secrets/publishing → `differential-review`, depth scaled to risk.
+   - The change claims a quality improvement, or changes a model, prompt, threshold, gating or
+     clustering rule → a `signal-quality-eval` report (sample sizes, intervals, held-out rows).
 6. **Missing regression coverage.** A behavior change or bug fix without a new/updated test in
-   the matching suite is incomplete — the area skills (`signal-classification-change`,
+   the matching suite is incomplete (scope per `test-driven-development`: docs, styling and trivial
+   configuration don't need one) — the area skills (`signal-classification-change`,
    `signal-relevance-change`, `signal-taxonomy-change`, `signal-source-onboarding`) name the
    right test files.
 7. **Docs describe actual behavior, not intent.** Run the diff-driven scope procedure in
@@ -42,9 +51,12 @@ document (see `signal-handoff`) and not a commit/push action.
    layer contract for the area touched. Re-read each updated section against the code once more.
 8. **For UI changes, give manual verification steps** (`npm run dev`, which route, which data
    mode — `local` vs `backend` — and what to look for) rather than asserting visual correctness
-   from code alone. Product pages and the ops console have different shells — check the right one.
+   from code alone. Where automation reaches, gather browser evidence with `webapp-testing`
+   (`npm run capture:orbit` first) and review findings with `web-design-guidelines`. Product
+   pages and the ops console have different shells — check the right one.
 9. **Summarize**: what changed, tests run + results, artifacts/contracts verified, docs touched,
-   known risks/remaining limitations. Keep it short. Report failures as failures.
+   known risks/remaining limitations. Keep it short. Report every check as passed, failed,
+   skipped or unavailable (`verification-before-completion`); report failures as failures.
 
 ## Do not
 

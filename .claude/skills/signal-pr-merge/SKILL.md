@@ -49,7 +49,8 @@ not automatic merging or automatic closure.
 ## 3. Conduct an adversarial but practical review
 
 Read signal-pr-open's code-quality and self-review sections as the shared review
-standard. Do not run its PR-creation workflow. If it is unavailable, use the
+standard, including its domain checklists (§5 D) and final-diff questions. Do not run
+its PR-creation workflow. If it is unavailable, use the
 standalone minimum below and disclose the missing reference.
 
 Return to the original requirement before reading the implementation narrative.
@@ -110,8 +111,10 @@ actionable bug and then merge it anyway.
 Do not invent blockers from style preferences or hypothetical future needs.
 If fixing requires a new product decision, present the issue and options to Guy.
 
-Address substantive existing review comments. Do not dismiss them because they
-are automated or old. Do not mark a discussion resolved unless it was addressed.
+Address substantive existing review comments, evaluating each one against the code
+and requirements with receiving-code-review. Do not dismiss them because they
+are automated or old, and do not accept them for that reason either.
+Do not mark a discussion resolved unless it was addressed.
 Do not pretend self-review is an independent review or bypass required approvals.
 
 Keep the eventual review summary short: key flows checked, meaningful issues

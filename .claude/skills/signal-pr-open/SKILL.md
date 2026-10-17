@@ -128,6 +128,31 @@ Ask whether a broken implementation could still pass, especially through excessi
 mocking, snapshots of incidental output, or expected values copied from the code.
 Check whether code can be deleted or simplified without losing required behavior.
 
+### D. Domain checklists (contributors, not extra gates)
+Where the diff touches their area, apply the matching skill's checklist inside passes A-C and
+record its findings in the classification below. They add no separate approval, test or review
+cycle:
+- ingestion, clustering, notifications, worker, retention, backfill/apply scripts:
+  signal-pipeline-review;
+- auth, sessions, authorization, CSRF/CORS, secrets, untrusted input, deploy boundaries, CI
+  permissions/secrets/publishing: differential-review, with depth scaled to risk;
+- UI: web-design-guidelines (Hebrew/RTL, mobile, keyboard, states, long headlines); React
+  components, hooks and data fetching: vercel-react-best-practices;
+- async code, threads, timeouts, retries: async-python-patterns; the change's tests:
+  python-testing-patterns and test-driven-development.
+
+### Final-diff questions
+Answer each against the final diff, not the plan:
+- Does it solve the actual problem, including every acceptance criterion?
+- Is there a simpler correct approach?
+- Are boundaries, contracts, and failure behavior sound?
+- Are new abstractions and dependencies justified by a real need?
+- Are edge cases and regressions covered in proportion to the risk?
+- Were unrelated changes introduced?
+- Do the results you will report (checks, numbers, behavior) match the final code?
+Passing CI does not establish correctness, and a review that found nothing does not prove that
+no bugs exist.
+
 Record concrete findings with file/location, failure scenario, impact, and remedy.
 Classify:
 - blocker: incorrect behavior, data/security risk, broken contracts, unmet acceptance;
@@ -151,6 +176,8 @@ Block readiness if required evidence cannot be established.
 Use current repository commands and supported environments. Verify scripts and
 flags before use. Do not invent commands from memory.
 
+Apply test-driven-development where it applies (meaningful logic changes and
+reproducible bugs; not docs, styling, or trivial configuration).
 For bug fixes, add a focused regression test when practical. Confirm it detects
 the original failure by running against the prior behavior or demonstrating the
 specific failing assertion. If this is unsafe or impractical, explain the limit.
@@ -163,7 +190,8 @@ A prose typo does not need a test suite; executable documentation needs verifica
 
 Run checks required by repository policy plus those justified by the diff.
 Reuse valid evidence for unchanged code and inputs. Rerun affected checks after fixes.
-Separate passed, failed, not run, and pending. Never weaken checks to get green.
+Report each check as passed, failed, skipped, unavailable, or pending
+(verification-before-completion). Never weaken checks to get green.
 
 Use isolated databases and fixtures. No real Telegram sends, live DB writes,
 worker restarts, or production credentials as incidental validation.

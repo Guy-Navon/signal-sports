@@ -13,8 +13,8 @@ signal-sports/
 ├── backend/         FastAPI + SQLite: ingestion, classification, relevance, clustering, push, results
 ├── scripts/         repo-level tools (worker.ps1 start/stop/status, audit report generator)
 ├── docs/            contracts, current state, QA evidence
-├── .claude/skills/  project skills for Claude Code (classification / relevance / taxonomy changes,
-│                    source onboarding, feed audit, real-data QA, doc truth, PR finish, handoff)
+├── .claude/skills/  Claude Code skills: signal-* project workflows plus adapted upstream skills
+│                    (debugging, TDD, verification, security review, UI, eval); index in its README.md
 └── CLAUDE.md        product intent for AI-assisted development
 ```
 

@@ -104,6 +104,12 @@ classification/taxonomy changes affect only NEW rows until backfilled (step 3).
   that clicked feedback buttons contaminate later diffs. Reset via
   `POST /api/learning/{user_id}/reset` (tombstones, exact restore) only with user awareness.
 
+## Metric-level evaluation
+
+This skill owns the per-change gate. For intervals, held-out splits, classification
+precision/recall, cluster merge/split quality, prompt/model bake-offs or latency/cost, use
+`signal-quality-eval`; it builds on this gate rather than replacing it.
+
 ## Report
 
 State corpus size, engine, what was diffed, flips with per-flip classification, push counts,

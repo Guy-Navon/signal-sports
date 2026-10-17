@@ -481,8 +481,11 @@ The benchmark route hard-refuses the real corpus. Never delete `backend/data/sig
 **Working style that has held:** answer in Hebrew when addressed in Hebrew. Be direct. Keep scope
 to what was asked. Merge your own PR once CI is green on the exact head SHA and the work
 implements a direction the owner already approved; new product decisions go to the owner first.
-Project skills live in `.claude/skills/` (classification, relevance and taxonomy changes, source
-onboarding, feed audit, real-data QA, doc truth, PR finish, handoff).
+Project skills live in `.claude/skills/`: the `signal-*` workflows (classification, relevance and
+taxonomy changes, source onboarding, pipeline review, feed audit, real-data QA, quality eval, doc
+truth, PR open/finish/merge, handoff) plus adapted upstream skills (debugging, TDD, verification,
+review intake, security diff review, UI and React review, browser checks, Python testing/async).
+`.claude/skills/README.md` says which skill owns which gate.
 
 **Doc map — which doc is authoritative for what:**
 

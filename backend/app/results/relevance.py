@@ -86,7 +86,3 @@ def relevance_reason(row: GameResultRow, followed: FollowedTargets) -> Optional[
     if row.competition_id in followed.competition_ids:
         return f"followed_competition:{row.competition_id}"
     return None
-
-
-def is_relevant(row: GameResultRow, followed: FollowedTargets) -> bool:
-    return relevance_reason(row, followed) is not None

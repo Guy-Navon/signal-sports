@@ -9,8 +9,3 @@ SEED_SOURCES = [
     Source(id="sportando", display_name="Sportando", language="en", source_type="scraper", enabled=True, trust_level="high"),
     Source(id="eurohoops", display_name="Eurohoops", language="en", source_type="rss", enabled=True, trust_level="high"),
 ]
-
-
-def seed_sources(db) -> None:
-    for source in SEED_SOURCES:
-        db.sources[source.id] = source

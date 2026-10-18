@@ -296,8 +296,3 @@ SEED_ARTICLES = [
         tags=["Greek League", "פנתיינאיקוס", "לו״ז"],
     ),
 ]
-
-
-def seed_articles(db) -> None:
-    for article in SEED_ARTICLES:
-        db.articles[article.id] = article

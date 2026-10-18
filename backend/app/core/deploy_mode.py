@@ -74,10 +74,6 @@ def deploy_env() -> str:
     )
 
 
-def is_dev() -> bool:
-    return deploy_env() == DEV
-
-
 def prod_data_dirs() -> tuple[Path, ...]:
     extra = tuple(
         p.strip() for p in os.environ.get("SIGNAL_PROD_DATA_DIRS", "").split(",") if p.strip()

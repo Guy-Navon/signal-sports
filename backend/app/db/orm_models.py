@@ -626,3 +626,17 @@ class ClusterEdgeRow(Base):
     entity_overlap = Column(JSON, nullable=False)
     competition_overlap = Column(JSON, nullable=False)
     tier = Column(String, nullable=False)             # A | B | C
+
+
+class ProtectedArticleRow(Base):
+    """Articles retention must never delete (#255): human-rated ground truth.
+
+    Census and N05 ratings live in docs/qa/*.json, which the backend never reads
+    at runtime; this table is the durable copy retention consults. No FK to
+    articles: a protection row may predate or outlive its article.
+    """
+    __tablename__ = "protected_articles"
+
+    article_id = Column(String, primary_key=True)
+    reason = Column(String, nullable=False)      # the QA document that rated or sampled it
+    created_at = Column(String, nullable=False)

@@ -117,13 +117,13 @@ intended and unchanged.
 
 - **Physical retention stays disabled** (M8-6 #176). It is not needed to fix visibility. When it
   was decided, the whole corpus sat inside the 30-day window. **Still disabled as of
-  2026-10-12, and it must stay off until rated rows are protected.** `retention.py` protects
-  in-window clusters and feedback-referenced articles only, **not** articles carrying human
-  ratings. A read-only count on 2026-10-12 at the 30-day window found 1,455 deletable articles.
-  They include **all 256 N05-rated articles**, the gate's whole frozen corpus, and 29 of census
-  #2's 804. Every census #2 row ages past the window by about mid-November 2026. Enabling it
-  would silently break the quality gate and the census rescoring. The fix is tracked in #255
-  (a fourth, ground-truth protection). Enabling retention afterwards is still an owner decision.
+  2026-10-18.** A read-only count on 2026-10-12 at the 30-day window found 1,455 deletable
+  articles, including **all 256 N05-rated articles** (the gate's whole frozen corpus) and 29 of
+  census #2's 804. #255 added a fourth, ground-truth protection: `retention.py` never deletes an
+  id in `protected_articles`, and reports them as `protected_rated`. `rate_census.py build`
+  protects each new census. `scripts/protect_rated_articles.py --apply` backfills the N05 and
+  census documents in `docs/qa`. **That backfill has not run on the live corpus yet**, so
+  retention must stay off until it has. Enabling retention afterwards is still an owner decision.
   The other activation preconditions are in `retention.py` and `.env.example`.
 - No per-league / per-source / per-user freshness windows; one product-wide rule.
 - No clustering redesign; freshness composes with §9 collapse purely by input filtering.

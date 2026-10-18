@@ -17,7 +17,10 @@ PROTECTIONS, in deletion order of authority:
      component the feed is still collapsing.
   3. FEEDBACK PROVENANCE — an article referenced by any feedback event is
      never deleted (learning attribution must stay replayable).
-  4. NOTIFICATION LINEAGE needs no protection: ``notification_story_members``
+  4. GROUND TRUTH (#255) — an article in ``protected_articles`` (human-rated
+     or sampled for N05 / census rating) is never deleted: the regression gate
+     and census rescoring replay exactly those ids.
+  5. NOTIFICATION LINEAGE needs no protection: ``notification_story_members``
      has no FK to articles BY DESIGN — it is the notification system's memory
      and must survive exactly this deletion.
 
@@ -87,7 +90,11 @@ def cleanup_articles(session: Session, dry_run: bool = False) -> dict:
     )).fetchall()}
     protected_feedback = candidates & referenced
 
-    deletable = candidates - protected_cluster - protected_feedback
+    # Protection 4: human-rated ground truth.
+    from app.repositories.protected_article_repository import protected_ids
+    protected_rated = candidates & protected_ids(session)
+
+    deletable = candidates - protected_cluster - protected_feedback - protected_rated
 
     summary = {
         "dry_run": dry_run,
@@ -96,6 +103,7 @@ def cleanup_articles(session: Session, dry_run: bool = False) -> dict:
         "candidates": len(candidates),
         "protected_cluster": len(protected_cluster & candidates),
         "protected_feedback": len(protected_feedback),
+        "protected_rated": len(protected_rated),
         "deleted": len(deletable),
         "clusters_removed": 0,
     }
@@ -127,7 +135,8 @@ def cleanup_articles(session: Session, dry_run: bool = False) -> dict:
 
     summary["clusters_removed"] = len(orphaned)
     logger.info("retention cleanup: deleted %d articles (protected: %d cluster, "
-                "%d feedback), removed %d empty clusters",
+                "%d feedback, %d rated), removed %d empty clusters",
                 summary["deleted"], summary["protected_cluster"],
-                summary["protected_feedback"], summary["clusters_removed"])
+                summary["protected_feedback"], summary["protected_rated"],
+                summary["clusters_removed"])
     return summary

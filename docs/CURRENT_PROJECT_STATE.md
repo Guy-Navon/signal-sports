@@ -149,7 +149,7 @@ untracked `backend/.env`):
 | `FEED_FRESHNESS_ENABLED` / `FEED_MAX_AGE_HOURS` | false / 36 | true / 36 |
 | `TELEGRAM_NOTIFICATIONS_ENABLED` | false | **false since 2026-09-13** (was true from 2026-07-18) |
 | `RESULTS_ENABLED` / `RESULTS_SYNC_ENABLED` | true / false | true / true |
-| `RETENTION_CLEANUP_ENABLED` | false | false (**must stay off until rated rows are protected**, #255; see §10) |
+| `RETENTION_CLEANUP_ENABLED` | false | false (keep off until `protect_rated_articles.py --apply` has run on the corpus, #255; see §10) |
 | `TRANSLATION_PROVIDER` | disabled | disabled |
 | `ALLOW_DEV_RESET` / `ALLOW_CORPUS_DB_RESET` / `ALLOW_INSECURE_AUTH_BYPASS` | false | false |
 | `PREFERENCE_ENGINE` | (unset = v2) | unset; `legacy` is the rollback |
@@ -320,9 +320,12 @@ deterministic rule changelog, §1–§18).
 - **Telegram is off** (since 2026-09-13), so push stories reach nobody.
 - **ONE is off**, and **Sport5 runs as an untracked "pilot"**. Neither state is recorded anywhere
   except the `source_overrides` table.
-- **Retention cleanup must stay disabled.** It does not protect human-rated articles. At 30 days
-  it would delete today all 256 N05-rated articles (the whole gate corpus) and 29 of census #2's
-  804, and all of census #2 by about mid-November. Tracked in #255; see
+- **Retention cleanup stays disabled.** Since #255 it never deletes an article listed in
+  `protected_articles` (N05 and census rated or sampled ids). On the live corpus that table stays
+  empty until the owner runs `scripts/protect_rated_articles.py --apply` after a backup. Until
+  then, enabling retention at 30 days would delete all 256 N05-rated articles and, by about
+  mid-November, all of census #2. On a 2026-10-18 corpus copy the script protected 1,060 ids, and
+  a dry run then reported `protected_rated` 773 with no rated id deletable. See
   [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8.
 - Single machine and single SQLite file. On the PC, backups are still manual (`scripts/backup_db.py`,
   WAL-safe and verified). The hosted nightly off-host backup exists in the repository
@@ -415,7 +418,7 @@ milestone 11's gate.
 2. **Milestone 11, Census #3 & a fresh regression gate:**
    - #241 census #3
    - #254 census-based gate (feed+ recall, push recall, noise band)
-   - #255 protect rated rows from retention
+   - #255 protect rated rows from retention (code landed; owner runs the one-off `--apply`)
    - #242 venue-move vocabulary, if census #3 brings enough examples
 3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
    - #256 measure which people matter (no registry change)

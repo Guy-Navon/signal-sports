@@ -93,6 +93,16 @@ def cmd_build(args) -> None:
         print(f"{user_id}: {n} fresh articles (since {args.since}) -> census, weight 1.0")
     print(f"wrote {out}")
 
+    # Census articles are ground truth from now on: keep them out of retention (#255).
+    from app.db.database import init_db
+    from app.repositories import protected_article_repository
+
+    init_db()  # creates protected_articles on a pre-#255 database
+    with SessionLocal() as session:
+        added = protected_article_repository.protect(session, cr.article_ids(doc), reason=out.stem)
+        session.commit()
+    print(f"protected {added} new article ids from retention (reason: {out.stem})")
+
 
 # ── serve ─────────────────────────────────────────────────────────────────────
 

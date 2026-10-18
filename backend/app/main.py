@@ -103,18 +103,11 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Allow the Vite dev server (any localhost port) to call the API from a browser.
-    # In production this should be restricted to the actual frontend domain.
+    # CORS and CSRF share one origin list (CSRF_ALLOWED_ORIGINS, N07 / #196):
+    # an origin allowed to mutate must also be allowed to read the response.
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:5173",
-            "http://localhost:5174",
-            "http://localhost:5175",
-            "http://127.0.0.1:5173",
-            "http://127.0.0.1:5174",
-            "http://127.0.0.1:5175",
-        ],
+        allow_origins=list(settings.csrf_allowed_origins),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

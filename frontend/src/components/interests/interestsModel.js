@@ -7,10 +7,6 @@
 
 // ── Follow-set operations ─────────────────────────────────────────────────────
 
-export function followKey(follow) {
-  return `${follow.scope}:${follow.target_id}`;
-}
-
 export function isFollowed(follows, scope, targetId) {
   return follows.some((f) => f.scope === scope && f.target_id === targetId);
 }

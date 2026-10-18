@@ -529,9 +529,3 @@ CALIBRATION_ITEMS: tuple[CalibrationItem, ...] = (
 )
 
 assert len(CALIBRATION_ITEMS) == 73
-
-_BY_ID = {item.id: item for item in CALIBRATION_ITEMS}
-
-
-def item_by_id(item_id: str) -> Optional[CalibrationItem]:
-    return _BY_ID.get(item_id)

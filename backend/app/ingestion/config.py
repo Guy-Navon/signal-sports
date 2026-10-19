@@ -6,7 +6,7 @@ For RSS sources, the feed_url is the only thing that needs to change per-source.
 For html_scrape sources, set source_type="html_scrape" and list category_urls.
 Ingestion logic (adapter factory, classifier, dedup) does not need to be touched.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

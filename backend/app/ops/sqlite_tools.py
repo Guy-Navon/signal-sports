@@ -28,7 +28,6 @@ import sqlite3
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 # Tables a sanitized dev snapshot empties (runtime state and credentials).
 SNAPSHOT_CLEARED_TABLES = ("auth_sessions", "scheduler_lease", "worker_status")

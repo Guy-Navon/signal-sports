@@ -19,7 +19,7 @@ llm_call_rate=0.0 with everything else still measured.
 """
 import math
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from app.models.article import Article

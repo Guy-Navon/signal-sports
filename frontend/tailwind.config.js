@@ -70,14 +70,6 @@ export default {
   			mono: ['var(--font-mono)']
   		},
   		keyframes: {
-  			shimmer: {
-  				'0%': {
-  					backgroundPosition: '200% 0'
-  				},
-  				'100%': {
-  					backgroundPosition: '-200% 0'
-  				}
-  			},
   			'fade-up': {
   				from: {
   					opacity: '0',
@@ -106,7 +98,6 @@ export default {
   			}
   		},
   		animation: {
-  			shimmer: 'shimmer 1.8s linear infinite',
   			'fade-up': 'fade-up 240ms cubic-bezier(0.22, 1, 0.36, 1) both',
   			'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
   			breathe: 'breathe 4s ease-in-out infinite'

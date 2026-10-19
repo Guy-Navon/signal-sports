@@ -1060,15 +1060,6 @@ def classify(
 
 # ── Public helpers for post-classification enrichment ─────────────────────────
 
-def has_maccabi_tel_aviv_phrase(text: str) -> bool:
-    """True if text contains a full-name Maccabi Tel Aviv form.
-
-    Public wrapper — use in ingestion_service after LLM merge to check whether
-    entity injection is applicable.
-    """
-    return _has_maccabi_tel_aviv_phrase(text)
-
-
 def compute_importance(
     event_type: str,
     entities: list[str],

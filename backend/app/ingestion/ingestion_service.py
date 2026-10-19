@@ -40,7 +40,6 @@ from app.ingestion.classifier import (
     _has_football_maccabi_context,
     _assign_confidence,
     _collect_tags,
-    has_maccabi_tel_aviv_phrase,
     compute_importance,
     enrich_basketball_entities_after_sport_resolve,
 )

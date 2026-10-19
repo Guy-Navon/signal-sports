@@ -799,10 +799,6 @@ def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
     return validate_event_evidence("news", text, source="rules", sport=sport)
 
 
-def _detect_event_type(text: str, sport: str) -> str:
-    return _detect_event_evidence(text, sport).event_type
-
-
 def detect_article_event(title: str, subtitle: str, sport: str) -> EventEvidence:
     """Title-first event routing, shared by ingestion and targeted corrections."""
     title, subtitle = title.lower(), subtitle.lower()

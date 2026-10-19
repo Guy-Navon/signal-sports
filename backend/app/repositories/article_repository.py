@@ -92,11 +92,6 @@ def get_by_id(session: Session, article_id: str) -> Optional[Article]:
     return _row_to_article(row) if row else None
 
 
-def get_by_url(session: Session, url: str) -> Optional[Article]:
-    row = session.query(ArticleRow).filter_by(url=url).first()
-    return _row_to_article(row) if row else None
-
-
 def get_rss_articles(session: Session) -> List[Article]:
     """Return all articles ingested via RSS (id prefix 'rss_')."""
     rows = session.query(ArticleRow).filter(ArticleRow.id.startswith("rss_", autoescape=True)).all()

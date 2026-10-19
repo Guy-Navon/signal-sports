@@ -175,10 +175,6 @@ def _has_football_context(text: str) -> bool:
     return _has(text, *_FOOTBALL_CTX_KW)
 
 
-def _has_hapoel_tel_aviv_football_context(text: str) -> bool:
-    return _has_hapoel_tel_aviv_phrase(text) and _has_football_context(text)
-
-
 # ── Sport detection ───────────────────────────────────────────────────────────
 
 _BASKETBALL_KW = (

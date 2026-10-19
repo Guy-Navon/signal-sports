@@ -11,7 +11,6 @@ from datetime import timedelta
 
 import pytest
 
-from app.core.config import settings
 from app.db.database import SessionLocal
 from app.db.orm_models import (
     AuthSessionRow,

@@ -160,10 +160,6 @@ def test_euroleague_content_hidden_for_deni_fan(deni_fan):
 # ── Muting ────────────────────────────────────────────────────────────────────
 
 def test_muted_source_returns_hidden(guy):
-    from app.seed.seed_articles import SEED_ARTICLES
-    from copy import deepcopy
-    import app.models.profile as pm
-
     muted_profile = guy.model_copy(update={"muted_sources": ["sport5"]})
     result = score_article(article("article_001"), muted_profile)
     assert result.decision == "hidden"

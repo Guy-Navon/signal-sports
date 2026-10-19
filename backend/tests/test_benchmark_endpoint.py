@@ -11,7 +11,6 @@ and mock feedparser so no real Ollama/network calls are made.
 import types
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

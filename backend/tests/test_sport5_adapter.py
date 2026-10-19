@@ -21,7 +21,6 @@ import pathlib
 from unittest.mock import MagicMock, patch
 
 import httpx
-import pytest
 
 from app.classification.source_hints import extract_source_sport_hint
 from app.ingestion.adapters.factory import build_adapter

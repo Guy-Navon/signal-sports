@@ -1,6 +1,5 @@
 """Tests for source-specific URL sport hint extraction (source_hints.py)."""
 
-import pytest
 from app.classification.source_hints import extract_source_sport_hint
 
 IH = "israel_hayom_sport"

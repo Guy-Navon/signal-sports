@@ -11,7 +11,7 @@ import json
 import sys
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from app.classification.entity_normalizer import normalize_llm_entities
 from app.classification.llm_result import LLMClassificationResult
@@ -807,7 +807,7 @@ class TestBackfill:
 
         from app.db.database import SessionLocal
         from app.models.article import Article
-        from app.repositories.article_repository import insert, get_by_id, update_full_classification
+        from app.repositories.article_repository import insert, get_by_id
         from datetime import datetime, timezone
 
         already_llm = Article(

@@ -11,7 +11,7 @@ non-standard tags element. Tests mock feedparser output; no live network.
 
 import time
 import types
-from datetime import datetime, timezone
+from datetime import timezone
 from unittest.mock import patch
 
 from app.api import routes_classify

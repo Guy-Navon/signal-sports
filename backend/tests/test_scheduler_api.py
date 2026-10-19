@@ -13,7 +13,6 @@ Covers:
 import types
 from unittest.mock import patch
 
-import pytest
 
 
 def _make_entry(title: str, link: str):

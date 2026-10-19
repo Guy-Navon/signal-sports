@@ -1,6 +1,5 @@
 """Tests for subtitle extraction and cleaning (app.ingestion.subtitle)."""
 
-import pytest
 
 from app.ingestion.subtitle import clean_subtitle, extract_subtitle
 

@@ -7,7 +7,6 @@ bounds, the /api/me/calibration/items surface, and composition (explicit
 entries outrank re-applied calibration; the estimator works on selected
 subsets).
 """
-import pytest
 
 from app.calibration_v2 import CALIBRATION_ITEMS, infer_calibration_profile
 from app.calibration_v2.selection import (

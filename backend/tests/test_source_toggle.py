@@ -15,7 +15,6 @@ import types
 from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from app.db.database import SessionLocal
 from app.repositories import source_override_repository

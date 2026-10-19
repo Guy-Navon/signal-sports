@@ -18,7 +18,6 @@ Covers:
 
 from datetime import datetime, timezone
 
-import pytest
 
 from app.classification.facts import build_article_facts
 from app.ingestion.classifier import ClassificationResult, classify

@@ -4,12 +4,10 @@ Tests for RSS adapter normalisation, dedup, and the ingestion service.
 All network / RSS parsing is mocked — tests never make real HTTP requests.
 """
 
-import hashlib
 import types
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from app.ingestion.adapters.rss_adapter import RSSSourceAdapter
 from app.ingestion.adapters.base import RawSourceItem

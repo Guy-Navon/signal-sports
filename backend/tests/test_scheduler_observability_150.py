@@ -6,7 +6,6 @@ axes stay separate: Telegram trouble degrades notifications, never ingestion.
 No secret appears in any response.
 """
 
-import json
 from datetime import datetime, timedelta, timezone
 
 import pytest

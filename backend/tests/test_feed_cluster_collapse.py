@@ -16,7 +16,6 @@ from unittest.mock import patch
 import pytest
 
 from app.db.orm_models import ArticleRow, ClusterEdgeRow, StoryClusterRow
-from app.models.profile import UserProfile
 from app.models.scoring import ScoredArticle
 from app.services.cluster_collapse import collapse_clusters, feed_sort_key
 from app.services.feed_service import build_feed

@@ -12,7 +12,7 @@ import pytest
 from sqlalchemy import text
 
 from app.notifications import telegram as tg
-from app.notifications.dispatcher import dispatch_pending, max_attempts
+from app.notifications.dispatcher import dispatch_pending
 from app.notifications.outbox import (
     SENT,
     StorySnapshot,

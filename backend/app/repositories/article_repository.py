@@ -225,26 +225,3 @@ def get_articles_for_classification_backfill(
     if limit:
         query = query.limit(limit)
     return [_row_to_article(r) for r in query.all()]
-
-
-def get_untranslated_rss_articles(
-    session: Session,
-    *,
-    limit: Optional[int] = None,
-    source_id: Optional[str] = None,
-) -> List[Article]:
-    """Return RSS articles that need translation.
-
-    Candidates: language != 'he' AND translated_title IS NULL.
-    """
-    query = (
-        session.query(ArticleRow)
-        .filter(ArticleRow.id.startswith("rss_", autoescape=True))
-        .filter(ArticleRow.language != "he")
-        .filter(ArticleRow.translated_title.is_(None))
-    )
-    if source_id:
-        query = query.filter(ArticleRow.source == source_id)
-    if limit:
-        query = query.limit(limit)
-    return [_row_to_article(r) for r in query.all()]

@@ -77,22 +77,6 @@ export default {
   			mono: ['var(--font-mono)']
   		},
   		keyframes: {
-  			'accordion-down': {
-  				from: {
-  					height: '0'
-  				},
-  				to: {
-  					height: 'var(--radix-accordion-content-height)'
-  				}
-  			},
-  			'accordion-up': {
-  				from: {
-  					height: 'var(--radix-accordion-content-height)'
-  				},
-  				to: {
-  					height: '0'
-  				}
-  			},
   			shimmer: {
   				'0%': {
   					backgroundPosition: '200% 0'
@@ -129,8 +113,6 @@ export default {
   			}
   		},
   		animation: {
-  			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out',
   			shimmer: 'shimmer 1.8s linear infinite',
   			'fade-up': 'fade-up 240ms cubic-bezier(0.22, 1, 0.36, 1) both',
   			'pulse-soft': 'pulse-soft 2s ease-in-out infinite',

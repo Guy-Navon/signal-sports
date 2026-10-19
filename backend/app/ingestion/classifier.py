@@ -83,11 +83,6 @@ def _has_football_maccabi_context(text: str) -> bool:
     return _has(text, *_FOOTBALL_MACCABI_KW)
 
 
-def _has_kattash_context(text: str) -> bool:
-    """True if title references Oded Kattash — a strong Maccabi TLV basketball signal."""
-    return _has(text, "קטש", "עודד קטש", "kattash", "oded kattash")
-
-
 # Exact phrase forms for Maccabi Tel Aviv and Hapoel Tel Aviv.
 # Titles using ONLY these full forms (without sport context words) are ambiguous
 # and tagged ambiguous_club. Short standalone forms like "מכבי" do not match.

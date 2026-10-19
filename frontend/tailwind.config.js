@@ -62,13 +62,6 @@ export default {
   			'text-primary': 'hsl(var(--text-primary) / <alpha-value>)',
   			'text-secondary': 'hsl(var(--text-secondary) / <alpha-value>)',
   			'text-dim': 'hsl(var(--text-dim) / <alpha-value>)',
-  			chart: {
-  				'1': 'hsl(var(--chart-1))',
-  				'2': 'hsl(var(--chart-2))',
-  				'3': 'hsl(var(--chart-3))',
-  				'4': 'hsl(var(--chart-4))',
-  				'5': 'hsl(var(--chart-5))'
-  			},
   		},
   		fontFamily: {
   			heading: ['var(--font-heading)'],

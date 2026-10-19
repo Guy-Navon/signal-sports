@@ -86,8 +86,8 @@ Everything a source returns is untrusted: RSS XML, Sport5 HTML, ONE JSON, titles
 and dates.
 - Adapters must never raise and must return `[]` on any fetch/parse failure, with timeouts
   (`_FETCH_TIMEOUT_SECONDS`). A crash or hang is a denial of service against the whole cycle.
-- Text reaches the UI as text: React escapes by default, so look for new `dangerouslySetInnerHTML`
-  (the only existing use is the shadcn chart style block in `components/ui/chart.jsx`),
+- Text reaches the UI as text: React escapes by default, so look for any `dangerouslySetInnerHTML`
+  (there is currently no use in `frontend/src`),
   `href` values built from source data (block `javascript:`), and Telegram messages (sent as plain
   text — keep `parse_mode` unset unless input is escaped).
 - **LLM prompt injection:** article titles and subtitles go into the classification prompt. The

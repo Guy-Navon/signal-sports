@@ -61,11 +61,6 @@ class StoredAnchor:
             "validator_id": self.validator_id, "reason_code": self.reason_code,
         }
 
-    @classmethod
-    def from_json(cls, d: dict) -> "StoredAnchor":
-        return cls(d["anchor"], d.get("role", "unknown"), d.get("source", ""),
-                   d.get("validator_id", ""), d.get("reason_code", ""))
-
 
 # Only these roles are story-identifying (a role-holder or opponent is not the subject).
 _STORY_IDENTIFYING_ROLES = frozenset({"subject", "quoted", "unknown"})

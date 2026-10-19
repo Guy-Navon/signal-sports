@@ -19,7 +19,7 @@ from app.results.normalization import parse_timestamp, parse_int, starts_in_futu
 from app.results.providers.base import FetchOutcome
 from app.results.providers.fake import FakeResultsProvider, FAKE_GAMES
 from app.results.providers.thesportsdb import normalize_event
-from app.results.relevance import followed_targets, is_relevant, relevance_reason
+from app.results.relevance import followed_targets
 from app.results.service import personalized_results
 from app.results.sync_service import sync_results, should_sync, get_sync_state
 from app.results.team_resolver import resolve_team

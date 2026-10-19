@@ -335,7 +335,7 @@ need explicit targets), calibration items/preview (global/stateless), ops/system
 
 - **Signed out**: `/login` and `/signup` as product-styled routes rendered **outside both
   AppShell groups** in `main.jsx` (PageNotFound precedent); compose `shared/` primitives +
-  shadcn `input`/`label`/`form`; Hebrew RTL with logical utilities; product (editorial)
+  shadcn `input`/`label`; Hebrew RTL with logical utilities; product (editorial)
   styling — never console styling.
 - **Bootstrap**: new `src/context/AuthContext.jsx` calls `GET /api/auth/session` on load;
   exposes `{authEnforced, user, onboarding}`. When the backend reports

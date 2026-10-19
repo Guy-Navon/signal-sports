@@ -8,7 +8,6 @@ Uses the session-scoped TestClient from conftest.py.
 """
 
 import types
-from datetime import datetime, timezone
 from unittest.mock import patch
 
 

@@ -7,7 +7,6 @@ All external dependencies (network, translation APIs) are mocked.
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-import pytest
 
 from app.ingestion.adapters.base import RawSourceItem
 from app.ingestion.config import RSSSourceConfig

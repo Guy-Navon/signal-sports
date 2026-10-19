@@ -13,10 +13,8 @@ These tests lock the guard that replaced that boolean-only protection:
 """
 
 import os
-from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 
 from app.db.corpus_protection import (
     CANONICAL_CORPUS_PATH,

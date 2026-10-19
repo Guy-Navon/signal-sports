@@ -22,7 +22,6 @@ Coverage:
 import types
 from unittest.mock import patch
 
-import pytest
 
 from app.classification.gating import (
     LLMGateDecision,

@@ -40,11 +40,10 @@ from app.ingestion.classifier import (
     _has_football_maccabi_context,
     _assign_confidence,
     _collect_tags,
-    has_maccabi_tel_aviv_phrase,
     compute_importance,
     enrich_basketball_entities_after_sport_resolve,
 )
-from app.ingestion.config import RSS_SOURCES, RSSSourceConfig, get_source_config
+from app.ingestion.config import RSSSourceConfig, get_source_config
 from app.ingestion.source_state import get_effective_enabled_sources
 from app.ingestion.dedup import article_id_from_url, url_already_exists
 from app.models.article import Article

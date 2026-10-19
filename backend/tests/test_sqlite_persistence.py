@@ -15,7 +15,6 @@ Verifies that:
 All tests share the session-scoped `admin_client` fixture from conftest.py, which
 creates a temp SQLite DB and seeds it via the app lifespan.
 """
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -115,7 +114,7 @@ def test_article_response_shape_stable(admin_client):
 def test_article_with_subtitle_persists_and_returns_subtitle(admin_client):
     """Article created with subtitle is stored and returned via API."""
     from app.db.database import SessionLocal
-    from app.repositories.article_repository import insert, get_by_id
+    from app.repositories.article_repository import insert
     from app.models.article import Article
     from datetime import datetime, timezone
 

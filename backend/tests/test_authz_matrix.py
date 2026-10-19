@@ -18,7 +18,6 @@ test files to explicit identity fixtures).
 
 import pytest
 
-from app.core.config import settings
 from app.db.database import SessionLocal
 from app.db.orm_models import AuthSessionRow, ProfileRow, UserRow
 from app.services import auth_service

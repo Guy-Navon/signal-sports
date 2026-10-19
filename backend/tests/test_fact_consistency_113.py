@@ -10,7 +10,6 @@ Nothing here weakens a clustering gate. The fixes are all upstream, in classific
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
 
 from app.classification.event_evidence import validate_event_evidence
 from app.classification.merge import merge_with_guardrails

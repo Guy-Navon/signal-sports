@@ -4,7 +4,6 @@ Tests for the deterministic keyword classifier.
 Every test calls classify() as a pure function — no DB, no network.
 """
 
-import pytest
 from app.ingestion.classifier import classify
 
 

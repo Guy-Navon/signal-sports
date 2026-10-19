@@ -11,7 +11,6 @@ consecutive-failure counting using records inserted via the repository.
 import uuid
 from datetime import datetime, timedelta, timezone
 
-import pytest
 
 from app.api.routes_ingest import _freshness
 from app.db.database import SessionLocal

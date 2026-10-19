@@ -8,7 +8,6 @@ from app.repositories import (
     article_repository,
     profile_repository,
     source_repository,
-    feedback_repository,
     calibration_repository,
 )
 from app.seed.seed_articles import SEED_ARTICLES

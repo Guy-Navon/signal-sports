@@ -230,7 +230,7 @@ The classifier was extended with comprehensive Hebrew keyword sets to support th
 | injury | "נפצע בברך", "נפצע בכתף" |
 
 **Detection ordering fix:** negotiation is now checked **before** signing in
-`_detect_event_type()`. This resolves "על סף חתימה" (on the verge of signing) being
+`_detect_event_evidence()`. This resolves "על סף חתימה" (on the verge of signing) being
 incorrectly classified as a signing event because "חתימה" appeared in the phrase.
 
 **Israeli Basketball League context keywords (Hebrew):**
@@ -585,7 +585,7 @@ _WIN_CHAMPIONSHIP_CTX_KW = (
 )
 ```
 
-Detection logic (in `_detect_event_type()`):
+Detection logic (in `_detect_event_evidence()`):
 ```python
 if _has(text, *_FINALS_KW):          → "finals_result"
 if _has(text, *_TITLE_WIN_UNAMBIGUOUS_KW): → "title_win"
@@ -642,7 +642,7 @@ Also added IBL clubs to `_BASKETBALL_CTX_KW` so they can disambiguate mixed-enti
 
 **Problem:** Articles containing `"נהרג"` (killed) or `"נפטר"` (passed away) with adjacent positive context verbs could trigger `title_win` classification.
 
-**Fix:** Added `_DEATH_ACCIDENT_KW = ("נהרג", "נפטר", "תאונה קטלנית")` guard at the top of `_detect_event_type()`. If a death/accident keyword is present, `event_type` falls through to `"news"` immediately, regardless of other keyword matches.
+**Fix:** Added `_DEATH_ACCIDENT_KW = ("נהרג", "נפטר", "תאונה קטלנית")` guard at the top of `_detect_event_evidence()`. If a death/accident keyword is present, `event_type` falls through to `"news"` immediately, regardless of other keyword matches.
 
 ### 9f. Post-merge Maccabi entity injection
 

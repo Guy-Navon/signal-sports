@@ -291,7 +291,7 @@ F-N05-5 טען ש-25 מתוך 34 ההסתרות השגויות נושאות `lea
 
 ### מה שהוחל על הקורפוס
 
-`backend/scripts/apply_190_entity_corrections.py` — 24 שורות, **ייחוס ישויות בלבד**
+[`backend/scripts/apply_190_entity_corrections.py`](https://github.com/Guy-Navon/signal-sports/blob/dc6c3af9642d1bfd6540820f03ea84e333fffd0e/backend/scripts/apply_190_entity_corrections.py) (הוצא משימוש אחרי שהוחל; הקישור לגרסה שלפני המחיקה) — 24 שורות, **ייחוס ישויות בלבד**
 (`entity_ids` + `entities`). לא ענף, לא סוג אירוע, לא חשיבות, ולא
 `primary_competition` שנשאר explicit-evidence-only ולכן סכנת RC-4 לא נפתחה.
 גיבוי לפני, dry-run כברירת מחדל, הרצה חוזרת מוצאת 0 שורות.

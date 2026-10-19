@@ -450,6 +450,13 @@
   }
 }
 
+/* Used by .orbit-loading. Defined here, not via Tailwind's animate-shimmer, so the
+   keyframes do not depend on some component happening to contain that class. */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

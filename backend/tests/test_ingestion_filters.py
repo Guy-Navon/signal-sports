@@ -15,7 +15,6 @@ All tests are offline — no network calls.
 import types
 from unittest.mock import patch
 
-import pytest
 
 from app.ingestion.classifier import classify
 from app.ingestion.config import RSSSourceConfig

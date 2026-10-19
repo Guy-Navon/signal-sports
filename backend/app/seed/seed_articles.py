@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from app.models.article import Article
 
 
@@ -296,8 +296,3 @@ SEED_ARTICLES = [
         tags=["Greek League", "פנתיינאיקוס", "לו״ז"],
     ),
 ]
-
-
-def seed_articles(db) -> None:
-    for article in SEED_ARTICLES:
-        db.articles[article.id] = article

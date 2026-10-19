@@ -243,11 +243,6 @@ SEED_PROFILES = [
 ]
 
 
-def seed_profiles(db) -> None:
-    for profile in SEED_PROFILES:
-        db.profiles[profile.user_id] = profile
-
-
 # ── ProfileV2 seeds (issue #32) ───────────────────────────────────────────────
 # The same product semantics expressed as affinities + overrides. Legacy
 # topics above stay authoritative until the shadow-validated engine flip;

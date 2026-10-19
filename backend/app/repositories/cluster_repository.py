@@ -72,10 +72,6 @@ def get_edges(session: Session, cluster_id: str) -> list[ClusterEdgeRow]:
     )
 
 
-def find_cluster_by_anchor(session: Session, anchor_article_id: str) -> Optional[StoryClusterRow]:
-    return session.get(StoryClusterRow, cluster_id_from_anchor(anchor_article_id))
-
-
 def find_existing_cluster_for_members(
     session: Session, member_ids: list[str]
 ) -> Optional[StoryClusterRow]:

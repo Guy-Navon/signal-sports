@@ -45,14 +45,6 @@ export function getProfiles() {
   return apiFetch("/api/profiles");
 }
 
-export function getProfile(userId) {
-  return apiFetch(`/api/profiles/${userId}`);
-}
-
-export function getArticles() {
-  return apiFetch("/api/articles");
-}
-
 export function getFeed(userId) {
   return apiFetch(`/api/feed/${userId}`);
 }
@@ -69,14 +61,6 @@ export function getMeResults() {
 
 export function getResults(userId) {
   return apiFetch(`/api/results/${encodeURIComponent(userId)}`);
-}
-
-export function syncResults() {
-  return apiFetch("/api/results/sync", { method: "POST" });
-}
-
-export function getResultsSyncState() {
-  return apiFetch("/api/results/sync/state");
 }
 
 export function submitFeedback(payload) {
@@ -193,14 +177,6 @@ export function getSourceHealth() {
 }
 
 // ── M7-4/#150 + M7-8/#154: durable scheduler/notification observability ──────
-
-export function getSchedulerHealth() {
-  return apiFetch("/api/scheduler/health");
-}
-
-export function getSchedulerCycles(limit = 10) {
-  return apiFetch(`/api/scheduler/cycles?limit=${limit}`);
-}
 
 export function getNotificationsHealth() {
   return apiFetch("/api/notifications/health");

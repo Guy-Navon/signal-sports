@@ -7,7 +7,6 @@ calibration replaces the previous calibration-sourced entries only.
 Overrides are never written (push stays user-explicit).
 """
 from datetime import datetime, timezone
-from typing import List
 
 from sqlalchemy.orm import Session
 
@@ -16,13 +15,8 @@ from app.calibration_v2 import (
     CalibrationInference,
 )
 from app.db.orm_models import CalibrationResponseRow
-from app.models.calibration import CalibrationHeadline
 from app.models.profile import UserProfile
 from app.models.profile_v2 import ProfileV2
-
-
-def get_calibration_headlines(db) -> List[CalibrationHeadline]:
-    return list(db.calibration_headlines)
 
 
 def merge_calibration_into_profile(

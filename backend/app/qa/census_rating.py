@@ -206,9 +206,6 @@ class RatingsStore:
             self.ratings = dict(raw.get("ratings", {}).get(profile, {}))
 
     # ── queries ──────────────────────────────────────────────────────────────
-    def is_rated(self, article_id: str) -> bool:
-        return article_id in self.ratings
-
     def pending(self, items: list[dict]) -> list[dict]:
         """Items still to rate, in census order. Never re-asks a rated one."""
         return [it for it in items if it["id"] not in self.ratings]

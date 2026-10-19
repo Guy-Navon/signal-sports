@@ -4,8 +4,7 @@ Tests for the translation backfill endpoint.
 All translation calls are mocked — no external API calls.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 from datetime import datetime, timezone
 
 from app.models.article import Article

@@ -5,7 +5,7 @@ Translation providers are always mocked — no external API calls.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from app.translation.providers import (
     NoopTranslationProvider,

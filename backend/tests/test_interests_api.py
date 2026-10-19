@@ -327,7 +327,6 @@ class TestInterestsApi:
     def test_engine_scores_api_written_profile(self, user_client):
         """A profile created purely through this API produces personalized
         feed decisions through the frozen engine (zero engine changes)."""
-        from datetime import datetime, timezone
         from app.models.article import Article
         from app.services.preference_engine import score_article_v2
 

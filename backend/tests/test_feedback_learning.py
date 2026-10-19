@@ -9,7 +9,6 @@ violates any of them corrupts profiles.
 """
 from datetime import datetime, timedelta, timezone
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.models.feedback import FeedbackEvent
@@ -21,7 +20,6 @@ from app.models.profile_v2 import (
     ScopeAffinity,
 )
 from app.services.learning_service import (
-    ACTIVATION_THRESHOLD,
     build_click_context,
     derive_learned_adjustments,
     dismissed_article_ids,

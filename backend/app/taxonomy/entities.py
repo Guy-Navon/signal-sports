@@ -18,7 +18,7 @@ Data rules:
   exists so temporal membership can be added later without changing the schema.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 

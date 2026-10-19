@@ -56,16 +56,6 @@ def _fact_completeness(a: ClusterInput) -> int:
     return score
 
 
-def _representative_key(a: ClusterInput):
-    # Sort DESC on the first three, ASC on id → negate id via reversed comparison
-    # by returning id last and sorting with a stable tuple.
-    return (
-        _fact_completeness(a),
-        _CERTAINTY_RANK.get(a.event_certainty or "", 0),
-        a.published_at,
-    )
-
-
 def select_representative(members: list[ClusterInput]) -> ClusterInput:
     """The corpus-level representative — global, user-independent."""
     best = max(

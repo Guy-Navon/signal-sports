@@ -15,7 +15,6 @@ from sqlalchemy import text
 
 from app.worker import (
     SchedulerConfig,
-    beat,
     read_scheduler_config,
     run_tick,
     should_catch_up,

@@ -92,11 +92,6 @@ def get_by_id(session: Session, article_id: str) -> Optional[Article]:
     return _row_to_article(row) if row else None
 
 
-def get_by_url(session: Session, url: str) -> Optional[Article]:
-    row = session.query(ArticleRow).filter_by(url=url).first()
-    return _row_to_article(row) if row else None
-
-
 def get_rss_articles(session: Session) -> List[Article]:
     """Return all articles ingested via RSS (id prefix 'rss_')."""
     rows = session.query(ArticleRow).filter(ArticleRow.id.startswith("rss_", autoescape=True)).all()
@@ -227,29 +222,6 @@ def get_articles_for_classification_backfill(
         query = query.filter(
             ~ArticleRow.classified_by.in_(list(_already_llm))
         )
-    if limit:
-        query = query.limit(limit)
-    return [_row_to_article(r) for r in query.all()]
-
-
-def get_untranslated_rss_articles(
-    session: Session,
-    *,
-    limit: Optional[int] = None,
-    source_id: Optional[str] = None,
-) -> List[Article]:
-    """Return RSS articles that need translation.
-
-    Candidates: language != 'he' AND translated_title IS NULL.
-    """
-    query = (
-        session.query(ArticleRow)
-        .filter(ArticleRow.id.startswith("rss_", autoescape=True))
-        .filter(ArticleRow.language != "he")
-        .filter(ArticleRow.translated_title.is_(None))
-    )
-    if source_id:
-        query = query.filter(ArticleRow.source == source_id)
     if limit:
         query = query.limit(limit)
     return [_row_to_article(r) for r in query.all()]

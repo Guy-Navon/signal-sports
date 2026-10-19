@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.core.config import settings

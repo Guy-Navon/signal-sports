@@ -83,11 +83,6 @@ def _has_football_maccabi_context(text: str) -> bool:
     return _has(text, *_FOOTBALL_MACCABI_KW)
 
 
-def _has_kattash_context(text: str) -> bool:
-    """True if title references Oded Kattash — a strong Maccabi TLV basketball signal."""
-    return _has(text, "קטש", "עודד קטש", "kattash", "oded kattash")
-
-
 # Exact phrase forms for Maccabi Tel Aviv and Hapoel Tel Aviv.
 # Titles using ONLY these full forms (without sport context words) are ambiguous
 # and tagged ambiguous_club. Short standalone forms like "מכבי" do not match.
@@ -178,14 +173,6 @@ def _has_basketball_context(text: str) -> bool:
 def _has_football_context(text: str) -> bool:
     """True if title contains words that confirm football sport."""
     return _has(text, *_FOOTBALL_CTX_KW)
-
-
-def _has_hapoel_tel_aviv_basketball_context(text: str) -> bool:
-    return _has_hapoel_tel_aviv_phrase(text) and _has_basketball_context(text)
-
-
-def _has_hapoel_tel_aviv_football_context(text: str) -> bool:
-    return _has_hapoel_tel_aviv_phrase(text) and _has_football_context(text)
 
 
 # ── Sport detection ───────────────────────────────────────────────────────────
@@ -812,10 +799,6 @@ def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
     return validate_event_evidence("news", text, source="rules", sport=sport)
 
 
-def _detect_event_type(text: str, sport: str) -> str:
-    return _detect_event_evidence(text, sport).event_type
-
-
 def detect_article_event(title: str, subtitle: str, sport: str) -> EventEvidence:
     """Title-first event routing, shared by ingestion and targeted corrections."""
     title, subtitle = title.lower(), subtitle.lower()
@@ -1076,15 +1059,6 @@ def classify(
 
 
 # ── Public helpers for post-classification enrichment ─────────────────────────
-
-def has_maccabi_tel_aviv_phrase(text: str) -> bool:
-    """True if text contains a full-name Maccabi Tel Aviv form.
-
-    Public wrapper — use in ingestion_service after LLM merge to check whether
-    entity injection is applicable.
-    """
-    return _has_maccabi_tel_aviv_phrase(text)
-
 
 def compute_importance(
     event_type: str,

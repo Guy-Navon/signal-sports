@@ -4,7 +4,6 @@ Tests for app.translation.language_detection.
 No network, no external dependencies.
 """
 
-import pytest
 
 from app.translation.language_detection import detect_from_url, detect_from_text, detect_language
 

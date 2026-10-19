@@ -23,7 +23,6 @@ from app.notifications.outbox import (
     NO_WATERMARK,
     PENDING,
     SUPPRESSED_WATERMARK,
-    PlanOutcome,
     StorySnapshot,
     already_notified,
     get_watermark,

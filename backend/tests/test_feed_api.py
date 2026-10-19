@@ -4,7 +4,6 @@
 Integration tests for the feed, profile, article, and feedback API endpoints.
 Uses FastAPI TestClient with session-scoped fixture from conftest.py.
 """
-import pytest
 
 
 # ── Health ────────────────────────────────────────────────────────────────────

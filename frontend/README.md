@@ -62,7 +62,7 @@ src/
 │   ├── debug/        DebugArticleCard, FactsTracePanel, ReasoningTrace, ClusterEvidence, ShadowComparisonPanel
 │   ├── ops/          IngestionPanel, SchedulerPanel, NotificationsPanel, SourceToggleCard, HealthCard, BenchmarkPanel
 │   ├── shell/        AppShell, Masthead, MobileNav, ProductNav, OpsNav, RequireSession, RequireOpsRole, ProfileSwitcher
-│   ├── shared/       DeskIntro, EmptyState, ErrorState, LoadingSkeleton, PageHeader, …
+│   ├── shared/       DeskIntro, EmptyState, ErrorState, PageHeader, …
 │   └── ui/           shadcn/Radix primitives
 ├── context/          AppContext (the data layer), AuthContext, onboarding flow, data routing
 ├── api/              client + normalizers (the backend contract)

@@ -7,7 +7,6 @@ Verifies:
 - ONE is enabled through its public JSON article API
 """
 
-import pytest
 from app.ingestion.config import get_source_config, get_enabled_sources, RSS_SOURCES
 
 

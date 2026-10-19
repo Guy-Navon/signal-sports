@@ -6,7 +6,6 @@ import pytest
 from app.classification.attention_evidence import attention_evidence
 from app.clustering.anchor_enrichment import enrich_article_anchors
 from app.clustering.anchor_validators import LexicalFrequencyValidator
-from app.clustering.config import DEFAULT_CONFIG
 from app.clustering.contract import ClusterInput
 from app.clustering.service import cluster_articles
 from app.models.article import Article

@@ -123,7 +123,9 @@ They are separate tables; identity concerns never enter `profiles`.
   deleted. They stay the permanent QA fixtures; the seed + drift guards
   (`seed_profiles.py`, `userProfiles.js`, `docs/fixtures/profile_parity.json`) are
   untouched.
-- Lifecycle: signup creates `users` + `profiles` rows in one transaction (profile gets
+- Lifecycle: a password signup first creates only a **pending registration** (see
+  [Email verification](#email-verification-password-signups)); confirming the emailed
+  link with the password creates `users` + `profiles` rows in one transaction (profile gets
   `topics=[]`, empty mute lists, `profile_type="self_serve"`, and an **empty-but-valid
   ProfileV2 payload constructed through the pydantic model** — same discipline as the seed
   backfill). Deletion is a hard delete (below).
@@ -175,9 +177,12 @@ They are separate tables; identity concerns never enter `profiles`.
   flag) therefore yields *more* security, never less.
 - **Signup switch (#265)**: `AUTH_SIGNUP_ENABLED` (default `true`). When `false`,
   `POST /api/auth/signup` returns 403 `"Signup is closed"` before anything is created (no
-  user, profile or session); login, admin bootstrap and demo users are unaffected.
-  `GET /api/auth/session` carries `signup_enabled`, so the login page hides its signup link
-  and `/signup` shows "ההרשמה סגורה" instead of a form that can only fail. No new route.
+  pending row, user, profile or session); login, admin bootstrap and demo users are
+  unaffected. **Exception:** addresses in `AUTH_SIGNUP_ALLOWED_EMAILS` (comma-separated,
+  normalized) may still start a registration, which stays *pending* until the emailed link
+  proves ownership. `GET /api/auth/session` carries `signup_enabled` and
+  `signup_by_invitation` (closed + a non-empty allowlist), so the login page hides its signup
+  link and `/signup` shows "ההרשמה סגורה", or the form marked invitation-only.
 - **Deployment mode (#265)**: `DEPLOY_ENV` (`app/core/deploy_mode.py`), checked by the API
   lifespan and the worker before the DB is opened. Unset/`local` changes nothing.
   `hosted` refuses `ALLOW_DEV_RESET`, `ALLOW_CORPUS_DB_RESET`, `ALLOW_INSECURE_AUTH_BYPASS`
@@ -187,6 +192,9 @@ They are separate tables; identity concerns never enter `profiles`.
   `/srv/signal/prod` or `SIGNAL_PROD_DATA_DIRS`; this check also runs at engine creation,
   so it covers every script), the Telegram sender is never "configured" in dev, and the
   default cookie name becomes `signal_dev_session`. An unknown value refuses startup.
+- **Email delivery on a host**: `hosted` also refuses `MAIL_BACKEND=console|memory`,
+  `SMTP_STARTTLS=false` and a non-https `APP_PUBLIC_URL`, and warns when signup can start
+  (open, or an allowlist) but no mailer is configured.
 - `/me` routes never accept a user id from the caller (`POST /api/me/feedback` rejects a
   body `user_id`); identity comes only from the session. Horizontal access by editing a
   path parameter becomes structurally impossible on the consumer surface.
@@ -198,6 +206,67 @@ They are separate tables; identity concerns never enter `profiles`.
   proportionate for a same-origin-only product. (TestClient sends neither header → tests
   unaffected.)
 
+## Email verification (password signups)
+
+Added 2026-10-21. This reverses the original "no email infrastructure" non-goal on purpose;
+password reset and every other kind of email stay deferred.
+
+**Lifecycle.** An unverified signup never becomes a `users` row:
+
+1. `POST /api/auth/signup` answers 202 `{status, email}` with **no cookie**. It stores a
+   `pending_registrations` row: the normalized email (indexed, **not unique**), the argon2
+   hash, the display name, the SHA-256 of a 32-byte token, `token_expires_at` (+24 h),
+   `last_sent_at` and `send_count`. It emails `<APP_PUBLIC_URL>/verify-email#t=<token>`.
+   `status` is `verification_sent` or `verification_send_failed` (the row stays; resend
+   works). Refusals: 409 when an account already owns the address (the accepted leak,
+   unchanged); 403 closed signup; 429 per-address (3/h) or the global send budget
+   (30/10 min, checked **before** any row is stored); 503 when no mailer is configured
+   (fail closed: verification is never skipped).
+2. The link opens the SPA page `/verify-email`. The token is in the **fragment**, so it is
+   never sent to the server on the GET and never appears in a `Referer`. The page removes it
+   from the address bar and calls `POST /api/auth/verification/peek` (read-only: the masked
+   address, or 404). **Opening the link changes nothing**, so mail scanners, including ones
+   that run JavaScript, cannot activate an account.
+3. `POST /api/auth/verification/confirm {token, password}` checks the password against the
+   pending row (wrong → 403 and the token survives; 10 attempts / 5 min per registration →
+   429). It then **atomically consumes** the row (`DELETE … WHERE id AND token_hash AND not
+   expired`, rowcount must be 1), creates `users` (`email_verified_at`,
+   `email_verified_method='link'`) and `profiles`, deletes every other pending row for the
+   address, and creates a session on whatever device opened the link. A concurrent
+   activation of another pending row for the same address loses on the `users.email`
+   UNIQUE constraint → 409.
+4. `POST /api/auth/login` for an address with no account but a pending row whose password
+   matches → 403 `"Email not verified"` with no session; otherwise the usual 401. Ordinary
+   logins never send or mention verification.
+5. `POST /api/auth/verification/resend {email, password}` rotates the token, so older links
+   stop working. The 60 s cooldown and the cap of 5 sends live **on the row** and survive
+   restarts. Resend shares login's per-address and global guessing limiters.
+6. Abandoned pending rows (created more than 7 days ago) are pruned on every signup.
+
+**Why the password at confirmation.** It binds mailbox control (the token) to knowledge of
+the credential. A scanner cannot activate anything. The device that registered is never
+signed in by someone else's click. A squatter who registered a victim's address gets no
+account unless the victim types the squatter's password. Because pending rows don't reserve
+the address, a squat never blocks the real owner: their own signup creates another row, and
+activating it deletes the squatter's.
+
+**Before verification nothing else exists.** There is no user id, so no session, no `/me`
+and no product route. No route needed a "pending" check, and code that predates the table
+(a rollback) cannot sign a pending registration in.
+
+**Existing accounts.** `users.email_verified_at` and `email_verified_method` are nullable
+soft migrations with **no backfill**. Legacy users, the env-bootstrapped admin and demo rows
+keep `NULL`: their access is unchanged and they are never labeled verified.
+`AuthUser.email_verified_at` exposes the value.
+
+**Delivery** (`app/services/mailer.py`): stdlib SMTP with STARTTLS, port 587 by default
+(`MAIL_BACKEND=smtp`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` (secret),
+`MAIL_FROM`; `SMTP_STARTTLS=false` only for a local plain sink). An unset `MAIL_BACKEND`
+means `console` locally (the link goes to the API log) and *no mailer* when hosted. Tests use
+`memory`. On failure the log carries the recipient's domain only, and it never carries the
+token. The message is Hebrew RTL plain text plus minimal HTML, with no images or tracking.
+Setup and the delivery check: `docs/DEPLOYMENT.md`.
+
 ## Onboarding state machine
 
 Storage: **`users.onboarding_completed_at` (nullable) + existing `calibration_responses`;
@@ -205,7 +274,7 @@ all states derived** — no state enum to drift.
 
 | State | Derived from | User sees | Exit |
 |---|---|---|---|
-| UNAUTHENTICATED | no valid session | login/signup (product-styled, outside AppShell); product routes redirect here | signup/login → session |
+| UNAUTHENTICATED | no valid session | login/signup (product-styled, outside AppShell); product routes redirect here | login → session; signup → pending → emailed link + password → session |
 | NEEDS_ONBOARDING | session + timestamp NULL + 0 calibration responses | welcome screen → CTA into Calibration V2; skip available | rate an item → CALIBRATING; skip → ACTIVE |
 | CALIBRATING | session + timestamp NULL + ≥1 response | Calibration V2 resumed at first unanswered item (per-item upsert = free persistence) | `POST /api/me/calibration/apply` applies inference **and stamps the timestamp** → ACTIVE; or skip via `POST /api/me/onboarding/complete` |
 | ACTIVE | timestamp set | normal feed; if skipped/empty ProfileV2 → empty-feed state + persistent "calibrate your feed" banner; calibration re-enterable forever | — |
@@ -309,6 +378,7 @@ to the same repositories/services as the `{user_id}` routes — one seam, no ser
 |---|---|---|---|
 | `GET /health` | unchanged | System | permanent |
 | — | `POST /api/auth/signup` / `login` / `logout`, `GET /api/auth/session` | Public (login rate-limited); logout=Session | permanent |
+| — | `POST /api/auth/verification/peek` / `confirm` / `resend` | Public (the token and/or password is the proof; rate-limited) | permanent |
 | — | `POST /api/me/password`, `DELETE /api/me/account` | Consumer (password re-entry) | permanent |
 | — | `POST /api/me/onboarding/complete` | Consumer | permanent (skip path) |
 | `GET /api/profiles` (lists all) | stays | **Admin** | permanent (QA list); frontend product stops calling it |
@@ -370,15 +440,17 @@ Threats tied to this architecture, with mitigations:
 | CSRF | SameSite=Lax + `Sec-Fetch-Site`/`Origin` middleware on mutating methods + audited absence of state-changing GETs; same-origin-only contract ⇒ no CORS-credentials surface |
 | Brute force / stuffing | argon2id cost + an in-process fixed-window limiter that is **deliberately IP-independent**: behind the real chain (Tailscale Serve → Vite proxy → uvicorn) `request.client.host` is always the proxy/localhost address, so IP keying would silently collapse all clients into one bucket. Instead: per-account-key limit on the normalized submitted email (~10 attempts / 5 min → 429, applies whether or not the account exists) + a coarse **global** login limiter (~100 attempts / 5 min process-wide) as the distributed-attempt backstop. In-memory is correct for single-worker uvicorn |
 | Insecure-bypass misconfiguration | fail-closed design: enforcement is the code default; only `ALLOW_INSECURE_AUTH_BYPASS=true` opens the legacy/ops surface, and startup **refuses to run** with bypass + `AUTH_COOKIE_SECURE=true` (the deployed-HTTPS signal) |
-| Account enumeration | login: uniform "invalid email or password" + dummy-hash verify for unknown emails (timing-uniform). Signup deliberately reveals "email in use" — accepted for a private product (the fix requires email infra) |
+| Account enumeration | login: uniform "invalid email or password" + dummy-hash verify for unknown emails (timing-uniform). Signup deliberately reveals "email in use", accepted for a private product. A pending registration is revealed only to someone who holds its password (login 403). Residual: login spends 1–3 extra argon2 checks when pending rows exist for an address, a timing hint that *some* signup is pending |
+| Verification-link abuse | the token is 32 random bytes, stored as SHA-256, valid 24 h, single use (atomic delete) and rotated on resend. Activation also needs the password, so scanners, forwarded mails and squatters cannot activate. The link base comes from `APP_PUBLIC_URL` only (never `Host`). Addresses with whitespace or control characters are rejected (header injection) |
+| Email flooding | per address: 3 signups/h, 5 sends per registration, 60 s cooldown; globally 30 sends/10 min, checked before anything is stored. Closed signup limits targets to the allowlist. A flood on an open signup can exhaust the shared global budget, accepted at this scale |
 | Session fixation / staleness | fresh token every login; logout deletes the row; fixed 30-day expiry; password change revokes all other sessions |
 | Debug/ops exposure | entire ops surface `require_admin`; `/api/dev/*` keeps the extra `ALLOW_DEV_RESET` env gate; the tailnet still bounds network exposure; `/docs` stays unproxied to phone |
 | Secrets | zero signing keys by design (opaque tokens). Only secrets: `AUTH_ADMIN_PASSWORD` in gitignored `.env` (create-only) and the DB file |
 | Admin view-as abuse | admin `{user_id}` routes can mutate any user — acceptable solo-dev; log a warning breadcrumb on admin mutations of non-demo users |
 | Cookie over Tailscale | `AUTH_COOKIE_SECURE=true` when fronted by Tailscale Serve HTTPS (explicit env — the scheme is not auto-detectable behind the Vite proxy) |
 
-**Deliberately deferred** (with un-defer triggers): email verification (→ public signup
-exposure); password reset via email (→ first locked-out real user; interim: admin reset
+**Deliberately deferred** (with un-defer triggers): an optional "verify my email" for
+legacy accounts (→ password reset by email); password reset via email (→ first locked-out real user; interim: admin reset
 endpoint/CLI); trusted forwarded-IP contract + IP-keyed rate limiting (→ first real
 reverse-proxy deployment, where `X-Forwarded-For` handling is defined and tested as part of
 that milestone); shared-store rate limiting (→ multi-worker); 2FA/device management/audit
@@ -442,7 +514,8 @@ gate (#63) cleared 2026-07-10.
 
 ## Non-goals (must not enter this milestone)
 
-Email infrastructure of any kind (verification, reset mails); OAuth/social/magic
+Email infrastructure of any kind (verification, reset mails; verification was added later,
+on 2026-10-21, see above); OAuth/social/magic
 links/JWT; multi-profile accounts, sharing, teams; Alembic adoption (zero migrations
 needed); rate-limiting sophistication beyond in-process; push-notification delivery; real
 hosting/reverse proxy (separate milestone; this design slots into it); any
@@ -471,6 +544,11 @@ changes); **signal-real-data-qa** (demo diffs will require an admin session);
 bypass semantics).
 
 ## Changelog
+
+- 2026-10-21 — Email verification for password signups: pending registrations, activation
+  by the emailed link plus the password, resend, `AUTH_SIGNUP_ALLOWED_EMAILS`,
+  `signup_by_invitation`, the hosted mail guards, and the nullable verification columns
+  (no backfill). Signup now answers 202 with no session.
 
 - 2026-10-13 — #265: `AUTH_SIGNUP_ENABLED` (closed signup → 403, UI hides it) and the
   `DEPLOY_ENV` startup checks (hosted refuses dev flags; dev refuses Telegram and production

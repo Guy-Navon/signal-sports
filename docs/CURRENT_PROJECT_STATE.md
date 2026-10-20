@@ -131,7 +131,7 @@ side effect.
 | Surface | Access |
 |---|---|
 | `/health` | public |
-| `/api/auth/*` (signup, login, logout, session) | public, CSRF-checked |
+| `/api/auth/*` (signup, login, logout, session, verification peek/confirm/resend) | public, CSRF-checked |
 | `/api/me/*` (profile, feed, results, feedback, learning, never_show, interests, calibration, onboarding, password, account) | the session user's own data |
 | `/api/taxonomy/catalog`, `/api/calibration/items`, `/api/calibration/preview`, `/api/articles[/{id}]`, `/api/feed-engine` | any session |
 | `/api/feed/{user_id}`, `/api/debug/*`, `/api/profiles/*`, `/api/learning/{user_id}[/reset]`, `/api/feedback[/{user_id}]`, `/api/calibration/apply`, `/api/calibration/responses/{user_id}`, `/api/results/{user_id}`, `/api/results/sync[/state]` | admin (view-as / QA) |
@@ -155,9 +155,13 @@ untracked `backend/.env`):
 | `PREFERENCE_ENGINE` | (unset = v2) | unset; `legacy` is the rollback |
 | `DEPLOY_ENV` (#265) | unset = `local`: no extra checks | unset. `hosted` refuses the `ALLOW_*` flags and the fake classifier; `dev` refuses Telegram and any production DB path |
 | `AUTH_SIGNUP_ENABLED` (#265) | true | unset (true). A host sets false |
+| `AUTH_SIGNUP_ALLOWED_EMAILS` | empty | unset. Closed signup still admits these addresses (pending until verified) |
+| `MAIL_BACKEND` (+ `SMTP_*`, `MAIL_FROM`, `APP_PUBLIC_URL`) | unset = `console` (link in the API log) | unset (`console`). A host needs `smtp` |
 
 Authentication: email/password (Argon2), HttpOnly cookie sessions, origin/fetch-metadata CSRF,
-and admin role gating ([USER_PLATFORM.md](USER_PLATFORM.md)). CSRF origins come from
+and admin role gating ([USER_PLATFORM.md](USER_PLATFORM.md)). A password signup is only a
+pending registration until the emailed link is confirmed with the password; accounts created
+before that (and the bootstrap admin) keep `email_verified_at` NULL. CSRF origins come from
 `CSRF_ALLOWED_ORIGINS`, while the CORS list is hard-coded in `main.py`. That split is #196, and
 it matters before any split deployment.
 
@@ -171,7 +175,7 @@ and shipped-state screenshots are in `docs/frontend-concepts/orbit/`.
 
 | Route | Page | Area |
 |---|---|---|
-| `/login`, `/signup` | auth | public |
+| `/login`, `/signup`, `/verify-email` | auth (the emailed link lands on `/verify-email`) | public |
 | `/welcome` | onboarding (interests → calibration → feed) | session |
 | `/` | Feed (Orbit) | product |
 | `/preferences`, `/interests`, `/calibration`, `/results`, `/account` | product pages | product |

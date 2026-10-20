@@ -13,6 +13,21 @@ export function readVerificationToken(hash) {
   return params.get("t") || null;
 }
 
+// The page drops the fragment from the address bar right away, but the auth
+// shell can remount it (bootstrap loading → ready). Keep the token in memory
+// for the life of the tab — never in storage — so a remount still has it.
+let rememberedToken = null;
+
+export function captureVerificationToken(hash) {
+  const fromHash = readVerificationToken(hash);
+  if (fromHash) rememberedToken = fromHash;
+  return rememberedToken;
+}
+
+export function forgetVerificationToken() {
+  rememberedToken = null;
+}
+
 export function isUnverifiedLogin(err) {
   const message = err?.message || "";
   return message.includes("(403)") && message.includes("Email not verified");

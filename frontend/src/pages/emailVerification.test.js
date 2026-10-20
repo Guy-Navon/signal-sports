@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   RESEND_COOLDOWN_SECONDS,
+  captureVerificationToken,
+  forgetVerificationToken,
   isUnverifiedLogin,
   readVerificationToken,
   resendSecondsLeft,
@@ -64,5 +66,21 @@ describe("resendSecondsLeft", () => {
     expect(resendSecondsLeft(sentAt, sentAt + 59_500)).toBe(1);
     expect(resendSecondsLeft(sentAt, sentAt + 60_000)).toBe(0);
     expect(resendSecondsLeft(null, sentAt)).toBe(0);
+  });
+});
+
+describe("captureVerificationToken", () => {
+  it("keeps the token after the fragment is cleared (the page can remount)", () => {
+    forgetVerificationToken();
+    expect(captureVerificationToken("#t=abc")).toBe("abc");
+    // The first mount removed the fragment; a remount must still find it.
+    expect(captureVerificationToken("")).toBe("abc");
+  });
+
+  it("a newer link replaces the remembered token, and forgetting clears it", () => {
+    captureVerificationToken("#t=old");
+    expect(captureVerificationToken("#t=new")).toBe("new");
+    forgetVerificationToken();
+    expect(captureVerificationToken("")).toBeNull();
   });
 });

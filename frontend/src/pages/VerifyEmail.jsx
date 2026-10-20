@@ -7,7 +7,8 @@ import { authVerificationPeek } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import AuthScene from "@/pages/AuthScene";
 import {
-  readVerificationToken,
+  captureVerificationToken,
+  forgetVerificationToken,
   verificationErrorMessage,
 } from "@/pages/emailVerification";
 
@@ -19,7 +20,7 @@ export default function VerifyEmail() {
   const navigate = useNavigate();
   // Read once, then drop the token from the address bar and history.
   const tokenRef = useRef(
-    typeof window === "undefined" ? null : readVerificationToken(window.location.hash),
+    typeof window === "undefined" ? null : captureVerificationToken(window.location.hash),
   );
   const [state, setState] = useState(tokenRef.current ? "checking" : "invalid");
   const [maskedEmail, setMaskedEmail] = useState("");
@@ -42,6 +43,7 @@ export default function VerifyEmail() {
       })
       .catch((err) => {
         if (cancelled) return;
+        forgetVerificationToken();
         setNotice(verificationErrorMessage(err));
         setState("invalid");
       });
@@ -67,11 +69,15 @@ export default function VerifyEmail() {
     setNotice(null);
     try {
       await auth.confirmVerification(tokenRef.current, password);
+      forgetVerificationToken();
       navigate("/", { replace: true });
     } catch (err) {
       const message = verificationErrorMessage(err);
       setNotice(message);
-      if (!/\((403|429)\)/.test(err?.message || "")) setState("invalid");
+      if (!/\((403|429)\)/.test(err?.message || "")) {
+        forgetVerificationToken();
+        setState("invalid");
+      }
     } finally {
       setSubmitting(false);
     }

@@ -560,3 +560,69 @@ def test_smtp_mailer_honors_starttls_switch(monkeypatch):
     monkeypatch.setenv("SMTP_STARTTLS", "false")
     mailer.get_mailer().send(message)
     assert calls == [("connect", "127.0.0.1", 1025), ("send", "a@example.com")]
+
+
+# ── Dev-only link output; no mail config never means "log the link" ─────────
+
+def test_missing_mail_config_refuses_signup_and_logs_nothing_locally(client, monkeypatch, caplog):
+    caplog.set_level("DEBUG")
+    monkeypatch.delenv("MAIL_BACKEND", raising=False)
+    monkeypatch.delenv("DEPLOY_ENV", raising=False)
+    response = _signup(client)
+    assert response.status_code == 503
+    assert _counts() == (0, 0)
+    assert "verify-email" not in caplog.text
+
+
+def test_console_delivery_needs_explicit_opt_in_and_never_runs_hosted(client, monkeypatch, caplog):
+    monkeypatch.setenv("MAIL_BACKEND", "console")
+    monkeypatch.delenv("DEPLOY_ENV", raising=False)
+    caplog.set_level("WARNING")
+    assert _signup(client, "dev@example.com").status_code == 202
+    assert "/verify-email#t=" in caplog.text  # the explicit dev mode prints the link
+    caplog.clear()
+    # Hosted startup already refuses this; at request time it is also inert.
+    monkeypatch.setenv("DEPLOY_ENV", "hosted")
+    assert _signup(client, "hosted@example.com").status_code == 503
+    assert "verify-email" not in caplog.text
+
+
+@pytest.mark.parametrize("line, secret", [
+    ('127.0.0.1:5 - "GET /verify-email?t=SECRETtoken123 HTTP/1.1" 200', "SECRETtoken123"),
+    ('127.0.0.1:5 - "GET /x?token=SECRETtoken123&a=1 HTTP/1.1" 200', "SECRETtoken123"),
+    ("link https://h/verify-email#t=SECRETtoken123", "SECRETtoken123"),
+])
+def test_access_log_redacts_verification_tokens(line, secret):
+    import logging
+
+    from app.core.log_redaction import SecretRedactingFilter
+
+    record = logging.LogRecord("uvicorn.access", logging.INFO, __file__, 1,
+                               "%s", (line,), None)
+    assert SecretRedactingFilter().filter(record) is True
+    rendered = record.getMessage()
+    assert secret not in rendered
+    assert "[redacted]" in rendered
+
+
+def test_redaction_is_installed_on_the_access_logger(client):
+    import logging
+
+    from app.core.log_redaction import SecretRedactingFilter
+
+    filters = logging.getLogger("uvicorn.access").filters
+    assert any(isinstance(f, SecretRedactingFilter) for f in filters)
+
+
+def test_no_token_reaches_any_log_across_the_whole_flow(client, caplog):
+    caplog.set_level("DEBUG")
+    _signup(client)
+    first = _last_token()
+    client.post("/api/auth/verification/peek", json={"token": first})
+    _confirm(client, first, "wrong")
+    _age_last_send(61)
+    _resend(client)
+    second = _last_token()
+    _confirm(client, second)
+    for token in (first, second):
+        assert token not in caplog.text

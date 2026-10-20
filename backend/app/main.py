@@ -91,6 +91,11 @@ def create_app() -> FastAPI:
 
         yield
 
+    # Verification tokens never belong in access logs (app/core/log_redaction.py).
+    from app.core.log_redaction import install_access_log_redaction
+
+    install_access_log_redaction()
+
     application = FastAPI(
         title=settings.app_name,
         version=settings.version,

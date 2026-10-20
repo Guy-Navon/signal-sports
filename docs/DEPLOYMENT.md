@@ -96,7 +96,9 @@ one, signup answers 503; it never skips verification. Nothing has been configure
   With an own domain, add the provider's SPF and DKIM records and a DMARC record
   (`p=none` to start); Gmail requires SPF or DKIM from every sender. The zero-DNS fallback
   is Gmail SMTP with an app password, which ties delivery to a personal mailbox.
-- **Local testing.** Unset `MAIL_BACKEND` writes the link to the API log. For a real inbox,
+- **Local testing.** Unset `MAIL_BACKEND` means no mailer (signup answers 503).
+  `MAIL_BACKEND=console` is the explicit development opt-in that writes the link to the API
+  log. For a real inbox,
   run Mailpit (`docker run -p 1025:1025 -p 8025:8025 axllent/mailpit`) and set
   `MAIL_BACKEND=smtp SMTP_HOST=127.0.0.1 SMTP_PORT=1025 SMTP_STARTTLS=false
   MAIL_FROM=dev@localhost`; the messages appear at http://localhost:8025.

@@ -262,9 +262,13 @@ keep `NULL`: their access is unchanged and they are never labeled verified.
 **Delivery** (`app/services/mailer.py`): stdlib SMTP with STARTTLS, port 587 by default
 (`MAIL_BACKEND=smtp`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` (secret),
 `MAIL_FROM`; `SMTP_STARTTLS=false` only for a local plain sink). An unset `MAIL_BACKEND`
-means `console` locally (the link goes to the API log) and *no mailer* when hosted. Tests use
-`memory`. On failure the log carries the recipient's domain only, and it never carries the
-token. The message is Hebrew RTL plain text plus minimal HTML, with no images or tracking.
+means **no mailer in every mode**: signup answers 503, nothing is logged and verification is
+never skipped. `MAIL_BACKEND=console` is the explicit development opt-in that writes the link
+to the API log; it is refused at hosted startup and inert at request time when hosted. Tests
+use `memory`. On failure the log carries the recipient's domain only, and it never carries
+the token. Tokens travel in the URL fragment and POST bodies, so they never reach request
+logs; a filter on the uvicorn access log (`app/core/log_redaction.py`) also redacts any
+`t=`/`token=` query value as a backstop. The message is Hebrew RTL plain text plus minimal HTML, with no images or tracking.
 Setup and the delivery check: `docs/DEPLOYMENT.md`.
 
 ## Onboarding state machine

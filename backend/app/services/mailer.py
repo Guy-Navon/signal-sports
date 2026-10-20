@@ -6,11 +6,13 @@ SMTP with STARTTLS on port 587 (Hetzner Cloud blocks outbound 25 and 465).
 
   smtp     SMTP_HOST / SMTP_PORT / SMTP_USERNAME / SMTP_PASSWORD / MAIL_FROM
            (SMTP_STARTTLS=false only for a local sink; refused when hosted)
-  console  dev only: logs the message, link included (refused when hosted)
-  memory   tests: appends to MEMORY_OUTBOX (refused when hosted)
+  console  development only, and only when set explicitly: logs the message,
+           link included (refused at hosted startup, inert at request time)
+  memory   tests: appends to MEMORY_OUTBOX (same hosted rules)
 
-Unset means ``console`` locally and *no mailer* on a host, where password
-signup then fails closed instead of skipping verification.
+Unset (or anything else) means *no mailer* in every mode: password signup then
+fails closed with 503. A missing mail configuration never logs a link and
+never skips verification.
 """
 
 from __future__ import annotations
@@ -90,12 +92,13 @@ class SmtpMailer:
 
 
 def mail_backend() -> str:
-    raw = os.environ.get("MAIL_BACKEND", "").strip().lower()
-    if raw:
-        return raw
+    return os.environ.get("MAIL_BACKEND", "").strip().lower()
+
+
+def _hosted() -> bool:
     from app.core.deploy_mode import HOSTED, deploy_env
 
-    return "" if deploy_env() == HOSTED else "console"
+    return deploy_env() == HOSTED
 
 
 def smtp_settings_missing() -> list[str]:
@@ -117,10 +120,12 @@ def smtp_starttls() -> bool:
 def get_mailer() -> Optional[Mailer]:
     """The configured mailer, or None when email cannot be sent."""
     backend = mail_backend()
-    if backend == "memory":
-        return MemoryMailer()
-    if backend == "console":
-        return ConsoleMailer()
+    if backend in ("memory", "console"):
+        # Development mailers are never live on a host, even if startup's
+        # refusal was somehow bypassed.
+        if _hosted():
+            return None
+        return MemoryMailer() if backend == "memory" else ConsoleMailer()
     if backend == "smtp":
         if smtp_settings_missing():
             return None

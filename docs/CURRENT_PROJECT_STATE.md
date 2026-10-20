@@ -156,7 +156,7 @@ untracked `backend/.env`):
 | `DEPLOY_ENV` (#265) | unset = `local`: no extra checks | unset. `hosted` refuses the `ALLOW_*` flags and the fake classifier; `dev` refuses Telegram and any production DB path |
 | `AUTH_SIGNUP_ENABLED` (#265) | true | unset (true). A host sets false |
 | `AUTH_SIGNUP_ALLOWED_EMAILS` | empty | unset. Closed signup still admits these addresses (pending until verified) |
-| `MAIL_BACKEND` (+ `SMTP_*`, `MAIL_FROM`, `APP_PUBLIC_URL`) | unset = `console` (link in the API log) | unset (`console`). A host needs `smtp` |
+| `MAIL_BACKEND` (+ `SMTP_*`, `MAIL_FROM`, `APP_PUBLIC_URL`) | unset = no mailer (signup 503); `console` = explicit dev opt-in that logs the link | unset. A host needs `smtp` |
 
 Authentication: email/password (Argon2), HttpOnly cookie sessions, origin/fetch-metadata CSRF,
 and admin role gating ([USER_PLATFORM.md](USER_PLATFORM.md)). A password signup is only a

@@ -25,6 +25,9 @@ export function deriveAuthView(dataMode, bootstrap) {
     // AUTH_SIGNUP_ENABLED (#265). Only an explicit false closes signup, so a
     // backend that predates the field keeps today's behaviour.
     signupEnabled: bootstrap.signup_enabled !== false,
+    // Closed signup that still admits allowlisted addresses
+    // (AUTH_SIGNUP_ALLOWED_EMAILS): the form shows, marked invitation-only.
+    signupByInvitation: bootstrap.signup_enabled === false && bootstrap.signup_by_invitation === true,
   };
 }
 

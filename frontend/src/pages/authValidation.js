@@ -49,3 +49,12 @@ export function authErrorMessage(err) {
   if (message.includes("Cannot reach backend")) return "לא ניתן להתחבר לשרת כרגע";
   return "משהו השתבש — נסו שוב";
 }
+
+// Signup-specific refusals, then the shared notices.
+export function signupErrorMessage(err) {
+  const message = err?.message || "";
+  if (message.includes("(403)")) return "ההרשמה סגורה לכתובת הזאת";
+  if (message.includes("(429)")) return "יותר מדי ניסיונות הרשמה — נסו שוב מאוחר יותר";
+  if (message.includes("(503)")) return "לא ניתן לשלוח אימיילים כרגע, ולכן ההרשמה לא זמינה";
+  return authErrorMessage(err);
+}

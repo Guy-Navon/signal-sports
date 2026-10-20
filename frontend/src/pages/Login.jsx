@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { authPagesRedundant } from "@/context/authView";
 import AuthScene from "@/pages/AuthScene";
+import ResendVerification from "@/pages/ResendVerification";
+import { isUnverifiedLogin } from "@/pages/emailVerification";
 import {
   authErrorMessage,
   hasErrors,
@@ -25,6 +27,8 @@ export default function Login() {
     location.state?.expired ? "פג תוקף ההתחברות — היכנסו שוב" : null,
   );
   const [submitting, setSubmitting] = useState(false);
+  // The credentials matched a signup whose email is not verified yet.
+  const [unverified, setUnverified] = useState(null);
 
   // Local mode / bypass / already signed in: the login page is redundant.
   if (auth.status !== "loading" && authPagesRedundant(auth)) {
@@ -38,11 +42,16 @@ export default function Login() {
     if (hasErrors(validation)) return;
     setSubmitting(true);
     setNotice(null);
+    setUnverified(null);
     try {
       await auth.login(email.trim(), password);
       navigate("/", { replace: true });
     } catch (err) {
-      setNotice(authErrorMessage(err));
+      if (isUnverifiedLogin(err)) {
+        setUnverified({ email: email.trim(), password });
+      } else {
+        setNotice(authErrorMessage(err));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -55,6 +64,15 @@ export default function Login() {
           <p role="alert" className="text-sm text-signal-hidden text-center">
             {notice}
           </p>
+        )}
+        {unverified && (
+          <div role="alert" className="space-y-3 rounded-md border border-border p-3">
+            <p className="text-sm text-center">
+              עוד לא אימתתם את כתובת האימייל. פתחו את הקישור ששלחנו אל{" "}
+              <bdi dir="ltr">{unverified.email}</bdi> כדי להפעיל את החשבון.
+            </p>
+            <ResendVerification email={unverified.email} password={unverified.password} />
+          </div>
         )}
         <div className="space-y-1.5">
           <Label htmlFor="login-email">אימייל</Label>

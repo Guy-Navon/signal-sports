@@ -13,6 +13,7 @@ import {
   authLogin,
   authLogout,
   authSignup,
+  authVerificationConfirm,
   getAuthSession,
 } from "@/api/client";
 import { deriveAuthView } from "@/context/authView";
@@ -108,9 +109,17 @@ export function AuthProvider({ children }) {
     [refreshSession],
   );
 
+  // Signup starts a pending registration only (no session): the caller shows
+  // "check your email" with the returned {status, email}.
   const signup = useCallback(
-    async ({ email, password, displayName }) => {
-      await authSignup({ email, password, displayName });
+    ({ email, password, displayName }) => authSignup({ email, password, displayName }),
+    [],
+  );
+
+  // The emailed link + password activates the account and signs in here.
+  const confirmVerification = useCallback(
+    async (token, password) => {
+      await authVerificationConfirm(token, password);
       await refreshSession();
     },
     [refreshSession],
@@ -135,12 +144,14 @@ export function AuthProvider({ children }) {
       user: view.user,
       onboarding: view.onboarding,
       signupEnabled: view.signupEnabled,
+      signupByInvitation: view.signupByInvitation,
       login,
       signup,
+      confirmVerification,
       logout,
       refreshSession,
     }),
-    [view, login, signup, logout, refreshSession],
+    [view, login, signup, confirmVerification, logout, refreshSession],
   );
 
   if (bootstrapError) {

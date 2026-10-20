@@ -19,6 +19,7 @@ import LlmQa from '@/pages/LlmQa';
 import Login from '@/pages/Login';
 import Onboarding from '@/pages/Onboarding';
 import Signup from '@/pages/Signup';
+import VerifyEmail from '@/pages/VerifyEmail';
 import PageNotFound from '@/lib/PageNotFound';
 import { queryClientInstance } from '@/lib/query-client';
 import './index.css';
@@ -36,6 +37,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                   (PageNotFound precedent). Redirect away in local/bypass modes. */}
               <Route path="login" element={<Login />} />
               <Route path="signup" element={<Signup />} />
+              <Route path="verify-email" element={<VerifyEmail />} />
 
               {/* Session guard: pass-through in local/bypass; login-gate under
                   enforcement (User Platform PR 3). */}

@@ -28,6 +28,7 @@ _GUARDED_ENV = (
     "CLASSIFICATION_PROVIDER", "AUTH_COOKIE_SECURE", "AUTH_SIGNUP_ENABLED",
     "CSRF_ALLOWED_ORIGINS", "RETENTION_CLEANUP_ENABLED", "TELEGRAM_NOTIFICATIONS_ENABLED",
     "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "SCHEDULER_ENABLED", "SIGNAL_PROD_DATA_DIRS",
+    "MAIL_BACKEND", "APP_PUBLIC_URL", "SMTP_HOST", "MAIL_FROM", "AUTH_SIGNUP_ALLOWED_EMAILS",
 )
 
 
@@ -280,7 +281,8 @@ def test_signup_default_is_open(client):
         "/api/auth/signup",
         json={"email": "open-265@example.com", "password": "correct horse battery"},
     )
-    assert response.status_code == 201
+    # Open signup starts a (pending) registration; activation is the link.
+    assert response.status_code == 202
 
 
 def test_session_bootstrap_reports_signup_state(client, monkeypatch):

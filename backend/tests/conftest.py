@@ -65,6 +65,13 @@ os.environ["AUTH_COOKIE_SECURE"] = "false"
 os.environ["DEPLOY_ENV"] = ""
 os.environ["SIGNAL_PROD_DATA_DIRS"] = ""
 os.environ["AUTH_SIGNUP_ENABLED"] = "true"
+os.environ["AUTH_SIGNUP_ALLOWED_EMAILS"] = ""
+# Email verification: messages go to the in-memory outbox, never to a real
+# SMTP server; links point at the dev frontend.
+os.environ["MAIL_BACKEND"] = "memory"
+os.environ["APP_PUBLIC_URL"] = "http://localhost:5173"
+for _name in ("SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "MAIL_FROM", "SMTP_STARTTLS"):
+    os.environ[_name] = ""
 # Monitoring pings (docs/DEPLOYMENT.md): never configured in tests; the tests
 # that exercise pings set a fake URL and patch httpx.
 for _name in ("MONITOR_CYCLE_URL", "MONITOR_SOURCES_URL", "MONITOR_FRESH_URL", "MONITOR_BACKUP_URL"):
@@ -150,6 +157,39 @@ def _block_real_telegram(monkeypatch):
     monkeypatch.setattr(httpx, "post", _guard(real_post))
     monkeypatch.setattr(httpx, "get", _guard(real_get))
     yield
+
+
+@pytest.fixture(autouse=True)
+def _fresh_verification_limits():
+    """Signup/send limits are process-wide; no test may inherit another's."""
+    from app.services import email_verification, mailer
+
+    email_verification.reset_rate_limiters()
+    mailer.MEMORY_OUTBOX.clear()
+    yield
+
+
+def signup_and_verify(client, email, password, display_name=None):
+    """The real password-registration journey over HTTP: signup, read the
+    link from the in-memory outbox, confirm it with the password. Returns the
+    confirm response (200 + session cookie in ``client``'s jar), or the signup
+    response when signup itself refused (403/409/429/503)."""
+    import re
+    from app.services import mailer
+
+    body = {"email": email, "password": password}
+    if display_name is not None:
+        body["display_name"] = display_name
+    signup = client.post("/api/auth/signup", json=body)
+    if signup.status_code != 202:
+        return signup
+    to = signup.json()["email"]
+    sent = [m for m in mailer.MEMORY_OUTBOX if m.to == to]
+    assert sent, "signup sent no verification email"
+    token = re.search(r"#t=([A-Za-z0-9_\-]+)", sent[-1].text).group(1)
+    return client.post(
+        "/api/auth/verification/confirm", json={"token": token, "password": password}
+    )
 
 
 _TEST_IDENTITY_PASSWORD = "test identity passphrase"

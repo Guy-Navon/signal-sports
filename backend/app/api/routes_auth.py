@@ -3,12 +3,27 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security_deps import auth_enforced_for_legacy_surface, signup_enabled
+from app.core.security_deps import (
+    auth_enforced_for_legacy_surface,
+    signup_allowed_for,
+    signup_enabled,
+)
 from app.db.database import get_session
 from app.db.orm_models import UserRow
-from app.services import auth_service
+from app.services import auth_service, email_verification
 
 router = APIRouter(prefix="/auth")
+
+
+def _valid_email(value: str) -> str:
+    normalized = auth_service.normalize_email(value)
+    if "@" not in normalized or normalized.startswith("@") or normalized.endswith("@"):
+        raise ValueError("invalid email")
+    # The address becomes an email header: no whitespace or control
+    # characters inside it (header injection, and smtplib would refuse).
+    if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in normalized):
+        raise ValueError("invalid email")
+    return normalized
 
 
 class SignupRequest(BaseModel):
@@ -19,10 +34,7 @@ class SignupRequest(BaseModel):
     @field_validator("email")
     @classmethod
     def _email_shape(cls, value: str) -> str:
-        normalized = auth_service.normalize_email(value)
-        if "@" not in normalized or normalized.startswith("@") or normalized.endswith("@"):
-            raise ValueError("invalid email")
-        return normalized
+        return _valid_email(value)
 
 
 class LoginRequest(BaseModel):
@@ -32,10 +44,7 @@ class LoginRequest(BaseModel):
     @field_validator("email")
     @classmethod
     def _email_shape(cls, value: str) -> str:
-        normalized = auth_service.normalize_email(value)
-        if "@" not in normalized or normalized.startswith("@") or normalized.endswith("@"):
-            raise ValueError("invalid email")
-        return normalized
+        return _valid_email(value)
 
 
 class AuthUser(BaseModel):
@@ -46,6 +55,30 @@ class AuthUser(BaseModel):
     onboarding_completed_at: str | None
     interests_completed_at: str | None = None
     last_login_at: str | None
+    # NULL for accounts created before verification existed (never proven).
+    email_verified_at: str | None = None
+
+
+class SignupPendingResponse(BaseModel):
+    # "verification_sent" | "verification_send_failed" (resend from the UI)
+    status: str
+    email: str
+
+
+class VerificationTokenRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=200)
+
+
+class VerificationConfirmRequest(VerificationTokenRequest):
+    password: str
+
+
+class VerificationPeekResponse(BaseModel):
+    email: str
+
+
+class ResendResponse(BaseModel):
+    status: str
 
 
 class AuthResponse(BaseModel):
@@ -78,6 +111,8 @@ class SessionBootstrap(BaseModel):
     auth_enforced: bool
     # AUTH_SIGNUP_ENABLED (#265): lets the UI hide signup when it is closed.
     signup_enabled: bool
+    # Closed signup that still admits AUTH_SIGNUP_ALLOWED_EMAILS addresses.
+    signup_by_invitation: bool = False
     user: AuthUser | None
     onboarding: OnboardingBootstrap | None
 
@@ -150,38 +185,103 @@ def _session_bootstrap(session: Session, user: UserRow | None) -> SessionBootstr
     return SessionBootstrap(
         auth_enforced=auth_enforced_for_legacy_surface(),
         signup_enabled=signup_enabled(),
+        signup_by_invitation=(
+            not signup_enabled() and bool(email_verification.allowed_signup_emails())
+        ),
         user=_user_out(user) if user is not None else None,
         onboarding=onboarding,
     )
 
 
-@router.post("/signup", response_model=AuthResponse, status_code=201)
+@router.post("/signup", response_model=SignupPendingResponse, status_code=202)
 def signup(
     payload: SignupRequest,
-    request: Request,
-    response: Response,
     session: Session = Depends(get_session),
 ):
-    # Closed signup (#265) refuses before anything is created: no user, no
-    # profile, no session. Admin bootstrap and demo users are unaffected.
-    if not signup_enabled():
+    """Start a password registration: a pending row and one emailed link.
+    No user, profile or session exists until the link is confirmed with the
+    password (POST /verification/confirm)."""
+    # Closed signup (#265) refuses before anything is created, unless the
+    # address is allowlisted (it is then still only pending).
+    if not signup_allowed_for(payload.email):
         raise HTTPException(status_code=403, detail="Signup is closed")
     try:
-        user = auth_service.create_user_with_profile(
+        outcome = email_verification.start_registration(
             session,
             email=str(payload.email),
             password=payload.password,
             display_name=payload.display_name,
         )
+    except email_verification.MailNotConfigured:
+        raise HTTPException(status_code=503, detail="Email delivery is not configured")
     except auth_service.DuplicateEmailError:
         raise HTTPException(status_code=409, detail="Email already in use")
-    token, _ = auth_service.create_session(
-        session,
-        user,
-        user_agent=request.headers.get("user-agent"),
+    except auth_service.RateLimitExceeded:
+        raise HTTPException(status_code=429, detail="Too many signup attempts")
+    return SignupPendingResponse(
+        status="verification_sent" if outcome.delivered else "verification_send_failed",
+        email=outcome.email,
     )
+
+
+_INVALID_LINK = "Verification link is invalid or expired"
+
+
+@router.post("/verification/peek", response_model=VerificationPeekResponse)
+def verification_peek(payload: VerificationTokenRequest, session: Session = Depends(get_session)):
+    """Read-only: the masked address a live link belongs to."""
+    masked = email_verification.peek(session, payload.token)
+    if masked is None:
+        raise HTTPException(status_code=404, detail=_INVALID_LINK)
+    return VerificationPeekResponse(email=masked)
+
+
+@router.post("/verification/confirm", response_model=AuthResponse)
+def verification_confirm(
+    payload: VerificationConfirmRequest,
+    request: Request,
+    response: Response,
+    session: Session = Depends(get_session),
+):
+    try:
+        user, token, _ = email_verification.confirm_registration(
+            session,
+            token=payload.token,
+            password=payload.password,
+            user_agent=request.headers.get("user-agent"),
+        )
+    except email_verification.InvalidVerificationToken:
+        raise HTTPException(status_code=400, detail=_INVALID_LINK)
+    except auth_service.InvalidPasswordError:
+        raise HTTPException(status_code=403, detail="Password is incorrect")
+    except auth_service.RateLimitExceeded:
+        raise HTTPException(status_code=429, detail="Too many attempts")
+    except auth_service.DuplicateEmailError:
+        raise HTTPException(status_code=409, detail="Email already in use")
     _set_auth_cookie(response, token)
     return AuthResponse(user=_user_out(user))
+
+
+@router.post("/verification/resend", response_model=ResendResponse)
+def verification_resend(payload: LoginRequest, session: Session = Depends(get_session)):
+    try:
+        outcome = email_verification.resend(
+            session, email=str(payload.email), password=payload.password,
+        )
+    except email_verification.MailNotConfigured:
+        raise HTTPException(status_code=503, detail="Email delivery is not configured")
+    except auth_service.InvalidCredentialsError:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    except email_verification.ResendCooldown as exc:
+        raise HTTPException(
+            status_code=429, detail="Please wait before resending",
+            headers={"Retry-After": str(exc.retry_after)},
+        )
+    except auth_service.RateLimitExceeded:
+        raise HTTPException(status_code=429, detail="Too many emails for this signup")
+    return ResendResponse(
+        status="verification_sent" if outcome.delivered else "verification_send_failed",
+    )
 
 
 @router.post("/login", response_model=AuthResponse)
@@ -201,6 +301,13 @@ def login(
     except auth_service.RateLimitExceeded:
         raise HTTPException(status_code=429, detail="Too many login attempts")
     except auth_service.InvalidCredentialsError:
+        # An unverified signup is told so only once its password matched, so
+        # this reveals nothing to someone who does not hold the credential.
+        if auth_service.get_user_by_email(session, payload.email) is None and (
+            email_verification.pending_password_matches(
+                session, email=payload.email, password=payload.password)
+        ):
+            raise HTTPException(status_code=403, detail="Email not verified")
         raise HTTPException(status_code=401, detail="Invalid email or password")
     _set_auth_cookie(response, token)
     return AuthResponse(user=_user_out(user))

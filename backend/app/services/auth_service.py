@@ -169,6 +169,7 @@ def public_user_payload(user: UserRow) -> dict:
         "onboarding_completed_at": user.onboarding_completed_at,
         "interests_completed_at": user.interests_completed_at,
         "last_login_at": user.last_login_at,
+        "email_verified_at": user.email_verified_at,
     }
 
 
@@ -177,6 +178,35 @@ def get_user_by_email(session: Session, email: str) -> Optional[UserRow]:
     return session.execute(
         select(UserRow).where(UserRow.email == normalized)
     ).scalar_one_or_none()
+
+
+def new_user_rows(
+    *,
+    email: str,
+    password_hash: Optional[str],
+    role: str = "user",
+    display_name: Optional[str] = None,
+    onboarding_completed_at: Optional[datetime] = None,
+    email_verified_method: Optional[str] = None,
+) -> tuple[UserRow, ProfileRow]:
+    """Build (not persist) a user and its empty profile, so callers that must
+    commit the account together with other changes share one transaction."""
+    normalized = normalize_email(email)
+    now = utc_now()
+    user_id = generate_user_id()
+    user = UserRow(
+        id=user_id,
+        email=normalized,
+        password_hash=password_hash,
+        role=role,
+        created_at=iso(now),
+        onboarding_completed_at=iso(onboarding_completed_at) if onboarding_completed_at else None,
+        last_login_at=None,
+        email_verified_at=iso(now) if email_verified_method else None,
+        email_verified_method=email_verified_method,
+    )
+    profile_name = display_name or normalized.split("@", 1)[0] or "User"
+    return user, empty_profile_row(user_id, profile_name)
 
 
 def create_user_with_profile(
@@ -188,21 +218,15 @@ def create_user_with_profile(
     display_name: Optional[str] = None,
     onboarding_completed_at: Optional[datetime] = None,
 ) -> UserRow:
-    normalized = normalize_email(email)
-    now = utc_now()
-    user_id = generate_user_id()
-    user = UserRow(
-        id=user_id,
-        email=normalized,
+    user, profile = new_user_rows(
+        email=email,
         password_hash=hash_password(password),
         role=role,
-        created_at=iso(now),
-        onboarding_completed_at=iso(onboarding_completed_at) if onboarding_completed_at else None,
-        last_login_at=None,
+        display_name=display_name,
+        onboarding_completed_at=onboarding_completed_at,
     )
-    profile_name = display_name or normalized.split("@", 1)[0] or "User"
     session.add(user)
-    session.add(empty_profile_row(user_id, profile_name))
+    session.add(profile)
     try:
         session.commit()
     except IntegrityError as exc:

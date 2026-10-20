@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.db.database import SessionLocal
 from app.db.orm_models import AuthSessionRow, CalibrationResponseRow, ProfileRow, UserRow
 from app.services import auth_service
+from tests.conftest import signup_and_verify
 
 
 @pytest.fixture(autouse=True)
@@ -44,11 +45,8 @@ def _cleanup():
 
 
 def _signup(client, email, password="correct horse battery"):
-    response = client.post(
-        "/api/auth/signup",
-        json={"email": email, "password": password, "display_name": "Me User"},
-    )
-    assert response.status_code == 201, response.text
+    response = signup_and_verify(client, email, password, display_name="Me User")
+    assert response.status_code == 200, response.text
     return response.cookies.get(settings.auth_cookie_name)
 
 

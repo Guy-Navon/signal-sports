@@ -62,6 +62,9 @@ class AuthUser(BaseModel):
     email_verified_at: str | None = None
     # False for accounts created through Google (no password to change).
     has_password: bool = True
+    # The connected Google account's email (#330); reported by
+    # GET /api/auth/session, null when not connected.
+    google_email: str | None = None
 
 
 class SignupPendingResponse(BaseModel):
@@ -189,6 +192,11 @@ def _session_bootstrap(session: Session, user: UserRow | None) -> SessionBootstr
                 selected=_interests_selected_count(session, user.id),
             ),
         )
+    user_out = None
+    if user is not None:
+        identity = google_oauth.linked_identity(session, user.id)
+        user_out = _user_out(user)
+        user_out.google_email = identity.email if identity is not None else None
     return SessionBootstrap(
         auth_enforced=auth_enforced_for_legacy_surface(),
         signup_enabled=signup_enabled(),
@@ -196,7 +204,7 @@ def _session_bootstrap(session: Session, user: UserRow | None) -> SessionBootstr
             not signup_enabled() and bool(email_verification.allowed_signup_emails())
         ),
         google_enabled=google_oauth.google_config() is not None,
-        user=_user_out(user) if user is not None else None,
+        user=user_out,
         onboarding=onboarding,
     )
 
@@ -406,10 +414,12 @@ def google_callback(
     the state cookie (must equal ``state``), the single-use pending row, PKCE
     and the nonce. Redirects only to fixed paths (no return_to parameter)."""
     cfg = _require_google()
-    # A deletion confirmation (#331) reports back to the Account page; the
-    # peek is read-only and only picks where failures are shown.
-    deleting = google_oauth.pending_intent(session, state) == "delete"
-    failed = "/account?google=" if deleting else "/login?google="
+    # Account-bound attempts (delete #331, link #330) report back to the
+    # Account page; the peek is read-only and only picks where failures show.
+    intent = google_oauth.pending_intent(session, state)
+    deleting, linking = intent == "delete", intent == "link"
+    failed = {"delete": "/account?google=", "link": "/account?google=link_"}.get(
+        intent, "/login?google=")
     cookie = request.cookies.get(_google_state_cookie(), "")
     if not state or not cookie or not hmac.compare_digest(cookie, state):
         return _google_redirect(f"{failed}expired")
@@ -422,6 +432,16 @@ def google_callback(
         return _google_redirect(f"{failed}{code_name}")
     if not code:
         return _google_redirect(f"{failed}failed")
+    if linking:
+        raw_session = request.cookies.get(settings.auth_cookie_name)
+        try:
+            google_oauth.complete_link(
+                session, cfg, state=state, code=code,
+                current_session_hash=auth_service.token_hash(raw_session) if raw_session else None,
+            )
+        except google_oauth.GoogleAuthError as exc:
+            return _google_redirect(f"/account?google=link_{exc.code}")
+        return _google_redirect("/account?google=linked")
     if deleting:
         raw_session = request.cookies.get(settings.auth_cookie_name)
         try:

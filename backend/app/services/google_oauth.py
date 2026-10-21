@@ -128,6 +128,12 @@ def start_delete_confirmation(
     )
 
 
+def start_link(session: Session, cfg: GoogleConfig, *, user_id: str, session_hash: str) -> tuple[str, str]:
+    """Record an explicit connect-Google attempt bound to this user and
+    session (#330). Its callback links, never signs in or registers."""
+    return _start_attempt(session, cfg, intent="link", user_id=user_id, session_hash=session_hash)
+
+
 def _start_attempt(
     session: Session,
     cfg: GoogleConfig,
@@ -444,15 +450,10 @@ def complete_delete_confirmation(
     in, never registers, never deletes. Not fresh re-authentication: a live
     Google session in this browser satisfies it (documented limitation).
     """
-    pending = consume_pending(session, state)
-    if pending.intent != "delete" or not pending.user_id or not pending.session_hash:
-        raise GoogleAuthError("delete_failed")
-    if not current_session_hash or not hmac.compare_digest(pending.session_hash, current_session_hash):
-        raise GoogleAuthError("delete_failed")
-    auth_session = session.get(AuthSessionRow, current_session_hash)
-    if (auth_session is None or auth_session.user_id != pending.user_id
-            or auth_service.parse_iso(auth_session.expires_at) <= utc_now()):
-        raise GoogleAuthError("delete_failed")
+    pending = _consume_bound_attempt(
+        session, state, intent="delete", current_session_hash=current_session_hash,
+        failure="delete_failed",
+    )
     raw = exchange_code(cfg, code, pending.code_verifier)
     claims = verify_id_token(raw, cfg, nonce=pending.nonce)
     identity = _identity(session, claims["sub"])
@@ -469,3 +470,60 @@ def linked_identity(session: Session, user_id: str) -> Optional[UserIdentityRow]
         .where(UserIdentityRow.user_id == user_id, UserIdentityRow.provider == PROVIDER)
         .limit(1)
     ).scalar_one_or_none()
+
+
+def _consume_bound_attempt(
+    session: Session, state: str, *, intent: str, current_session_hash: Optional[str], failure: str,
+) -> OAuthPendingRow:
+    """Consume an account-bound attempt (delete, link) and require that the
+    browser completing it holds the very session that started it, still valid
+    and still the same user."""
+    pending = consume_pending(session, state)
+    if pending.intent != intent or not pending.user_id or not pending.session_hash:
+        raise GoogleAuthError(failure)
+    if not current_session_hash or not hmac.compare_digest(pending.session_hash, current_session_hash):
+        raise GoogleAuthError(failure)
+    auth_session = session.get(AuthSessionRow, current_session_hash)
+    if (auth_session is None or auth_session.user_id != pending.user_id
+            or auth_service.parse_iso(auth_session.expires_at) <= utc_now()):
+        raise GoogleAuthError(failure)
+    return pending
+
+
+def complete_link(
+    session: Session, cfg: GoogleConfig, *, state: str, code: str, current_session_hash: Optional[str],
+) -> None:
+    """The callback of an explicit connect (#330). Any Google account may be
+    connected (the password proved the Signal account; Google proves the
+    Google account), but a subject already linked to another account is
+    refused, and an account holds at most one Google identity."""
+    pending = _consume_bound_attempt(
+        session, state, intent="link", current_session_hash=current_session_hash,
+        failure="failed",
+    )
+    raw = exchange_code(cfg, code, pending.code_verifier)
+    claims = verify_id_token(raw, cfg, nonce=pending.nonce)
+    subject, user_id = claims["sub"], pending.user_id
+    existing = _identity(session, subject)
+    if existing is not None:
+        if existing.user_id == user_id:
+            return  # already connected to this very account
+        raise GoogleAuthError("taken")
+    if has_google_identity(session, user_id):
+        raise GoogleAuthError("already")
+    email = claims.get("email")
+    now = iso(utc_now())
+    session.add(UserIdentityRow(
+        provider=PROVIDER, subject=subject, user_id=user_id,
+        email=normalize_email(email) if isinstance(email, str) else None,
+        created_at=now, last_login_at=None,
+    ))
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        existing = _identity(session, subject)
+        if existing is not None and existing.user_id == user_id:
+            return
+        raise GoogleAuthError("taken" if existing is not None else "already")
+    logger.info("Connected a Google identity to account %s", user_id)

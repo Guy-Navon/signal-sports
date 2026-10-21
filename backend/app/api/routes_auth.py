@@ -369,6 +369,11 @@ def google_start(response: Response, session: Session = Depends(get_session)):
         url, state = google_oauth.start_login(session, cfg)
     except auth_service.RateLimitExceeded:
         raise HTTPException(status_code=429, detail="Too many sign-in attempts")
+    set_google_state_cookie(response, state)
+    return GoogleStartResponse(url=url)
+
+
+def set_google_state_cookie(response: Response, state: str) -> None:
     response.set_cookie(
         key=_google_state_cookie(),
         value=state,
@@ -378,7 +383,6 @@ def google_start(response: Response, session: Session = Depends(get_session)):
         samesite="lax",  # sent on Google's top-level GET redirect back
         path=_GOOGLE_COOKIE_PATH,
     )
-    return GoogleStartResponse(url=url)
 
 
 def _google_redirect(location: str) -> RedirectResponse:
@@ -402,18 +406,32 @@ def google_callback(
     the state cookie (must equal ``state``), the single-use pending row, PKCE
     and the nonce. Redirects only to fixed paths (no return_to parameter)."""
     cfg = _require_google()
+    # A deletion confirmation (#331) reports back to the Account page; the
+    # peek is read-only and only picks where failures are shown.
+    deleting = google_oauth.pending_intent(session, state) == "delete"
+    failed = "/account?google=" if deleting else "/login?google="
     cookie = request.cookies.get(_google_state_cookie(), "")
     if not state or not cookie or not hmac.compare_digest(cookie, state):
-        return _google_redirect("/login?google=expired")
+        return _google_redirect(f"{failed}expired")
     if error:
         try:
             google_oauth.consume_pending(session, state)
         except google_oauth.GoogleAuthError:
             pass
         code_name = "cancelled" if error == "access_denied" else "failed"
-        return _google_redirect(f"/login?google={code_name}")
+        return _google_redirect(f"{failed}{code_name}")
     if not code:
-        return _google_redirect("/login?google=failed")
+        return _google_redirect(f"{failed}failed")
+    if deleting:
+        raw_session = request.cookies.get(settings.auth_cookie_name)
+        try:
+            google_oauth.complete_delete_confirmation(
+                session, cfg, state=state, code=code,
+                current_session_hash=auth_service.token_hash(raw_session) if raw_session else None,
+            )
+        except google_oauth.GoogleAuthError as exc:
+            return _google_redirect(f"/account?google={exc.code}")
+        return _google_redirect("/account?delete=confirm")
     try:
         _user, token = google_oauth.complete_callback(
             session, cfg, state=state, code=code,

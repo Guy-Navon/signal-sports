@@ -371,38 +371,124 @@ def change_password(
     return revoke_other_sessions(session, user.id, token_hash(keep_raw_token))
 
 
-def delete_account(session: Session, user: UserRow, *, current_password: str) -> None:
-    """Hard-delete the account and exactly its own personalization rows, in
-    one transaction (#55): feedback_events → calibration_responses → profiles
-    → users (auth_sessions cascade via the FK; deleted explicitly as well for
-    belt-and-braces under SQLite pragma configurations).
+class InvalidReauthGrantError(AuthError):
+    """No unexpired, unconsumed deletion grant for this user and session."""
 
-    Guards: demo rows are permanent QA fixtures (undeletable — they also can
-    never hold a session, so this is defense in depth); the last remaining
-    admin cannot self-delete.
-    """
-    from app.db.orm_models import CalibrationResponseRow, FeedbackRow, ProfileRow
 
+REAUTH_GRANT_TTL = timedelta(minutes=5)
+
+
+def _refuse_demo(user: UserRow) -> None:
+    """Demo rows are permanent QA fixtures (undeletable — they also can never
+    hold a session, so this is defense in depth)."""
     if user.role == "demo":
         raise UndeletableAccountError("demo accounts are permanent QA fixtures")
-    if not user.password_hash or not verify_password(user.password_hash, current_password):
-        raise InvalidPasswordError("current password is incorrect")
+
+
+def _refuse_last_admin(session: Session, user: UserRow) -> None:
+    """The last remaining admin cannot self-delete."""
     if user.role == "admin":
         admins = session.query(UserRow).filter(UserRow.role == "admin").count()
         if admins <= 1:
             raise LastAdminError("the last remaining admin cannot self-delete")
 
-    uid = user.id
+
+def _delete_cascade(session: Session, uid: str) -> None:
+    """Hard-delete the account and exactly its own rows, in one transaction
+    (#55): feedback_events → calibration_responses → profiles → sign-in state
+    → users. FK cascades exist too; the explicit deletes are belt-and-braces
+    under SQLite pragma configurations."""
+    from app.db.orm_models import (
+        CalibrationResponseRow,
+        FeedbackRow,
+        OAuthPendingRow,
+        ProfileRow,
+        ReauthGrantRow,
+        UserIdentityRow,
+    )
+
     session.query(FeedbackRow).filter(FeedbackRow.user_id == uid).delete(
         synchronize_session=False)
     session.query(CalibrationResponseRow).filter(
         CalibrationResponseRow.user_id == uid).delete(synchronize_session=False)
     session.query(ProfileRow).filter(ProfileRow.user_id == uid).delete(
         synchronize_session=False)
-    session.query(AuthSessionRow).filter(AuthSessionRow.user_id == uid).delete(
-        synchronize_session=False)
+    for model in (ReauthGrantRow, OAuthPendingRow, UserIdentityRow, AuthSessionRow):
+        session.query(model).filter(model.user_id == uid).delete(synchronize_session=False)
     session.query(UserRow).filter(UserRow.id == uid).delete(synchronize_session=False)
     session.commit()
+
+
+def delete_account(session: Session, user: UserRow, *, current_password: str) -> None:
+    """Delete an account that has a password, confirmed by that password.
+    Check order is unchanged from #55: demo, password, last admin."""
+    _refuse_demo(user)
+    if not user.password_hash or not verify_password(user.password_hash, current_password):
+        raise InvalidPasswordError("current password is incorrect")
+    _refuse_last_admin(session, user)
+    _delete_cascade(session, user.id)
+
+
+def issue_reauth_grant(session: Session, user_id: str, *, session_hash: str, purpose: str) -> None:
+    from app.db.orm_models import ReauthGrantRow
+
+    now = utc_now()
+    session.add(ReauthGrantRow(
+        id="rg_" + generate_user_id().removeprefix("usr_"),
+        user_id=user_id,
+        session_hash=session_hash,
+        purpose=purpose,
+        created_at=iso(now),
+        expires_at=iso(now + REAUTH_GRANT_TTL),
+        consumed_at=None,
+    ))
+    session.commit()
+
+
+def consume_reauth_grant(
+    session: Session, user: UserRow, *, session_hash: str, purpose: str = "delete_account",
+) -> bool:
+    """Single use: of concurrent consumers of one grant, exactly one wins (the
+    rowcount-checked update), and only for the session that earned it."""
+    from sqlalchemy import update
+
+    from app.db.orm_models import ReauthGrantRow
+
+    now = iso(utc_now())
+    row = (
+        session.query(ReauthGrantRow)
+        .filter(ReauthGrantRow.user_id == user.id)
+        .filter(ReauthGrantRow.session_hash == session_hash)
+        .filter(ReauthGrantRow.purpose == purpose)
+        .filter(ReauthGrantRow.consumed_at.is_(None))
+        .filter(ReauthGrantRow.expires_at > now)
+        .order_by(ReauthGrantRow.created_at.desc())
+        .first()
+    )
+    if row is None:
+        return False
+    grant_id = row.id
+    session.expunge(row)
+    updated = session.execute(
+        update(ReauthGrantRow)
+        .where(ReauthGrantRow.id == grant_id)
+        .where(ReauthGrantRow.consumed_at.is_(None))
+        .where(ReauthGrantRow.expires_at > now)
+        .values(consumed_at=now)
+    ).rowcount
+    session.commit()
+    return updated == 1
+
+
+def delete_account_with_grant(session: Session, user: UserRow, *, session_hash: str) -> None:
+    """Delete a password-less account, confirmed by a deletion grant earned
+    through a Google round trip in this same session (#331). The guards run
+    before the grant is consumed, so a refusal leaves the grant usable."""
+    _refuse_demo(user)
+    _refuse_last_admin(session, user)
+    if not consume_reauth_grant(session, user, session_hash=session_hash):
+        raise InvalidReauthGrantError("no valid deletion confirmation")
+    _delete_cascade(session, user.id)
 
 
 def log_admin_mutation(admin: Optional[UserRow], target_user_id: str, action: str) -> None:

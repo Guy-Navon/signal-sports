@@ -12,12 +12,14 @@ Server-side OAuth 2.0 authorization-code flow with PKCE (S256), ``state`` and
 ID-token validation (signature against Google's published certificates,
 ``aud``, ``iss``, ``exp``) is google-auth's ``verify_oauth2_token``; this module
 adds the nonce, the subject, and the email-authority policy. The user key is
-Google's ``sub``; an email never links accounts.
+Google's ``sub``.
 
-Email authority (docs/USER_PLATFORM.md, "Google sign-in"): registration needs
-``email_verified`` exactly true AND an address Google is authoritative for:
-``@gmail.com`` without ``hd``, or a Workspace address whose domain equals
-``hd``. Anything else is a third-party address, not registrable here yet.
+Email authority (docs/USER_PLATFORM.md, "Google sign-in"): registering, or
+linking to an existing account, needs ``email_verified`` exactly true AND an
+address Google is authoritative for: ``@gmail.com`` without ``hd``, or a
+Workspace address whose domain equals ``hd``. Anything else is a third-party
+address: never linked, not registrable here yet. Linking by such an address is
+automatic for role=user accounts and never for admin (AUTO_LINK_ROLES).
 """
 
 from __future__ import annotations
@@ -265,12 +267,60 @@ def _login_existing(session: Session, identity: UserIdentityRow, claims: dict, u
     return user, raw_token
 
 
+# Roles whose existing account a Google-authoritative address may link to
+# automatically (owner decision, 2026-10-21). Admin stays explicit for now.
+AUTO_LINK_ROLES = frozenset({"user"})
+
+
+def _link_existing(
+    session: Session, user: UserRow, subject: str, email: str, claims: dict, user_agent,
+) -> tuple[UserRow, str]:
+    """Attach this Google subject to the account that holds the address.
+
+    Only for an authoritative address (the caller checked), only for
+    AUTO_LINK_ROLES, and never when the account already has a different Google
+    identity. Signup state does not apply: no account is created.
+    """
+    if user.role not in AUTO_LINK_ROLES:
+        raise GoogleAuthError("account_exists")
+    if has_google_identity(session, user.id):
+        # Linked meanwhile by a concurrent sign-in with this same subject →
+        # sign in; linked to a different Google account → refuse.
+        identity = _identity(session, subject)
+        if identity is not None and identity.user_id == user.id:
+            return _login_existing(session, identity, claims, user_agent)
+        raise GoogleAuthError("account_exists")
+    now = iso(utc_now())
+    session.add(UserIdentityRow(
+        provider=PROVIDER, subject=subject, user_id=user.id, email=email,
+        created_at=now, last_login_at=now,
+    ))
+    if user.email_verified_at is None:
+        # Google just proved the address this account was registered with.
+        user.email_verified_at = now
+        user.email_verified_method = "google_authoritative"
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        # A concurrent sign-in linked the same subject first: use it.
+        identity = _identity(session, subject)
+        if identity is not None and identity.user_id == user.id:
+            return _login_existing(session, identity, claims, user_agent)
+        raise GoogleAuthError("account_exists")
+    logger.info("Linked a Google identity to existing account %s", user.id)
+    session.refresh(user)
+    raw_token, _ = auth_service.create_session(session, user, user_agent=user_agent)
+    return user, raw_token
+
+
 def sign_in(session: Session, claims: dict, *, user_agent: Optional[str]) -> tuple[UserRow, str]:
     """Resolve verified claims to an account and open a session.
 
     Returning user (known ``sub``) → sign in, whatever the signup state.
-    New user → only a Google-authoritative address, never one an account
-    already holds (no implicit linking), and only where signup admits it.
+    Unknown ``sub`` with a Google-authoritative address:
+      an account already holds it → link it (role=user only) and sign in;
+      no account → register, only where signup admits the address.
     """
     from app.core.security_deps import signup_allowed_for
 
@@ -285,8 +335,9 @@ def sign_in(session: Session, claims: dict, *, user_agent: Optional[str]) -> tup
     if authority.kind != "authoritative":
         raise GoogleAuthError("unsupported_email")
     email = authority.email
-    if auth_service.get_user_by_email(session, email) is not None:
-        raise GoogleAuthError("account_exists")
+    existing = auth_service.get_user_by_email(session, email)
+    if existing is not None:
+        return _link_existing(session, existing, subject, email, claims, user_agent)
     if not signup_allowed_for(email):
         raise GoogleAuthError("signup_closed")
 

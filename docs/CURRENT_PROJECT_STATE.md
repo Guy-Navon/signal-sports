@@ -163,7 +163,8 @@ Authentication: email/password (Argon2), HttpOnly cookie sessions, origin/fetch-
 and admin role gating ([USER_PLATFORM.md](USER_PLATFORM.md)). A password signup is only a
 pending registration until the emailed link is confirmed with the password; accounts created
 before that (and the bootstrap admin) keep `email_verified_at` NULL. "Continue with Google"
-signs in or registers Gmail and Workspace addresses (never linking to an existing account). CSRF origins come from
+signs in or registers Gmail and Workspace addresses, and links one to an existing regular
+account holding the same address (never an admin account). CSRF origins come from
 `CSRF_ALLOWED_ORIGINS`, while the CORS list is hard-coded in `main.py`. That split is #196, and
 it matters before any split deployment.
 

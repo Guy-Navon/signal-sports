@@ -401,21 +401,122 @@ def test_closed_signup_admits_an_allowlisted_authoritative_address(client, monke
     assert len(_users("invited@gmail.com")) == 1
 
 
-def test_an_existing_password_account_is_never_linked_implicitly(client, monkeypatch):
+def _existing(email, role="user", password="correct horse battery"):
     with SessionLocal() as session:
-        owner = auth_service.create_user_with_profile(
-            session, email="taken@gmail.com", password="correct horse battery")
-        owner_id, owner_hash = owner.id, owner.password_hash
-    GoogleReturns(monkeypatch, sub="sub-collide", email="taken@gmail.com")
+        user = auth_service.create_user_with_profile(
+            session, email=email, password=password, role=role)
+        return user.id, user.password_hash
+
+
+def _identities():
+    with SessionLocal() as session:
+        return [(i.subject, i.user_id) for i in session.query(UserIdentityRow)]
+
+
+def test_an_existing_user_account_is_linked_and_signed_in(client, monkeypatch):
+    """Guy's 2026-10-21 decision: a Google-authoritative address proves the
+    mailbox, so a role=user account holding it is linked automatically."""
+    owner_id, owner_hash = _existing("taken@gmail.com")
+    GoogleReturns(monkeypatch, sub="sub-link", email="Taken@gmail.com")
+    c = _fresh_client(client)
+    state, _ = _start(c)
+    response = _callback(c, state)
+    assert response.headers["location"] == "/"
+    assert c.get("/api/auth/session").json()["user"]["id"] == owner_id
+    assert _identities() == [("sub-link", owner_id)]
+    with SessionLocal() as session:
+        owner = session.get(UserRow, owner_id)
+        assert owner.password_hash == owner_hash  # the password keeps working
+        # The address was never proven before; Google just proved it.
+        assert owner.email_verified_method == "google_authoritative"
+        assert owner.email_verified_at is not None
+    assert len(_users()) == 1
+    login = client.post("/api/auth/login",
+                        json={"email": "taken@gmail.com", "password": "correct horse battery"})
+    assert login.status_code == 200
+
+
+def test_linking_keeps_an_earlier_verification(client, monkeypatch):
+    owner_id, _ = _existing("proven@gmail.com")
+    with SessionLocal() as session:
+        owner = session.get(UserRow, owner_id)
+        owner.email_verified_at, owner.email_verified_method = "2026-10-01T00:00:00+00:00", "link"
+        session.commit()
+    GoogleReturns(monkeypatch, sub="sub-proven", email="proven@gmail.com")
+    c = _fresh_client(client)
+    state, _ = _start(c)
+    assert _callback(c, state).headers["location"] == "/"
+    with SessionLocal() as session:
+        owner = session.get(UserRow, owner_id)
+        assert (owner.email_verified_at, owner.email_verified_method) == (
+            "2026-10-01T00:00:00+00:00", "link")
+
+
+def test_linking_an_existing_account_ignores_closed_signup(client, monkeypatch):
+    owner_id, _ = _existing("member@gmail.com")
+    monkeypatch.setenv("AUTH_SIGNUP_ENABLED", "false")
+    GoogleReturns(monkeypatch, sub="sub-member", email="member@gmail.com")
+    c = _fresh_client(client)
+    state, _ = _start(c)
+    assert _callback(c, state).headers["location"] == "/"
+    assert _identities() == [("sub-member", owner_id)]
+
+
+def test_an_admin_account_is_never_linked_automatically(client, monkeypatch):
+    admin_id, admin_hash = _existing("boss@gmail.com", role="admin")
+    GoogleReturns(monkeypatch, sub="sub-boss", email="boss@gmail.com")
     c = _fresh_client(client)
     state, _ = _start(c)
     response = _callback(c, state)
     assert response.headers["location"] == "/login?google=account_exists"
     assert settings.auth_cookie_name not in response.cookies
+    assert _identities() == []
     with SessionLocal() as session:
-        assert session.query(UserIdentityRow).count() == 0
-        owner = session.get(UserRow, owner_id)
-        assert owner.password_hash == owner_hash and owner.email_verified_at is None
+        admin = session.get(UserRow, admin_id)
+        assert admin.password_hash == admin_hash and admin.email_verified_at is None
+
+
+def test_a_third_party_address_never_links(client, monkeypatch):
+    _existing("someone@yahoo.com")
+    GoogleReturns(monkeypatch, sub="sub-yahoo", email="someone@yahoo.com")
+    c = _fresh_client(client)
+    state, _ = _start(c)
+    assert _callback(c, state).headers["location"] == "/login?google=unsupported_email"
+    assert _identities() == []
+
+
+def test_an_account_linked_to_another_google_account_is_not_relinked(client, monkeypatch):
+    owner_id, _ = _existing("moved@gmail.com")
+    with SessionLocal() as session:
+        session.add(UserIdentityRow(provider="google", subject="sub-original", user_id=owner_id,
+                                    email="moved@gmail.com", created_at="2026-10-01T00:00:00+00:00"))
+        session.commit()
+    GoogleReturns(monkeypatch, sub="sub-other", email="moved@gmail.com")
+    c = _fresh_client(client)
+    state, _ = _start(c)
+    assert _callback(c, state).headers["location"] == "/login?google=account_exists"
+    assert _identities() == [("sub-original", owner_id)]
+
+
+def test_losing_a_link_race_signs_into_the_same_account(client, monkeypatch):
+    """Deterministic interleaving: a concurrent sign-in links the account
+    after this one found it but before this one's insert."""
+    owner_id, _ = _existing("racer@gmail.com")
+    claims = {"sub": "sub-racer", "email": "racer@gmail.com", "email_verified": True}
+    real_lookup = auth_service.get_user_by_email
+
+    def lookup_then_lose(session, email):
+        found = real_lookup(session, email)
+        monkeypatch.setattr(auth_service, "get_user_by_email", real_lookup)
+        with SessionLocal() as other:
+            google_oauth.sign_in(other, dict(claims), user_agent=None)
+        return found
+
+    monkeypatch.setattr(auth_service, "get_user_by_email", lookup_then_lose)
+    with SessionLocal() as session:
+        user, token = google_oauth.sign_in(session, dict(claims), user_agent=None)
+        assert user.id == owner_id and token
+    assert _identities() == [("sub-racer", owner_id)]
 
 
 def test_pending_password_registrations_for_the_address_are_discarded(client, monkeypatch):

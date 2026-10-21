@@ -359,10 +359,14 @@ logged; the access-log filter redacts `code=` and `state=` on the callback URL.
 
 **Rollback hazard.** The schema is additive, so old code runs on the new database. But
 reverting this code (or unsetting `GOOGLE_*`) leaves Google-only accounts with **no way to
-sign in**. Before any revert, list them
-(`SELECT u.id, u.email FROM users u JOIN user_identities i ON i.user_id = u.id WHERE u.password_hash IS NULL`)
-and give each a recovery path; prefer a forward fix, or close new Google registrations
-(closed signup with an empty allowlist keeps existing Google logins working).
+sign in**. Prefer a forward fix, or close new Google registrations (closed signup with an
+empty allowlist keeps existing Google logins working). If a revert is unavoidable, recover
+each account **before** reverting with the guarded tool `backend/scripts/set_user_password.py`
+(#334; runbook in `DEPLOYMENT.md` §10.1): `--list` shows the accounts without a password,
+and `--user <id> --apply` gives one a generated temporary password, printed once, and
+revokes its sessions (a dry run by default; demo rows refused; no password on the command
+line). The same tool is the interim admin reset for any locked-out user until password
+reset by email exists (#200).
 
 ## Onboarding state machine
 
@@ -673,6 +677,9 @@ changes); **signal-real-data-qa** (demo diffs will require an admin session);
 bypass semantics).
 
 ## Changelog
+
+- 2026-10-21 — #334: `scripts/set_user_password.py`, the guarded recovery tool for accounts
+  without a password (and the interim admin reset), plus the rollback runbook step.
 
 - 2026-10-21 — #330: connect and disconnect Google from the Account page (password
   re-entry; link bound to user + session; any Google account; one per account; disconnect

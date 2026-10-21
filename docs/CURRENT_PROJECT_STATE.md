@@ -132,7 +132,7 @@ side effect.
 |---|---|
 | `/health` | public |
 | `/api/auth/*` (signup, login, logout, session, verification peek/confirm/resend, Google start/callback) | public; mutating routes CSRF-checked, the Google callback bound to its state cookie |
-| `/api/me/*` (profile, feed, results, feedback, learning, never_show, interests, calibration, onboarding, password, account) | the session user's own data |
+| `/api/me/*` (profile, feed, results, feedback, learning, never_show, interests, calibration, onboarding, password, account, account deletion through Google) | the session user's own data |
 | `/api/taxonomy/catalog`, `/api/calibration/items`, `/api/calibration/preview`, `/api/articles[/{id}]`, `/api/feed-engine` | any session |
 | `/api/feed/{user_id}`, `/api/debug/*`, `/api/profiles/*`, `/api/learning/{user_id}[/reset]`, `/api/feedback[/{user_id}]`, `/api/calibration/apply`, `/api/calibration/responses/{user_id}`, `/api/results/{user_id}`, `/api/results/sync[/state]` | admin (view-as / QA) |
 | `/api/ingest/*`, `/api/scheduler/*`, `/api/notifications/*`, `/api/classify/*`, `/api/translations/*`, `/api/dev/*` | admin, router-level fail-closed. `/api/dev/*` also needs `ALLOW_DEV_RESET`, and the corpus guards apply on top |
@@ -164,7 +164,8 @@ and admin role gating ([USER_PLATFORM.md](USER_PLATFORM.md)). A password signup 
 pending registration until the emailed link is confirmed with the password; accounts created
 before that (and the bootstrap admin) keep `email_verified_at` NULL. "Continue with Google"
 signs in or registers Gmail and Workspace addresses, and links one to an existing regular
-account holding the same address (never an admin account). CSRF origins come from
+account holding the same address (never an admin account). A Google-only account deletes
+itself through a Google confirmation and a separate final DELETE. CSRF origins come from
 `CSRF_ALLOWED_ORIGINS`, while the CORS list is hard-coded in `main.py`. That split is #196, and
 it matters before any split deployment.
 

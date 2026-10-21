@@ -330,8 +330,8 @@ at most one Google identity per user), never the email.
   into the winner's account).
 - A Google-only account can't log in with a password (`password_hash` NULL is "invalid
   credentials", as for demo rows). `AuthUser.has_password` tells the Account page to hide the
-  password change. Self-deletion of a Google-only account is not built yet; the page says to
-  ask the admin.
+  password change. A Google-only account deletes itself through Google (see Deletion
+  semantics).
 
 **Configuration**, read at request time: `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`
 (secret) and `GOOGLE_OAUTH_REDIRECT_URI` (exact, never derived from `Host`). Google is enabled
@@ -441,11 +441,38 @@ all states derived** — no state enum to drift.
 
 ### Deletion semantics
 
-`DELETE /api/me/account` (requires current password), one transaction: `feedback_events` →
-`calibration_responses` → `profiles` → `users` (the `users` delete cascades `auth_sessions`
-at the DB level via the FK; the legacy tables have no FKs, so their cleanup stays
-app-level). Guards: `role='demo'` undeletable; the last remaining admin cannot self-delete.
-Hard delete (soft-delete/retention deferred).
+`DELETE /api/me/account`, one transaction: `feedback_events` → `calibration_responses` →
+`profiles` → sign-in state (`reauth_grants`, `oauth_pending`, `user_identities`,
+`auth_sessions`) → `users`. FK cascades exist as well; the explicit deletes are
+belt-and-braces (the legacy tables have no FKs). Guards: `role='demo'` undeletable; the last
+remaining admin cannot self-delete. Hard delete (soft-delete/retention deferred).
+
+The body carries exactly one confirmation:
+
+- `{"current_password": ...}`, for accounts that have a password. Check order is unchanged:
+  demo, password, last admin.
+- `{"method": "reauth_grant"}`, only for accounts **without** a password (a password
+  account gets 400). It consumes a deletion grant earned through Google (#331, owner policy
+  2026-10-21):
+  1. `POST /api/me/account/delete/google/start {confirm_email}` (session, CSRF) requires the
+     account's own address typed, a linked Google identity and no password, and starts a
+     **newly initiated, explicit** Google round trip (`prompt=select_account`,
+     `login_hint`) whose `oauth_pending` row is bound to this user **and** this session.
+  2. The callback **never deletes, signs in or registers.** It requires the session that
+     started the attempt (same user, same session, still valid) and a sign-in as the **same
+     linked `sub`**. It then records a `reauth_grants` row (purpose `delete_account`, bound
+     to user + session, 5 minutes, single use) and redirects to `/account?delete=confirm`.
+     Failures return to `/account?google=<code>` (`delete_wrong_account`, `delete_failed`,
+     `cancelled`, `expired`, …).
+  3. The Account page shows an explicit final confirmation; the DELETE consumes the grant
+     atomically (a rowcount-checked update bound to user + session + purpose). The guards
+     run before the grant is consumed, so a refusal leaves it usable.
+
+  **Limitation, accepted:** this is not guaranteed fresh re-authentication. Google offers
+  no re-auth request, and `auth_time` would need a verified app with session-age claims
+  (not a prerequisite). Someone at an unattended, unlocked device where the person is
+  signed in to both Signal and Google can complete it. It does stop a stolen Signal
+  session cookie on its own: that needs the same Google account in the attacker's browser.
 
 ## API transition map
 
@@ -460,7 +487,8 @@ to the same repositories/services as the `{user_id}` routes — one seam, no ser
 | — | `POST /api/auth/signup` / `login` / `logout`, `GET /api/auth/session` | Public (login rate-limited); logout=Session | permanent |
 | — | `POST /api/auth/verification/peek` / `confirm` / `resend` | Public (the token and/or password is the proof; rate-limited) | permanent |
 | — | `POST /api/auth/google/start`, `GET /api/auth/google/callback` | Public (start CSRF-checked and rate-limited; callback bound to the state cookie, single-use pending row, PKCE, nonce) | permanent |
-| — | `POST /api/me/password`, `DELETE /api/me/account` | Consumer (password re-entry) | permanent |
+| — | `POST /api/me/password`, `DELETE /api/me/account` | Consumer (password re-entry, or a Google deletion grant for password-less accounts) | permanent |
+| — | `POST /api/me/account/delete/google/start` | Consumer (CSRF; bound to user + session) | permanent |
 | — | `POST /api/me/onboarding/complete` | Consumer | permanent (skip path) |
 | `GET /api/profiles` (lists all) | stays | **Admin** | permanent (QA list); frontend product stops calling it |
 | `GET/PUT /api/profiles/{user_id}` | + `GET/PUT /api/me/profile` | Admin / Consumer | both permanent — `{user_id}` = QA view-as surface |
@@ -627,6 +655,11 @@ changes); **signal-real-data-qa** (demo diffs will require an admin session);
 bypass semantics).
 
 ## Changelog
+
+- 2026-10-21 — #331: Google-only accounts delete themselves through a Google round trip
+  for the same linked `sub`, a single-use session-bound grant (`reauth_grants`), and a
+  separate DELETE; `oauth_pending` gains `user_id`/`session_hash`; the deletion cascade
+  also removes sign-in state explicitly.
 
 - 2026-10-21 — Google sign-in, Slice B1: login and registration for Gmail and Workspace
   addresses (`user_identities`, `oauth_pending`, start/callback routes, `google_enabled`,

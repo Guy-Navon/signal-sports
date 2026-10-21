@@ -294,8 +294,10 @@ origin.
    `verify_oauth2_token` (signature against Google's certificates, `aud`, both `iss` forms,
    `exp`, 10 s clock skew) plus our checks of `nonce` and `sub`. It redirects only to fixed
    paths: `/` on success, `/login?google=<code>` otherwise (`cancelled`, `expired`,
-   `unavailable`, `failed`, `invalid`, `unverified_email`, `unsupported_email`,
-   `account_exists`, `signup_closed`). There is no `return_to` parameter.
+   `unavailable`, `failed`, `invalid`, `unverified_email`, `account_exists`,
+   `signup_closed`, and for third-party addresses `check_email`, `check_email_recent`,
+   `check_email_send_failed`, `too_many`, `mail_unavailable`, `verify_expired`,
+   `verify_wrong_account`, `verify_email_changed`). There is no `return_to` parameter.
 
 **Accounts.** The key is Google's `sub` (`user_identities(provider, subject)` → `user_id`,
 at most one Google identity per user), never the email.
@@ -304,9 +306,31 @@ at most one Google identity per user), never the email.
   has changed (the identity's stored email is updated for display).
 - A new `sub` registers only when Google is **authoritative** for the address:
   `email_verified` exactly `true` and either `@gmail.com` without `hd`, or a Workspace
-  address whose domain equals `hd`. Third-party addresses (a Google account on `@yahoo.com`,
-  `@googlemail.com`, or an `hd` that differs from the address's domain) get
-  `unsupported_email`; registering them through an emailed link is a separate, later step.
+  address whose domain equals `hd`.
+- **Third-party addresses register through an emailed link** (#329): a Google account on
+  `@yahoo.com`, `@googlemail.com`, or with an `hd` that differs from the address's domain.
+  Google verified such an address once, but that is not current proof of the mailbox, so:
+  1. The sign-in creates a `pending_google_registrations` row bound to the `sub` and the
+     **exact** address (unique per `sub`; only token hashes stored; 24 h link; pruned after
+     7 days) and emails `<APP_PUBLIC_URL>/verify-email#g=<token>`. No account, no session;
+     the browser lands on `/login?google=check_email`. It is refused when an account
+     already holds the address (`account_exists`; never linked), when signup doesn't admit
+     it (`signup_closed`), or without a mailer (`mail_unavailable`, nothing stored).
+  2. **Resend is signing in with Google again**: the same cooldown (60 s,
+     `check_email_recent`) and cap (5 sends, `too_many`) as password signups; each resend
+     rotates the token. A changed Google address replaces the pending one.
+  3. The link page peeks (`POST /api/auth/verification/google/peek`, read-only) and offers
+     "המשך עם Google": `POST /api/auth/verification/google/start {token}` starts a Google
+     round trip (`intent='verify_registration'`) bound to the registration's **current**
+     token hash, so a link rotated meanwhile cannot finish (`verify_expired`).
+  4. The callback activates only for the **same `sub`** (`verify_wrong_account`) with the
+     **same address** (`verify_email_changed`), re-checks signup and that no account holds
+     the address, consumes the pending row atomically (rowcount-checked), creates the user
+     (`email_verified_method='link'`, no password), the profile and the identity, deletes
+     other pending sign-ups for the address, and opens a session **only in the browser
+     completing it**. A wrong account or address leaves the registration for its owner.
+  Both proofs are required: the link (mailbox) and the Google account. A scanner, a click,
+  or someone holding only one of them activates nothing.
 - **Automatic linking for regular users** (owner decision, 2026-10-21, reversing the
   2026-10-19 "explicit only"). When an authoritative address belongs to a `role=user`
   account, the Google `sub` is linked to it and the person is signed in. The password keeps
@@ -318,7 +342,7 @@ at most one Google identity per user), never the email.
 - **Never linked automatically:** an **admin** account (it connects explicitly, below; the
   owner intends to include admin in automatic linking later, #332), an account already
   linked to a *different* Google account, and any third-party address. These get
-  `account_exists` or `unsupported_email`, and nothing is created or changed. Two
+  `account_exists`, and nothing is created or changed. Two
   concurrent sign-ins that link the same `sub` end in one identity.
 - **Connect / disconnect explicitly** from the Account page's "שיטות התחברות" (#330), the
   only path for admin accounts:
@@ -677,6 +701,12 @@ changes); **signal-real-data-qa** (demo diffs will require an admin session);
 bypass semantics).
 
 ## Changelog
+
+- 2026-10-21 — #329: Google accounts on third-party addresses register through an emailed
+  link plus a second Google sign-in as the same `sub` with the same address
+  (`pending_google_registrations`, `oauth_pending.registration_token_hash`, the
+  `/api/auth/verification/google/{peek,start}` routes, `/verify-email#g=`).
+  `unsupported_email` is no longer sent.
 
 - 2026-10-21 — #334: `scripts/set_user_password.py`, the guarded recovery tool for accounts
   without a password (and the interim admin reset), plus the rollback runbook step.

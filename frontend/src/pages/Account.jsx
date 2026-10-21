@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { KeyRound, LogOut, Trash2, UserRound } from "lucide-react";
+import { KeyRound, LogIn, LogOut, Trash2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,7 @@ import DeskIntro from "@/components/shared/DeskIntro";
 import { validateSignupPassword } from "@/pages/authValidation";
 import { accountHasPassword } from "@/pages/googleSignIn";
 import GoogleAccountDeletion from "@/pages/GoogleAccountDeletion";
+import GoogleSignInMethods from "@/pages/GoogleSignInMethods";
 
 // The account page (User Platform PR 7, #55) — product-side, reached from the
 // masthead account menu. Email display, password change (revokes other
@@ -101,9 +102,18 @@ export default function Account() {
           <UserRound size={14} /> זהות
         </h2>
         <p dir="ltr" className="text-sm text-foreground font-mono">{auth.user.email}</p>
-        {!hasPassword && (
-          <p className="text-xs text-text-secondary">ההתחברות לחשבון הזה היא עם Google.</p>
-        )}
+      </section>
+
+      <section className="space-y-3 border-t border-border pt-6">
+        <h2 className="flex items-center gap-2 text-sm font-medium text-text-secondary">
+          <LogIn size={14} /> שיטות התחברות
+        </h2>
+        <GoogleSignInMethods
+          hasPassword={hasPassword}
+          googleEmail={auth.user.google_email ?? null}
+          googleEnabled={Boolean(auth.googleEnabled)}
+          onChanged={auth.refreshSession}
+        />
       </section>
 
       {hasPassword && (

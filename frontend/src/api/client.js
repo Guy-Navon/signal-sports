@@ -364,6 +364,24 @@ export function startMeGoogleDeletion(confirmEmail) {
   });
 }
 
+// Connect / disconnect Google (#330). Connecting returns {url}; the page
+// navigates there.
+export function startMeGoogleLink(currentPassword) {
+  return apiFetch("/api/me/google/link", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ current_password: currentPassword }),
+  });
+}
+
+export function unlinkMeGoogle(currentPassword) {
+  return apiFetch("/api/me/google", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ current_password: currentPassword }),
+  });
+}
+
 export function deleteMeAccountWithGrant() {
   return apiFetch("/api/me/account", {
     method: "DELETE",

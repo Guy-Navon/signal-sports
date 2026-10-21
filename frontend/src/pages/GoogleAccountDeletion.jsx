@@ -20,6 +20,7 @@ import {
   forgetAccountGoogleState,
   matchesAccountEmail,
 } from "@/pages/googleDeletion";
+import { isLinkCode } from "@/pages/googleLinking";
 
 // Deleting an account that was opened with Google and has no password (#331).
 // Step 1: type the account's email, then confirm with the same Google account.
@@ -32,7 +33,9 @@ export default function GoogleAccountDeletion({ email, onDeleted }) {
   const navigate = useNavigate();
   const initial = captureAccountGoogleState(location.search);
   const [confirming, setConfirming] = useState(initial.confirm);
-  const [notice, setNotice] = useState(initial.code ? deletionNoticeMessage(initial.code) : null);
+  // Connect-Google codes (#330) share ?google= and belong to the sign-in section.
+  const ownCode = initial.code && !isLinkCode(initial.code) ? initial.code : null;
+  const [notice, setNotice] = useState(ownCode ? deletionNoticeMessage(ownCode) : null);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
 

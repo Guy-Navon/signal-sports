@@ -121,6 +121,11 @@ class MeGoogleDeleteStartResponse(BaseModel):
     url: str
 
 
+class MeGooglePasswordRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+    current_password: str
+
+
 # ── Profile ───────────────────────────────────────────────────────────────────
 
 @router.get("/profile", response_model=UserProfile)
@@ -464,3 +469,68 @@ def me_delete_account_google_start(
         raise HTTPException(status_code=429, detail="Too many attempts")
     routes_auth.set_google_state_cookie(response, state)
     return MeGoogleDeleteStartResponse(url=url)
+
+
+# ── Connect / disconnect Google (#330) ───────────────────────────────────────
+
+def _verify_password_limited(user: UserRow, password: str) -> None:
+    """Password re-entry for the Google endpoints, sharing login's per-account
+    budget so they can't serve as a guessing oracle."""
+    if not auth_service._account_login_limiter.check(user.email or user.id):
+        raise HTTPException(status_code=429, detail="Too many attempts")
+    if not user.password_hash or not auth_service.verify_password(user.password_hash, password):
+        raise HTTPException(status_code=403, detail="Current password is incorrect")
+
+
+@router.post("/google/link", response_model=MeGoogleDeleteStartResponse)
+def me_google_link_start(
+    payload: MeGooglePasswordRequest,
+    request: Request,
+    response: Response,
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Connect a Google account explicitly (#330): the current password, then
+    a Google round trip bound to this user and session. The only way an admin
+    gains Google sign-in (automatic linking is role=user only)."""
+    from app.core.config import settings
+    from app.services import google_oauth
+
+    cfg = google_oauth.google_config()
+    if cfg is None:
+        raise HTTPException(status_code=404, detail="Not Found")
+    if not user.password_hash:
+        raise HTTPException(status_code=409, detail="This account has no password")
+    _verify_password_limited(user, payload.current_password)
+    if google_oauth.linked_identity(session, user.id) is not None:
+        raise HTTPException(status_code=409, detail="Google is already connected")
+    raw_token = request.cookies.get(settings.auth_cookie_name) or ""
+    try:
+        url, state = google_oauth.start_link(
+            session, cfg, user_id=user.id, session_hash=auth_service.token_hash(raw_token))
+    except auth_service.RateLimitExceeded:
+        raise HTTPException(status_code=429, detail="Too many attempts")
+    routes_auth.set_google_state_cookie(response, state)
+    return MeGoogleDeleteStartResponse(url=url)
+
+
+@router.delete("/google")
+def me_google_unlink(
+    payload: MeGooglePasswordRequest,
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Disconnect Google (#330). Needs the password, and an account without
+    one is refused (409): it would be left with no way to sign in."""
+    from app.services import google_oauth
+
+    if not user.password_hash:
+        raise HTTPException(
+            status_code=409, detail="An account without a password cannot disconnect Google")
+    _verify_password_limited(user, payload.current_password)
+    identity = google_oauth.linked_identity(session, user.id)
+    if identity is None:
+        raise HTTPException(status_code=404, detail="Google is not connected")
+    session.delete(identity)
+    session.commit()
+    return {"ok": True}

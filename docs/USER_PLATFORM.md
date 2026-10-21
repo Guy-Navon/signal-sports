@@ -315,11 +315,28 @@ at most one Google identity per user), never the email.
   kept. Reasoning: Google vouches for the mailbox, so the mailbox owner gets the account,
   and a squatter who registered someone else's address loses it. Accepted cost: a
   compromised Google account is a second key to the linked account.
-- **Never linked automatically:** an **admin** account (explicit linking from the Account
-  page is a later step; the owner intends to include admin later), an account already
+- **Never linked automatically:** an **admin** account (it connects explicitly, below; the
+  owner intends to include admin in automatic linking later, #332), an account already
   linked to a *different* Google account, and any third-party address. These get
   `account_exists` or `unsupported_email`, and nothing is created or changed. Two
   concurrent sign-ins that link the same `sub` end in one identity.
+- **Connect / disconnect explicitly** from the Account page's "שיטות התחברות" (#330), the
+  only path for admin accounts:
+  - `POST /api/me/google/link {current_password}` (session, CSRF) re-checks the password
+    (sharing login's per-account limiter), refuses an account that already has Google
+    (409) or has no password (409), and starts a Google round trip bound to this user
+    **and** this session (`oauth_pending.intent='link'`).
+  - The callback links and never signs in or registers. It requires the starting session
+    (same user, still valid). **Any** Google account may be connected, including a
+    third-party address, because the password proved the Signal account and Google proves
+    the Google account; the email-authority rule governs only registration and automatic
+    linking. A `sub` linked to another account is refused (`link_taken`), and an account
+    holds at most one Google identity (`link_already`, enforced by the unique constraint
+    even under a race). It returns to `/account?google=linked` or
+    `/account?google=link_<reason>`.
+  - `DELETE /api/me/google {current_password}` disconnects. An account without a password
+    gets 409: Google is its only way in. `AuthUser.google_email` (from
+    `GET /api/auth/session`) shows the connected address, null otherwise.
 - Closed signup applies: an unknown address registers only if open signup or
   `AUTH_SIGNUP_ALLOWED_EMAILS` admits it (`signup_closed` otherwise).
 - Registration creates `users(password_hash=NULL, email_verified_method='google_authoritative')`,
@@ -489,6 +506,7 @@ to the same repositories/services as the `{user_id}` routes — one seam, no ser
 | — | `POST /api/auth/google/start`, `GET /api/auth/google/callback` | Public (start CSRF-checked and rate-limited; callback bound to the state cookie, single-use pending row, PKCE, nonce) | permanent |
 | — | `POST /api/me/password`, `DELETE /api/me/account` | Consumer (password re-entry, or a Google deletion grant for password-less accounts) | permanent |
 | — | `POST /api/me/account/delete/google/start` | Consumer (CSRF; bound to user + session) | permanent |
+| — | `POST /api/me/google/link`, `DELETE /api/me/google` | Consumer (password re-entry, rate-limited; link bound to user + session) | permanent |
 | — | `POST /api/me/onboarding/complete` | Consumer | permanent (skip path) |
 | `GET /api/profiles` (lists all) | stays | **Admin** | permanent (QA list); frontend product stops calling it |
 | `GET/PUT /api/profiles/{user_id}` | + `GET/PUT /api/me/profile` | Admin / Consumer | both permanent — `{user_id}` = QA view-as surface |
@@ -655,6 +673,10 @@ changes); **signal-real-data-qa** (demo diffs will require an admin session);
 bypass semantics).
 
 ## Changelog
+
+- 2026-10-21 — #330: connect and disconnect Google from the Account page (password
+  re-entry; link bound to user + session; any Google account; one per account; disconnect
+  refused without a password). The admin's path to Google sign-in. `AuthUser.google_email`.
 
 - 2026-10-21 — #331: Google-only accounts delete themselves through a Google round trip
   for the same linked `sub`, a single-use session-bound grant (`reauth_grants`), and a

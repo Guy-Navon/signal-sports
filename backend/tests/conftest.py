@@ -72,6 +72,11 @@ os.environ["MAIL_BACKEND"] = "memory"
 os.environ["APP_PUBLIC_URL"] = "http://localhost:5173"
 for _name in ("SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "MAIL_FROM", "SMTP_STARTTLS"):
     os.environ[_name] = ""
+# Google sign-in: never configured from a developer's real backend/.env (the
+# client secret must never be present in a test process). test_google_auth
+# sets test values per test.
+for _name in ("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REDIRECT_URI"):
+    os.environ[_name] = ""
 # Monitoring pings (docs/DEPLOYMENT.md): never configured in tests; the tests
 # that exercise pings set a fake URL and patch httpx.
 for _name in ("MONITOR_CYCLE_URL", "MONITOR_SOURCES_URL", "MONITOR_FRESH_URL", "MONITOR_BACKUP_URL"):

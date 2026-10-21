@@ -44,6 +44,9 @@ AUTH_SURFACE = {
     "POST /api/auth/verification/peek",
     "POST /api/auth/verification/confirm",
     "POST /api/auth/verification/resend",
+    # Google sign-in (state cookie + single-use pending row + PKCE + nonce).
+    "POST /api/auth/google/start",
+    "GET /api/auth/google/callback",
 }
 
 ME = {

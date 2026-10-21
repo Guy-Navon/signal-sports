@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,15 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { authPagesRedundant } from "@/context/authView";
 import AuthScene from "@/pages/AuthScene";
+import GoogleSignInButton from "@/pages/GoogleSignInButton";
 import ResendVerification from "@/pages/ResendVerification";
 import { isUnverifiedLogin } from "@/pages/emailVerification";
+import {
+  captureGoogleNotice,
+  dismissGoogleNotice,
+  googleNoticeMessage,
+  readGoogleNotice,
+} from "@/pages/googleSignIn";
 import {
   authErrorMessage,
   hasErrors,
@@ -23,9 +30,20 @@ export default function Login() {
   const [errors, setErrors] = useState(
     /** @type {{email?: string|null, password?: string|null}} */ ({}),
   );
+  // The Google callback sends failures back as /login?google=<code>.
+  const googleCode = captureGoogleNotice(location.search);
   const [notice, setNotice] = useState(
-    location.state?.expired ? "פג תוקף ההתחברות — היכנסו שוב" : null,
+    googleCode
+      ? googleNoticeMessage(googleCode)
+      : location.state?.expired ? "פג תוקף ההתחברות — היכנסו שוב" : null,
   );
+
+  // Drop ?google= from the address bar so a reload or a shared URL doesn't
+  // repeat the notice; the code itself stays remembered until the next action.
+  const codeInUrl = readGoogleNotice(location.search);
+  useEffect(() => {
+    if (codeInUrl) navigate(location.pathname, { replace: true, state: location.state });
+  }, [codeInUrl, location.pathname, location.state, navigate]);
   const [submitting, setSubmitting] = useState(false);
   // The credentials matched a signup whose email is not verified yet.
   const [unverified, setUnverified] = useState(null);
@@ -42,6 +60,7 @@ export default function Login() {
     if (hasErrors(validation)) return;
     setSubmitting(true);
     setNotice(null);
+    dismissGoogleNotice();
     setUnverified(null);
     try {
       await auth.login(email.trim(), password);
@@ -107,7 +126,21 @@ export default function Login() {
         </Button>
       </form>
 
-      {auth.signupEnabled && (
+      {auth.googleEnabled && (
+        <div className="mt-5 space-y-4">
+          <div className="flex items-center gap-3 text-xs text-text-dim" aria-hidden>
+            <span className="h-px flex-1 bg-border" />
+            או
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <GoogleSignInButton
+            onStart={dismissGoogleNotice}
+            onError={() => setNotice(googleNoticeMessage("unavailable"))}
+          />
+        </div>
+      )}
+
+      {(auth.signupEnabled || auth.signupByInvitation) && (
         <p className="mt-6 text-sm text-text-secondary text-center">
           עדיין אין לכם חשבון?{" "}
           <Link to="/signup" className="text-foreground underline underline-offset-4">

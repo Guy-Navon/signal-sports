@@ -151,7 +151,32 @@ def _hosted_checks() -> tuple[list[str], list[str]]:
     if _truthy("RETENTION_CLEANUP_ENABLED"):
         warnings.append("RETENTION_CLEANUP_ENABLED=true deletes old articles, including rated ones (#255)")
     _hosted_mail_checks(errors, warnings)
+    _hosted_google_checks(errors, warnings)
     return errors, warnings
+
+
+def _hosted_google_checks(errors: list[str], warnings: list[str]) -> None:
+    """Google sign-in on a host: the redirect URI must be https, a partial
+    configuration (which leaves Google silently disabled) is called out, and
+    the redirect's origin should be the origin the browser uses (the start
+    POST is CSRF-checked against CSRF_ALLOWED_ORIGINS)."""
+    from urllib.parse import urlparse
+
+    from app.services import google_oauth
+
+    redirect = os.environ.get("GOOGLE_OAUTH_REDIRECT_URI", "").strip()
+    if redirect and not redirect.lower().startswith("https://"):
+        errors.append("GOOGLE_OAUTH_REDIRECT_URI must be https://")
+    if google_oauth.partially_configured():
+        warnings.append(
+            "Google sign-in is partially configured (set GOOGLE_OAUTH_CLIENT_ID, "
+            "GOOGLE_OAUTH_CLIENT_SECRET and GOOGLE_OAUTH_REDIRECT_URI, or none); it stays disabled")
+    if redirect:
+        parsed = urlparse(redirect)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        allowed = {o.strip() for o in os.environ.get("CSRF_ALLOWED_ORIGINS", "").split(",") if o.strip()}
+        if origin not in allowed:
+            warnings.append(f"GOOGLE_OAUTH_REDIRECT_URI's origin {origin} is not in CSRF_ALLOWED_ORIGINS")
 
 
 def _hosted_mail_checks(errors: list[str], warnings: list[str]) -> None:

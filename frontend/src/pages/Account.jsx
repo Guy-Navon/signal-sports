@@ -19,6 +19,7 @@ import { changeMePassword, deleteMeAccount } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import DeskIntro from "@/components/shared/DeskIntro";
 import { validateSignupPassword } from "@/pages/authValidation";
+import { accountHasPassword } from "@/pages/googleSignIn";
 
 // The account page (User Platform PR 7, #55) — product-side, reached from the
 // masthead account menu. Email display, password change (revokes other
@@ -37,6 +38,8 @@ export default function Account() {
     return <Navigate to="/" replace />;
   }
   if (!auth.user) return null;
+  // Accounts created through Google have no password to change or confirm.
+  const hasPassword = accountHasPassword(auth.user);
 
   async function submitPasswordChange(event) {
     event.preventDefault();
@@ -97,8 +100,12 @@ export default function Account() {
           <UserRound size={14} /> זהות
         </h2>
         <p dir="ltr" className="text-sm text-foreground font-mono">{auth.user.email}</p>
+        {!hasPassword && (
+          <p className="text-xs text-text-secondary">ההתחברות לחשבון הזה היא עם Google.</p>
+        )}
       </section>
 
+      {hasPassword && (
       <section className="space-y-3 border-t border-border pt-6">
         <h2 className="flex items-center gap-2 text-sm font-medium text-text-secondary">
           <KeyRound size={14} /> החלפת סיסמה
@@ -129,6 +136,7 @@ export default function Account() {
           </p>
         </form>
       </section>
+      )}
 
       <section className="space-y-3 border-t border-border pt-6">
         <h2 className="flex items-center gap-2 text-sm font-medium text-text-secondary">
@@ -145,6 +153,12 @@ export default function Account() {
           מחיקה מסירה לצמיתות את החשבון, הפרופיל, הכיול, המשובים והלמידה.
           הכתבות עצמן הן מידע כללי ואינן נמחקות.
         </p>
+        {!hasPassword ? (
+          <p className="text-xs text-text-secondary max-w-sm">
+            מחיקה עצמית של חשבון שנפתח עם Google תתווסף בקרוב. עד אז אפשר לבקש
+            מחיקה ממנהל המערכת.
+          </p>
+        ) : (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive">מחיקת החשבון…</Button>
@@ -177,6 +191,7 @@ export default function Account() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        )}
       </section>
     </div>
   );

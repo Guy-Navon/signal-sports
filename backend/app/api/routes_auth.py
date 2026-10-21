@@ -1,5 +1,8 @@
+import hmac
+
 from pydantic import BaseModel, Field, field_validator
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -10,7 +13,7 @@ from app.core.security_deps import (
 )
 from app.db.database import get_session
 from app.db.orm_models import UserRow
-from app.services import auth_service, email_verification
+from app.services import auth_service, email_verification, google_oauth
 
 router = APIRouter(prefix="/auth")
 
@@ -57,6 +60,8 @@ class AuthUser(BaseModel):
     last_login_at: str | None
     # NULL for accounts created before verification existed (never proven).
     email_verified_at: str | None = None
+    # False for accounts created through Google (no password to change).
+    has_password: bool = True
 
 
 class SignupPendingResponse(BaseModel):
@@ -113,6 +118,8 @@ class SessionBootstrap(BaseModel):
     signup_enabled: bool
     # Closed signup that still admits AUTH_SIGNUP_ALLOWED_EMAILS addresses.
     signup_by_invitation: bool = False
+    # All three GOOGLE_OAUTH_* values are set: the UI shows "המשך עם Google".
+    google_enabled: bool = False
     user: AuthUser | None
     onboarding: OnboardingBootstrap | None
 
@@ -140,7 +147,7 @@ def _clear_auth_cookie(response: Response) -> None:
 
 
 def _user_out(user: UserRow) -> AuthUser:
-    return AuthUser(**auth_service.public_user_payload(user))
+    return AuthUser(**auth_service.public_user_payload(user), has_password=bool(user.password_hash))
 
 
 def _calibration_answer_count(session: Session, user_id: str) -> int:
@@ -188,6 +195,7 @@ def _session_bootstrap(session: Session, user: UserRow | None) -> SessionBootstr
         signup_by_invitation=(
             not signup_enabled() and bool(email_verification.allowed_signup_emails())
         ),
+        google_enabled=google_oauth.google_config() is not None,
         user=_user_out(user) if user is not None else None,
         onboarding=onboarding,
     )
@@ -327,3 +335,92 @@ def get_auth_session(request: Request, session: Session = Depends(get_session)):
         request.cookies.get(settings.auth_cookie_name),
     )
     return _session_bootstrap(session, user)
+
+
+# ── Google sign-in (Slice B1) ────────────────────────────────────────────────
+
+class GoogleStartResponse(BaseModel):
+    url: str
+
+
+_GOOGLE_COOKIE_PATH = "/api/auth/google"
+_GOOGLE_STATE_SECONDS = int(google_oauth.PENDING_TTL.total_seconds())
+
+
+def _google_state_cookie() -> str:
+    # Derived from the session cookie name, so dev and prod stay apart.
+    return f"{settings.auth_cookie_name}_oauth"
+
+
+def _require_google() -> google_oauth.GoogleConfig:
+    cfg = google_oauth.google_config()
+    if cfg is None:
+        raise HTTPException(status_code=404, detail="Not Found")
+    return cfg
+
+
+@router.post("/google/start", response_model=GoogleStartResponse)
+def google_start(response: Response, session: Session = Depends(get_session)):
+    """Begin a Google sign-in. CSRF-checked (POST); the browser then navigates
+    to the returned URL. The raw state goes into a short-lived HttpOnly
+    cookie scoped to /api/auth/google; only its hash is stored."""
+    cfg = _require_google()
+    try:
+        url, state = google_oauth.start_login(session, cfg)
+    except auth_service.RateLimitExceeded:
+        raise HTTPException(status_code=429, detail="Too many sign-in attempts")
+    response.set_cookie(
+        key=_google_state_cookie(),
+        value=state,
+        max_age=_GOOGLE_STATE_SECONDS,
+        httponly=True,
+        secure=settings.auth_cookie_secure,
+        samesite="lax",  # sent on Google's top-level GET redirect back
+        path=_GOOGLE_COOKIE_PATH,
+    )
+    return GoogleStartResponse(url=url)
+
+
+def _google_redirect(location: str) -> RedirectResponse:
+    redirect = RedirectResponse(location, status_code=302)
+    redirect.delete_cookie(
+        key=_google_state_cookie(), path=_GOOGLE_COOKIE_PATH,
+        secure=settings.auth_cookie_secure, httponly=True, samesite="lax",
+    )
+    return redirect
+
+
+@router.get("/google/callback")
+def google_callback(
+    request: Request,
+    state: str = "",
+    code: str = "",
+    error: str = "",
+    session: Session = Depends(get_session),
+):
+    """Google's redirect back. A deliberate state-changing GET, protected by
+    the state cookie (must equal ``state``), the single-use pending row, PKCE
+    and the nonce. Redirects only to fixed paths (no return_to parameter)."""
+    cfg = _require_google()
+    cookie = request.cookies.get(_google_state_cookie(), "")
+    if not state or not cookie or not hmac.compare_digest(cookie, state):
+        return _google_redirect("/login?google=expired")
+    if error:
+        try:
+            google_oauth.consume_pending(session, state)
+        except google_oauth.GoogleAuthError:
+            pass
+        code_name = "cancelled" if error == "access_denied" else "failed"
+        return _google_redirect(f"/login?google={code_name}")
+    if not code:
+        return _google_redirect("/login?google=failed")
+    try:
+        _user, token = google_oauth.complete_callback(
+            session, cfg, state=state, code=code,
+            user_agent=request.headers.get("user-agent"),
+        )
+    except google_oauth.GoogleAuthError as exc:
+        return _google_redirect(f"/login?google={exc.code}")
+    redirect = _google_redirect("/")
+    _set_auth_cookie(redirect, token)
+    return redirect

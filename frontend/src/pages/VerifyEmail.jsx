@@ -3,26 +3,34 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authVerificationPeek } from "@/api/client";
+import {
+  authGoogleVerificationPeek,
+  authGoogleVerificationStart,
+  authVerificationPeek,
+} from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import AuthScene from "@/pages/AuthScene";
+import GoogleSignInButton from "@/pages/GoogleSignInButton";
 import {
-  captureVerificationToken,
+  captureVerificationLink,
   forgetVerificationToken,
   verificationErrorMessage,
 } from "@/pages/emailVerification";
 
-// The emailed link lands here: /verify-email#t=<token>. Opening the page
-// changes nothing (mail scanners open links too); the account is activated
-// only by submitting the password, on whatever device the link was opened.
+// The emailed link lands here. Opening the page changes nothing (mail
+// scanners open links too). /verify-email#t=<token> (password signup) is
+// activated by entering the password; /verify-email#g=<token> (a Google
+// sign-up on a non-Gmail address, #329) by one more Google sign-in as the
+// same Google account. Either way, on whatever device the link was opened.
 export default function VerifyEmail() {
   const auth = useAuth();
   const navigate = useNavigate();
   // Read once, then drop the token from the address bar and history.
-  const tokenRef = useRef(
-    typeof window === "undefined" ? null : captureVerificationToken(window.location.hash),
+  const linkRef = useRef(
+    typeof window === "undefined" ? null : captureVerificationLink(window.location.hash),
   );
-  const [state, setState] = useState(tokenRef.current ? "checking" : "invalid");
+  const isGoogleLink = linkRef.current?.kind === "google";
+  const [state, setState] = useState(linkRef.current ? "checking" : "invalid");
   const [maskedEmail, setMaskedEmail] = useState("");
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState(null);
@@ -32,10 +40,11 @@ export default function VerifyEmail() {
     if (typeof window !== "undefined" && window.location.hash) {
       window.history.replaceState(null, "", window.location.pathname);
     }
-    const token = tokenRef.current;
-    if (!token) return undefined;
+    const link = linkRef.current;
+    if (!link) return undefined;
     let cancelled = false;
-    authVerificationPeek(token)
+    const peek = link.kind === "google" ? authGoogleVerificationPeek : authVerificationPeek;
+    peek(link.token)
       .then((result) => {
         if (cancelled) return;
         setMaskedEmail(result.email);
@@ -68,7 +77,7 @@ export default function VerifyEmail() {
     setSubmitting(true);
     setNotice(null);
     try {
-      await auth.confirmVerification(tokenRef.current, password);
+      await auth.confirmVerification(linkRef.current.token, password);
       forgetVerificationToken();
       navigate("/", { replace: true });
     } catch (err) {
@@ -105,6 +114,33 @@ export default function VerifyEmail() {
           </Link>{" "}
           — אם החשבון עוד לא אומת, תוכלו לבקש שם קישור חדש.
         </p>
+      </AuthScene>
+    );
+  }
+
+  if (isGoogleLink) {
+    const token = linkRef.current.token;
+    return (
+      <AuthScene kicker="אימות אימייל" title="הפעלת החשבון">
+        <div className="space-y-4">
+          <p className="text-sm text-text-secondary text-center">
+            כדי להפעיל את החשבון של{" "}
+            <bdi dir="ltr" className="text-foreground">{maskedEmail}</bdi>, המשיכו עם
+            אותו חשבון Google שאיתו נרשמתם.
+          </p>
+          {notice && (
+            <p role="alert" className="text-sm text-signal-hidden text-center">
+              {notice}
+            </p>
+          )}
+          <GoogleSignInButton
+            startRequest={() => authGoogleVerificationStart(token)}
+            onError={(err) => setNotice(verificationErrorMessage(err))}
+          />
+          <p className="text-xs text-text-secondary text-center">
+            לא נרשמתם? אפשר לסגור את הדף. בלי חשבון ה-Google החשבון לא יופעל.
+          </p>
+        </div>
       </AuthScene>
     );
   }

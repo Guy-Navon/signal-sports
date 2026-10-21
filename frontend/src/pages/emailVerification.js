@@ -16,16 +16,20 @@ export function readVerificationToken(hash) {
 // The page drops the fragment from the address bar right away, but the auth
 // shell can remount it (bootstrap loading → ready). Keep the token in memory
 // for the life of the tab — never in storage — so a remount still has it.
-let rememberedToken = null;
+// Two kinds of link land on /verify-email: #t= (a password signup, finished
+// with the password) and #g= (a Google sign-up on a non-Gmail address, #329,
+// finished with one more Google sign-in).
+let rememberedLink = null;
 
-export function captureVerificationToken(hash) {
-  const fromHash = readVerificationToken(hash);
-  if (fromHash) rememberedToken = fromHash;
-  return rememberedToken;
+export function captureVerificationLink(hash) {
+  const params = new URLSearchParams((hash || "").replace(/^#/, ""));
+  if (params.get("t")) rememberedLink = { kind: "password", token: params.get("t") };
+  else if (params.get("g")) rememberedLink = { kind: "google", token: params.get("g") };
+  return rememberedLink;
 }
 
 export function forgetVerificationToken() {
-  rememberedToken = null;
+  rememberedLink = null;
 }
 
 export function isUnverifiedLogin(err) {

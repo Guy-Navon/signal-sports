@@ -40,6 +40,10 @@ AUTH_SURFACE = {
     "POST /api/auth/login",
     "POST /api/auth/logout",
     "GET /api/auth/session",
+    # Email verification (public by design: the token or password is the proof).
+    "POST /api/auth/verification/peek",
+    "POST /api/auth/verification/confirm",
+    "POST /api/auth/verification/resend",
 }
 
 ME = {

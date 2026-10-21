@@ -26,7 +26,7 @@ from app.core.config import settings
 from app.db.database import SessionLocal
 from app.db.orm_models import UserRow
 from app.services import auth_service
-from tests.conftest import _TEST_IDENTITY_PASSWORD, _identity_client
+from tests.conftest import _TEST_IDENTITY_PASSWORD, _identity_client, signup_and_verify
 
 
 def _whoami(c):
@@ -82,11 +82,8 @@ class _BareClientLeakProbe:
 
 class TestBareClientCannotRetainAuthState:
     def test_a_pollute_bare_client_jar(self, client):
-        response = client.post(
-            "/api/auth/signup",
-            json={"email": "bare-leak@test.local", "password": "long enough pw"},
-        )
-        assert response.status_code == 201
+        response = signup_and_verify(client, "bare-leak@test.local", "long enough pw")
+        assert response.status_code == 200
         # Within THIS test the jar legitimately carries the fresh session…
         assert _whoami(client) is not None
         _BareClientLeakProbe.polluted = True

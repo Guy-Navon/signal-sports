@@ -68,6 +68,9 @@ def _apply_migrations(eng) -> None:
         ("feedback_events", "retracted",          "INTEGER DEFAULT 0"),
         # Explicit interests stage (issue #77).
         ("users", "interests_completed_at",       "TEXT"),
+        # Email ownership verification (Slice A): NULL = never proven.
+        ("users", "email_verified_at",            "TEXT"),
+        ("users", "email_verified_method",        "TEXT"),
         # Validated story anchors (issue #141) — persisted at ingestion; pair eval reads only.
         ("articles", "story_anchors",             "JSON"),
         ("articles", "anchor_validator_version",  "TEXT"),

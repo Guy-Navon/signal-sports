@@ -224,6 +224,28 @@ export function authSignup({ email, password, displayName }) {
   });
 }
 
+// Email verification (password signups): the signup above only starts a
+// pending registration; the emailed link plus the password activates it.
+function postAuthJson(path, body) {
+  return apiFetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function authVerificationPeek(token) {
+  return postAuthJson("/api/auth/verification/peek", { token });
+}
+
+export function authVerificationConfirm(token, password) {
+  return postAuthJson("/api/auth/verification/confirm", { token, password });
+}
+
+export function authVerificationResend(email, password) {
+  return postAuthJson("/api/auth/verification/resend", { email, password });
+}
+
 export function authLogout() {
   return apiFetch("/api/auth/logout", { method: "POST" });
 }

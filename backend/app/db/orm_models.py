@@ -83,6 +83,12 @@ class UserRow(Base):
     # legacy users, who are treated as complete (never re-funneled).
     interests_completed_at = Column(String, nullable=True)
     last_login_at = Column(String, nullable=True)
+    # Proven email ownership — soft-migrated; NULL for every account created
+    # before verification existed (legacy users, the bootstrap admin, demo
+    # rows): their access is kept, but the address is never labeled verified.
+    # Method: "link" (emailed link + password) | "google_authoritative".
+    email_verified_at = Column(String, nullable=True)
+    email_verified_method = Column(String, nullable=True)
 
     sessions = relationship(
         "AuthSessionRow",
@@ -108,6 +114,29 @@ class AuthSessionRow(Base):
     user_agent = Column(String, nullable=True)
 
     user = relationship("UserRow", back_populates="sessions")
+
+
+class PendingRegistrationRow(Base):
+    """A password signup that has not proven email ownership yet.
+
+    Deliberately NOT a users row: a pending registrant has no user id, so no
+    session, /me or product route can ever see it, and code that predates this
+    table (a rollback) cannot sign it in. ``email`` is not unique, so a
+    squatter's pending row never blocks the real owner; the users.email UNIQUE
+    constraint decides at activation. Only hashes are stored.
+    """
+
+    __tablename__ = "pending_registrations"
+
+    id = Column(String, primary_key=True)
+    email = Column(String, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    display_name = Column(String, nullable=True)
+    token_hash = Column(String, nullable=False, unique=True)
+    token_expires_at = Column(String, nullable=False)
+    created_at = Column(String, nullable=False)
+    last_sent_at = Column(String, nullable=True)
+    send_count = Column(Integer, nullable=False, default=0)
 
 
 class SourceRow(Base):

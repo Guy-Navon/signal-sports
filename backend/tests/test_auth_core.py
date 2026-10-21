@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.db.database import SessionLocal
 from app.db.orm_models import AuthSessionRow, ProfileRow, UserRow
 from app.services import auth_service
+from tests.conftest import signup_and_verify
 
 
 @pytest.fixture(autouse=True)
@@ -32,10 +33,8 @@ def _cleanup_auth_rows():
 
 
 def _signup(client, email="User@Example.COM", password="correct horse battery"):
-    return client.post(
-        "/api/auth/signup",
-        json={"email": email, "password": password, "display_name": "New User"},
-    )
+    # Signup + emailed-link confirmation (the account exists only after both).
+    return signup_and_verify(client, email, password, display_name="New User")
 
 
 def _login(client, email="user@example.com", password="correct horse battery"):
@@ -44,7 +43,7 @@ def _login(client, email="user@example.com", password="correct horse battery"):
 
 def test_signup_creates_user_and_profile_atomically(client):
     response = _signup(client, "Atomic@Example.com")
-    assert response.status_code == 201
+    assert response.status_code == 200
     user_id = response.json()["user"]["id"]
 
     with SessionLocal() as session:
@@ -63,7 +62,7 @@ def test_signup_creates_user_and_profile_atomically(client):
 
 
 def test_normalized_email_uniqueness(client):
-    assert _signup(client, "Unique@Example.com").status_code == 201
+    assert _signup(client, "Unique@Example.com").status_code == 200
     response = _signup(client, "  unique@example.COM  ")
     assert response.status_code == 409
 
@@ -71,7 +70,7 @@ def test_normalized_email_uniqueness(client):
 def test_password_is_never_stored_in_plaintext(client):
     password = "very secret password"
     response = _signup(client, "hash-check@example.com", password=password)
-    assert response.status_code == 201
+    assert response.status_code == 200
     with SessionLocal() as session:
         user = session.get(UserRow, response.json()["user"]["id"])
         assert user.password_hash != password
@@ -79,7 +78,7 @@ def test_password_is_never_stored_in_plaintext(client):
 
 
 def test_valid_login_creates_fresh_opaque_hashed_session(client):
-    assert _signup(client).status_code == 201
+    assert _signup(client).status_code == 200
     first = _login(client)
     second = _login(client)
     assert first.status_code == 200
@@ -101,7 +100,7 @@ def test_valid_login_creates_fresh_opaque_hashed_session(client):
 
 
 def test_unknown_email_and_wrong_password_have_uniform_outward_failure(client):
-    assert _signup(client, "known@example.com").status_code == 201
+    assert _signup(client, "known@example.com").status_code == 200
     wrong = client.post(
         "/api/auth/login",
         json={"email": "known@example.com", "password": "wrong"},
@@ -136,7 +135,7 @@ def test_account_key_rate_limiter(client, monkeypatch):
         "_account_login_limiter",
         auth_service.FixedWindowLimiter(2, auth_service.LOGIN_WINDOW_SECONDS),
     )
-    assert _signup(client, "limited@example.com").status_code == 201
+    assert _signup(client, "limited@example.com").status_code == 200
     for _ in range(2):
         response = client.post(
             "/api/auth/login",
@@ -170,7 +169,7 @@ def test_global_rate_limiter(client, monkeypatch):
 
 
 def test_session_expiry_is_fixed_and_activity_does_not_extend_it(client):
-    assert _signup(client, "expiry@example.com").status_code == 201
+    assert _signup(client, "expiry@example.com").status_code == 200
     login = client.post(
         "/api/auth/login",
         json={"email": "expiry@example.com", "password": "correct horse battery"},
@@ -189,7 +188,7 @@ def test_session_expiry_is_fixed_and_activity_does_not_extend_it(client):
 
 
 def test_expired_session_is_unauthenticated(client):
-    assert _signup(client, "expired@example.com").status_code == 201
+    assert _signup(client, "expired@example.com").status_code == 200
     login = client.post(
         "/api/auth/login",
         json={"email": "expired@example.com", "password": "correct horse battery"},
@@ -212,7 +211,7 @@ def test_require_user_returns_401_for_expired_session(client):
     def protected(user=Depends(security_deps.require_user)):
         return {"id": user.id}
 
-    assert _signup(client, "protected@example.com").status_code == 201
+    assert _signup(client, "protected@example.com").status_code == 200
     login = client.post(
         "/api/auth/login",
         json={"email": "protected@example.com", "password": "correct horse battery"},
@@ -302,7 +301,7 @@ def test_require_admin_bypass_never_opens_auth_paths(client, monkeypatch):
 
 
 def test_logout_revokes_session_and_clears_cookie(client):
-    assert _signup(client, "logout@example.com").status_code == 201
+    assert _signup(client, "logout@example.com").status_code == 200
     login = client.post(
         "/api/auth/login",
         json={"email": "logout@example.com", "password": "correct horse battery"},
@@ -316,7 +315,7 @@ def test_logout_revokes_session_and_clears_cookie(client):
 
 
 def test_cookie_flags_follow_configuration(client, monkeypatch):
-    assert _signup(client, "cookie@example.com").status_code == 201
+    assert _signup(client, "cookie@example.com").status_code == 200
     insecure = client.post(
         "/api/auth/login",
         json={"email": "cookie@example.com", "password": "correct horse battery"},
@@ -342,10 +341,11 @@ def test_session_bootstrap_shape(client, monkeypatch):
     anon = client.get("/api/auth/session")
     assert anon.status_code == 200
     assert anon.json() == {
-        "auth_enforced": True, "signup_enabled": True, "user": None, "onboarding": None,
+        "auth_enforced": True, "signup_enabled": True, "signup_by_invitation": False,
+        "user": None, "onboarding": None,
     }
 
-    assert _signup(client, "bootstrap@example.com").status_code == 201
+    assert _signup(client, "bootstrap@example.com").status_code == 200
     login = client.post(
         "/api/auth/login",
         json={"email": "bootstrap@example.com", "password": "correct horse battery"},

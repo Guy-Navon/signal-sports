@@ -150,7 +150,33 @@ def _hosted_checks() -> tuple[list[str], list[str]]:
         warnings.append("CSRF_ALLOWED_ORIGINS is unset; only the localhost defaults are accepted")
     if _truthy("RETENTION_CLEANUP_ENABLED"):
         warnings.append("RETENTION_CLEANUP_ENABLED=true deletes old articles, including rated ones (#255)")
+    _hosted_mail_checks(errors, warnings)
     return errors, warnings
+
+
+def _hosted_mail_checks(errors: list[str], warnings: list[str]) -> None:
+    """Verification email on a host: never a dev mailer, never an http link,
+    and a loud note when signup can start but nothing can deliver the link
+    (signup then answers 503 rather than skipping verification)."""
+    from app.services import mailer
+
+    backend = os.environ.get("MAIL_BACKEND", "").strip().lower()
+    if backend in ("console", "memory"):
+        errors.append(f"MAIL_BACKEND={backend} is a development mailer")
+    if not mailer.smtp_starttls():
+        errors.append("SMTP_STARTTLS=false sends SMTP credentials and verification links in clear")
+    public_url = os.environ.get("APP_PUBLIC_URL", "").strip()
+    if public_url and not public_url.lower().startswith("https://"):
+        errors.append("APP_PUBLIC_URL must be https:// (verification links carry a secret)")
+    signup_open = os.environ.get("AUTH_SIGNUP_ENABLED", "true").strip().lower() not in {
+        "0", "false", "no", "off",
+    }
+    signup_possible = signup_open or bool(os.environ.get("AUTH_SIGNUP_ALLOWED_EMAILS", "").strip())
+    if signup_possible and backend not in ("console", "memory"):
+        if mailer.get_mailer() is None:
+            warnings.append("signup is possible but no mailer is configured; password signup answers 503")
+        elif not public_url:
+            warnings.append("APP_PUBLIC_URL is unset; verification links would point at localhost")
 
 
 def _dev_checks() -> tuple[list[str], list[str]]:

@@ -27,6 +27,18 @@ describe("deriveAuthView", () => {
     expect(deriveAuthView("backend", null).signupEnabled).toBe(true);
   });
 
+  it("closed signup with an allowlist is invitation-only, never open", () => {
+    const base = { auth_enforced: true, user: null, onboarding: null };
+    const invited = deriveAuthView("backend", {
+      ...base, signup_enabled: false, signup_by_invitation: true,
+    });
+    expect(invited.signupEnabled).toBe(false);
+    expect(invited.signupByInvitation).toBe(true);
+    expect(deriveAuthView("backend", { ...base, signup_enabled: false }).signupByInvitation)
+      .toBe(false);
+    expect(deriveAuthView("backend", base).signupByInvitation).toBe(false);
+  });
+
   it("backend mode without a bootstrap payload is loading", () => {
     expect(deriveAuthView("backend", null).mode).toBe("loading");
   });

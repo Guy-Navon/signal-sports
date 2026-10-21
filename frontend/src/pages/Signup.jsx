@@ -1,20 +1,20 @@
 import React, { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { authPagesRedundant } from "@/context/authView";
 import AuthScene from "@/pages/AuthScene";
+import ResendVerification from "@/pages/ResendVerification";
 import {
-  authErrorMessage,
   hasErrors,
+  signupErrorMessage,
   validateSignupForm,
 } from "@/pages/authValidation";
 
 export default function Signup() {
   const auth = useAuth();
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -23,6 +23,9 @@ export default function Signup() {
   );
   const [notice, setNotice] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  // After a successful signup: {email, delivered, sentAt}. The password stays
+  // in this component's memory only, for "send again".
+  const [pending, setPending] = useState(null);
 
   if (auth.status !== "loading" && authPagesRedundant(auth)) {
     return <Navigate to="/" replace />;
@@ -30,7 +33,7 @@ export default function Signup() {
 
   // Signup closed by the server (AUTH_SIGNUP_ENABLED=false, #265): say so
   // instead of showing a form that can only fail with 403.
-  if (auth.status !== "loading" && !auth.signupEnabled) {
+  if (auth.status !== "loading" && !auth.signupEnabled && !auth.signupByInvitation) {
     return (
       <AuthScene kicker="מצטרפים לסיגנל" title="ההרשמה סגורה">
         <p className="text-sm text-text-secondary text-center">
@@ -54,21 +57,73 @@ export default function Signup() {
     setSubmitting(true);
     setNotice(null);
     try {
-      await auth.signup({
+      const result = await auth.signup({
         email: email.trim(),
         password,
         displayName: displayName.trim() || null,
       });
-      navigate("/", { replace: true });
+      setPending({
+        email: result.email,
+        delivered: result.status === "verification_sent",
+        sentAt: Date.now(),
+      });
     } catch (err) {
-      setNotice(authErrorMessage(err));
+      setNotice(signupErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
   }
 
+  if (pending) {
+    return (
+      <AuthScene kicker="מצטרפים לסיגנל" title="בדקו את תיבת האימייל">
+        <div className="space-y-5">
+          {pending.delivered ? (
+            <p className="text-sm text-text-secondary text-center">
+              שלחנו קישור אימות אל{" "}
+              <bdi dir="ltr" className="text-foreground">{pending.email}</bdi>.
+              <br />
+              פתחו אותו בכל מכשיר והזינו את הסיסמה כדי להפעיל את החשבון.
+              הקישור תקף ל-24 שעות.
+            </p>
+          ) : (
+            <p role="alert" className="text-sm text-signal-hidden text-center">
+              לא הצלחנו לשלוח את האימייל אל{" "}
+              <bdi dir="ltr">{pending.email}</bdi>. נסו לשלוח שוב בעוד דקה.
+            </p>
+          )}
+          <ResendVerification
+            email={pending.email}
+            password={password}
+            initialSentAt={pending.sentAt}
+          />
+          <p className="text-sm text-text-secondary text-center">
+            לא מוצאים? בדקו גם בתיקיית הספאם.
+            <br />
+            הכתובת שגויה?{" "}
+            <button
+              type="button"
+              className="text-foreground underline underline-offset-4"
+              onClick={() => {
+                setPending(null);
+                setPassword("");
+              }}
+            >
+              הרשמה מחדש עם כתובת אחרת
+            </button>
+          </p>
+        </div>
+      </AuthScene>
+    );
+  }
+
   return (
     <AuthScene kicker="מצטרפים לסיגנל" title="פתיחת חשבון">
+      {auth.signupByInvitation && (
+        <p className="mb-4 text-sm text-text-secondary text-center">
+          ההרשמה פתוחה כרגע למוזמנים בלבד.
+        </p>
+      )}
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         {notice && (
           <p role="alert" className="text-sm text-signal-hidden text-center">
@@ -114,7 +169,7 @@ export default function Signup() {
           )}
         </div>
         <Button type="submit" className="w-full" disabled={submitting}>
-          {submitting ? "פותחים חשבון…" : "הרשמה"}
+          {submitting ? "שולחים קישור אימות…" : "הרשמה"}
         </Button>
       </form>
 

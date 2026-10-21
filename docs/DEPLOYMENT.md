@@ -79,6 +79,34 @@ Secure, signup is open, `CSRF_ALLOWED_ORIGINS` is unset or retention is on
 can't move the corpus off the bind mount. Inside the image that path is also the one the
 corpus guard protects (`app/db/corpus_protection.py`).
 
+### 3.1 Verification email (password signups)
+
+A password signup activates only through an emailed link
+([USER_PLATFORM.md](USER_PLATFORM.md#email-verification-password-signups)), so a host that
+lets anyone sign up (open signup, or `AUTH_SIGNUP_ALLOWED_EMAILS`) needs a mailer. Without
+one, signup answers 503; it never skips verification. Nothing has been configured or bought.
+
+- **Settings** (in `/etc/signal/prod.env`): `MAIL_BACKEND=smtp`, `SMTP_HOST`, `SMTP_PORT=587`,
+  `SMTP_USERNAME`, `SMTP_PASSWORD` (secret), `MAIL_FROM`, `APP_PUBLIC_URL` (the https
+  origin; the links are built from it, never from `Host`). `DEPLOY_ENV=hosted` refuses
+  `MAIL_BACKEND=console|memory`, `SMTP_STARTTLS=false` and a non-https `APP_PUBLIC_URL`.
+- **Port.** STARTTLS on 587. Hetzner Cloud blocks outbound 25 and 465 on new servers
+  (taken from a forum quote of Hetzner's FAQ; confirm against Hetzner's own docs).
+- **Provider and sender domain** (owner's choice). Any transactional SMTP provider works.
+  With an own domain, add the provider's SPF and DKIM records and a DMARC record
+  (`p=none` to start); Gmail requires SPF or DKIM from every sender. The zero-DNS fallback
+  is Gmail SMTP with an app password, which ties delivery to a personal mailbox.
+- **Local testing.** Unset `MAIL_BACKEND` means no mailer (signup answers 503).
+  `MAIL_BACKEND=console` is the explicit development opt-in that writes the link to the API
+  log. For a real inbox,
+  run Mailpit (`docker run -p 1025:1025 -p 8025:8025 axllent/mailpit`) and set
+  `MAIL_BACKEND=smtp SMTP_HOST=127.0.0.1 SMTP_PORT=1025 SMTP_STARTTLS=false
+  MAIL_FROM=dev@localhost`; the messages appear at http://localhost:8025.
+- **Delivery check before calling it done** (owner, real inboxes): sign up with a Gmail and
+  a non-Gmail address; in "Show original" SPF, DKIM and DMARC pass and the message is not in
+  spam; open the link on a phone and on a desktop; `curl` the link (a scanner's GET) and
+  confirm the registration is still pending.
+
 ## 4. Data directory and permissions
 
 | Path (host) | Owner | Mode | Notes |

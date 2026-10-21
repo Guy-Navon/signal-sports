@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   authErrorMessage,
   hasErrors,
+  signupErrorMessage,
   validateLoginForm,
   validateSignupForm,
 } from "./authValidation";
@@ -50,5 +51,20 @@ describe("authErrorMessage", () => {
       .toContain("יותר מדי");
     expect(authErrorMessage(new Error("Cannot reach backend at /api/auth/login: x")))
       .toBe("לא ניתן להתחבר לשרת כרגע");
+  });
+});
+
+describe("signupErrorMessage", () => {
+  const err = (status, detail) => new Error(`API POST /api/auth/signup failed (${status}): ${detail}`);
+
+  it("explains each signup refusal", () => {
+    expect(signupErrorMessage(err(403, "Signup is closed"))).toBe("ההרשמה סגורה לכתובת הזאת");
+    expect(signupErrorMessage(err(429, "Too many signup attempts"))).toContain("יותר מדי");
+    expect(signupErrorMessage(err(503, "Email delivery is not configured"))).toContain("אימיילים");
+  });
+
+  it("falls back to the shared auth notices", () => {
+    expect(signupErrorMessage(err(409, "Email already in use")))
+      .toBe("כתובת האימייל כבר רשומה במערכת");
   });
 });

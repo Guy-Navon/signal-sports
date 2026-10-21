@@ -29,6 +29,21 @@ def signup_enabled() -> bool:
     }
 
 
+def signup_allowed_for(email: str) -> bool:
+    """Whether a registration for ``email`` may start.
+
+    Open signup admits anyone. Closed signup admits only the normalized
+    addresses in AUTH_SIGNUP_ALLOWED_EMAILS, and only ever as a *pending*
+    registration: the list never activates an address whose ownership has not
+    been proven (by the emailed link for password signups).
+    """
+    if signup_enabled():
+        return True
+    from app.services.email_verification import allowed_signup_emails
+
+    return email.strip().lower() in allowed_signup_emails()
+
+
 def validate_auth_startup_config() -> None:
     if allow_insecure_auth_bypass() and settings.auth_cookie_secure:
         raise RuntimeError(

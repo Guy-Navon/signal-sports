@@ -24,6 +24,7 @@ from app.services.interests_service import (
     interests_document,
     replace_managed_interests,
 )
+from tests.conftest import signup_and_verify
 
 
 # ── Unit: tier → level mapping ────────────────────────────────────────────────
@@ -224,9 +225,8 @@ class TestValidationRules:
 
 def _signup(client_factory, email):
     c = client_factory
-    response = c.post("/api/auth/signup",
-                      json={"email": email, "password": "password-123"})
-    assert response.status_code == 201, response.text
+    response = signup_and_verify(c, email, "password-123")
+    assert response.status_code == 200, response.text
     return c
 
 

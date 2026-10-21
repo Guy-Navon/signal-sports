@@ -381,6 +381,23 @@ Every release, failure and rollback is appended to `deploy/releases.log`. `rollb
 the previous release's digests; a second `rollback` returns to the same release, not back and
 forth.
 
+### 10.1 Before reverting Google sign-in
+
+Accounts created through Google have no password; reverting the Google code or unsetting
+`GOOGLE_OAUTH_*` locks them out (USER_PLATFORM.md, "Rollback hazard"). Prefer a forward
+fix. If the revert must happen, recover them first, on the host, against the production
+database (the tool loads the same env as the API):
+
+```bash
+python scripts/set_user_password.py --list                    # who has no password
+python scripts/set_user_password.py --user <usr_id>           # dry run: what would change
+python scripts/set_user_password.py --user <usr_id> --apply   # temporary password, printed once
+```
+
+Give each person their temporary password over a private channel and ask them to change it
+on the Account page. Only then deploy the revert. On the host the tool runs inside the api
+container (`docker compose exec api python scripts/set_user_password.py ...`).
+
 ## 11. Host setup checklist (#268; owner-run, nothing done)
 
 Templates are in `deploy/host/` and `deploy/systemd/`; none is installed anywhere. Personal values

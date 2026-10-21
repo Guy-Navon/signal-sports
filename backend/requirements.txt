@@ -20,6 +20,10 @@ google-genai>=1.0.0
 beautifulsoup4>=4.12.0
 tzdata>=2024.1
 argon2-cffi>=23.1.0
+# Google sign-in verifies ID tokens with google-auth (signature, aud, iss, exp).
+# Already installed (and locked) through google-genai; declared directly so the
+# auth code does not depend on another package's dependency tree.
+google-auth[requests]>=2.48.1,<3
 # Pinned Hebrew language-frequency resource for anchor validation (#141). Offline,
 # deterministic, no model/GPU/network at runtime. Pinned exactly for reproducibility.
 wordfreq==3.1.1

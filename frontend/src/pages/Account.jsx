@@ -20,6 +20,7 @@ import { useAuth } from "@/context/AuthContext";
 import DeskIntro from "@/components/shared/DeskIntro";
 import { validateSignupPassword } from "@/pages/authValidation";
 import { accountHasPassword } from "@/pages/googleSignIn";
+import GoogleAccountDeletion from "@/pages/GoogleAccountDeletion";
 
 // The account page (User Platform PR 7, #55) — product-side, reached from the
 // masthead account menu. Email display, password change (revokes other
@@ -154,10 +155,13 @@ export default function Account() {
           הכתבות עצמן הן מידע כללי ואינן נמחקות.
         </p>
         {!hasPassword ? (
-          <p className="text-xs text-text-secondary max-w-sm">
-            מחיקה עצמית של חשבון שנפתח עם Google תתווסף בקרוב. עד אז אפשר לבקש
-            מחיקה ממנהל המערכת.
-          </p>
+          <GoogleAccountDeletion
+            email={auth.user.email}
+            onDeleted={async () => {
+              await auth.refreshSession();
+              window.location.assign("/login");
+            }}
+          />
         ) : (
         <AlertDialog>
           <AlertDialogTrigger asChild>

@@ -354,6 +354,24 @@ export function changeMePassword(currentPassword, newPassword) {
   });
 }
 
+// Google-only accounts (#331): earn a single-use deletion grant through Google
+// (returns {url}; the page navigates there), then delete with it.
+export function startMeGoogleDeletion(confirmEmail) {
+  return apiFetch("/api/me/account/delete/google/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ confirm_email: confirmEmail }),
+  });
+}
+
+export function deleteMeAccountWithGrant() {
+  return apiFetch("/api/me/account", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ method: "reauth_grant" }),
+  });
+}
+
 export function deleteMeAccount(currentPassword) {
   return apiFetch("/api/me/account", {
     method: "DELETE",

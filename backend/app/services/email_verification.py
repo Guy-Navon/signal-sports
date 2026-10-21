@@ -141,6 +141,16 @@ def _verification_email(to: str, token: str) -> mailer.OutgoingEmail:
     return mailer.OutgoingEmail(to=to, subject=subject, text=text, html=html)
 
 
+def check_signup_email_budget(email: str) -> None:
+    """Per-address signup limit, shared with password signups."""
+    if not _signup_email_limiter.check(normalize_email(email)):
+        raise auth_service.RateLimitExceeded("too many signups for this address")
+
+
+def check_global_send_budget() -> None:
+    _check_global_send_budget()
+
+
 def _check_global_send_budget() -> None:
     # Checked BEFORE anything is stored or rotated, so a flood of signups
     # cannot pile up rows (each with an argon2 hash) past the send budget.
@@ -149,17 +159,50 @@ def _check_global_send_budget() -> None:
         raise auth_service.RateLimitExceeded("global send limit reached")
 
 
-def _send(row: PendingRegistrationRow, token: str, send_with: mailer.Mailer) -> bool:
+def google_verification_email(to: str, token: str) -> mailer.OutgoingEmail:
+    """The link for a Google sign-up on a third-party address (#329): opening
+    it leads to one more Google sign-in, not a password."""
+    link = f"{mailer.app_public_url()}/verify-email#g={token}"
+    hours = int(TOKEN_TTL.total_seconds() // 3600)
+    subject = "אימות כתובת האימייל שלך ב-Signal Sports"
+    text = (
+        "שלום,\n\n"
+        "כדי להשלים את ההרשמה ל-Signal Sports עם חשבון ה-Google שלכם, פתחו את הקישור הזה:\n"
+        f"{link}\n\n"
+        f"הקישור תקף ל-{hours} שעות. כדי להפעיל את החשבון תתבקשו להתחבר שוב עם אותו חשבון Google.\n\n"
+        "לא נרשמתם? אפשר להתעלם מההודעה הזאת. בלי הקישור ובלי חשבון ה-Google אף חשבון לא יופעל.\n"
+    )
+    safe_link = escape(link, quote=True)
+    html = (
+        '<!doctype html><html lang="he" dir="rtl"><body dir="rtl" '
+        'style="font-family:Arial,sans-serif;line-height:1.6;color:#111;">'
+        "<p>שלום,</p>"
+        "<p>כדי להשלים את ההרשמה ל-Signal Sports עם חשבון ה-Google שלכם, לחצו על הקישור:</p>"
+        f'<p><a href="{safe_link}" style="display:inline-block;padding:10px 18px;'
+        'background:#111;color:#fff;text-decoration:none;border-radius:6px;">'
+        "אימות כתובת האימייל</a></p>"
+        f"<p>הקישור תקף ל-{hours} שעות. כדי להפעיל את החשבון תתבקשו להתחבר שוב עם אותו חשבון Google.</p>"
+        "<p>לא נרשמתם? אפשר להתעלם מההודעה הזאת. בלי הקישור ובלי חשבון ה-Google אף חשבון לא יופעל.</p>"
+        "</body></html>"
+    )
+    return mailer.OutgoingEmail(to=to, subject=subject, text=text, html=html)
+
+
+def deliver(message: mailer.OutgoingEmail, send_with: mailer.Mailer) -> bool:
     try:
-        send_with.send(_verification_email(row.email, token))
+        send_with.send(message)
         return True
     except mailer.MailDeliveryError as exc:
         # Domain only: never the token, never the full address.
         logger.warning(
             "Verification email delivery failed (domain %s): %s",
-            row.email.partition("@")[2], exc,
+            message.to.partition("@")[2], exc,
         )
         return False
+
+
+def _send(row: PendingRegistrationRow, token: str, send_with: mailer.Mailer) -> bool:
+    return deliver(_verification_email(row.email, token), send_with)
 
 
 def _require_mailer() -> mailer.Mailer:

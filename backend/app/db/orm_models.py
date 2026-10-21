@@ -175,7 +175,7 @@ class OAuthPendingRow(Base):
     __tablename__ = "oauth_pending"
 
     state_hash = Column(String, primary_key=True)
-    intent = Column(String, nullable=False)  # "login" | "delete"
+    intent = Column(String, nullable=False)  # "login" | "delete" | "link" | "verify_registration"
     nonce = Column(String, nullable=False)
     code_verifier = Column(String, nullable=False)
     created_at = Column(String, nullable=False)
@@ -184,6 +184,33 @@ class OAuthPendingRow(Base):
     # this user AND this session (SHA-256 of the session token) only.
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     session_hash = Column(String, nullable=True)
+    # For "verify_registration" (#329): the token hash of the pending Google
+    # registration whose emailed link started this attempt. A resend rotates
+    # the token, so an attempt started from an older link cannot finish.
+    registration_token_hash = Column(String, nullable=True)
+
+
+class PendingGoogleRegistrationRow(Base):
+    """A Google sign-up whose address Google is not authoritative for (#329).
+
+    Bound to the Google subject AND the exact address. Activation needs the
+    emailed link (mailbox) and a new Google sign-in as the same subject with
+    the same address (Google account). Not a users row, so nothing can sign
+    in with it. Separate from pending_registrations: the proof here is a
+    subject, not a password, and its consumers differ.
+    """
+
+    __tablename__ = "pending_google_registrations"
+
+    id = Column(String, primary_key=True)
+    subject = Column(String, nullable=False, unique=True)
+    email = Column(String, nullable=False, index=True)
+    display_name = Column(String, nullable=True)
+    token_hash = Column(String, nullable=False, unique=True)
+    token_expires_at = Column(String, nullable=False)
+    created_at = Column(String, nullable=False)
+    last_sent_at = Column(String, nullable=True)
+    send_count = Column(Integer, nullable=False, default=0)
 
 
 class ReauthGrantRow(Base):

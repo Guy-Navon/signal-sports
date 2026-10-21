@@ -43,6 +43,7 @@ from sqlalchemy.orm import Session
 from app.db.orm_models import (
     AuthSessionRow,
     OAuthPendingRow,
+    PendingGoogleRegistrationRow,
     PendingRegistrationRow,
     UserIdentityRow,
     UserRow,
@@ -142,6 +143,7 @@ def _start_attempt(
     user_id: Optional[str] = None,
     session_hash: Optional[str] = None,
     login_hint: Optional[str] = None,
+    registration_token_hash: Optional[str] = None,
 ) -> tuple[str, str]:
     if not _start_limiter.check("global"):
         raise auth_service.RateLimitExceeded("too many sign-in attempts")
@@ -159,6 +161,7 @@ def _start_attempt(
         expires_at=iso(now + PENDING_TTL),
         user_id=user_id,
         session_hash=session_hash,
+        registration_token_hash=registration_token_hash,
     ))
     session.commit()
     params = {
@@ -190,6 +193,7 @@ def consume_pending(session: Session, state: str) -> OAuthPendingRow:
         state_hash=row.state_hash, intent=row.intent, nonce=row.nonce,
         code_verifier=row.code_verifier, created_at=row.created_at, expires_at=row.expires_at,
         user_id=row.user_id, session_hash=row.session_hash,
+        registration_token_hash=row.registration_token_hash,
     )
     session.expunge(row)
     consumed = session.execute(
@@ -373,7 +377,9 @@ def sign_in(session: Session, claims: dict, *, user_agent: Optional[str]) -> tup
     if authority.kind == "unverified":
         raise GoogleAuthError("unverified_email")
     if authority.kind != "authoritative":
-        raise GoogleAuthError("unsupported_email")
+        # A third-party address: prove the mailbox with an emailed link (#329).
+        # Always ends in a GoogleAuthError whose code tells /login what happened.
+        _pend_google_registration(session, claims, authority.email)
     email = authority.email
     existing = auth_service.get_user_by_email(session, email)
     if existing is not None:
@@ -527,3 +533,205 @@ def complete_link(
             return
         raise GoogleAuthError("taken" if existing is not None else "already")
     logger.info("Connected a Google identity to account %s", user_id)
+
+
+# ── Third-party addresses: register through an emailed link (#329) ──────────
+#
+# Google is not authoritative for, e.g., a Google account on @yahoo.com, so
+# its email_verified is not current proof of the mailbox. Such a sign-up
+# becomes a pending_google_registrations row bound to the subject and the
+# exact address, plus an emailed single-use link. Activation needs the link
+# (mailbox) AND a new Google sign-in as the same subject with the same address
+# (Google account); both are consumed together and the session goes only to
+# the browser completing it. A third-party address never links to an
+# existing account. "Resend" is simply signing in with Google again.
+
+
+def _registration_expired(row: PendingGoogleRegistrationRow) -> bool:
+    return auth_service.parse_iso(row.token_expires_at) <= utc_now()
+
+
+def _pend_google_registration(session: Session, claims: dict, email: str) -> None:
+    """Create or refresh the pending registration and email its link. Always
+    raises GoogleAuthError: check_email, check_email_recent,
+    check_email_send_failed, too_many, mail_unavailable, account_exists or
+    signup_closed."""
+    from app.core.security_deps import signup_allowed_for
+    from app.services import email_verification, mailer
+
+    if auth_service.get_user_by_email(session, email) is not None:
+        raise GoogleAuthError("account_exists")
+    if not signup_allowed_for(email):
+        raise GoogleAuthError("signup_closed")
+    send_with = mailer.get_mailer()
+    if send_with is None:
+        raise GoogleAuthError("mail_unavailable")
+
+    subject = claims["sub"]
+    now = utc_now()
+    cutoff = iso(now - email_verification.PENDING_MAX_AGE)
+    session.execute(
+        delete(PendingGoogleRegistrationRow).where(PendingGoogleRegistrationRow.created_at <= cutoff))
+    session.commit()
+    row = session.execute(
+        select(PendingGoogleRegistrationRow).where(PendingGoogleRegistrationRow.subject == subject)
+    ).scalar_one_or_none()
+    if row is not None and row.email != email:
+        # The Google account's address changed: start over for the new one.
+        session.delete(row)
+        session.commit()
+        row = None
+    try:
+        if row is not None:
+            if row.last_sent_at:
+                due = auth_service.parse_iso(row.last_sent_at) + email_verification.RESEND_COOLDOWN
+                if due > now:
+                    raise GoogleAuthError("check_email_recent")
+            if row.send_count >= email_verification.MAX_SENDS:
+                raise GoogleAuthError("too_many")
+            email_verification.check_global_send_budget()
+        else:
+            email_verification.check_signup_email_budget(email)
+            email_verification.check_global_send_budget()
+    except auth_service.RateLimitExceeded as exc:
+        raise GoogleAuthError("too_many") from exc
+
+    token = secrets.token_urlsafe(auth_service.SESSION_TOKEN_BYTES)
+    name = claims.get("name") if isinstance(claims.get("name"), str) else None
+    if row is None:
+        row = PendingGoogleRegistrationRow(
+            id="pg_" + auth_service.generate_user_id().removeprefix("usr_"),
+            subject=subject,
+            email=email,
+            display_name=(name or "").strip()[:DISPLAY_NAME_MAX] or None,
+            created_at=iso(now),
+            send_count=0,
+        )
+        session.add(row)
+    row.token_hash = token_hash(token)
+    row.token_expires_at = iso(now + email_verification.TOKEN_TTL)
+    row.last_sent_at = iso(now)
+    row.send_count = (row.send_count or 0) + 1
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        # A concurrent sign-in for the same subject created it first.
+        raise GoogleAuthError("check_email_recent") from exc
+    delivered = email_verification.deliver(
+        email_verification.google_verification_email(email, token), send_with)
+    raise GoogleAuthError("check_email" if delivered else "check_email_send_failed")
+
+
+def _live_registration(session: Session, raw_token: str) -> Optional[PendingGoogleRegistrationRow]:
+    row = session.execute(
+        select(PendingGoogleRegistrationRow)
+        .where(PendingGoogleRegistrationRow.token_hash == token_hash(raw_token))
+    ).scalar_one_or_none()
+    if row is None or _registration_expired(row):
+        return None
+    return row
+
+
+def peek_google_registration(session: Session, raw_token: str) -> Optional[str]:
+    """Read-only: the masked address a live link belongs to."""
+    from app.services.email_verification import mask_email
+
+    row = _live_registration(session, raw_token)
+    return mask_email(row.email) if row is not None else None
+
+
+def start_registration_verification(
+    session: Session, cfg: GoogleConfig, *, raw_token: str,
+) -> tuple[str, str]:
+    """Open the emailed link: begin the second proof, a Google sign-in bound
+    to this registration's current token. Raises GoogleAuthError("verify_expired")
+    for an unknown, rotated or expired link."""
+    row = _live_registration(session, raw_token)
+    if row is None:
+        raise GoogleAuthError("verify_expired")
+    return _start_attempt(
+        session, cfg, intent="verify_registration",
+        registration_token_hash=row.token_hash, login_hint=row.email,
+    )
+
+
+def activate_google_registration(
+    session: Session, claims: dict, *, registration_token_hash: str, user_agent: Optional[str],
+) -> tuple[UserRow, str]:
+    """Second proof complete: the same subject, the same address. Consumes the
+    pending registration atomically and creates the account and its session."""
+    from app.core.security_deps import signup_allowed_for
+
+    row = session.execute(
+        select(PendingGoogleRegistrationRow)
+        .where(PendingGoogleRegistrationRow.token_hash == registration_token_hash)
+    ).scalar_one_or_none()
+    if row is None or _registration_expired(row):
+        raise GoogleAuthError("verify_expired")
+    if claims.get("sub") != row.subject:
+        raise GoogleAuthError("verify_wrong_account")
+    authority = email_authority(claims)
+    if authority.kind == "unverified":
+        raise GoogleAuthError("unverified_email")
+    if authority.email != row.email:
+        raise GoogleAuthError("verify_email_changed")
+    email = row.email
+    if auth_service.get_user_by_email(session, email) is not None:
+        raise GoogleAuthError("account_exists")
+    if not signup_allowed_for(email):
+        raise GoogleAuthError("signup_closed")
+
+    row_id, subject, display_name = row.id, row.subject, row.display_name
+    session.expunge(row)
+    # Atomic single use: of concurrent activations, exactly one deletes it.
+    consumed = session.execute(
+        delete(PendingGoogleRegistrationRow)
+        .where(PendingGoogleRegistrationRow.id == row_id)
+        .where(PendingGoogleRegistrationRow.token_hash == registration_token_hash)
+        .where(PendingGoogleRegistrationRow.token_expires_at > iso(utc_now()))
+    ).rowcount
+    if consumed != 1:
+        session.rollback()
+        raise GoogleAuthError("verify_expired")
+    user, profile = auth_service.new_user_rows(
+        email=email, password_hash=None, display_name=display_name,
+        email_verified_method="link",
+    )
+    now = iso(utc_now())
+    try:
+        session.add(user)
+        session.add(profile)
+        session.flush()
+        session.add(UserIdentityRow(
+            provider=PROVIDER, subject=subject, user_id=user.id, email=email,
+            created_at=now, last_login_at=now,
+        ))
+        # The mailbox is now proven: other pending sign-ups for it never carry over.
+        session.execute(delete(PendingRegistrationRow).where(PendingRegistrationRow.email == email))
+        session.execute(
+            delete(PendingGoogleRegistrationRow).where(PendingGoogleRegistrationRow.email == email))
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        identity = _identity(session, subject)
+        if identity is not None:
+            return _login_existing(session, identity, claims, user_agent)
+        raise GoogleAuthError("account_exists")
+    session.refresh(user)
+    raw_session, _ = auth_service.create_session(session, user, user_agent=user_agent)
+    return user, raw_session
+
+
+def complete_registration_callback(
+    session: Session, cfg: GoogleConfig, *, state: str, code: str, user_agent: Optional[str],
+) -> tuple[UserRow, str]:
+    pending = consume_pending(session, state)
+    if pending.intent != "verify_registration" or not pending.registration_token_hash:
+        raise GoogleAuthError("failed")
+    raw = exchange_code(cfg, code, pending.code_verifier)
+    claims = verify_id_token(raw, cfg, nonce=pending.nonce)
+    return activate_google_registration(
+        session, claims, registration_token_hash=pending.registration_token_hash,
+        user_agent=user_agent,
+    )

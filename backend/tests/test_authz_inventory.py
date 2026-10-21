@@ -47,6 +47,9 @@ AUTH_SURFACE = {
     # Google sign-in (state cookie + single-use pending row + PKCE + nonce).
     "POST /api/auth/google/start",
     "GET /api/auth/google/callback",
+    # Third-party Google sign-up link (#329): token + Google round trip.
+    "POST /api/auth/verification/google/peek",
+    "POST /api/auth/verification/google/start",
 }
 
 ME = {

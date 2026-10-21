@@ -432,6 +432,20 @@ def google_callback(
         return _google_redirect(f"{failed}{code_name}")
     if not code:
         return _google_redirect(f"{failed}failed")
+    if intent == "verify_registration":
+        # Third-party address, second proof (#329): same Google subject and
+        # address as the emailed link's registration. The session goes to
+        # this browser, which just completed both proofs.
+        try:
+            _user, token = google_oauth.complete_registration_callback(
+                session, cfg, state=state, code=code,
+                user_agent=request.headers.get("user-agent"),
+            )
+        except google_oauth.GoogleAuthError as exc:
+            return _google_redirect(f"/login?google={exc.code}")
+        redirect = _google_redirect("/")
+        _set_auth_cookie(redirect, token)
+        return redirect
     if linking:
         raw_session = request.cookies.get(settings.auth_cookie_name)
         try:
@@ -462,3 +476,35 @@ def google_callback(
     redirect = _google_redirect("/")
     _set_auth_cookie(redirect, token)
     return redirect
+
+
+# ── Third-party Google sign-up: the emailed link (#329) ─────────────────────
+
+@router.post("/verification/google/peek", response_model=VerificationPeekResponse)
+def google_verification_peek(payload: VerificationTokenRequest, session: Session = Depends(get_session)):
+    """Read-only: the masked address a live Google-registration link belongs to."""
+    masked = google_oauth.peek_google_registration(session, payload.token)
+    if masked is None:
+        raise HTTPException(status_code=404, detail=_INVALID_LINK)
+    return VerificationPeekResponse(email=masked)
+
+
+@router.post("/verification/google/start", response_model=GoogleStartResponse)
+def google_verification_start(
+    payload: VerificationTokenRequest,
+    response: Response,
+    session: Session = Depends(get_session),
+):
+    """The link's second step: a Google sign-in bound to this registration's
+    current token. Opening the link alone activates nothing; only the
+    callback, as the same Google account with the same address, does."""
+    cfg = _require_google()
+    try:
+        url, state = google_oauth.start_registration_verification(
+            session, cfg, raw_token=payload.token)
+    except google_oauth.GoogleAuthError:
+        raise HTTPException(status_code=404, detail=_INVALID_LINK)
+    except auth_service.RateLimitExceeded:
+        raise HTTPException(status_code=429, detail="Too many sign-in attempts")
+    set_google_state_cookie(response, state)
+    return GoogleStartResponse(url=url)

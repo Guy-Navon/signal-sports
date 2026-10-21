@@ -1,4 +1,4 @@
-"""Keep verification tokens out of request/access logs.
+"""Keep verification tokens and OAuth callback secrets out of access logs.
 
 The verification link carries its token in the URL fragment, which browsers
 never send, and the API receives tokens only in POST bodies, which are not
@@ -13,7 +13,10 @@ from __future__ import annotations
 import logging
 import re
 
-_SECRET_PARAM = re.compile(r"([?&#;](?:t|token)=)[^&#\s\"']+", re.IGNORECASE)
+# t/token: email-verification links. code/state: the Google callback
+# (/api/auth/google/callback?code=…&state=…), which arrives as a GET and so
+# lands in the access log; both are single use, but they are still secrets.
+_SECRET_PARAM = re.compile(r"([?&#;](?:t|token|code|state)=)[^&#\s\"']+", re.IGNORECASE)
 REDACTED = "[redacted]"
 
 

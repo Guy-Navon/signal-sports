@@ -139,6 +139,49 @@ class PendingRegistrationRow(Base):
     send_count = Column(Integer, nullable=False, default=0)
 
 
+class UserIdentityRow(Base):
+    """An external sign-in identity linked to an account (Google, Slice B).
+
+    The key is the provider's stable subject (Google's ``sub``), never the
+    email: Google says the email can change and is not an identifier. At most
+    one identity per provider per user.
+    """
+
+    __tablename__ = "user_identities"
+    __table_args__ = (UniqueConstraint("user_id", "provider", name="uq_user_identity_provider"),)
+
+    provider = Column(String, primary_key=True)
+    subject = Column(String, primary_key=True)
+    user_id = Column(
+        String,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # The provider's email at the last sign-in, for display only.
+    email = Column(String, nullable=True)
+    created_at = Column(String, nullable=False)
+    last_login_at = Column(String, nullable=True)
+
+
+class OAuthPendingRow(Base):
+    """One in-flight Google authorization: single use, ~10 minutes.
+
+    Keyed by the SHA-256 of the ``state`` sent to Google; the raw state also
+    sits in a short-lived HttpOnly cookie, and the callback needs both. The
+    PKCE verifier and nonce never leave the server.
+    """
+
+    __tablename__ = "oauth_pending"
+
+    state_hash = Column(String, primary_key=True)
+    intent = Column(String, nullable=False)  # "login"
+    nonce = Column(String, nullable=False)
+    code_verifier = Column(String, nullable=False)
+    created_at = Column(String, nullable=False)
+    expires_at = Column(String, nullable=False)
+
+
 class SourceRow(Base):
     __tablename__ = "sources"
 

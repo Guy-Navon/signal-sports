@@ -342,7 +342,7 @@ def test_session_bootstrap_shape(client, monkeypatch):
     assert anon.status_code == 200
     assert anon.json() == {
         "auth_enforced": True, "signup_enabled": True, "signup_by_invitation": False,
-        "user": None, "onboarding": None,
+        "google_enabled": False, "user": None, "onboarding": None,
     }
 
     assert _signup(client, "bootstrap@example.com").status_code == 200

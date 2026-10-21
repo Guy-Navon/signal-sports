@@ -271,6 +271,72 @@ logs; a filter on the uvicorn access log (`app/core/log_redaction.py`) also reda
 `t=`/`token=` query value as a backstop. The message is Hebrew RTL plain text plus minimal HTML, with no images or tracking.
 Setup and the delivery check: `docs/DEPLOYMENT.md`.
 
+## Google sign-in (Gmail and Workspace)
+
+Added 2026-10-21 (Slice B1). This reverses the original OAuth non-goal on purpose. Password
+login and signup are unchanged next to it.
+
+**Flow** (`app/services/google_oauth.py`): a server-side OAuth 2.0 authorization-code flow
+with PKCE (S256), `state` and `nonce`, as a full-page redirect. No Google script runs on our
+origin.
+
+1. `POST /api/auth/google/start` (public, CSRF-checked) stores an `oauth_pending` row (the
+   SHA-256 of `state`, the nonce and the PKCE verifier, 10 minutes, single use), sets the
+   HttpOnly `<session-cookie-name>_oauth` cookie (SameSite=Lax, Path `/api/auth/google`,
+   Max-Age 600, Secure per `AUTH_COOKIE_SECURE`) to the raw state, and returns Google's
+   authorization URL (`openid email profile`, `prompt=select_account`, `hl=he`). The browser
+   navigates there. Starts are limited to 60 per minute process-wide; expired attempts are
+   pruned on every start. 404 when Google isn't configured.
+2. `GET /api/auth/google/callback` is a deliberate state-changing GET. It requires the state
+   cookie to equal `state`, then **atomically consumes** the pending row (a rowcount-checked
+   delete, so a replayed or concurrent callback fails), exchanges the code with the client
+   secret and the verifier (10 s timeout), and verifies the ID token with google-auth's
+   `verify_oauth2_token` (signature against Google's certificates, `aud`, both `iss` forms,
+   `exp`, 10 s clock skew) plus our checks of `nonce` and `sub`. It redirects only to fixed
+   paths: `/` on success, `/login?google=<code>` otherwise (`cancelled`, `expired`,
+   `unavailable`, `failed`, `invalid`, `unverified_email`, `unsupported_email`,
+   `account_exists`, `signup_closed`). There is no `return_to` parameter.
+
+**Accounts.** The key is Google's `sub` (`user_identities(provider, subject)` → `user_id`,
+at most one Google identity per user), never the email.
+
+- A known `sub` signs into its account, whatever the signup state, even if the Google email
+  has changed (the identity's stored email is updated for display).
+- A new `sub` registers only when Google is **authoritative** for the address:
+  `email_verified` exactly `true` and either `@gmail.com` without `hd`, or a Workspace
+  address whose domain equals `hd`. Third-party addresses (a Google account on `@yahoo.com`,
+  `@googlemail.com`, or an `hd` that differs from the address's domain) get
+  `unsupported_email`; registering them through an emailed link is a separate, later step.
+- **No implicit linking.** An address any account already holds (password, legacy or admin)
+  gets `account_exists`, and nothing is created or changed. Explicit linking from the Account
+  page is a later step.
+- Closed signup applies: an unknown address registers only if open signup or
+  `AUTH_SIGNUP_ALLOWED_EMAILS` admits it (`signup_closed` otherwise).
+- Registration creates `users(password_hash=NULL, email_verified_method='google_authoritative')`,
+  the empty profile (display name from the `name` claim) and the identity in one transaction,
+  and deletes any `pending_registrations` for the address: Google has just proven the
+  mailbox, so a squatter's or abandoned password signup never carries over. Two concurrent
+  first sign-ins for one `sub` produce one account (the loser of the unique constraint signs
+  into the winner's account).
+- A Google-only account can't log in with a password (`password_hash` NULL is "invalid
+  credentials", as for demo rows). `AuthUser.has_password` tells the Account page to hide the
+  password change. Self-deletion of a Google-only account is not built yet; the page says to
+  ask the admin.
+
+**Configuration**, read at request time: `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`
+(secret) and `GOOGLE_OAUTH_REDIRECT_URI` (exact, never derived from `Host`). Google is enabled
+only when all three are set; `GET /api/auth/session` reports `google_enabled`. Hosted mode
+refuses a non-https redirect URI and warns on a partial configuration or a redirect origin
+missing from `CSRF_ALLOWED_ORIGINS`. Neither the secret nor the code, state or ID token is
+logged; the access-log filter redacts `code=` and `state=` on the callback URL.
+
+**Rollback hazard.** The schema is additive, so old code runs on the new database. But
+reverting this code (or unsetting `GOOGLE_*`) leaves Google-only accounts with **no way to
+sign in**. Before any revert, list them
+(`SELECT u.id, u.email FROM users u JOIN user_identities i ON i.user_id = u.id WHERE u.password_hash IS NULL`)
+and give each a recovery path; prefer a forward fix, or close new Google registrations
+(closed signup with an empty allowlist keeps existing Google logins working).
+
 ## Onboarding state machine
 
 Storage: **`users.onboarding_completed_at` (nullable) + existing `calibration_responses`;
@@ -383,6 +449,7 @@ to the same repositories/services as the `{user_id}` routes — one seam, no ser
 | `GET /health` | unchanged | System | permanent |
 | — | `POST /api/auth/signup` / `login` / `logout`, `GET /api/auth/session` | Public (login rate-limited); logout=Session | permanent |
 | — | `POST /api/auth/verification/peek` / `confirm` / `resend` | Public (the token and/or password is the proof; rate-limited) | permanent |
+| — | `POST /api/auth/google/start`, `GET /api/auth/google/callback` | Public (start CSRF-checked and rate-limited; callback bound to the state cookie, single-use pending row, PKCE, nonce) | permanent |
 | — | `POST /api/me/password`, `DELETE /api/me/account` | Consumer (password re-entry) | permanent |
 | — | `POST /api/me/onboarding/complete` | Consumer | permanent (skip path) |
 | `GET /api/profiles` (lists all) | stays | **Admin** | permanent (QA list); frontend product stops calling it |
@@ -446,6 +513,8 @@ Threats tied to this architecture, with mitigations:
 | Insecure-bypass misconfiguration | fail-closed design: enforcement is the code default; only `ALLOW_INSECURE_AUTH_BYPASS=true` opens the legacy/ops surface, and startup **refuses to run** with bypass + `AUTH_COOKIE_SECURE=true` (the deployed-HTTPS signal) |
 | Account enumeration | login: uniform "invalid email or password" + dummy-hash verify for unknown emails (timing-uniform). Signup deliberately reveals "email in use", accepted for a private product. A pending registration is revealed only to someone who holds its password (login 403). Residual: login spends 1–3 extra argon2 checks when pending rows exist for an address, a timing hint that *some* signup is pending |
 | Verification-link abuse | the token is 32 random bytes, stored as SHA-256, valid 24 h, single use (atomic delete) and rotated on resend. Activation also needs the password, so scanners, forwarded mails and squatters cannot activate. The link base comes from `APP_PUBLIC_URL` only (never `Host`). Addresses with whitespace or control characters are rejected (header injection) |
+| OAuth login CSRF / replay | the callback needs the state cookie set by *this* browser's start (an attacker's callback URL opened in a victim's browser fails), the pending row is consumed atomically, the code is useless without the server-held PKCE verifier, and the ID token's nonce must match the attempt |
+| Account takeover through Google | the account key is `sub`, never the email; an address already held by any account is refused, never linked; registration needs a Google-authoritative address |
 | Email flooding | per address: 3 signups/h, 5 sends per registration, 60 s cooldown; globally 30 sends/10 min, checked before anything is stored. Closed signup limits targets to the allowlist. A flood on an open signup can exhaust the shared global budget, accepted at this scale |
 | Session fixation / staleness | fresh token every login; logout deletes the row; fixed 30-day expiry; password change revokes all other sessions |
 | Debug/ops exposure | entire ops surface `require_admin`; `/api/dev/*` keeps the extra `ALLOW_DEV_RESET` env gate; the tailnet still bounds network exposure; `/docs` stays unproxied to phone |
@@ -548,6 +617,11 @@ changes); **signal-real-data-qa** (demo diffs will require an admin session);
 bypass semantics).
 
 ## Changelog
+
+- 2026-10-21 — Google sign-in, Slice B1: login and registration for Gmail and Workspace
+  addresses (`user_identities`, `oauth_pending`, start/callback routes, `google_enabled`,
+  `has_password`, hosted guards, code/state redaction). No linking, no third-party
+  addresses, no Google-only self-deletion yet.
 
 - 2026-10-21 — Email verification for password signups: pending registrations, activation
   by the emailed link plus the password, resend, `AUTH_SIGNUP_ALLOWED_EMAILS`,

@@ -107,6 +107,30 @@ one, signup answers 503; it never skips verification. Nothing has been configure
   spam; open the link on a phone and on a desktop; `curl` the link (a scanner's GET) and
   confirm the registration is still pending.
 
+### 3.2 Google sign-in
+
+Off until all three of `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` (secret) and
+`GOOGLE_OAUTH_REDIRECT_URI` are set ([USER_PLATFORM.md](USER_PLATFORM.md#google-sign-in-gmail-and-workspace)).
+Nothing has been created in Google Cloud.
+
+- **Google Cloud project** (owner): an OAuth consent screen with only `openid`, `email` and
+  `profile`, and a *Web application* client. Its **Authorized redirect URIs** are exactly
+  `<origin>/api/auth/google/callback` for each origin the browser uses (local:
+  `http://localhost:5173/...`; the tailnet: `https://<machine>.<tailnet>.ts.net/...`; the host
+  later). No JavaScript origins are needed. The browser must use the same host name as the
+  redirect URI (`localhost`, not `127.0.0.1`), because the state cookie is per host.
+- **Testing vs production.** In *Testing* only the listed test users can sign in, which is
+  enough for a first check. Friends beyond that list need the app *In production*; with only
+  the basic scopes no Google verification is required. Session-age claims and app
+  verification are not prerequisites.
+- **Settings.** The secret goes in the untracked `backend/.env` locally and
+  `/etc/signal/prod.env` on a host. `DEPLOY_ENV=hosted` refuses a non-https redirect URI
+  and warns on a partial configuration or a redirect origin missing from
+  `CSRF_ALLOWED_ORIGINS`. A host-name change means adding its redirect URI in the console
+  and updating the env.
+- **Before reverting Google sign-in**, see the rollback hazard in USER_PLATFORM.md:
+  Google-only accounts have no password.
+
 ## 4. Data directory and permissions
 
 | Path (host) | Owner | Mode | Notes |

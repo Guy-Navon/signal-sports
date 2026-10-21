@@ -13,6 +13,7 @@ import {
   captureGoogleNotice,
   dismissGoogleNotice,
   googleNoticeMessage,
+  googleNoticeTone,
   readGoogleNotice,
 } from "@/pages/googleSignIn";
 import {
@@ -37,6 +38,11 @@ export default function Login() {
       ? googleNoticeMessage(googleCode)
       : location.state?.expired ? "פג תוקף ההתחברות — היכנסו שוב" : null,
   );
+
+  // "Check your inbox" (#329) is the next step, not a failure.
+  const noticeIsInfo =
+    Boolean(notice) && googleNoticeTone(googleCode) === "info" &&
+    notice === googleNoticeMessage(googleCode);
 
   // Drop ?google= from the address bar so a reload or a shared URL doesn't
   // repeat the notice; the code itself stays remembered until the next action.
@@ -80,7 +86,10 @@ export default function Login() {
     <AuthScene kicker="החדר האישי" title="התחברות">
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         {notice && (
-          <p role="alert" className="text-sm text-signal-hidden text-center">
+          <p
+            role={noticeIsInfo ? "status" : "alert"}
+            className={`text-sm text-center ${noticeIsInfo ? "text-signal-high" : "text-signal-hidden"}`}
+          >
             {notice}
           </p>
         )}

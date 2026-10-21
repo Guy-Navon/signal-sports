@@ -239,6 +239,16 @@ export function authGoogleStart() {
   return apiFetch("/api/auth/google/start", { method: "POST" });
 }
 
+// The emailed link of a Google sign-up on a non-Gmail address (#329): peek,
+// then start the second proof (a Google sign-in; returns {url}).
+export function authGoogleVerificationPeek(token) {
+  return postAuthJson("/api/auth/verification/google/peek", { token });
+}
+
+export function authGoogleVerificationStart(token) {
+  return postAuthJson("/api/auth/verification/google/start", { token });
+}
+
 export function authVerificationPeek(token) {
   return postAuthJson("/api/auth/verification/peek", { token });
 }

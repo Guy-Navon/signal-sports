@@ -6,8 +6,16 @@ import { authGoogleStart } from "@/api/client";
 // the browser back to /api/auth/google/callback. The button stays disabled
 // from the first click, so a double-click cannot start two attempts.
 // Google's branding: its "G" mark at the inline start, on a light surface.
-/** @param {{ onStart?: () => void, onError?: (err: unknown) => void }} props */
-export default function GoogleSignInButton({ onStart, onError }) {
+/**
+ * @param {{
+ *   onStart?: () => void,
+ *   onError?: (err: unknown) => void,
+ *   startRequest?: () => Promise<{ url: string }>,
+ * }} props
+ * ``startRequest`` defaults to the ordinary sign-in start; the emailed link of
+ * a Google sign-up (#329) passes its own.
+ */
+export default function GoogleSignInButton({ onStart, onError, startRequest = authGoogleStart }) {
   const [starting, setStarting] = useState(false);
 
   async function start() {
@@ -15,7 +23,7 @@ export default function GoogleSignInButton({ onStart, onError }) {
     setStarting(true);
     onStart?.();
     try {
-      const { url } = await authGoogleStart();
+      const { url } = await startRequest();
       window.location.assign(url);
     } catch (err) {
       setStarting(false);

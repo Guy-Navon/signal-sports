@@ -74,6 +74,8 @@ def _apply_migrations(eng) -> None:
         # Account-bound Google attempts (#331).
         ("oauth_pending", "user_id",              "TEXT"),
         ("oauth_pending", "session_hash",         "TEXT"),
+        # Third-party Google registration (#329).
+        ("oauth_pending", "registration_token_hash", "TEXT"),
         # Validated story anchors (issue #141) — persisted at ingestion; pair eval reads only.
         ("articles", "story_anchors",             "JSON"),
         ("articles", "anchor_validator_version",  "TEXT"),

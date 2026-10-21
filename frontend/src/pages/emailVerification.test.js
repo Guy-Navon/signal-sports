@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   RESEND_COOLDOWN_SECONDS,
-  captureVerificationToken,
+  captureVerificationLink,
   forgetVerificationToken,
   isUnverifiedLogin,
   readVerificationToken,
@@ -69,18 +69,23 @@ describe("resendSecondsLeft", () => {
   });
 });
 
-describe("captureVerificationToken", () => {
-  it("keeps the token after the fragment is cleared (the page can remount)", () => {
+describe("captureVerificationLink", () => {
+  it("keeps the link after the fragment is cleared (the page can remount)", () => {
     forgetVerificationToken();
-    expect(captureVerificationToken("#t=abc")).toBe("abc");
+    expect(captureVerificationLink("#t=abc")).toEqual({ kind: "password", token: "abc" });
     // The first mount removed the fragment; a remount must still find it.
-    expect(captureVerificationToken("")).toBe("abc");
+    expect(captureVerificationLink("")).toEqual({ kind: "password", token: "abc" });
   });
 
-  it("a newer link replaces the remembered token, and forgetting clears it", () => {
-    captureVerificationToken("#t=old");
-    expect(captureVerificationToken("#t=new")).toBe("new");
+  it("recognizes a Google sign-up link (#g=), which needs a Google sign-in, not a password", () => {
     forgetVerificationToken();
-    expect(captureVerificationToken("")).toBeNull();
+    expect(captureVerificationLink("#g=xyz")).toEqual({ kind: "google", token: "xyz" });
+  });
+
+  it("a newer link replaces the remembered one, and forgetting clears it", () => {
+    captureVerificationLink("#t=old");
+    expect(captureVerificationLink("#g=new")).toEqual({ kind: "google", token: "new" });
+    forgetVerificationToken();
+    expect(captureVerificationLink("")).toBeNull();
   });
 });

@@ -481,7 +481,9 @@ def test_a_third_party_address_never_links(client, monkeypatch):
     GoogleReturns(monkeypatch, sub="sub-yahoo", email="someone@yahoo.com")
     c = _fresh_client(client)
     state, _ = _start(c)
-    assert _callback(c, state).headers["location"] == "/login?google=unsupported_email"
+    # Not authoritative, so never linked (#329 registers such addresses only
+    # through an emailed link, and never onto an existing account).
+    assert _callback(c, state).headers["location"] == "/login?google=account_exists"
     assert _identities() == []
 
 
@@ -536,16 +538,14 @@ def test_pending_password_registrations_for_the_address_are_discarded(client, mo
     assert login.status_code == 401
 
 
-@pytest.mark.parametrize("claims, code", [
-    ({"email": "someone@yahoo.com"}, "unsupported_email"),
-    ({"email": "friend@gmail.com", "email_verified": False}, "unverified_email"),
-])
-def test_non_authoritative_addresses_cannot_register_yet(client, monkeypatch, claims, code):
-    GoogleReturns(monkeypatch, sub="sub-x", **claims)
+def test_an_unverified_google_address_cannot_register(client, monkeypatch):
+    # Third-party (verified) addresses register through an emailed link:
+    # tests/test_google_third_party.py (#329).
+    GoogleReturns(monkeypatch, sub="sub-x", email="friend@gmail.com", email_verified=False)
     c = _fresh_client(client)
     state, _ = _start(c)
     response = _callback(c, state)
-    assert response.headers["location"] == f"/login?google={code}"
+    assert response.headers["location"] == "/login?google=unverified_email"
     assert _users() == []
 
 

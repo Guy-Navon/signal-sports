@@ -131,7 +131,7 @@ side effect.
 | Surface | Access |
 |---|---|
 | `/health` | public |
-| `/api/auth/*` (signup, login, logout, session, verification peek/confirm/resend, Google start/callback) | public; mutating routes CSRF-checked, the Google callback bound to its state cookie |
+| `/api/auth/*` (signup, login, logout, session, verification peek/confirm/resend, Google start/callback, Google-signup link peek/start) | public; mutating routes CSRF-checked, the Google callback bound to its state cookie |
 | `/api/me/*` (profile, feed, results, feedback, learning, never_show, interests, calibration, onboarding, password, account, account deletion through Google, connect/disconnect Google) | the session user's own data |
 | `/api/taxonomy/catalog`, `/api/calibration/items`, `/api/calibration/preview`, `/api/articles[/{id}]`, `/api/feed-engine` | any session |
 | `/api/feed/{user_id}`, `/api/debug/*`, `/api/profiles/*`, `/api/learning/{user_id}[/reset]`, `/api/feedback[/{user_id}]`, `/api/calibration/apply`, `/api/calibration/responses/{user_id}`, `/api/results/{user_id}`, `/api/results/sync[/state]` | admin (view-as / QA) |
@@ -163,7 +163,8 @@ Authentication: email/password (Argon2), HttpOnly cookie sessions, origin/fetch-
 and admin role gating ([USER_PLATFORM.md](USER_PLATFORM.md)). A password signup is only a
 pending registration until the emailed link is confirmed with the password; accounts created
 before that (and the bootstrap admin) keep `email_verified_at` NULL. "Continue with Google"
-signs in or registers Gmail and Workspace addresses, and links one to an existing regular
+signs in or registers Gmail and Workspace addresses (other addresses register through an
+emailed link plus a second Google sign-in), and links one to an existing regular
 account holding the same address (never an admin account; any account can connect Google
 explicitly from the Account page with its password). A Google-only account deletes
 itself through a Google confirmation and a separate final DELETE. CSRF origins come from

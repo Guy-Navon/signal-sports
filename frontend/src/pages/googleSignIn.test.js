@@ -5,6 +5,7 @@ import {
   captureGoogleNotice,
   dismissGoogleNotice,
   googleNoticeMessage,
+  googleNoticeTone,
   readGoogleNotice,
 } from "./googleSignIn";
 
@@ -34,8 +35,16 @@ describe("googleNoticeMessage", () => {
     expect(googleNoticeMessage("account_exists")).toContain("סיסמה");
   });
 
-  it("points a non-Gmail Google account at password signup", () => {
-    expect(googleNoticeMessage("unsupported_email")).toContain("הרשמה");
+  it("tells a non-Gmail Google sign-up to check its inbox, as information not an error", () => {
+    expect(googleNoticeMessage("check_email")).toContain("אימייל");
+    expect(googleNoticeTone("check_email")).toBe("info");
+    expect(googleNoticeTone("check_email_recent")).toBe("info");
+    expect(googleNoticeTone("account_exists")).toBe("error");
+    expect(googleNoticeTone(null)).toBe("error");
+  });
+
+  it("explains a link finished with a different Google account", () => {
+    expect(googleNoticeMessage("verify_wrong_account")).toContain("Google");
   });
 
   it("falls back to a generic notice for an unknown code", () => {

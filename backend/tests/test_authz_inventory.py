@@ -69,6 +69,7 @@ ME = {
     "POST /api/me/interests/complete",
     "POST /api/me/password",
     "DELETE /api/me/account",
+    "POST /api/me/account/delete/google/start",
 }
 
 SESSION = {

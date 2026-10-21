@@ -14,12 +14,12 @@ Contract (docs/USER_PLATFORM.md, authorization boundary):
   and has no effect here (``require_user`` has no bypass branch).
 """
 
-from typing import Dict, List
+from typing import Dict, List, Literal
 
 from fastapi import HTTPException, Request, Response
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import Session
 
 from app.api import routes_auth
@@ -99,8 +99,26 @@ class MePasswordRequest(BaseModel):
 
 
 class MeDeleteAccountRequest(BaseModel):
+    """Exactly one confirmation: the current password, or (for an account
+    without one) the deletion grant earned through Google (#331)."""
     model_config = {"extra": "forbid"}
-    current_password: str
+    current_password: str | None = None
+    method: Literal["reauth_grant"] | None = None
+
+    @model_validator(mode="after")
+    def _exactly_one(self):
+        if (self.current_password is None) == (self.method is None):
+            raise ValueError("send current_password or method='reauth_grant'")
+        return self
+
+
+class MeGoogleDeleteStartRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+    confirm_email: str = Field(max_length=320)
+
+
+class MeGoogleDeleteStartResponse(BaseModel):
+    url: str
 
 
 # ── Profile ───────────────────────────────────────────────────────────────────
@@ -370,19 +388,30 @@ def me_change_password(
 @router.delete("/account")
 def me_delete_account(
     payload: MeDeleteAccountRequest,
+    request: Request,
     response: Response,
     user: UserRow = Depends(require_user),
     session: Session = Depends(get_session),
 ):
     """Delete the account and exactly its own personalization rows (hard
-    delete, irreversible). Requires the current password. Demo fixtures are
-    undeletable; the last remaining admin cannot self-delete."""
+    delete, irreversible). Confirmed by the current password, or — for an
+    account without a password — by the single-use deletion grant this same
+    session earned through Google (#331). Demo fixtures are undeletable; the
+    last remaining admin cannot self-delete."""
     from app.core.config import settings
 
     try:
-        auth_service.delete_account(
-            session, user, current_password=payload.current_password
-        )
+        if payload.method == "reauth_grant":
+            if user.password_hash:
+                raise HTTPException(
+                    status_code=400, detail="This account confirms deletion with its password")
+            raw_token = request.cookies.get(settings.auth_cookie_name) or ""
+            auth_service.delete_account_with_grant(
+                session, user, session_hash=auth_service.token_hash(raw_token))
+        else:
+            auth_service.delete_account(
+                session, user, current_password=payload.current_password
+            )
     except auth_service.UndeletableAccountError:
         raise HTTPException(status_code=403, detail="Demo accounts cannot be deleted")
     except auth_service.LastAdminError:
@@ -391,8 +420,47 @@ def me_delete_account(
         )
     except auth_service.InvalidPasswordError:
         raise HTTPException(status_code=403, detail="Current password is incorrect")
+    except auth_service.InvalidReauthGrantError:
+        raise HTTPException(
+            status_code=403, detail="Deletion confirmation is missing or expired")
     response.delete_cookie(
         key=settings.auth_cookie_name, path="/",
         secure=settings.auth_cookie_secure, httponly=True, samesite="lax",
     )
     return {"ok": True, "deleted": True}
+
+
+@router.post("/account/delete/google/start", response_model=MeGoogleDeleteStartResponse)
+def me_delete_account_google_start(
+    payload: MeGoogleDeleteStartRequest,
+    request: Request,
+    response: Response,
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Begin confirming the deletion of a Google-only account (#331): a newly
+    initiated Google round trip for the same linked account, bound to this
+    user and session. Its callback only records a short-lived, single-use
+    grant; deletion itself is the separate DELETE /api/me/account."""
+    from app.core.config import settings
+    from app.services import google_oauth
+
+    cfg = google_oauth.google_config()
+    if cfg is None:
+        raise HTTPException(status_code=404, detail="Not Found")
+    identity = google_oauth.linked_identity(session, user.id)
+    if user.password_hash or identity is None:
+        raise HTTPException(
+            status_code=409, detail="Only accounts without a password confirm deletion with Google")
+    if auth_service.normalize_email(payload.confirm_email) != user.email:
+        raise HTTPException(status_code=400, detail="The email does not match this account")
+    raw_token = request.cookies.get(settings.auth_cookie_name) or ""
+    try:
+        url, state = google_oauth.start_delete_confirmation(
+            session, cfg, user_id=user.id, session_hash=auth_service.token_hash(raw_token),
+            login_hint=identity.email or user.email,
+        )
+    except auth_service.RateLimitExceeded:
+        raise HTTPException(status_code=429, detail="Too many attempts")
+    routes_auth.set_google_state_cookie(response, state)
+    return MeGoogleDeleteStartResponse(url=url)

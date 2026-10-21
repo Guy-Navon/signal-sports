@@ -175,11 +175,36 @@ class OAuthPendingRow(Base):
     __tablename__ = "oauth_pending"
 
     state_hash = Column(String, primary_key=True)
-    intent = Column(String, nullable=False)  # "login"
+    intent = Column(String, nullable=False)  # "login" | "delete"
     nonce = Column(String, nullable=False)
     code_verifier = Column(String, nullable=False)
     created_at = Column(String, nullable=False)
     expires_at = Column(String, nullable=False)
+    # Set for account-bound intents ("delete", #331): the attempt belongs to
+    # this user AND this session (SHA-256 of the session token) only.
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    session_hash = Column(String, nullable=True)
+
+
+class ReauthGrantRow(Base):
+    """A short-lived, single-use permission earned by a Google round trip
+    (#331): bound to the user, the session that started it, and a purpose.
+    Consumed by a separate CSRF-protected request; never by the callback."""
+
+    __tablename__ = "reauth_grants"
+
+    id = Column(String, primary_key=True)
+    user_id = Column(
+        String,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    session_hash = Column(String, nullable=False)
+    purpose = Column(String, nullable=False)  # "delete_account"
+    created_at = Column(String, nullable=False)
+    expires_at = Column(String, nullable=False)
+    consumed_at = Column(String, nullable=True)
 
 
 class SourceRow(Base):

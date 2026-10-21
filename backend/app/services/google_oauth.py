@@ -40,7 +40,13 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.db.orm_models import OAuthPendingRow, PendingRegistrationRow, UserIdentityRow, UserRow
+from app.db.orm_models import (
+    AuthSessionRow,
+    OAuthPendingRow,
+    PendingRegistrationRow,
+    UserIdentityRow,
+    UserRow,
+)
 from app.services import auth_service
 from app.services.auth_service import FixedWindowLimiter, iso, normalize_email, token_hash, utc_now
 
@@ -108,6 +114,29 @@ def _b64url(raw: bytes) -> str:
 
 def start_login(session: Session, cfg: GoogleConfig) -> tuple[str, str]:
     """Record a login attempt; return (authorization URL, raw state)."""
+    return _start_attempt(session, cfg, intent="login")
+
+
+def start_delete_confirmation(
+    session: Session, cfg: GoogleConfig, *, user_id: str, session_hash: str, login_hint: str,
+) -> tuple[str, str]:
+    """Record a deletion-confirmation attempt bound to this user and session
+    (#331). Its callback can only ever produce a deletion grant."""
+    return _start_attempt(
+        session, cfg, intent="delete", user_id=user_id, session_hash=session_hash,
+        login_hint=login_hint,
+    )
+
+
+def _start_attempt(
+    session: Session,
+    cfg: GoogleConfig,
+    *,
+    intent: str,
+    user_id: Optional[str] = None,
+    session_hash: Optional[str] = None,
+    login_hint: Optional[str] = None,
+) -> tuple[str, str]:
     if not _start_limiter.check("global"):
         raise auth_service.RateLimitExceeded("too many sign-in attempts")
     now = utc_now()
@@ -117,14 +146,16 @@ def start_login(session: Session, cfg: GoogleConfig) -> tuple[str, str]:
     verifier = secrets.token_urlsafe(64)
     session.add(OAuthPendingRow(
         state_hash=token_hash(state),
-        intent="login",
+        intent=intent,
         nonce=nonce,
         code_verifier=verifier,
         created_at=iso(now),
         expires_at=iso(now + PENDING_TTL),
+        user_id=user_id,
+        session_hash=session_hash,
     ))
     session.commit()
-    query = urlencode({
+    params = {
         "client_id": cfg.client_id,
         "redirect_uri": cfg.redirect_uri,
         "response_type": "code",
@@ -137,8 +168,10 @@ def start_login(session: Session, cfg: GoogleConfig) -> tuple[str, str]:
         # not re-authentication.
         "prompt": "select_account",
         "hl": "he",
-    })
-    return f"{AUTHORIZATION_ENDPOINT}?{query}", state
+    }
+    if login_hint:
+        params["login_hint"] = login_hint
+    return f"{AUTHORIZATION_ENDPOINT}?{urlencode(params)}", state
 
 
 def consume_pending(session: Session, state: str) -> OAuthPendingRow:
@@ -150,6 +183,7 @@ def consume_pending(session: Session, state: str) -> OAuthPendingRow:
     snapshot = OAuthPendingRow(
         state_hash=row.state_hash, intent=row.intent, nonce=row.nonce,
         code_verifier=row.code_verifier, created_at=row.created_at, expires_at=row.expires_at,
+        user_id=row.user_id, session_hash=row.session_hash,
     )
     session.expunge(row)
     consumed = session.execute(
@@ -391,3 +425,47 @@ def has_google_identity(session: Session, user_id: str) -> bool:
         .where(UserIdentityRow.user_id == user_id, UserIdentityRow.provider == PROVIDER)
         .limit(1)
     ).first() is not None
+
+
+def pending_intent(session: Session, state: str) -> Optional[str]:
+    """Read-only: which kind of attempt ``state`` names (to route failures to
+    the right page). Changes nothing; an unknown state yields None."""
+    row = session.get(OAuthPendingRow, token_hash(state)) if state else None
+    return row.intent if row is not None else None
+
+
+def complete_delete_confirmation(
+    session: Session, cfg: GoogleConfig, *, state: str, code: str, current_session_hash: Optional[str],
+) -> None:
+    """The callback of a deletion attempt (#331): it only ever issues a grant.
+
+    Requires the session that started the attempt (same user, same session,
+    still valid) and a Google sign-in as the SAME linked subject. Never signs
+    in, never registers, never deletes. Not fresh re-authentication: a live
+    Google session in this browser satisfies it (documented limitation).
+    """
+    pending = consume_pending(session, state)
+    if pending.intent != "delete" or not pending.user_id or not pending.session_hash:
+        raise GoogleAuthError("delete_failed")
+    if not current_session_hash or not hmac.compare_digest(pending.session_hash, current_session_hash):
+        raise GoogleAuthError("delete_failed")
+    auth_session = session.get(AuthSessionRow, current_session_hash)
+    if (auth_session is None or auth_session.user_id != pending.user_id
+            or auth_service.parse_iso(auth_session.expires_at) <= utc_now()):
+        raise GoogleAuthError("delete_failed")
+    raw = exchange_code(cfg, code, pending.code_verifier)
+    claims = verify_id_token(raw, cfg, nonce=pending.nonce)
+    identity = _identity(session, claims["sub"])
+    if identity is None or identity.user_id != pending.user_id:
+        raise GoogleAuthError("delete_wrong_account")
+    auth_service.issue_reauth_grant(
+        session, pending.user_id, session_hash=current_session_hash, purpose="delete_account",
+    )
+
+
+def linked_identity(session: Session, user_id: str) -> Optional[UserIdentityRow]:
+    return session.execute(
+        select(UserIdentityRow)
+        .where(UserIdentityRow.user_id == user_id, UserIdentityRow.provider == PROVIDER)
+        .limit(1)
+    ).scalar_one_or_none()

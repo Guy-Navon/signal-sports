@@ -234,6 +234,11 @@ function postAuthJson(path, body) {
   });
 }
 
+// Google sign-in: returns {url}; the caller navigates the whole page there.
+export function authGoogleStart() {
+  return apiFetch("/api/auth/google/start", { method: "POST" });
+}
+
 export function authVerificationPeek(token) {
   return postAuthJson("/api/auth/verification/peek", { token });
 }

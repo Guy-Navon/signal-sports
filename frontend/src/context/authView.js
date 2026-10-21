@@ -28,6 +28,8 @@ export function deriveAuthView(dataMode, bootstrap) {
     // Closed signup that still admits allowlisted addresses
     // (AUTH_SIGNUP_ALLOWED_EMAILS): the form shows, marked invitation-only.
     signupByInvitation: bootstrap.signup_enabled === false && bootstrap.signup_by_invitation === true,
+    // All GOOGLE_OAUTH_* values set on the server: show "המשך עם Google".
+    googleEnabled: bootstrap.google_enabled === true,
   };
 }
 

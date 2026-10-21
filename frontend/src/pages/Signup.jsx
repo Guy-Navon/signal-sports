@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { authPagesRedundant } from "@/context/authView";
 import AuthScene from "@/pages/AuthScene";
+import GoogleSignInButton from "@/pages/GoogleSignInButton";
+import { googleNoticeMessage } from "@/pages/googleSignIn";
 import ResendVerification from "@/pages/ResendVerification";
 import {
   hasErrors,
@@ -172,6 +174,17 @@ export default function Signup() {
           {submitting ? "שולחים קישור אימות…" : "הרשמה"}
         </Button>
       </form>
+
+      {auth.googleEnabled && (
+        <div className="mt-5 space-y-4">
+          <div className="flex items-center gap-3 text-xs text-text-dim" aria-hidden>
+            <span className="h-px flex-1 bg-border" />
+            או
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <GoogleSignInButton onError={() => setNotice(googleNoticeMessage("unavailable"))} />
+        </div>
+      )}
 
       <p className="mt-6 text-sm text-text-secondary text-center">
         כבר יש לכם חשבון?{" "}

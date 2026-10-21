@@ -39,6 +39,13 @@ describe("deriveAuthView", () => {
     expect(deriveAuthView("backend", base).signupByInvitation).toBe(false);
   });
 
+  it("Google sign-in shows only when the backend reports it configured", () => {
+    const base = { auth_enforced: true, user: null, onboarding: null };
+    expect(deriveAuthView("backend", { ...base, google_enabled: true }).googleEnabled).toBe(true);
+    expect(deriveAuthView("backend", { ...base, google_enabled: false }).googleEnabled).toBe(false);
+    expect(deriveAuthView("backend", base).googleEnabled).toBe(false);
+  });
+
   it("backend mode without a bootstrap payload is loading", () => {
     expect(deriveAuthView("backend", null).mode).toBe("loading");
   });

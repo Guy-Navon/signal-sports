@@ -145,6 +145,7 @@ export function AuthProvider({ children }) {
       onboarding: view.onboarding,
       signupEnabled: view.signupEnabled,
       signupByInvitation: view.signupByInvitation,
+      googleEnabled: view.googleEnabled,
       login,
       signup,
       confirmVerification,

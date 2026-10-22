@@ -22,6 +22,8 @@ import {
   validateLoginForm,
 } from "@/pages/authValidation";
 
+const PASSWORD_RESET_NOTICE = "הסיסמה עודכנה. היכנסו עם הסיסמה החדשה.";
+
 export default function Login() {
   const auth = useAuth();
   const navigate = useNavigate();
@@ -36,13 +38,15 @@ export default function Login() {
   const [notice, setNotice] = useState(
     googleCode
       ? googleNoticeMessage(googleCode)
+      : location.state?.passwordReset ? PASSWORD_RESET_NOTICE
       : location.state?.expired ? "פג תוקף ההתחברות — היכנסו שוב" : null,
   );
 
   // "Check your inbox" (#329) is the next step, not a failure.
   const noticeIsInfo =
-    Boolean(notice) && googleNoticeTone(googleCode) === "info" &&
-    notice === googleNoticeMessage(googleCode);
+    (Boolean(notice) && googleNoticeTone(googleCode) === "info" &&
+      notice === googleNoticeMessage(googleCode)) ||
+    (Boolean(location.state?.passwordReset) && notice === PASSWORD_RESET_NOTICE);
 
   // Drop ?google= from the address bar so a reload or a shared URL doesn't
   // repeat the notice; the code itself stays remembered until the next action.
@@ -129,6 +133,9 @@ export default function Login() {
           {errors.password && (
             <p className="text-xs text-signal-hidden">{errors.password}</p>
           )}
+          <Link to="/forgot-password" className="text-xs text-text-secondary underline underline-offset-4">
+            שכחתם את הסיסמה?
+          </Link>
         </div>
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? "מתחברים…" : "כניסה"}

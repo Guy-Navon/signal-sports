@@ -20,6 +20,8 @@ import Login from '@/pages/Login';
 import Onboarding from '@/pages/Onboarding';
 import Signup from '@/pages/Signup';
 import VerifyEmail from '@/pages/VerifyEmail';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 import PageNotFound from '@/lib/PageNotFound';
 import { queryClientInstance } from '@/lib/query-client';
 import './index.css';
@@ -38,6 +40,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="login" element={<Login />} />
               <Route path="signup" element={<Signup />} />
               <Route path="verify-email" element={<VerifyEmail />} />
+              <Route path="forgot-password" element={<ForgotPassword />} />
+              <Route path="reset-password" element={<ResetPassword />} />
 
               {/* Session guard: pass-through in local/bypass; login-gate under
                   enforcement (User Platform PR 3). */}

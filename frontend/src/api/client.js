@@ -249,6 +249,19 @@ export function authGoogleVerificationStart(token) {
   return postAuthJson("/api/auth/verification/google/start", { token });
 }
 
+// Password reset by email (#200).
+export function authForgotPassword(email) {
+  return postAuthJson("/api/auth/password/forgot", { email });
+}
+
+export function authResetPeek(token) {
+  return postAuthJson("/api/auth/password/reset/peek", { token });
+}
+
+export function authResetPassword(token, newPassword) {
+  return postAuthJson("/api/auth/password/reset", { token, new_password: newPassword });
+}
+
 export function authVerificationPeek(token) {
   return postAuthJson("/api/auth/verification/peek", { token });
 }

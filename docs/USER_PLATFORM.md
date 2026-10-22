@@ -209,7 +209,7 @@ They are separate tables; identity concerns never enter `profiles`.
 ## Email verification (password signups)
 
 Added 2026-10-21. This reverses the original "no email infrastructure" non-goal on purpose;
-password reset and every other kind of email stay deferred.
+every other kind of email stays deferred (password reset was added later, see below).
 
 **Lifecycle.** An unverified signup never becomes a `users` row:
 
@@ -389,8 +389,31 @@ each account **before** reverting with the guarded tool `backend/scripts/set_use
 (#334; runbook in `DEPLOYMENT.md` §10.1): `--list` shows the accounts without a password,
 and `--user <id> --apply` gives one a generated temporary password, printed once, and
 revokes its sessions (a dry run by default; demo rows refused; no password on the command
-line). The same tool is the interim admin reset for any locked-out user until password
-reset by email exists (#200).
+line). It also recovers any locked-out account by hand; accounts with a password can
+reset it themselves by email (see "Password reset by email").
+
+## Password reset by email
+
+Added 2026-10-22 (#200). For accounts that have a password; an account opened with Google
+signs in with Google (and, if it ever cannot, `scripts/set_user_password.py` recovers it).
+
+1. `/login` links "שכחתם את הסיסמה?" to `/forgot-password`. `POST /api/auth/password/forgot
+   {email}` answers **202 with the same body for every address**: no account, a Google-only
+   account, a demo row, a throttled request and a real one all look alike. For a password
+   account it stores a single-use token **as a hash** (`password_reset_tokens`, 1 hour) and
+   emails `<APP_PUBLIC_URL>/reset-password#t=<token>`. The email is sent **after** the
+   response (FastAPI BackgroundTasks), so delivery time does not reveal the case. Throttling
+   is silent: one request per account per minute (the newest token's age, kept in the
+   database), 3 per address per hour, and the global send budget. Without a mailer the
+   answer is 503 for every address.
+2. `/reset-password` reads the token from the fragment, removes it from the address bar and
+   peeks (`POST /api/auth/password/reset/peek`, read-only: the masked address or 404).
+   Opening the link changes nothing.
+3. `POST /api/auth/password/reset {token, new_password}` (8+ characters) consumes the token
+   atomically (a rowcount-checked update), sets the password, deletes the account's other
+   reset tokens, **ends every session**, and marks a never-proven address verified (method
+   `link`; an earlier verification is kept). There is no automatic sign-in: the page returns
+   to `/login` with "הסיסמה עודכנה".
 
 ## Onboarding state machine
 
@@ -599,6 +622,7 @@ Threats tied to this architecture, with mitigations:
 | Verification-link abuse | the token is 32 random bytes, stored as SHA-256, valid 24 h, single use (atomic delete) and rotated on resend. Activation also needs the password, so scanners, forwarded mails and squatters cannot activate. The link base comes from `APP_PUBLIC_URL` only (never `Host`). Addresses with whitespace or control characters are rejected (header injection) |
 | OAuth login CSRF / replay | the callback needs the state cookie set by *this* browser's start (an attacker's callback URL opened in a victim's browser fails), the pending row is consumed atomically, the code is useless without the server-held PKCE verifier, and the ID token's nonce must match the attempt |
 | Account takeover through Google | the account key is `sub`; linking by email happens only for a Google-authoritative address (Google vouches for the mailbox), only to `role=user` accounts, never to admin or to an account linked to another Google account. Residual, accepted: whoever controls that Gmail/Workspace mailbox's Google account controls the linked Signal account, and a Workspace admin can reassign an address |
+| Password-reset abuse | the same 202 for every address (and the email sent after the response), silent throttling, a 32-byte single-use token stored as a hash for one hour, every session ended on reset, no automatic sign-in |
 | Email flooding | per address: 3 signups/h, 5 sends per registration, 60 s cooldown; globally 30 sends/10 min, checked before anything is stored. Closed signup limits targets to the allowlist. A flood on an open signup can exhaust the shared global budget, accepted at this scale |
 | Session fixation / staleness | fresh token every login; logout deletes the row; fixed 30-day expiry; password change revokes all other sessions |
 | Debug/ops exposure | entire ops surface `require_admin`; `/api/dev/*` keeps the extra `ALLOW_DEV_RESET` env gate; the tailnet still bounds network exposure; `/docs` stays unproxied to phone |
@@ -607,8 +631,7 @@ Threats tied to this architecture, with mitigations:
 | Cookie over Tailscale | `AUTH_COOKIE_SECURE=true` when fronted by Tailscale Serve HTTPS (explicit env — the scheme is not auto-detectable behind the Vite proxy) |
 
 **Deliberately deferred** (with un-defer triggers): an optional "verify my email" for
-legacy accounts (→ password reset by email); password reset via email (→ first locked-out real user; interim: admin reset
-endpoint/CLI); trusted forwarded-IP contract + IP-keyed rate limiting (→ first real
+legacy accounts (→ first need beyond what a password reset already proves); trusted forwarded-IP contract + IP-keyed rate limiting (→ first real
 reverse-proxy deployment, where `X-Forwarded-For` handling is defined and tested as part of
 that milestone); shared-store rate limiting (→ multi-worker); 2FA/device management/audit
 log (→ multiple admins); OAuth (→ real signup friction post-launch); soft-delete/retention
@@ -701,6 +724,9 @@ changes); **signal-real-data-qa** (demo diffs will require an admin session);
 bypass semantics).
 
 ## Changelog
+
+- 2026-10-22 — #200 (partial): password reset by email (`password_reset_tokens`,
+  `/api/auth/password/{forgot,reset/peek,reset}`, `/forgot-password`, `/reset-password`).
 
 - 2026-10-22 — #200 (partial): rate-limiter state is bounded (TTL sweep + a per-limiter key cap).
 

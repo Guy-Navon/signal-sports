@@ -1,7 +1,7 @@
 import hmac
 
 from pydantic import BaseModel, Field, field_validator
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -508,3 +508,62 @@ def google_verification_start(
         raise HTTPException(status_code=429, detail="Too many sign-in attempts")
     set_google_state_cookie(response, state)
     return GoogleStartResponse(url=url)
+
+
+# ── Password reset by email (#200) ──────────────────────────────────────────
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(max_length=320)
+
+
+class ForgotPasswordResponse(BaseModel):
+    status: str = "sent_if_exists"
+
+
+class ResetPasswordRequest(VerificationTokenRequest):
+    new_password: str = Field(min_length=8)
+
+
+@router.post("/password/forgot", response_model=ForgotPasswordResponse, status_code=202)
+def password_forgot(
+    payload: ForgotPasswordRequest,
+    background: BackgroundTasks,
+    session: Session = Depends(get_session),
+):
+    """The same 202 for every address — no account, a Google-only account, a
+    throttled request, a real one. The email is sent after the response, so
+    its delivery time does not reveal which case it was."""
+    from app.services import password_reset
+
+    try:
+        pending = password_reset.request_reset(session, email=payload.email)
+    except email_verification.MailNotConfigured:
+        raise HTTPException(status_code=503, detail="Email delivery is not configured")
+    if pending is not None:
+        background.add_task(password_reset.send_reset_email, pending)
+    return ForgotPasswordResponse()
+
+
+@router.post("/password/reset/peek", response_model=VerificationPeekResponse)
+def password_reset_peek(payload: VerificationTokenRequest, session: Session = Depends(get_session)):
+    """Read-only: the masked address a live reset link belongs to."""
+    from app.services import password_reset
+
+    masked = password_reset.peek(session, payload.token)
+    if masked is None:
+        raise HTTPException(status_code=404, detail="Reset link is invalid or expired")
+    return VerificationPeekResponse(email=masked)
+
+
+@router.post("/password/reset")
+def password_reset_complete(payload: ResetPasswordRequest, session: Session = Depends(get_session)):
+    """Set a new password from a live link. Every session ends; no automatic
+    sign-in — the person signs in with the new password."""
+    from app.services import password_reset
+
+    try:
+        password_reset.complete_reset(
+            session, raw_token=payload.token, new_password=payload.new_password)
+    except password_reset.InvalidResetToken:
+        raise HTTPException(status_code=400, detail="Reset link is invalid or expired")
+    return {"ok": True}

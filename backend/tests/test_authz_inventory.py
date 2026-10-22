@@ -50,6 +50,10 @@ AUTH_SURFACE = {
     # Third-party Google sign-up link (#329): token + Google round trip.
     "POST /api/auth/verification/google/peek",
     "POST /api/auth/verification/google/start",
+    # Password reset by email (#200): the emailed token is the proof.
+    "POST /api/auth/password/forgot",
+    "POST /api/auth/password/reset/peek",
+    "POST /api/auth/password/reset",
 }
 
 ME = {

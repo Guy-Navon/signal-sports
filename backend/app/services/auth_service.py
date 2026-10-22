@@ -449,6 +449,7 @@ def _delete_cascade(session: Session, uid: str) -> None:
         CalibrationResponseRow,
         FeedbackRow,
         OAuthPendingRow,
+        PasswordResetTokenRow,
         ProfileRow,
         ReauthGrantRow,
         UserIdentityRow,
@@ -460,7 +461,8 @@ def _delete_cascade(session: Session, uid: str) -> None:
         CalibrationResponseRow.user_id == uid).delete(synchronize_session=False)
     session.query(ProfileRow).filter(ProfileRow.user_id == uid).delete(
         synchronize_session=False)
-    for model in (ReauthGrantRow, OAuthPendingRow, UserIdentityRow, AuthSessionRow):
+    for model in (PasswordResetTokenRow, ReauthGrantRow, OAuthPendingRow, UserIdentityRow,
+                  AuthSessionRow):
         session.query(model).filter(model.user_id == uid).delete(synchronize_session=False)
     session.query(UserRow).filter(UserRow.id == uid).delete(synchronize_session=False)
     session.commit()

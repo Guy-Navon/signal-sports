@@ -3,8 +3,8 @@
 WHY THIS EXISTS. Accounts created through Google have no password. If Google
 sign-in is reverted or disabled (GOOGLE_OAUTH_* unset), they cannot sign in at
 all (docs/USER_PLATFORM.md, "Rollback hazard"). This is the sanctioned local
-recovery path; it also serves as the interim admin reset for any locked-out
-user until password reset by email exists (#200).
+recovery path; it also recovers any locked-out account by hand (accounts with
+a password can reset it themselves by email, #200).
 
 GUARDED, in the repository's convention (see reset_admin_password.py):
   * ``--list`` prints the accounts that have no password (id, email, role);

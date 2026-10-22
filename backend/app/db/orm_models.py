@@ -213,6 +213,24 @@ class PendingGoogleRegistrationRow(Base):
     send_count = Column(Integer, nullable=False, default=0)
 
 
+class PasswordResetTokenRow(Base):
+    """A single-use, one-hour password-reset link (#200). Only the hash of
+    the emailed token is stored; a reset consumes it and kills the others."""
+
+    __tablename__ = "password_reset_tokens"
+
+    token_hash = Column(String, primary_key=True)
+    user_id = Column(
+        String,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    created_at = Column(String, nullable=False)
+    expires_at = Column(String, nullable=False)
+    consumed_at = Column(String, nullable=True)
+
+
 class ReauthGrantRow(Base):
     """A short-lived, single-use permission earned by a Google round trip
     (#331): bound to the user, the session that started it, and a purpose.

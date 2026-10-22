@@ -18,8 +18,9 @@ Email authority (docs/USER_PLATFORM.md, "Google sign-in"): registering, or
 linking to an existing account, needs ``email_verified`` exactly true AND an
 address Google is authoritative for: ``@gmail.com`` without ``hd``, or a
 Workspace address whose domain equals ``hd``. Anything else is a third-party
-address: never linked, not registrable here yet. Linking by such an address is
-automatic for role=user accounts and never for admin (AUTO_LINK_ROLES).
+address: never linked; it registers only through an emailed link plus a second
+Google sign-in (#329). Linking by an authoritative address is automatic for the
+roles in AUTO_LINK_ROLES (user and admin).
 """
 
 from __future__ import annotations
@@ -312,8 +313,9 @@ def _login_existing(session: Session, identity: UserIdentityRow, claims: dict, u
 
 
 # Roles whose existing account a Google-authoritative address may link to
-# automatically (owner decision, 2026-10-21). Admin stays explicit for now.
-AUTO_LINK_ROLES = frozenset({"user"})
+# automatically: role=user from 2026-10-21, admin added by the owner on
+# 2026-10-22 (#332). Demo rows have no email and can never match.
+AUTO_LINK_ROLES = frozenset({"user", "admin"})
 
 
 def _link_existing(

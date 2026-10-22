@@ -131,7 +131,7 @@ side effect.
 | Surface | Access |
 |---|---|
 | `/health` | public |
-| `/api/auth/*` (signup, login, logout, session, verification peek/confirm/resend, Google start/callback, Google-signup link peek/start) | public; mutating routes CSRF-checked, the Google callback bound to its state cookie |
+| `/api/auth/*` (signup, login, logout, session, verification peek/confirm/resend, Google start/callback, Google-signup link peek/start, password forgot/reset) | public; mutating routes CSRF-checked, the Google callback bound to its state cookie |
 | `/api/me/*` (profile, feed, results, feedback, learning, never_show, interests, calibration, onboarding, password, account, account deletion through Google, connect/disconnect Google) | the session user's own data |
 | `/api/taxonomy/catalog`, `/api/calibration/items`, `/api/calibration/preview`, `/api/articles[/{id}]`, `/api/feed-engine` | any session |
 | `/api/feed/{user_id}`, `/api/debug/*`, `/api/profiles/*`, `/api/learning/{user_id}[/reset]`, `/api/feedback[/{user_id}]`, `/api/calibration/apply`, `/api/calibration/responses/{user_id}`, `/api/results/{user_id}`, `/api/results/sync[/state]` | admin (view-as / QA) |
@@ -181,7 +181,7 @@ and shipped-state screenshots are in `docs/frontend-concepts/orbit/`.
 
 | Route | Page | Area |
 |---|---|---|
-| `/login`, `/signup`, `/verify-email` | auth (the emailed link lands on `/verify-email`) | public |
+| `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | auth (emailed links land on `/verify-email` and `/reset-password`) | public |
 | `/welcome` | onboarding (interests → calibration → feed) | session |
 | `/` | Feed (Orbit) | product |
 | `/preferences`, `/interests`, `/calibration`, `/results`, `/account` | product pages | product |

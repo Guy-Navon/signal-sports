@@ -331,17 +331,18 @@ at most one Google identity per user), never the email.
      completing it**. A wrong account or address leaves the registration for its owner.
   Both proofs are required: the link (mailbox) and the Google account. A scanner, a click,
   or someone holding only one of them activates nothing.
-- **Automatic linking for regular users** (owner decision, 2026-10-21, reversing the
-  2026-10-19 "explicit only"). When an authoritative address belongs to a `role=user`
-  account, the Google `sub` is linked to it and the person is signed in. The password keeps
+- **Automatic linking** (owner decisions: regular users on 2026-10-21, reversing the
+  2026-10-19 "explicit only"; admin added on 2026-10-22, #332). When an authoritative
+  address belongs to a `role=user` or `role=admin` account (`AUTO_LINK_ROLES`), the Google
+  `sub` is linked to it and the person is signed in. The password keeps
   working, the signup state doesn't apply (nothing is created), and an address never proven
   before gets `email_verified_method='google_authoritative'`; an earlier verification is
   kept. Reasoning: Google vouches for the mailbox, so the mailbox owner gets the account,
   and a squatter who registered someone else's address loses it. Accepted cost: a
-  compromised Google account is a second key to the linked account.
-- **Never linked automatically:** an **admin** account (it connects explicitly, below; the
-  owner intends to include admin in automatic linking later, #332), an account already
-  linked to a *different* Google account, and any third-party address. These get
+  compromised Google account is a second key to the linked account, including the admin
+  console when the admin's address is a Gmail or Workspace address.
+- **Never linked automatically:** an account already linked to a *different* Google
+  account, and any third-party address. These get
   `account_exists`, and nothing is created or changed. Two
   concurrent sign-ins that link the same `sub` end in one identity.
 - **Connect / disconnect explicitly** from the Account page's "שיטות התחברות" (#330), the
@@ -621,7 +622,7 @@ Threats tied to this architecture, with mitigations:
 | Account enumeration | login: uniform "invalid email or password" + dummy-hash verify for unknown emails (timing-uniform). Signup deliberately reveals "email in use", accepted for a private product. A pending registration is revealed only to someone who holds its password (login 403). Residual: login spends 1–3 extra argon2 checks when pending rows exist for an address, a timing hint that *some* signup is pending |
 | Verification-link abuse | the token is 32 random bytes, stored as SHA-256, valid 24 h, single use (atomic delete) and rotated on resend. Activation also needs the password, so scanners, forwarded mails and squatters cannot activate. The link base comes from `APP_PUBLIC_URL` only (never `Host`). Addresses with whitespace or control characters are rejected (header injection) |
 | OAuth login CSRF / replay | the callback needs the state cookie set by *this* browser's start (an attacker's callback URL opened in a victim's browser fails), the pending row is consumed atomically, the code is useless without the server-held PKCE verifier, and the ID token's nonce must match the attempt |
-| Account takeover through Google | the account key is `sub`; linking by email happens only for a Google-authoritative address (Google vouches for the mailbox), only to `role=user` accounts, never to admin or to an account linked to another Google account. Residual, accepted: whoever controls that Gmail/Workspace mailbox's Google account controls the linked Signal account, and a Workspace admin can reassign an address |
+| Account takeover through Google | the account key is `sub`; linking by email happens only for a Google-authoritative address (Google vouches for the mailbox), only to `role=user` and `role=admin` accounts (owner decision, #332), never to an account linked to another Google account. Residual, accepted: whoever controls that Gmail/Workspace mailbox's Google account controls the linked Signal account (the admin console included), and a Workspace admin can reassign an address |
 | Password-reset abuse | the same 202 for every address (and the email sent after the response), silent throttling, a 32-byte single-use token stored as a hash for one hour, every session ended on reset, no automatic sign-in |
 | Email flooding | per address: 3 signups/h, 5 sends per registration, 60 s cooldown; globally 30 sends/10 min, checked before anything is stored. Closed signup limits targets to the allowlist. A flood on an open signup can exhaust the shared global budget, accepted at this scale |
 | Session fixation / staleness | fresh token every login; logout deletes the row; fixed 30-day expiry; password change revokes all other sessions |
@@ -724,6 +725,9 @@ changes); **signal-real-data-qa** (demo diffs will require an admin session);
 bypass semantics).
 
 ## Changelog
+
+- 2026-10-22 — #332: the admin joins automatic Google linking (`AUTO_LINK_ROLES` =
+  user + admin); an admin linked to a different Google account is still refused.
 
 - 2026-10-22 — #200 (partial): password reset by email (`password_reset_tokens`,
   `/api/auth/password/{forgot,reset/peek,reset}`, `/forgot-password`, `/reset-password`).

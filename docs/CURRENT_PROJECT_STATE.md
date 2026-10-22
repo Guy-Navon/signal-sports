@@ -164,9 +164,9 @@ and admin role gating ([USER_PLATFORM.md](USER_PLATFORM.md)). A password signup 
 pending registration until the emailed link is confirmed with the password; accounts created
 before that (and the bootstrap admin) keep `email_verified_at` NULL. "Continue with Google"
 signs in or registers Gmail and Workspace addresses (other addresses register through an
-emailed link plus a second Google sign-in), and links one to an existing regular
-account holding the same address (never an admin account; any account can connect Google
-explicitly from the Account page with its password). A Google-only account deletes
+emailed link plus a second Google sign-in), and links one to an existing account (regular
+or admin) holding the same address; any account can also connect Google explicitly from
+the Account page with its password. A Google-only account deletes
 itself through a Google confirmation and a separate final DELETE. CSRF origins come from
 `CSRF_ALLOWED_ORIGINS`, while the CORS list is hard-coded in `main.py`. That split is #196, and
 it matters before any split deployment.

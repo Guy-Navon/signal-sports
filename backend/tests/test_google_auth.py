@@ -462,18 +462,36 @@ def test_linking_an_existing_account_ignores_closed_signup(client, monkeypatch):
     assert _identities() == [("sub-member", owner_id)]
 
 
-def test_an_admin_account_is_never_linked_automatically(client, monkeypatch):
+def test_an_admin_account_is_linked_automatically(client, monkeypatch):
+    """Owner decision (#332): the admin joins automatic linking, like
+    role=user. Accepted cost: the Google account becomes a second key to the
+    admin console."""
     admin_id, admin_hash = _existing("boss@gmail.com", role="admin")
     GoogleReturns(monkeypatch, sub="sub-boss", email="boss@gmail.com")
     c = _fresh_client(client)
     state, _ = _start(c)
     response = _callback(c, state)
-    assert response.headers["location"] == "/login?google=account_exists"
-    assert settings.auth_cookie_name not in response.cookies
-    assert _identities() == []
+    assert response.headers["location"] == "/"
+    session_user = c.get("/api/auth/session").json()["user"]
+    assert session_user["id"] == admin_id and session_user["role"] == "admin"
+    assert _identities() == [("sub-boss", admin_id)]
     with SessionLocal() as session:
         admin = session.get(UserRow, admin_id)
-        assert admin.password_hash == admin_hash and admin.email_verified_at is None
+        assert admin.password_hash == admin_hash  # the password keeps working
+        assert admin.email_verified_method == "google_authoritative"
+
+
+def test_an_admin_linked_to_another_google_account_is_not_relinked(client, monkeypatch):
+    admin_id, _ = _existing("boss@gmail.com", role="admin")
+    with SessionLocal() as session:
+        session.add(UserIdentityRow(provider="google", subject="sub-original", user_id=admin_id,
+                                    email="boss@gmail.com", created_at="2026-10-01T00:00:00+00:00"))
+        session.commit()
+    GoogleReturns(monkeypatch, sub="sub-other", email="boss@gmail.com")
+    c = _fresh_client(client)
+    state, _ = _start(c)
+    assert _callback(c, state).headers["location"] == "/login?google=account_exists"
+    assert _identities() == [("sub-original", admin_id)]
 
 
 def test_a_third_party_address_never_links(client, monkeypatch):

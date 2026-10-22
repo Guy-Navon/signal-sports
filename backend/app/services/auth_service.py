@@ -57,15 +57,62 @@ class RateLimitExceeded(AuthError):
 
 
 class FixedWindowLimiter:
-    def __init__(self, limit: int, window_seconds: int) -> None:
+    """In-process fixed-window limiter with bounded state (#200).
+
+    Keys are often attacker-supplied (an email typed at login), so state is
+    capped: when a new key arrives at ``max_keys``, expired windows are
+    evicted; if every key is still inside its window (a flood of fresh keys),
+    the oldest half is dropped. Dropping a fresh key resets its count — the
+    accepted cost of a bound — and the process-wide limiters (single key,
+    never evicted under the cap) still cap the total. Single-process only;
+    durable multi-process limiting is #200's open part.
+    """
+
+    DEFAULT_MAX_KEYS = 10_000
+
+    def __init__(
+        self,
+        limit: int,
+        window_seconds: int,
+        *,
+        max_keys: int = DEFAULT_MAX_KEYS,
+        clock=time.monotonic,
+    ) -> None:
         self.limit = limit
         self.window_seconds = window_seconds
+        self.max_keys = max_keys
+        self._clock = clock
         self._buckets: dict[str, tuple[float, int]] = {}
         self._lock = threading.Lock()
+        self._last_sweep = clock()
+
+    def size(self) -> int:
+        with self._lock:
+            return len(self._buckets)
+
+    def _drop_expired(self, now: float) -> None:
+        expired = [k for k, (start, _) in self._buckets.items()
+                   if now - start >= self.window_seconds]
+        for k in expired:
+            del self._buckets[k]
+        self._last_sweep = now
+
+    def _evict(self, now: float) -> None:
+        self._drop_expired(now)
+        if len(self._buckets) >= self.max_keys:
+            by_age = sorted(self._buckets.items(), key=lambda item: item[1][0])
+            for k, _ in by_age[: max(1, len(by_age) // 2)]:
+                del self._buckets[k]
 
     def check(self, key: str) -> bool:
-        now = time.monotonic()
+        now = self._clock()
         with self._lock:
+            # TTL eviction: at most one sweep per window, so expired keys go
+            # even when the cap is never reached.
+            if now - self._last_sweep >= self.window_seconds:
+                self._drop_expired(now)
+            if key not in self._buckets and len(self._buckets) >= self.max_keys:
+                self._evict(now)
             window_start, count = self._buckets.get(key, (now, 0))
             if now - window_start >= self.window_seconds:
                 window_start, count = now, 0

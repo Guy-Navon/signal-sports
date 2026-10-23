@@ -559,3 +559,27 @@ def test_auth_sessions_table_has_real_fk(client):
             and row[6].upper() == "CASCADE"
             for row in rows
         )
+
+
+def test_cors_allows_exactly_the_csrf_allowed_origins(client, monkeypatch):
+    # N07 (#196): CSRF and CORS read one origin list. A split frontend origin
+    # configured for CSRF must also pass CORS, and nothing else may.
+    from fastapi.testclient import TestClient
+    from app.main import create_app
+
+    monkeypatch.setattr(settings, "csrf_allowed_origins", ("https://split.example",))
+    split_client = TestClient(create_app())
+
+    def preflight(origin):
+        return split_client.options(
+            "/api/auth/logout",
+            headers={"origin": origin, "access-control-request-method": "POST"},
+        )
+
+    allowed = preflight("https://split.example")
+    assert allowed.status_code == 200
+    assert allowed.headers.get("access-control-allow-origin") == "https://split.example"
+    assert allowed.headers.get("access-control-allow-credentials") == "true"
+
+    not_listed = preflight("http://localhost:5173")
+    assert "access-control-allow-origin" not in not_listed.headers

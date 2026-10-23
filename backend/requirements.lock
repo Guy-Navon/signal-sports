@@ -14,6 +14,8 @@
 #        --generate-hashes --no-header --no-annotate -o requirements.lock
 #   then put this header back. To bump one package only, add
 #   --upgrade-package <name>.
+# - .github/workflows/lock-refresh.yml re-resolves with --upgrade weekly and
+#   opens that dedicated PR (bot/lock-refresh); Dependabot never reads this file.
 # - The first lock (2026-10-13) was resolved with the versions installed in the
 #   owner's proven local venv as constraints, so it changes nothing that runs.
 annotated-doc==0.0.4 \

@@ -1,0 +1,101 @@
+name: Refresh backend lock
+# Dependabot only edits the ranges in backend/requirements.txt; it never reads
+# requirements.lock, which is what CI, the image and the devcontainer install.
+# Without this, locked versions (starlette, uvicorn, pydantic-core, certifi...)
+# never pick up patch or security releases.
+#
+# Weekly, re-resolve the lock with --upgrade inside the existing ranges and, if
+# anything moved, push it to the `bot/lock-refresh` branch and open (or update)
+# one dedicated PR, per the lock's update policy. Nothing merges by itself.
+#
+# Opening the PR needs Settings > Actions > General > "Allow GitHub Actions to
+# create and approve pull requests". Without it the branch is still pushed and
+# the run summary links to it.
+on:
+  schedule:
+    - cron: '17 5 * * 1'  # Mondays 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write  # dispatch the checks: GITHUB_TOKEN pushes don't trigger workflows
+
+concurrency:
+  group: lock-refresh
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BRANCH: bot/lock-refresh
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Re-resolve the lock within requirements.txt
+        working-directory: backend
+        run: |
+          pip install uv==0.13.0
+          # Same command as the lock's header and the CI drift check, plus
+          # --upgrade. --no-build: never execute a package's build code here.
+          uv pip compile requirements.txt --universal --python-version 3.13 \
+            --generate-hashes --no-header --no-annotate --upgrade --no-build \
+            -q -o "$RUNNER_TEMP/body.lock"
+          # Keep the hand-written header (the leading comment block).
+          awk '/^#/ && !seen {print; next} {seen=1}' requirements.lock > "$RUNNER_TEMP/new.lock"
+          cat "$RUNNER_TEMP/body.lock" >> "$RUNNER_TEMP/new.lock"
+          cp "$RUNNER_TEMP/new.lock" requirements.lock
+      - name: Summarize version changes
+        id: diff
+        run: |
+          if git diff --quiet -- backend/requirements.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Lock is current; nothing to do." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          export LC_ALL=C  # sort and join must agree on collation
+          # "name==1.2.3 \" -> "name 1.2.3"
+          pins() { grep -E '^[A-Za-z0-9._-]+==' | sed 's/ .*//; s/==/ /' | sort; }
+          git show HEAD:backend/requirements.lock | pins > "$RUNNER_TEMP/old.pins"
+          pins < backend/requirements.lock > "$RUNNER_TEMP/new.pins"
+          {
+            echo "| package | from | to |"
+            echo "|---|---|---|"
+            join -a1 -a2 -e '-' -o 0,1.2,2.2 "$RUNNER_TEMP/old.pins" "$RUNNER_TEMP/new.pins" \
+              | awk '$2 != $3 {print "| " $1 " | " $2 " | " $3 " |"}'
+          } > "$RUNNER_TEMP/table.md"
+          cat "$RUNNER_TEMP/table.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Push the branch and open or update the PR
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$BRANCH"
+          git commit -qm 'chore(deps): refresh backend/requirements.lock within existing ranges' -- backend/requirements.lock
+          git push -f origin "$BRANCH"
+          {
+            echo 'Weekly re-resolve of `backend/requirements.lock` inside the ranges in `requirements.txt` (`uv pip compile --upgrade`), opened by `.github/workflows/lock-refresh.yml`.'
+            echo
+            cat "$RUNNER_TEMP/table.md"
+            echo
+            echo 'Per the lock policy, merge only after the full backend suite passes on CI against this lock. Check release notes for anything that is not a patch bump.'
+          } > "$RUNNER_TEMP/body.md"
+          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr edit "$BRANCH" --body-file "$RUNNER_TEMP/body.md"
+          elif ! gh pr create --base main --head "$BRANCH" \
+              --title 'chore(deps): refresh backend lock' --body-file "$RUNNER_TEMP/body.md"; then
+            echo "::warning::Could not open the PR (is 'Allow GitHub Actions to create and approve pull requests' enabled?). Branch pushed: $BRANCH"
+            echo "Open it manually: ${{ github.server_url }}/${{ github.repository }}/compare/main...$BRANCH" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          # A GITHUB_TOKEN push starts no workflows; dispatch the ones that
+          # validate a lock change so their results land on this commit.
+          gh workflow run checks.yml --ref "$BRANCH"
+          gh workflow run devcontainer.yml --ref "$BRANCH"
+          gh workflow run images.yml --ref "$BRANCH"

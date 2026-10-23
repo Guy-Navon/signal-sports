@@ -120,6 +120,14 @@ def build_census(
     return out
 
 
+def article_ids(doc: dict) -> set[str]:
+    """Every article id a ratings or sample document names, across profiles.
+    Those are the ids retention must keep (#255)."""
+    ids = {aid for per_profile in doc.get("ratings", {}).values() for aid in per_profile}
+    ids |= {it["id"] for block in doc.get("profiles", {}).values() for it in block.get("items", [])}
+    return ids
+
+
 def rater_view(item: dict) -> dict:
     """The only projection the rating page receives. Allow-list, not deny-list:
     a new engine field added to the item shape stays hidden by default."""

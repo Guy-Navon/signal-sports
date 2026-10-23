@@ -220,3 +220,12 @@ def test_merge_review_refuses_unknown_ids():
 
     with pytest.raises(KeyError):
         merge_review_text('{"ratings": {"guy": {"a": "hide"}}}', {"zzz": "low"})
+
+
+def test_article_ids_reads_ratings_and_sample_documents():
+    # #255: both QA document shapes name the articles that must outlive retention.
+    ratings = {"ratings": {"guy": {"rss_a": "feed", "rss_b": "hide"}, "casual_deni_fan": {"rss_c": "hide"}}}
+    sample = {"meta": {}, "profiles": {"guy": {"strata": {}, "items": [{"id": "rss_b"}, {"id": "rss_d"}]}}}
+    assert cr.article_ids(ratings) == {"rss_a", "rss_b", "rss_c"}
+    assert cr.article_ids(sample) == {"rss_b", "rss_d"}
+    assert cr.article_ids({"meta": {}}) == set()

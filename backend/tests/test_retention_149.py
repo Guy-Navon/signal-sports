@@ -43,12 +43,14 @@ def session(_application, monkeypatch):
         s.execute(text("DELETE FROM articles WHERE id LIKE 'rss_t149%'"))
         s.execute(text("DELETE FROM story_clusters WHERE id LIKE 'cluster_t149%'"))
         s.execute(text("DELETE FROM feedback_events WHERE article_id LIKE 'rss_t149%'"))
+        s.execute(text("DELETE FROM protected_articles WHERE article_id LIKE 'rss_t149%'"))
         s.commit()
         yield s
         s.rollback()
         s.execute(text("DELETE FROM articles WHERE id LIKE 'rss_t149%'"))
         s.execute(text("DELETE FROM story_clusters WHERE id LIKE 'cluster_t149%'"))
         s.execute(text("DELETE FROM feedback_events WHERE article_id LIKE 'rss_t149%'"))
+        s.execute(text("DELETE FROM protected_articles WHERE article_id LIKE 'rss_t149%'"))
         s.commit()
 
 
@@ -156,6 +158,33 @@ class TestProtections:
         summary = cleanup_articles(session)
         assert _exists(session, "rss_t149_feedback")
         assert summary["protected_feedback"] == 1
+
+    def test_human_rated_articles_survive(self, session):
+        # #255: a rated article is ground truth for the regression gate and the
+        # census rescoring; age alone must never delete it.
+        from app.repositories import protected_article_repository
+        _add(session, "rss_t149_rated", days_ago=40)
+        _add(session, "rss_t149_unrated", days_ago=40)
+        session.commit()
+        protected_article_repository.protect(session, ["rss_t149_rated"], reason="census2_ratings")
+        session.commit()
+
+        dry = cleanup_articles(session, dry_run=True)
+        assert dry["protected_rated"] == 1 and dry["deleted"] == 1
+
+        summary = cleanup_articles(session)
+        assert _exists(session, "rss_t149_rated")
+        assert not _exists(session, "rss_t149_unrated")
+        assert summary["protected_rated"] == 1
+
+    def test_protecting_is_idempotent_and_keeps_the_first_reason(self, session):
+        from app.repositories import protected_article_repository as repo
+        assert repo.protect(session, ["rss_t149_x", "rss_t149_y"], reason="n05_ratings") == 2
+        assert repo.protect(session, ["rss_t149_x", "rss_t149_x"], reason="census_sample") == 0
+        session.commit()
+        reason = session.execute(text(
+            "SELECT reason FROM protected_articles WHERE article_id='rss_t149_x'")).scalar_one()
+        assert reason == "n05_ratings"
 
     def test_notification_lineage_survives_member_deletion(self, session):
         from app.notifications.outbox import StorySnapshot, plan_story, set_watermark

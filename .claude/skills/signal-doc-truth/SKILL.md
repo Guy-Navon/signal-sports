@@ -14,6 +14,14 @@ files). Superseded docs, closed-milestone QA reports and delivered task briefs w
 they live in git history (`git log --diff-filter=D --name-only -- docs/`). Do not recreate them;
 put a still-binding conclusion into the layer contract instead.
 
+A second pass on **2026-10-24** retired the remaining closed-milestone run outputs from
+`docs/qa/` (the M6 `*_124_*`/`*_126_*` activation artifacts, the #141 validator output, the M8
+freshness metrics, the orphaned n208 bound, the #191/#192 per-step JSON; links now go to commit
+`e939659`). It also replaced duplicated LLM-layer text in `RSS_QUALITY_GUARDRAILS.md` §7/§8a–c
+with pointers, and removed milestone-2 planning from `USER_PLATFORM.md`. **Policy:** `docs/qa/`
+holds only files that a script, a test or the active gate reads, plus the active rating sets.
+One-off run evidence goes in the PR or issue, not in `docs/qa/`.
+
 **Living contracts (authoritative for their layer — keep these true):**
 
 | Doc | Layer |

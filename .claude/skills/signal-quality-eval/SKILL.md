@@ -43,7 +43,6 @@ single complaints. Results feed `signal-pr-open` / `signal-pr-merge` evidence, n
 | `backend/tests/fixtures/golden_cases.json` | 15 reliability cases (pinned vs desired) | 15 | Regression contract, not a metric sample. |
 | `backend/tests/fixtures/clustering_cases.json`, `clustering_adversarial.json`, `feed_dedup_cases.json` | True-positive groups, must-not-cluster pairs, duplicate-harm cases | small | Frozen contract the matcher was developed against — not an unbiased precision estimate. |
 | `docs/qa/n190_entity_corrections.json`, `n191_event_corrections.json` | Reviewed fact corrections | 24, 34 | Regression checks only: today's rules-only replay scores 34/34 on n191 *because the rules were built from those rows*. |
-| `docs/qa/components_*_review_*.txt`, `cluster_backfill_live_126_*.json` | Manual cluster reviews | — | Point-in-time evidence. |
 
 **There is no large human-labeled set for article facts** (sport, event type, entities,
 competitions). A classification precision/recall/F1 claim needs new labels (§5). Never derive

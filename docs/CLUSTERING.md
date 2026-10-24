@@ -25,9 +25,9 @@ is a different measure. [Reviewed changes and rejected expansion](qa/N05_FEED_QU
 > reviewed as a genuine single story, and the ranked Guy feed showing **each story once
 > and pushing each story at most once** (52→39 cards, pushes 5→3, the Madar signing
 > 3 pushes→1). Evidence: the #124 evaluation and #126 activation records on those issues
-> (the #124 report was retired from `docs/qa/` on 2026-10-12 and is in git history),
-> `docs/qa/feed_live_final_ranked_guy_126_20260715.json`, and the activation artifacts in
-> `docs/qa/*_126_20260715.*`. The flag lives in `backend/.env`.
+> (the #124 report was retired from `docs/qa/` on 2026-10-12; the ranked-feed and activation
+> artifacts `docs/qa/*_124_*` / `*_126_20260715.*` were retired on 2026-10-24 — all in git
+> history). The flag lives in `backend/.env`.
 >
 > The Milestone 6 pipeline on top of v1: candidate-scoped evidence (#135) → validated
 > anchors (#141, V1 lexical-frequency; §7.7) → transliteration skeletons (#137) →
@@ -594,9 +594,9 @@ jaccard floor (#122/#132 refutation) — is answered by **persisted, validated s
   the language* — `מדר` (zipf 3.25) is a name; `אדום` (4.99) is a word; the band between is
   abstention. Span precision 1.00 / recall 0.68 on the adjudicated ground truth; deterministic;
   fails closed to canonical-taxonomy-only anchors. Selection: V2 did not ship, and V3 failed its
-  retention conditions and stays default-off reference code. Raw evaluation output:
-  `docs/qa/anchor_validator_eval_141_20260715.txt`. The full comparison report is in git history
-  (`docs/qa/ANCHOR_VALIDATOR_141_REPORT.md`, retired 2026-10-12).
+  retention conditions and stays default-off reference code. The raw evaluation output
+  (`docs/qa/anchor_validator_eval_141_20260715.txt`, retired 2026-10-24) and the full comparison
+  report (`docs/qa/ANCHOR_VALIDATOR_141_REPORT.md`, retired 2026-10-12) are in git history.
 - **Pair evaluation READS persisted anchors only** — never a model or analyzer per pair.
 - **Tier N is a rescue, never a relabel, and never sufficient by itself.** It fires only after
   EVERY hard gate (incl. §7.6 claim compatibility) has passed, and only when:

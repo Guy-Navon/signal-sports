@@ -136,8 +136,8 @@ intended and unchanged.
 
 - Implementation + tests: PR for #171–#174 (`test_feed_freshness_m8.py`, 27 tests; full
   backend + frontend suites green).
-- Before/after real-data QA and activation record: issue #175. Raw metrics are in
-  `docs/qa/feed_freshness_m8_report.json`. The narrative report was retired on 2026-10-12 and is
-  in git history as `docs/qa/FEED_FRESHNESS_QA_M8.md`. Headline: Guy went from 85 to 21 cards,
+- Before/after real-data QA and activation record: issue #175. The raw metrics
+  (`docs/qa/feed_freshness_m8_report.json`, retired 2026-10-24) and the narrative report
+  (`docs/qa/FEED_FRESHNESS_QA_M8.md`, retired 2026-10-12) are in git history. Headline: Guy went from 85 to 21 cards,
   the oldest visible card from 202h to 35h, and the push surface from 8 to 2. There was zero
   decision drift among fresh articles.

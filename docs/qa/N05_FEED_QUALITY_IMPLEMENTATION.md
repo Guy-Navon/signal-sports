@@ -5,6 +5,10 @@ continues the merged census, rather than repeating it. Measurements use the
 same 1,427 frozen RSS articles and 282 owner ratings. No ingestion or Telegram
 sends occurred. The local corpus received backed-up, reviewed corrections.
 
+The per-step evidence JSON files were retired from `docs/qa/` on 2026-10-24. The links below
+point to them at commit `e939659`. `n191_event_corrections.json` stays, because it is still a
+regression set.
+
 ## Outcomes and limits
 
 | Goal / measure | Before | After | Outcome |
@@ -28,15 +32,15 @@ membership. Only freshness is bypassed to replay July's frozen corpus; it never
 plans or sends an event. This is historical eligibility, not a claim that July
 stories would notify in September.
 
-Evidence: [before](n191_milestone_before.json), [after](n192_milestone_after.json),
-[all decision changes and original push traces](n192_decision_diff.json).
+Evidence: [before](https://github.com/Guy-Navon/signal-sports/blob/e939659d3d56584ab69c89d2de2563425e1a575a/docs/qa/n191_milestone_before.json), [after](https://github.com/Guy-Navon/signal-sports/blob/e939659d3d56584ab69c89d2de2563425e1a575a/docs/qa/n192_milestone_after.json),
+[all decision changes and original push traces](https://github.com/Guy-Navon/signal-sports/blob/e939659d3d56584ab69c89d2de2563425e1a575a/docs/qa/n192_decision_diff.json).
 
 ## G1: the census lead was tested, and its explanation was refuted
 
 All **101** `news` rows with a non-news historical LLM proposal already used a
 valid enum. All 101 fail the existing semantic evidence validator. Restoring
 them would bypass the evidence contract, not fix enum parsing.
-[Per-row evidence](n191_llm_proposal_audit.json).
+[Per-row evidence](https://github.com/Guy-Navon/signal-sports/blob/e939659d3d56584ab69c89d2de2563425e1a575a/docs/qa/n191_llm_proposal_audit.json).
 
 `news` remains reachable: genuine abstention is necessary. New ingestion records
 the proposed/final event and `abstention_reason`, distinguishing a failed
@@ -58,7 +62,7 @@ visibility rules**, not an impossibility theorem for future taxonomy or product
 work. Many remaining rows lack canonical entities or explicit competitions;
 the earlier #190 findings explain those coverage and abstention limits. No broad
 news affinity, inferred competition, or rules-only backfill was used.
-[Reproducible oracle and all weights](n191_recall_bound.json):
+[Reproducible oracle and all weights](https://github.com/Guy-Navon/signal-sports/blob/e939659d3d56584ab69c89d2de2563425e1a575a/docs/qa/n191_recall_bound.json):
 `DATABASE_URL=<pre-change backup> python scripts/feed_recall_bound.py --out <report>`.
 
 The justified correction connects the already-existing `analysis` and
@@ -122,14 +126,14 @@ Do not substitute **45/244 visible cluster members (18.4%)** for the requested
 The reviewed, applied scope has four membership changes: Lundberg recovery,
 Sinner expansion, and removal of two clusters containing newly classified
 editorial pieces. Interviews and analyses are explicitly never clustered.
-[Exact reconciliation](n192_clusters_applied.json).
+[Exact reconciliation](https://github.com/Guy-Navon/signal-sports/blob/e939659d3d56584ab69c89d2de2563425e1a575a/docs/qa/n192_clusters_applied.json).
 
 A rejected global experiment lowered every tier's Jaccard minimum to 0.10,
 keeping other gates. It still produced only 33 visible clusters (13.5%), and
 introduced false mergers: **Oturu's extension with Bryant's extension**;
 **a player rejecting Hapoel/Maccabi with LeDay signing for Hapoel**; and
 **Sharp discussing shooting technique with his game result**.
-[All experimental groups](n192_rejected_threshold_experiment.json).
+[All experimental groups](https://github.com/Guy-Navon/signal-sports/blob/e939659d3d56584ab69c89d2de2563425e1a575a/docs/qa/n192_rejected_threshold_experiment.json).
 Global document-frequency context differs from bounded ingestion windows, so
 this is diagnostic evidence, not a production replay or mathematical bound.
 
@@ -173,9 +177,9 @@ All commands run from `backend`, with `.venv/Scripts/python.exe` as `python`.
 `DATABASE_URL` selects a backup for historical reads; correction commands take
 `--db` explicitly. No server, live fetch or send is needed.
 
-1. Gate before and after #191: [before](n191_gate_before.json),
-   [event corrections](n191_gate_after_events.json).
-2. Gate after #192: [live result](n192_gate_after.json). Guy's checks all pass.
+1. Gate before and after #191: [before](https://github.com/Guy-Navon/signal-sports/blob/e939659d3d56584ab69c89d2de2563425e1a575a/docs/qa/n191_gate_before.json),
+   [event corrections](https://github.com/Guy-Navon/signal-sports/blob/e939659d3d56584ab69c89d2de2563425e1a575a/docs/qa/n191_gate_after_events.json).
+2. Gate after #192: [live result](https://github.com/Guy-Navon/signal-sports/blob/e939659d3d56584ab69c89d2de2563425e1a575a/docs/qa/n192_gate_after.json). Guy's checks all pass.
    Deni's intentional `no_drift` is accepted per the brief. Its first push also
    requires an explicit `push_volume` acceptance: the baseline's null precision
    cannot satisfy the gate's numeric precision-gain rule. The reason names G4;
@@ -200,7 +204,7 @@ Starlette deprecations and Vite chunk-size warning remain. All correction
 reruns found zero event/evidence/profile changes and zero membership changes.
 
 After the green live gate above, the baseline was ratcheted exactly once to
-protect the measured gains. The post-ratchet [gate](n192_gate_ratcheted.json)
+protect the measured gains. The post-ratchet [gate](https://github.com/Guy-Navon/signal-sports/blob/e939659d3d56584ab69c89d2de2563425e1a575a/docs/qa/n192_gate_ratcheted.json)
 passes without acceptances. The baseline write itself completed; its subsequent
 console summary hit Windows cp1252 output encoding. It was not rewritten again;
 the read-only gate was rerun with UTF-8 output and passed. This records the authorized Deni profile movement,

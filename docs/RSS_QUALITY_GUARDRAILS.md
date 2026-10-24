@@ -412,78 +412,12 @@ All three are handled correctly by the LLM provider when enabled.
 
 ## 7. LLM Classification (PR 11)
 
-LLM classification is an optional overlay for Hebrew broad sources that addresses structural limitations of keyword matching: unfamiliar proper nouns, multi-sport entity disambiguation, and entity-to-league inference.
-
-### Architecture
-
-```
-backend/app/classification/
-    __init__.py
-    llm_result.py         — LLMClassificationResult dataclass
-    validation.py         — JSON parsing + enum validation; LLM_MIN_CONFIDENCE = 0.65
-    prompt.py             — 6-shot Hebrew classification prompt
-    providers.py          — DisabledLLMProvider, FakeLLMProvider, GeminiLLMProvider, OllamaProvider
-    service.py            — get_llm_provider() singleton factory
-    merge.py              — merge_with_guardrails() — LLM primary, 7 deterministic guardrails
-                           normalize_league_sport_compatibility() — shared helper for all paths
-    entity_normalizer.py  — canonical alias map; normalize_llm_entities()
-    source_hints.py       — extract_source_sport_hint() — URL category → sport hint (post-QA)
-```
-
-### Provider selection (`CLASSIFICATION_PROVIDER`)
-
-| Value | Behavior |
-|-------|---------|
-| `disabled` | No LLM; deterministic only (default) |
-| `fake` | Pre-set results for 4 known regression headlines; unknown → rules fallback |
-| `gemini` | Google Gemini API; requires `CLASSIFICATION_API_KEY`; free tier 20 req/day |
-| `ollama` | Local Ollama; no GPU required; any model pulled with `ollama pull` |
-
-### Guardrails (merge.py)
-
-The LLM result is primary. Guardrails correct known failure modes only:
-
-| # | Guardrail | Condition | Action |
-|---|-----------|-----------|--------|
-| 1 | Football Maccabi clubs | Rules detected `מכבי חיפה` / `מכבי נתניה` / etc. | `sport=football`, LLM overruled |
-| 2 | LLM sport=unknown | Rules has a known sport | Use rules sport |
-| 3 | LLM league=null | Rules found a league | Use rules league |
-| 4 | Rules event_type not "news" | LLM says "news" | Use rules event_type |
-| 4b | LLM title_win with no championship evidence | Title has none of: `אלוף`, `גביע`, `תואר`, `champion`, etc. | Reject LLM event_type; use rules fallback |
-| 5 | Importance never downgraded | LLM importance < rules importance | Keep rules importance |
-| 6 | League-sport incompatibility | `league=EuroLeague` but `sport=football`; etc. | Force correct sport; fires before entity pruning |
-| 7 | Source URL category hint | Israel Hayom `/sport/israeli-basketball/` → hint=basketball | Override LLM sport with hint |
-
-### Entity normalization
-
-LLM outputs free-text entity strings inconsistently. The relevance engine requires exact canonical names for entity-scope topic matching. The normalization map (`entity_normalizer.py`) is conservative — only explicitly listed aliases are accepted. Unknown entities are silently discarded from `article.entities` but remain visible in `classification_reason`.
-
-Current canonical entities:
-- `"Maccabi Tel Aviv Basketball"` — Hebrew + English aliases
-- `"Deni Avdija"` — Hebrew + English aliases
-- `"Hapoel Tel Aviv Basketball"` — Hebrew + English; blocked when `sport != "basketball"`
-- `"Hapoel Jerusalem Basketball"` — Hebrew + English; blocked when `sport != "basketball"`
-- `"New York Knicks"` — Hebrew "ניקס" + English aliases
-
-### Per-run connection circuit breaker
-
-The first `httpx.ConnectError` (Ollama not running) opens a per-run circuit. Remaining articles in the same ingestion run use deterministic rules immediately. Total overhead when Ollama is not running: ~2s (one failed connect attempt), not 30 × 2s. Timeouts do NOT open the circuit — the LLM is attempted on the next article.
-
-### Confidence threshold
-
-`LLM_MIN_CONFIDENCE = 0.65`. If the LLM's self-assessed confidence is below this, the deterministic result is kept and `classified_by = "rules_fallback_low_confidence"`. The LLM's reason and confidence are still stored for inspection.
-
-### Debug view
-
-Each article in the debug view now shows:
-- `classified_by` badge (grey, blue, yellow, red, orange per value)
-- `classification_provider` label (e.g., "ollama:llama3.2:3b")
-- `classification_confidence` as a percentage
-- `classification_reason` as an italic line
-
-### Backfill endpoint
-
-`POST /api/classify/backfill` reclassifies existing articles. Updates all 11 classification fields. `source_id` filter applied at DB query level (not post-filter in Python). Use `force=true` to reclassify articles already labeled `classified_by=llm`.
+PR 11 added the optional LLM overlay for Hebrew broad sources: unfamiliar proper nouns,
+multi-sport entity disambiguation and entity-to-league inference. Its providers, prompt,
+validation, merge guardrails (1–7 and 4b), entity normalisation, circuit breaker,
+confidence threshold and backfill endpoint are documented in
+[LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md), the living contract for that layer. The
+copy that used to sit here was removed on 2026-10-24 because it had drifted from the code.
 
 ---
 
@@ -491,76 +425,12 @@ Each article in the debug view now shows:
 
 Manual QA of the Hebrew MVP (walla_sport + israel_hayom_sport with Ollama/Qwen) exposed four defect categories. All fixes are in `classification/` and `ingestion/` — no DB schema changes.
 
-### 8a. Ingestion Timing Instrumentation
+### 8a–8c. Timing, league-sport compatibility, URL category hints
 
-**Problem:** No visibility into where time is spent during ingestion. Could not distinguish "Ollama slow" from "RSS fetch slow" from "normal processing."
-
-**Fix:** `_normalise()` now returns `tuple[Article, Optional[float]]` where the float is LLM call latency in milliseconds (or None if LLM was not invoked). The timing wraps the raw provider call, including failed attempts.
-
-`_run_source()` accumulates per-article LLM data into local counters, then computes:
-
-| Field | Description |
-|-------|-------------|
-| `fetch_ms` | RSS adapter fetch time |
-| `total_ms` | Full `_run_source()` wall time |
-| `llm_attempts` | Total LLM calls (success + all failure modes) |
-| `llm_successes` | Calls resulting in `llm` or `llm+rules_guardrail` |
-| `llm_fallback_connect_error` | Ollama refused connection |
-| `llm_fallback_timeout_or_parse` | Timeout, HTTP error, or JSON parse failure |
-| `llm_fallback_low_confidence` | LLM responded but `confidence < 0.65` |
-| `llm_avg_ms` | Average LLM call duration across all attempts |
-| `llm_p95_ms` | p95 LLM call duration (safe index: `min(n-1, ceil(0.95*n)-1)`) |
-
-These appear in `POST /api/ingest/run` responses and as a single INFO log line at run end.
-
-### 8b. League-Sport Compatibility
-
-**Problem:** LLM returned `sport=football, league=Spanish ACB` for a title containing "יורוליג". The ACB is a basketball league. This combination was never caught post-merge and was stored verbatim.
-
-**Root cause:** No check verified that the LLM's league and sport are mutually consistent.
-
-**Fix — two layers:**
-
-**Layer 1: `normalize_league_sport_compatibility(result)` in `merge.py`**
-
-Shared helper called in `ingestion_service.py` for ALL classification paths before `Article` construction:
-```python
-final_result = normalize_league_sport_compatibility(final_result)
-```
-
-Basketball leagues (`_BASKETBALL_LEAGUES` frozenset: EuroLeague, EuroCup, NBA, Spanish ACB, Turkish BSL, Greek Basket League, Italian LBA, French LNB, Israeli Basketball League) force `sport=basketball`. Football leagues (`_FOOTBALL_ONLY_LEAGUES`: currently only "Israeli Premier League") force `sport=football`. `league=None` → no override. Idempotent — safe to call twice.
-
-**Layer 2: Guardrail 6 inside `merge_with_guardrails()`**
-
-Fires inside `merge_with_guardrails()` before entity pruning so `prune_sport_incompatible_entities()` receives the corrected sport value. Guardrail 6 + `normalize_league_sport_compatibility()` are redundant for the LLM path (both run), but Layer 1 is the universal catch-all; Layer 2 ensures correct entity pruning order.
-
-**Acceptance criteria (both paths):** No stored `Article` can have `league=EuroLeague, sport=football` or any other impossible sport/league combination.
-
-### 8c. Israel Hayom URL Category Hint (`source_hints.py`)
-
-**Problem:** Israel Hayom article URLs embed a sport category (`/sport/israeli-basketball/`, `/sport/world-basketball/`) that is highly reliable but was unused for sport detection or as an LLM override.
-
-**Fix:** New module `backend/app/classification/source_hints.py`:
-
-```python
-def extract_source_sport_hint(source_id, url) → Optional[Literal["basketball", "football"]]
-```
-
-| Israel Hayom URL path | Hint |
-|-----------------------|------|
-| `/sport/israeli-basketball/` | `"basketball"` |
-| `/sport/world-basketball/` | `"basketball"` |
-| `/sport/world-soccer/` | `"football"` |
-| `/sport/other-sports/` | `None` |
-| `/sport/opinions-sport/` | `None` |
-| Any non-Israel-Hayom source | `None` |
-
-The hint flows through the pipeline:
-1. Computed once in `_normalise()` via `extract_source_sport_hint(cfg.source_id, item.url)`
-2. Passed to `classify()` → `_detect_sport()` (applied as first check, before all keyword logic)
-3. Passed to `merge_with_guardrails()` → Guardrail 7 (overrides LLM sport when they disagree)
-
-The module boundary is clean: `classifier.py` and `merge.py` receive a pre-computed `Optional[Literal["basketball","football"]]`. Neither parses URLs directly. `source_hints.py` is in `classification/` to keep it importable from both layers.
+These three fixes live in the LLM layer. They are documented in
+[LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md): *Ingestion Timing Instrumentation*,
+*League-Sport Compatibility — Universal Normalisation* (merge guardrail 6) and
+*Source URL Category Hints* (guardrail 7). The copies here were removed on 2026-10-24.
 
 ### 8d. title_win Hardening
 

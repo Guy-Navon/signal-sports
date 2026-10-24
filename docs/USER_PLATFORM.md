@@ -16,23 +16,13 @@ physical phone/Tailscale pass (checklist in `docs/MOBILE_REMOTE_ACCESS.md`).
 
 **Execution home:**
 [GitHub Milestone 2 "User Platform"](https://github.com/Guy-Navon/signal-sports/milestone/2)
-· Epic [#48](https://github.com/Guy-Navon/signal-sports/issues/48) · issues #49–#55
-(one PR per issue). **Epic #48 holds the canonical dependency graph and issue states —
-this document deliberately does not duplicate it.** The former cross-track gate on #52
-(Classification & Feed Reliability sign-off,
-[#63](https://github.com/Guy-Navon/signal-sports/issues/63)) **cleared 2026-07-10** —
-#52 depends on #51 only.
-Review gates are model-independent contracts defined in the issue bodies: **#52**
-(Product Review — Onboarding), **#54** (Security/Authorization Review + Regression
-Gate); #49's architecture review completed 2026-07-08. An implementation agent picking
-up this milestone cold should read this document fully, then take the lowest unblocked
-issue per Epic #48 — each issue body is a self-contained contract.
+· Epic [#48](https://github.com/Guy-Navon/signal-sports/issues/48) · issues #49–#55.
 
-## What this milestone is
+## What this milestone did
 
-Signal Sports today is a sophisticated personalized system with two seeded demo profiles
-(`guy`, `casual_deni_fan`) addressed by a free-string `user_id` in URL paths and request
-bodies, with zero authentication. This milestone turns it into a real multi-user product:
+Before milestone 2, Signal Sports had two seeded demo profiles (`guy`, `casual_deni_fan`)
+addressed by a free-string `user_id` in URL paths and request bodies, with no authentication.
+The milestone turned it into a real multi-user product:
 identity, accounts, sessions, first-run onboarding, and strict user-data isolation.
 
 The auth layer **wraps around** the intelligence stack. Nothing in
@@ -48,11 +38,11 @@ FACTS → VISIBILITY → PREFERENCE → LEARNING changes:
 - the JS relevance engine stays frozen (local demo only);
 - the real article corpus remains a protected QA asset.
 
-The per-user vs global boundary is already drawn correctly in the data model
+The per-user vs global boundary was already drawn in the data model
 (`profiles.profile_v2`, `feedback_events`, `calibration_responses` are `user_id`-keyed;
-everything upstream of the persisted article is global). What this milestone adds is
-**identity** (who is this `user_id`), **account lifecycle**, and **enforcement** (nothing
-today stops one caller reading another user's data by editing a path parameter).
+everything upstream of the persisted article is global). The milestone added **identity**
+(who is this `user_id`), **account lifecycle** and **enforcement**, so a caller can no longer
+read another user's data by editing a path parameter.
 
 ## Executive decisions
 
@@ -639,90 +629,13 @@ log (→ multiple admins); OAuth (→ real signup friction post-launch); soft-de
 (→ compliance need); CSP/full security headers (→ first real hosting, belongs to
 reverse-proxy config).
 
-## Milestone decomposition
+## Milestone history
 
-Seven PRs. Linear dependency chain except PR 4 ∥ PR 5 (both depend on PR 3). Every PR
-passes the standing gates: full backend pytest green (non-decreasing count), frontend
-test/lint/typecheck/build when touched, docs truth sweep, corpus DB never reset.
-Authoritative per-issue detail lives in the GitHub issues: PR 1 = #49, PR 2 = #50,
-PR 3 = #51, PR 4 = #52, PR 5 = #53, PR 6 = #54, PR 7 = #55 (Epic #48, Milestone 2).
-
-1. **Auth core (backend)** ⭐ architecture review (completed) — **complete on main via PR #56 / Issue #49**:
-   users/auth_sessions tables (FK + pragma), auth service + `/api/auth/*`, security
-   deps, bypass flag + startup guard, CSRF middleware, ensure-step (demo users
-   backfill + admin bootstrap). Legacy routes untouched.
-2. **Consumer `/api/me/*` surface (backend)** — full consumer API, always session-gated;
-   signup creates the profile row; onboarding block in the session payload.
-3. **Frontend auth shell** — AuthContext, login/signup pages, account menu, 401 handling;
-   runtime-adaptive (bypass ⇒ today's UI exactly).
-4. **Onboarding flow** ⭐ Product Review gate — the state machine end-to-end: welcome, calibration
-   resume-awareness, empty-feed prompt + calibrate banner, routing guards.
-   The former cross-track reliability blocker (#63) cleared 2026-07-10 with the
-   sign-off approval — this PR depends on PR 3 only.
-5. **Admin gating + ops view-as** — legacy `{user_id}` + ops routes gain `require_admin`,
-   enforced by default from this PR (fail closed); ProfileSwitcher moves to the ops console
-   as QA view-as; AppContext split. Transitional, time-boxed compat: conftest + dev `.env`
-   set `ALLOW_INSECURE_AUTH_BYPASS=true` explicitly until PR 6.
-6. **Enforcement verification + explicit test identities** ⭐ Security/Regression review gate — remove the
-   transitional bypass; replace the single implicit test client with explicit
-   `anonymous_client` / `user_client` / `admin_client` fixtures (one shared app instance,
-   separate cookie jars); migrate legacy tests to the right fixture per route contract;
-   docs truth sweep; `signal-real-data-qa` before/after diff for both demo profiles must
-   show **zero decision changes**.
-7. **Account lifecycle + hardening** — password change (revokes other sessions), account
-   deletion cascade + account page, expired-session pruning, limiter tuning,
-   admin-mutation logging.
-
-**Review gates** (model-independent — the reviewer may be a human or any capable agent
-that is not the implementer; the full entry criteria / evidence / approval contracts
-live in the issue bodies): PR 1 auth/session/identity architecture review (completed
-2026-07-08); PR 4 (#52) Product Review — Onboarding, a genuine human product-judgment
-gate; PR 6 (#54) Security/Authorization Review + Regression Gate. PR 4's former reliability
-gate (#63) cleared 2026-07-10.
-
-## Risks
-
-1. `AppContext.jsx` refactor (PR 5) — it conflates product state, ops view-as, and
-   local-mode engine state. Mitigation: AuthContext is additive; AppContext changes only
-   re-point data fetching; the local-mode branch is untouched and tested first.
-2. Test-identity migration (PR 6) — many legacy test files change to explicit fixtures.
-   Mitigation: purely mechanical fixture substitution; the payoff is that no authorization
-   regression can hide behind implicit cookie state.
-3. Phone/Tailscale cookie path — the first Secure-cookie exercise for this app; an explicit
-   manual-QA item in PR 3 and PR 6, never assumed.
-4. Real corpus DB — every startup step is create-only/idempotent; PR 1 manual QA proves
-   both demo feeds unchanged against the real DB before anything else lands.
-
-## Non-goals (must not enter this milestone)
-
-Email infrastructure of any kind (verification, reset mails; verification was added later,
-on 2026-10-21, see above); OAuth/social/magic
-links/JWT; multi-profile accounts, sharing, teams; Alembic adoption (zero migrations
-needed); rate-limiting sophistication beyond in-process; push-notification delivery; real
-hosting/reverse proxy (separate milestone; this design slots into it); any
-relevance/scoring/classification change; rewriting the demo-fixture system; touching the
-frozen JS engine.
-
-## Project skills impact
-
-A future **`signal-user-boundary-change`** skill becomes worthwhile **after PR 6**, once
-these invariants are stable enough to encode: (a) the consumer-vs-admin route split (`/me`
-never accepts caller ids; `{user_id}` is admin-only); (b) the
-`get_current_user`/`require_admin` dependency pattern; (c) demo users are credential-less
-and undeletable; (d) sessions are opaque+hashed, cookie-delivered, fixed-expiry; (e) the
-fail-closed `ALLOW_INSECURE_AUTH_BYPASS` semantics; (f) the explicit
-`anonymous_client`/`user_client`/`admin_client` test-identity pattern. Trigger to create
-it: the first post-milestone change that touches ownership or auth surfaces.
-
-Existing skills needing updates as the milestone lands (mostly in PR 6's truth sweep):
-**signal-doc-truth** (this doc joins the living contracts; the "Authentication: None"
-claims in BACKEND_FOUNDATION / PRODUCT_UNDERSTANDING / CURRENT_PROJECT_STATE §10 and the
-MOBILE_REMOTE_ACCESS security-model paragraph get corrected only when behavior actually
-changes); **signal-real-data-qa** (demo diffs will require an admin session);
-**signal-pr-finish** (new API surfaces must update the frontend consumer);
-**signal-relevance-change** (profile mutation paths gain `PUT /api/me/profile`);
-**signal-handoff** (new standing decisions: auth model, ownership boundary, fail-closed
-bypass semantics).
+Milestone 2 shipped as seven PRs, one per issue #49–#55 (Epic #48). The per-PR plan, the
+review gates, the risks and the milestone-scoped non-goals were removed from this document
+on 2026-10-24 because the milestone is closed. They are in git history and in the issue
+bodies. Later auth work (email verification, Google sign-in, password reset) is recorded in
+the changelog below.
 
 ## Changelog
 

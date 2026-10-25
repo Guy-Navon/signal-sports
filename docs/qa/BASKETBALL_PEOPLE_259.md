@@ -129,10 +129,19 @@ entity.
   `team:maccabi_tlv_bb`. The event is `negotiation` (probable). Guy's profile rule
   `always_push:negotiation` on Maccabi then decides **push**. Before this PR the same article was
   `unknown` and hidden.
-- **Context:** the same agreement was pushed twice in July, by Israel Hayom (07-20) and Sport5
-  (07-22), and the owner rated both **push** in N05. This walla article is in the **same
-  cluster** as the Sport5 one, so live it would join that notification's lineage, not send a
-  new message. The +1 is an article-level count.
+- **Context (from `notification_events`, read-only on a copy):** the same agreement was already
+  pushed **three** times in July, each time as an unclustered article:
+  - Israel Hayom, 07-20 20:33 UTC;
+  - Sport5, 07-22 22:42;
+  - ynet, 07-23 04:15.
+
+  Two earlier Lundberg negotiation updates were pushed on 07-19 and 07-20. The owner rated the
+  Israel Hayom and Sport5 articles **push** in N05.
+
+  With today's clustering (rule 2) this walla article sits in `cluster_154662894917b642` with the
+  Sport5 and ynet ones, so it would join that story's lineage rather than send a new message.
+  That cluster only formed on 2026-09-11, so in July it would have been a fourth message. The +1
+  is an article-level count. The duplicate pushes are a clustering split, not a #259 effect.
 - **The owner decides** whether this meets "no new push".
 
 ### Unrated changed decisions

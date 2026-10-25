@@ -111,3 +111,37 @@ class TestExplicitSportStillWins:
         a = _ingest('שחקני הכדורגל של מכבי ת"א הגיעו לעודד את ים מדר', "השוער והבלמים ישבו ביציע")
         assert a.sport == "football"
         assert MACCABI not in (a.entity_ids or [])
+
+
+class TestNationalTeamIsNotTheClub:
+    """A player named in a national-team story proves basketball, not his club."""
+
+    def test_national_team_story_gets_the_sport_but_not_the_club(self):
+        a = _ingest("ים מדר הוביל את נבחרת ישראל לניצחון על ליטא")
+        assert a.sport == "basketball"
+        assert MACCABI not in (a.entity_ids or [])
+
+    def test_with_a_prefix_too(self):
+        a = _ingest("קולסון ובריסט לא יצטרפו לנבחרת בחלון הקרוב")
+        assert MACCABI not in (a.entity_ids or [])
+
+    def test_a_club_story_still_gets_the_club(self):
+        a = _ingest("ים מדר קלע 20 נקודות בניצחון על אריס")
+        assert MACCABI in a.entity_ids
+
+
+class TestASubtitleOnlyPersonIsNotTheSubject:
+    """Corpus: a gossip item about David Blatt names his son Tamir only in the subtitle,
+    as the bride's brother and a Maccabi player LAST season. The person proves the sport;
+    he does not make the article about his current club."""
+
+    def test_incidental_subtitle_person_implies_no_club(self):
+        a = _ingest('דיוויד בלאט נבהל מהצעת הנישואין לבתו: "הכל בסדר?"',
+                    "אלה בלאט, בתו של המאמן האגדי ואחותו של כדורסלן מכבי תל אביב בעונה החולפת, "
+                    "תמיר בלאט, אמרה כן להצעת הנישואין")
+        assert HAPOEL not in (a.entity_ids or [])
+
+    def test_a_subtitle_person_still_resolves_a_club_the_title_names(self):
+        # the title names the (cross-sport) club; the subtitle person proves basketball
+        a = _ingest('מכבי ת"א מרוצה מהזכייה', "ים מדר קלע 20 נקודות והוביל את הצהובים")
+        assert MACCABI in a.entity_ids

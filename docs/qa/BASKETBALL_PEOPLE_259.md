@@ -1,184 +1,152 @@
-# Israeli-league basketball people (#259): selection and measurement, 2026-10-25
+# Israeli-league basketball people (#259): selection, semantics and measurement
 
-**What changed.** 22 Maccabi and Hapoel Tel Aviv players and Hapoel's coach are registered
-with `implies_team`: a mention emits the club and proves basketball. The people are not
-followable. Jason Levin (#229) gains apostrophe variants. A resolved club person now counts as
-sport evidence in `classify()` ([RSS_QUALITY_GUARDRAILS.md](../RSS_QUALITY_GUARDRAILS.md) §19).
-The guard `cross_sport_entity_requires_explicit_sport` is **unchanged**.
+Updated 2026-10-26, after review.
 
-## Why people, not a weaker guard
+## Scope: more than a data change
 
-On the week sample's focused set, switching the guard off in memory recovers 3 wanted articles,
-and it shows **5 football Maccabi stories the owner rated hide**: Sakhnin, Dor Turgeman, Abuksis,
-the Europa League draw, and the plea bargains
-([WEEK_SAMPLE_2026-10_DEV_RESULTS.md](WEEK_SAMPLE_2026-10_DEV_RESULTS.md)). A named basketball
-person is evidence the guard can trust.
+This PR goes beyond adding registry entries. It changes three things:
 
-## Selection
+1. **Registry data.** 28 Maccabi and Hapoel Tel Aviv players and Hapoel's coach (Itoudis)
+   carry a new flag, `implies_team`. They are not followable.
+2. **Sport evidence (classifier rule).** A resolved club person proves the sport
+   (`classifier._club_person_sport`). This applies in the title and in the subtitle gap-fill.
+   Kattash was the only person who did this before, as a hand-written keyword.
+3. **Club evidence (classifier rule, narrower than sport).** A club person implies their
+   current club only when:
+   - the person is named in the **title**, and
+   - the text has **no national-team context** (`נבחרת`).
 
-A person is in the batch when they are (1) on a 2026-27 roster source and (2) named in the
-corpus. All counts exclude the week sample's 35 holdout rows.
+   A person named only in the subtitle, or in a national-team story, proves the sport and
+   nothing more. The club still resolves when the text itself names it (for example
+   `מכבי ת"א` plus a player in the subtitle).
 
-Roster sources: [RealGM, Maccabi](https://basketball.realgm.com/international/league/1/Euroleague/team/4/Maccabi-FOX-Tel-Aviv/rosters),
-[Basketnews, Hapoel](https://basketnews.com/teams/635-hapoel-ibi-tel-aviv.html),
-[Eurobasket, Hapoel](https://basketball.eurobasket.com/team/Hapoel-Shlomo-Tel-Aviv/160?Year=2026-2027).
-Itoudis is also on [Wikipedia](https://en.wikipedia.org/wiki/Dimitrios_Itoudis) and
-[Flashscore](https://www.flashscore.com/team/hapoel-tel-aviv/x0WjVzjP/). Yam Madar's move
-(Hapoel → Maccabi, July 2026) is on [Wikipedia](https://en.wikipedia.org/wiki/Yam_Madar). The
-sources disagree on parts of the Hapoel roster. Satoransky is on one source only, and a corpus
-title reports his signing ("סטרונסקי סיכם בהפועל ת"א").
+`cross_sport_entity_requires_explicit_sport` is unchanged. Jason Levin (#229) gains apostrophe
+variants. Only newly ingested articles are affected; there is no backfill.
 
-| Person | Club | Aliases (all word-bounded) | Corpus hits (word) | Note |
-|---|---|---|---|---|
-| Yam Madar | Maccabi | ים מדר, מדר | 61 (51 basketball) | bare "מדר" as a substring: 179 (מדריד, מדריך) |
-| Bonzie Colson | Maccabi | בונזי קולסון, קולסון | 8 | |
-| John DiBartolomeo | Maccabi | two spellings, full and surname | 5 | "דיברתולומאו" and "דיברתולומיאו" both occur |
-| Jimmy Clark III | Maccabi | ג'ימי קלארק | 3 | bare "קלארק" also names Caitlin Clark |
-| Oshae Brissett | Maccabi | אושיי בריסט, בריסט | 10 | as a substring also "בריסטול" |
-| Daniel Theis | Maccabi | דניאל תייס, תייס | 12 | |
-| T. J. Leaf | Maccabi | טי ג'יי ליף, טי.ג'יי ליף | 2 | full name only |
-| Jaylen Hoard | Maccabi | ג'יילן הורד | 1 | "הורד" is a Hebrew verb |
-| Iffe Lundberg | Maccabi | איפה לונדברג, לונדברג | 15 | "איפה" alone is "where" |
-| Roman Sorkin | Maccabi | רומן סורקין, סורקין | 9 | |
-| Will Rayman | Maccabi | וויל / ויל ריימן, ריימן | 5 | |
-| Keaton Wallace | Maccabi | קיטון וואלאס | 1 | full name only |
-| Shane Hunter | Maccabi | שיין האנטר | 1 | full name only |
-| Dimitris Itoudis (coach) | Hapoel | דימיטריס איטודיס, איטודיס | 37 (32 basketball) | |
-| Daniel Oturu | Hapoel | דן / דניאל אוטורו, אוטורו | 9 | |
-| Jacob Toppin | Hapoel | ג'ייקוב טופין, טופין | 7 | the corpus writes "ג`ייקוב" |
-| Vasilije Micic | Hapoel | ואסיליה / ואסה מיציץ', מיציץ', מיצ'יץ' | 7 + 1 | |
-| Antonio Blakeney | Hapoel | אנטוניו בלייקני, בלייקני | 8 | |
-| Bruno Caboclo | Hapoel | ברונו קאבוקלו, קאבוקלו | 1 | |
-| Tomer Ginat | Hapoel | תומר גינת | 1 | full name only |
-| Bar Timor | Hapoel | בר טימור | 4 | full name only |
-| Ishmail Wainright | Hapoel | וויינרייט | 2 | |
-| Tomas Satoransky | Hapoel | סאטורנסקי, סטרונסקי | 2 | one roster source |
+## Selection: official roster and corpus
 
-Every alias also gets its `׳` and `` ` `` spellings. **Left out:** Tamir Blatt (a corpus title
-reports him loaned to another European club) and roster names with no corpus mention (for
-example Bacot, Dodo, Abo, Blayzer, Ennis, Palatin).
+A person is registered when they are (a) on the club's 2026-27 roster on the Israeli league's
+official site, **checked 2026-10-26**, and (b) named in the corpus. The pages are
+[Maccabi Rapyd Tel Aviv](https://basket.co.il/team.asp?TeamId=2111&lang=en) and
+[Hapoel IBI Tel Aviv](https://basket.co.il/team.asp?TeamId=2112&lang=en). "Inactive" there means
+on the club but not registered for the domestic league; those players are kept.
 
-**Stored sport labels are not ground truth.** Some "football" hits above are basketball
-stories stored with a wrong sport (for example "עדיין מושלמת: הפועל ת"א ניצחה 78:80 את רומא").
-Collision review used the titles, not the stored sport.
+| Club | Registered (aliases are word-bounded; full name only where marked *) |
+|---|---|
+| Maccabi | Madar, Colson, DiBartolomeo (2 spellings), Clark III*, Brissett, Theis (inactive), Leaf*, Hoard*, Lundberg, Sorkin, Rayman, Wallace*, Hunter* |
+| Hapoel | coach Itoudis, Oturu, Toppin (inactive), Micic (inactive), Blakeney, Caboclo (inactive), Ginat*, Timor*, Wainright, Satoransky (inactive), **Blatt\***, Bryant*, German*, Carrington*, LeDay* (inactive), Coffey* |
+
+**Correction from the first version.** Tamir Blatt was left out because a corpus headline
+reported him loaned abroad. The official roster lists him as active, so he is now registered.
+A headline is not a roster source. Roster names with no corpus mention (Bacot, Dodo, Ebo, Lavy,
+Heidegger, Segev, Palatin, Blayzer, Bourdillon, Odiase, Ennis) are not registered.
+
+**Full name only, with the reason:**
+
+| Surname | Why the bare surname is unsafe |
+|---|---|
+| `קלארק` | also names Caitlin Clark |
+| `הורד` | a Hebrew verb |
+| `בלאט` | also names David Blatt |
+| `בראיינט` | also names Kobe Bryant |
+| `לידיי` | appears inside `לידיים` |
+| `קופי`, `קרינגטון` | a football hit in the corpus |
+| `ליף`, `וואלאס`, `האנטר`, `גינת`, `טימור`, `ג'רמן` | common words or names |
+
+Substring checks used the corpus, with the 35 holdout rows excluded. `בריסט` is safe only
+word-bounded (`בריסטול`), and so is `מדר` (`מדריד`, `מדריך`, `שחקנים מדרגים`).
+
+## Semantics: sport is not the same as the article's club
+
+A name is strong evidence of the **sport**. It is weaker evidence that the article is about the
+person's **current club**. Review of the changed rows:
+
+| Case | Behavior now | Evidence |
+|---|---|---|
+| National team (`ים מדר הוביל את נבחרת ישראל`) | sport only, no club | tested; none in this corpus window |
+| Person only in the subtitle, incidental | sport only, no club | corpus: a David Blatt gossip item named his son Tamir (a Maccabi player *last* season) in the subtitle and got Hapoel attached; tested |
+| Person in the title, club named elsewhere | club from person, plus the named club | for example `ים מדר נפרד מהפועל ת"א` gets Maccabi and Hapoel |
+| Former club or transfer | the **current** club is attached | known limitation, see below |
+| Several people or clubs | each title person adds their club | `קולסון עקץ את הפועל` gets Maccabi (Hapoel is a bare family name) |
+
+**Known limitation.** `team_id` is today's club. For articles ingested from now on, today's club
+is the right one while the roster data is current, but it must be maintained at every roster
+change. Applied to past articles (a backfill), it would attach today's club to a July transfer
+story. **Do not backfill** with this registry.
 
 ## Measurements
 
-Unless a row says otherwise, all runs are on a verified copy of the corpus (3,227 rows) with the
-holdout rows removed (3,203 compared).
+All runs are on a verified copy of the corpus. The 35 holdout rows were removed (3,203 rows
+compared). The whole-corpus rerun is **rules only**, so it approximates production.
 
-### Census #2 and N05: whole-corpus rerun (rules only, in memory)
+### Three semantics on the same data (census #2, Guy)
 
-`corpus_rerun_diff.py` replays every row through `_normalise` with the LLM disabled. It
-approximates production.
+| | main | sport only (no club from person) | first #353 (club from any person) | **this PR** (club from title person, not national team) |
+|---|---|---|---|---|
+| feed+ recall | 113/138 | 117/138 | 121/138 | **120/138** |
+| shown precision | 153/163 | 158/168 | 162/172 | **161/171** |
+| exact tier | 662 | 663 | 667 | **667** |
+| N05 feed+ recall | 85/99 | 85/99 | 86/99 | **86/99** |
+| N05 shown precision | 113/116 | 113/116 | 115/118 | **115/118** |
+| N05 push precision / recall | 8/9, 8/9 | 8/9, 8/9 | 8/9, 8/9 | **8/9, 8/9** |
+| Deni fan (visible, push) | 72, 4 | 72, 4 | 72, 4 | **72, 4** |
+| Guy push (articles) | 18 | 19 | 19 | **19** |
 
-| | before | after |
-|---|---|---|
-| census #2 feed+ recall | 113/138 | **121/138** |
-| census #2 shown precision | 153/163 | 162/172 |
-| census #2 exact tier | 662/804 | 667/804 |
-| N05 feed+ recall | 85/99 | 86/99 |
-| N05 shown precision | 113/116 | 115/118 |
-| N05 push precision / recall | 8/9, 8/9 | 8/9, 8/9 |
-| Guy visible / push | 631 / 18 | 657 / **19** |
-| Deni fan visible / push | 72 / 4 | 72 / 4 |
+A naive "sport only" that records the person as an entity scored **below main** (110/138). The
+title entity blocks the subtitle's club gap-fill. The "sport only" column above records no
+entity.
 
-31 decision flips, all for Guy, and none for the Deni fan.
+**Title rule vs the first version, rated rows:**
+- "יפתחו את היורוליג? מצב הפצועים של מכבי" goes from high to **feed**, now exact with the owner's
+  rating.
+- "הצגת בכורה: מכבי זכתה בסופרקאפ מול הפועל" goes from feed to **hidden**; the owner rated feed.
+  The title names only the bare family names, and the players are in the subtitle.
 
-**Rated flips (census #2 / N05), toward or away from the owner:**
+### Week sample (Groq 20b, cached answers, 0 model calls)
 
-| Article | Owner | Before → after | Direction |
-|---|---|---|---|
-| בריסט: "חשוב לנו לשחק נגד יריבות חזקות" | feed | hidden → high | toward (one step over) |
-| קולסון כיכב, 87:92 למכבי ת"א על אריס | high | hidden → feed | toward |
-| "בלתי נתפס": באירופה נדהמו מהסל של ים מדר | feed | hidden → feed | toward, exact |
-| הפועל תל אביב כבר מתחרטת? "יש בים מדר משהו קוסמי" | feed | hidden → feed | toward, exact |
-| "אין הצהרות": מכבי ת"א מרוצה מהזכייה בסופרקאפ | feed | hidden → feed | toward, exact |
-| בסימן שאלה: דניאל תייס ייעדר מול הפועל ת"א? | high | feed → high | toward, exact |
-| "בראינט מעניין רק את בראינט. למדר יש בייגלה מעל הראש" | feed | hidden → high | toward (one step over) |
-| קולסון עקץ את הפועל | high | feed → high | toward, exact |
-| דרבי על תואר: מכבי תל אביב והפועל תל אביב ייפגשו בסופרקאפ | feed | hidden → high | toward (one step over) |
-| הצגת בכורה: מכבי זכתה בסופרקאפ מול הפועל | feed | hidden → feed | toward, exact |
-| הסיפור המלא נחשף: מאחורי עסקת מדר למכבי (N05) | high | hidden → feed | toward |
-| חי ממשחק ההכנה: אולימפיאקוס - מכבי תל אביב 35:35 | low | hidden → feed | now shown; owner low |
-| בר טימור במשא ומתן על חוזה חדש בהפועל (N05) | low | hidden → feed | now shown; owner low |
-| יפתחו את היורוליג? מצב הפצועים של מכבי | feed | feed → high | **away** (one step) |
-
-**The new push**, unrated: "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב. סומן מחליף לווקר". It
-was hidden, because Lundberg resolved to nothing. Now it resolves to Maccabi, and Guy's existing
-Maccabi signing rule pushes a concluded contract. #259's acceptance asks for **no new push**, so
-this needs the owner's call. The push follows an existing rule; it is not a new one.
-
-The 17 flips rated in neither census #2 nor N05 are all Maccabi or Hapoel Tel Aviv basketball stories now shown (Madar's
-move, Lundberg's negotiation, Blakeney's extension, the Toppin talks, Hapoel at Panathinaikos).
-Whether Guy wants Hapoel narrative stories is the open product question #257.
-
-### Review of every new match (zero false resolutions found)
-
-All 56 rows whose facts or decisions changed were read. For the 18 whose title names no
-registered person, the person was found in the subtitle (for example Sorkin's 23 points;
-Brissett and Theis missing from the derby). Every new resolution names a registered person, in a
-basketball story. Losses, with no decision change:
-
-- 4 rows lose a club that came only from subtitle gap-filling. Since the title now resolves its
-  subject, the subtitle no longer adds entities (an existing rule, as with the #229 executives):
-  - "ערב גדול של מדר לא הספיק בברצלונה" and "ים מדר הוא סקורר כמו מיקי ברקוביץ'" lose Barcelona.
-  - "ים מדר: היה קיץ ארוך" and the Hinas handshake clip lose Hapoel.
-- "איטודיס הזהיר: אין לנו זכות לשחק ככה ביורוליג" (dev) keeps Hapoel and loses four subtitle
-  teams.
-- "דני אבדיה לים מדר: אתה לא נורמלי" gains Maccabi next to Deni. The Deni fan's decision is
-  unchanged.
-
-### Week sample (production configuration: Groq 20b, cached answers, gate on)
-
-| Set | before | after | shown but rated hide |
+| Set | main | this PR | shown but rated hide |
 |---|---|---|---|
 | dev (70) | 21/24 | 21/24 | 0 → 0 |
-| focused (30) | 7/11 | 8/11 | 0 → 0 |
+| focused (30) | 7/11 | 8/11 (Levin, via the apostrophe variant) | 0 → 0 |
 | #345 regression (7) | 0/7 | 5/7 | 0 → 0 |
 
-Changed decisions:
-- **focused:** Jason Levin's interview (rated push), hidden → feed. That is the apostrophe-variant
-  fix: "ג`ייסון".
-- **regression:** the Aris win, Madar "קוסמי", "אין הצהרות", "בראינט…מדר", and the Super Cup derby.
-- Dan Otoro (focused) now resolves to Hapoel but stays hidden. That is the profile question
-  (#257), not identification.
-- dev: no decision changes. The gate now sends fewer of these articles to the LLM, because the
-  taxonomy resolves them.
+### Design evidence vs independent evidence
 
-### N05 gate (stored facts)
+- **Design:** the names were partly chosen from the regression and focused rows, so those gains
+  are not independent.
+- **Independent:**
+  - census #2's other rated rows: Brissett, Madar "בלתי נתפס", Theis and Colson "עקץ" move toward
+    the owner; "הצגת בכורה" moves away (hidden; owner feed);
+  - N05: the Madar deal, now feed (owner high), and Bar Timor, now feed (owner low);
+  - dev: no change.
+- **Holdout:** not used. It is partially exposed; see WEEK_SAMPLE_2026-10_DEV_RESULTS.md.
 
-`feed_ground_truth.py gate` passes, unchanged: shown precision 113/115, false hide 18.0%, push
-7/7. It scores stored facts, so it does **not** exercise a classifier change. The rerun above is
-the measurement for that.
+### The new push: Lundberg (not approved; no workaround added)
 
-## Design evidence vs independent evidence
+- **Article:** `rss_9ccfed7f40f424ede65d` (walla, 2026-07-23),
+  "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב. סומן מחליף לווקר". It has no owner rating.
+- **Path:** Lundberg in the title gives basketball, so `מכבי תל אביב` resolves to
+  `team:maccabi_tlv_bb`. The event is `negotiation` (probable). Guy's profile rule
+  `always_push:negotiation` on Maccabi then decides **push**. Before this PR the same article was
+  `unknown` and hidden.
+- **Context:** the same agreement was pushed twice in July, by Israel Hayom (07-20) and Sport5
+  (07-22), and the owner rated both **push** in N05. This walla article is in the **same
+  cluster** as the Sport5 one, so live it would join that notification's lineage, not send a
+  new message. The +1 is an article-level count.
+- **The owner decides** whether this meets "no new push".
 
-- **Design:** the names were picked partly from the #345 regression rows' subtitles and the
-  focused misses (Madar, Colson, Brissett, Theis, Otoro, Toppin, Levin). The regression (0 → 5)
-  and focused (7 → 8) gains are therefore **not independent**.
-- **Independent:** census #2's other rated rows, N05, and the dev sample. Census #2 gains 8 wanted
-  rows; several are regression rows (the Aris win, "קוסמי", "אין הצהרות", "בראינט", the derby).
-  Excluding those five, 5 other census #2 rated rows move toward the owner (Brissett, Madar
-  "בלתי נתפס", Theis, Colson's "עקץ", the Super Cup win) and 1 moves away ("יפתחו את
-  היורוליג", feed → high). dev shows no change.
-- **Holdout:** the 35 test rows were not used and not read. Freeze this candidate before opening
-  them.
+### Unrated changed decisions
 
-## Effect on clustering and duplicates
+15 changed decisions have no owner rating in any file. They are served blind for rating
+(`docs/qa/people_259_flips_sample.json`, `rate_census.py serve`).
 
-Story anchors resolve taxonomy entities directly, so a registered person adds a canonical anchor
-(`player:yam_madar`) **next to** the lexical one ("מדר"), which is still stored. Old and new
-articles keep sharing the lexical key, so the change adds keys and removes none. Coaches stay
-role-holders, never story anchors. Exact-duplicate detection is by URL and does not read
-entities. `test_anchor_validation_141` used "ים מדר" as an example of an unregistered name; its
-fixture now uses an unregistered name. A broader clustering check is a separate PR.
+## Clustering
+
+Clustering measured with the first version (PR #362): 68 = 68 clusters with identical members.
+A registered person adds a canonical anchor next to the lexical one. The latent risk is B3
+(#364), a shared person rescuing different stories; it is fixed separately in its own PR.
 
 ## Not done (separate follow-ups)
 
-- The three dev misses are outside #259: the LLM calling Hapoel's EuroLeague game football;
-  Avdija named only in a subtitle, with no NBA competition; the national-team coach story with no
-  entity. See [WEEK_SAMPLE_2026-10_DEV_RESULTS.md](WEEK_SAMPLE_2026-10_DEV_RESULTS.md).
-- Stored rows are not reclassified. Only new articles get the people. A reviewed backfill is a
-  separate decision.
-- Hapoel Jerusalem and other clubs: not in this batch.
+- #352: three dev misses outside #259.
+- #257: whether Hapoel stories belong in Guy's feed. That is profile-driven, not classification.

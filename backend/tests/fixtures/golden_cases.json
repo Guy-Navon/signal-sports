@@ -425,24 +425,30 @@
    },
    "pinned": {
     "sport": "basketball",
-    "league": null,
-    "entities": [],
-    "entity_ids": [],
+    "league": "Israeli Basketball League",
+    "entities": [
+     "Hapoel Tel Aviv Basketball"
+    ],
+    "entity_ids": [
+     "team:hapoel_tlv_bb"
+    ],
     "event_type": "negotiation",
     "event_certainty": "probable",
     "importance": "medium",
     "primary_competition": null,
-    "classified_by": "llm",
-    "guy": "hidden",
+    "classified_by": "rules",
+    "guy": "feed",
     "deni": "hidden"
    },
    "desired": {
     "sport": "basketball",
-    "entity_ids": [],
+    "entity_ids": [
+     "team:hapoel_tlv_bb"
+    ],
     "event_type": "negotiation",
-    "guy": "hidden",
     "deni": "hidden"
-   }
+   },
+   "note": "#259 (2026-10-26): Zach LeDay (Hapoel's official 2026-27 roster) now resolves the bare 'בהפועל' to team:hapoel_tlv_bb, and Guy's decision moves hidden -> feed through EuroLeague membership reach. Whether a Hapoel signing belongs in Guy's feed is the owner's decision (#257), so `desired` no longer asserts Guy's tier. Owner approval pending."
   },
   {
    "case": "C10",

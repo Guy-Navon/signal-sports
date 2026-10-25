@@ -131,6 +131,12 @@
       "memberships": [],
       "sport": "basketball"
     },
+    "player:amir_coffey": {
+      "kind": "player",
+      "legacy_name": "Amir Coffey",
+      "memberships": [],
+      "sport": "basketball"
+    },
     "player:antonio_blakeney": {
       "kind": "player",
       "legacy_name": "Antonio Blakeney",
@@ -173,6 +179,18 @@
       "memberships": [
         "comp:nba"
       ],
+      "sport": "basketball"
+    },
+    "player:elijah_bryant": {
+      "kind": "player",
+      "legacy_name": "Elijah Bryant",
+      "memberships": [],
+      "sport": "basketball"
+    },
+    "player:eugene_german": {
+      "kind": "player",
+      "legacy_name": "Eugene German",
+      "memberships": [],
       "sport": "basketball"
     },
     "player:iffe_lundberg": {
@@ -225,6 +243,12 @@
       "memberships": [],
       "sport": "basketball"
     },
+    "player:khadeen_carrington": {
+      "kind": "player",
+      "legacy_name": "Khadeen Carrington",
+      "memberships": [],
+      "sport": "basketball"
+    },
     "player:lebron_james": {
       "kind": "player",
       "legacy_name": "LeBron James",
@@ -248,6 +272,12 @@
     "player:shane_hunter": {
       "kind": "player",
       "legacy_name": "Shane Hunter",
+      "memberships": [],
+      "sport": "basketball"
+    },
+    "player:tamir_blatt": {
+      "kind": "player",
+      "legacy_name": "Tamir Blatt",
       "memberships": [],
       "sport": "basketball"
     },
@@ -284,6 +314,12 @@
     "player:yam_madar": {
       "kind": "player",
       "legacy_name": "Yam Madar",
+      "memberships": [],
+      "sport": "basketball"
+    },
+    "player:zach_leday": {
+      "kind": "player",
+      "legacy_name": "Zach LeDay",
       "memberships": [],
       "sport": "basketball"
     },
@@ -939,6 +975,7 @@
   "legacy_name_to_id": {
     "AS Monaco Basketball": "team:monaco_bb",
     "ASVEL Villeurbanne": "team:asvel",
+    "Amir Coffey": "player:amir_coffey",
     "Anadolu Efes": "team:anadolu_efes",
     "Antonio Blakeney": "player:antonio_blakeney",
     "Arik Shtilman": "exec:arik_shtilman",
@@ -965,7 +1002,9 @@
     "Detroit Pistons": "team:detroit_pistons",
     "Dimitris Itoudis": "coach:dimitris_itoudis",
     "Dubai Basketball": "team:dubai_bb",
+    "Elijah Bryant": "player:elijah_bryant",
     "Emek Yizrael Basketball": "team:emek_yizrael_bb",
+    "Eugene German": "player:eugene_german",
     "FC Barcelona Basketball": "team:barcelona_bb",
     "Fenerbahce Basketball": "team:fenerbahce_bb",
     "Golden State Warriors": "team:golden_state_warriors",
@@ -996,6 +1035,7 @@
     "Jimmy Clark III": "player:jimmy_clark",
     "John DiBartolomeo": "player:john_dibartolomeo",
     "Keaton Wallace": "player:keaton_wallace",
+    "Khadeen Carrington": "player:khadeen_carrington",
     "LA Clippers": "team:la_clippers",
     "LeBron James": "player:lebron_james",
     "Los Angeles Lakers": "team:la_lakers",
@@ -1037,6 +1077,7 @@
     "Shane Hunter": "player:shane_hunter",
     "Shimon Mizrahi": "exec:shimon_mizrahi",
     "T. J. Leaf": "player:tj_leaf",
+    "Tamir Blatt": "player:tamir_blatt",
     "Tomas Satoransky": "player:tomas_satoransky",
     "Tomer Ginat": "player:tomer_ginat",
     "Toronto Raptors": "team:toronto_raptors",
@@ -1047,6 +1088,7 @@
     "Washington Wizards": "team:washington_wizards",
     "Will Rayman": "player:will_rayman",
     "Yam Madar": "player:yam_madar",
+    "Zach LeDay": "player:zach_leday",
     "Zalgiris Kaunas": "team:zalgiris"
   },
   "taxonomy_version": 1

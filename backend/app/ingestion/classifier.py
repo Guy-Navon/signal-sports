@@ -480,7 +480,13 @@ def _resolve_text_entities(
     )
 
 
-def _resolution_to_legacy_entities(resolution: EntityResolution) -> list[str]:
+# A national-team story (#259 review): the player is there for his country, not his club.
+_NATIONAL_TEAM_MARKERS = ("נבחרת", "national team")
+
+
+def _resolution_to_legacy_entities(
+    resolution: EntityResolution, text: str = "", imply_clubs: bool = True,
+) -> list[str]:
     """Convert resolved taxonomy entities to legacy display names.
 
     Coach and executive mentions imply their current team (Kattash / Shimon
@@ -490,7 +496,10 @@ def _resolution_to_legacy_entities(resolution: EntityResolution) -> list[str]:
     players marked ``implies_team``).
     """
     entities: list[str] = []
+    national_team = any(m in text for m in _NATIONAL_TEAM_MARKERS)
     for entity in resolution.resolved:
+        if entity.implies_team and (national_team or not imply_clubs):
+            continue  # still sport evidence (_club_person_sport); not evidence of the club
         if entity.kind in ("coach", "executive") or entity.implies_team:
             team = entity_by_id(entity.team_id) if entity.team_id else None
             if team and team.legacy_name not in entities:
@@ -517,6 +526,7 @@ def _detect_entities(
     text: str,
     source_id: str = "",
     sport_override: Optional[str] = None,
+    imply_clubs: bool = True,
 ) -> list[str]:
     """Canonical entity detection via the taxonomy resolver.
 
@@ -530,7 +540,7 @@ def _detect_entities(
       article ambiguous_club.
     """
     return _resolution_to_legacy_entities(
-        _resolve_text_entities(text, source_id, sport_override)
+        _resolve_text_entities(text, source_id, sport_override), text, imply_clubs
     )
 
 
@@ -944,7 +954,7 @@ def classify(
 
     _basketball_only_src = source_id in _BASKETBALL_ONLY_SOURCES
     title_resolution = _resolve_text_entities(text, source_id)
-    entities = _resolution_to_legacy_entities(title_resolution)
+    entities = _resolution_to_legacy_entities(title_resolution, text)
 
     # Ambiguous club mention: the resolver found a cross-sport club name it could
     # not disambiguate (e.g. "מכבי תל אביב" / "הפועל ירושלים" with no sport
@@ -1021,9 +1031,12 @@ def classify(
 
         # Entity gap: subtitle adds entities when title produced none.
         if not entities:
+            # A person named only in the subtitle is often incidental: they prove
+            # the sport (above) but do not make the article about their club (#259).
             sub_entities = _detect_entities(
                 sub_text, source_id,
                 sport_override=sport if sport in ("basketball", "football") else None,
+                imply_clubs=False,
             )
             entities = _filter_entities_for_sport(sub_entities, sport)
 

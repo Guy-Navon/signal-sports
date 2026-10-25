@@ -598,12 +598,14 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
     # Maccabi and Hapoel Tel Aviv share their names with football clubs, so a story
     # that names only the club resolves to nothing (#345). A player or the coach does
     # prove the sport, and implies the club (``implies_team``). Not followable.
-    # Selection (docs/qa/BASKETBALL_PEOPLE_259.md): on a 2026-27 roster source (RealGM,
-    # Basketnews, Eurobasket; Itoudis also Wikipedia/Flashscore) AND named in the corpus.
-    # Alias safety: all aliases word-bounded; a bare surname only when every corpus hit
-    # is this person. Full name only for "קלארק" (Caitlin Clark), "הורד" (a Hebrew verb),
-    # "ליף", "וואלאס", "האנטר", "גינת", "טימור" (common words or names). Left out: Tamir
-    # Blatt (loaned out of Hapoel per the corpus), names with no corpus mention.
+    # Selection (docs/qa/BASKETBALL_PEOPLE_259.md): on the club's 2026-27 roster on the
+    # Israeli league's official site (basket.co.il team pages 2111 Maccabi, 2112 Hapoel;
+    # checked 2026-10-26, "inactive" = on the club, not registered domestically) AND named
+    # in the corpus. Alias safety: all aliases word-bounded; a bare surname only when every
+    # corpus hit is this person. Full name only for "קלארק" (Caitlin Clark), "הורד" (a Hebrew
+    # verb), "ליף", "וואלאס", "האנטר", "גינת", "טימור", "בלאט" (David Blatt), "בראיינט"
+    # (Kobe), "לידיי" ("לידיים"), "קופי", "קרינגטון", "ג'רמן". Left out: roster names with
+    # no corpus mention. In a national-team story a person proves the sport, not the club.
     # Season data: re-check team_id at every roster change.
     _club_person("player:yam_madar", "player", "ים מדר", "Yam Madar", "team:maccabi_tlv_bb",
                  ("ים מדר", "מדר", "yam madar")),
@@ -654,6 +656,18 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
                  "team:hapoel_tlv_bb", ("וויינרייט", "ishmail wainright")),
     _club_person("player:tomas_satoransky", "player", "תומאש סאטורנסקי", "Tomas Satoransky",
                  "team:hapoel_tlv_bb", ("סאטורנסקי", "סטרונסקי", "tomas satoransky")),
+    _club_person("player:tamir_blatt", "player", "תמיר בלאט", "Tamir Blatt", "team:hapoel_tlv_bb",
+                 ("תמיר בלאט", "tamir blatt")),
+    _club_person("player:elijah_bryant", "player", "אלייז'ה בראיינט", "Elijah Bryant",
+                 "team:hapoel_tlv_bb", ("אלייז'ה בראיינט", "אלייז'ה בריאנט", "elijah bryant")),
+    _club_person("player:eugene_german", "player", "יוג'ין ג'רמן", "Eugene German",
+                 "team:hapoel_tlv_bb", ("יוג'ין ג'רמן", "eugene german")),
+    _club_person("player:khadeen_carrington", "player", "קאדין קרינגטון", "Khadeen Carrington",
+                 "team:hapoel_tlv_bb", ("קאדין קרינגטון", "קדין קרינגטון", "khadeen carrington")),
+    _club_person("player:zach_leday", "player", "זאק לידיי", "Zach LeDay", "team:hapoel_tlv_bb",
+                 ("זאק לידיי", "zach leday")),
+    _club_person("player:amir_coffey", "player", "אמיר קופי", "Amir Coffey", "team:hapoel_tlv_bb",
+                 ("אמיר קופי", "amir coffey")),
 )
 
 ENTITIES: dict[str, TaxonomyEntity] = {e.id: e for e in _ALL_ENTITIES}

@@ -952,6 +952,11 @@ evidence on its own, in the title and in the subtitle gap-fill
 (`classifier._club_person_sport`). A person's name is never cross-sport, unlike the club it
 implies.
 
+Proving the sport and implying the club are kept apart. The club is implied only by a person
+named in the title, outside a national-team story (`נבחרת`). A person named only in the subtitle
+is often incidental, and in a national-team story he is not there for his club. In both cases
+he proves the sport and the club is attached only if the text names it.
+
 Explicit sport words still win: a football word next to a basketball name keeps the article
 football, and the basketball club is dropped by the sport filter. Other players (Deni, LeBron,
 Brunson) are not club people and are unaffected. The facts stage is unchanged. The club entity
@@ -966,6 +971,6 @@ guard is not weakened. Tests: `tests/test_basketball_people_259.py`. Measurement
 This file is a changelog of shipped rules. Open gaps live in GitHub issues (for example #242,
 the venue-move vocabulary for `club_governance`) and in the "known limitations" section of
 [CURRENT_PROJECT_STATE.md](CURRENT_PROJECT_STATE.md). The structural recall limits are
-person-level coverage (3 NBA players, plus 22 Maccabi / Hapoel Tel Aviv players and Hapoel's
+person-level coverage (3 NBA players, plus 28 Maccabi / Hapoel Tel Aviv players and Hapoel's
 coach since #259) and the cross-sport club deadlock (#194). Story clustering, which an earlier "next steps" list here called fuzzy dedup, has shipped:
 see [CLUSTERING.md](CLUSTERING.md).

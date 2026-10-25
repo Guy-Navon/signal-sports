@@ -19,6 +19,7 @@ import { he } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import DeskVoice from "@/components/feed/DeskVoice";
 import FeedbackControls from "@/components/feed/FeedbackControls";
+import { useArticleOpened } from "@/context/AppContext";
 import { buildKicker } from "@/components/feed/storyLabels";
 import { FOCUS_TARGETS } from "./orbitFocusModel";
 import {
@@ -114,6 +115,7 @@ function FieldGeometry({ expanded = false }) {
 }
 
 function CompactSatellite({ report, index, isNew, reduce }) {
+  const noteArticleOpened = useArticleOpened();
   const content = (
     <>
       <SourceIdentity report={report} compact />
@@ -142,6 +144,7 @@ function CompactSatellite({ report, index, isNew, reduce }) {
           href={report.url}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => noteArticleOpened(report.articleId)}
           className={cn("orbit-satellite", isNew && "is-new")}
           aria-label={`פתח דיווח של ${report.sourceDisplayName}`}
         >
@@ -195,6 +198,7 @@ function CompactCore({
   const timestamp = orbitStoryTimestamp(item, reports);
   const kicker = buildKicker(item);
   const feedbackId = orbitFeedbackArticleId(item, reports);
+  const noteArticleOpened = useArticleOpened();
   const articleUrl =
     (isCluster
       ? reports.find((report) => report.articleId === item.primaryArticleId)?.url ??
@@ -267,6 +271,7 @@ function CompactCore({
             href={articleUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => noteArticleOpened(feedbackId)}
             className="orbit-primary-action"
           >
             קרא את הדיווח
@@ -286,6 +291,7 @@ function CompactCore({
 }
 
 function ExpandedReport({ report, index, primaryId, newestId, isNew, reduce }) {
+  const noteArticleOpened = useArticleOpened();
   const isPrimary = report.articleId === primaryId;
   const isNewest = report.articleId === newestId;
   const body = (
@@ -331,6 +337,7 @@ function ExpandedReport({ report, index, primaryId, newestId, isNew, reduce }) {
         href={report.url}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => noteArticleOpened(report.articleId)}
         className={cn("orbit-report", isNew && "is-new")}
       >
         {body}

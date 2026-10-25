@@ -14,6 +14,7 @@ Contract (docs/USER_PLATFORM.md, authorization boundary):
   and has no effect here (``require_user`` has no bypass branch).
 """
 
+import logging
 from typing import Dict, List, Literal
 
 from fastapi import HTTPException, Request, Response
@@ -48,6 +49,7 @@ from app.db.orm_models import UserRow
 from app.models.feedback import FeedbackEvent, FeedbackRequest
 from app.models.profile import UserProfile
 from app.models.scoring import ScoredArticle
+from app.repositories import usage_repository
 from app.services import auth_service
 from app.services import interests_service
 
@@ -154,7 +156,15 @@ def me_get_feed(
     user: UserRow = Depends(require_user),
     session: Session = Depends(get_session),
 ):
-    return get_feed(user_id=user.id, session=session)
+    feed = get_feed(user_id=user.id, session=session)
+    # #250: one counter per user per day. Recorded after the feed is built and
+    # never allowed to fail the request: usage is a measurement, not a feature.
+    try:
+        usage_repository.record_feed_view(session, user.id)
+    except Exception:
+        session.rollback()
+        logging.getLogger(__name__).warning("feed view not recorded for %s", user.id, exc_info=True)
+    return feed
 
 
 # ── Results (issue #178) ──────────────────────────────────────────────────────

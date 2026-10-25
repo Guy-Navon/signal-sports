@@ -9,7 +9,7 @@ network-gated: it always serves whatever is already in the DB.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 def _bool(name: str, default: bool) -> bool:
@@ -125,6 +125,19 @@ def seasons() -> list[str]:
     if not raw:
         return default_seasons()
     return [s.strip() for s in raw.split(",") if s.strip()]
+
+
+def recent_days() -> int:
+    """How many UTC days (today first) to ask ``eventsday`` for, per league.
+    Each day is one request per competition; 0 turns the per-day fetch off.
+    Capped at a week so a config typo cannot multiply the requests."""
+    return min(_int("RESULTS_RECENT_DAYS", 2, minimum=0), 7)
+
+
+def recent_dates(now: datetime, days: int) -> list[str]:
+    """``days`` UTC dates ("YYYY-MM-DD"), newest first, ending at ``now``."""
+    today = now.astimezone(timezone.utc).date()
+    return [(today - timedelta(days=i)).isoformat() for i in range(days)]
 
 
 def sync_min_interval_seconds() -> int:

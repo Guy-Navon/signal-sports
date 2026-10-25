@@ -2,8 +2,10 @@
 
 TheSportsDB free tier (public key "123" — documented, not a secret) covers every
 core competition. The endpoints used return a naturally BOUNDED set:
-``eventspastleague`` (most recent games) + ``eventsseason`` (season slice) per
-league — we never crawl unbounded history.
+``eventspastleague`` (most recent games) + ``eventsseason`` (season slice) +
+``eventsday`` for the last ``RESULTS_RECENT_DAYS`` UTC days, per league — we
+never crawl unbounded history. Events whose ``idLeague`` names another league
+are dropped.
 
 Reliability: each competition is fetched independently and its failure is
 captured in ``FetchOutcome.errors`` without losing the others; HTTP calls have a
@@ -17,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime, timezone
 from typing import Callable, Optional
 
 import httpx
@@ -127,9 +130,10 @@ class TheSportsDBProvider:
         client: Optional[httpx.Client] = None,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
+        utcnow: Callable[[], datetime] = lambda: datetime.now(tz=timezone.utc),
     ):
         self._client = client  # injectable for tests; None → per-fetch client
-        self._sleep, self._clock = sleep, clock
+        self._sleep, self._clock, self._utcnow = sleep, clock, utcnow
         self._last_request_at: Optional[float] = None
 
     # ── HTTP ──────────────────────────────────────────────────────────────────
@@ -170,6 +174,10 @@ class TheSportsDBProvider:
         urls = [f"{base}/eventspastleague.php?id={league_id}"]
         for season in settings.seasons():
             urls.append(f"{base}/eventsseason.php?id={league_id}&s={season}")
+        # The free key's league slices miss most recent games (1 past event, the
+        # season's first 15); a day returns up to 3 of that league's games.
+        for day in settings.recent_dates(self._utcnow(), settings.recent_days()):
+            urls.append(f"{base}/eventsday.php?d={day}&l={league_id}")
         return urls
 
     # ── Fetch ─────────────────────────────────────────────────────────────────
@@ -219,6 +227,10 @@ class TheSportsDBProvider:
             data = self._get_json(url, client)
             events = data.get("events") or []
             for raw in events:
+                # A day lists every league unless the filter applies; never
+                # file another league's game under this competition.
+                if str(raw.get("idLeague") or league_id) != league_id:
+                    continue
                 game = normalize_event(raw, comp_id)
                 if game is None:
                     continue

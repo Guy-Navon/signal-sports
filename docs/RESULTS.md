@@ -88,19 +88,34 @@ tracked competition has a mapped league id (no silent "no league id" errors).
 ### History window (bounded — no unbounded crawl)
 
 Per competition we fetch `eventspastleague` (most recent) + `eventsseason` for
-the two most recent seasons. The free tier returns a small bounded slice, so
+the two most recent seasons + `eventsday` (`d=<UTC date>&l=<league id>`) for
+the last `RESULTS_RECENT_DAYS` UTC days, today first (default 2: today and
+yesterday). The free tier returns a small bounded slice, so
 ingestion is naturally bounded. Measured with key `123` on 2026-10-25:
 `eventspastleague` returns **1** event, and `eventsseason` returns **15**, the
-**earliest** games of the season (IBL 2026-27: 10–23 October). The free
-limit is 30 requests a minute; one sync makes 1 + one per season requests per
-competition (`RESULTS_SEASONS` narrows the seasons), and the provider spaces
+**earliest** games of the season (IBL 2026-27: 10–23 October). The provider's
+documentation lists a free limit of **3** for `eventsday` (league filter by id
+or name) and **1 home event only** for the per-team `eventslast` / `eventsnext`,
+which is why per-team requests are not used. The per-day fetch is what keeps
+the last two days' games arriving once a season is past its first 15 games. The
+3-per-day figure comes from the docs; it was not measured live (no test requests
+are sent to the provider). An event whose `idLeague` names another league is
+dropped, so a day reply that ignored the filter cannot file foreign games under
+a tracked competition. With one season and two days, a sync over the 10 default
+competitions makes 40 requests, about 4.7 minutes at the 7 s spacing (20 and
+about 2.3 minutes before). The worker waits its interval after a cycle ends, so
+the cycle that runs the sync delays the next ingestion by that long. The free
+limit is 30 requests a minute; one sync makes 1 + one per season + one per
+recent day requests per competition (`RESULTS_SEASONS` narrows the seasons,
+`RESULTS_RECENT_DAYS=0` turns the per-day fetch off, and values above 7 are
+capped at 7), and the provider spaces
 them by `RESULTS_HTTP_MIN_INTERVAL_SECONDS` (default 7 s, a conservative choice, not a
 verified limit: the docs say 30 a minute, yet 2.5 s spacing was blocked at about the 11th
 request on 2026-10-25). A 429 is not retried. The sync stops, the competitions it did not
 reach are recorded as `not_checked` (not as errors), status `rate_limited` or `partial`,
 and `rate_limited_until` (from Retry-After, default 60 s) is stored in
 `results_sync_state`, so no caller, worker or admin endpoint, sends a request before it
-passes. Ingestion is unaffected. The read path
+passes. A 429 never blocks ingestion. The read path
 shows games within `RESULTS_WINDOW_DAYS` (default 400 — a recent-history window,
 **not** the 36h feed horizon, because results are a history, not a live feed).
 
@@ -176,6 +191,10 @@ surface available (safe with an empty corpus). Rollback = flip
   normalization taking the taxonomy sport, football-follow → football results,
   football draw has no winner, basketball profiles never see football, and
   every tracked competition maps to a provider league id).
+- Backend `tests/test_results_pacing.py`: request spacing, the 429 stop and the
+  stored Retry-After block. `tests/test_results_coverage.py`: the per-day
+  requests (UTC dates, request count per competition, `RESULTS_RECENT_DAYS=0`)
+  and the `idLeague` guard. Both use `httpx.MockTransport`, never the network.
 - Frontend `src/components/results/*.test.js` (26): normalization, timezone/day
   formatting, grouping, and relevance/isolation (deriveFollows, filter,
   preference-change).
@@ -185,9 +204,15 @@ surface available (safe with an empty corpus). Rollback = flip
 - The free provider tier returns a small bounded slice — a narrow follower may
   legitimately see 0 recent games (correct "no generic scoreboard" behavior).
   Because the season slice is the season's **first** 15 games, once a season
-  is past them the free tier adds only the single most recent game per
-  competition per sync. Earlier games already stored are kept (upsert, never
-  delete).
+  is past them new games come only from `eventspastleague` (the single most
+  recent game) and `eventsday` (up to 3 games per league per UTC day, so on a
+  day with more games, such as an NBA night or a full football matchday, the rest
+  are missed). Earlier games already stored are kept (upsert, never delete).
+- A game stored while `live` or `scheduled` is refreshed only when a later
+  sync returns it again. Games outside today/yesterday's 3-per-day slices can stay
+  stale (on 2026-10-25 the DB held 36 past 2026-27 games still `live`,
+  `scheduled` or `unknown`). The free `lookupevent.php?id=` could refresh them one
+  request per game; not implemented.
 - Team names the taxonomy doesn't know (e.g. an apostrophe'd club, a non-tracked
   visitor) fall back to the provider English name; such games are still relevant
   via a followed competition.

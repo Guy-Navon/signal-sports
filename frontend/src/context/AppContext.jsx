@@ -468,6 +468,13 @@ function AppStateProvider({ children }) {
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
+// Whether the engine trace may be shown (ops: admin, local, bypass). Safe outside the
+// provider (capture harness, isolated renders), where the trace shows as before.
+export function useEngineTraceVisible() {
+  const ctx = useContext(AppContext);
+  return ctx ? Boolean(ctx.qaSurfaceAllowed) : true;
+}
+
 export function useApp() {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error("useApp must be used within AppProvider");

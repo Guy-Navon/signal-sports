@@ -57,6 +57,10 @@ class ScoredArticle(BaseModel):
     matched_event_rule: Optional[str] = None
     reasoning: List[str] = []
     contributions: Optional[List[Dict]] = None
+    # The reader's one-line "why" in Hebrew, built only from the deciding step
+    # (services/consumer_reason.py). None when it cannot be stated accurately or on the
+    # legacy engine. The engine trace above stays for Debug.
+    reason_he: Optional[str] = None
     # Which engine produced this trace (issue #35): "v2" | "legacy".
     engine: Optional[str] = None
     # Story clustering (#103). None for unclustered articles AND whenever

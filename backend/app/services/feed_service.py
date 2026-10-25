@@ -3,6 +3,7 @@ from typing import List, Optional, Set
 from app.models.article import Article
 from app.models.profile import UserProfile
 from app.models.scoring import ScoredArticle
+from app.services.consumer_reason import consumer_reason
 from app.services.freshness import fresh_only
 from app.services.preference_engine import score_article_v2
 from app.services.relevance_engine import score_article, DECISION_RANK
@@ -52,6 +53,7 @@ def build_feed(
                 matched_event_rule=result.matched_event_rule,
                 reasoning=result.reasoning,
                 contributions=result.contributions,
+                reason_he=consumer_reason(result, article) if engine == "v2" else None,
                 engine=engine,
             ))
 

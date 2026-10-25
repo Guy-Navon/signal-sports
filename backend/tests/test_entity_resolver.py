@@ -386,7 +386,8 @@ class TestNicknameAbstentionQ3:
             "המו\"מ בין מכבי ת\"א לים מדר חודש, הצהובים מנסים לסגור את העסקה",
             sport_context="basketball",
         )
-        assert res.resolved_legacy_names == ["Maccabi Tel Aviv Basketball"]
+        # "ים מדר" resolves as a person since #259; the nickname still adds nothing.
+        assert sorted(res.resolved_legacy_names) == ["Maccabi Tel Aviv Basketball", "Yam Madar"]
 
     def test_same_sport_shared_alias_would_abstain(self):
         # Documents the enabling invariant: the abstention machinery is NOT

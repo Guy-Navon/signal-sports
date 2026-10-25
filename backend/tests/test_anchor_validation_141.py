@@ -58,7 +58,9 @@ class TestTheValidatorConsumesStructuredCandidates:
         assert coach.generation_rule
 
     def test_a_candidate_carries_offsets_and_provenance(self):
-        c = generate_candidates("ים מדר חתם במכבי", article_id="a9")[0]
+        # An UNREGISTERED name: a registered one ("ים מדר" since #259) is first matched
+        # canonically, and canonical taxonomy candidates carry no token offsets.
+        c = generate_candidates("גיא פניני חתם במכבי", article_id="a9")[0]
         assert c.token_start >= 0 and c.token_end > c.token_start
         assert c.article_id == "a9"
         assert c.span_id().startswith("cand_")
@@ -171,8 +173,10 @@ class TestEnrichmentPersistsAndPairEvalReadsOnly:
     def test_the_stored_record_carries_the_validator_version(self):
         """A validator upgrade bumps this, enabling a guarded re-enrichment without
         re-ingesting articles."""
+        # An unregistered name: "ים מדר" is a taxonomy entity since #259 and also
+        # yields a canonical (validator_id "taxonomy") anchor next to the lexical one.
         stored, version = enrich_article_anchors(
-            "ים מדר חתם במכבי", "", LexicalFrequencyValidator())
+            "גיא פניני חתם במכבי", "", LexicalFrequencyValidator())
         assert version and "wordfreq" in version
         assert all(s.validator_id == "lexical_frequency" for s in stored)
 

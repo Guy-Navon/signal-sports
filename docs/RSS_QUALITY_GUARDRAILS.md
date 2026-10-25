@@ -942,6 +942,23 @@ rationale, the AND/OR structure of `required_any`, and the "do not loosen Guardr
 [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md), 2026-09-15 entry. Tests:
 `tests/test_live_scoreline_evidence_218.py`.
 
+## 19. A Named Club Person Proves the Sport (#259, 2026-10-25)
+
+`classify()` used to infer the sport from resolved entities only when the title held no
+ambiguous club. So `מכבי ת"א מרוצה מהזכייה` with `ים מדר קלע 20` in the subtitle stayed
+`unknown`. Oded Kattash only escaped this because his name is a hand-written basketball
+keyword. Now a resolved **club person** (coach, executive, or an `implies_team` player) is sport
+evidence on its own, in the title and in the subtitle gap-fill
+(`classifier._club_person_sport`). A person's name is never cross-sport, unlike the club it
+implies.
+
+Explicit sport words still win: a football word next to a basketball name keeps the article
+football, and the basketball club is dropped by the sport filter. Other players (Deni, LeBron,
+Brunson) are not club people and are unaffected. The facts stage is unchanged. The club entity
+is text-resolved, so `cross_sport_entity_requires_explicit_sport` does not apply to it, and the
+guard is not weakened. Tests: `tests/test_basketball_people_259.py`. Measurements:
+[qa/BASKETBALL_PEOPLE_259.md](qa/BASKETBALL_PEOPLE_259.md).
+
 ---
 
 ## Where open classification work is tracked
@@ -949,6 +966,6 @@ rationale, the AND/OR structure of `required_any`, and the "do not loosen Guardr
 This file is a changelog of shipped rules. Open gaps live in GitHub issues (for example #242,
 the venue-move vocabulary for `club_governance`) and in the "known limitations" section of
 [CURRENT_PROJECT_STATE.md](CURRENT_PROJECT_STATE.md). The structural recall limits are
-person-level coverage (the registry holds 3 players, all NBA) and the cross-sport club deadlock
-(#194). Story clustering, which an earlier "next steps" list here called fuzzy dedup, has shipped:
+person-level coverage (3 NBA players, plus 22 Maccabi / Hapoel Tel Aviv players and Hapoel's
+coach since #259) and the cross-sport club deadlock (#194). Story clustering, which an earlier "next steps" list here called fuzzy dedup, has shipped:
 see [CLUSTERING.md](CLUSTERING.md).

@@ -292,6 +292,29 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
     hidden to feed for Guy (one rated push, one high). One subtitle-only Hapoel mention
     drops, because the title now resolves its subject (Mizrahi → Maccabi). Push and
     Deni are unchanged.
+- **Israeli-league basketball people — added 2026-10-25 (#259).** Maccabi and Hapoel
+  Tel Aviv share their names with football clubs. A story that names only the club
+  resolves to nothing (#345), and the facts stage rightly refuses the LLM's guess. A
+  counterfactual on the week sample showed that relaxing that guard shows five
+  football Maccabi stories the owner rated hide. A player or coach name is real
+  evidence instead. 22 players and Hapoel's coach (Dimitris Itoudis) are registered,
+  each with `team_id` (`team:maccabi_tlv_bb` / `team:hapoel_tlv_bb`) and the new flag
+  **`implies_team`**. Like an executive, a mention emits the club, not the person, and
+  the person is not followable (absent from the catalog, rejected by `policy`). Deni,
+  LeBron and Brunson are unchanged: they still emit themselves.
+  - **Selection.** On a 2026-27 roster source (RealGM, Basketnews, Eurobasket; Itoudis
+    also Wikipedia and Flashscore) **and** named in the corpus. Left out: Tamir Blatt
+    (the corpus reports him loaned out of Hapoel) and roster names with no corpus
+    mention. Full list, sources and per-alias evidence:
+    [qa/BASKETBALL_PEOPLE_259.md](qa/BASKETBALL_PEOPLE_259.md).
+  - **Alias safety.** Every alias is word-bounded. A bare surname is registered only
+    when every corpus hit is this person. Full names only for `קלארק` (Caitlin Clark),
+    `הורד` (a Hebrew verb), `ליף`, `וואלאס`, `האנטר`, `גינת` and `טימור`. `בריסט` is safe
+    only word-bounded (`בריסטול`), and `מדר` only word-bounded (`מדריד`, `מדריך`).
+    **Spelling variants:** `_geresh_variants` adds the `'` / `׳` / `` ` `` forms; the corpus
+    writes `ג`ייקוב טופין` and `ג`ייסון לוין`. Jason Levin (#229) gets the same variants.
+  - **Season data.** `team_id` is this season's club. Re-check at every roster change,
+    like a coach.
 - **Bare family names** (`בהפועל`) stay unresolvable. That abstention is a
   designed success mode, not a remaining gap.
 

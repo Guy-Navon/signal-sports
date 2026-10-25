@@ -486,11 +486,12 @@ def _resolution_to_legacy_entities(resolution: EntityResolution) -> list[str]:
     Coach and executive mentions imply their current team (Kattash / Shimon
     Mizrahi → Maccabi TLV Basketball) — a taxonomy data fact replacing the old
     hardcoded rule. The person's own name is not emitted, matching pre-taxonomy
-    behavior for coaches (#229 extends it to club executives).
+    behavior for coaches (#229 extends it to club executives, #259 to roster
+    players marked ``implies_team``).
     """
     entities: list[str] = []
     for entity in resolution.resolved:
-        if entity.kind in ("coach", "executive"):
+        if entity.kind in ("coach", "executive") or entity.implies_team:
             team = entity_by_id(entity.team_id) if entity.team_id else None
             if team and team.legacy_name not in entities:
                 entities.append(team.legacy_name)
@@ -498,6 +499,18 @@ def _resolution_to_legacy_entities(resolution: EntityResolution) -> list[str]:
         if entity.legacy_name not in entities:
             entities.append(entity.legacy_name)
     return entities
+
+
+def _club_person_sport(resolution: EntityResolution) -> Optional[str]:
+    """The sport of the club people (coach, executive, ``implies_team`` player) the
+    resolver found — sport evidence on its own (#259): a person's name is never
+    cross-sport, unlike the club name it implies. None when there is no such person
+    or they disagree."""
+    sports = {
+        e.sport for e in resolution.resolved
+        if e.kind in ("coach", "executive") or e.implies_team
+    }
+    return next(iter(sports)) if len(sports) == 1 else None
 
 
 def _detect_entities(
@@ -939,6 +952,10 @@ def classify(
     # Basketball-only sources are never ambiguous — they only cover basketball.
     is_ambiguous_club = not _basketball_only_src and bool(title_resolution.ambiguous)
 
+    # A named club person proves the sport even next to an ambiguous club name (#259).
+    if sport == "unknown":
+        sport = _club_person_sport(title_resolution) or "unknown"
+
     # Entity-based sport inference: when all resolved entities agree on one
     # sport, that sport is taxonomy evidence (previously a basketball-only bias).
     if sport == "unknown" and entities and not is_ambiguous_club:
@@ -974,6 +991,8 @@ def classify(
                 sport = "football"
             else:
                 sub_sport = _detect_sport(sub_text, source_id)
+                if sub_sport == "unknown":
+                    sub_sport = _club_person_sport(_resolve_text_entities(sub_text, source_id)) or "unknown"
                 if sub_sport != "unknown":
                     sport = sub_sport
                 elif _has_basketball_context(sub_text):

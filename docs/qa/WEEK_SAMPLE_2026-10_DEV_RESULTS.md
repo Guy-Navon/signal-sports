@@ -165,8 +165,37 @@ The 35 `test` rows were not read for this analysis. Before it, three things had 
    were run over the whole corpus. That corpus includes the **17 corpus-origin holdout articles**.
    Counts only, without ratings.
 
-From now on, corpus-wide analyses exclude the holdout ids. The holdout stays sealed until the
-candidate change is frozen. Then run with `--include-holdout`.
+**Status: the holdout is partially exposed, not clean.** Timeline:
+
+| When (JST) | What | Holdout content seen? |
+|---|---|---|
+| 2026-10-25 morning, sample build | (1) 2 titles and subtitle starts printed by a quality check | 2 texts, no rating, no decision |
+| 2026-10-25, rating check | (2) the 105-row distribution | only the aggregate, 10 wanted of 35 |
+| 2026-10-25 evening and overnight | (3) corpus-wide cue counts (#352 analysis) over a corpus that held the 17 corpus-origin holdout rows | counts only, no text or rating |
+| 2026-10-25/26, #353 and B3 runs | Rules-only reruns and clustering replays processed every corpus row, holdout included | none. Holdout ids were removed before any output was read (`*_nohold` snapshots). Changed clusters were checked for holdout ids before they were printed |
+
+**Did it influence choices?**
+- (1) **Cannot be fully ruled out.** The two texts were seen before #259's name list was drawn up.
+  The final registered names come from the clubs' official 2026-27 rosters (basket.co.il,
+  checked 2026-10-26). A name was kept only if it is mentioned in the corpus with the holdout
+  excluded (`mine_people.py` drops the holdout ids), so the selection rule does not depend on the
+  holdout.
+- (2) The aggregate set no threshold or target.
+- (3) The counts were used to *reject* cues (#352). No rule was added from them.
+- Separately, #353's first name list was partly chosen from the dev regression and focused rows.
+  Those gains are design evidence and are reported as such.
+
+**Recommendation for the final evaluation.**
+- Use these 35 rows **once**, after the candidate changes are frozen (#353 plus whatever else is
+  approved), as a secondary check, labeled "partially exposed". Do not iterate on its result.
+- With 10 wanted rows, one row is 10 points of recall, so it can only show a gross regression.
+- The independent evidence should come from a **fresh holdout**: articles ingested after the
+  freeze date, drawn by the same sampler, rated blind before anyone looks at system decisions,
+  and sealed until one final run.
+- Original ratings stay unchanged. New blind ratings go to new files.
+
+Corpus-wide analyses exclude the holdout ids. Run with `--include-holdout` only at that final
+check.
 
 ## Limits
 

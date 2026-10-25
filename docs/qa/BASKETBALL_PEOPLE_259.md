@@ -151,9 +151,16 @@ entity.
 
 ## Clustering
 
-Clustering measured with the first version (PR #362): 68 = 68 clusters with identical members.
-A registered person adds a canonical anchor next to the lexical one. The latent risk is B3
-(#364), a shared person rescuing different stories; it is fixed separately in its own PR.
+Re-measured with the final branch on a frozen copy (2026-10-25 20:01 JST, 3,307 articles), with
+this branch's facts and anchors applied as an isolated delta (`docs/CLUSTERING.md` §12.2):
+161 rows gain a canonical person anchor, 54 entity changes, 17 sport changes.
+
+- **0 clusters change, and 0 accepted edges are added or removed** vs `main`. 14 accepted edges
+  gain a person id next to the lexical name they already had.
+- 356 pairs move to a cross-sport hard reject, which is protective.
+- The latent risk is B3: a shared person rescuing two different stories. It is fixed in #369.
+  #369 with this branch gives exactly #369's single change: the LeBron wrong merge is split.
+- Do not re-enrich anchors or backfill facts on the live corpus.
 
 ## Not done (separate follow-ups)
 

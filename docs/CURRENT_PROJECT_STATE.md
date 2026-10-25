@@ -333,14 +333,15 @@ deterministic rule changelog, §1–§18).
 
 **Product**
 - **No real usage yet** (§0). Feedback learning, the third personalization path, has no real
-  data. Feedback saves can also fail silently (#197).
+  data. Feedback saves now say whether they were stored and offer a retry on failure (#197,
+  frontend half); the results-sync attempt record and lease are still open.
 - Recall: about one wanted story in three was hidden at census #2 (§8). Milestone 9 raised it on
   reruns (cups 93→100/140, schedule 103→107/140), and census #3 will measure it on real
   ingestion.
 - Push recall is low (2/8 on the rerun), and the misses are mostly institutional Maccabi news.
   #242 (venue move) is waiting for more examples.
 
-**Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #197 silent feedback failures and results-sync lease, #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #199 bundle weight and unfiltered feed query, #200 signup/login abuse
+**Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #197 results-sync attempt record and lease (the feedback half is done), #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #199 bundle weight and unfiltered feed query, #200 signup/login abuse
 protection (a **gate before widening access**, not needed while single-user behind Tailscale).
 
 **Mobile** (#16 epic): Tailscale access works when the stack is up. #19 feed touch targets, #20

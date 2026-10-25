@@ -137,7 +137,7 @@ entity.
 
 ### Unrated changed decisions
 
-15 changed decisions have no owner rating in any file. They are served blind for rating
+16 changed decisions have no owner rating in any file (the full list with before/after and the facts change is in [BASKETBALL_PEOPLE_259_BEFORE_AFTER.md](BASKETBALL_PEOPLE_259_BEFORE_AFTER.md)). They are served blind for rating
 (`docs/qa/people_259_flips_sample.json`, `rate_census.py serve`).
 
 ## Clustering

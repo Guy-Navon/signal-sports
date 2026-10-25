@@ -445,6 +445,20 @@ powershell -File scripts\worker.ps1 -Stop
 npm install; npm run dev                      # http://localhost:5173 (fixed port, strictPort)
 ```
 
+**Preview a branch next to the live stack** (`scripts/preview.ps1`). Run it on a git worktree of
+the branch. It copies the corpus with `backup_db.py` into the worktree's gitignored
+`backend/data/preview/`, starts that worktree's API on :8010 and its web app on :5180 (backend
+data mode, `/api` proxied to :8010 through `SIGNAL_API_PROXY`), with `DEPLOY_ENV=dev`, no
+scheduler, no LLM, no results sync, and console email. The live API, worker and corpus are not
+touched. Log in with the same accounts. `-Stop` ends it. Ports can be changed with
+`-ApiPort` / `-WebPort`.
+
+```powershell
+git worktree add ..\preview-353 origin/feat/basketball-people-259
+powershell -File scripts\preview.ps1 -Worktree ..\preview-353        # http://localhost:5180
+powershell -File scripts\preview.ps1 -Worktree ..\preview-353 -Stop
+```
+
 **Tests and checks** (the same as CI, `.github/workflows/checks.yml`):
 
 ```powershell

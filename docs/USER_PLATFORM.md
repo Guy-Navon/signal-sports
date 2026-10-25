@@ -268,6 +268,15 @@ password printed once, the email left unverified (a password reset or a Google s
 verifies it the normal way), and onboarding left to the person. An address that already has
 an account is refused. Admins are never created this way.
 
+What it does and does not change: no authentication rule changes. Password login checks the
+password hash; it has never gated an existing account on `email_verified_at` (the email
+proof happens before a signup's account exists, in the pending-registration table). So this
+account can sign in with its password, unverified. Because Google sign-in links to an existing
+`user` account by its address (#332), and a password reset goes to that address, a mistyped
+address would hand the account to whoever owns it: `--apply` therefore requires
+`--confirm-email` with the same address. First login runs the normal funnel
+(`onboardingFlow.js`): `/welcome` → `/interests` → `/calibration` → the feed.
+
 ## Google sign-in (Gmail and Workspace)
 
 Added 2026-10-21 (Slice B1). This reverses the original OAuth non-goal on purpose. Password

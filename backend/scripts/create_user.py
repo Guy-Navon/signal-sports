@@ -14,14 +14,17 @@ GUARDED, in the repository's convention (see set_user_password.py):
   * the email stays UNVERIFIED (nobody proved the address belongs to the person).
     A password reset or a Google sign-in verifies it the normal way;
   * onboarding is left to the person, who chooses their own interests;
-  * an address that already has an account is refused and left unchanged.
+  * an address that already has an account is refused and left unchanged;
+  * --apply needs the address typed twice (--confirm-email). A typo would hand the
+    account to whoever owns the typed address: Google sign-in links to an existing
+    user account by its address (#332), and a password reset is sent there.
 
 It acts on the database DATABASE_URL points at (backend/.env is loaded the same
 way the API loads it). Never run it against a database you did not mean.
 
 Usage (from backend/):
     .venv\\Scripts\\python.exe scripts/create_user.py --email dad@example.com --name "אבא"           # dry run
-    .venv\\Scripts\\python.exe scripts/create_user.py --email dad@example.com --name "אבא" --apply
+    .venv\\Scripts\\python.exe scripts/create_user.py --email dad@example.com --name "אבא" --apply --confirm-email dad@example.com
 """
 from __future__ import annotations
 
@@ -44,6 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--email", required=True, help="the person's email address")
     parser.add_argument("--name", required=True, help="display name, e.g. אבא")
     parser.add_argument("--apply", action="store_true", help="create the account (default: dry run)")
+    parser.add_argument("--confirm-email", help="the same address again (required with --apply)")
     return parser
 
 
@@ -53,6 +57,7 @@ def run(
     email: str,
     name: str,
     apply: bool = False,
+    confirm_email: str | None = None,
     out: Callable[[str], None] = print,
 ) -> int:
     from app.services import auth_service
@@ -71,6 +76,10 @@ def run(
             "Re-run with --apply to write.")
         return 0
 
+    if auth_service.normalize_email(confirm_email or "") != normalized:
+        out("--confirm-email does not match --email. Nothing changed. "
+            "(A typo would give the account to whoever owns the typed address.)")
+        return 1
     password = secrets.token_urlsafe(PASSWORD_BYTES)
     try:
         user = auth_service.create_user_with_profile(
@@ -99,7 +108,8 @@ def main(argv: list[str] | None = None) -> int:
 
     init_db()
     with SessionLocal() as session:
-        return run(session, email=args.email, name=args.name, apply=args.apply)
+        return run(session, email=args.email, name=args.name, apply=args.apply,
+                   confirm_email=args.confirm_email)
 
 
 if __name__ == "__main__":

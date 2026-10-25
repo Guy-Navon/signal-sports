@@ -62,7 +62,8 @@ def test_dry_run_writes_nothing():
 def test_apply_creates_a_regular_unverified_account_that_can_log_in(client):
     out = Out()
     with SessionLocal() as session:
-        assert tool.run(session, email="Dad@Create-User.test", name="אבא", apply=True, out=out) == 0
+        assert tool.run(session, email="Dad@Create-User.test", name="אבא", apply=True,
+                        confirm_email="dad@create-user.test", out=out) == 0
     password = re.search(r"TEMPORARY PASSWORD: (\S+)", out.text).group(1)
     user = _user("dad@create-user.test")
     assert user.role == "user"
@@ -76,10 +77,12 @@ def test_apply_creates_a_regular_unverified_account_that_can_log_in(client):
 
 def test_an_existing_email_is_refused_and_unchanged():
     with SessionLocal() as session:
-        tool.run(session, email="dad@create-user.test", name="אבא", apply=True, out=Out())
+        tool.run(session, email="dad@create-user.test", name="אבא", apply=True,
+                 confirm_email="dad@create-user.test", out=Out())
         before = _user("dad@create-user.test").password_hash
         out = Out()
-        assert tool.run(session, email="DAD@create-user.test", name="x", apply=True, out=out) == 1
+        assert tool.run(session, email="DAD@create-user.test", name="x", apply=True,
+                        confirm_email="dad@create-user.test", out=out) == 1
     assert "already" in out.text
     assert _user("dad@create-user.test").password_hash == before
 
@@ -89,3 +92,15 @@ def test_an_invalid_email_is_refused():
     with SessionLocal() as session:
         assert tool.run(session, email="not-an-email", name="x", apply=True, out=out) == 1
     assert _user("not-an-email") is None
+
+
+def test_apply_requires_the_address_typed_twice():
+    """A typo would hand the account to whoever owns the typed address: Google sign-in
+    auto-links to an existing user account by address (#332), and a password reset
+    goes to that address. --apply therefore needs the address confirmed."""
+    out = Out()
+    with SessionLocal() as session:
+        assert tool.run(session, email="dad@create-user.test", name="אבא", apply=True,
+                        confirm_email="dda@create-user.test", out=out) == 1
+    assert "does not match" in out.text
+    assert _user("dad@create-user.test") is None

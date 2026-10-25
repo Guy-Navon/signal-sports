@@ -11,6 +11,10 @@
   - DEPLOY_ENV=dev: Telegram is refused, the canonical corpus file is refused, and the
     session cookie is signal_dev_session, so the live login is not overwritten;
   - no scheduler, no LLM, no results sync; email is printed to the API window;
+  - the API process has NO outbound network: its HTTP(S) proxy is a closed local
+    port, so even an admin's manual ingest, results sync or notification fails
+    instead of reaching a source, TheSportsDB (whose rate limit the live worker
+    shares, per IP) or Telegram. Google sign-in therefore does not work in a preview;
   - the web app runs in backend data mode and proxies /api to the preview API.
 
   Accounts are the copy's accounts: log in as on the live app. Anything done in the
@@ -92,8 +96,13 @@ $env:CSRF_ALLOWED_ORIGINS = "http://localhost:$WebPort,http://127.0.0.1:$WebPort
 $env:SIGNAL_API_PROXY = "http://127.0.0.1:$ApiPort"
 $env:VITE_DATA_MODE = 'backend'
 
+# No outbound network for the API: every external request goes to a closed port.
+$deadProxy = 'http://127.0.0.1:9'
+foreach ($name in 'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY') { Set-Item "env:$name" $deadProxy }
+$env:NO_PROXY = 'localhost,127.0.0.1'
 $api = Start-Process -FilePath $python -WorkingDirectory (Join-Path $wt 'backend') -PassThru `
     -ArgumentList '-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', "$ApiPort"
+foreach ($name in 'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY') { Remove-Item "env:$name" -ErrorAction SilentlyContinue }
 $web = Start-Process -FilePath 'cmd.exe' -WorkingDirectory (Join-Path $wt 'frontend') -PassThru `
     -ArgumentList '/c', 'npx', 'vite', '--port', "$WebPort", '--strictPort'
 Set-Content $pidFile @($api.Id, $web.Id)

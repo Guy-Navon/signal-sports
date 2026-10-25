@@ -89,6 +89,8 @@ function AppStateProvider({ children }) {
   const [backendDebugItems, setBackendDebugItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
+  // The product feed request itself failed (D5) — distinct from other API errors.
+  const [feedLoadFailed, setFeedLoadFailed] = useState(false);
   // Used to trigger manual refresh without changing activeProfileId
   const [feedRefreshTick, setFeedRefreshTick] = useState(0);
 
@@ -142,11 +144,13 @@ function AppStateProvider({ children }) {
     Promise.all([productFeedPromise, debugFeedPromise])
       .then(([feedRaw, debugRaw]) => {
         if (cancelled) return;
+        setFeedLoadFailed(false);
         setBackendFeedItems(feedRaw.map(normalizeScoredArticleFromApi));
         setBackendDebugItems(debugRaw.map(normalizeScoredArticleFromApi));
       })
       .catch(err => {
         if (cancelled) return;
+        setFeedLoadFailed(true);
         setApiError(err.message);
       })
       .finally(() => {
@@ -424,6 +428,7 @@ function AppStateProvider({ children }) {
     qaSurfaceAllowed,
     isLoading,
     apiError,
+    feedLoadFailed,
     refreshFeed,
     refreshProfiles,
 

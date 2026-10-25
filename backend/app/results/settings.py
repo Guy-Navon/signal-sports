@@ -48,8 +48,9 @@ def provider_name() -> str:
 
 
 def thesportsdb_key() -> str:
-    # "3" is TheSportsDB's documented PUBLIC test key — not a secret.
-    return os.environ.get("THESPORTSDB_API_KEY", "3").strip() or "3"
+    # "123" is TheSportsDB's documented PUBLIC test key — not a secret. The old
+    # "3" was permanently disabled (403) by October 2026.
+    return os.environ.get("THESPORTSDB_API_KEY", "123").strip() or "123"
 
 
 def thesportsdb_base_url() -> str:
@@ -60,6 +61,16 @@ def thesportsdb_base_url() -> str:
 
 def http_timeout_seconds() -> float:
     return float(_int("RESULTS_HTTP_TIMEOUT_SECONDS", 15, minimum=1))
+
+
+def http_min_interval_seconds() -> float:
+    """Gap between provider requests. The free TheSportsDB key allows 30 a
+    minute; 2.5 s keeps a margin (a 20-request sync takes about 50 s)."""
+    try:
+        v = float(os.environ.get("RESULTS_HTTP_MIN_INTERVAL_SECONDS", "2.5"))
+        return v if v >= 0 else 2.5
+    except ValueError:
+        return 2.5
 
 
 def http_max_retries() -> int:

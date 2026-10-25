@@ -261,6 +261,13 @@ logs; a filter on the uvicorn access log (`app/core/log_redaction.py`) also reda
 `t=`/`token=` query value as a backstop. The message is Hebrew RTL plain text plus minimal HTML, with no images or tracking.
 Setup and the delivery check: `docs/DEPLOYMENT.md`.
 
+**Without a mailer** (no SMTP provider yet, #333), the owner can give one person an account
+on the machine with `backend/scripts/create_user.py --email <address> --name <name>`. It is a
+dry run without `--apply`; with `--apply` it creates a regular `user` with a **generated**
+password printed once, the email left unverified (a password reset or a Google sign-in
+verifies it the normal way), and onboarding left to the person. An address that already has
+an account is refused. Admins are never created this way.
+
 ## Google sign-in (Gmail and Workspace)
 
 Added 2026-10-21 (Slice B1). This reverses the original OAuth non-goal on purpose. Password

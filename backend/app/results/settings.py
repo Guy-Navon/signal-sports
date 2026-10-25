@@ -64,13 +64,14 @@ def http_timeout_seconds() -> float:
 
 
 def http_min_interval_seconds() -> float:
-    """Gap between provider requests. The free TheSportsDB key allows 30 a
-    minute; 2.5 s keeps a margin (a 20-request sync takes about 50 s)."""
+    """Gap between provider requests. A conservative default, not a verified
+    limit: the docs say 30 a minute, yet 2.5 s spacing was blocked at about the
+    11th request (2026-10-25). A 20-request sync takes about 2.5 minutes."""
     try:
-        v = float(os.environ.get("RESULTS_HTTP_MIN_INTERVAL_SECONDS", "2.5"))
-        return v if v >= 0 else 2.5
+        v = float(os.environ.get("RESULTS_HTTP_MIN_INTERVAL_SECONDS", "7"))
+        return v if v >= 0 else 7.0
     except ValueError:
-        return 2.5
+        return 7.0
 
 
 def http_max_retries() -> int:

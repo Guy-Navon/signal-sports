@@ -8,7 +8,7 @@ calls and cycles don't hammer the API) and records the last outcome for ops.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -32,6 +32,15 @@ def _state(session: Session) -> ResultsSyncStateRow:
         session.add(row)
         session.commit()
     return row
+
+
+def _rate_limited_until(session: Session) -> Optional[datetime]:
+    summary = _state(session).last_summary or {}
+    value = summary.get("rate_limited_until") if isinstance(summary, dict) else None
+    try:
+        return datetime.fromisoformat(value) if value else None
+    except ValueError:
+        return None
 
 
 def get_sync_state(session: Session) -> dict:
@@ -76,6 +85,11 @@ def sync_results(
     if not force and not should_sync(session):
         state = get_sync_state(session)
         return {"skipped": "throttled", **state}
+    # A provider block applies to every caller, the worker and the admin
+    # endpoint alike; it lives in the DB so separate processes share it.
+    blocked_until = _rate_limited_until(session)
+    if blocked_until is not None and _now() < blocked_until:
+        return {"skipped": "rate_limited", "rate_limited_until": blocked_until.isoformat()}
 
     provider = provider or get_provider()
     comps = competition_ids or settings.tracked_competitions()
@@ -86,10 +100,16 @@ def sync_results(
 
     if outcome.errors and not outcome.games:
         status = "error"
-    elif outcome.errors:
+    elif outcome.not_checked and not outcome.games:
+        status = "rate_limited"
+    elif outcome.errors or outcome.not_checked:
         status = "partial"
     else:
         status = "ok"
+    rate_limited_until = (
+        (_now() + timedelta(seconds=outcome.retry_after_seconds)).isoformat()
+        if outcome.retry_after_seconds is not None else None
+    )
 
     summary = {
         "status": status,
@@ -100,6 +120,8 @@ def sync_results(
         "updated": counts["updated"],
         "fetched_counts": outcome.fetched_counts,
         "errors": outcome.errors,
+        "not_checked": outcome.not_checked,
+        "rate_limited_until": rate_limited_until,
         "synced_at": now_iso,
     }
 
@@ -112,8 +134,8 @@ def sync_results(
     session.commit()
 
     logger.info(
-        "results sync %s: fetched=%d created=%d updated=%d errors=%s",
+        "results sync %s: fetched=%d created=%d updated=%d errors=%s not_checked=%s",
         status, summary["fetched"], counts["created"], counts["updated"],
-        list(outcome.errors) or "none",
+        list(outcome.errors) or "none", outcome.not_checked or "none",
     )
     return summary

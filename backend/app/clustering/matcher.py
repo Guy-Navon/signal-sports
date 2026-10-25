@@ -216,9 +216,12 @@ def match_pair(
         """
         if a.event_type not in ANCHOR_EVIDENCE_STATES:
             return ()
-        return tuple(sorted(shared_subject_anchors(
-            list(a.story_anchors), list(b.story_anchors)
-        )))
+        shared = shared_subject_anchors(list(a.story_anchors), list(b.story_anchors))
+        if shared and jac == 0 and all(k.startswith("translit:") for k in shared):
+            # B2 (#364): a transliteration skeleton alone, with no word in common, is a
+            # spelling coincidence ("סטורי" / the "סטר" of מנצ'סטר), not a shared name.
+            return ()
+        return tuple(sorted(shared))
 
     jac = jaccard(tokens_a, tokens_b)
     if jac < jac_min:

@@ -21,6 +21,7 @@ from typing import Optional, Sequence
 
 from app.clustering.anchor_contract import AnchorValidator
 from app.clustering.anchor_normalization import transliteration_skeleton
+from app.clustering.anchor_validators import is_future_verb_inflection
 from app.clustering.anchors import _candidate_forms, build_name_lexicon, generate_candidates
 
 
@@ -38,6 +39,14 @@ def _match_keys(anchor: str) -> frozenset[str]:
     normalization cannot convert an unvalidated candidate into trusted evidence."""
     if anchor.startswith(("player:", "coach:", "team:", "comp:")):
         return frozenset({anchor})
+    # B2 (#364): a future-tense verb is not a name, even when it was stored as one
+    # ("ייעדר"); drop it, keep the name part of "קורטואה ייעדר".
+    parts = anchor.split()
+    names = [p for p in parts if not is_future_verb_inflection(p)]
+    if not names:
+        return frozenset()
+    if len(names) != len(parts):
+        anchor = " ".join(names)
     keys = {anchor}
     for part in anchor.split():
         keys.update(_candidate_forms(part))

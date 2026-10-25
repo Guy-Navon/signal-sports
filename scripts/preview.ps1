@@ -11,6 +11,8 @@
   - DEPLOY_ENV=dev: Telegram is refused, the canonical corpus file is refused, and the
     session cookie is signal_dev_session, so the live login is not overwritten;
   - no scheduler, no LLM, no results sync; email is printed to the API window;
+  - ingest, run-now and results sync answer 503 "disabled" (PROVIDER_CALLS_DISABLED)
+    before any provider code runs;
   - the API process has NO outbound network: its HTTP(S) proxy is a closed local
     port, so even an admin's manual ingest, results sync or notification fails
     instead of reaching a source, TheSportsDB (whose rate limit the live worker
@@ -91,6 +93,8 @@ $env:SCHEDULER_ENABLED = 'false'
 $env:CLASSIFICATION_PROVIDER = 'disabled'
 $env:TELEGRAM_NOTIFICATIONS_ENABLED = 'false'
 $env:RESULTS_SYNC_ENABLED = 'false'
+# Manual ingest / run-now / results sync answer 503 'disabled' before any provider code runs.
+$env:PROVIDER_CALLS_DISABLED = 'true'
 $env:MAIL_BACKEND = 'console'
 $env:CSRF_ALLOWED_ORIGINS = "http://localhost:$WebPort,http://127.0.0.1:$WebPort"
 $env:SIGNAL_API_PROXY = "http://127.0.0.1:$ApiPort"

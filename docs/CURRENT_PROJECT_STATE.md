@@ -450,8 +450,12 @@ the branch. It copies the corpus with `backup_db.py` into the worktree's gitigno
 `backend/data/preview/`, starts that worktree's API on :8010 and its web app on :5180 (backend
 data mode, `/api` proxied to :8010 through `SIGNAL_API_PROXY`), with `DEPLOY_ENV=dev`, no
 scheduler, no LLM, no results sync, and console email. The live API, worker and corpus are not
-touched. Log in with the same accounts. `-Stop` ends it. Ports can be changed with
-`-ApiPort` / `-WebPort`.
+touched. Provider operations are refused twice:
+- manual ingest, run-now and results sync answer **503 `{"status":"disabled"}`** before any
+  provider code runs (`PROVIDER_CALLS_DISABLED=true`, `app/core/deploy_mode.py`);
+- the API's outbound HTTP goes to a closed local proxy, so anything else that tries fails.
+
+Log in with the same accounts. `-Stop` ends it. Ports can be changed with `-ApiPort` / `-WebPort`.
 
 ```powershell
 git worktree add ..\preview-353 origin/feat/basketball-people-259

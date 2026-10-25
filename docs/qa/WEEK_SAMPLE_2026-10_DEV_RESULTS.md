@@ -172,7 +172,7 @@ The 35 `test` rows were not read for this analysis. Before it, three things had 
 | 2026-10-25 morning, sample build | (1) 2 titles and subtitle starts printed by a quality check | 2 texts, no rating, no decision |
 | 2026-10-25, rating check | (2) the 105-row distribution | only the aggregate, 10 wanted of 35 |
 | 2026-10-25 evening and overnight | (3) corpus-wide cue counts (#352 analysis) over a corpus that held the 17 corpus-origin holdout rows | counts only, no text or rating |
-| 2026-10-25/26, #353 and B3 runs | Rules-only reruns and clustering replays processed every corpus row, holdout included | none. Holdout ids were removed before any output was read (`*_nohold` snapshots). Changed clusters were checked for holdout ids before they were printed |
+| 2026-10-25/26, #353 and B3 runs | Rules-only reruns and clustering replays processed every corpus row, holdout included | none. Holdout ids were removed before any output was read (`*_nohold` snapshots). No printed changed cluster contained a holdout id (checked by id). The cluster diff now masks holdout titles |
 
 **Did it influence choices?**
 - (1) **Cannot be fully ruled out.** The two texts were seen before #259's name list was drawn up.

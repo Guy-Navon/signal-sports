@@ -129,9 +129,10 @@ def seasons() -> list[str]:
 
 def recent_days() -> int:
     """How many UTC days (today first) to ask ``eventsday`` for, per league.
-    Each day is one request per competition; 0 turns the per-day fetch off.
+    Each day is one request per competition; 0 (the default) turns the per-day fetch off,
+    so deploying the code adds no provider traffic until the owner sets it in .env.
     Capped at a week so a config typo cannot multiply the requests."""
-    return min(_int("RESULTS_RECENT_DAYS", 2, minimum=0), 7)
+    return min(_int("RESULTS_RECENT_DAYS", 0, minimum=0), 7)
 
 
 def recent_dates(now: datetime, days: int) -> list[str]:

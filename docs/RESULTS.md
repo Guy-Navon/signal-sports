@@ -89,8 +89,9 @@ tracked competition has a mapped league id (no silent "no league id" errors).
 
 Per competition we fetch `eventspastleague` (most recent) + `eventsseason` for
 the two most recent seasons + `eventsday` (`d=<UTC date>&l=<league id>`) for
-the last `RESULTS_RECENT_DAYS` UTC days, today first (default 2: today and
-yesterday). The free tier returns a small bounded slice, so
+the last `RESULTS_RECENT_DAYS` UTC days, today first. **The default is 0 (off)**, so
+deploying the code adds no traffic. Set 1 (today) or 2 (today and yesterday) in `.env` to
+enable it. The free tier returns a small bounded slice, so
 ingestion is naturally bounded. Measured with key `123` on 2026-10-25:
 `eventspastleague` returns **1** event, and `eventsseason` returns **15**, the
 **earliest** games of the season (IBL 2026-27: 10–23 October). The provider's

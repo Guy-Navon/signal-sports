@@ -150,3 +150,20 @@ def test_a_day_event_from_another_league_is_not_stored_under_this_competition(mo
     outcome = _provider(handler, now).fetch(["comp:ibl"])
 
     assert [g.external_id for g in outcome.games] == ["901"]
+
+
+def test_the_per_day_fetch_is_off_unless_configured(monkeypatch):
+    """Merging this must not add provider traffic by itself: with RESULTS_RECENT_DAYS unset
+    no eventsday request is sent (the owner turns it on in .env)."""
+    monkeypatch.setenv("RESULTS_HTTP_MIN_INTERVAL_SECONDS", "0")
+    monkeypatch.setenv("RESULTS_SEASONS", "2026-2027")
+    monkeypatch.delenv("RESULTS_RECENT_DAYS", raising=False)
+    paths: list[str] = []
+
+    def handler(request):
+        paths.append(request.url.path.rsplit("/", 1)[-1])
+        return httpx.Response(200, json={"events": None})
+
+    _provider(handler, datetime(2026, 10, 25, 9, 0, tzinfo=timezone.utc)).fetch(["comp:ibl"])
+    assert "eventsday.php" not in paths
+    assert paths == ["eventspastleague.php", "eventsseason.php"]

@@ -26,9 +26,12 @@ export function getAreaForPath(pathname) {
 }
 
 // Mobile bottom bar: current area's items plus one entry to cross over.
-export function getMobileNavItems(area, isBackendMode) {
+// showConsoleEntry follows canEnterOpsShell, as the masthead does (#54): a
+// visitor who may not enter the console gets no entry that bounces back.
+export function getMobileNavItems(area, isBackendMode, { showConsoleEntry = true } = {}) {
   if (area === "ops") {
     return [...getOpsNavItems(isBackendMode), { path: "/", label: "לפיד", icon: Rss }];
   }
+  if (!showConsoleEntry) return [...PRODUCT_NAV_ITEMS];
   return [...PRODUCT_NAV_ITEMS, { path: "/sources", label: "קונסולה", icon: Terminal }];
 }

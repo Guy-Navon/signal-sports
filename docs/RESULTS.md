@@ -94,7 +94,13 @@ ingestion is naturally bounded. Measured with key `123` on 2026-10-25:
 **earliest** games of the season (IBL 2026-27: 10–23 October). The free
 limit is 30 requests a minute; one sync makes 1 + one per season requests per
 competition (`RESULTS_SEASONS` narrows the seasons), and the provider spaces
-them by `RESULTS_HTTP_MIN_INTERVAL_SECONDS` (default 2.5, retries included). The read path
+them by `RESULTS_HTTP_MIN_INTERVAL_SECONDS` (default 7 s, a conservative choice, not a
+verified limit: the docs say 30 a minute, yet 2.5 s spacing was blocked at about the 11th
+request on 2026-10-25). A 429 is not retried. The sync stops, the competitions it did not
+reach are recorded as `not_checked` (not as errors), status `rate_limited` or `partial`,
+and `rate_limited_until` (from Retry-After, default 60 s) is stored in
+`results_sync_state`, so no caller, worker or admin endpoint, sends a request before it
+passes. Ingestion is unaffected. The read path
 shows games within `RESULTS_WINDOW_DAYS` (default 400 — a recent-history window,
 **not** the 36h feed horizon, because results are a history, not a live feed).
 

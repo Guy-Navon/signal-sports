@@ -7,9 +7,11 @@ league — we never crawl unbounded history.
 
 Reliability: each competition is fetched independently and its failure is
 captured in ``FetchOutcome.errors`` without losing the others; HTTP calls have a
-timeout and bounded retries with backoff for transient errors (timeouts, 5xx,
-429), and consecutive requests are spaced by ``RESULTS_HTTP_MIN_INTERVAL_SECONDS``
-(the free key allows 30 a minute). Malformed events are skipped, not fatal.
+timeout and bounded retries with backoff for transient errors (timeouts, 5xx),
+and consecutive requests are spaced by ``RESULTS_HTTP_MIN_INTERVAL_SECONDS``. A 429
+is not retried: the fetch stops, the remaining competitions are reported as
+``not_checked``, and the sync service holds every request until Retry-After has
+passed. Malformed events are skipped, not fatal.
 """
 from __future__ import annotations
 
@@ -46,7 +48,24 @@ LEAGUE_IDS: dict[str, str] = {
     "comp:ucl": "4480",
 }
 
-_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+_RETRYABLE_STATUS = {500, 502, 503, 504}
+_DEFAULT_RETRY_AFTER_SECONDS = 60.0  # TheSportsDB sends Retry-After: 60
+
+
+class RateLimited(Exception):
+    """A 429: stop sending requests to the provider for ``retry_after`` seconds."""
+
+    def __init__(self, retry_after: float):
+        super().__init__(f"rate limited for {retry_after:.0f}s")
+        self.retry_after = retry_after
+
+
+def _retry_after_seconds(resp: httpx.Response) -> float:
+    try:
+        value = float(resp.headers.get("Retry-After", ""))
+        return value if value > 0 else _DEFAULT_RETRY_AFTER_SECONDS
+    except ValueError:  # missing, or the HTTP-date form
+        return _DEFAULT_RETRY_AFTER_SECONDS
 
 
 def normalize_event(raw: dict, competition_id: str) -> Optional[NormalizedGame]:
@@ -122,6 +141,9 @@ class TheSportsDBProvider:
             try:
                 self._pace()
                 resp = client.get(url)
+                if resp.status_code == 429:
+                    # No retry: a request during the block extends it.
+                    raise RateLimited(_retry_after_seconds(resp))
                 if resp.status_code in _RETRYABLE_STATUS:
                     raise httpx.HTTPStatusError(
                         f"retryable {resp.status_code}", request=resp.request, response=resp
@@ -160,7 +182,7 @@ class TheSportsDBProvider:
         )
         owns_client = self._client is None
         try:
-            for comp_id in competition_ids:
+            for index, comp_id in enumerate(competition_ids):
                 league_id = LEAGUE_IDS.get(comp_id)
                 if not league_id:
                     outcome.errors[comp_id] = "no provider league id mapped"
@@ -172,6 +194,14 @@ class TheSportsDBProvider:
                     outcome.fetched_counts[comp_id] = sum(
                         1 for g in outcome.games if g.competition_id == comp_id
                     )
+                except RateLimited as exc:
+                    outcome.not_checked = list(competition_ids[index:])
+                    outcome.retry_after_seconds = exc.retry_after
+                    logger.warning(
+                        "results provider rate-limited (429, retry after %.0fs): "
+                        "not checked %s", exc.retry_after, outcome.not_checked,
+                    )
+                    break
                 except Exception as exc:  # per-competition isolation
                     outcome.errors[comp_id] = f"{type(exc).__name__}: {str(exc)[:200]}"
                     logger.warning("results fetch failed for %s: %s", comp_id, exc)

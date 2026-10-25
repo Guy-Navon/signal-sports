@@ -16,7 +16,7 @@ Usage (from backend/):
     A tiny local page over the census file. NO database access at all: the page
     is served from the sample JSON, and the only thing written is the ratings
     JSON, after every keypress. Re-running resumes; rated items are never
-    re-asked. The browser receives title / subtitle / source / date and nothing
+    re-asked. The browser receives title / subtitle / source / date / link and nothing
     else — the allow-list is ``census_rating.rater_view``.
 
 Then score it with the existing tooling, unchanged:
@@ -132,7 +132,7 @@ PAGE = """<!doctype html>
   .done{text-align:center;font-size:28px;color:#1a7f37}
 </style></head><body>
 <header><span id="prog">…</span><span id="rate">—</span></header>
-<main id="main"><div class="src" id="src"></div><h1 id="title"></h1><div class="sub" id="sub"></div></main>
+<main id="main"><div class="src" id="src"></div><h1 id="title"></h1><div class="sub" id="sub"></div><a id="link" target="_blank" rel="noopener noreferrer">לכתבה המקורית ↗</a></main>
 <div class="flash" id="flash"></div>
 <footer>
   <span class="k"><b>5</b> push</span><span class="k"><b>4</b> high</span><span class="k"><b>3</b> feed</span>
@@ -154,6 +154,7 @@ function render(){
   $("src").textContent=`${it.source||""} · ${fmt(it.published_at)}`;
   $("title").textContent=it.title||"";
   $("sub").textContent=it.subtitle||"";
+  const a=$("link"); if(it.url){ a.href=it.url; a.hidden=false; } else { a.hidden=true; }
 }
 function flash(txt){ const f=$("flash"); f.textContent=txt; f.classList.add("on"); setTimeout(()=>f.classList.remove("on"),60); }
 async function post(url,body){ const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body||{})}); if(!r.ok) throw new Error(await r.text()); return r.json(); }

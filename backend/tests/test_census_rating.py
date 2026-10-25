@@ -229,3 +229,9 @@ def test_article_ids_reads_ratings_and_sample_documents():
     assert cr.article_ids(ratings) == {"rss_a", "rss_b", "rss_c"}
     assert cr.article_ids(sample) == {"rss_b", "rss_d"}
     assert cr.article_ids({"meta": {}}) == set()
+
+
+def test_rater_view_links_the_original_article():
+    """The rater may open the source page (it shows no engine output)."""
+    item = cr.census_item(_scored(1, "2026-08-02"))
+    assert cr.rater_view(item)["url"] == "https://example.test/1"

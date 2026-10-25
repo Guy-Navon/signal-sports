@@ -34,7 +34,7 @@ DEFAULT_SEED = 20260916
 STRATUM = "census"
 
 # What the rater may see. Anything not listed here never leaves the server.
-RATER_FIELDS = ("id", "title", "subtitle", "source", "published_at")
+RATER_FIELDS = ("id", "title", "subtitle", "source", "published_at", "url")
 # What the rater must NOT see — engine conclusions and facts derived from them.
 ENGINE_FIELDS = (
     "engine_decision", "matched_topic", "matched_event_rule",

@@ -1,0 +1,321 @@
+{
+ "meta": {
+  "generated_at": "2026-10-25T05:41:46.115943+00:00",
+  "seed": 20261025,
+  "rule": "unrated articles whose title or subtitle names a dual-sport Israeli club alias; 10 per stored sport",
+  "aliases": [
+   "הפועל באר שבע/דימונה",
+   "באר שבע/דימונה",
+   "הפועל ירושלים",
+   "הפועל באר שבע",
+   "הפועל תל אביב",
+   "מכבי תל אביב",
+   "הפועל חיפה",
+   "הפועל ב\"ש",
+   "הפועל ת״א",
+   "הפועל ת\"א",
+   "מכבי ת״א",
+   "מכבי ת\"א",
+   "הפועל תא",
+   "מכבי תא"
+  ],
+  "population_by_stored_sport": {
+   "football": 265,
+   "basketball": 207,
+   "unknown": 62
+  },
+  "regression_rows": [
+   "rss_375649c3d0de48af0673",
+   "rss_3febdca22278e04ceb76",
+   "rss_68fa0c75722c43c5cc65",
+   "rss_92201d7c1e9c8c7b5e5b",
+   "rss_9b49212690345a6153da",
+   "rss_ced6e83efda59fa746ee",
+   "rss_f47fc2b99dda8605455f"
+  ],
+  "scope": "Focused #345 edge cases, reported separately from the random sample."
+ },
+ "profiles": {
+  "guy": {
+   "strata": {
+    "census": {
+     "population": 30,
+     "sampled": 30,
+     "weight": 1.0
+    }
+   },
+   "items": [
+    {
+     "id": "rss_b0cbdbed274a75f2c217",
+     "title": "רז שלמה: \"היה חסר לנו מזל. בית\"ר? משחק החוץ הכי קשה עבורנו\"",
+     "subtitle": "היא אומנם עדיין בפסגה, אבל מכבי תל אביב נעצרה אתמול (שבת) מול בני סכנין. בלם הקבוצה רז שלמה רשום על שני מצבים קורצים - כאשר היה קרוב להבקיע כאשר נגח למשקוף והיה לו גם אסיסט נהדר לנועם בן הרוש אותו לא תרגם המגן לשער.",
+     "source": "walla_sport",
+     "published_at": "2026-10-11T05:37:57.463495+00:00",
+     "url": "https://sports.walla.co.il/item/3871657",
+     "focus_stratum": "dual_club/football"
+    },
+    {
+     "id": "rss_e9dca353aee58f1e9b39",
+     "title": "\"רק אנחנו אשמים\": האכזבה והמסקנה במכבי ת\"א אחרי סכנין",
+     "subtitle": "תחושת אכזבה גדולה במכבי תל אביב אחרי התיקו אמש בבית מול בני סכנין, שהוביל לאיבוד הנקודות הראשון של הצהובים העונה.",
+     "source": "walla_sport",
+     "published_at": "2026-10-11T04:14:41.327039+00:00",
+     "url": "https://sports.walla.co.il/item/3871645",
+     "focus_stratum": "dual_club/unknown"
+    },
+    {
+     "id": "rss_663f44f6aab2211e0bac",
+     "title": "ג`ייסון לוין בראיון בלעדי: \"המטרה - להחזיר את מכבי ת\"א לגדולתה\"",
+     "subtitle": "צפו באחד מבעלי מכבי ת\"א בראיון לערוץ הספורט.",
+     "source": "sport5_sport",
+     "published_at": "2026-10-11T06:54:57.537217+00:00",
+     "url": "https://www.sport5.co.il/articles.aspx?FolderID=405&docID=563328",
+     "focus_stratum": "dual_club/basketball"
+    },
+    {
+     "id": "rss_7961ad003ee7833bac36",
+     "title": "בקפריסין מבטיחים: \"נוודא שמשחקי מכבי ת\"א יתקיימו ללא תקריות\"",
+     "subtitle": "שר המשפטים והסדר הציבורי נשאל מדוע המדינה אישרה את בקשת הצהובים, בניגוד לעבר: \"זו הזדמנות עבור קפריסין להוכיח שהיא מוקד של יציבות\". ומה לגבי היריבות הטורקיות?",
+     "source": "walla_sport",
+     "published_at": "2026-10-09T14:39:00+00:00",
+     "url": "https://sports.walla.co.il/item/3871533",
+     "focus_stratum": "dual_club/basketball"
+    },
+    {
+     "id": "rss_17066cc44194d69c572c",
+     "title": "יוסי אבוקסיס קרא לאוהדי מכבי תל אביב \"שרמוטות\": \"איחלו לי סרטן\"",
+     "subtitle": "מאמן בני סכנין נקלע לעימות מילולי עם קומץ מהאוהדים הצהובים, ולא חסך בקללות וביקורת: \"הגיע להם יותר, הם צריכים להיות מחונכים\" • ולמה שוער סכנין קיבל מאוהד כסף במזומן?",
+     "source": "israel_hayom_sport",
+     "published_at": "2026-10-10T17:02:48+00:00",
+     "url": "https://www.israelhayom.co.il/sport/israeli-soccer/article/21593795",
+     "focus_stratum": "dual_club/football"
+    },
+    {
+     "id": "rss_39282bae1cddbcc25367",
+     "title": "כולל הופעות בכורה: הרכבי בית\"ר ירושלים והפועל תל אביב",
+     "subtitle": "וורקו ואנסה לראשונה ב-11 של אלמוג כהן, גם אצילי בהרכב בעוד וייסמן ושועה ממתינים על הספסל. בואטנג, אלטמן וטוריאל פותחים אצל ברדה (20:30, ספורט2)",
+     "source": "walla_sport",
+     "published_at": "2026-07-18T17:04:00+00:00",
+     "url": "https://sports.walla.co.il/item/3854392",
+     "focus_stratum": "dual_club/unknown"
+    },
+    {
+     "id": "rss_2e51e0a88f84450dbd86",
+     "title": "עבד ב-NBA ועשוי להשקיע במכבי תל אביב: כמה שווה ג'ייסון לוין?",
+     "subtitle": "שימש כמנכ\"ל של ממפיס גריזליס וייצג את עומרי כספי • הוביל מהלך להקמת אצטדיון חדש ב-MLS, והיה שותף לרכישת קבוצת פרמייר ליג • לוין עשוי להפוך לאחד מבעלי המניות במועדון הצהוב - ויש לו רזומה של שנים רבות בניהול ספורט",
+     "source": "israel_hayom_sport",
+     "published_at": "2026-07-23T12:01:33+00:00",
+     "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/21046374",
+     "focus_stratum": "dual_club/basketball"
+    },
+    {
+     "id": "rss_6ea2aea2c3d0a183cea7",
+     "title": "יוכרע בקרוב: אלי דסה מועמד למכבי חיפה, קבוצה גדולה נוספת בעקבותיו",
+     "subtitle": "הירוקים ערכו בדיקות לגבי האופציה לצרף את המגן בן ה-33, כשהדבר עשוי לפנות בסוף העונה מקום של זר על חשבון יילה בטאי • הוא כבר ניהל מגעים לאחרונה עם הפועל באר שבע, וצפוי לבחור בשבוע-שבועיים הקרובים את קבוצתו החדשה",
+     "source": "israel_hayom_sport",
+     "published_at": "2026-10-11T04:56:00+00:00",
+     "url": "https://www.israelhayom.co.il/sport/israeli-soccer/article/21595294",
+     "focus_stratum": "dual_club/football"
+    },
+    {
+     "id": "rss_a3203b2a66e37155ceee",
+     "title": "נדב זילברשטיין מונה למנהל המקצועי של מחלקת הנוער במכבי ת\"א",
+     "subtitle": "המאמן לשעבר של עירוני נס ציונה, ששימש גם בתפקידי אימון בנבחרות ישראל, מצטרף לצהובים לאחר שנים של עבודה בפיתוח שחקנים ובהובלת מערכות מקצועיות: \"אני נרגש\"",
+     "source": "walla_sport",
+     "published_at": "2026-07-21T17:45:31.291809+00:00",
+     "url": "https://sports.walla.co.il/item/3855271",
+     "focus_stratum": "dual_club/unknown"
+    },
+    {
+     "id": "rss_5249368a4c4eaa04ce94",
+     "title": "בכורה לקאסה במכבי פתח תקוה, מנדי כשיר בהפועל חיפה",
+     "subtitle": "גם אינברום קיבל את חולצת ה-11 מזיו אריה, שנואש לקטוע רצף של שלושה הפסדים. דיאקיטה לראשונה בהרכב המארחת (19:00)",
+     "source": "walla_sport",
+     "published_at": "2026-10-10T14:44:05.070995+00:00",
+     "url": "https://sports.walla.co.il/item/3871543",
+     "focus_stratum": "dual_club/unknown"
+    },
+    {
+     "id": "rss_f1d3b0967a1ff809da5c",
+     "title": "זה דן דיל? על מעמדו של דן אוטורו בהפועל תל אביב",
+     "subtitle": "בכל העונה שעברה רשם דן אוטורו רצף בודד של שני משחקים בהם קלע מספר חד ספרתי של נקודות. היה זה בשיא המשבר של הפועל תל אביב, אחרי הפסדים לכוכב האדום בלגרד בחוץ וולנסיה בבית.",
+     "source": "walla_sport",
+     "published_at": "2026-10-14T09:41:15.001578+00:00",
+     "url": "https://sports.walla.co.il/item/3872156",
+     "focus_stratum": "dual_club/unknown"
+    },
+    {
+     "id": "rss_8133b20fc3e476d160e1",
+     "title": "מכבי תל אביב פנתה לשחקן מה-NBA - שסירב בגלל המלחמה",
+     "subtitle": "הצהובים ניסו לצרף את ג'ון קונצ'אר, אך הוא דחה אותם בעקבות המצב הביטחוני • הגארד/פורוורד עעשוי להגיע לאירופה אחרי שבע עונות ב-NBA ואולימפיה מילאנו מועמדת מובילה להחתימו",
+     "source": "israel_hayom_sport",
+     "published_at": "2026-10-14T13:07:42+00:00",
+     "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/21626485",
+     "focus_stratum": "dual_club/basketball"
+    },
+    {
+     "id": "rss_7c0cf8287026f9f0d079",
+     "title": "\"קדימה חמאס\": מחאה בעברית נגד הפועל באר שבע בהולנד",
+     "subtitle": "לפני המשחק של הדרומיים מול אלקמאר בליגה האירופית, מקומיים ערכו הפגנה נגד ישראל, הביעו תמיכה בארגון הטרור וקראו לאופ\"א: \"תעיפו את ישראל\"",
+     "source": "israel_hayom_sport",
+     "published_at": "2026-10-15T14:49:04+00:00",
+     "url": "https://www.israelhayom.co.il/sport/israeli-soccer/article/21636778",
+     "focus_stratum": "dual_club/football"
+    },
+    {
+     "id": "rss_4ecab152004b49ee1b46",
+     "title": "בשורה להפועל באר שבע: העדכון הרפואי של דן ביטון",
+     "subtitle": "ערב פתיחת העונה, כוכב האדומים שיתף במצבו: \"עובר הליכים רפואיים מורכבים\" • השחקן שמושבת בחודשים האחרונים השאיר מקום לאופטימיות: \"מאמין שנתראה בקרוב, במקום הכי מרגש בעולם\"",
+     "source": "israel_hayom_sport",
+     "published_at": "2026-07-16T08:07:31+00:00",
+     "url": "https://www.israelhayom.co.il/sport/israeli-soccer/article/20995839",
+     "focus_stratum": "dual_club/football"
+    },
+    {
+     "id": "rss_8cf13109f9601dd9230d",
+     "title": "ים מדר הוא לא הבעיה של מכבי תל אביב, אבל חלק מהתעלומה",
+     "subtitle": "הקבוצה של עודד קטש סוף סוף תחרותית, אבל בקצב הזה, העונה האירופית תברח לה מבין הידיים • השופטים שמעלו בתפקידם, ג'ימי קלארק שמאבד את זה והמספרים שמעלים שאלות קשות על הרכז הישראלי ורומן סורקין • דובי יעקובוביץ' מסכם",
+     "source": "israel_hayom_sport",
+     "published_at": "2026-10-14T05:11:51+00:00",
+     "url": "https://www.israelhayom.co.il/sport/opinions-sport/article/21620568",
+     "focus_stratum": "dual_club/basketball"
+    },
+    {
+     "id": "rss_59f669ad0310e55e4347",
+     "title": "\"להפועל תל אביב אחד מארבעת הסגלים הטובים ביורוליג\"",
+     "subtitle": "מאמן בשיקטאש דושאן אלימפייביץ' פרגן ליריבתו ביום רביעי: \"יש לה הרבה שחקנים מנוסים, ביטחון ועוצמה פיזית\". קונור מורגן: \"צריך ליישם את תכנית המשחק שלנו\"",
+     "source": "walla_sport",
+     "published_at": "2026-10-13T16:26:25.056700+00:00",
+     "url": "https://sports.walla.co.il/item/3872067",
+     "focus_stratum": "dual_club/basketball"
+    },
+    {
+     "id": "rss_3663740369f53cc77cc2",
+     "title": "אחרי אוהדי הפועל ב\"ש, כעת חוששים בהולנד מהפרו-פלסטינים",
+     "subtitle": "ראש העיר של אלקמאר החליטה להרחיק שתי הפגנות פרו-פלסטיניות משטח האצטדיון בחמישי, מחשש לעימותים עם אוהדים ושוטרים",
+     "source": "walla_sport",
+     "published_at": "2026-10-13T14:10:49.030101+00:00",
+     "url": "https://sports.walla.co.il/item/3872048",
+     "focus_stratum": "dual_club/unknown"
+    },
+    {
+     "id": "rss_caf917ebd99d3f2aeac7",
+     "title": "ממשיכה להיבנות: רוזנבאום חתם בהפועל אילת",
+     "subtitle": "הגארד בן ה-29 מצטרף לסגל של אורן אהרוני אחרי שנתיים בהפועל חיפה",
+     "source": "sport5_sport",
+     "published_at": "2026-07-23T18:23:17.878102+00:00",
+     "url": "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=554160",
+     "focus_stratum": "dual_club/basketball"
+    },
+    {
+     "id": "rss_3ea832ea88b98c4c4813",
+     "title": "בעקבות הביקוש: בית\"ר תמכור מנויים גם ליציע הדרומי?",
+     "subtitle": "מעל 19 אלף אוהדים רכשו מנוי ובמועדון מתלבטים בנוגע ליציע האחרון שנותר ברשימה. בשבת: מבחן ראשון העונה נגד הפועל תל אביב",
+     "source": "walla_sport",
+     "published_at": "2026-07-12T05:20:00+00:00",
+     "url": "https://sports.walla.co.il/item/3852715",
+     "focus_stratum": "dual_club/football"
+    },
+    {
+     "id": "rss_581b2338e58e6b2926f6",
+     "title": "הפועל תל אביב מעל מכבי חיפה: המנויים הכי יקרים בליגת העל",
+     "subtitle": "העונה החדשה מתקרבת והקהל מסתער על הכרטיסים • בית\"ר ירושלים ניצפה שיא מנויים, אבל אוהדיה משלמים פחות מרוב הגדולות האחרות - חוץ מאחת • בדקנו כמה עולים המנויים הכי יקרים והכי זולים אצל כל קבוצה - התוצאות לפניכם",
+     "source": "israel_hayom_sport",
+     "published_at": "2026-07-21T15:17:58+00:00",
+     "url": "https://www.israelhayom.co.il/sport/israeli-soccer/article/21032175",
+     "focus_stratum": "dual_club/football"
+    },
+    {
+     "id": "rss_412f8d1320675c218088",
+     "title": "צפו: דור תורג'מן כבש צמד, מכבי ת\"א קרובה לבונוס שמן",
+     "subtitle": "מכבי תל אביב קרובה לזכות בבונוס בגובה של 500 אלף דולר בעסקת המכירה של דור תורג'מן לניו אינגלנד רבולושן.",
+     "source": "walla_sport",
+     "published_at": "2026-10-15T06:27:18.789447+00:00",
+     "url": "https://sports.walla.co.il/item/3872282",
+     "focus_stratum": "dual_club/unknown"
+    },
+    {
+     "id": "rss_2dc7ac6505d2e2ac772d",
+     "title": "בית הדין אישר את הסדרי הטיעון של מכבי ת\"א והפועל ב\"ש",
+     "subtitle": "אנדרדה ספג את העונש הכבד ביותר, עונשו של יואב זיו הופחת בחצי, בליץ' בחוץ לחמישה משחקים. כל הפרטים",
+     "source": "walla_sport",
+     "published_at": "2026-07-12T12:45:00+00:00",
+     "url": "https://sports.walla.co.il/item/3852804",
+     "focus_stratum": "dual_club/unknown"
+    },
+    {
+     "id": "rss_bf6c2c66e55481c36898",
+     "title": "\"כולם שונאים את יוסי אבוקסיס, עם מכבי תל אביב זה שיא השנאה\"",
+     "subtitle": "נמרוד קוסטיקה התייחס לתקרית של מאמן בני סכנין עם אוהדי מכבי תל אביב, שלמה וייס: \"שלא יצפו ממנו לשתוק אחרי הדברים שהושמעו\". צפו ב\"לא לפרסום\"",
+     "source": "walla_sport",
+     "published_at": "2026-10-12T06:17:06.429148+00:00",
+     "url": "https://sports.walla.co.il/item/3871768",
+     "focus_stratum": "dual_club/unknown"
+    },
+    {
+     "id": "rss_fca616d8d96783d9016c",
+     "title": "עם 8 זרים בהרכב: נקבעה יריבת מכבי תל אביב בליגה האירופית",
+     "subtitle": "אחרי שזכתה הערב (חמישי) בתואר אלוף האלופים, מכבי תל אביב גילתה גם מי תהיה היריבה הראשונה שלה באירופה.",
+     "source": "walla_sport",
+     "published_at": "2026-07-16T20:55:00+00:00",
+     "url": "https://sports.walla.co.il/item/3854142",
+     "focus_stratum": "dual_club/football"
+    },
+    {
+     "id": "rss_fa277a20c94422d39602",
+     "title": "מחצית ראשונה: א.א.לרנקה - בית\"ר ירושלים 0:0",
+     "subtitle": "מוקדמות הקונפרנס ליג, סיבוב שני: החניכים של אלמוג כהן מנסים להתגבר על צום ט' באב, וההפסד להפועל ת\"א במשחק האירופיות, ולהתעלות מול הקפריסאים",
+     "source": "ynet_sport",
+     "published_at": "2026-07-23T14:31:02+00:00",
+     "url": "https://livegame.ynet.co.il/games/528855",
+     "focus_stratum": "dual_club/football"
+    },
+    {
+     "id": "rss_3ef1443d526e92427b45",
+     "title": "\"לפני שנתיים אספתי אותם בסופר גול\": הגיבור של הפועל חיפה",
+     "subtitle": "סאלי פחימה הכריע עמוק בתוספת הזמן וסיפר על ההתרגשות לשחק לצד האלילים מהילדות. במועדון החמיאו לחילופים של סילבס והתרגשו מביקור משפחתו של אדם אגמון ז\"ל",
+     "source": "walla_sport",
+     "published_at": "2026-10-11T07:05:47.242589+00:00",
+     "url": "https://sports.walla.co.il/item/3871675",
+     "focus_stratum": "dual_club/unknown"
+    },
+    {
+     "id": "rss_7e66e2113cbc6190d89c",
+     "title": "3 הגדולות ניצחו: הפועל ירושלים הביסה 69:92 את הפועל חולון",
+     "subtitle": "אחרי שמכבי והפועל תל אביב פתחו את העונה ברגל ימין, גם האדומים מהבירה חגגו בקלות מול הסגולים • קני לופטון ג'וניור וג'אלין סמית' (15 נקודות) הובילו חמישה קלעים בספרות כפולות, אדאמה סאנוגו קלע 20 מנגד • עירוני קריית אתא רשמה 85:86 דרמטי מול הפ",
+     "source": "israel_hayom_sport",
+     "published_at": "2026-10-11T18:05:42+00:00",
+     "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/21603086",
+     "focus_stratum": "dual_club/basketball"
+    },
+    {
+     "id": "rss_3e3aa42e3fcf0e0d0459",
+     "title": "ערב גדול של מדר לא הספיק בברצלונה: הטור של דבורין",
+     "subtitle": "מכבי תל אביב הגיעה הכי קרוב שאפשר כדי לנצח אמש (ג') בברצלונה, אבל 1.6 שנייה לסיום היא ספגה מידיו של ג'סטין רובינסון שלשה שהנחילה לה את ההפסד הרביעי ביורוליג.",
+     "source": "walla_sport",
+     "published_at": "2026-10-14T12:01:52.400447+00:00",
+     "url": "https://sports.walla.co.il/item/3872192",
+     "focus_stratum": "dual_club/basketball"
+    },
+    {
+     "id": "rss_100545c1f102a6a643f3",
+     "title": "\"אנחנו לא מסתכלים על הפועל ומכבי תל אביב, יכולים לזכות ביורוקאפ\"",
+     "subtitle": "יובל זוסמן בטוח שהפועל ירושלים \"עושה את הצעדים הנכונים בדרך ליורוליג\" • רגע לפני העונה החדשה בליגת העל, ותיק השחקנים בקבוצה מספר על הסגל המשודרג: \"קפיצת מדרגה אמיתית\" • ועל הפציעה שליוותה אותו: \"לא נרדמתי אחרי משחקים שלא שיחקתי\"",
+     "source": "israel_hayom_sport",
+     "published_at": "2026-10-10T15:02:32+00:00",
+     "url": "https://www.israelhayom.co.il/sport/israeli-basketball/article/21592486",
+     "focus_stratum": "dual_club/basketball"
+    },
+    {
+     "id": "rss_31f925be13232cd9377f",
+     "title": "אחרי השישייה, במכבי ת\"א בטוחים לקראת הדרבי: \"הם כבר קיבלו מאיתנו רביעייה\"",
+     "subtitle": "אחרי ה-2:6 על הפועל חיפה, הצהובים מכוונים לזכייה בגביע הטוטו מול הפועל ת\"א בחמישי: \"אין שום סיבה שלא ננצח שוב, ועוד בקרב על התואר\". מדמון כבש ובישל בהופעתו הראשונה בהרכב העונה, מילר החמיא: \"הוא לקח חלק מרכזי בתוצאה המצוינת הזו\"",
+     "source": "ynet_sport",
+     "published_at": "2026-10-25T02:45:49+00:00",
+     "url": "https://www.ynet.co.il/sport/israelisoccer/article/sk4ddt5hgg",
+     "focus_stratum": "dual_club/football"
+    }
+   ]
+  }
+ }
+}

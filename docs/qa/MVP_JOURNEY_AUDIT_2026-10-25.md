@@ -54,12 +54,12 @@ Severity: **P0** blocks daily use; **P1** badly degrades it; **P2** friction.
 |---|---|---|---|
 | D1 | P0 | No always-on host | owner decision (milestone 13) |
 | D2 | P0 | Password signup needs an email provider that does not exist | owner configuration |
-| D3 | P1 | A stopped worker looks like a quiet day | **fixed, PR for #249** |
-| D4 | P1 | Feedback says "saved" when the save failed | **fixed, PR for #197 (feedback half)** |
+| D3 | P1 | A stopped worker looks like a quiet day | **fix open: #356** (closes #249) |
+| D4 | P1 | Feedback says "saved" when the save failed | **fix open: #358** (feedback half of #197) |
 | D5 | P1 | A failed feed load shows the empty state and an English error | open |
 | D6 | P1 | "Why you see this" exposes engine internals | open, copy decision |
 | D7 | P1 | Touch targets under 44 px across the journey | open (#19) |
-| D8 | P2 | Regular users' mobile dock shows "קונסולה", which only bounces back | **fixed, PR (related to #20)** |
+| D8 | P2 | Regular users' mobile dock shows "קונסולה", which only bounces back | **fix open: #357** (related to #20) |
 | D9 | P2 | The thumbs-down menu cannot be closed by Escape or an outside tap | open |
 | D10 | P2 | "מקורות מחו״ל" filter is always 0 | open |
 | D11 | P2 | Internal identifiers on Preferences; English team names on Results | open |
@@ -93,7 +93,7 @@ The feed had no age line. When the worker stops, the 36 h window empties the fee
 state says "המערכת סורקת את המקורות ברקע" — false. **Repro:** on the copy, the worker heartbeat
 went stale 20 minutes after the backup; `/api/scheduler/health` (admin) said not running, while
 the reader saw nothing ([m12](mvp-journey-2026-10-25/m12_feed_phone_top.png)).
-**Fixed:** `GET /api/me/feed/freshness` plus one line over the feed, and a warning when ingestion
+**Fix (#356, open):** `GET /api/me/feed/freshness` plus one line over the feed, and a warning when ingestion
 is not running ([after, stopped](mvp-journey-2026-10-25/fr_phone_stopped.png),
 [after, empty and stopped](mvp-journey-2026-10-25/fr_phone_empty_stopped.png),
 [after, running](mvp-journey-2026-10-25/fr_phone_running.png),
@@ -104,7 +104,7 @@ is not running ([after, stopped](mvp-journey-2026-10-25/fr_phone_stopped.png),
 `FeedbackControls` showed "נשמר" on tap, and `AppContext.addFeedback` swallowed the failure.
 **Repro:** answer `POST /api/me/feedback` with 500 (request interception) and tap "יותר כמו זה":
 the card says "נשמר" ([before](mvp-journey-2026-10-25/f_05_feedback_failed_card.png)).
-**Fixed:** "שומר…", then "נשמר" only on success; otherwise "לא נשמר" with "נסו שוב", which
+**Fix (#358, open):** "שומר…", then "נשמר" only on success; otherwise "לא נשמר" with "נסו שוב", which
 retries the same action ([after, failed](mvp-journey-2026-10-25/fb_phone_failed.png),
 [after, retried](mvp-journey-2026-10-25/fb_phone_retried.png)). Re-run in the browser: a
 retry while the API still fails stays "לא נשמר"; after recovery it posts (201) and says
@@ -151,7 +151,7 @@ scope plus the onboarding and auth controls, which #19 does not list.
 The product dock always ended with "קונסולה". For a non-admin, `RequireOpsRole` sends
 `/sources` straight back to `/`, so the button did nothing visible
 ([before](mvp-journey-2026-10-25/m07_interests_step1.png)). The desktop masthead already hid it
-(#54). **Fixed:** the dock uses the same `canEnterOpsShell` check
+(#54). **Fix (#357, open):** the dock uses the same `canEnterOpsShell` check
 ([after](mvp-journey-2026-10-25/dock_after_390.png)).
 
 ### D9 (P2) — The thumbs-down menu does not close
@@ -180,17 +180,17 @@ in one fixture ("מכבי חיפה" against "Hapoel Be'er Sheva").
 wall of about 70 chips ([step 3](mvp-journey-2026-10-25/m09_interests_step3.png)). Skipping
 works and the feed is useful without calibration.
 
-## 4. What was fixed (one PR each, branched from `origin/main`)
+## 4. Fixes (one open PR each, branched from `origin/main`)
 
 | PR | Branch | Fixes | Tests |
 |---|---|---|---|
-| #249 freshness | `feat/feed-freshness-249` | D3 | backend `test_feed_freshness_signal_249.py` (401, two fields only, newest *successful* cycle, stale heartbeat, parity with `/api/scheduler/health` across five worker states) and the authz inventory; frontend `feedFreshnessModel.test.js` |
-| #197 feedback honesty | `fix/honest-feedback-saves-197` | D4 (the feedback half of #197; the results-sync lease stays open) | `feedbackSaveModel.test.js` (a rejected save never reports "saved"; retry semantics) |
-| mobile dock | `fix/mobile-dock-console-entry` | D8 | `navConfig.test.js` (new case; existing cases unchanged) |
+| #356 (closes #249) | `feat/feed-freshness-249` | D3 | backend `test_feed_freshness_signal_249.py` (401, two fields only, newest *successful* cycle, stale heartbeat, parity with `/api/scheduler/health` across five worker states) and the authz inventory; frontend `feedFreshnessModel.test.js` |
+| #358 (related to #197) | `fix/honest-feedback-saves-197` | D4 (the feedback half of #197; the results-sync lease stays open) | `feedbackSaveModel.test.js` (a rejected save never reports "saved"; retry semantics) |
+| #357 (related to #20) | `fix/mobile-dock-console-entry` | D8 | `navConfig.test.js` (new case; existing cases unchanged) |
 
 All three: `npm run lint`, `typecheck`, `test` and `build` pass in `frontend/`. The backend
-suite passed on the #249 branch (3,060 passed, 2 skipped); the other two do not touch the
-backend.
+suite passed on the #249 branch (3,060 passed, 2 skipped) and on `origin/main`'s backend tree,
+which the other two leave unchanged (3,051 passed, 2 skipped). None of them is merged.
 
 ## 5. What remains for the father's daily use
 

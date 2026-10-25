@@ -478,7 +478,86 @@ writes against their own copy.
 5. Images are built in CI, never on the host, and deployed by digest.
 6. Dev environments hold no production credential (HOSTING_PLAN §9).
 
-## 14. Not done yet
+## 14. MVP: one reader on a phone (provider-agnostic, nothing done)
+
+Goal: one invited reader (the owner's father) opens the feed on his phone every day. This is
+the configuration and the order of steps for **either** path. Nothing here was run, bought
+or changed. `[D]` marks a decision that belongs to the owner; `[O]` an owner-run action.
+
+**Two paths, the same app.**
+
+| | A. The owner's PC (interim) | B. A host (HOSTING_PLAN; provider not chosen) |
+|---|---|---|
+| Runs | uvicorn + Vite dev server + `python -m app.worker`, by hand | §1: Compose, `restart: unless-stopped`, Docker enabled at boot |
+| After a reboot | **nothing restarts** (no autostart exists today) | Docker restarts api, web and worker |
+| Phone access | Tailscale Serve → Vite `127.0.0.1:5173`. The PC must be on | Tailscale Serve → `127.0.0.1:8080` (§11 step 5) |
+| Cost | none | the host `[D]` (HOSTING_PLAN §18) |
+
+**Phone access, precisely.** Vite and uvicorn bind `127.0.0.1` on the PC, and nginx binds
+`127.0.0.1:8080` on a host:
+- `localhost` on the phone means the phone itself and never reaches either.
+- The LAN cannot reach them either.
+- The only supported path is Tailscale Serve (HTTPS `https://<machine>.<tailnet>.ts.net`), with the reader's phone in the tailnet. Never Funnel.
+
+On the PC (2026-10-26) Tailscale is installed but logged out (`NoState`) and has no serve config.
+
+**Configuration.** Start from `deploy/signal.env.example` (host) or `backend/.env` (PC) and set
+exactly these:
+
+| Key | MVP value | Why |
+|---|---|---|
+| `CSRF_ALLOWED_ORIGINS` | `https://<machine>.<tailnet>.ts.net` | the exact origin the phone uses |
+| `APP_PUBLIC_URL` | the same origin | links in emails, if mail is ever enabled |
+| `AUTH_SIGNUP_ENABLED` | `false` | accounts are created by the owner, see below |
+| `MAIL_BACKEND` | `smtp` with empty settings | no mailer until #333. Signup stays closed; password reset is unavailable, and the owner resets with `set_user_password.py` |
+| `CLASSIFICATION_PROVIDER` … | the `openai_compat` block from the PC (comments in the template) | the approved interim LLM; the key is `[O]` |
+| `RESULTS_SYNC_ENABLED` | `true` (worker only) | as on the PC; `RESULTS_RECENT_DAYS` stays unset/0 (#351) |
+| `TELEGRAM_NOTIFICATIONS_ENABLED` | `false` | push to the reader is a separate decision (#251) `[D]` |
+| `FEED_FRESHNESS_ENABLED` / `FEED_MAX_AGE_HOURS` | `true` / `36` | as on the PC |
+| `RETENTION_CLEANUP_ENABLED` | `false` | it would delete rated rows (#255) |
+| PC only: `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS` | `<machine>.<tailnet>.ts.net` | Vite refuses an unknown Host header without it |
+
+**The reader's account.** `backend/scripts/create_user.py` (#361) creates one regular,
+**unverified** account with a generated password, printed once.
+- `--confirm-email` is **typo protection, not verification**. The operator types the same
+  address twice, and `--apply` refuses a mismatch with nothing written.
+- It is evidence only that the operator meant this address. It is not evidence that the reader
+  owns it. The account therefore stays unverified (`email_verified_at` empty), exactly as the
+  script prints. It becomes verified only by a real proof: a password-reset link, or Google
+  sign-in with `email_verified=true`.
+- Who may run it: whoever holds a shell on the machine and its DB, which means the owner. It is
+  not an API route, it needs no role, and nothing runs it automatically.
+- Normal signup and login rules are unchanged:
+  - password login never checked verification;
+  - signup still requires an emailed proof;
+  - Google auto-link still requires Google's `email_verified=true` (#332).
+
+**Checklist (in order).**
+
+1. `[D]` Path A or B, and for B the host (HOSTING_PLAN §18, #267).
+2. `[O]` B only: create the host and run §11, then §12 (cutover; the PC stops writing for good).
+   A only: nothing to install.
+3. `[O]` Tailscale:
+   - log the machine in (`tailscale up`);
+   - `tailscale serve --bg 5173` (A) or `--bg 8080` (B);
+   - write down the ts.net origin.
+   `[D]` how the reader joins: invite him to the tailnet, or share only this machine.
+4. `[O]` Set the configuration above. On A, restart the API and Vite with the env, and
+   **keep the worker as it is unless you decide otherwise**.
+5. `[O]` Create the account (dry run first):
+   `create_user.py --email <addr> --name "<name>"`, then
+   `--apply --confirm-email <addr>`. Hand the password over privately.
+6. `[O]` The reader logs in on the phone, completes `/welcome` → `/interests` → `/calibration`,
+   and adds the site to the home screen (#354 adds the manifest).
+7. Check from the phone:
+   - login;
+   - the feed shows the freshness line;
+   - a source link opens;
+   - 👎 saves.
+   On A: reboot the PC once and confirm what has to be restarted by hand.
+8. `[D]` Push notifications for the reader (#251), and SMTP for password reset (#333).
+
+## 15. Not done yet
 
 Everything above is repository preparation. Still open: the owner's decisions and accounts
 (HOSTING_PLAN §18), the first image publication, the host itself (#268), the hosted LLM

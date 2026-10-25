@@ -22,6 +22,8 @@ from typing import Optional, Sequence
 from app.clustering.anchor_contract import AnchorValidator
 from app.clustering.anchor_normalization import transliteration_skeleton
 from app.clustering.anchors import _candidate_forms, build_name_lexicon, generate_candidates
+from app.clustering.tokens import tokenize
+from app.taxonomy.entities import ENTITIES
 
 
 def _match_keys(anchor: str) -> frozenset[str]:
@@ -151,6 +153,22 @@ def shared_subject_anchors(a, b) -> frozenset[str]:
     """
     ka, kb = _keys_with_titleness(a), _keys_with_titleness(b)
     return frozenset(k for k in ka.keys() & kb.keys() if ka[k] or kb[k])
+
+
+def story_tokens_beyond_clubs(rare: Sequence[str], shared: frozenset[str]) -> tuple[str, ...]:
+    """B1 (#364): the shared discriminative tokens that are NOT part of a shared club's name.
+
+    A canonical club id appears in every story about that club, exactly like a competition, so
+    on its own it does not say which story two articles share ("Red Star wants €250k for
+    Glazer" / "Tsunami agrees with Maccabi Haifa"). A team-only rescue needs one more
+    story-specific token; the club's own name ("נתניה", "בקליבלנד") does not count."""
+    club_words: set[str] = set()
+    for key in shared:
+        ent = ENTITIES.get(key)
+        if ent is not None:
+            for alias in ent.aliases:
+                club_words |= tokenize(alias)
+    return tuple(t for t in rare if not (set(_candidate_forms(t)) | {t}) & club_words)
 
 
 def hard_gate_population(anchor, peers: Sequence, cfg) -> list:

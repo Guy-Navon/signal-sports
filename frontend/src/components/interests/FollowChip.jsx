@@ -26,7 +26,7 @@ export default function FollowChip({
           : "border-border text-text-secondary hover:border-text-dim",
       )}
     >
-      <button type="button" onClick={onToggle} className="ps-3 py-1.5 pe-1">
+      <button type="button" onClick={onToggle} className="ps-3 py-1.5 pe-1 max-md:min-h-11">
         {label}
       </button>
       {followed && (
@@ -35,7 +35,7 @@ export default function FollowChip({
           onClick={onStar}
           title={starred ? "עדיפות רגילה" : "אל תפספס לי"}
           aria-pressed={starred}
-          className="pe-2.5 py-1.5"
+          className="pe-2.5 py-1.5 max-md:min-h-11 max-md:min-w-11 max-md:inline-flex max-md:items-center max-md:justify-center"
         >
           <Star size={12} className={starred ? "fill-current" : ""} />
         </button>

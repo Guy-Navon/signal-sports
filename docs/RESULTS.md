@@ -44,8 +44,9 @@ a profile to filter by. A direct team follow beats a player-derived reason in
 ## 3. Data source & provider abstraction
 
 **Provider:** [TheSportsDB](https://www.thesportsdb.com) free tier, public test
-key `3` (documented, **not a secret**). It covers every core competition and
-returns real data with no account or paid plan.
+key `123` (documented, **not a secret**). It covers every core competition and
+returns real data with no account or paid plan. The old key `3` was permanently
+disabled and answers 403 with a message naming `123` (found 2026-10-25).
 
 The source is isolated behind `app/results/providers/`:
 
@@ -87,8 +88,13 @@ tracked competition has a mapped league id (no silent "no league id" errors).
 ### History window (bounded — no unbounded crawl)
 
 Per competition we fetch `eventspastleague` (most recent) + `eventsseason` for
-the two most recent seasons. The free tier returns a small bounded slice
-(≈1 recent + ≤5 per season), so ingestion is naturally bounded. The read path
+the two most recent seasons. The free tier returns a small bounded slice, so
+ingestion is naturally bounded. Measured with key `123` on 2026-10-25:
+`eventspastleague` returns **1** event, and `eventsseason` returns **15**, the
+**earliest** games of the season (IBL 2026-27: 10–23 October). The free
+limit is 30 requests a minute; one sync makes 1 + one per season requests per
+competition (`RESULTS_SEASONS` narrows the seasons), and the provider spaces
+them by `RESULTS_HTTP_MIN_INTERVAL_SECONDS` (default 2.5, retries included). The read path
 shows games within `RESULTS_WINDOW_DAYS` (default 400 — a recent-history window,
 **not** the 36h feed horizon, because results are a history, not a live feed).
 
@@ -172,6 +178,10 @@ surface available (safe with an empty corpus). Rollback = flip
 
 - The free provider tier returns a small bounded slice — a narrow follower may
   legitimately see 0 recent games (correct "no generic scoreboard" behavior).
+  Because the season slice is the season's **first** 15 games, once a season
+  is past them the free tier adds only the single most recent game per
+  competition per sync. Earlier games already stored are kept (upsert, never
+  delete).
 - Team names the taxonomy doesn't know (e.g. an apostrophe'd club, a non-tracked
   visitor) fall back to the provider English name; such games are still relevant
   via a followed competition.

@@ -1,6 +1,6 @@
 """TheSportsDB adapter (issue #178).
 
-TheSportsDB free tier (public key "3" — documented, not a secret) covers every
+TheSportsDB free tier (public key "123" — documented, not a secret) covers every
 core competition. The endpoints used return a naturally BOUNDED set:
 ``eventspastleague`` (most recent games) + ``eventsseason`` (season slice) per
 league — we never crawl unbounded history.
@@ -8,13 +8,14 @@ league — we never crawl unbounded history.
 Reliability: each competition is fetched independently and its failure is
 captured in ``FetchOutcome.errors`` without losing the others; HTTP calls have a
 timeout and bounded retries with backoff for transient errors (timeouts, 5xx,
-429). Malformed events are skipped, not fatal.
+429), and consecutive requests are spaced by ``RESULTS_HTTP_MIN_INTERVAL_SECONDS``
+(the free key allows 30 a minute). Malformed events are skipped, not fatal.
 """
 from __future__ import annotations
 
 import logging
 import time
-from typing import Optional
+from typing import Callable, Optional
 
 import httpx
 
@@ -102,8 +103,15 @@ def normalize_event(raw: dict, competition_id: str) -> Optional[NormalizedGame]:
 class TheSportsDBProvider:
     name = "thesportsdb"
 
-    def __init__(self, client: Optional[httpx.Client] = None):
+    def __init__(
+        self,
+        client: Optional[httpx.Client] = None,
+        sleep: Callable[[float], None] = time.sleep,
+        clock: Callable[[], float] = time.monotonic,
+    ):
         self._client = client  # injectable for tests; None → per-fetch client
+        self._sleep, self._clock = sleep, clock
+        self._last_request_at: Optional[float] = None
 
     # ── HTTP ──────────────────────────────────────────────────────────────────
 
@@ -112,6 +120,7 @@ class TheSportsDBProvider:
         last_exc: Optional[Exception] = None
         for attempt in range(retries + 1):
             try:
+                self._pace()
                 resp = client.get(url)
                 if resp.status_code in _RETRYABLE_STATUS:
                     raise httpx.HTTPStatusError(
@@ -122,8 +131,17 @@ class TheSportsDBProvider:
             except (httpx.HTTPError, ValueError) as exc:
                 last_exc = exc
                 if attempt < retries:
-                    time.sleep(min(0.5 * (2 ** attempt), 2.0))
+                    self._sleep(min(0.5 * (2 ** attempt), 2.0))
         raise last_exc if last_exc else RuntimeError("unknown fetch error")
+
+    def _pace(self) -> None:
+        """Space every request, retries included, under the free key's 30/minute."""
+        interval = settings.http_min_interval_seconds()
+        if self._last_request_at is not None:
+            wait = self._last_request_at + interval - self._clock()
+            if wait > 0:
+                self._sleep(wait)
+        self._last_request_at = self._clock()
 
     def _endpoints(self, league_id: str) -> list[str]:
         base = f"{settings.thesportsdb_base_url()}/{settings.thesportsdb_key()}"

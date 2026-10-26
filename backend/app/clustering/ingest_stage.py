@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 # The rule generation these clusters were produced by. Bump when matcher semantics change;
 # a rule change is then an explicit, auditable recompute (#102), never silent drift.
-RULE_VERSION = 2
+RULE_VERSION = 3  # 3: B3 (#364), a shared person no longer rescues stories naming different clubs
 
 
 def clustering_enabled() -> bool:

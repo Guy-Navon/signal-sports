@@ -1,5 +1,20 @@
 # Story Clustering — v1 Contract
 
+**2026-10-26 - A shared person needs agreeing clubs (B3, #364). Rule version 3.** A tier-N
+rescue that rests on a shared registered person (a canonical `player:`, `coach:` or `exec:`
+anchor) is refused when both articles name canonical clubs and those clubs do not overlap. The
+person's own registry club does not count as a conflict. Every other rescue is unchanged:
+- a shared club still merges;
+- a side that names no club still merges;
+- a rescue on lexical names alone still merges.
+
+This applies the rule below ("a shared name is necessary, never sufficient") to the
+`player:lebron_james` merge of "Philadelphia courts LeBron" with "Portland tries to sign
+LeBron". The dry-run replay of the 2026-10-25 corpus changed exactly that cluster: the
+Philadelphia item leaves, and the second Portland report, previously blocked by the
+one-slot-per-source rule, joins. There is **no live backfill**. Live windows pick up rule 3 as
+new articles arrive.
+
 **2026-10-10 - `club_governance` is clusterable (#229).** It uses the same 24-hour
 strict same-state window as `relocation`: every source reports the same ownership or
 venue development, and one story must be one notification. The rule version is

@@ -315,8 +315,9 @@ deterministic rule changelog, §1–§18).
   app was unreachable from the phone. The `scheduler_cycles` history shows the worker absent
   07-24→07-31, 07-31→09-15, 09-20→10-08 and 10-08→10-10. Part of that was deliberate (a frozen
   corpus for measurement); the 09-20 gap went unnoticed for weeks. A stopped worker means a stale
-  feed, and nothing alerts anyone. Milestone 13 moves the stack to a host (#268, #269), and #249
-  adds a freshness signal.
+  feed, and nothing alerts anyone. Milestone 13 moves the stack to a host (#268, #269). Since
+  #249 the feed itself shows when it was last updated and warns when automatic ingestion is not
+  running ([FEED_FRESHNESS.md](FEED_FRESHNESS.md) §7); that is a visible signal, not an alert.
 - **Telegram is off** (since 2026-09-13), so push stories reach nobody.
 - **ONE is off**, and **Sport5 runs as an untracked "pilot"**. Neither state is recorded anywhere
   except the `source_overrides` table.

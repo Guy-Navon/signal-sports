@@ -570,6 +570,7 @@ to the same repositories/services as the `{user_id}` routes — one seam, no ser
 | `GET/PUT /api/profiles/{user_id}` | + `GET/PUT /api/me/profile` | Admin / Consumer | both permanent — `{user_id}` = QA view-as surface |
 | `POST /api/profiles/{user_id}/never_show` | + `POST /api/me/never_show` | Admin / Consumer | both permanent |
 | `GET /api/feed/{user_id}` | + `GET /api/me/feed` | Admin / Consumer | both permanent |
+| `GET /api/scheduler/health` | + `GET /api/me/feed/freshness` (only `last_successful_cycle_at`, `worker_running`; #249) | Admin / Consumer | both permanent |
 | `GET /api/debug/feed/{user_id}`, `GET /api/debug/shadow/{user_id}` | stay | Admin | permanent (QA) |
 | `POST /api/feedback` (body user_id) | + `POST /api/me/feedback` (server sets user_id; body user_id rejected) | Admin / Consumer | both permanent — admin variant writes learning events against demo fixtures |
 | `GET /api/feedback/{user_id}` | + `GET /api/me/feedback` | Admin / Consumer | both permanent |

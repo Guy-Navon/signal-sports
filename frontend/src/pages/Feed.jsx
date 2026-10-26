@@ -4,6 +4,7 @@ import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { showCalibrateEmptyState } from "@/context/onboardingFlow";
 import EditionEmptyState from "@/components/feed/EditionEmptyState";
+import FeedFreshness from "@/components/feed/FeedFreshness";
 import ErrorState from "@/components/shared/ErrorState";
 import { FEED_LOAD_ERROR, feedBodyState } from "@/components/feed/feedLoadModel";
 import OrbitFeedView from "@/components/feed/orbit/OrbitFeedView";
@@ -113,6 +114,7 @@ export default function Feed() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: reduce ? 0.12 : 0.34, ease: [0.22, 1, 0.36, 1] }}
     >
+      <FeedFreshness enabled={isBackendMode} />
       {bodyState === "error" ? (
         <div className="orbit-feed-view orbit-feed-empty" role="alert">
           <ErrorState

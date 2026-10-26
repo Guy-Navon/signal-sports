@@ -23,6 +23,7 @@ from app.clustering.anchor_contract import AnchorValidator
 from app.clustering.anchor_normalization import transliteration_skeleton
 from app.clustering.anchor_validators import is_future_verb_inflection
 from app.clustering.anchors import _candidate_forms, build_name_lexicon, generate_candidates
+from app.taxonomy.entities import ENTITIES
 
 
 def _match_keys(anchor: str) -> frozenset[str]:
@@ -160,6 +161,29 @@ def shared_subject_anchors(a, b) -> frozenset[str]:
     """
     ka, kb = _keys_with_titleness(a), _keys_with_titleness(b)
     return frozenset(k for k in ka.keys() & kb.keys() if ka[k] or kb[k])
+
+
+_PERSON_PREFIXES = ("player:", "coach:", "exec:")
+
+
+def conflicting_clubs(a, b, shared: frozenset[str]) -> bool:
+    """B3 (#364): True when a rescue that rests on a registered PERSON (a canonical player,
+    coach or executive id) joins two stories naming different clubs. A name says who; when both
+    articles also name canonical clubs and those clubs do not overlap — the person's own club
+    aside — they report different developments ("Philadelphia courts LeBron" / "Portland tries
+    to sign LeBron"). False when no registered person is shared, when the rescue already shares
+    a club, or when either side names no club, so every other rescue is unchanged."""
+    if not any(k.startswith(_PERSON_PREFIXES) for k in shared):
+        return False
+    if any(k.startswith("team:") for k in shared):
+        return False
+    own = {
+        ENTITIES[k].team_id for k in shared
+        if k.startswith(_PERSON_PREFIXES) and k in ENTITIES and ENTITIES[k].team_id
+    }
+    clubs_a = {s.get("anchor") for s in a if str(s.get("anchor", "")).startswith("team:")} - own
+    clubs_b = {s.get("anchor") for s in b if str(s.get("anchor", "")).startswith("team:")} - own
+    return bool(clubs_a) and bool(clubs_b) and not (clubs_a & clubs_b)
 
 
 def hard_gate_population(anchor, peers: Sequence, cfg) -> list:

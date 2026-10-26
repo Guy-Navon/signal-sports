@@ -2,6 +2,8 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { getMobileNavItems } from "@/components/shell/navConfig";
+import { useAuth } from "@/context/AuthContext";
+import { canEnterOpsShell } from "@/context/dataRouting";
 
 // Product: a floating glass pill, detached from the screen edge — the feed
 // keeps the canvas, navigation becomes a light touch rather than a bar.
@@ -9,7 +11,13 @@ import { getMobileNavItems } from "@/components/shell/navConfig";
 // is a later PR).
 export default function MobileNav({ area, isBackendMode }) {
   const location = useLocation();
-  const items = getMobileNavItems(area, isBackendMode);
+  const auth = useAuth();
+  const showConsoleEntry = canEnterOpsShell({
+    isBackendMode,
+    authEnforced: auth.authEnforced,
+    user: auth.user,
+  });
+  const items = getMobileNavItems(area, isBackendMode, { showConsoleEntry });
 
   if (area === "product") {
     return (

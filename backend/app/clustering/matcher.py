@@ -20,7 +20,7 @@ missed cluster is cosmetic; a wrong merge tells the user something false.
 
 from typing import Optional
 
-from app.clustering.anchor_enrichment import shared_subject_anchors
+from app.clustering.anchor_enrichment import conflicting_clubs, shared_subject_anchors
 from app.clustering.claims import claims_compatible
 from app.clustering.config import ClusteringConfig
 from app.clustering.contract import ClusterInput, MatchEdge, RejectionReason
@@ -217,6 +217,8 @@ def match_pair(
         if a.event_type not in ANCHOR_EVIDENCE_STATES:
             return ()
         shared = shared_subject_anchors(list(a.story_anchors), list(b.story_anchors))
+        if shared and conflicting_clubs(a.story_anchors, b.story_anchors, shared):
+            return ()  # B3: the same person, different clubs: different stories
         if shared and jac == 0 and all(k.startswith("translit:") for k in shared):
             # B2 (#364): a transliteration skeleton alone, with no word in common, is a
             # spelling coincidence ("סטורי" / the "סטר" of מנצ'סטר), not a shared name.

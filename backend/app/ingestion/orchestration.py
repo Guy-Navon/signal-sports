@@ -165,6 +165,17 @@ def _release_lease(session, cycle_id: str) -> None:
     session.commit()
 
 
+def last_successful_cycle(session):
+    """The newest successful scheduler cycle as ``(id, trigger, status,
+    finished_at)``, or None. The admin health route and the consumer feed's
+    freshness signal (#249) both read it here, so they cannot disagree."""
+    return session.execute(text(
+        "SELECT id, trigger, status, finished_at FROM scheduler_cycles "
+        "WHERE status IN ('succeeded','succeeded_with_warnings') "
+        "ORDER BY finished_at DESC LIMIT 1"
+    )).fetchone()
+
+
 def current_lease(session) -> Optional[dict]:
     row = session.execute(text(
         "SELECT active_cycle_id, heartbeat_at, owner FROM scheduler_lease WHERE id = 1"

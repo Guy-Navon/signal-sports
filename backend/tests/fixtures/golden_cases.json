@@ -446,9 +446,10 @@
      "team:hapoel_tlv_bb"
     ],
     "event_type": "negotiation",
+    "guy": "feed",
     "deni": "hidden"
    },
-   "note": "#259 (2026-10-26): Zach LeDay (Hapoel's official 2026-27 roster) now resolves the bare 'בהפועל' to team:hapoel_tlv_bb, and Guy's decision moves hidden -> feed through EuroLeague membership reach. Whether a Hapoel signing belongs in Guy's feed is the owner's decision (#257), so `desired` no longer asserts Guy's tier. Owner approval pending."
+   "note": "#259 (2026-10-26): Zach LeDay (Hapoel's official 2026-27 roster) now resolves the bare 'בהפועל' to team:hapoel_tlv_bb, and Guy's decision moves hidden -> feed through EuroLeague membership reach. Owner decision (#257, 2026-10-26): feed is the baseline for Hapoel Tel Aviv basketball coverage in GUY's profile, consistent with his blind ratings (every Hapoel TLV item rated feed or high). Profile-specific, not a global rule that every Hapoel article is shown; high stays where justified."
   },
   {
    "case": "C10",

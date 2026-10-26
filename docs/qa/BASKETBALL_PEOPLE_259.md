@@ -172,6 +172,10 @@ would recreate context 2.
 
 ### The 16 unrated changes, rated blind by the owner (2026-10-26)
 
+**What this is.** A targeted check of the articles this PR *changes*. It is not an independent
+estimate of overall feed quality: the set was selected because the decision changed, the
+articles are about the clubs the PR touches, and the population is small (16).
+
 The owner rated all 16 on the blind page (`people_259_flips_ratings.json`; decisions were not
 shown). The owner's own tolerance: one step (3 vs 4, 2 vs 3) is a judgment call, not an error.
 The clear-cut cases ("a player agreed a new contract = push") are what must be right. Decisions
@@ -193,6 +197,47 @@ are from the rules-only rerun (seed profile).
 - **Hapoel Tel Aviv items** (Toppin talks, Blakeney's extension, Panathinaikos away, the Madar
   farewell) are rated feed or high, so the owner wants them visible. This informs #257 and golden
   case C9.
+
+## Final semantic review: "belongs to the club" vs "the article is about the club"
+
+`implies_team` attaches a person's **current** club, from the registry (the official 2026-27
+roster). That is a proxy for "this article is about that club". The two differ, and roster
+maintenance alone does not close the gap.
+
+**Where the proxy held, in the changed set.** 10 of the 29 changed articles got a club only
+from a person (the text did not name the club):
+- 8 are about that club: Brissett and Theis around Maccabi games, Madar's shot, Colson's jab,
+  Blakeney's and Timor's contracts, Toppin's talks, the Madar deal;
+- 2 are Madar's farewells from Hapoel. They get the destination club (Maccabi), while the club
+  they are mainly about (Hapoel) is attached only when the text names it. The owner rated both
+  feed/high, so no harm here, but it is the proxy, not the meaning.
+
+**Remaining risks and assumptions:**
+
+| Case | Behavior | Risk |
+|---|---|---|
+| National team | the text marker "נבחרת" suppresses the club (sport still counts) | Only that word is recognized; "ישראל ניצחה", "יורובאסקט" or age-group teams are not. The marker also fires on incidental mentions inside club stories ("שחקן הנבחרת"), dropping club evidence. 1 corpus case, where dropping it happened to be right (Blatt, July: "still looking for a team") |
+| Former club, transfer, farewell | the current club is attached; the former club only if named | A farewell is filed under the destination club. A future "X returns to his old club" headline would attach the current one |
+| Historical or retrospective articles | today's roster is applied to past events | A July article about Blatt seeking a team would carry today's Hapoel. Safe only for articles ingested while the roster is current: **no backfill** |
+| Roster changes mid-season | stale entries attach the wrong club until updated | Needs a maintenance owner; there is no automatic expiry |
+| Incidental person in the subtitle | sport only | covered by tests |
+| Ambiguous surnames | full-name aliases only | covered by tests and the alias table |
+
+A fuller fix would need the article's *subject* (who or what the headline is about), not
+membership. That is out of scope; the attention evidence's `subject_entity_ids` is the nearest
+existing signal.
+
+## Owner decisions recorded (2026-10-26)
+
+- **#257 / C9:** feed is the baseline for Hapoel Tel Aviv basketball coverage in Guy's profile,
+  with high where justified. It is profile-specific, not a global rule. Golden C9 `desired` now
+  asserts `guy: feed`.
+- **Lundberg push:** the classification is accepted. Notification deduplication stays a
+  separate concern.
+- **#371:** accepted as a documented, pre-existing gap for this review. The faithful replay
+  shows this PR adds 0 duplicate messages. It stays high priority for the MVP.
+- **Maccabi match results:** no general push rule from the single Rishon LeZion example; the
+  question is recorded separately.
 
 ## Clustering
 

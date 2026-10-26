@@ -170,10 +170,29 @@ this PR. Tracked as #371 with a strict-xfail regression test.
 **Do not backfill.** Applying this PR's facts to stored rows without recomputing attention
 would recreate context 2.
 
-### Unrated changed decisions
+### The 16 unrated changes, rated blind by the owner (2026-10-26)
 
-16 changed decisions have no owner rating in any file (the full list with before/after and the facts change is in [BASKETBALL_PEOPLE_259_BEFORE_AFTER.md](BASKETBALL_PEOPLE_259_BEFORE_AFTER.md)). They are served blind for rating
-(`docs/qa/people_259_flips_sample.json`, `rate_census.py serve`).
+The owner rated all 16 on the blind page (`people_259_flips_ratings.json`; decisions were not
+shown). The owner's own tolerance: one step (3 vs 4, 2 vs 3) is a judgment call, not an error.
+The clear-cut cases ("a player agreed a new contract = push") are what must be right. Decisions
+are from the rules-only rerun (seed profile).
+
+| On the 16 | `main` | this PR |
+|---|---|---|
+| Exact | 0 | **11** |
+| Within one step | 3 | **15** |
+| Rated feed or higher, but hidden | 13 | **0** |
+| Shown, rated hide | 0 | 0 |
+| Push not rated push | 0 | 0 |
+
+- **The one push** (Lundberg agreed a new contract) is rated push.
+- **The studio episode** is `high`, rated feed (within one); no push.
+- **The one miss of two steps:** "הפתעה גדולה: מכבי ראשון לציון היממה את מכבי תל אביב", rated
+  **push**, decided feed. A Maccabi match result: Guy's profile has no push rule for results.
+  That is a profile question, not this PR's classification.
+- **Hapoel Tel Aviv items** (Toppin talks, Blakeney's extension, Panathinaikos away, the Madar
+  farewell) are rated feed or high, so the owner wants them visible. This informs #257 and golden
+  case C9.
 
 ## Clustering
 

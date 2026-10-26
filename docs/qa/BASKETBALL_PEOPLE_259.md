@@ -227,6 +227,48 @@ A fuller fix would need the article's *subject* (who or what the headline is abo
 membership. That is out of scope; the attention evidence's `subject_entity_ids` is the nearest
 existing signal.
 
+## Transfers and farewells: extra association or wrong subject? (2026-10-26)
+
+**The three Madar farewells** (11 July). Decisions are rules-only with the seed profile; the
+reason line is the reader's "למה אצלך"; all three are `release`, which no push rule of Guy's
+covers, so none is push-eligible.
+
+| Article | Owner | Facts `main` → this PR | Guy | Reason shown |
+|---|---|---|---|---|
+| walla "כך ים מדר נפרד מהפועל ת"א" | feed | none → Maccabi **+ Hapoel** | hidden → high | "מכבי תל אביב (כדורסל) ברשימת המעקב שלך" |
+| ynet "ים מדר נפרד מהפועל ת"א…" | high | Hapoel → Maccabi **+ Hapoel** | feed → high | same |
+| sport5 "מדר: עוזב בראש מורם" | high | none → **Maccabi only** | hidden → high | same |
+
+- **walla and ynet: an extra association.** The club the article is about (Hapoel) is present.
+- **sport5: a wrong subject.** The subtitle names Hapoel only by the family name ("מהפועל"),
+  which never resolves, so the facts read "Maccabi + release". The feed outcome matches the
+  owner's rating (high: Madar is a new Maccabi player).
+- Who would be misled: a Hapoel follower misses this farewell, and a profile with a Maccabi
+  `release` push rule would get a false push. No current profile has such a rule.
+
+**New coverage: the same failure, plus a found and fixed case.** Probing current code with new
+transfer headlines:
+- "רשמי: ג'ימי קלארק חתם בפנאתינייקוס" (a registered Maccabi player signing elsewhere) carried
+  **only Maccabi**. Panathinaikos and Olympiacos are guarded names that need basketball
+  evidence, and the person's sport evidence never reached them.
+- **Fixed in this PR:** when a title person proves the sport, the title is re-resolved with it,
+  as the ambiguous-club path already did. The destination club is now attached too.
+- Corpus effect: 1 fact change (Barcelona added to a Maccabi game report), 0 decision changes,
+  census metrics identical.
+- The Maccabi association stays: Guy sees "a Maccabi player leaves for Panathinaikos" as Maccabi
+  news (`high`). The push gate keeps it from being a push, because there is no Maccabi subject
+  in the attention evidence.
+
+**Remaining, not corrected (needs the article's subject, out of scope):**
+- A farewell that names the old club only by family name is filed under the new club (sport5
+  above). This recurs on new coverage whenever the registry already lists the new club.
+- A stale registry (a player who moved but is not yet updated) keeps attaching the old club.
+
+User impact for Guy today: such items show as Maccabi news (high, not push), which his ratings
+accept. For other users and future push rules on `release`, the subject is wrong. **Owner
+decision:** accept, or require a subject signal before `implies_team` applies to departure
+events.
+
 ## Owner decisions recorded (2026-10-26)
 
 - **#257 / C9:** feed is the baseline for Hapoel Tel Aviv basketball coverage in Guy's profile,

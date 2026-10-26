@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.core.deploy_mode import provider_call_refusal
 from app.core.security_deps import require_admin
 from app.db.database import get_session
 from app.models.profile import UserProfile
@@ -59,7 +60,10 @@ def results_sync_state(session: Session = Depends(get_session)):
 
 @router.post("/results/sync", dependencies=[Depends(require_admin)])
 def results_sync(session: Session = Depends(get_session)):
-    """Manually trigger a results sync (bypasses the throttle)."""
+    """Manually trigger a results sync (bypasses the throttle). 503 when provider calls are
+    disabled (a preview)."""
+    if (refusal := provider_call_refusal("results_sync")) is not None:
+        raise HTTPException(status_code=503, detail=refusal)
     if not settings.results_enabled():
         raise HTTPException(status_code=404, detail="Results feature is disabled")
     return sync_results(session, force=True)

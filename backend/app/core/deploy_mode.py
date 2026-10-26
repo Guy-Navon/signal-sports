@@ -241,3 +241,18 @@ def validate_deploy_startup_config() -> list[str]:
     for message in warnings:
         logger.warning("DEPLOY_ENV=%s: %s", mode, message)
     return warnings
+
+
+def provider_call_refusal(operation: str) -> Optional[dict]:
+    """The explicit refusal for an operation that would call a source, the results provider or
+    a notification channel, when ``PROVIDER_CALLS_DISABLED`` is set (scripts/preview.ps1 sets it
+    for a branch preview). None when calls are allowed. Routes check this BEFORE any provider
+    code runs; the preview's dead outbound proxy stays as a second layer."""
+    if not _truthy("PROVIDER_CALLS_DISABLED"):
+        return None
+    return {
+        "status": "disabled",
+        "operation": operation,
+        "reason": "PROVIDER_CALLS_DISABLED is set (a preview on a corpus copy): "
+                  "no source, results provider or notification call is made",
+    }

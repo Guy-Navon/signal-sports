@@ -90,7 +90,7 @@ compared). The whole-corpus rerun is **rules only**, so it approximates producti
 | N05 shown precision | 113/116 | 113/116 | 115/118 | **115/118** |
 | N05 push precision / recall | 8/9, 8/9 | 8/9, 8/9 | 8/9, 8/9 | **8/9, 8/9** |
 | Deni fan (visible, push) | 72, 4 | 72, 4 | 72, 4 | **72, 4** |
-| Guy push (articles) | 18 | 19 | 19 | **19** |
+| Guy push, seed profile (articles; the DB profile gives 14 → 17, below) | 18 | 19 | 19 | **19** |
 
 A naive "sport only" that records the person as an entity scored **below main** (110/138). The
 title entity blocks the subtitle's club gap-fill. The "sport only" column above records no

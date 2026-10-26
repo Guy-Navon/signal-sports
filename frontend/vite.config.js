@@ -13,9 +13,11 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5173,
     strictPort: true, // Tailscale Serve points at 5173; fail loudly instead of drifting to 5174
+    // SIGNAL_API_PROXY lets scripts/preview.ps1 run a second copy next to the live
+    // stack (its own API port); unset, the proxy targets the live API as before.
     proxy: {
-      '/api': 'http://127.0.0.1:8000',
-      '/health': 'http://127.0.0.1:8000',
+      '/api': process.env.SIGNAL_API_PROXY || 'http://127.0.0.1:8000',
+      '/health': process.env.SIGNAL_API_PROXY || 'http://127.0.0.1:8000',
     },
   },
   test: {

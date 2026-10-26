@@ -22,6 +22,7 @@ from app.core.security_deps import require_admin
 from app.db.database import get_session
 from app.ingestion.orchestration import (
     current_lease,
+    last_successful_cycle,
     stale_after_seconds,
     worker_liveness,
 )
@@ -158,11 +159,7 @@ def scheduler_health(session: Session = Depends(get_session)):
         "SELECT id, trigger, status, finished_at FROM scheduler_cycles "
         "WHERE status != 'skipped_active_run' ORDER BY requested_at DESC LIMIT 1"
     )).fetchone()
-    last_success = session.execute(text(
-        "SELECT id, trigger, status, finished_at FROM scheduler_cycles "
-        "WHERE status IN ('succeeded','succeeded_with_warnings') "
-        "ORDER BY finished_at DESC LIMIT 1"
-    )).fetchone()
+    last_success = last_successful_cycle(session)
     success_age = _age_seconds(last_success[3]) if last_success else None
 
     # Consecutive failures: walk real (non-skip) cycles backwards.

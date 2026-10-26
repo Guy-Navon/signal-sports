@@ -9,6 +9,7 @@ import OpsGrid from "@/components/shell/OpsGrid";
 import ProductNav from "@/components/shell/ProductNav";
 import OpsNav from "@/components/shell/OpsNav";
 import ErrorState from "@/components/shared/ErrorState";
+import { connectionErrorStrip } from "@/components/feed/feedLoadModel";
 
 // Product routes live inside Orbit's ambient intelligence canvas — no sidebar;
 // the masthead carries navigation and the feed gets the full width. Ops keeps
@@ -33,9 +34,7 @@ export default function AppShell({ area = "product" }) {
       {isBackendMode && apiError && (
         <ErrorState
           variant="strip"
-          title="שגיאה בחיבור לשרת"
-          message={apiError}
-          hint="ודא ששרת ה-API רץ (uvicorn, פורט 8000)"
+          {...connectionErrorStrip({ area, message: apiError })}
           onRetry={refreshFeed}
         />
       )}

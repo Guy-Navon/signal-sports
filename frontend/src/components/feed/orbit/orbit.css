@@ -1596,8 +1596,8 @@ a.orbit-report:hover {
   }
 
   .orbit-core__feedback button {
-    min-width: 40px;
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .orbit-primary-action {
@@ -1742,8 +1742,8 @@ a.orbit-report:hover {
 
   .orbit-queue-story__action-buttons button,
   .orbit-queue-story__action-buttons > a {
-    min-width: 40px;
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .orbit-field--expanded {

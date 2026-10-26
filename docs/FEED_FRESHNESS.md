@@ -113,6 +113,17 @@ alike — because it exists to explain decisions. `GET /api/articles`, translati
 routes and the shadow report likewise operate on the raw corpus, not the ranked feed; that is
 intended and unchanged.
 
+**The reader's freshness signal (#249).** Because the window empties a feed whose worker has
+stopped, the consumer feed says how fresh it is. `GET /api/me/feed/freshness` (any session)
+returns exactly `{last_successful_cycle_at, worker_running}`, read through the same functions
+as the admin `/api/scheduler/health` (`orchestration.last_successful_cycle`,
+`orchestration.worker_liveness`), with a parity test. The feed renders one quiet line
+("עודכן לפני 4 דק׳") and a warning when the worker is not running ("הייבוא האוטומטי לא רץ — הפיד
+לא מתעדכן") or claims to run but has not succeeded for more than 30 minutes, six intervals
+("הפיד לא התעדכן מעל חצי שעה — הייבוא נתקע"). The thresholds and copy live in
+`frontend/src/components/feed/feedFreshnessModel.js`. Local (mock) mode shows nothing. This is a
+visible signal only: no alert is sent anywhere.
+
 ## 8. What was deliberately NOT done
 
 - **Physical retention stays disabled** (M8-6 #176). It is not needed to fix visibility. When it

@@ -67,7 +67,7 @@ export default function Onboarding() {
             type="button"
             onClick={skip}
             disabled={skipping}
-            className="w-full text-sm text-text-secondary hover:text-foreground transition-colors disabled:opacity-50"
+            className="w-full text-sm text-text-secondary hover:text-foreground transition-colors disabled:opacity-50 max-md:min-h-11"
           >
             {skipping ? "רק רגע…" : "דלגו בינתיים — אכייל אחר כך"}
           </button>

@@ -52,7 +52,7 @@ function AccountMenu() {
     <DropdownMenu dir="rtl">
       <DropdownMenuTrigger
         aria-label="חשבון"
-        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-text-dim hover:text-foreground hover:bg-surface-2 transition-colors"
+        className="inline-flex items-center justify-center w-8 h-8 max-md:w-11 max-md:h-11 rounded-lg text-text-dim hover:text-foreground hover:bg-surface-2 transition-colors"
       >
         <UserRound size={15} />
       </DropdownMenuTrigger>

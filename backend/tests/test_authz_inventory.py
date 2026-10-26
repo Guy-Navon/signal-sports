@@ -60,6 +60,7 @@ ME = {
     "GET /api/me/profile",
     "PUT /api/me/profile",
     "GET /api/me/feed",
+    "GET /api/me/feed/freshness",
     "GET /api/me/results",
     "POST /api/me/feedback",
     "GET /api/me/feedback",

@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import EmptyState from "@/components/shared/EmptyState";
 import FeedbackControls from "@/components/feed/FeedbackControls";
+import { useArticleOpened } from "@/context/AppContext";
 import SourceMeta from "@/components/feed/SourceMeta";
 import { buildKicker } from "@/components/feed/storyLabels";
 import { getDecisionConfig } from "@/components/feed/decisionConfig";
@@ -172,6 +173,7 @@ function OrbitQueueStory({ item, index, onFocus, localScoredArticles, reduce }) 
   const publishedAt = orbitStoryTimestamp(item, reports);
   const kicker = buildKicker(item);
   const feedbackId = orbitFeedbackArticleId(item, reports);
+  const noteArticleOpened = useArticleOpened();
   const config = getDecisionConfig(item.score?.decision);
   const { queueDensity, queueRail, queueMuted } = config.orbit;
   const showSubtitle = queueDensity !== "compact" && Boolean(item.subtitle);
@@ -227,6 +229,7 @@ function OrbitQueueStory({ item, index, onFocus, localScoredArticles, reduce }) 
               href={articleUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => noteArticleOpened(feedbackId)}
               aria-label="פתח את הדיווח"
               title="פתח את הדיווח"
             >

@@ -23,7 +23,11 @@ learned state is recomputed from the event log at read time.
    non-learned base); 90-day half-life decay; learned scope levels floor at
    -1 (**learning never creates an exclude**; broad suppression is never
    inferred). `article_opened` is logged (passive slot) but is NEVER
-   evidence.
+   evidence. Since #250 the consumer feed emits it, fire-and-forget, when the
+   reader opens an article's source (the reader's own session only, never an
+   admin view-as). It still has no learning effect and is not a dismissal.
+   Feed views are counted separately, one `usage_days` row per user per Israel
+   day (`usage_repository.record_feed_view`), for the pilot report (#252).
 4. **Signal hierarchy** (SOURCE_AUTHORITY, enforced by the scorer):
    **explicit > learned > calibration** — learned refines calibration but
    never overrides an explicit follow; explicit mutes/overrides beat

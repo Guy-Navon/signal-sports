@@ -172,6 +172,29 @@ def story_tokens_beyond_clubs(rare: Sequence[str], shared: frozenset[str]) -> tu
     return tuple(t for t in rare if not (set(_candidate_forms(t)) | {t}) & club_words)
 
 
+_PERSON_PREFIXES = ("player:", "coach:", "exec:")
+
+
+def conflicting_clubs(a, b, shared: frozenset[str]) -> bool:
+    """B3 (#364): True when a rescue that rests on a registered PERSON (a canonical player,
+    coach or executive id) joins two stories naming different clubs. A name says who; when both
+    articles also name canonical clubs and those clubs do not overlap — the person's own club
+    aside — they report different developments ("Philadelphia courts LeBron" / "Portland tries
+    to sign LeBron"). False when no registered person is shared, when the rescue already shares
+    a club, or when either side names no club, so every other rescue is unchanged."""
+    if not any(k.startswith(_PERSON_PREFIXES) for k in shared):
+        return False
+    if any(k.startswith("team:") for k in shared):
+        return False
+    own = {
+        ENTITIES[k].team_id for k in shared
+        if k.startswith(_PERSON_PREFIXES) and k in ENTITIES and ENTITIES[k].team_id
+    }
+    clubs_a = {s.get("anchor") for s in a if str(s.get("anchor", "")).startswith("team:")} - own
+    clubs_b = {s.get("anchor") for s in b if str(s.get("anchor", "")).startswith("team:")} - own
+    return bool(clubs_a) and bool(clubs_b) and not (clubs_a & clubs_b)
+
+
 def hard_gate_population(anchor, peers: Sequence, cfg) -> list:
     """The candidate population an article's anchors are corroborated against.
 

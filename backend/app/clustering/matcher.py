@@ -20,7 +20,11 @@ missed cluster is cosmetic; a wrong merge tells the user something false.
 
 from typing import Optional
 
-from app.clustering.anchor_enrichment import conflicting_clubs, shared_subject_anchors
+from app.clustering.anchor_enrichment import (
+    conflicting_clubs,
+    shared_subject_anchors,
+    story_tokens_beyond_clubs,
+)
 from app.clustering.claims import claims_compatible
 from app.clustering.config import ClusteringConfig
 from app.clustering.contract import ClusterInput, MatchEdge, RejectionReason
@@ -219,6 +223,13 @@ def match_pair(
         shared = shared_subject_anchors(list(a.story_anchors), list(b.story_anchors))
         if shared and conflicting_clubs(a.story_anchors, b.story_anchors, shared):
             return ()  # B3: the same person, different clubs: different stories
+        if shared and all(k.startswith("team:") for k in shared):
+            # B1 (#364): a club is not a story. Team-only evidence needs the Tier C bar of
+            # shared discriminative tokens beyond the club's own name: one rare ordinary word
+            # ("מתקרבת", "סובל") is not a shared story.
+            rare = df.discriminative_shared(tokens_a, tokens_b, cfg)
+            if len(story_tokens_beyond_clubs(rare, shared)) < cfg.tier_c_min_rare_tokens:
+                return ()
         return tuple(sorted(shared))
 
     jac = jaccard(tokens_a, tokens_b)

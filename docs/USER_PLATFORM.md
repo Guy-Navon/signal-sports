@@ -261,6 +261,22 @@ logs; a filter on the uvicorn access log (`app/core/log_redaction.py`) also reda
 `t=`/`token=` query value as a backstop. The message is Hebrew RTL plain text plus minimal HTML, with no images or tracking.
 Setup and the delivery check: `docs/DEPLOYMENT.md`.
 
+**Without a mailer** (no SMTP provider yet, #333), the owner can give one person an account
+on the machine with `backend/scripts/create_user.py --email <address> --name <name>`. It is a
+dry run without `--apply`; with `--apply` it creates a regular `user` with a **generated**
+password printed once, the email left unverified (a password reset or a Google sign-in
+verifies it the normal way), and onboarding left to the person. An address that already has
+an account is refused. Admins are never created this way.
+
+What it does and does not change: no authentication rule changes. Password login checks the
+password hash; it has never gated an existing account on `email_verified_at` (the email
+proof happens before a signup's account exists, in the pending-registration table). So this
+account can sign in with its password, unverified. Because Google sign-in links to an existing
+`user` account by its address (#332), and a password reset goes to that address, a mistyped
+address would hand the account to whoever owns it: `--apply` therefore requires
+`--confirm-email` with the same address. First login runs the normal funnel
+(`onboardingFlow.js`): `/welcome` → `/interests` → `/calibration` → the feed.
+
 ## Google sign-in (Gmail and Workspace)
 
 Added 2026-10-21 (Slice B1). This reverses the original OAuth non-goal on purpose. Password

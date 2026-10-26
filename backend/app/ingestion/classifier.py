@@ -963,8 +963,14 @@ def classify(
     is_ambiguous_club = not _basketball_only_src and bool(title_resolution.ambiguous)
 
     # A named club person proves the sport even next to an ambiguous club name (#259).
+    # That evidence also lets a GUARDED club in the same title resolve ("ג'ימי קלארק חתם
+    # בפנאתינייקוס"): without it the person's registry club was the article's only club.
     if sport == "unknown":
         sport = _club_person_sport(title_resolution) or "unknown"
+        if sport != "unknown":
+            for name in _detect_entities(text, source_id, sport_override=sport):
+                if name not in entities:
+                    entities.append(name)
 
     # Entity-based sport inference: when all resolved entities agree on one
     # sport, that sport is taxonomy evidence (previously a basketball-only bias).

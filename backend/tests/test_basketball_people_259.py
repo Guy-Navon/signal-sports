@@ -145,3 +145,23 @@ class TestASubtitleOnlyPersonIsNotTheSubject:
         # the title names the (cross-sport) club; the subtitle person proves basketball
         a = _ingest('מכבי ת"א מרוצה מהזכייה', "ים מדר קלע 20 נקודות והוביל את הצהובים")
         assert MACCABI in a.entity_ids
+
+
+class TestThePersonsSportResolvesTheOtherClub:
+    """A person who proves basketball also lets a guarded club in the same title resolve
+    (Panathinaikos, Olympiacos need basketball evidence). Without it a registered Maccabi
+    player 'signing at Panathinaikos' carried ONLY Maccabi: the registry club became the
+    article's only club instead of an extra association (2026-10-26 review)."""
+
+    def test_the_destination_club_is_attached_next_to_the_registry_club(self):
+        a = _ingest("רשמי: ג'ימי קלארק חתם בפנאתינייקוס")
+        assert "team:panathinaikos_bb" in a.entity_ids
+        assert "team:maccabi_tlv_bb" in a.entity_ids
+
+    def test_a_negotiation_abroad_names_the_club_abroad(self):
+        a = _ingest("רומן סורקין סיכם באולימפיאקוס")
+        assert "team:olympiacos_bb" in a.entity_ids
+
+    def test_a_farewell_without_another_club_is_unchanged(self):
+        a = _ingest('מדר: "עוזב בראש מורם. השנה לא הייתה קלה"', "הגארד נפרד מהפועל בדרך למכבי")
+        assert a.entity_ids == ["team:maccabi_tlv_bb"]

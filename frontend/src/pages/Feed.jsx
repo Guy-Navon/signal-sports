@@ -5,6 +5,8 @@ import { useAuth } from "@/context/AuthContext";
 import { showCalibrateEmptyState } from "@/context/onboardingFlow";
 import EditionEmptyState from "@/components/feed/EditionEmptyState";
 import FeedFreshness from "@/components/feed/FeedFreshness";
+import ErrorState from "@/components/shared/ErrorState";
+import { FEED_LOAD_ERROR, feedBodyState } from "@/components/feed/feedLoadModel";
 import OrbitFeedView from "@/components/feed/orbit/OrbitFeedView";
 import { prepareFeedItems } from "@/components/feed/orbit/orbitStoryModel";
 import {
@@ -55,6 +57,8 @@ export default function Feed() {
     activeProfile,
     isBackendMode,
     isLoading,
+    feedLoadFailed,
+    refreshFeed,
   } = useApp();
   const auth = useAuth();
   const reduce = useReducedMotion();
@@ -85,7 +89,14 @@ export default function Feed() {
   };
   const resetFilters = () => setActiveFilters(new Set(["all"]));
 
-  if (isBackendMode && isLoading && visibleItems.length === 0) {
+  const bodyState = feedBodyState({
+    isBackendMode,
+    isLoading,
+    loadFailed: feedLoadFailed,
+    itemCount: visibleItems.length,
+  });
+
+  if (bodyState === "loading") {
     return (
       <div className="orbit-feed-view">
         <OrbitLoadingState />
@@ -104,7 +115,17 @@ export default function Feed() {
       transition={{ duration: reduce ? 0.12 : 0.34, ease: [0.22, 1, 0.36, 1] }}
     >
       <FeedFreshness enabled={isBackendMode} />
-      {visibleItems.length === 0 ? (
+      {bodyState === "error" ? (
+        <div className="orbit-feed-view orbit-feed-empty" role="alert">
+          <ErrorState
+            variant="page"
+            title={FEED_LOAD_ERROR.title}
+            message={FEED_LOAD_ERROR.message}
+            retryLabel={FEED_LOAD_ERROR.retryLabel}
+            onRetry={refreshFeed}
+          />
+        </div>
+      ) : bodyState === "empty" ? (
         <div className="orbit-feed-view orbit-feed-empty">
           <EditionEmptyState variant={emptyStateVariant} />
         </div>

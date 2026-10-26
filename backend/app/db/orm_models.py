@@ -292,6 +292,19 @@ class FeedbackRow(Base):
     retracted = Column(Integer, nullable=False, default=0)
 
 
+class UsageDayRow(Base):
+    """#250: one row per (user, Israel calendar day) in which the user's feed was
+    served — the pilot's "was Signal used today?" record. A counter, not a log:
+    no per-request rows, no IP or user agent."""
+    __tablename__ = "usage_days"
+
+    user_id = Column(String, primary_key=True)
+    day = Column(String, primary_key=True)          # YYYY-MM-DD, Asia/Jerusalem
+    feed_views = Column(Integer, nullable=False, default=0)
+    first_view_at = Column(String, nullable=False)  # ISO-8601 UTC
+    last_view_at = Column(String, nullable=False)
+
+
 class CalibrationResponseRow(Base):
     """Calibration V2 (issue #33): one persisted rating per (user, item).
     Re-rating upserts; dataset_version records which dataset was rated."""

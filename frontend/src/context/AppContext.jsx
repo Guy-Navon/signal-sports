@@ -9,6 +9,7 @@ import {
   getMeResults, getResults,
 } from "@/api/client";
 import { mockResults } from "@/data/mockResults";
+import { recordArticleOpened } from "@/api/usage";
 import { normalizeResultsResponse, normalizeResultFromApi } from "@/components/results/resultsModel";
 import { deriveFollows, filterRelevant, hasAnyFollows } from "@/components/results/resultsRelevance";
 import { useAuth } from "@/context/AuthContext";
@@ -386,6 +387,15 @@ function AppStateProvider({ children }) {
     }
   }, [activeProfileId, isBackendMode, feedbackUsesSession, refreshFeed]);
 
+  // Reader opened an article's source (#250): only the reader's own session counts —
+  // never an admin view-as — and it never enters the local feedback list.
+  const noteArticleOpened = useCallback((articleId) => {
+    recordArticleOpened(articleId, {
+      enabled: isBackendMode && feedbackUsesSession,
+      send: submitMeFeedback,
+    });
+  }, [isBackendMode, feedbackUsesSession]);
+
   const getFeedbackForArticle = useCallback((articleId) => {
     return feedback.filter(f => f.userId === feedbackUserId && f.articleId === articleId);
   }, [feedback, feedbackUserId]);
@@ -476,9 +486,16 @@ function AppStateProvider({ children }) {
     addFeedback,
     neverShowArticle,
     getFeedbackForArticle,
+    noteArticleOpened,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
+
+// Safe outside the provider (capture harness, isolated renders): opens are then not recorded.
+const NOOP = () => {};
+export function useArticleOpened() {
+  return useContext(AppContext)?.noteArticleOpened ?? NOOP;
 }
 
 // Whether the engine trace may be shown (ops: admin, local, bypass). Safe outside the

@@ -292,6 +292,34 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
     hidden to feed for Guy (one rated push, one high). One subtitle-only Hapoel mention
     drops, because the title now resolves its subject (Mizrahi → Maccabi). Push and
     Deni are unchanged.
+- **Israeli-league basketball people — added 2026-10-25, revised 2026-10-26 (#259).**
+  Maccabi and Hapoel Tel Aviv share their names with football clubs. A story that names
+  only the club resolves to nothing (#345), and the facts stage rightly refuses the LLM's
+  guess. A counterfactual on the week sample showed that relaxing that guard shows five
+  football Maccabi stories the owner rated hide. A player or coach name is real evidence
+  instead. 28 players and Hapoel's coach (Dimitris Itoudis) are registered, each with
+  `team_id` (`team:maccabi_tlv_bb` / `team:hapoel_tlv_bb`) and the new flag
+  **`implies_team`**.
+  - **Two kinds of evidence.** A mention always proves **basketball**. It implies the
+    **club** (emitted like an executive's, without the person) only when the person is in
+    the **title** and the text is not about a national team (`נבחרת`). A subtitle-only or
+    national-team mention proves the sport alone; the club then needs the text itself to
+    name it. The person is not followable (absent from the catalog, rejected by `policy`).
+    Deni, LeBron and Brunson are unchanged: they still emit themselves.
+  - **Selection.** On the club's 2026-27 roster on the Israeli league's official site
+    (basket.co.il team pages, checked 2026-10-26) **and** named in the corpus. Roster names
+    with no corpus mention are left out. Full list, sources, per-alias evidence and the
+    measured alternatives: [qa/BASKETBALL_PEOPLE_259.md](qa/BASKETBALL_PEOPLE_259.md).
+  - **Alias safety.** Every alias is word-bounded. A bare surname is registered only when
+    every corpus hit is this person. Full names only for `קלארק` (Caitlin Clark), `הורד`
+    (a Hebrew verb), `בלאט` (David Blatt), `בראיינט` (Kobe), `לידיי` (`לידיים`), `קופי`,
+    `קרינגטון`, `ליף`, `וואלאס`, `האנטר`, `גינת`, `טימור` and `ג'רמן`. `בריסט` is safe only
+    word-bounded (`בריסטול`), and `מדר` only word-bounded (`מדריד`, `מדריך`).
+    **Spelling variants:** `_geresh_variants` adds the `'` / `׳` / `` ` `` forms; the corpus
+    writes `ג`ייקוב טופין` and `ג`ייסון לוין`. Jason Levin (#229) gets the same variants.
+  - **Season data.** `team_id` is this season's club. Re-check at every roster change,
+    like a coach. Do not backfill old articles with it: it would attach today's club to a
+    past transfer story.
 - **Bare family names** (`בהפועל`) stay unresolvable. That abstention is a
   designed success mode, not a remaining gap.
 

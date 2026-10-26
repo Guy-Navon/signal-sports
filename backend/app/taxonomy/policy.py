@@ -54,7 +54,8 @@ def scope_target_selectable(scope: str, target_id: str) -> bool:
     if scope == "team":
         return entity_by_id(target_id) is not None
     if scope == "player":
-        # Executives (#229) are followed through their club, never on their own.
+        # Executives (#229) and club-implying roster people (#259) are followed
+        # through their club, never on their own.
         ent = entity_by_id(target_id)
-        return ent is not None and ent.kind != "executive"
+        return ent is not None and ent.kind != "executive" and not ent.implies_team
     return False

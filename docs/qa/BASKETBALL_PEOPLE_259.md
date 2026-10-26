@@ -121,28 +121,51 @@ entity.
   - dev: no change.
 - **Holdout:** not used. It is partially exposed; see WEEK_SAMPLE_2026-10_DEV_RESULTS.md.
 
-### The new push: Lundberg (not approved; no workaround added)
+### New pushes: classification vs notification (not approved; no workaround added)
 
-- **Article:** `rss_9ccfed7f40f424ede65d` (walla, 2026-07-23),
-  "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב. סומן מחליף לווקר". It has no owner rating.
-- **Path:** Lundberg in the title gives basketball, so `מכבי תל אביב` resolves to
-  `team:maccabi_tlv_bb`. The event is `negotiation` (probable). Guy's profile rule
-  `always_push:negotiation` on Maccabi then decides **push**. Before this PR the same article was
-  `unknown` and hidden.
-- **Context (from `notification_events`, read-only on a copy):** the same agreement was already
-  pushed **three** times in July, each time as an unclustered article:
-  - Israel Hayom, 07-20 20:33 UTC;
-  - Sport5, 07-22 22:42;
-  - ynet, 07-23 04:15.
+**Classification, production path.** The rules-only rerun above scores the *seed* `guy` profile
+and shows 1 new push. The live DB profile is stronger: Maccabi `very_high`, plus explicit push
+rules for Maccabi `signing` and `negotiation`. With stored facts, the #353 delta and that profile
+with learned feedback, Guy's push articles go **14 → 17** (holdout excluded; the Deni fan stays 3).
 
-  Two earlier Lundberg negotiation updates were pushed on 07-19 and 07-20. The owner rated the
-  Israel Hayom and Sport5 articles **push** in N05.
+| Article | Facts with #353 | Guy (DB profile) |
+|---|---|---|
+| walla 07-23 "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב. סומן מחליף לווקר" | basketball, `team:maccabi_tlv_bb`, negotiation | hidden → **push** (Maccabi negotiation rule) |
+| walla 07-18 "שבוע קריטי במו"מ עם לונדברג" | basketball, Maccabi, negotiation | hidden → **push** |
+| walla 07-23 "מירוץ החימוש / השוק האירופי משתגע… עם אבי אבן באולפן" (a studio episode; the subtitle names Madar, Sorkin and "מכבי תל אביב") | basketball, Maccabi, **signing** (stored event type) | hidden → **push** (Maccabi signing rule) |
 
-  With today's clustering (rule 2) this walla article sits in `cluster_154662894917b642` with the
-  Sport5 and ynet ones, so it would join that story's lineage rather than send a new message.
-  That cluster only formed on 2026-09-11, so in July it would have been a fourth message. The +1
-  is an article-level count. The duplicate pushes are a clustering split, not a #259 effect.
-- **The owner decides** whether this meets "no new push".
+All three are among the 16 unrated items served blind. The studio episode is the clearest risk.
+Its club resolution follows the stated semantics: the subtitle names the club itself. The push,
+though, comes from a stored `signing` event type on a talk show. #353 makes such items reach the
+explicit push rules. It does not create the wrong event type.
+
+**Notification, isolated chronological replay** (planning only, never dispatched). How it was run:
+- a copy of the frozen corpus; clusters and every notification table cleared; activation at
+  2026-07-17 00:00 UTC the way `init_notification_watermark.py` does it;
+- then every 30 simulated minutes until 07-24 12:00: the articles published in that slot are
+  inserted, the real clustering stage runs (rule 2), and the real planner runs with the feed's
+  freshness clock at the tick;
+- same window, `main` with stored facts vs this branch with the #353 delta:
+
+| Time (UTC) | `main` | #353 |
+|---|---|---|
+| 07-18 18:00 walla "שבוע קריטי במו"מ עם לונדברג" | — | **new event** |
+| 07-20 12:30 walla "…ומתי לונדברג יסגור?" | new event | new event |
+| 07-20 18:30 Israel Hayom "…איפה לונדברג סיכם על חוזה חדש" | new event | new event |
+| 07-22 23:00 Sport5 "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב" | **new event** (the same agreement again) | **new event** (the same agreement again) |
+| 07-23 02:30 ynet "נשאר צהוב: …" | expansion of the Sport5 event | expansion of the Sport5 event |
+| 07-23 04:30 walla "…סומן מחליף לווקר" | expansion of the Sport5 event (a hidden member) | **expansion** of the Sport5 event, no message |
+| 07-23 14:00 walla "מירוץ החימוש…" | — | **new event** |
+
+Results:
+- **The Lundberg walla article does not send a message.** It joins the Sport5 07-22 event's
+  lineage as an expansion, with and without #353.
+- **#353 does add two messages in this window:**
+  - the 07-18 negotiation update, a new development;
+  - the 07-23 studio episode, likely noise.
+- **Today's code still sends the same agreement twice** (Israel Hayom 07-20 and Sport5 07-22,
+  about 28 h apart). This is the pre-existing clustering split, not a #353 effect. Your push
+  rating supports the article's relevance; it does not authorize the second message.
 
 ### Unrated changed decisions
 

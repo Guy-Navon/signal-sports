@@ -483,6 +483,18 @@ def _resolve_text_entities(
 # A national-team story (#259 review): the player is there for his country, not his club.
 _NATIONAL_TEAM_MARKERS = ("נבחרת", "national team")
 
+# The roster says where a player is TODAY, not what a departure or transfer story is about
+# (#259 review, owner decision 2026-10-26: an unresolved club beats an unsupported one).
+# A departure word, or a transfer verb next to ANOTHER named club, stops the roster club from
+# being inferred; a club the text names is still attached.
+_DEPARTURE = re.compile(
+    r"(?<![א-ת])[וש]?(?:נפרד|נפרדה|נפרדו|נפרדים|פרידה|פרידת|עוזב|עוזבת|עזב|עזבה)(?![א-ת])"
+    r"|(?<![א-ת])[וש]?(?:עבר|עברה|עובר|עוברת)\s+ל"
+)
+_TRANSFER = re.compile(
+    r'(?<![א-ת])[וש]?(?:חתם|חתמה|יחתום|תחתום|סיכם|סיכמה|הצטרף|הצטרפה|מגעים|במגעים|מו"מ|במו"מ|מו״מ|במו״מ)(?![א-ת])'
+)
+
 
 def _resolution_to_legacy_entities(
     resolution: EntityResolution, text: str = "", imply_clubs: bool = True,
@@ -497,9 +509,14 @@ def _resolution_to_legacy_entities(
     """
     entities: list[str] = []
     national_team = any(m in text for m in _NATIONAL_TEAM_MARKERS)
+    departure = bool(_DEPARTURE.search(text))
+    transfer = bool(_TRANSFER.search(text))
+    named_clubs = {e.id for e in resolution.resolved if e.kind == "team"}
     for entity in resolution.resolved:
         if entity.implies_team and (national_team or not imply_clubs):
             continue  # still sport evidence (_club_person_sport); not evidence of the club
+        if entity.implies_team and (departure or (transfer and named_clubs - {entity.team_id})):
+            continue  # departure/transfer: the roster club is not what the story is about
         if entity.kind in ("coach", "executive") or entity.implies_team:
             team = entity_by_id(entity.team_id) if entity.team_id else None
             if team and team.legacy_name not in entities:
@@ -968,9 +985,9 @@ def classify(
     if sport == "unknown":
         sport = _club_person_sport(title_resolution) or "unknown"
         if sport != "unknown":
-            for name in _detect_entities(text, source_id, sport_override=sport):
-                if name not in entities:
-                    entities.append(name)
+            # The sport-aware resolution sees every club the title names, so it also decides
+            # whether a departure/transfer makes the roster club unreliable.
+            entities = _detect_entities(text, source_id, sport_override=sport)
 
     # Entity-based sport inference: when all resolved entities agree on one
     # sport, that sport is taxonomy evidence (previously a basketball-only bias).

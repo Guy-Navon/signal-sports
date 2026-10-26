@@ -259,15 +259,24 @@ transfer headlines:
   news (`high`). The push gate keeps it from being a push, because there is no Maccabi subject
   in the attention evidence.
 
-**Remaining, not corrected (needs the article's subject, out of scope):**
-- A farewell that names the old club only by family name is filed under the new club (sport5
-  above). This recurs on new coverage whenever the registry already lists the new club.
-- A stale registry (a player who moved but is not yet updated) keeps attaching the old club.
+**Corrected (owner decision 2026-10-26: an unresolved club beats an unsupported one).** In
+departure or transfer context the roster club is no longer inferred:
+- a departure word (נפרד / פרידה / עוזב / עזב / עבר ל…) in the title, or
+- a transfer verb (חתם / סיכם / הצטרף / מו"מ…) next to a **different** named club.
 
-User impact for Guy today: such items show as Maccabi news (high, not push), which his ratings
-accept. For other users and future push rules on `release`, the subject is wrong. **Owner
-decision:** accept, or require a subject signal before `implies_team` applies to departure
-events.
+A club the text names is still attached. Ordinary current-club stories keep the roster club:
+an injury before a game against Hapoel, an extension, a quote.
+
+- **Clark → Panathinaikos:** only Panathinaikos.
+- **The Madar farewells:** walla and ynet carry Hapoel only (decision high → feed); sport5,
+  naming no club, is now unresolved (high → hidden).
+- **Corpus:** 3 decision changes (exactly the farewells); census #2 and N05 unchanged against
+  the previous version.
+- **Blind set:** exact 11 → 10, within one 15 → 14, one wanted-but-hidden (the sport5
+  farewell, rated high). That is the accepted tradeoff.
+
+**Still open (follow-up):** a stale registry attaches a former club to ordinary stories that
+have no departure context. Roster maintenance is required.
 
 ## Owner decisions recorded (2026-10-26)
 

@@ -147,21 +147,35 @@ class TestASubtitleOnlyPersonIsNotTheSubject:
         assert MACCABI in a.entity_ids
 
 
-class TestThePersonsSportResolvesTheOtherClub:
-    """A person who proves basketball also lets a guarded club in the same title resolve
-    (Panathinaikos, Olympiacos need basketball evidence). Without it a registered Maccabi
-    player 'signing at Panathinaikos' carried ONLY Maccabi: the registry club became the
-    article's only club instead of an extra association (2026-10-26 review)."""
+class TestDeparturesDoNotInferTheRosterClub:
+    """The roster says where a player is TODAY, not what a departure or transfer story is
+    about. In departure/transfer context the roster club is not inferred: an unresolved club
+    beats an unsupported association (owner decision, 2026-10-26). A club the text names is
+    still attached, and ordinary current-club stories keep the roster club."""
 
-    def test_the_destination_club_is_attached_next_to_the_registry_club(self):
+    def test_signing_elsewhere_names_only_the_destination(self):
         a = _ingest("רשמי: ג'ימי קלארק חתם בפנאתינייקוס")
         assert "team:panathinaikos_bb" in a.entity_ids
-        assert "team:maccabi_tlv_bb" in a.entity_ids
+        assert "team:maccabi_tlv_bb" not in a.entity_ids
 
-    def test_a_negotiation_abroad_names_the_club_abroad(self):
+    def test_an_agreement_abroad_names_only_the_club_abroad(self):
         a = _ingest("רומן סורקין סיכם באולימפיאקוס")
-        assert "team:olympiacos_bb" in a.entity_ids
+        assert a.entity_ids == ["team:olympiacos_bb"]
 
-    def test_a_farewell_without_another_club_is_unchanged(self):
+    def test_a_farewell_naming_the_old_club_keeps_only_that_club(self):
+        a = _ingest('ים מדר נפרד מהפועל ת"א: "השנה לא הייתה קלה עבורי, עוזב בראש מורם"')
+        assert a.entity_ids == ["team:hapoel_tlv_bb"]
+
+    def test_a_farewell_naming_no_club_leaves_the_club_unresolved(self):
         a = _ingest('מדר: "עוזב בראש מורם. השנה לא הייתה קלה"', "הגארד נפרד מהפועל בדרך למכבי")
+        assert a.sport == "basketball"
+        assert a.entity_ids == []
+
+    def test_a_signing_at_the_roster_club_keeps_it(self):
+        a = _ingest("איפה לונדברג סיכם על חוזה חדש במכבי תל אביב")
         assert a.entity_ids == ["team:maccabi_tlv_bb"]
+
+    def test_ordinary_current_club_stories_keep_the_roster_club(self):
+        assert "team:maccabi_tlv_bb" in _ingest('בסימן שאלה: דניאל תייס ייעדר מול הפועל ת"א?').entity_ids
+        assert _ingest('בריסט: "חשוב לנו לשחק נגד יריבות חזקות"').entity_ids == ["team:maccabi_tlv_bb"]
+        assert _ingest("שכרו בפנים: בלייקני האריך חוזה בהפועל").entity_ids == ["team:hapoel_tlv_bb"]

@@ -4,8 +4,8 @@ Seven persisted clusters (provisional agent judgments, #362) rested on nothing b
 canonical `team:` anchor at jaccard 0.015-0.065, e.g. "Red Star wants €250k for Glazer"
 with "the Brazilian centre-back Tsunami agrees with Maccabi Haifa". A club appears in every
 story about it, exactly like a competition (anchors.py already excludes those). A team-only
-rescue now also needs one shared discriminative token that is not part of the club's own
-name. Rescues on a person or name anchor, with or without the team, are unchanged.
+rescue now also needs the Tier C count (two) of shared discriminative tokens that are not
+part of the club's own name: one rare ordinary word is not a shared story. Rescues on a person or name anchor, with or without the team, are unchanged.
 
 Titles are real corpus titles; the "must keep" cases are the legitimate team-only
 clusters the same review found (Noam Yaakov at Cleveland, David Green at Kiryat Ata) and a
@@ -59,11 +59,13 @@ def test_one_signing_reported_twice_still_merges():
     assert _clusters(a, b) == [["a", "b"]]
 
 
-def test_a_low_overlap_signing_with_one_story_word_still_merges():
+def test_a_low_overlap_signing_with_story_words_still_merges():
     a = _art("a", "sport5_sport", "הצטיין במכללות: הרכש החדש של קריית אתא", 0,
-             "signing", "basketball", "team:ironi_kiryat_ata")
+             "signing", "basketball", "team:ironi_kiryat_ata",
+             subtitle="הפורוורד דייויד גרין חתם עד סוף העונה, אחרי הופעות נהדרות במכללת טולסה")
     b = _art("b", "walla_sport", "אחרי שש שנים במכללות: דיוויד גרין חתם בעירוני קרית אתא", 2,
-             "signing", "basketball", "team:ironi_kiryat_ata")
+             "signing", "basketball", "team:ironi_kiryat_ata",
+             subtitle="הפורוורד ששיחק בעונה שעברה בטולסה והצטיין מצטרף לקבוצה של אלדד בנטוב")
     assert _clusters(a, b) == [["a", "b"]]
 
 
@@ -73,3 +75,23 @@ def test_a_team_plus_a_name_anchor_is_unchanged():
     b = _art("b", "walla_sport", 'כולל שדרוג שכר משמעותי: לוקה גדראני האריך חוזה בבית"ר ירושלים', 2,
              "signing", "football", "team:beitar_jlm_fc")
     assert _clusters(a, b) == [["a", "b"]]
+
+
+def test_one_rare_ordinary_word_is_not_enough():
+    # Found by the B1 replay: once the old wrong clusters released their source slots,
+    # these merged on the club plus one rare ORDINARY word ("מתקרבת" = approaching).
+    a = _art("a", "walla_sport", "מכבי חיפה מתקרבת לחתימה: נייג'ל לונווייק נחת בישראל", 0,
+             "negotiation", "football", "team:maccabi_haifa_fc")
+    b = _art("b", "israel_hayom_sport", "הפועל תל אביב מעל מכבי חיפה: המנויים הכי יקרים בליגת העל", 2,
+             "negotiation", "football", "team:maccabi_haifa_fc",
+             subtitle="מכבי חיפה מתקרבת לסגירת המנויים לעונה הבאה")
+    assert _clusters(a, b) == []
+
+
+def test_a_generic_rare_word_does_not_rescue_a_club_pair():
+    # cluster_60ceeacea385ac47: two different career interviews joined on Beitar + "הפרידה".
+    a = _art("a", "israel_hayom_sport", '"אני חושב ומאמין שאסגור מעגל במכבי חיפה או בית"ר ירושלים"', 0,
+             "release", "football", "team:beitar_jlm_fc", subtitle="על הפרידה מהקבוצה")
+    b = _art("b", "walla_sport", '"אמא שלי נכנסה לבית של משה סיני והיה בלאגן גדול, תוהו ובוהו"', 3,
+             "release", "football", "team:beitar_jlm_fc", subtitle='הפרידה מבית"ר הייתה קשה')
+    assert _clusters(a, b) == []

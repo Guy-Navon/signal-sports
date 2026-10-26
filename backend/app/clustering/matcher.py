@@ -218,10 +218,11 @@ def match_pair(
             return ()
         shared = shared_subject_anchors(list(a.story_anchors), list(b.story_anchors))
         if shared and all(k.startswith("team:") for k in shared):
-            # B1 (#364): a club is not a story. Team-only evidence needs one shared
-            # discriminative token beyond the club's own name.
+            # B1 (#364): a club is not a story. Team-only evidence needs the Tier C bar of
+            # shared discriminative tokens beyond the club's own name: one rare ordinary word
+            # ("מתקרבת", "סובל") is not a shared story.
             rare = df.discriminative_shared(tokens_a, tokens_b, cfg)
-            if not story_tokens_beyond_clubs(rare, shared):
+            if len(story_tokens_beyond_clubs(rare, shared)) < cfg.tier_c_min_rare_tokens:
                 return ()
         return tuple(sorted(shared))
 

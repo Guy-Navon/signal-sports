@@ -160,8 +160,9 @@ def story_tokens_beyond_clubs(rare: Sequence[str], shared: frozenset[str]) -> tu
 
     A canonical club id appears in every story about that club, exactly like a competition, so
     on its own it does not say which story two articles share ("Red Star wants €250k for
-    Glazer" / "Tsunami agrees with Maccabi Haifa"). A team-only rescue needs one more
-    story-specific token; the club's own name ("נתניה", "בקליבלנד") does not count."""
+    Glazer" / "Tsunami agrees with Maccabi Haifa"). A team-only rescue needs story-specific
+    tokens beyond it (the matcher asks for the Tier C count); the club's own name ("נתניה",
+    "בקליבלנד") does not count."""
     club_words: set[str] = set()
     for key in shared:
         ent = ENTITIES.get(key)

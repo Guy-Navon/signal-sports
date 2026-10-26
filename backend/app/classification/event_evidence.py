@@ -710,6 +710,13 @@ _EVENT_SPORT_COMPATIBILITY: dict[str, frozenset[str]] = {
     "early_round_result": frozenset({"tennis"}),
 }
 
+# The NOUN "the signing" (החתמה, ההחתמה, החתמת, החתמות, with prefixes) talks ABOUT a signing;
+# it does not assert one. The cue "חתמה" ("she signed") is a substring match and fired inside
+# it: "מה אמר אבי אבן על ההחתמה של ים מדר? צפו בפרק" became a signing. Masked for the signing
+# rule only; the verbs (חתם, חתמה, החתים) are unaffected.
+_SIGNING_NOUN = re.compile(r"(?<![א-ת])[ובלמכשה]{0,3}החתמ(?:ה|ת|ות)(?![א-ת])")
+
+
 def validate_event_evidence(
     event_type: str,
     text: str,
@@ -769,6 +776,8 @@ def validate_event_evidence(
 
     if event_type == "finals_result":
         normalized = _mask_subfinal_rounds(normalized)
+    if event_type == "signing":
+        normalized = _SIGNING_NOUN.sub(" ", normalized)
 
     valid = _rule_valid(rule, normalized)
     if not valid:

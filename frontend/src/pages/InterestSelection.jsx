@@ -108,7 +108,7 @@ export default function InterestSelection() {
             type="button"
             onClick={skipAll}
             disabled={isSaving}
-            className="text-xs text-text-secondary hover:text-foreground underline underline-offset-4 transition-colors flex-shrink-0"
+            className="text-xs text-text-secondary hover:text-foreground underline underline-offset-4 transition-colors flex-shrink-0 max-md:min-h-11 max-md:px-2"
           >
             דלגו על הבחירה
           </button>
@@ -165,7 +165,7 @@ export default function InterestSelection() {
           type="button"
           onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
           disabled={stepIndex === 0}
-          className="text-xs text-text-secondary hover:text-foreground disabled:opacity-40 transition-colors"
+          className="text-xs text-text-secondary hover:text-foreground disabled:opacity-40 transition-colors max-md:min-h-11 max-md:min-w-11 max-md:px-2"
         >
           חזרה
         </button>
@@ -177,7 +177,7 @@ export default function InterestSelection() {
             <button
               onClick={saveAndContinue}
               disabled={isSaving || !canContinue}
-              className={consoleButton("primary")}
+              className={consoleButton("primary", "max-md:min-h-11")}
             >
               {isSaving
                 ? <><RefreshCw size={13} className="animate-spin" /> שומר...</>
@@ -186,7 +186,7 @@ export default function InterestSelection() {
           ) : (
             <button
               onClick={() => setStepIndex((i) => i + 1)}
-              className={consoleButton("primary")}
+              className={consoleButton("primary", "max-md:min-h-11")}
             >
               הבא <ChevronLeft size={13} />
             </button>

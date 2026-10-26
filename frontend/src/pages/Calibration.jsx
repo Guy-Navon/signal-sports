@@ -54,7 +54,7 @@ function ItemCard({ item, rating, onRate }) {
             key={key}
             onClick={() => onRate(item.id, rating === key ? null : key)}
             className={cn(
-              "px-2.5 py-1 rounded-full text-xs border transition-colors",
+              "px-2.5 py-1 max-md:min-h-11 rounded-full text-xs border transition-colors",
               rating === key ? tone : "border-border text-text-dim hover:border-text-dim"
             )}
           >
@@ -253,7 +253,7 @@ export default function Calibration() {
           <button
             type="button"
             onClick={handleSkipOnboarding}
-            className="text-xs text-text-secondary hover:text-foreground underline underline-offset-4 transition-colors flex-shrink-0"
+            className="text-xs text-text-secondary hover:text-foreground underline underline-offset-4 transition-colors flex-shrink-0 max-md:min-h-11 max-md:px-2"
           >
             דלגו בינתיים
           </button>
@@ -287,10 +287,10 @@ export default function Calibration() {
       </div>
 
       <div className="flex gap-2 flex-wrap items-center">
-        <button onClick={handlePreview} disabled={ratedCount === 0} className={consoleButton("secondary")}>
+        <button onClick={handlePreview} disabled={ratedCount === 0} className={consoleButton("secondary", "max-md:min-h-11")}>
           <Sparkles size={13} /> תצוגה מקדימה
         </button>
-        <button onClick={handleApply} disabled={isApplying || ratedCount === 0} className={consoleButton("primary")}>
+        <button onClick={handleApply} disabled={isApplying || ratedCount === 0} className={consoleButton("primary", "max-md:min-h-11")}>
           {isApplying
             ? <><RefreshCw size={13} className="animate-spin" /> שומר...</>
             : <><CheckCircle2 size={13} /> שמור לפרופיל</>}

@@ -144,7 +144,7 @@ def build_catalog() -> TaxonomyCatalog:
                 memberships=[comp for comp, _season in ent.memberships],
                 selectable=scope_target_selectable("team", ent.id),
             ))
-        elif ent.kind != "executive":  # executives ride on their club (#229)
+        elif ent.kind != "executive" and not ent.implies_team:  # ride on their club (#229, #259)
             people.append(CatalogPerson(
                 id=ent.id,
                 kind=ent.kind,

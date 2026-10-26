@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.qa.unknown_sport import build_report as build_unknown_sport_report
+from app.core.deploy_mode import provider_call_refusal
 from app.db.database import get_session
 from app.ingestion.config import RSS_SOURCES, get_source_config
 from sqlalchemy import text as sa_text
@@ -109,8 +110,11 @@ def run_ingest(
     Runs through the canonical orchestration service (M7-1, #147): the durable
     DB-backed single-flight guard, a persistent cycle record, and the exact same
     stage ordering as scheduled runs. Returns 409 if another ingestion run
-    (manual, run-now, or scheduled — in ANY process) is active.
+    (manual, run-now, or scheduled — in ANY process) is active, and 503 when provider
+    calls are disabled (a preview).
     """
+    if (refusal := provider_call_refusal("ingest")) is not None:
+        raise HTTPException(status_code=503, detail=refusal)
     outcome = orchestrate_cycle(TRIGGER_MANUAL, source_id=source_id)
     if outcome.skipped:
         raise HTTPException(status_code=409, detail=_ingestion_busy_detail(outcome.active_run))
@@ -186,8 +190,11 @@ def scheduler_run_now():
     """Trigger an ingestion run immediately through the canonical orchestration.
 
     Uses the same durable single-flight guard as manual and scheduled ingestion
-    (M7-1, #147); returns 409 if another run — in any process — is active.
+    (M7-1, #147); returns 409 if another run — in any process — is active, and 503 when
+    provider calls are disabled (a preview).
     """
+    if (refusal := provider_call_refusal("ingest_run_now")) is not None:
+        raise HTTPException(status_code=503, detail=refusal)
     outcome = orchestrate_cycle(TRIGGER_RUN_NOW)
     if outcome.skipped:
         raise HTTPException(status_code=409, detail=_ingestion_busy_detail(outcome.active_run))

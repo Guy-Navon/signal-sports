@@ -326,7 +326,10 @@ class TestTheKnownGap:
         אדום clustering evidence."""
         cands = generate_anchor_candidates("נשאר אדום: אלייז'ה בראיינט האריך חוזה")
         assert cands, "the generator favours recall and proposes freely"
-        assert validate_anchors(cands) == (), (
+        # Since #259 the taxonomy knows Elijah Bryant, so a CANONICAL anchor is validated
+        # (see test_a_canonical_taxonomy_match_IS_validated); the boundary is about heuristics.
+        heuristic = tuple(a for a in validate_anchors(cands) if a.confidence != "canonical")
+        assert heuristic == (), (
             "…and NOTHING heuristic is validated. אדום cannot over-merge — not because it was "
             "added to a stoplist (that would fit this corpus and fail the next), but because "
             "no validator has proven any of these spans name-like."

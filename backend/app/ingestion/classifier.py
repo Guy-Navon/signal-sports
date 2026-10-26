@@ -480,17 +480,44 @@ def _resolve_text_entities(
     )
 
 
-def _resolution_to_legacy_entities(resolution: EntityResolution) -> list[str]:
+# A national-team story (#259 review): the player is there for his country, not his club.
+_NATIONAL_TEAM_MARKERS = ("נבחרת", "national team")
+
+# The roster says where a player is TODAY, not what a departure or transfer story is about
+# (#259 review, owner decision 2026-10-26: an unresolved club beats an unsupported one).
+# A departure word, or a transfer verb next to ANOTHER named club, stops the roster club from
+# being inferred; a club the text names is still attached.
+_DEPARTURE = re.compile(
+    r"(?<![א-ת])[וש]?(?:נפרד|נפרדה|נפרדו|נפרדים|פרידה|פרידת|עוזב|עוזבת|עזב|עזבה)(?![א-ת])"
+    r"|(?<![א-ת])[וש]?(?:עבר|עברה|עובר|עוברת)\s+ל"
+)
+_TRANSFER = re.compile(
+    r'(?<![א-ת])[וש]?(?:חתם|חתמה|יחתום|תחתום|סיכם|סיכמה|הצטרף|הצטרפה|מגעים|במגעים|מו"מ|במו"מ|מו״מ|במו״מ)(?![א-ת])'
+)
+
+
+def _resolution_to_legacy_entities(
+    resolution: EntityResolution, text: str = "", imply_clubs: bool = True,
+) -> list[str]:
     """Convert resolved taxonomy entities to legacy display names.
 
     Coach and executive mentions imply their current team (Kattash / Shimon
     Mizrahi → Maccabi TLV Basketball) — a taxonomy data fact replacing the old
     hardcoded rule. The person's own name is not emitted, matching pre-taxonomy
-    behavior for coaches (#229 extends it to club executives).
+    behavior for coaches (#229 extends it to club executives, #259 to roster
+    players marked ``implies_team``).
     """
     entities: list[str] = []
+    national_team = any(m in text for m in _NATIONAL_TEAM_MARKERS)
+    departure = bool(_DEPARTURE.search(text))
+    transfer = bool(_TRANSFER.search(text))
+    named_clubs = {e.id for e in resolution.resolved if e.kind == "team"}
     for entity in resolution.resolved:
-        if entity.kind in ("coach", "executive"):
+        if entity.implies_team and (national_team or not imply_clubs):
+            continue  # still sport evidence (_club_person_sport); not evidence of the club
+        if entity.implies_team and (departure or (transfer and named_clubs - {entity.team_id})):
+            continue  # departure/transfer: the roster club is not what the story is about
+        if entity.kind in ("coach", "executive") or entity.implies_team:
             team = entity_by_id(entity.team_id) if entity.team_id else None
             if team and team.legacy_name not in entities:
                 entities.append(team.legacy_name)
@@ -500,10 +527,23 @@ def _resolution_to_legacy_entities(resolution: EntityResolution) -> list[str]:
     return entities
 
 
+def _club_person_sport(resolution: EntityResolution) -> Optional[str]:
+    """The sport of the club people (coach, executive, ``implies_team`` player) the
+    resolver found — sport evidence on its own (#259): a person's name is never
+    cross-sport, unlike the club name it implies. None when there is no such person
+    or they disagree."""
+    sports = {
+        e.sport for e in resolution.resolved
+        if e.kind in ("coach", "executive") or e.implies_team
+    }
+    return next(iter(sports)) if len(sports) == 1 else None
+
+
 def _detect_entities(
     text: str,
     source_id: str = "",
     sport_override: Optional[str] = None,
+    imply_clubs: bool = True,
 ) -> list[str]:
     """Canonical entity detection via the taxonomy resolver.
 
@@ -517,7 +557,7 @@ def _detect_entities(
       article ambiguous_club.
     """
     return _resolution_to_legacy_entities(
-        _resolve_text_entities(text, source_id, sport_override)
+        _resolve_text_entities(text, source_id, sport_override), text, imply_clubs
     )
 
 
@@ -931,13 +971,23 @@ def classify(
 
     _basketball_only_src = source_id in _BASKETBALL_ONLY_SOURCES
     title_resolution = _resolve_text_entities(text, source_id)
-    entities = _resolution_to_legacy_entities(title_resolution)
+    entities = _resolution_to_legacy_entities(title_resolution, text)
 
     # Ambiguous club mention: the resolver found a cross-sport club name it could
     # not disambiguate (e.g. "מכבי תל אביב" / "הפועל ירושלים" with no sport
     # evidence). Abstain — no entity, ambiguous_club tag, LLM gate force-calls.
     # Basketball-only sources are never ambiguous — they only cover basketball.
     is_ambiguous_club = not _basketball_only_src and bool(title_resolution.ambiguous)
+
+    # A named club person proves the sport even next to an ambiguous club name (#259).
+    # That evidence also lets a GUARDED club in the same title resolve ("ג'ימי קלארק חתם
+    # בפנאתינייקוס"): without it the person's registry club was the article's only club.
+    if sport == "unknown":
+        sport = _club_person_sport(title_resolution) or "unknown"
+        if sport != "unknown":
+            # The sport-aware resolution sees every club the title names, so it also decides
+            # whether a departure/transfer makes the roster club unreliable.
+            entities = _detect_entities(text, source_id, sport_override=sport)
 
     # Entity-based sport inference: when all resolved entities agree on one
     # sport, that sport is taxonomy evidence (previously a basketball-only bias).
@@ -974,6 +1024,8 @@ def classify(
                 sport = "football"
             else:
                 sub_sport = _detect_sport(sub_text, source_id)
+                if sub_sport == "unknown":
+                    sub_sport = _club_person_sport(_resolve_text_entities(sub_text, source_id)) or "unknown"
                 if sub_sport != "unknown":
                     sport = sub_sport
                 elif _has_basketball_context(sub_text):
@@ -1002,9 +1054,12 @@ def classify(
 
         # Entity gap: subtitle adds entities when title produced none.
         if not entities:
+            # A person named only in the subtitle is often incidental: they prove
+            # the sport (above) but do not make the article about their club (#259).
             sub_entities = _detect_entities(
                 sub_text, source_id,
                 sport_override=sport if sport in ("basketball", "football") else None,
+                imply_clubs=False,
             )
             entities = _filter_entities_for_sport(sub_entities, sport)
 

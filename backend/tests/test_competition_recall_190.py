@@ -131,7 +131,9 @@ class TestPreservedAbstentions:
         """"בהפועל" does not say WHICH Hapoel. Rated a false-hide by Guy, and
         still correctly hidden — a designed success mode, not a gap."""
         res = resolve_entities("בר טימור במשא ומתן על חוזה חדש בהפועל", "basketball")
-        assert res.resolved == []
+        # The family name still resolves to no club. Since #259 the PLAYER resolves
+        # (Bar Timor implies Hapoel Tel Aviv) — the person, not "בהפועל", is the evidence.
+        assert [e.id for e in res.resolved] == ["player:bar_timor"]
         assert "הפועל" in res.family_mentions
 
     def test_maccabi_tel_aviv_remains_cross_sport_ambiguous(self):

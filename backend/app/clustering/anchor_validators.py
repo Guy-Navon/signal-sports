@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from functools import lru_cache
 from typing import Optional
 
 from app.clustering.anchor_contract import (
@@ -98,6 +99,53 @@ class TaxonomyValidator:
 #: The band between them is the ABSTENTION zone — V1 does not guess inside it.
 ORDINARY_WORD_ZIPF = 4.4
 NAME_ZIPF_MAX = 3.4
+VERB_BASE_ZIPF = 4.0
+
+
+def _future_verb_bases(word: str) -> set[str]:
+    """Past/infinitive-like base forms a FUTURE-tense (or relative "ש…") verb form may come from.
+
+    Only the unambiguous third-person patterns, measured on every lexical anchor stored in the
+    2026-10-25 corpus (#364 B2): niphal ייעדר→נעדר, hophal יוחתם→הוחתם, hiphil יחמיץ→החמיץ,
+    hitpael יתחיל→התחיל and qal ינחת→נחת. First-person א/נ prefixes and a bare ו before י are
+    NOT stripped: they are how foreign names are written (אנחל, ויסנטה, ויטור)."""
+    bases = {word}
+    if len(word) > 4 and word.endswith("ו"):
+        bases.add(word[:-1])                                   # plural: ייעדרו
+    for b in list(bases):
+        for conj in ("וש", "כש", "ש"):
+            if b.startswith(conj) and len(b) - len(conj) >= 3:
+                bases.add(b[len(conj):])
+        if b[:1] == "ו" and b[1:3] in ("יי", "יו", "תי", "תו"):
+            bases.add(b[1:])                                   # וייעדר
+    out: set[str] = set()
+    for b in bases:
+        if b[:2] in ("יי", "תי") and len(b) >= 5:
+            out.add("נ" + b[2:])
+        if b[:2] in ("יו", "תו") and len(b) >= 5:
+            out.add("הו" + b[2:])
+        if b[:1] == "י" and 3 <= len(b) - 1 <= 4 and b[:2] not in ("יי", "יו"):
+            out.add(b[1:])
+        if b[:1] in ("י", "ת") and len(b) >= 4 and b[1:2] not in ("י", "ו"):
+            out.add("ה" + b[1:])
+        if b[:1] in ("י", "ת") and b[1:2] == "ת" and len(b) >= 5:
+            out.add("הת" + b[2:])
+    return {f for f in out if len(f) >= 3}
+
+
+@lru_cache(maxsize=None)
+def is_future_verb_inflection(word: str) -> bool:
+    """B2 (#364): True for a future-tense form of an ORDINARY verb ("ייעדר", "שינחת").
+
+    wordfreq rates the inflected surface as rare, which is how such verbs passed as names;
+    the base form is ordinary (zipf >= VERB_BASE_ZIPF). Cached per word, so the matcher can
+    apply it to stored anchors without a per-pair analyzer. Without wordfreq it answers False
+    (today's behavior)."""
+    try:
+        from wordfreq import zipf_frequency
+    except Exception:
+        return False
+    return any(zipf_frequency(f, "he") >= VERB_BASE_ZIPF for f in _future_verb_bases(word))
 
 
 class LexicalFrequencyValidator:

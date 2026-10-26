@@ -230,6 +230,10 @@ def match_pair(
             rare = df.discriminative_shared(tokens_a, tokens_b, cfg)
             if len(story_tokens_beyond_clubs(rare, shared)) < cfg.tier_c_min_rare_tokens:
                 return ()
+        if shared and jac == 0 and all(k.startswith("translit:") for k in shared):
+            # B2 (#364): a transliteration skeleton alone, with no word in common, is a
+            # spelling coincidence ("סטורי" / the "סטר" of מנצ'סטר), not a shared name.
+            return ()
         return tuple(sorted(shared))
 
     jac = jaccard(tokens_a, tokens_b)

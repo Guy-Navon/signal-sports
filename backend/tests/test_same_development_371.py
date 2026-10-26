@@ -191,3 +191,20 @@ def test_the_window_uses_publication_time_not_processing_time(session):
     _set_status(session, "rss_t371_p1", "sent", created_hours_ago=200)
     _add(session, "rss_t371_p2", "נשאר צהוב: איפה לונדברג סיכם לשנתיים נוספות", 4)
     assert plan_cycle_notifications(session)["created"] == []
+
+
+def test_the_window_is_configurable(session, monkeypatch):
+    # NOTIFICATION_SAME_DEVELOPMENT_HOURS=24: the 52 h repeat is outside the window and notifies.
+    monkeypatch.setenv("NOTIFICATION_SAME_DEVELOPMENT_HOURS", "24")
+    _add(session, "rss_t371_c1", "בשורה אדירה למכבי תל אביב: איפה לונדברג סיכם על חוזה חדש", 60)
+    plan_cycle_notifications(session)
+    _add(session, "rss_t371_c2", "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב", 8)
+    assert len(plan_cycle_notifications(session)["created"]) == 1
+
+
+def test_zero_turns_the_check_off(session, monkeypatch):
+    monkeypatch.setenv("NOTIFICATION_SAME_DEVELOPMENT_HOURS", "0")
+    _add(session, "rss_t371_z1", "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב", 30)
+    plan_cycle_notifications(session)
+    _add(session, "rss_t371_z2", "נשאר צהוב: איפה לונדברג סיכם לשנתיים נוספות", 4)
+    assert len(plan_cycle_notifications(session)["created"]) == 1

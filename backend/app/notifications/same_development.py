@@ -10,7 +10,7 @@ same development:
 - a **transaction** story (negotiation / signing) on both sides;
 - **both** asserting an agreement or completion (the attention evidence's ``development``);
 - the **same person** (a canonical player / coach / executive id) and the **same club**;
-- published within ``SAME_DEVELOPMENT_WINDOW`` of each other.
+- published within ``same_development_window()`` of each other (72 h by default).
 
 Anything else still notifies: a different person or club, a different development (talks →
 agreement, an injury), or the same agreement after the window expires (72 h of publication).
@@ -27,12 +27,24 @@ module only reads; attaching is the outbox's job.
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Sequence
 
 from sqlalchemy.orm import Session
 
-SAME_DEVELOPMENT_WINDOW = timedelta(hours=72)
+DEFAULT_WINDOW_HOURS = 72.0
+
+
+def same_development_window() -> timedelta:
+    """``NOTIFICATION_SAME_DEVELOPMENT_HOURS`` (default 72; 0 turns the check off). Read at
+    call time; an unparsable value falls back to the default."""
+    raw = os.getenv("NOTIFICATION_SAME_DEVELOPMENT_HOURS", str(DEFAULT_WINDOW_HOURS))
+    try:
+        hours = float(raw)
+    except ValueError:
+        hours = DEFAULT_WINDOW_HOURS
+    return timedelta(hours=max(hours, 0.0))
 _NOT_COVERING = frozenset({"failed_final"})
 _TRANSACTION_EVENTS = frozenset({"negotiation", "signing", "major_signing"})
 _SETTLED = "agreement_or_completion"
@@ -72,12 +84,15 @@ def find_same_development_event(session: Session, profile_id: str, policy_versio
     """The id of an earlier event that already covers this story's development, or None."""
     from app.db.orm_models import ArticleRow, NotificationEventRow, NotificationStoryMemberRow
 
+    window = same_development_window()
+    if window <= timedelta(0):
+        return None
     rows = session.query(ArticleRow).filter(ArticleRow.id.in_(list(member_article_ids))).all()
     mine = [f for f in (_settled_transaction(r) for r in rows) if f is not None]
     if not mine:
         return None
-    lo = min(f[2] for f in mine) - SAME_DEVELOPMENT_WINDOW
-    hi = max(f[2] for f in mine) + SAME_DEVELOPMENT_WINDOW
+    lo = min(f[2] for f in mine) - window
+    hi = max(f[2] for f in mine) + window
 
     lineage = (
         session.query(NotificationStoryMemberRow.event_id, ArticleRow)
@@ -94,6 +109,6 @@ def find_same_development_event(session: Session, profile_id: str, policy_versio
             continue
         for people, clubs, published in mine:
             if (people & theirs[0] and clubs & theirs[1]
-                    and abs(published - theirs[2]) <= SAME_DEVELOPMENT_WINDOW):
+                    and abs(published - theirs[2]) <= window):
                 return event_id
     return None

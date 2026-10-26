@@ -1,0 +1,732 @@
+{
+  "meta": {
+    "mode": "live",
+    "stage": "accuracy",
+    "generated_at": "2026-10-25T01:28:15.572014+00:00",
+    "git_sha": "eb0a1e651b23467ae049c15e8529605b719face6",
+    "database": "signal_sports.db",
+    "sample": "census2_sample.json",
+    "ratings": "census2_ratings.json",
+    "review": null,
+    "profile": "guy",
+    "rated_rows": 804,
+    "llm_eligible_rows": 262,
+    "selected_llm_rows": 262,
+    "evaluated_rows": 804,
+    "max_calls_per_candidate": 262,
+    "prices_checked": "2026-10-13"
+  },
+  "baselines": {
+    "stored_facts": {
+      "llm_rows": {
+        "rated": 262,
+        "exact": 243,
+        "mean_abs_gap": 0.107,
+        "shown": 1,
+        "shown_precision": 0.0,
+        "wanted": 7,
+        "feed_plus_recall": 0.0,
+        "pushes": 0,
+        "push_precision": null,
+        "wrong_pushes": [],
+        "false_hides_of_wanted": [
+          "rss_375649c3d0de48af0673",
+          "rss_3febdca22278e04ceb76",
+          "rss_68fa0c75722c43c5cc65",
+          "rss_92201d7c1e9c8c7b5e5b",
+          "rss_9b49212690345a6153da",
+          "rss_ced6e83efda59fa746ee",
+          "rss_f47fc2b99dda8605455f"
+        ]
+      },
+      "all_rows": {
+        "rated": 804,
+        "exact": 654,
+        "mean_abs_gap": 0.259,
+        "shown": 138,
+        "shown_precision": 0.9565,
+        "wanted": 138,
+        "feed_plus_recall": 0.7174,
+        "pushes": 3,
+        "push_precision": 0.3333,
+        "wrong_pushes": [
+          "rss_37f34e9d8011c8634d08",
+          "rss_4849ba8bcd3f46878b23"
+        ],
+        "false_hides_of_wanted": [
+          "rss_03472c8e812fabf8c09c",
+          "rss_14857700621166c5fd56",
+          "rss_1e3c4b559cfbd7108193",
+          "rss_22ddba4cb49eb94aade3",
+          "rss_2e464d7b50d152d4d37d",
+          "rss_2eb7993d8cadc9e8449c",
+          "rss_30b7a9332609cf278618",
+          "rss_31c7697db8dcb062be74",
+          "rss_3271bce67460d817a012",
+          "rss_375649c3d0de48af0673",
+          "rss_397b18aa6c4b3d2a7be6",
+          "rss_3febdca22278e04ceb76",
+          "rss_492687cd2a09e32c4d81",
+          "rss_4b80eb6b4caa96e83428",
+          "rss_4dd8e230cefa1231e572",
+          "rss_5023fcdc78c84adbf341",
+          "rss_50a76764e862cc1dd6b6",
+          "rss_5334f0f1ce5333e41265",
+          "rss_5e60824dfa7b20e8e9b6",
+          "rss_6712b22b59a655baca55",
+          "rss_68fa0c75722c43c5cc65",
+          "rss_7585bbb01e76afb7cb63",
+          "rss_83f40a05520d3edca884",
+          "rss_92201d7c1e9c8c7b5e5b",
+          "rss_92f5dfb5537dd4c07f95",
+          "rss_9b49212690345a6153da",
+          "rss_9bfa06aac93b6a54c642",
+          "rss_b9898e909910f1abdd95",
+          "rss_c3930ce858ab5ff4735a",
+          "rss_c9f6ecd671befa20947d",
+          "rss_ced6e83efda59fa746ee",
+          "rss_d440b85265884db0ef3b",
+          "rss_db8d58f3214eab1e6bdb",
+          "rss_ebf9c2c619a534842d66",
+          "rss_f47fc2b99dda8605455f",
+          "rss_f885201c5b24a3a0246c",
+          "rss_fb60908ea6982933708d",
+          "rss_fdf0f6cb4e26a33af6ee",
+          "rss_fe7f9f0f20bc132f7dfd"
+        ]
+      },
+      "note": "the facts in the DB today (mostly qwen2.5:3b via Ollama, older code)"
+    },
+    "rules_only": {
+      "llm_rows": {
+        "rated": 262,
+        "exact": 242,
+        "mean_abs_gap": 0.118,
+        "shown": 3,
+        "shown_precision": 0.3333,
+        "wanted": 7,
+        "feed_plus_recall": 0.0,
+        "pushes": 0,
+        "push_precision": null,
+        "wrong_pushes": [],
+        "false_hides_of_wanted": [
+          "rss_375649c3d0de48af0673",
+          "rss_3febdca22278e04ceb76",
+          "rss_68fa0c75722c43c5cc65",
+          "rss_92201d7c1e9c8c7b5e5b",
+          "rss_9b49212690345a6153da",
+          "rss_ced6e83efda59fa746ee",
+          "rss_f47fc2b99dda8605455f"
+        ]
+      },
+      "all_rows": {
+        "rated": 804,
+        "exact": 662,
+        "mean_abs_gap": 0.224,
+        "shown": 163,
+        "shown_precision": 0.9387,
+        "wanted": 138,
+        "feed_plus_recall": 0.8188,
+        "pushes": 3,
+        "push_precision": 0.6667,
+        "wrong_pushes": [
+          "rss_4849ba8bcd3f46878b23"
+        ],
+        "false_hides_of_wanted": [
+          "rss_14857700621166c5fd56",
+          "rss_1e3c4b559cfbd7108193",
+          "rss_22ddba4cb49eb94aade3",
+          "rss_31c7697db8dcb062be74",
+          "rss_375649c3d0de48af0673",
+          "rss_3febdca22278e04ceb76",
+          "rss_492687cd2a09e32c4d81",
+          "rss_4b80eb6b4caa96e83428",
+          "rss_50a76764e862cc1dd6b6",
+          "rss_5334f0f1ce5333e41265",
+          "rss_5e60824dfa7b20e8e9b6",
+          "rss_6712b22b59a655baca55",
+          "rss_68fa0c75722c43c5cc65",
+          "rss_7585bbb01e76afb7cb63",
+          "rss_83f40a05520d3edca884",
+          "rss_92201d7c1e9c8c7b5e5b",
+          "rss_9b49212690345a6153da",
+          "rss_9bfa06aac93b6a54c642",
+          "rss_b9898e909910f1abdd95",
+          "rss_c3930ce858ab5ff4735a",
+          "rss_c9f6ecd671befa20947d",
+          "rss_ced6e83efda59fa746ee",
+          "rss_f47fc2b99dda8605455f",
+          "rss_fb60908ea6982933708d",
+          "rss_fdf0f6cb4e26a33af6ee"
+        ]
+      },
+      "note": "current code, no LLM"
+    }
+  },
+  "candidates": {
+    "groq-gpt-oss-120b": {
+      "model": "openai/gpt-oss-120b",
+      "provider_id": "openai_compat:openai/gpt-oss-120b",
+      "llm_rows": {
+        "rated": 262,
+        "exact": 242,
+        "mean_abs_gap": 0.118,
+        "shown": 3,
+        "shown_precision": 0.3333,
+        "wanted": 7,
+        "feed_plus_recall": 0.0,
+        "pushes": 0,
+        "push_precision": null,
+        "wrong_pushes": [],
+        "false_hides_of_wanted": [
+          "rss_375649c3d0de48af0673",
+          "rss_3febdca22278e04ceb76",
+          "rss_68fa0c75722c43c5cc65",
+          "rss_92201d7c1e9c8c7b5e5b",
+          "rss_9b49212690345a6153da",
+          "rss_ced6e83efda59fa746ee",
+          "rss_f47fc2b99dda8605455f"
+        ]
+      },
+      "all_rows": {
+        "rated": 804,
+        "exact": 662,
+        "mean_abs_gap": 0.224,
+        "shown": 163,
+        "shown_precision": 0.9387,
+        "wanted": 138,
+        "feed_plus_recall": 0.8188,
+        "pushes": 3,
+        "push_precision": 0.6667,
+        "wrong_pushes": [
+          "rss_4849ba8bcd3f46878b23"
+        ],
+        "false_hides_of_wanted": [
+          "rss_14857700621166c5fd56",
+          "rss_1e3c4b559cfbd7108193",
+          "rss_22ddba4cb49eb94aade3",
+          "rss_31c7697db8dcb062be74",
+          "rss_375649c3d0de48af0673",
+          "rss_3febdca22278e04ceb76",
+          "rss_492687cd2a09e32c4d81",
+          "rss_4b80eb6b4caa96e83428",
+          "rss_50a76764e862cc1dd6b6",
+          "rss_5334f0f1ce5333e41265",
+          "rss_5e60824dfa7b20e8e9b6",
+          "rss_6712b22b59a655baca55",
+          "rss_68fa0c75722c43c5cc65",
+          "rss_7585bbb01e76afb7cb63",
+          "rss_83f40a05520d3edca884",
+          "rss_92201d7c1e9c8c7b5e5b",
+          "rss_9b49212690345a6153da",
+          "rss_9bfa06aac93b6a54c642",
+          "rss_b9898e909910f1abdd95",
+          "rss_c3930ce858ab5ff4735a",
+          "rss_c9f6ecd671befa20947d",
+          "rss_ced6e83efda59fa746ee",
+          "rss_f47fc2b99dda8605455f",
+          "rss_fb60908ea6982933708d",
+          "rss_fdf0f6cb4e26a33af6ee"
+        ]
+      },
+      "llm": {
+        "calls": 262,
+        "live_calls": 242,
+        "from_cache": 20,
+        "rate_limited_retries": 0,
+        "failure_reasons": {
+          "none": 259,
+          "http_error": 3
+        },
+        "validation_failure_rate": 0.0,
+        "low_confidence_fallbacks": 30,
+        "truncated": 0,
+        "latency_ms": {
+          "p50": 1266.3,
+          "p95": 1567.8
+        },
+        "tokens": {
+          "prompt": 363113,
+          "cached_prompt": 285440,
+          "completion": 52104,
+          "reasoning": 32406
+        },
+        "cost_usd_of_these_responses": 0.064321,
+        "est_cost_usd_per_month": 0.3314,
+        "cost_note": "list prices checked 2026-10-13; an estimate, not a bill"
+      },
+      "field_changes_vs_stored": {
+        "sport": 112,
+        "league": 64,
+        "event_type": 31
+      },
+      "field_changes_vs_rules": {
+        "sport": 142,
+        "league": 64,
+        "event_type": 7
+      },
+      "verdict": {
+        "passes": true,
+        "checks": {
+          "validation_failures_le_2pct": true,
+          "no_new_wrong_push": true,
+          "feed_plus_recall_within_3pp_of_baseline": true,
+          "shown_precision_within_3pp_of_baseline": true
+        }
+      },
+      "decision_changes_vs_stored": {
+        "rows": 2,
+        "closer_to_owner": 0,
+        "further": 2
+      },
+      "disagreements": [
+        {
+          "id": "rss_350ce943be79042c23fa",
+          "title": "קריסה באדום: על הערב שהפועל תל אביב תרצה לשכוח",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_375649c3d0de48af0673",
+          "title": "קולסון כיכב, 87:92 למכבי ת\"א על אריס",
+          "owner": "high_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_37a2c4b034d7b0cab420",
+          "title": "מסי כבש את שערו ה-100 באינטר מיאמי וזכה בתואר",
+          "owner": "hidden",
+          "candidate": "feed",
+          "stored": "hidden",
+          "rules": "feed"
+        },
+        {
+          "id": "rss_3febdca22278e04ceb76",
+          "title": "שטיינברג: \"הרבה זמן רדפתי אחרי ההישג הזה\"",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_49ba0f09f7170d78ed50",
+          "title": "בדרך לזהב נוסף? רז הרשקו עלתה לגמר גרנד סלאם בודפשט",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_57ebbb1973908d092749",
+          "title": "שתהיה שנת ניצחונות: שבע המשאלות שלנו מתשפ\"ז",
+          "owner": "hidden",
+          "candidate": "feed",
+          "stored": "feed",
+          "rules": "feed"
+        },
+        {
+          "id": "rss_5ba66b375d2597f07c6d",
+          "title": "אקס מכבי ת\"א חושב בגדול: \"המטרה - להיות השחקן הטוב באירופה\"",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_5ed3d8f2e7b4b1051a36",
+          "title": "לבן מרסר חשף שנזקק לטיפול דחוף: \"אל תזניחו את עצמכם\"",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_646a49bf1e11309ef463",
+          "title": "אחרי 23 שנה: הגיבור החדש של ארצות הברית חולם לסיים את הבצורת",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_68fa0c75722c43c5cc65",
+          "title": "המענק של מכבי ת\"א על הזכייה בסופרקאפ",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_8e61c3db1142cbde25ea",
+          "title": "עדיין מושלמת: הפועל ת\"א ניצחה 78:80 את רומא",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_92201d7c1e9c8c7b5e5b",
+          "title": "הפועל תל אביב כבר מתחרטת? \"יש בים מדר משהו קוסמי, זה לא רגיל\"",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_9b49212690345a6153da",
+          "title": "\"אין הצהרות\": מכבי ת\"א מרוצה מהזכייה בסופרקאפ, אך לא נסחפת",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_a451f528c6cf4a97ef54",
+          "title": "מילר: \"אנחנו במקום טוב. הפועל לא ספגה, נצטרך לשנות את זה\"",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_a9a819e0b52bbbe73a1c",
+          "title": "סדר חדש: ריבאקינה ניצחה את סבאלנקה וזכתה באליפות ארה\"ב הפתוחה",
+          "owner": "low_feed",
+          "candidate": "high_feed",
+          "stored": "hidden",
+          "rules": "high_feed"
+        },
+        {
+          "id": "rss_af6dfe7e400f02433c68",
+          "title": "בעקבות הזיקוק לעבר צור: דרישת התובע נגד מכבי תל אביב",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_ced6e83efda59fa746ee",
+          "title": "\"בראינט מעניין רק את בראינט. למדר יש בייגלה מעל הראש\"",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_e6db522119c90364988b",
+          "title": "ככה פותחים שנה: מדליית גראנד סלאם ראשונה לכרם פרימו",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_f47fc2b99dda8605455f",
+          "title": "דרבי על תואר: מכבי תל אביב והפועל תל אביב ייפגשו בסופרקאפ",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_fb056b5520fd43f52cc0",
+          "title": "חי ממשחק ההכנה: אולימפיאקוס - מכבי תל אביב 35:35 (מחצית)",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        }
+      ]
+    },
+    "groq-gpt-oss-20b": {
+      "model": "openai/gpt-oss-20b",
+      "provider_id": "openai_compat:openai/gpt-oss-20b",
+      "llm_rows": {
+        "rated": 262,
+        "exact": 242,
+        "mean_abs_gap": 0.118,
+        "shown": 3,
+        "shown_precision": 0.3333,
+        "wanted": 7,
+        "feed_plus_recall": 0.0,
+        "pushes": 0,
+        "push_precision": null,
+        "wrong_pushes": [],
+        "false_hides_of_wanted": [
+          "rss_375649c3d0de48af0673",
+          "rss_3febdca22278e04ceb76",
+          "rss_68fa0c75722c43c5cc65",
+          "rss_92201d7c1e9c8c7b5e5b",
+          "rss_9b49212690345a6153da",
+          "rss_ced6e83efda59fa746ee",
+          "rss_f47fc2b99dda8605455f"
+        ]
+      },
+      "all_rows": {
+        "rated": 804,
+        "exact": 662,
+        "mean_abs_gap": 0.224,
+        "shown": 163,
+        "shown_precision": 0.9387,
+        "wanted": 138,
+        "feed_plus_recall": 0.8188,
+        "pushes": 3,
+        "push_precision": 0.6667,
+        "wrong_pushes": [
+          "rss_4849ba8bcd3f46878b23"
+        ],
+        "false_hides_of_wanted": [
+          "rss_14857700621166c5fd56",
+          "rss_1e3c4b559cfbd7108193",
+          "rss_22ddba4cb49eb94aade3",
+          "rss_31c7697db8dcb062be74",
+          "rss_375649c3d0de48af0673",
+          "rss_3febdca22278e04ceb76",
+          "rss_492687cd2a09e32c4d81",
+          "rss_4b80eb6b4caa96e83428",
+          "rss_50a76764e862cc1dd6b6",
+          "rss_5334f0f1ce5333e41265",
+          "rss_5e60824dfa7b20e8e9b6",
+          "rss_6712b22b59a655baca55",
+          "rss_68fa0c75722c43c5cc65",
+          "rss_7585bbb01e76afb7cb63",
+          "rss_83f40a05520d3edca884",
+          "rss_92201d7c1e9c8c7b5e5b",
+          "rss_9b49212690345a6153da",
+          "rss_9bfa06aac93b6a54c642",
+          "rss_b9898e909910f1abdd95",
+          "rss_c3930ce858ab5ff4735a",
+          "rss_c9f6ecd671befa20947d",
+          "rss_ced6e83efda59fa746ee",
+          "rss_f47fc2b99dda8605455f",
+          "rss_fb60908ea6982933708d",
+          "rss_fdf0f6cb4e26a33af6ee"
+        ]
+      },
+      "llm": {
+        "calls": 262,
+        "live_calls": 242,
+        "from_cache": 20,
+        "rate_limited_retries": 0,
+        "failure_reasons": {
+          "none": 261,
+          "http_error": 1
+        },
+        "validation_failure_rate": 0.0,
+        "low_confidence_fallbacks": 36,
+        "truncated": 0,
+        "latency_ms": {
+          "p50": 1038.3,
+          "p95": 1430.6
+        },
+        "tokens": {
+          "prompt": 365897,
+          "cached_prompt": 256000,
+          "completion": 52347,
+          "reasoning": 32869
+        },
+        "cost_usd_of_these_responses": 0.033546,
+        "est_cost_usd_per_month": 0.1729,
+        "cost_note": "list prices checked 2026-10-13; an estimate, not a bill"
+      },
+      "field_changes_vs_stored": {
+        "sport": 114,
+        "league": 81,
+        "event_type": 34
+      },
+      "field_changes_vs_rules": {
+        "sport": 147,
+        "league": 81,
+        "event_type": 10
+      },
+      "verdict": {
+        "passes": true,
+        "checks": {
+          "validation_failures_le_2pct": true,
+          "no_new_wrong_push": true,
+          "feed_plus_recall_within_3pp_of_baseline": true,
+          "shown_precision_within_3pp_of_baseline": true
+        }
+      },
+      "decision_changes_vs_stored": {
+        "rows": 2,
+        "closer_to_owner": 0,
+        "further": 2
+      },
+      "disagreements": [
+        {
+          "id": "rss_350ce943be79042c23fa",
+          "title": "קריסה באדום: על הערב שהפועל תל אביב תרצה לשכוח",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_375649c3d0de48af0673",
+          "title": "קולסון כיכב, 87:92 למכבי ת\"א על אריס",
+          "owner": "high_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_37a2c4b034d7b0cab420",
+          "title": "מסי כבש את שערו ה-100 באינטר מיאמי וזכה בתואר",
+          "owner": "hidden",
+          "candidate": "feed",
+          "stored": "hidden",
+          "rules": "feed"
+        },
+        {
+          "id": "rss_3febdca22278e04ceb76",
+          "title": "שטיינברג: \"הרבה זמן רדפתי אחרי ההישג הזה\"",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_49ba0f09f7170d78ed50",
+          "title": "בדרך לזהב נוסף? רז הרשקו עלתה לגמר גרנד סלאם בודפשט",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_57ebbb1973908d092749",
+          "title": "שתהיה שנת ניצחונות: שבע המשאלות שלנו מתשפ\"ז",
+          "owner": "hidden",
+          "candidate": "feed",
+          "stored": "feed",
+          "rules": "feed"
+        },
+        {
+          "id": "rss_5ba66b375d2597f07c6d",
+          "title": "אקס מכבי ת\"א חושב בגדול: \"המטרה - להיות השחקן הטוב באירופה\"",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_5ed3d8f2e7b4b1051a36",
+          "title": "לבן מרסר חשף שנזקק לטיפול דחוף: \"אל תזניחו את עצמכם\"",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_646a49bf1e11309ef463",
+          "title": "אחרי 23 שנה: הגיבור החדש של ארצות הברית חולם לסיים את הבצורת",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_68fa0c75722c43c5cc65",
+          "title": "המענק של מכבי ת\"א על הזכייה בסופרקאפ",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_8e61c3db1142cbde25ea",
+          "title": "עדיין מושלמת: הפועל ת\"א ניצחה 78:80 את רומא",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_92201d7c1e9c8c7b5e5b",
+          "title": "הפועל תל אביב כבר מתחרטת? \"יש בים מדר משהו קוסמי, זה לא רגיל\"",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_9b49212690345a6153da",
+          "title": "\"אין הצהרות\": מכבי ת\"א מרוצה מהזכייה בסופרקאפ, אך לא נסחפת",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_a451f528c6cf4a97ef54",
+          "title": "מילר: \"אנחנו במקום טוב. הפועל לא ספגה, נצטרך לשנות את זה\"",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_a9a819e0b52bbbe73a1c",
+          "title": "סדר חדש: ריבאקינה ניצחה את סבאלנקה וזכתה באליפות ארה\"ב הפתוחה",
+          "owner": "low_feed",
+          "candidate": "high_feed",
+          "stored": "hidden",
+          "rules": "high_feed"
+        },
+        {
+          "id": "rss_af6dfe7e400f02433c68",
+          "title": "בעקבות הזיקוק לעבר צור: דרישת התובע נגד מכבי תל אביב",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_ced6e83efda59fa746ee",
+          "title": "\"בראינט מעניין רק את בראינט. למדר יש בייגלה מעל הראש\"",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_e6db522119c90364988b",
+          "title": "ככה פותחים שנה: מדליית גראנד סלאם ראשונה לכרם פרימו",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_f47fc2b99dda8605455f",
+          "title": "דרבי על תואר: מכבי תל אביב והפועל תל אביב ייפגשו בסופרקאפ",
+          "owner": "feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        },
+        {
+          "id": "rss_fb056b5520fd43f52cc0",
+          "title": "חי ממשחק ההכנה: אולימפיאקוס - מכבי תל אביב 35:35 (מחצית)",
+          "owner": "low_feed",
+          "candidate": "hidden",
+          "stored": "hidden",
+          "rules": "hidden"
+        }
+      ]
+    }
+  },
+  "ranking": {
+    "rule": "cheapest candidate that passes this stage's criteria; ties go to feed+ recall",
+    "passing_in_order": [
+      "groq-gpt-oss-20b",
+      "groq-gpt-oss-120b"
+    ],
+    "recommended": "groq-gpt-oss-20b"
+  }
+}

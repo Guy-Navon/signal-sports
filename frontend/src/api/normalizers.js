@@ -98,6 +98,7 @@ export function normalizeScoredArticleFromApi(sa) {
     matchedTopic: sa.matched_topic ?? null,
     matchedRule: sa.matched_event_rule ?? null,
     reasoning: sa.reasoning ?? [],
+    reasonHe: sa.reason_he ?? null,
     // Preference V2 structured trace + engine badge (issues #32/#35).
     contributions: sa.contributions ?? null,
     engine: sa.engine ?? null,

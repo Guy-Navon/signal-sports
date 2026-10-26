@@ -288,6 +288,11 @@ export function getMeFeed() {
   return apiFetch("/api/me/feed");
 }
 
+// #249: {last_successful_cycle_at, worker_running} for the feed's age line.
+export function getMeFeedFreshness() {
+  return apiFetch("/api/me/feed/freshness");
+}
+
 export function submitMeFeedback(articleId, action) {
   return apiFetch("/api/me/feedback", {
     method: "POST",

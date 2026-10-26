@@ -90,6 +90,8 @@ function AppStateProvider({ children }) {
   const [backendDebugItems, setBackendDebugItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
+  // The product feed request itself failed (D5) — distinct from other API errors.
+  const [feedLoadFailed, setFeedLoadFailed] = useState(false);
   // Used to trigger manual refresh without changing activeProfileId
   const [feedRefreshTick, setFeedRefreshTick] = useState(0);
 
@@ -143,11 +145,13 @@ function AppStateProvider({ children }) {
     Promise.all([productFeedPromise, debugFeedPromise])
       .then(([feedRaw, debugRaw]) => {
         if (cancelled) return;
+        setFeedLoadFailed(false);
         setBackendFeedItems(feedRaw.map(normalizeScoredArticleFromApi));
         setBackendDebugItems(debugRaw.map(normalizeScoredArticleFromApi));
       })
       .catch(err => {
         if (cancelled) return;
+        setFeedLoadFailed(true);
         setApiError(err.message);
       })
       .finally(() => {
@@ -320,8 +324,11 @@ function AppStateProvider({ children }) {
   }, [isBackendMode]);
 
   // ── Feedback ────────────────────────────────────────────────────────────────
+  // Returns a promise that settles with the server's answer (#197): it
+  // rejects when the save failed, so the caller can say so instead of
+  // claiming success. Local mode has no server and resolves at once.
   const addFeedback = useCallback((articleId, action) => {
-    // Track locally always
+    // Optimistic local record, reconciled below if the save fails.
     const entry = {
       id: `feedback_${Date.now()}`,
       userId: feedbackUserId,
@@ -341,20 +348,26 @@ function AppStateProvider({ children }) {
             article_id: articleId,
             action,
           });
-      post.then(() => {
+      return post.then(() => {
         // Dismissing actions hide the article immediately (issue #34) —
         // refresh so the feed reflects it.
         if (action === "less_like_this" || action === "not_interested" || action === "never_show") {
           refreshFeed();
         }
-      }).catch(() => {
-        // Feedback failure is non-fatal; local state already recorded the event
+        return entry;
+      }, (err) => {
+        // Never stored: drop the optimistic record and let the caller show it.
+        setFeedback(prev => prev.filter(f => f !== entry));
+        throw err;
       });
     }
+    return Promise.resolve(entry);
   }, [activeProfileId, feedbackUserId, isBackendMode, feedbackUsesSession, refreshFeed]);
 
   // Explicit scoped suppression (issue #34): creates a never_show override
   // for the most specific scope on the article, then refreshes the feed.
+  // A failure propagates to the caller (#197); the feed refreshes either way,
+  // since the override may have been stored before the feedback event failed.
   const neverShowArticle = useCallback(async (articleId) => {
     if (!isBackendMode) return;
     try {
@@ -369,10 +382,9 @@ function AppStateProvider({ children }) {
           action: "never_show",
         });
       }
-    } catch {
-      // non-fatal
+    } finally {
+      refreshFeed();
     }
-    refreshFeed();
   }, [activeProfileId, isBackendMode, feedbackUsesSession, refreshFeed]);
 
   // Reader opened an article's source (#250): only the reader's own session counts —
@@ -434,6 +446,7 @@ function AppStateProvider({ children }) {
     qaSurfaceAllowed,
     isLoading,
     apiError,
+    feedLoadFailed,
     refreshFeed,
     refreshProfiles,
 
@@ -483,6 +496,13 @@ function AppStateProvider({ children }) {
 const NOOP = () => {};
 export function useArticleOpened() {
   return useContext(AppContext)?.noteArticleOpened ?? NOOP;
+}
+
+// Whether the engine trace may be shown (ops: admin, local, bypass). Safe outside the
+// provider (capture harness, isolated renders), where the trace shows as before.
+export function useEngineTraceVisible() {
+  const ctx = useContext(AppContext);
+  return ctx ? Boolean(ctx.qaSurfaceAllowed) : true;
 }
 
 export function useApp() {

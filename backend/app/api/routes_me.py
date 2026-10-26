@@ -15,7 +15,7 @@ Contract (docs/USER_PLATFORM.md, authorization boundary):
 """
 
 import logging
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Optional
 
 from fastapi import HTTPException, Request, Response
 
@@ -46,6 +46,7 @@ from app.api.routes_results import ResultsResponse, get_results_for_user
 from app.core.security_deps import require_user
 from app.db.database import get_session
 from app.db.orm_models import UserRow
+from app.ingestion.orchestration import last_successful_cycle, worker_liveness
 from app.models.feedback import FeedbackEvent, FeedbackRequest
 from app.models.profile import UserProfile
 from app.models.scoring import ScoredArticle
@@ -165,6 +166,29 @@ def me_get_feed(
         session.rollback()
         logging.getLogger(__name__).warning("feed view not recorded for %s", user.id, exc_info=True)
     return feed
+
+
+class FeedFreshnessResponse(BaseModel):
+    """When the feed was last refreshed, and whether automatic ingestion runs
+    (#249). Deliberately only these two fields of the admin health payload."""
+
+    last_successful_cycle_at: Optional[str] = None
+    worker_running: bool
+
+
+@router.get("/feed/freshness", response_model=FeedFreshnessResponse)
+def me_get_feed_freshness(
+    user: UserRow = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Lets the reader tell "nothing happened in sports" from "Signal
+    stopped". Both verdicts come from the functions /api/scheduler/health
+    uses; there is no second definition of "running"."""
+    last = last_successful_cycle(session)
+    return FeedFreshnessResponse(
+        last_successful_cycle_at=last[3] if last else None,
+        worker_running=worker_liveness(session)["running"],
+    )
 
 
 # ── Results (issue #178) ──────────────────────────────────────────────────────

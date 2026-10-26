@@ -1,21 +1,37 @@
 import React, { useState } from "react";
 import { Sparkles, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { condensedReason } from "@/components/feed/storyLabels";
+import { deskVoiceView } from "@/components/feed/deskVoiceModel";
 
-// The desk's voice: "why you're seeing this" in one spoken line, with the
-// reasoning steps available as an expandable margin note. The full trace
-// stays in the Debug console.
+// The desk's voice: "why you're seeing this" in one line. A reader sees the Hebrew
+// reason the backend built from the deciding step (`reason`), or nothing (journey audit
+// D6). Ops (`showTrace`: admin, local QA) keep the engine line with its expandable steps;
+// the full trace stays in the Debug console.
 //
 // variant="full"  — "למה אצלך: <topic>" sentence + expandable steps (lead, bulletins)
 // variant="line"  — quiet single line, still expandable (editorial, stream detail)
-export default function DeskVoice({ reasoning = [], variant = "line", className = "" }) {
+export default function DeskVoice({
+  reasoning = [], reason = null, showTrace = true, variant = "line", className = "",
+}) {
   const [open, setOpen] = useState(false);
-  const summary = condensedReason(reasoning);
-  if (!summary) return null;
+  const view = deskVoiceView({ showTrace, reason, reasoning });
+  if (!view) return null;
 
   const isFull = variant === "full";
-  const steps = reasoning.slice(-4);
+  const summary = view.text;
+  const steps = view.steps;
+
+  if (view.mode === "reader") {
+    return (
+      <p className={cn("flex items-center gap-1.5 min-w-0", isFull ? "text-sm" : "text-xs", className)}>
+        <Sparkles size={isFull ? 14 : 12} className="text-signal-ai flex-shrink-0" aria-hidden />
+        <span className={cn("line-clamp-2 break-words", isFull ? "text-text-secondary" : "text-text-dim")}>
+          {isFull && <span className="text-signal-ai/90 font-medium">למה אצלך: </span>}
+          {summary}
+        </span>
+      </p>
+    );
+  }
 
   return (
     <div className={cn(isFull ? "text-sm" : "text-xs", className)}>

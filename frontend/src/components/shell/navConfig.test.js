@@ -76,6 +76,15 @@ describe("navConfig", () => {
       expect(paths).toEqual(["/", "/preferences", "/calibration", "/results", "/sources"]);
     });
 
+    it("product area drops the console entry for a visitor who may not enter it", () => {
+      // A regular user's dock showed "קונסולה", which only bounced back to
+      // the feed (RequireOpsRole). The masthead already hid it (#54).
+      const paths = getMobileNavItems("product", true, { showConsoleEntry: false }).map((i) => i.path);
+      expect(paths).toEqual(["/", "/preferences", "/calibration", "/results"]);
+      expect(getMobileNavItems("product", true, { showConsoleEntry: true }).map((i) => i.path))
+        .toContain("/sources");
+    });
+
     it("ops area shows ops items plus a back-to-feed entry", () => {
       const paths = getMobileNavItems("ops", true).map((i) => i.path);
       expect(paths).toEqual(["/sources", "/debug", "/llm-qa", "/"]);

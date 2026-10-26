@@ -164,7 +164,7 @@ Results:
   - the 07-18 negotiation update, a new development;
   - the 07-23 studio episode, likely noise.
 - **Today's code still sends the same agreement twice** (Israel Hayom 07-20 and Sport5 07-22,
-  about 28 h apart). This is the pre-existing clustering split, not a #353 effect. Your push
+  about 52 h apart, beyond the 24 h window). This is the pre-existing clustering split, not a #353 effect. Your push
   rating supports the article's relevance; it does not authorize the second message.
 
 ### Unrated changed decisions

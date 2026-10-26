@@ -121,51 +121,54 @@ entity.
   - dev: no change.
 - **Holdout:** not used. It is partially exposed; see WEEK_SAMPLE_2026-10_DEV_RESULTS.md.
 
-### New pushes: classification vs notification (not approved; no workaround added)
+### New pushes and messages: three evaluation contexts (not approved; no workaround added)
 
-**Classification, production path.** The rules-only rerun above scores the *seed* `guy` profile
-and shows 1 new push. The live DB profile is stronger: Maccabi `very_high`, plus explicit push
-rules for Maccabi `signing` and `negotiation`. With stored facts, the #353 delta and that profile
-with learned feedback, Guy's push articles go **14 → 17** (holdout excluded; the Deni fan stays 3).
+An explicit push rule fires only after the **push-severity gate**: the article's
+`classification_trace.attention` must say the development is an agreement or completion (or
+an imminent renewal, a current injury, or a concrete governance step) for the followed subject.
+The gate dates from 2026-09-11 (d6462ba). **Rows stored before it carry no `attention`, and the
+engine then skips the gate** (1,409 of 3,291 rows in the frozen copy, including every July
+Lundberg row). That one fact explains why the contexts below disagree. The profile does not:
+the seed and the live DB `guy` profile have identical Maccabi rules (very_high; push on signing,
+negotiation, injury, title_win, club_governance).
 
-| Article | Facts with #353 | Guy (DB profile) |
-|---|---|---|
-| walla 07-23 "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב. סומן מחליף לווקר" | basketball, `team:maccabi_tlv_bb`, negotiation | hidden → **push** (Maccabi negotiation rule) |
-| walla 07-18 "שבוע קריטי במו"מ עם לונדברג" | basketball, Maccabi, negotiation | hidden → **push** |
-| walla 07-23 "מירוץ החימוש / השוק האירופי משתגע… עם אבי אבן באולפן" (a studio episode; the subtitle names Madar, Sorkin and "מכבי תל אביב") | basketball, Maccabi, **signing** (stored event type) | hidden → **push** (Maccabi signing rule) |
+| Context | Facts and trace | Profile | Guy push articles | Messages (Lundberg week replay) |
+|---|---|---|---|---|
+| 1. Rules-only rerun of every row (the earlier "one new push") | recomputed by each arm's code, attention included | seed | +1 (18 → 19) | — |
+| 2. Stored historical rows + this PR's sport/entity delta (first replay) | July traces **without** attention, so the gate is skipped | DB + learned | +3 (14 → 17) | **+2** |
+| 3. Every row of the week recomputed by each arm's own code | consistent, attention included | DB + learned | +1 in the week (5 → 6) | **+0** |
 
-All three are among the 16 unrated items served blind. The studio episode is the clearest risk.
-Its club resolution follows the stated semantics: the subtitle names the club itself. The push,
-though, comes from a stored `signing` event type on a talk show. #353 makes such items reach the
-explicit push rules. It does not create the wrong event type.
+**Context 2 overstated the impact.** It mixed this PR's new facts with traces older than the
+gate, a state production does not reach: every new article gets `attention` at ingestion, and
+this PR changes no stored row (no backfill). Context 3 is the faithful one. Its residual
+caveats:
+- it is rules-only: on the LLM path, sport, entities and event can differ;
+- the replay covers one week.
 
-**Notification, isolated chronological replay** (planning only, never dispatched). How it was run:
-- a copy of the frozen corpus; clusters and every notification table cleared; activation at
-  2026-07-17 00:00 UTC the way `init_notification_watermark.py` does it;
-- then every 30 simulated minutes until 07-24 12:00: the articles published in that slot are
-  inserted, the real clustering stage runs (rule 2), and the real planner runs with the feed's
-  freshness clock at the tick;
-- same window, `main` with stored facts vs this branch with the #353 delta:
+The three articles, per context:
 
-| Time (UTC) | `main` | #353 |
-|---|---|---|
-| 07-18 18:00 walla "שבוע קריטי במו"מ עם לונדברג" | — | **new event** |
-| 07-20 12:30 walla "…ומתי לונדברג יסגור?" | new event | new event |
-| 07-20 18:30 Israel Hayom "…איפה לונדברג סיכם על חוזה חדש" | new event | new event |
-| 07-22 23:00 Sport5 "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב" | **new event** (the same agreement again) | **new event** (the same agreement again) |
-| 07-23 02:30 ynet "נשאר צהוב: …" | expansion of the Sport5 event | expansion of the Sport5 event |
-| 07-23 04:30 walla "…סומן מחליף לווקר" | expansion of the Sport5 event (a hidden member) | **expansion** of the Sport5 event, no message |
-| 07-23 14:00 walla "מירוץ החימוש…" | — | **new event** |
+| Article | Your rating | Facts main → PR | Attention (current code) | Guy: ctx 1 / ctx 2 / ctx 3 | Cluster and message (ctx 3) |
+|---|---|---|---|---|---|
+| walla 07-23 [איפה לונדברג סיכם על חוזה חדש… סומן מחליף לווקר](https://sports.walla.co.il/item/3855583) | none (blind set) | unknown → basketball; + `team:maccabi_tlv_bb` (title person Lundberg); negotiation | agreement_or_completion, subject Maccabi | push / push / **push** | `cluster_154662894917b642` with Sport5 and ynet; **expansion** of the Sport5 07-22 event, no message |
+| walla 07-18 [שבוע קריטי במו"מ עם לונדברג](https://sports.walla.co.il/item/3854409) | none (blind set) | unknown → basketball; + Maccabi; negotiation (confirmed) | routine_or_uncertain, no subject | high / push / **high** | unclustered; not push, so no event |
+| walla 07-23 [מירוץ החימוש / השוק האירופי משתגע… עם אבי אבן באולפן](https://sports.walla.co.il/item/3855762) | none (blind set) | unknown → basketball (subtitle people); + Maccabi (the subtitle names "מכבי תל אביב"); signing | routine_or_uncertain, no subject | high / push / **high** | unclustered; not push, so no event |
 
-Results:
-- **The Lundberg walla article does not send a message.** It joins the Sport5 07-22 event's
-  lineage as an expansion, with and without #353.
-- **#353 does add two messages in this window:**
-  - the 07-18 negotiation update, a new development;
-  - the 07-23 studio episode, likely noise.
-- **Today's code still sends the same agreement twice** (Israel Hayom 07-20 and Sport5 07-22,
-  about 52 h apart, beyond the 24 h window). This is the pre-existing clustering split, not a #353 effect. Your push
-  rating supports the article's relevance; it does not authorize the second message.
+**The studio episode's "signing".**
+- **Stored:** `rules_fallback_after_llm_failure` (the Ollama call failed in July).
+- **Reproducible today:** current rules still say `signing` (probable). The cue "חתמה" ("she
+  signed") matches inside the noun "ההחתמה" in the subtitle ("מה אמר אבי אבן על ההחתמה של ים מדר").
+- **#353's role:** on `main` the item stays hidden (sport unknown). With this PR it becomes
+  basketball + Maccabi and reaches the signing rule. The attention gate withholds the push, so it
+  shows as `high`.
+- **A general fix** (mask the noun forms for the signing rule) is prepared separately as a
+  **draft**, because your ratings are mixed (one toward, two away).
+
+**Still true in every context:** today's code sends the same Lundberg agreement twice
+(Israel Hayom 07-20 and Sport5 07-22, about 52 h apart, beyond the 24 h window), with or without
+this PR. Tracked as #371 with a strict-xfail regression test.
+
+**Do not backfill.** Applying this PR's facts to stored rows without recomputing attention
+would recreate context 2.
 
 ### Unrated changed decisions
 

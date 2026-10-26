@@ -152,7 +152,29 @@ def _hosted_checks() -> tuple[list[str], list[str]]:
         warnings.append("RETENTION_CLEANUP_ENABLED=true deletes old articles, including rated ones (#255)")
     _hosted_mail_checks(errors, warnings)
     _hosted_google_checks(errors, warnings)
+    _hosted_llm_checks(errors)
     return errors, warnings
+
+
+def _hosted_llm_checks(errors: list[str]) -> None:
+    """A NAMED LLM provider that falls back to disabled is an accident, not a choice.
+
+    CLASSIFICATION_PROVIDER=disabled is the intentional rules-only start. Naming a provider
+    whose settings are incomplete (no base URL, model or key) also ends in the disabled
+    provider, with only a log warning, so a host would quietly classify rules-only. Refuse
+    that on a host. The message names variables only; the provider factory never logs a
+    value it treats as secret."""
+    name = os.environ.get("CLASSIFICATION_PROVIDER", "disabled").strip().lower()
+    if name in ("", "disabled", "fake"):
+        return
+    from app.classification.providers import DisabledLLMProvider
+    from app.classification.service import get_llm_provider
+
+    if isinstance(get_llm_provider(), DisabledLLMProvider):
+        errors.append(
+            f"CLASSIFICATION_PROVIDER={name} is set but its configuration is incomplete, so the "
+            "feed would run rules-only; set the missing CLASSIFICATION_* keys (the log names "
+            "them) or CLASSIFICATION_PROVIDER=disabled for an intentional rules-only start")
 
 
 def _hosted_google_checks(errors: list[str], warnings: list[str]) -> None:

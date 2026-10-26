@@ -71,7 +71,9 @@ signup closed, Secure cookies, and **no worker, no LLM, no Telegram, no results 
 external side effect is switched on deliberately; the worker comes last.
 
 `DEPLOY_ENV=hosted` (#265) refuses to start with `ALLOW_DEV_RESET`, `ALLOW_CORPUS_DB_RESET`,
-`ALLOW_INSECURE_AUTH_BYPASS` or `CLASSIFICATION_PROVIDER=fake`, and warns when cookies are not
+`ALLOW_INSECURE_AUTH_BYPASS` or `CLASSIFICATION_PROVIDER=fake`, refuses a named LLM provider whose
+settings are incomplete (it would silently run rules-only; `CLASSIFICATION_PROVIDER=disabled` is
+the intentional rules-only start), and warns when cookies are not
 Secure, signup is open, `CSRF_ALLOWED_ORIGINS` is unset or retention is on
 ([USER_PLATFORM.md](USER_PLATFORM.md)).
 

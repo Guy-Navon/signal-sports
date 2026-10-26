@@ -40,8 +40,12 @@ from app.notifications.outbox import (
     CREATED,
     NO_WATERMARK,
     StorySnapshot,
+    already_notified,
+    attach_to_event,
+    get_watermark,
     plan_story,
 )
+from app.notifications.same_development import find_same_development_event
 
 logger = logging.getLogger(__name__)
 
@@ -160,11 +164,27 @@ def plan_cycle_notifications(session: Session) -> dict:
         "push_stories": len(snapshots),
         "created": [],                 # event ids
         "already_notified": 0,
+        "same_development": 0,         # repeats of an already-notified development (#371)
         "ignored_non_push": ignored_non_push,
         "no_watermark": False,
     }
 
     for snapshot in snapshots:
+        # #371: a story not yet in any lineage that repeats an already-notified
+        # development (same person, club and settled transaction, within 72 h) joins
+        # that event's lineage instead of sending a second message.
+        if (get_watermark(session, profile_id, policy) is not None
+                and already_notified(session, profile_id, policy, snapshot.member_article_ids) is None):
+            earlier = find_same_development_event(session, profile_id, policy,
+                                                  snapshot.member_article_ids)
+            if earlier is not None:
+                attach_to_event(session, profile_id=profile_id, policy_version=policy,
+                                event_id=earlier, member_article_ids=snapshot.member_article_ids,
+                                reason="same_development")
+                summary["same_development"] += 1
+                logger.info("notification: %s repeats the development of %s — no message",
+                            snapshot.canonical_headline[:60], earlier)
+                continue
         out = plan_story(session, profile_id=profile_id, policy_version=policy,
                          story=snapshot)
         if out.outcome == CREATED:

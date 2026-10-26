@@ -226,6 +226,26 @@ def plan_story(
                        attached_member_ids=tuple(attached))
 
 
+def attach_to_event(session: Session, *, profile_id: str, policy_version: str, event_id: str,
+                    member_article_ids: Sequence[str], reason: str) -> tuple[str, ...]:
+    """Attach a story's members to an EXISTING event's lineage without sending anything.
+
+    Used when the planner finds that an earlier event already covers the same development
+    (#371). Members already in a lineage are left alone; the UNIQUE constraint keeps it so."""
+    attached = []
+    for aid in dict.fromkeys(member_article_ids):
+        session.add(NotificationStoryMemberRow(
+            profile_id=profile_id, policy_version=policy_version,
+            article_id=aid, event_id=event_id, added_at=_now_iso(), reason=reason,
+        ))
+        try:
+            session.commit()
+            attached.append(aid)
+        except IntegrityError:
+            session.rollback()
+    return tuple(attached)
+
+
 def already_notified(session: Session, profile_id: str, policy_version: str,
                      member_article_ids: Sequence[str]) -> Optional[str]:
     """Read-only probe: the governing event id if ANY member is in a notified

@@ -1,8 +1,8 @@
 """TheSportsDB request pacing.
 
-The free key allows 30 requests a minute. One sync makes 1 + one per season
-requests per competition, back to back. On 2026-10-25, 20 requests in about 7 s
-earned 429s for five competitions. The provider must space its requests,
+The free key allows 30 requests a minute. One sync makes 1 + one per season +
+one per recent day requests per competition, back to back. On 2026-10-25, 20
+requests in about 7 s earned 429s for five competitions. The provider must space its requests,
 including retries.
 """
 import httpx
@@ -29,6 +29,7 @@ def _provider(handler, clock):
 def test_requests_are_spaced_by_the_minimum_interval(monkeypatch):
     monkeypatch.setenv("RESULTS_HTTP_MIN_INTERVAL_SECONDS", "2.5")
     monkeypatch.setenv("RESULTS_SEASONS", "2026-2027")
+    monkeypatch.setenv("RESULTS_RECENT_DAYS", "0")
     clock = _Clock()
     sent_at: list[float] = []
 
@@ -49,6 +50,7 @@ def test_a_429_stops_the_sync_and_marks_the_rest_not_checked(monkeypatch):
     429'd for a whole sync). After a 429, nothing more is sent this sync."""
     monkeypatch.setenv("RESULTS_HTTP_MIN_INTERVAL_SECONDS", "0")
     monkeypatch.setenv("RESULTS_SEASONS", "2026-2027")
+    monkeypatch.setenv("RESULTS_RECENT_DAYS", "0")
     clock = _Clock()
     sent: list[str] = []
 

@@ -18,6 +18,7 @@ import { formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import DeskVoice from "@/components/feed/DeskVoice";
+import { useEngineTraceVisible } from "@/context/AppContext";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import { buildKicker } from "@/components/feed/storyLabels";
 import { FOCUS_TARGETS } from "./orbitFocusModel";
@@ -187,6 +188,7 @@ function CompactCore({
   const coreRef = useRef(null);
   const primaryActionRef = useRef(null);
   useSelfFocus(focusTarget, FOCUS_TARGETS.core, coreRef, onFocusApplied);
+  const showTrace = useEngineTraceVisible();
   useSelfFocus(focusTarget, FOCUS_TARGETS.primaryAction, primaryActionRef, onFocusApplied);
   const isCluster = item.type === "cluster";
   const hasClusterField = orbitHasMultiSourceField(item, reports);
@@ -231,6 +233,8 @@ function CompactCore({
 
       <DeskVoice
         reasoning={item.score?.reasoning}
+        reason={item.score?.reasonHe}
+        showTrace={showTrace}
         variant="full"
         className="orbit-core__reason"
       />
@@ -368,6 +372,7 @@ function ExpandedCluster({
   const newestId = chronological.at(-1)?.articleId;
   const title = orbitStoryTitle(item);
   const feedbackId = orbitFeedbackArticleId(item, reports);
+  const showTrace = useEngineTraceVisible();
 
   return (
     <motion.div
@@ -422,6 +427,8 @@ function ExpandedCluster({
           {item.subtitle && <p>{item.subtitle}</p>}
           <DeskVoice
             reasoning={item.score?.reasoning}
+            reason={item.score?.reasonHe}
+            showTrace={showTrace}
             variant="line"
             className="orbit-cluster__reason"
           />

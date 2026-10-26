@@ -350,7 +350,8 @@ components/feed/
   decisionConfig.js      decision contract: labels, tone, strength, orbit block
   feedFilters.js         level + topic filtering
   storyLabels.js         Hebrew kickers, condensed reasoning
-  DeskVoice.jsx          "why you're seeing this", one clamped line
+  DeskVoice.jsx          "why you're seeing this": readers get reason_he (one Hebrew
+                         sentence, or nothing); admin/local QA get the engine trace
   FeedbackControls.jsx · SourceMeta.jsx · EditionEmptyState.jsx
   DecisionBadge.jsx      console affordance (Debug / LLM-QA / Preferences)
   clusterModel.js        cluster roles for Debug's ClusterEvidence

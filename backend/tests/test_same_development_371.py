@@ -124,7 +124,9 @@ def test_the_same_persons_injury_still_notifies(session):
     assert len(plan_cycle_notifications(session)["created"]) == 1
 
 
-def test_the_same_agreement_much_later_still_notifies(session):
+def test_the_suppression_window_expires_72h_after_publication(session):
+    # Window EXPIRY, not evidence that a new development is preserved: a report of the same
+    # agreement ~100 h later is treated as notifiable again because the window is 72 h.
     _add(session, "rss_t371_old", "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב", 100)
     plan_cycle_notifications(session)
     _add(session, "rss_t371_new", "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב", 2)
@@ -136,3 +138,56 @@ def test_without_attention_evidence_behavior_is_unchanged(session):
     plan_cycle_notifications(session)
     _add(session, "rss_t371_y", "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב", 4, attention=False)
     assert len(plan_cycle_notifications(session)["created"]) == 1
+
+
+def _set_status(s, article_id, status, created_hours_ago=None):
+    from app.db.orm_models import NotificationEventRow, NotificationStoryMemberRow
+    eid = s.query(NotificationStoryMemberRow.event_id).filter_by(article_id=article_id).scalar()
+    ev = s.get(NotificationEventRow, eid)
+    ev.status = status
+    if created_hours_ago is not None:
+        ev.created_at = (_now() - timedelta(hours=created_hours_ago)).isoformat()
+    s.commit()
+    return eid
+
+
+def test_a_send_that_finally_failed_does_not_suppress_the_repeat(session):
+    # The first message never reached the user: the repeat must be able to notify.
+    _add(session, "rss_t371_f1", "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב", 30)
+    plan_cycle_notifications(session)
+    _set_status(session, "rss_t371_f1", "failed_final")
+    _add(session, "rss_t371_f2", "נשאר צהוב: איפה לונדברג סיכם לשנתיים נוספות", 4)
+    assert len(plan_cycle_notifications(session)["created"]) == 1
+
+
+def test_a_retryable_failure_stays_retryable_after_a_repeat_attaches(session):
+    from app.db.orm_models import NotificationEventRow
+    _add(session, "rss_t371_r1", "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב", 30)
+    plan_cycle_notifications(session)
+    eid = _set_status(session, "rss_t371_r1", "failed_retryable")
+    _add(session, "rss_t371_r2", "נשאר צהוב: איפה לונדברג סיכם לשנתיים נוספות", 4)
+    summary = plan_cycle_notifications(session)
+    assert summary["created"] == [] and summary["same_development"] == 1
+    session.expire_all()
+    assert session.get(NotificationEventRow, eid).status == "failed_retryable"   # the dispatcher still retries it
+
+
+def test_suppression_is_per_user(session):
+    # Another profile's event about the same agreement never silences this profile.
+    from app.db.orm_models import NotificationStoryMemberRow
+    _add(session, "rss_t371_u1", "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב", 30)
+    plan_cycle_notifications(session)
+    session.query(NotificationStoryMemberRow).filter_by(article_id="rss_t371_u1").update({"profile_id": "someone_else"})
+    session.commit()
+    _add(session, "rss_t371_u2", "נשאר צהוב: איפה לונדברג סיכם לשנתיים נוספות", 4)
+    assert len(plan_cycle_notifications(session)["created"]) == 1
+
+
+def test_the_window_uses_publication_time_not_processing_time(session):
+    # The first event was CREATED (processed) 200 h ago, but the two reports were PUBLISHED
+    # 26 h apart: still the same development, no second message.
+    _add(session, "rss_t371_p1", "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב", 30)
+    plan_cycle_notifications(session)
+    _set_status(session, "rss_t371_p1", "sent", created_hours_ago=200)
+    _add(session, "rss_t371_p2", "נשאר צהוב: איפה לונדברג סיכם לשנתיים נוספות", 4)
+    assert plan_cycle_notifications(session)["created"] == []

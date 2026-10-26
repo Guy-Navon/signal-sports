@@ -13,7 +13,14 @@ same development:
 - published within ``SAME_DEVELOPMENT_WINDOW`` of each other.
 
 Anything else still notifies: a different person or club, a different development (talks →
-agreement, an injury), or the same agreement much later. A row without attention evidence
+agreement, an injury), or the same agreement after the window expires (72 h of publication).
+
+**Delivery state matters.** Only an earlier event that reached, or can still reach, the user
+covers a repeat: pending / claimed / sent / failed_retryable (the dispatcher keeps retrying it;
+attaching a repeat never changes its status) / unknown (it may have been delivered) /
+suppressed_watermark (deliberately silent at activation). A ``failed_final`` event never
+reached the user, so a repeat may notify. The check is per (profile, policy) and compares
+**publication** times, never processing time. A row without attention evidence
 (rows stored before the 2026-09-11 push-severity gate) is never treated as a repeat. This
 module only reads; attaching is the outbox's job.
 """
@@ -26,6 +33,7 @@ from typing import Optional, Sequence
 from sqlalchemy.orm import Session
 
 SAME_DEVELOPMENT_WINDOW = timedelta(hours=72)
+_NOT_COVERING = frozenset({"failed_final"})
 _TRANSACTION_EVENTS = frozenset({"negotiation", "signing", "major_signing"})
 _SETTLED = "agreement_or_completion"
 _PERSON_PREFIXES = ("player:", "coach:", "exec:")
@@ -62,7 +70,7 @@ def _settled_transaction(row) -> Optional[tuple[frozenset, frozenset, datetime]]
 def find_same_development_event(session: Session, profile_id: str, policy_version: str,
                                 member_article_ids: Sequence[str]) -> Optional[str]:
     """The id of an earlier event that already covers this story's development, or None."""
-    from app.db.orm_models import ArticleRow, NotificationStoryMemberRow
+    from app.db.orm_models import ArticleRow, NotificationEventRow, NotificationStoryMemberRow
 
     rows = session.query(ArticleRow).filter(ArticleRow.id.in_(list(member_article_ids))).all()
     mine = [f for f in (_settled_transaction(r) for r in rows) if f is not None]
@@ -74,8 +82,10 @@ def find_same_development_event(session: Session, profile_id: str, policy_versio
     lineage = (
         session.query(NotificationStoryMemberRow.event_id, ArticleRow)
         .join(ArticleRow, ArticleRow.id == NotificationStoryMemberRow.article_id)
+        .join(NotificationEventRow, NotificationEventRow.id == NotificationStoryMemberRow.event_id)
         .filter(NotificationStoryMemberRow.profile_id == profile_id,
-                NotificationStoryMemberRow.policy_version == policy_version)
+                NotificationStoryMemberRow.policy_version == policy_version,
+                NotificationEventRow.status.notin_(_NOT_COVERING))
         .all()
     )
     for event_id, row in sorted(lineage, key=lambda x: str(x[1].published_at)):

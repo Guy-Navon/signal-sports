@@ -5,6 +5,10 @@
 #   api    uvicorn, one process, no scheduler.
 #   worker the ingestion scheduler. Behind the "worker" profile, so it starts
 #          only when explicitly enabled (COMPOSE_PROFILES=worker).
+#   db     PostgreSQL, GROUNDWORK ONLY: nothing connects to it. Behind the
+#          "postgres" profile, so it never starts by default. The app's
+#          database is still the SQLite file below (docs/DEPLOYMENT.md,
+#          "Postgres groundwork").
 #
 # api and worker share ONE SQLite file on a host bind mount. SQLite WAL needs a
 # local filesystem: never NFS/SMB/network storage. Exactly one worker, ever.
@@ -17,6 +21,10 @@
 #   SIGNAL_WEB_BIND       listen address             (default 127.0.0.1)
 #   SIGNAL_WEB_PORT       listen port                (default 8080)
 #   COMPOSE_PROFILES      "worker" to run the worker (default: no worker)
+# Only for the unused db service (profile "postgres"):
+#   SIGNAL_POSTGRES_IMAGE     default: postgres:18-alpine pinned by digest
+#   SIGNAL_POSTGRES_ENV_FILE  POSTGRES_* settings     (default ./postgres.env)
+#   SIGNAL_POSTGRES_DATA_DIR  host dir, owned 70:70   (default ./pgdata)
 
 name: signal
 
@@ -109,5 +117,52 @@ services:
       - ALL
     stop_grace_period: 10s
     mem_limit: 128m
+    restart: unless-stopped
+    logging: *logging
+
+  # GROUNDWORK ONLY (docs/DEPLOYMENT.md, "Postgres groundwork"): nothing
+  # connects to it, nothing depends on it, it publishes no port. Do not point
+  # DATABASE_URL at it; the app cannot run on Postgres yet.
+  db:
+    profiles: ["postgres"]
+    image: ${SIGNAL_POSTGRES_IMAGE:-postgres:18-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5}
+    env_file:
+      # POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD (postgres.env.example).
+      # Optional so the default stack never needs it; without a password the
+      # image refuses to initialize, so a missing file fails safe.
+      - path: ${SIGNAL_POSTGRES_ENV_FILE:-./postgres.env}
+        required: false
+    environment:
+      # C collation: the app compares ISO-8601 timestamp strings as text, and
+      # C orders them byte-wise, like SQLite does.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      # Postgres 18+ images keep PGDATA at /var/lib/postgresql/18/docker and
+      # expect the mount one level up. Local filesystem only, as for SQLite.
+      # The dir must exist, owned 70:70 and mode 0700 (the image's postgres uid).
+      - type: bind
+        source: ${SIGNAL_POSTGRES_DATA_DIR:-./pgdata}
+        target: /var/lib/postgresql
+    user: "70:70"
+    read_only: true
+    tmpfs:
+      - /var/run/postgresql:size=1m,mode=1777
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      # TCP on loopback, not the socket: the init-time server listens on the
+      # socket only, so this stays unhealthy until the real server is up.
+      # -U/-d match the env file, so the probe logs no "role does not exist".
+      test: ["CMD-SHELL", "pg_isready -q -h 127.0.0.1 -U \"$${POSTGRES_USER:-postgres}\" -d \"$${POSTGRES_DB:-$${POSTGRES_USER:-postgres}}\""]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+    # The image stops with SIGINT (fast shutdown); 60 s for a checkpoint.
+    stop_grace_period: 60s
+    mem_limit: 256m
     restart: unless-stopped
     logging: *logging

@@ -122,9 +122,15 @@ services:
 
   # GROUNDWORK ONLY (docs/DEPLOYMENT.md, "Postgres groundwork"): nothing
   # connects to it, nothing depends on it, it publishes no port. Do not point
-  # DATABASE_URL at it; the app cannot run on Postgres yet.
+  # DATABASE_URL at it; the app cannot run on Postgres yet. Start it only with
+  # --profile postgres on the command line; never add "postgres" to
+  # COMPOSE_PROFILES (restore.sh runs a bare `compose up`).
   db:
     profiles: ["postgres"]
+    # No network at all, only loopback: no container can reach it. The
+    # healthcheck uses loopback TCP and admin access is `compose exec`. A real
+    # switch would replace this with a dedicated internal network.
+    network_mode: none
     image: ${SIGNAL_POSTGRES_IMAGE:-postgres:18-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5}
     env_file:
       # POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD (postgres.env.example).

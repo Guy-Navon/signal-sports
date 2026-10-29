@@ -570,7 +570,14 @@ PC or a host runs it.
 - `db` in `deploy/compose.yaml`: `postgres:18-alpine` pinned by digest, behind the **`postgres`
   profile**, so the default start (`up -d --wait api web`, and `COMPOSE_PROFILES=worker`) never
   creates it. **Hard rule: nothing connects to it.** No service depends on it, it publishes no
-  port, and `x-backend` still forces `DATABASE_URL=sqlite:////app/data/signal_sports.db`.
+  port, and `x-backend` still forces `DATABASE_URL=sqlite:////app/data/signal_sports.db`. It has
+  **no network** (`network_mode: none`, loopback only), so no container can reach it either;
+  admin access is `docker compose exec`. A real switch would replace that with a dedicated
+  internal network.
+- **Start it only with `--profile postgres` on the command line. Never add `postgres` to
+  `COMPOSE_PROFILES`** (in `deploy/.env` or the environment): the host scripts would then start
+  it too. `restore.sh` resumes the stack with a bare `compose up -d --wait`
+  (`deploy/restore.sh:194`), which would start db in the middle of a restore.
   Hardening as for the other services: uid `70:70` (the image's `postgres` user), read-only
   root with tmpfs for `/var/run/postgresql` and `/tmp`, `cap_drop: ALL`, `no-new-privileges`,
   `mem_limit: 256m`, rotated logs, `restart: unless-stopped`, 60 s stop grace. The healthcheck
@@ -586,8 +593,10 @@ PC or a host runs it.
   statements compiled for PostgreSQL. It needs no driver and opens no database.
 
 **Starting it by hand** (only to look at it; nothing uses it). Compose interpolates the whole
-file, so `deploy/.env` (§3) must be in place with the backend and web image variables even
-though only db starts:
+file, so the backend and web image variables must be set (`deploy/.env`, §3) even though only
+db starts. The app env file (`SIGNAL_ENV_FILE`) does **not** have to exist to start db alone,
+but `docker compose config` refuses to run without it (the first is rehearsed in CI; the
+second was observed in CI with Compose v2.38.2):
 
 ```bash
 cd deploy
@@ -611,13 +620,13 @@ separate throwaway Compose projects:
 - `signal-pgrh-default`, the normal start path: `compose config` passes with no `postgres.env`;
   `up -d --wait api web` with no profile creates only api and web, and no db container exists
   for the project; `x-backend` still forces the SQLite `DATABASE_URL`; db declares no port and
-  no service depends on it.
-- `signal-pgrh-pg`, db alone: an empty data dir prepared as above and a random password. The
-  service initializes **from scratch** under uid 70 with a read-only root, and the database is
-  UTF8 with C collation. Postgres accepts the ORM's DDL (`postgres_schema_ddl.py` from the
+  `network_mode: none`, and no service depends on it.
+- `signal-pgrh-pg`, db alone: an empty data dir prepared as above, a random password and no
+  app env file. The service initializes **from scratch** under uid 70 with a read-only root,
+  and the database is UTF8 with C collation. Postgres accepts the ORM's DDL (`postgres_schema_ddl.py` from the
   backend image, in one transaction) and then holds exactly the ORM's tables. After
   `down`/`up` on the same dir it skips initialization and keeps them. db is the project's only
-  container and publishes no port.
+  container, publishes no port and is attached to no network.
 
 So CI proves that **the service comes up hardened from scratch and that the models' DDL is
 accepted by Postgres**. It does **not** prove that the app, its queries or its data are

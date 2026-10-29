@@ -96,6 +96,7 @@ for svc in api worker; do
 done
 pass "x-backend still forces DATABASE_URL to the SQLite file (api and worker)"
 [ "$(jq '.services.db.ports // [] | length' <<< "$cfg")" = "0" ] && pass "db declares no published port" || fail "db has ports"
+[ "$(jq -r '.services.db.network_mode' <<< "$cfg")" = "none" ] && pass "db declares network_mode none" || fail "db network_mode"
 [ "$(jq '[.services[] | (.depends_on // {}) | keys[]] | index("db")' <<< "$cfg")" = "null" ] \
   && pass "no service depends on db" || fail "a service depends on db"
 
@@ -106,8 +107,10 @@ trap - EXIT
 # ── Phase B: db alone, initialized from scratch ──────────────────────────────
 WORK_B=$(mktemp -d)
 cleanup_b() {
-  compose "$PROJECT_B" "$WORK_B" --profile worker --profile postgres logs --no-color > "$WORK_B/compose.log" 2>&1 || true
+  compose "$PROJECT_B" "$WORK_B" --profile postgres logs --no-color > "$WORK_B/compose.log" 2>&1 || true
   compose "$PROJECT_B" "$WORK_B" --profile worker --profile postgres down -v --remove-orphans > /dev/null 2>&1 || true
+  # Phase B has no app env file; whatever compose makes of that, remove by label.
+  docker ps -aq --filter "label=com.docker.compose.project=$PROJECT_B" | xargs -r docker rm -f > /dev/null 2>&1 || true
   [ "${KEEP_REHEARSAL_LOGS:-}" = "1" ] && cp "$WORK_B/compose.log" ./pg-rehearsal-db-compose.log 2> /dev/null || true
   sudo rm -rf "$WORK_B"
 }
@@ -126,8 +129,8 @@ sudo chown 70:70 "$WORK_B/pgdata"
 sudo chmod 0700 "$WORK_B/pgdata"
 (umask 077 && printf 'POSTGRES_DB=signal\nPOSTGRES_USER=signal\nPOSTGRES_PASSWORD=%s\n' \
   "$(openssl rand -hex 24)" > "$WORK_B/postgres.env")
-# Only so the shared x-backend interpolates; api and worker are never started.
-write_signal_env "$WORK_B"
+# No app env file: starting db alone must not need one (docs/DEPLOYMENT.md §15).
+[ ! -e "$WORK_B/signal.env" ] || fail "phase B has an app env file"
 [ -z "$(sudo ls -A "$WORK_B/pgdata")" ] || fail "pgdata is not empty"
 
 pg up -d --wait --wait-timeout 180 db && pass "db initialized from scratch (uid 70, read-only root) and is healthy" || fail "db did not initialize"
@@ -141,6 +144,8 @@ has "$caps" '"ALL"' && has "$caps" 'no-new-privileges' && pass "db drops all cap
 bindings=$(docker inspect -f '{{json .HostConfig.PortBindings}}' "$cid")
 [ -z "$(docker port "$cid")" ] && { [ "$bindings" = "{}" ] || [ "$bindings" = "null" ]; } \
   && pass "db publishes no port" || fail "db publishes a port: $bindings"
+nets=$(docker inspect -f '{{.HostConfig.NetworkMode}} {{range $n, $_ := .NetworkSettings.Networks}}{{$n}},{{end}}' "$cid")
+[ "$nets" = "none none," ] && pass "db is attached to no network (network_mode none; loopback only)" || fail "db networks: $nets"
 locale=$(psql_db -tA -c "SELECT pg_encoding_to_char(encoding) || ' ' || datcollate || ' ' || datctype
                          FROM pg_database WHERE datname = current_database()")
 [ "$locale" = "UTF8 C C" ] && pass "database is UTF8 with C collation" || fail "encoding/collation: $locale"

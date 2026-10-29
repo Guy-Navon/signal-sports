@@ -176,7 +176,7 @@ the flag it refuses and exits 1 (and `restart` would loop), so set both together
 | Workflow | Trigger | Does |
 |---|---|---|
 | `checks.yml` | every PR, push to main | backend suite (installed from the lock), frontend lint/typecheck/tests/build |
-| `images.yml` | PRs and pushes touching `backend/`, `frontend/`, `deploy/` | builds both images and runs `deploy/smoke-test.sh`. **Pushes nothing**; `contents: read` only |
+| `images.yml` | PRs and pushes touching `backend/`, `frontend/`, `deploy/` | builds both images and runs `deploy/smoke-test.sh`, then the rehearsals (§7, §10, §15). **Pushes nothing**; `contents: read` only |
 | `publish-images.yml` | **manual only** (`workflow_dispatch`, main, type `publish`) | build, smoke test, push to GHCR as `sha-<commit>`, print the digests. Never triggered by a merge |
 
 `deploy/smoke-test.sh <backend-image> <web-image>` runs the stack under its own project name on
@@ -559,7 +559,113 @@ exactly these:
    On A: reboot the PC once and confirm what has to be restarted by hand.
 8. `[D]` Push notifications for the reader (#251), and SMTP for password reset (#333).
 
-## 15. Not done yet
+## 15. Postgres groundwork (not used)
+
+**The app runs on SQLite only and cannot run on Postgres.** This section describes an unused
+`db` service and a CI check, added 2026-10 as groundwork for a possible later split into
+web / api / worker / db services. Nothing switched over, no driver was added, and nothing on the
+PC or a host runs it.
+
+**What exists.**
+- `db` in `deploy/compose.yaml`: `postgres:18-alpine` pinned by digest, behind the **`postgres`
+  profile**, so the default start (`up -d --wait api web`, and `COMPOSE_PROFILES=worker`) never
+  creates it. **Hard rule: nothing connects to it.** No service depends on it, it publishes no
+  port, and `x-backend` still forces `DATABASE_URL=sqlite:////app/data/signal_sports.db`. It has
+  **no network** (`network_mode: none`, loopback only), so no container can reach it either;
+  admin access is `docker compose exec`. A real switch would replace that with a dedicated
+  internal network.
+  Hardening as for the other services: uid `70:70` (the image's `postgres` user), read-only
+  root with tmpfs for `/var/run/postgresql` and `/tmp`, `cap_drop: ALL`, `no-new-privileges`,
+  `mem_limit: 256m`, rotated logs, `restart: unless-stopped`, 60 s stop grace. The healthcheck
+  is `pg_isready` over loopback TCP, which the image's init-time (socket-only) server does
+  not answer. `initdb` runs with `--encoding=UTF8 --locale=C`, because the app compares ISO
+  timestamp strings as text.
+- **Start it only with `--profile postgres` on the command line. Never add `postgres` to
+  `COMPOSE_PROFILES`** (in `deploy/.env` or the environment): `restore.sh` would then start it
+  too, because it resumes the stack with a bare `compose up -d --wait`
+  (`deploy/restore.sh:194`), in the middle of a restore.
+- `deploy/postgres.env.example`: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (secret,
+  empty). The env file is optional (`required: false`); without a password the image refuses
+  to initialize, so a missing file fails safe. Variables: `SIGNAL_POSTGRES_IMAGE`,
+  `SIGNAL_POSTGRES_ENV_FILE` (default `./postgres.env`), `SIGNAL_POSTGRES_DATA_DIR` (default
+  `./pgdata`). Both defaults are git-ignored.
+- `backend/scripts/postgres_schema_ddl.py`: prints the ORM's `CREATE TABLE` / `CREATE INDEX`
+  statements compiled for PostgreSQL. It needs no driver and opens no database.
+
+**Starting it by hand** (only to look at it; nothing uses it). Compose interpolates the whole
+file, so the backend and web image variables must be set (`deploy/.env`, §3) even though only
+db starts, and the app env file (`SIGNAL_ENV_FILE`, required by `x-backend`) must exist.
+Without it `up … db` alone would still start db, but `config`, `ps` and `logs` were seen
+refusing to run in CI; assume `exec`, `stop` and `down` need it too:
+
+```bash
+cd deploy
+mkdir -p pgdata                 # a LOCAL filesystem, as for SQLite; never NFS/SMB
+sudo chown 70:70 pgdata         # the image's postgres uid/gid
+sudo chmod 0700 pgdata
+install -m 0600 postgres.env.example postgres.env   # then set POSTGRES_PASSWORD (openssl rand -hex 24)
+docker compose --profile postgres up -d --wait db
+docker compose --profile postgres ps db                       # healthy
+docker compose --profile postgres exec db psql -U signal -d signal -c 'SELECT version()'
+docker compose --profile postgres stop db                     # stop; the data stays in pgdata/
+```
+
+The data dir is mounted at `/var/lib/postgresql`. Postgres 18+ images keep `PGDATA` one level
+down, in `18/docker/`, which is why the mount is the parent. To throw it away: stop the
+service, `docker compose --profile postgres rm -f db`, then `sudo rm -rf pgdata`. There is no
+backup tooling for it (below).
+
+**What CI proves, and what it doesn't.** `deploy/rehearse-postgres.sh` in `images.yml` runs two
+separate throwaway Compose projects:
+- `signal-pgrh-default`, the normal start path: `compose config` passes with no `postgres.env`;
+  `up -d --wait api web` with no profile creates only api and web, and no db container exists
+  for the project; `x-backend` still forces the SQLite `DATABASE_URL`; db declares no port and
+  `network_mode: none`, and no service depends on it.
+- `signal-pgrh-pg`, db alone: an empty data dir prepared as above and a random password. The
+  service initializes **from scratch** under uid 70 with a read-only root, and the database is
+  UTF8 with C collation. Postgres accepts the ORM's DDL (`postgres_schema_ddl.py` from the
+  backend image, in one transaction) and then holds exactly the ORM's tables. After
+  `down`/`up` on the same dir it skips initialization and keeps them. db is the project's only
+  container, publishes no port and is attached to no network.
+
+So CI proves that **the service comes up hardened from scratch and that the models' DDL is
+accepted by Postgres**. It does **not** prove that the app, its queries or its data are
+compatible with Postgres: no app process ever connects to it, no query runs against it, and no
+data is copied.
+
+**Blockers before any real switch** (checked against the code on 2026-10-29; none is
+addressed here):
+- **Engine setup is SQLite-only.** `app/db/database.py:16-42`: `connect_args`
+  (`check_same_thread`, `timeout`) are sqlite3 arguments, and the connect listener sets SQLite
+  PRAGMAs (foreign keys, WAL, busy timeout). There is no Postgres driver in
+  `requirements.lock`.
+- **SQLite-only SQL.** The lease uses `INSERT OR IGNORE` (`app/ingestion/orchestration.py:110`);
+  usage counting uses `sqlalchemy.dialects.sqlite.insert` (`app/repositories/usage_repository.py:8`).
+- **Health probe.** `app/healthcheck.py` opens the DB with stdlib `sqlite3` and reports the
+  worker unhealthy for any non-SQLite `DATABASE_URL`.
+- **Safety guards can't see Postgres.** `app/db/corpus_protection.py` and
+  `app/core/deploy_mode.py` recognise only SQLite paths, so with a Postgres URL the corpus
+  guard on the destructive dev routes and the `DEPLOY_ENV=dev` production-database refusal are
+  both blind. Their messages also print the URL in full
+  (`active_database_url()` renders it with `hide_password=False`, and `routes_dev.py` puts it
+  into a 409 detail and a log line). That is harmless for a SQLite path, but would leak a
+  Postgres password once the guard recognises Postgres.
+- **Backups, restore and verification are SQLite-only**: `app/ops/sqlite_tools.py`,
+  `scripts/backup_db.py`, `scripts/verify_db.py` and the `deploy/*.sh` backup, restore, deploy
+  and rehearsal scripts.
+- **NULL ordering.** SQLite sorts NULL first ascending and last descending; Postgres the
+  opposite. `ORDER BY finished_at DESC LIMIT 1` (`app/ingestion/orchestration.py:175`,
+  `app/worker.py:123`) would return a NULL `finished_at` first.
+- **Timestamps are ISO strings compared as text.** Correct only under a byte-wise collation
+  (hence C); any other collation, or a mix of offsets and formats, changes comparisons.
+- **Foreign keys.** SQLite enforces them only per connection (the PRAGMA); a copied corpus
+  would need a clean `PRAGMA foreign_key_check` and a table order that Postgres accepts.
+- **Soft migrations, no Alembic.** `_apply_migrations` adds columns with SQLite type names:
+  `classification_confidence REAL` is single precision on Postgres, while the ORM's `Float`
+  (and so a fresh `create_all`) is double precision. A switch needs real migrations (#198's
+  migrations half).
+
+## 16. Not done yet
 
 Everything above is repository preparation. Still open: the owner's decisions and accounts
 (HOSTING_PLAN §18), the first image publication, the host itself (#268), the hosted LLM

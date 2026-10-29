@@ -149,7 +149,7 @@ F1–F16 come from v2 and were re-checked; corrections are in bold. F17–F22 ar
 | Trials and credits | ✗ | They expire |
 | Lightsail, Fly.io, Render, Railway, Northflank | ✗ | Less RAM per dollar, or sleeping services [O]/[T] |
 | Static frontend plus a backend elsewhere | ✗ | Cross-site cookie problems [E], and nothing gets cheaper |
-| Managed Postgres | ✗ | An engine change with no reason behind it (#198) |
+| Managed Postgres | ✗ | An engine change with no reason behind it (#198). Still not planned. Since 2026-10 an unused, self-hosted `db` Compose service exists as groundwork only; the app stays on SQLite ([DEPLOYMENT.md](DEPLOYMENT.md) §15) |
 | **GitHub Codespaces (dev)** | ✓ | §5.3 |
 | A Hetzner dev VM by the hour | not pursued | A server is billed while it exists, even powered off [O]. It needs a snapshot and a delete every session |
 | Gitpod/Ona, Coder, DevPod | not evaluated | — |

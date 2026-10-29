@@ -7,6 +7,9 @@
 deploy/signal.env
 deploy/backup.env
 deploy/data/
+# The unused db service (profile "postgres"): its password file and data dir.
+deploy/postgres.env
+deploy/pgdata/
 
 # Logs
 /logs

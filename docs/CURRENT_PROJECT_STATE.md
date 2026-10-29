@@ -87,7 +87,7 @@ visible members). Details: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md).
 |---|---|
 | Frontend | React 18 + Vite 6, `frontend/src/` ([FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)) |
 | API + worker | FastAPI, Python 3.13, `backend/app/` (`main.py`, `worker.py`) |
-| Persistence | SQLite via SQLAlchemy 2.0. Additive soft migrations at startup |
+| Persistence | SQLite via SQLAlchemy 2.0, the only database the app can use. Additive soft migrations at startup. An unused Postgres `db` Compose service exists as groundwork only ([DEPLOYMENT.md](DEPLOYMENT.md) §15) |
 | Sources & adapters | `app/ingestion/` (feedparser, httpx + BeautifulSoup, ONE JSON) |
 | Classification | `app/ingestion/classifier.py` (rules), `app/classification/` (gate, providers, merge, facts, event evidence) |
 | Taxonomy | `app/taxonomy/` (the single source of entity truth) |
@@ -399,6 +399,7 @@ It also proposes:
 | #268 provision | deploy/rollback/auto-rollback tooling, host templates, checklist (PR #283), rehearsed in CI | the VM, accounts, Tailscale, identities |
 | #269 cutover | runbook, DEPLOYMENT.md §12 | owner-run |
 | #267 decisions, #264 k8s | — | the owner's decisions; #264 proposed for deferral |
+| Postgres groundwork (2026-10) | an unused, hardened `db` service behind the `postgres` profile; CI initializes it from scratch and applies the ORM's DDL ([DEPLOYMENT.md](DEPLOYMENT.md) §15). The app still runs on SQLite only | whether to switch at all; the blockers listed in §15 |
 | `calib.py` (#237 tool) | integrated as `scripts/census_calibration_fit.py` (PR #282) | — |
 
 The issue texts predate the plan; its §17 proposes their amendments (not applied).

@@ -594,9 +594,9 @@ PC or a host runs it.
 
 **Starting it by hand** (only to look at it; nothing uses it). Compose interpolates the whole
 file, so the backend and web image variables must be set (`deploy/.env`, §3) even though only
-db starts. The app env file (`SIGNAL_ENV_FILE`) does **not** have to exist to start db alone,
-but `docker compose config` refuses to run without it (the first is rehearsed in CI; the
-second was observed in CI with Compose v2.38.2):
+db starts, and the app env file (`SIGNAL_ENV_FILE`, required by `x-backend`) must exist.
+Without it `up … db` alone would still start db, but `ps`, `exec`, `logs`, `stop`, `down` and
+`config` refuse to run (observed in CI with Compose v2.38.2):
 
 ```bash
 cd deploy
@@ -621,9 +621,9 @@ separate throwaway Compose projects:
   `up -d --wait api web` with no profile creates only api and web, and no db container exists
   for the project; `x-backend` still forces the SQLite `DATABASE_URL`; db declares no port and
   `network_mode: none`, and no service depends on it.
-- `signal-pgrh-pg`, db alone: an empty data dir prepared as above, a random password and no
-  app env file. The service initializes **from scratch** under uid 70 with a read-only root,
-  and the database is UTF8 with C collation. Postgres accepts the ORM's DDL (`postgres_schema_ddl.py` from the
+- `signal-pgrh-pg`, db alone: an empty data dir prepared as above and a random password. The
+  service initializes **from scratch** under uid 70 with a read-only root, and the database is
+  UTF8 with C collation. Postgres accepts the ORM's DDL (`postgres_schema_ddl.py` from the
   backend image, in one transaction) and then holds exactly the ORM's tables. After
   `down`/`up` on the same dir it skips initialization and keeps them. db is the project's only
   container, publishes no port and is attached to no network.

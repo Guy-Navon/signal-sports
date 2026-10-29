@@ -109,7 +109,7 @@ WORK_B=$(mktemp -d)
 cleanup_b() {
   compose "$PROJECT_B" "$WORK_B" --profile postgres logs --no-color > "$WORK_B/compose.log" 2>&1 || true
   compose "$PROJECT_B" "$WORK_B" --profile worker --profile postgres down -v --remove-orphans > /dev/null 2>&1 || true
-  # Phase B has no app env file; whatever compose makes of that, remove by label.
+  # If compose itself refused (e.g. a missing env file), remove by label anyway.
   docker ps -aq --filter "label=com.docker.compose.project=$PROJECT_B" | xargs -r docker rm -f > /dev/null 2>&1 || true
   [ "${KEEP_REHEARSAL_LOGS:-}" = "1" ] && cp "$WORK_B/compose.log" ./pg-rehearsal-db-compose.log 2> /dev/null || true
   sudo rm -rf "$WORK_B"
@@ -129,8 +129,9 @@ sudo chown 70:70 "$WORK_B/pgdata"
 sudo chmod 0700 "$WORK_B/pgdata"
 (umask 077 && printf 'POSTGRES_DB=signal\nPOSTGRES_USER=signal\nPOSTGRES_PASSWORD=%s\n' \
   "$(openssl rand -hex 24)" > "$WORK_B/postgres.env")
-# No app env file: starting db alone must not need one (docs/DEPLOYMENT.md §15).
-[ ! -e "$WORK_B/signal.env" ] || fail "phase B has an app env file"
+# api and worker are never started, but compose ps/exec/logs/down refuse to run
+# while x-backend's required app env file is missing (docs/DEPLOYMENT.md §15).
+write_signal_env "$WORK_B"
 [ -z "$(sudo ls -A "$WORK_B/pgdata")" ] || fail "pgdata is not empty"
 
 pg up -d --wait --wait-timeout 180 db && pass "db initialized from scratch (uid 70, read-only root) and is healthy" || fail "db did not initialize"

@@ -574,16 +574,16 @@ PC or a host runs it.
   **no network** (`network_mode: none`, loopback only), so no container can reach it either;
   admin access is `docker compose exec`. A real switch would replace that with a dedicated
   internal network.
-- **Start it only with `--profile postgres` on the command line. Never add `postgres` to
-  `COMPOSE_PROFILES`** (in `deploy/.env` or the environment): the host scripts would then start
-  it too. `restore.sh` resumes the stack with a bare `compose up -d --wait`
-  (`deploy/restore.sh:194`), which would start db in the middle of a restore.
   Hardening as for the other services: uid `70:70` (the image's `postgres` user), read-only
   root with tmpfs for `/var/run/postgresql` and `/tmp`, `cap_drop: ALL`, `no-new-privileges`,
   `mem_limit: 256m`, rotated logs, `restart: unless-stopped`, 60 s stop grace. The healthcheck
   is `pg_isready` over loopback TCP, which the image's init-time (socket-only) server does
   not answer. `initdb` runs with `--encoding=UTF8 --locale=C`, because the app compares ISO
   timestamp strings as text.
+- **Start it only with `--profile postgres` on the command line. Never add `postgres` to
+  `COMPOSE_PROFILES`** (in `deploy/.env` or the environment): `restore.sh` would then start it
+  too, because it resumes the stack with a bare `compose up -d --wait`
+  (`deploy/restore.sh:194`), in the middle of a restore.
 - `deploy/postgres.env.example`: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (secret,
   empty). The env file is optional (`required: false`); without a password the image refuses
   to initialize, so a missing file fails safe. Variables: `SIGNAL_POSTGRES_IMAGE`,
@@ -595,8 +595,8 @@ PC or a host runs it.
 **Starting it by hand** (only to look at it; nothing uses it). Compose interpolates the whole
 file, so the backend and web image variables must be set (`deploy/.env`, §3) even though only
 db starts, and the app env file (`SIGNAL_ENV_FILE`, required by `x-backend`) must exist.
-Without it `up … db` alone would still start db, but `ps`, `exec`, `logs`, `stop`, `down` and
-`config` refuse to run (observed in CI with Compose v2.38.2):
+Without it `up … db` alone would still start db, but `config`, `ps` and `logs` were seen
+refusing to run in CI; assume `exec`, `stop` and `down` need it too:
 
 ```bash
 cd deploy

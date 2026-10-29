@@ -146,6 +146,8 @@ services:
     user: "70:70"
     read_only: true
     tmpfs:
+      # The socket dir. The image's entrypoint tries to chmod it and, as a
+      # non-root user, logs a harmless "chmod: Operation not permitted".
       - /var/run/postgresql:size=1m,mode=1777
       - /tmp:size=64m,mode=1777
     security_opt:

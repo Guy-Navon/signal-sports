@@ -60,3 +60,10 @@ jobs:
       - name: Deploy rehearsal logs
         if: always()
         run: cat deploy-rehearsal-compose.log 2>/dev/null || true
+      - name: Rehearse the unused Postgres db service (groundwork; the app stays on SQLite)
+        env:
+          KEEP_REHEARSAL_LOGS: '1'
+        run: bash deploy/rehearse-postgres.sh signal-backend:ci signal-web:ci
+      - name: Postgres rehearsal logs
+        if: always()
+        run: cat pg-rehearsal-default-compose.log pg-rehearsal-db-compose.log 2>/dev/null || true

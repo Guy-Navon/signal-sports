@@ -14,7 +14,7 @@ issue numbers in §14 lead to their evidence.
 | Area | State (2026-10-12) |
 |---|---|
 | Milestones | 1–9 **closed**. **13 is the top priority: Off the owner's machine (hosted model, backend, frontend).** Then 10–12: Live Pilot, Census #3 & gate, Israeli-basketball recall (see §11). Outside them: #198–#200 (audit debt), #16 #21 #23 (mobile) |
-| Runtime (owner's Windows PC) | Scheduler worker **running** (`scripts\worker.ps1 -Status`). **The API and Vite were not running on 2026-10-12, so the app was unreachable from the phone.** LLM: Ollama `qwen2.5:3b-instruct`. Clustering on, 36h freshness on, results sync on. **Telegram push OFF since 2026-09-13** |
+| Runtime (owner's Windows PC) | Scheduler worker **running** (`scripts\worker.ps1 -Status`). **The API and Vite were not running on 2026-10-12, so the app was unreachable from the phone.** LLM: `openai/gpt-oss-20b` on Groq since 2026-10-25, an interim choice ([qa/LLM_BAKEOFF_2026-10-25.md](qa/LLM_BAKEOFF_2026-10-25.md), Decision); before that, Ollama `qwen2.5:3b-instruct`. Clustering on, 36h freshness on, results sync on. **Telegram push OFF since 2026-09-13** |
 | Live sources | Walla, Israel Hayom, Ynet, **Sport5** (a code-default "pilot", enabled by runtime override). **ONE is disabled by override and has never ingested into this corpus.** The #258 probe (2026-10-30) found the adapter works; enabling it is pending the owner ([RSS_INGESTION.md](RSS_INGESTION.md) §1) |
 | Corpus | 2,715 RSS articles published 2026-07-10 → today. 340 were published after the milestone-9 worker restart (2026-10-10 14:23 UTC) |
 | Feed quality (fresh cohort) | Census #2 (804 articles, owner-rated): shown precision 92–95% after the owner's blind re-review. **Feed+ recall 66%** when rated, before milestone 9: about one wanted story in three was hidden. Push recall 1/8, and 2/8 on the rerun after #229 |
@@ -106,8 +106,8 @@ visible members). Details: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md).
 | `walla_sport` | RSS | on | No URL category, so sport comes from keywords, entities and the LLM |
 | `israel_hayom_sport` | RSS + `/sport/` allowlist | on | A general 100-item feed, about 21 of them sport |
 | `ynet_sport` | RSS | on | URL hints for basketball, football and tennis |
-| `sport5_sport` | html_scrape | **on (runtime override)** | The code default says "pilot, disabled", but it has run every cycle since July (30 days to 2026-10-29: 0 errors, about 3 new articles a day, 98% basketball). Promoting it out of "pilot" is pending the owner (#258) |
-| `one_sport` | html_scrape (public JSON) | **off (runtime override, set before 2026-07-10, reason never recorded)** | Zero articles in this corpus. The #258 probe (2026-10-30, `scripts/one_sport_probe.py`) found the adapter working: 48 Hebrew items, about 68 a day, 27% basketball, none already stored. Recommendation: enable. The decision is pending the owner |
+| `sport5_sport` | html_scrape | **on (runtime override)** | The code default says "pilot, disabled", but it has run every cycle since July (30 days to 2026-10-29: 0 errors, about 3 new articles a day; 214 of its 216 articles basketball). Promoting it out of "pilot" is pending the owner (#258) |
+| `one_sport` | html_scrape (public JSON) | **off (runtime override, set before 2026-07-10, reason never recorded)** | Zero articles in this corpus. The #258 probe (2026-10-30, `scripts/one_sport_probe.py`) found the adapter working: 48 Hebrew items, about 68 a day, 27% from the basketball lists, none already stored. Recommendation: enable. The decision is pending the owner |
 | `eurohoops`, `sportando` | RSS, English | off | Post-MVP, together with translation ([TITLE_TRANSLATION.md](TITLE_TRANSLATION.md)) |
 
 Full contract, URL hints and probe history: [RSS_INGESTION.md](RSS_INGESTION.md). The product is

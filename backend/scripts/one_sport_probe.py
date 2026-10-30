@@ -29,17 +29,18 @@ the live file. Exit code: 0 when every endpoint answered 200 and items were pars
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import re
 import sqlite3
 import sys
 import time
 from collections import Counter
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Optional
+from typing import Any, Optional, TextIO
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -158,6 +159,8 @@ def replayed_fetch(cfg: RSSSourceConfig, raw_dir: Path) -> tuple[list[RawSourceI
         exchange.http_status, exchange.content_type = 200, "application/json"
         exchange.bytes = len(response.content)
         exchange.payload = response.json()
+        if not isinstance(exchange.payload, dict):
+            exchange.error = f"saved response {path.name} is not a JSON object"
         return response
 
     return _fetch_through(cfg, replay_get), exchanges
@@ -184,19 +187,39 @@ def _age_hours(published: Optional[datetime], now: datetime) -> Optional[float]:
     return round((now - published).total_seconds() / 3600, 2)
 
 
+def answered(exchange: Exchange) -> bool:
+    """A 2xx response with no transport or decoding error: the only bodies fetch() parses."""
+    return exchange.error is None and exchange.http_status is not None and 200 <= exchange.http_status < 300
+
+
 def endpoint_report(exchange: Exchange, now: datetime, samples: int = 3) -> EndpointReport:
-    """What the adapter's own parser makes of one recorded response."""
+    """What the adapter's own parser makes of one recorded response.
+
+    Error responses are not analysed (fetch() discards them). A 2xx body whose JSON
+    shape the parser cannot read is reported as an endpoint error, never raised:
+    an API change is exactly what this probe must surface.
+    """
     match = _CATEGORY_ID.search(exchange.url)
-    report = EndpointReport(
+    base = EndpointReport(
         url=exchange.url, category_id=match.group(1) if match else None,
         http_status=exchange.http_status, content_type=exchange.content_type,
         bytes=exchange.bytes, elapsed_ms=exchange.elapsed_ms, error=exchange.error,
     )
+    if not answered(exchange):
+        return base
     if not isinstance(exchange.payload, dict):
-        return report
+        base.error = f"unexpected JSON shape: top level is {type(exchange.payload).__name__}"
+        return base
+    try:
+        return _analysed(replace(base), exchange.payload, now, samples)
+    except Exception as exc:  # noqa: BLE001 - a changed shape is a finding, not a crash
+        base.error = f"parse failed (changed JSON shape?): {type(exc).__name__}: {str(exc)[:160]}"
+        return base
 
+
+def _analysed(report: EndpointReport, payload: dict, now: datetime, samples: int) -> EndpointReport:
     adapter = one_adapter.OneSportAdapter(SOURCE_ID, (), "https://www.one.co.il/")
-    raw = list(adapter._iter_article_items(exchange.payload))
+    raw = list(adapter._iter_article_items(payload))
     report.raw_items = len(raw)
     for item in raw:
         if not isinstance(item, dict):
@@ -213,7 +236,7 @@ def endpoint_report(exchange: Exchange, now: datetime, samples: int = 3) -> Endp
         if not one_adapter._article_subtitle(item):
             report.missing_subtitle += 1
 
-    parsed = adapter._parse_payload(exchange.payload, set())
+    parsed = adapter._parse_payload(payload, set())
     report.parsed_items = len(parsed)
     report.hebrew_titles = sum(1 for p in parsed if _HEBREW.search(p.title))
     ages = [a for a in (_age_hours(p.published_at, now) for p in parsed) if a is not None]
@@ -245,10 +268,14 @@ def first_endpoint_by_url(exchanges: list[Exchange]) -> dict[str, Optional[str]]
     adapter = one_adapter.OneSportAdapter(SOURCE_ID, (), "https://www.one.co.il/")
     owner: dict[str, Optional[str]] = {}
     for exchange in exchanges:
-        if not isinstance(exchange.payload, dict):
+        if not answered(exchange) or not isinstance(exchange.payload, dict):
             continue
         match = _CATEGORY_ID.search(exchange.url)
-        for item in adapter._parse_payload(exchange.payload, set()):
+        try:
+            parsed = adapter._parse_payload(exchange.payload, set())
+        except Exception:  # noqa: BLE001 - endpoint_report records the shape error
+            continue
+        for item in parsed:
             owner.setdefault(item.url, match.group(1) if match else None)
     return owner
 
@@ -378,7 +405,11 @@ def corpus_report(conn: sqlite3.Connection, items: list[RawSourceItem], now: dat
     }
 
     # The recent LLM call rate and latency of the enabled Hebrew sources (#31 metrics).
-    week_ago = (now - timedelta(days=7)).isoformat()
+    week_start = now - timedelta(days=7)
+    week_ago = week_start.isoformat()
+    # The copy's data ends at its last run, which can be well before `now`.
+    window_end = min(now, latest) if latest is not None else now
+    window_days = max((window_end - week_start).total_seconds() / 86400, 0.0)
     new_articles = attempts = 0
     latency_weighted = 0.0
     for (metrics,) in conn.execute(
@@ -395,7 +426,9 @@ def corpus_report(conn: sqlite3.Connection, items: list[RawSourceItem], now: dat
         if n and data.get("llm_avg_ms"):
             latency_weighted += data["llm_avg_ms"] * n
     report["hebrew_sources_last_7d"] = {
-        "new_articles": new_articles, "llm_attempts": attempts,
+        "new_articles": new_articles, "window_days": round(window_days, 2),
+        "new_articles_per_day": round(new_articles / window_days) if window_days else None,
+        "llm_attempts": attempts,
         "llm_call_rate": round(attempts / new_articles, 3) if new_articles else None,
         "llm_avg_ms": round(latency_weighted / attempts) if attempts else None,
     }
@@ -439,38 +472,41 @@ def healthy(report: dict) -> bool:
         e["http_status"] == 200 and not e["error"] for e in report["endpoints"])
 
 
-def _print_human(report: dict) -> None:
+def _print_human(report: dict, out: TextIO) -> None:
+    def emit(*parts) -> None:
+        print(*parts, file=out)
+
     f = report["fetch"]
-    print(f"ONE probe {report['probed_at']}  ({report['requests']} requests, "
-          f"{'enabled' if report['enabled_in_config'] else 'disabled'} in config.py)")
+    emit(f"ONE probe {report['probed_at']}  ({report['requests']} requests, "
+         f"{'enabled' if report['enabled_in_config'] else 'disabled'} in config.py)")
     for e in report["endpoints"]:
         status = e["error"] or f"HTTP {e['http_status']} {e['content_type']} {e['bytes']} B"
-        print(f"  cat {e['category_id']:>4}: {status} {e['elapsed_ms']} ms | raw {e['raw_items']}, "
-              f"parsed {e['parsed_items']}, video {e['skipped_video']}, missing url/title/date/sub "
-              f"{e['missing_url']}/{e['missing_title']}/{e['missing_date']}/{e['missing_subtitle']}, "
-              f"age {e['newest_age_hours']}-{e['oldest_age_hours']} h, ~{e['per_day_rate']}/day")
+        emit(f"  cat {e['category_id']:>4}: {status} {e['elapsed_ms']} ms | raw {e['raw_items']}, "
+             f"parsed {e['parsed_items']}, video {e['skipped_video']}, missing url/title/date/sub "
+             f"{e['missing_url']}/{e['missing_title']}/{e['missing_date']}/{e['missing_subtitle']}, "
+             f"age {e['newest_age_hours']}-{e['oldest_age_hours']} h, ~{e['per_day_rate']}/day")
         for s in e["samples"]:
-            print(f"      {s['published_at']}  {s['title']}  {s['url']}")
-    print(f"  fetch(): {f['items']} items ({f['cross_endpoint_duplicates']} cross-endpoint dups dropped), "
-          f"{f['hebrew_titles']} Hebrew, {f['with_subtitle']} with subtitle")
-    print(f"  url shapes: {f['url_shapes']}  url hints: {f['url_sport_hint']}")
-    print(f"  basketball: {f['basketball_by_endpoint']}/{f['items']} from categories 2/5; "
-          f"rules sport {report['gate']['rules_sport']}")
-    print(f"  per day: {f['per_day']}")
+            emit(f"      {s['published_at']}  {s['title']}  {s['url']}")
+    emit(f"  fetch(): {f['items']} items ({f['cross_endpoint_duplicates']} cross-endpoint dups dropped), "
+         f"{f['hebrew_titles']} Hebrew, {f['with_subtitle']} with subtitle")
+    emit(f"  url shapes: {f['url_shapes']}  url hints: {f['url_sport_hint']}")
+    emit(f"  basketball: {f['basketball_by_endpoint']}/{f['items']} from categories 2/5; "
+         f"rules sport {report['gate']['rules_sport']}")
+    emit(f"  per day: {f['per_day']}")
     g = report["gate"]
-    print(f"  LLM gate: {g['would_call_llm']}/{g['items']} would call the LLM; {g['gate_reasons']}")
+    emit(f"  LLM gate: {g['would_call_llm']}/{g['items']} would call the LLM; {g['gate_reasons']}")
     c = report.get("corpus")
     if c:
-        print(f"  corpus: {c['already_in_corpus_by_url']}/{c['fetched']} already stored by URL, "
-              f"{c['would_be_new']} new; one_sport rows {c['one_rows_in_corpus']}; "
-              f"last one_sport run {c['last_one_ingestion_run']}; overrides {c['source_overrides']}")
+        emit(f"  corpus: {c['already_in_corpus_by_url']}/{c['fetched']} already stored by URL, "
+             f"{c['would_be_new']} new; one_sport rows {c['one_rows_in_corpus']}; "
+             f"last one_sport run {c['last_one_ingestion_run']}; overrides {c['source_overrides']}")
         o = c["cross_source_overlap"]
-        print(f"  likely cross-source overlap ({o['method']}), items published before the corpus's "
-              f"last run {c['corpus_last_ingestion_run']}: {o['with_likely_match']}/{o['comparable_items']} "
-              f"{o['best_match_source']}; by category {o['matched_by_category']}")
+        emit(f"  likely cross-source overlap ({o['method']}), items published before the corpus's "
+             f"last run {c['corpus_last_ingestion_run']}: {o['with_likely_match']}/{o['comparable_items']} "
+             f"{o['best_match_source']}; by category {o['matched_by_category']}")
         for ex in o["examples"]:
-            print(f"      ONE: {ex['one']}\n        ~ {ex['other_source']}: {ex['other']}  {ex['shared']}")
-        print(f"  Hebrew sources, last 7 days: {c['hebrew_sources_last_7d']}")
+            emit(f"      ONE: {ex['one']}\n        ~ {ex['other_source']}: {ex['other']}  {ex['shared']}")
+        emit(f"  Hebrew sources, last 7 days: {c['hebrew_sources_last_7d']}")
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -479,7 +515,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--save-raw", type=Path, help="write each raw JSON response here")
     parser.add_argument("--replay", type=Path, help="no network: re-analyse responses saved by --save-raw "
-                                                    "(every replayed response reports HTTP 200)")
+                                                    "(a saved response reports HTTP 200; an endpoint that failed live has none and stays failed)")
     parser.add_argument("--now", help="ISO time to measure ages from (default: now; use the probe time with --replay)")
     args = parser.parse_args(argv)
 
@@ -497,17 +533,25 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.save_raw:
         args.save_raw.mkdir(parents=True, exist_ok=True)
         for e in exchanges:
-            (args.save_raw / _raw_name(e.url)).write_text(
-                json.dumps(e.payload, ensure_ascii=False, indent=1), encoding="utf-8")
+            # Only bodies the adapter would parse: a failed endpoint has no saved
+            # response, so --replay reports it as failed instead of as a 200.
+            if answered(e):
+                (args.save_raw / _raw_name(e.url)).write_text(
+                    json.dumps(e.payload, ensure_ascii=False, indent=1), encoding="utf-8")
     try:
         report = build_report(cfg, items, exchanges, now, conn)
     finally:
         if conn is not None:
             conn.close()
+    # Hebrew titles: a redirected stdout on Windows gets the ANSI codepage (cp1252),
+    # so write UTF-8 explicitly, as the other corpus scripts do.
+    out = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     if args.json:
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        print(json.dumps(report, ensure_ascii=False, indent=2), file=out)
     else:
-        _print_human(report)
+        _print_human(report, out)
+    out.flush()
+    out.detach()  # leave sys.stdout usable for the caller
     return 0 if healthy(report) else 1
 
 

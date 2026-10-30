@@ -73,15 +73,27 @@ class _FakeResponse:
             raise httpx.HTTPStatusError("boom", request=None, response=None)
 
 
+class _Calls(list):
+    """The requests made, plus per-category overrides: category -> (payload, status)."""
+
+    def __init__(self):
+        super().__init__()
+        self.overrides = {}
+
+
 @pytest.fixture
 def fake_one(monkeypatch):
-    calls = []
+    calls = _Calls()
 
     def fake_get(url, **kwargs):
         calls.append((url, kwargs))
         category = url.rsplit("/", 1)[-1]
+        if category in calls.overrides:
+            payload, status = calls.overrides[category]
+            return _FakeResponse(payload, status=status)
         if category == "7":
-            return _FakeResponse({"error": "down"}, status=503)
+            # An error body that still carries an item: fetch() discards it, so must the report.
+            return _FakeResponse(_payload(_item(701, "גוף של שגיאה")), status=503)
         return _FakeResponse(PAYLOADS[category])
 
     monkeypatch.setattr(httpx, "get", fake_get)
@@ -108,7 +120,29 @@ def test_endpoint_report_counts_what_the_parser_drops(probe, fake_one):
     # 2026-10-28 06:00 Israel time is UTC+2 (DST ended 10-25): 48 h before NOW, one item.
     assert cat155.oldest_age_hours == 48.0 and cat155.per_day_rate == 0.5
     down = probe.endpoint_report(exchanges[4], NOW)
-    assert down.http_status == 503 and down.parsed_items == 0
+    assert down.http_status == 503
+    assert (down.raw_items, down.parsed_items, down.samples) == (0, 0, [])
+
+
+def test_error_bodies_never_reach_the_fetch_numbers(probe, fake_one):
+    cfg = probe.get_source_config("one_sport")
+    items, exchanges = probe.recorded_fetch(cfg)
+    assert "https://www.one.co.il/Article/701.html" not in {i.url for i in items}
+    assert "https://www.one.co.il/Article/701.html" not in probe.first_endpoint_by_url(exchanges)
+    assert probe.build_report(cfg, items, exchanges, NOW)["fetch"]["cross_endpoint_duplicates"] == 1
+
+
+@pytest.mark.parametrize("payload", [{"Data": None}, {"Data": {"Articles": []}}, ["not", "a", "dict"]])
+def test_a_changed_json_shape_is_reported_not_raised(probe, fake_one, payload):
+    fake_one.overrides["1"] = (payload, 200)
+    cfg = probe.get_source_config("one_sport")
+    items, exchanges = probe.recorded_fetch(cfg)
+    report = probe.build_report(cfg, items, exchanges, NOW)
+    cat1 = report["endpoints"][0]
+    assert cat1["http_status"] == 200 and cat1["parsed_items"] == 0
+    assert cat1["error"] and ("shape" in cat1["error"] or "parse" in cat1["error"])
+    assert probe.healthy(report) is False
+    assert report["fetch"]["items"] == 5   # the other endpoints still count: 201 200 301 501 1551
 
 
 def test_build_report_basketball_share_hints_and_health(probe, fake_one):
@@ -166,23 +200,75 @@ def test_corpus_report_reads_a_copy_without_writing(probe, fake_one, tmp_path):
     overlap = report["cross_source_overlap"]
     # Only items published before the corpus's last run are comparable; the Emek story matches.
     assert overlap["with_likely_match"] == 1 and overlap["best_match_source"] == {"walla_sport": 1}
+    # The window ends at the copy's last run (NOW - 1 h), not at NOW.
     assert report["hebrew_sources_last_7d"] == {
-        "new_articles": 10, "llm_attempts": 4, "llm_call_rate": 0.4, "llm_avg_ms": 1500}
+        "new_articles": 10, "window_days": 6.96, "new_articles_per_day": 1,
+        "llm_attempts": 4, "llm_call_rate": 0.4, "llm_avg_ms": 1500}
 
 
-def test_save_raw_then_replay_needs_no_network(probe, fake_one, tmp_path, monkeypatch, capsys):
-    raw = tmp_path / "raw"
-    assert probe.main(["--save-raw", str(raw), "--json"]) == 1   # category 7 is down
-    capsys.readouterr()
-    (raw / "one_category_7.json").write_text(json.dumps(_payload()), encoding="utf-8")
-
+def _no_network(monkeypatch):
     def no_network(*a, **k):
         raise AssertionError("replay must not fetch")
 
     monkeypatch.setattr(httpx, "get", no_network)
-    assert probe.main(["--replay", str(raw), "--now", NOW.isoformat(), "--json"]) == 0
-    report = json.loads(capsys.readouterr().out)
-    assert report["fetch"]["items"] == 7 and report["probed_at"] == NOW.isoformat()
+
+
+def _run_main(probe, capsys, argv):
+    code = probe.main(argv)
+    return code, json.loads(capsys.readouterr().out)
+
+
+def test_save_raw_then_replay_needs_no_network(probe, fake_one, tmp_path, monkeypatch, capsys):
+    raw = tmp_path / "raw"
+    fake_one.overrides["7"] = (_payload(), 200)
+    code, live = _run_main(probe, capsys, ["--save-raw", str(raw), "--json"])
+    assert code == 0
+    _no_network(monkeypatch)
+    code, replay = _run_main(probe, capsys, ["--replay", str(raw), "--now", NOW.isoformat(), "--json"])
+    assert code == 0
+    assert replay["probed_at"] == NOW.isoformat()
+    assert replay["fetch"]["items"] == live["fetch"]["items"] == 7
+
+
+def test_a_failed_endpoint_stays_failed_on_replay(probe, fake_one, tmp_path, monkeypatch, capsys):
+    raw = tmp_path / "raw"
+    code, live = _run_main(probe, capsys, ["--save-raw", str(raw), "--json"])
+    assert code == 1                                      # category 7 answered 503
+    assert not (raw / "one_category_7.json").exists()     # its error body was not saved
+    _no_network(monkeypatch)
+    code, replay = _run_main(probe, capsys, ["--replay", str(raw), "--now", NOW.isoformat(), "--json"])
+    assert code == 1
+    cat7 = replay["endpoints"][4]
+    assert cat7["http_status"] is None and "no saved response" in cat7["error"]
+
+
+def test_a_saved_non_object_replays_as_an_error(probe, tmp_path, monkeypatch, capsys):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    for category, payload in PAYLOADS.items():
+        (raw / f"one_category_{category}.json").write_text(json.dumps(payload), encoding="utf-8")
+    (raw / "one_category_7.json").write_text("null", encoding="utf-8")
+    _no_network(monkeypatch)
+    code, replay = _run_main(probe, capsys, ["--replay", str(raw), "--now", NOW.isoformat(), "--json"])
+    assert code == 1 and replay["endpoints"][4]["error"]
+
+
+@pytest.mark.parametrize("mode", [["--json"], []])
+def test_piped_output_is_utf8_even_when_the_console_codec_is_not(tmp_path, mode):
+    """The docstring's `--json > file` on Windows: a redirected stdout gets the ANSI
+    codepage (cp1252), which cannot encode Hebrew. The probe must write UTF-8 anyway."""
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    for category, payload in PAYLOADS.items():
+        (raw / f"one_category_{category}.json").write_text(json.dumps(payload), encoding="utf-8")
+    env = {k: v for k, v in os.environ.items() if k not in ("DATABASE_URL", "PYTHONUTF8")}
+    env["PYTHONIOENCODING"] = "cp1252"
+    proc = subprocess.run(
+        [sys.executable, "scripts/one_sport_probe.py", "--replay", str(raw), "--now", NOW.isoformat(), *mode],
+        cwd=BACKEND, env=env, capture_output=True, timeout=120)
+    assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")
+    out = proc.stdout.decode("utf-8")
+    assert "בית\"ר ניצחה בדרבי" in out or "בית\\\"ר ניצחה בדרבי" in out
 
 
 def test_missing_db_is_refused(probe, tmp_path):

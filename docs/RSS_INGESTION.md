@@ -49,10 +49,11 @@ writes. It reads a corpus copy opened `mode=ro`.
   with 10 items each. The adapter parsed 48 unique Hebrew items, every one with a date and a
   subtitle; it skipped 6 video items and dropped 6 cross-endpoint duplicates, and no item
   failed to parse. None of the 48 URLs is in the corpus. 13 of the 48 (27%) come from the
-  basketball lists (category 2 Israeli, 5 world). That is about 68 items a day from the list
-  rates, against about 98 a day from the four live Hebrew sources. The LLM gate would call the
-  LLM for 23 of the 48; the live sources' call rate over the last 7 days was 27%, at about 1.2 s
-  a call. Of the 25 items published before the copy's last run, about 5 have a same-story
+  basketball lists (category 2 Israeli, 5 world); the deterministic classifier calls 11 of them
+  basketball (23%). That is about 68 items a day from the list rates, against about 104 a day
+  from the four live Hebrew sources (686 new articles over the 6.6 days the copy covers). The
+  LLM gate would call the LLM for 23 of the 48. Over the same window, the live sources' call
+  rate was 27%, at about 1.2 s a call. Of the 25 items published before the copy's last run, about 5 have a same-story
   article from another source (a title-token heuristic). That includes 2 of the 6 Israeli
   basketball items. Two of the four unmatched ones, a Hapoel Emek coach candidate and Meir's
   army status, have no article anywhere in the corpus.
@@ -62,7 +63,8 @@ writes. It reads a corpus copy opened `mode=ro`.
   separate, reviewed change (`signal-classification-change`). The adapter is not broken.
 - **Sport5 also works today.** The same day, the fetch-only `source_probe.py` parsed 10 cards
   (newest 43 h old: the basketball page updates slowly). Over the last 30 days it had 2,790
-  runs, 0 errors and 93 new articles (about 3 a day), and 98% of its articles are basketball.
+  runs, 0 errors and 93 new articles (about 3 a day). 214 of its 216 stored articles (99%) are
+  basketball.
 - **Recommendation:** enable ONE, then review its first day in Debug per `signal-real-data-qa`.
   Promote Sport5 out of "pilot" in `config.py` and in these docs. **Owner action to enable ONE:**
   on the Sources page, switch the ONE ספורט card from כבוי to פעיל. That is
@@ -97,8 +99,9 @@ preserved but disabled ([TITLE_TRANSLATION.md](TITLE_TRANSLATION.md)).
   podcast media. The adapter reads the public JSON article lists that the ONE homepage calls,
   using `Title.Main` → title, `Title.Secondary` → subtitle, `URL.PC` → URL, and `Date` (Israel
   local time) → UTC. It skips `IsVideo=true` items and never fetches article bodies. Each
-  category endpoint returns its newest 10 items (2026-10-30), so a 5-minute cadence loses
-  nothing. `backend/scripts/one_sport_probe.py` is the read-only health and impact probe
+  category endpoint returns its newest 10 items (2026-10-30). While the worker runs, the 5-minute
+  cadence loses nothing. The busiest list (category 1, Israeli football) spans only about 8 h,
+  so a longer worker outage drops items. `backend/scripts/one_sport_probe.py` is the read-only health and impact probe
   (`--db <copy>`, `--save-raw`, `--replay`).
 
 ### URL sport hints (`backend/app/classification/source_hints.py`)

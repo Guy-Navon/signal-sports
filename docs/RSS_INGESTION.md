@@ -2,7 +2,7 @@
 
 **Status: living contract** for the configured news sources, the adapters that read
 them, and what one ingestion pass does to an item before it becomes an article.
-Last updated: 2026-10-12 (truth sweep; absorbed the former `HEBREW_RSS_SOURCE.md`).
+Last updated: 2026-10-30 (#258 ONE probe; earlier: 2026-10-12 truth sweep, which absorbed the former `HEBREW_RSS_SOURCE.md`).
 
 Related contracts: scheduling, the worker and the single-flight lease are in
 [SCHEDULER.md](SCHEDULER.md). Source-level URL and language filters and the deterministic
@@ -22,7 +22,7 @@ restarts. Every runtime consumer resolves the effective state through
 `app/ingestion/source_state.py`: run-all ingestion, the scheduler, `GET /api/ingest/sources`
 and source health.
 
-| source_id | Display | Type | Code default | **Live state (local DB, 2026-10-12)** | Endpoint |
+| source_id | Display | Type | Code default | **Live state (local DB, re-checked 2026-10-30)** | Endpoint |
 |---|---|---|---|---|---|
 | `walla_sport` | וואלה ספורט | rss | enabled | enabled | `https://rss.walla.co.il/feed/7` |
 | `israel_hayom_sport` | ישראל היום ספורט | rss + `/sport/` allowlist | enabled | enabled | `https://www.israelhayom.co.il/rss.xml` |
@@ -32,11 +32,42 @@ and source health.
 | `eurohoops` | Eurohoops | rss (English) | disabled | disabled | `https://www.eurohoops.net/feed/` |
 | `sportando` | Sportando | rss (English/Italian) | disabled | disabled (override) | `https://sportando.basketball/feed/` |
 
-**The live state differs from the code defaults in two places, and nothing records why.** The
-corpus was rebuilt on 2026-07-12 after the #106 wipe. Since then `one_sport` has never run,
-so the corpus holds **zero** ONE articles. `sport5_sport` has run on every cycle. It is a
-production source in practice, even though the code still labels it a pilot. Re-enabling ONE
-needs a live probe first, because its JSON API may have changed. That is an owner decision.
+**The live state differs from the code defaults in two places.** Both overrides were already in
+the 2026-07-10 backup (`signal_sports.pre_reliability_backfill.backup.db`), and `one_sport` has
+no `ingestion_runs` row in that backup, in the July 18 frozen copy or in the live DB. So ONE was
+switched off within five days of being added (2026-07-05), before it ever ran on a schedule.
+The `source_overrides` table stores no timestamp or reason, and no commit, doc or issue records
+why. Since the 2026-07-12 rebuild after the #106 wipe the corpus holds **zero** ONE articles.
+`sport5_sport` has run on every cycle; it is a production source in practice, even though the
+code still labels it a pilot.
+
+**#258 probe, 2026-10-30. The decisions are pending the owner.** `backend/scripts/one_sport_probe.py`
+runs the real `OneSportAdapter.fetch()` (six GETs, the adapter's own headers), with no DB
+writes. It reads a corpus copy opened `mode=ro`.
+
+- **ONE works today. The API has not changed.** All six category endpoints returned HTTP 200 JSON
+  with 10 items each. The adapter parsed 48 unique Hebrew items, every one with a date and a
+  subtitle; it skipped 6 video items and dropped 6 cross-endpoint duplicates, and no item
+  failed to parse. None of the 48 URLs is in the corpus. 13 of the 48 (27%) come from the
+  basketball lists (category 2 Israeli, 5 world). That is about 68 items a day from the list
+  rates, against about 98 a day from the four live Hebrew sources. The LLM gate would call the
+  LLM for 23 of the 48; the live sources' call rate over the last 7 days was 27%, at about 1.2 s
+  a call. Of the 25 items published before the copy's last run, about 5 have a same-story
+  article from another source (a title-token heuristic). That includes 2 of the 6 Israeli
+  basketball items. Two of the four unmatched ones, a Hapoel Emek coach candidate and Meir's
+  army status, have no article anywhere in the corpus.
+- **Finding: ONE URL sport hints almost never fire.** 45 of 48 URLs are the generic
+  `/Article/<id>.html` shape; only 2 carried a category id. The endpoint category is a much
+  stronger sport signal, but the adapter does not keep it. Carrying it into the hint would be a
+  separate, reviewed change (`signal-classification-change`). The adapter is not broken.
+- **Sport5 also works today.** The same day, the fetch-only `source_probe.py` parsed 10 cards
+  (newest 43 h old: the basketball page updates slowly). Over the last 30 days it had 2,790
+  runs, 0 errors and 93 new articles (about 3 a day), and 98% of its articles are basketball.
+- **Recommendation:** enable ONE, then review its first day in Debug per `signal-real-data-qa`.
+  Promote Sport5 out of "pilot" in `config.py` and in these docs. **Owner action to enable ONE:**
+  on the Sources page, switch the ONE ספורט card from כבוי to פעיל. That is
+  `PATCH /api/ingest/sources/one_sport` with `{"enabled": true}` as the admin. The next worker
+  cycle picks it up.
 
 English sources and translation are **post-MVP**: the product is Hebrew-only. Do not re-enable
 `eurohoops` or `sportando` as a side effect of other work. The translation path they need is
@@ -65,7 +96,10 @@ preserved but disabled ([TITLE_TRANSLATION.md](TITLE_TRANSLATION.md)).
 - **ONE.** It has no news RSS: the probes return 404, and `sites.one.co.il/rss/video/itunes` is
   podcast media. The adapter reads the public JSON article lists that the ONE homepage calls,
   using `Title.Main` → title, `Title.Secondary` → subtitle, `URL.PC` → URL, and `Date` (Israel
-  local time) → UTC. It skips `IsVideo=true` items and never fetches article bodies.
+  local time) → UTC. It skips `IsVideo=true` items and never fetches article bodies. Each
+  category endpoint returns its newest 10 items (2026-10-30), so a 5-minute cadence loses
+  nothing. `backend/scripts/one_sport_probe.py` is the read-only health and impact probe
+  (`--db <copy>`, `--save-raw`, `--replay`).
 
 ### URL sport hints (`backend/app/classification/source_hints.py`)
 
@@ -77,7 +111,7 @@ in merge Guardrail 7. Every rule is source-scoped, so there are no generic URL p
 | `israel_hayom_sport` | `/sport/israeli-basketball/`, `/sport/world-basketball/` | `/sport/world-soccer/`, `/sport/israeli-soccer/` | — | `/sport/other-sports/`, `/sport/opinions-sport/` |
 | `ynet_sport` | `/sport/israelibasketball/`, `/sport/worldbasketball/` | `/sport/worldsoccer/`, `/sport/worldcup…`, `/sport/israelisoccer/` | `/sport/tennis/` | `/sport/article/`, `livegame.ynet.co.il` |
 | `sport5_sport` | `FolderID=274` (exact value) | — | — | every other folder (11840/405/416 are deliberately unmapped: too little evidence) |
-| `one_sport` | category ids 2, 5 in `/Article/NN-NN/<id>,…` | ids 1, 3, 155 | — | id 7 and generic `/Article/<id>.html` |
+| `one_sport` | category ids 2, 5 in `/Article/NN-NN/<id>,…` | ids 1, 3, 155 | — | id 7 and generic `/Article/<id>.html` (45 of 48 fetched URLs on 2026-10-30, so the hint rarely fires) |
 | `walla_sport` | — | — | — | always (no category in the URL) |
 
 ### Candidates probed and rejected

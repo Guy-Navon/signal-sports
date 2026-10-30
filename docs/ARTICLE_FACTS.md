@@ -1,5 +1,13 @@
 # ArticleFacts — Evidence-Backed Competitions, Entity IDs & Classification Trace
 
+**2026-10-30 - Corroborated LLM cross-sport entities (#345).** The #61 provenance
+guard (`cross_sport_entity_requires_explicit_sport`) now has one narrow exception:
+an LLM-proposed club whose name cannot prove its sport survives when the LLM's
+sport is corroborated by a deterministic cue the LLM did not produce, and the
+article text names the club. The guard itself, the evidence weights and the sport
+resolution are unchanged. See
+[Derived cross-sport entities](#derived-cross-sport-entities-provenance-guard-61-and-its-one-exception-345).
+
 **2026-09-11 - Event abstention and attention evidence (#191/#192).** The
 post-facts event trace now includes `proposed` and `abstention_reason` (failed
 semantic proposal versus no positively supported event). `news` remains a valid
@@ -69,6 +77,56 @@ conflict and enforces the invariants:
   *no explicit support of its own*, the article sport is untrustworthy → collapse
   to `sport=unknown`, drop the entity, record the abstention. (Case 10:
   Maccabi Tel Aviv **Football** + `sport=basketball` cannot persist.)
+
+### Derived cross-sport entities: provenance guard (#61) and its one exception (#345)
+
+Some entities' names cannot prove their sport: a shared cross-sport alias
+(`מכבי תל אביב`, `הפועל ירושלים`) or a guarded club (`ריאל מדריד`,
+`אולימפיאקוס`; `taxonomy.is_cross_sport_ambiguous`). When such an entity is
+**derived** — proposed by the LLM or injected by post-merge enrichment, not
+resolved from the text by the deterministic resolver — it persists only if the
+article sport has **explicit** evidence. Otherwise it is dropped with
+`rule: cross_sport_entity_requires_explicit_sport`; the sport keeps its honest
+(non-explicit) provenance. Text-resolved entities are exempt: the resolver only
+resolves these names under sport evidence. Derived entities never count as
+`entity_derived` sport evidence either (no laundering of one guess into two
+signals).
+
+The guard is load-bearing. On the corpus (2026-10-30 replay with stored LLM
+answers, 3,777 rows) it fired on 54 rows. By a reading of the headlines, **41 were
+football stories the LLM called basketball** (Maccabi, Hapoel Be'er Sheva, Hapoel
+Haifa …), 2 were handball, and 11 were basketball.
+
+**Exception (#345): corroborated, and named in the text.** A derived cross-sport
+entity is kept, recorded as `rule: cross_sport_entity_corroborated`, when ALL hold:
+
+1. an LLM proposal exists and its sport equals the article sport;
+2. that sport is corroborated by a deterministic cue independent of the LLM
+   (`facts._llm_sport_corroboration`):
+   - the text names an entity in a form that proves its sport — the resolver
+     finds it with **no** sport context (`עירוני נס ציונה`, `ז'לגיריס`, a player), or
+   - for basketball, a **basketball scoreline**: `A:B` with both sides 50–199
+     (football and tennis never reach it, handball tops out in the 40s, a kick-off
+     time has an hour below 24; colon only, because a hyphen also writes ranges);
+
+   and no entity of another sport is named in a sport-proving form or resolved by
+   the classifier (a contradiction voids the corroboration);
+3. resolving the title + subtitle under that sport yields the entity — the text
+   really names it. An entity the LLM invents (it named Panathinaikos on a
+   Fenerbahce game) stays dropped.
+
+These cues are **not sport evidence**: they are not in the weight order below and
+never decide, override or abstain a sport. They only answer whether the LLM's sport
+is backed by something the LLM did not produce. With the LLM disabled the exception
+cannot fire, so the no-LLM path is unchanged.
+
+Effect (replay with recorded LLM answers, holdout excluded): 5 rows gain an entity,
+all basketball (a Maccabi youth-department appointment and four Olympiacos
+EuroLeague games); Guy 2 hidden → feed, push and the Deni fan unchanged; no football
+or handball row gains an entity. The other 6 basketball rows have no non-LLM cue this
+rule accepts (a Super Cup grant story, Cyprus hosting Maccabi's games, a "first
+quarter" knockout …) and are still dropped. Tests:
+`tests/test_cross_sport_corroboration_345.py`.
 
 ### Naming a club is not being about it (former affiliation)
 

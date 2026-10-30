@@ -136,16 +136,21 @@ worktree has no `.venv`: use the main checkout's interpreter):
    `.venv\Scripts\python.exe scripts\backup_db.py`, run in the backend of the checkout that
    holds the corpus (or pass `--src`); it prints `backup written: <path>`. Then
    `.venv\Scripts\python.exe scripts\roster_review.py --db <that path> "טופין" "ג'ייקוב טופין"`.
-   The search is a raw substring in all three geresh spellings, as the resolver scans, and it
-   skips the week-sample holdout rows. The script refuses the live file. Delete the copy
-   afterwards.
+   It lists the rows that mention the name **as the resolver matches a club-person alias**:
+   any geresh spelling, hyphens folded, and a standalone word (a prefix such as `ל`/`ו` is
+   allowed, a letter after it is not). It also prints the raw substring count beside it; a
+   hit inside a longer word (`מדריד` for `מדר`) is not a collision, because every
+   `_club_person` alias is word-bounded. It skips the week-sample holdout rows. It refuses a
+   file named `signal_sports.db` or one with `-wal`/`-shm` sidecars (a live WAL database).
+   Delete the copy afterwards.
 3. Edit the `_club_person(...)` entries in `backend/app/taxonomy/entities.py` (the "Israeli-league
    basketball people (#259)" block):
    - **New signing:** add an entry if he is on the official roster **and** named in the corpus
      (the #259 selection; the signing reports usually supply the mention). Use the full Hebrew
      name, spelling variants seen in the corpus and the English name. Add the bare surname only
-     if every corpus hit is this person; otherwise list the surname in the full-name-only table
-     of qa/BASKETBALL_PEOPLE_259.md and add the colliding text to
+     if every listed mention (not every raw substring hit) is this person; otherwise list the
+     surname in the full-name-only table of qa/BASKETBALL_PEOPLE_259.md and add the colliding
+     text to
      `TestCollisionsStayUnresolved` in `tests/test_basketball_people_259.py`. `_club_person`
      makes every alias word-bounded and adds the geresh variants.
    - **Moved between the two clubs** (as Madar did, Hapoel → Maccabi, before #259): change
@@ -303,7 +308,9 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
 - **Israeli-league players** (6 rows). The registry holds **3 players total**, all
   NBA. These articles name a player and never a club, so nothing else can catch
   them — but an Israeli-league roster is season-volatile and needs a maintenance
-  policy first. Tracked as its own issue.
+  policy first. Tracked as its own issue. (Since done: #259 registered the Maccabi and
+  Hapoel Tel Aviv people, and the policy is
+  [Roster maintenance](#roster-maintenance-club-people-implies_team-377), #377.)
 - ~~**`העמק`**~~ — **resolved 2026-09-16.** Owner's answer: Hapoel HaEmek is its
   own club — the merger of Hapoel Afula and the former Hapoel Gilboa/Galil, playing
   in the top league — and is *not* `team:emek_yizrael_bb`. Registered as

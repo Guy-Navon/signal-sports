@@ -606,7 +606,8 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
     # verb), "ליף", "וואלאס", "האנטר", "גינת", "טימור", "בלאט" (David Blatt), "בראיינט"
     # (Kobe), "לידיי" ("לידיים"), "קופי", "קרינגטון", "ג'רמן". Left out: roster names with
     # no corpus mention. In a national-team story a person proves the sport, not the club.
-    # Season data: re-check team_id at every roster change.
+    # Season data: re-check team_id at every roster change (docs/TAXONOMY.md, "Roster
+    # maintenance"; scripts/roster_review.py lists this block).
     _club_person("player:yam_madar", "player", "ים מדר", "Yam Madar", "team:maccabi_tlv_bb",
                  ("ים מדר", "מדר", "yam madar")),
     _club_person("player:bonzie_colson", "player", "בונזי קולסון", "Bonzie Colson",

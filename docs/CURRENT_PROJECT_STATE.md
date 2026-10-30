@@ -222,6 +222,14 @@ applies a live change with a reviewed `backend/scripts/apply_*.py` script, after
   pre-match, schedule, generic preview). Recent live mutations: #229 (governance push, which
   fires on a concrete step only) and #237 (`team:maccabi_tlv_bb × candidate −1`,
   `comp:euroleague × news +1`, fitted on census #2 and confirmed on its held-out half).
+  **Pending owner apply (#257):** the seed adds Hapoel Tel Aviv basketball at medium (0), plus
+  six Hapoel-scoped event deltas (69 event affinities in total). With these, Hapoel club coverage
+  that no followed competition reaches lands at `feed`. The live row changes only after
+  `scripts/apply_257_hapoel_profile.py --apply` is run. Until then the live feed still hides
+  that coverage. Run it only after the API and worker are on the #257 code: pull, re-install the
+  venv (`.venv\Scripts\python.exe -m pip install --require-hashes -r requirements.lock` from
+  `backend/`), restart. On the old engine, the medium follow would lift 14 Hapoel transfer stories
+  to `high_feed`.
 - **`casual_deni_fan`** (demo): Deni Avdija +2 and nothing else. Pushes on a Deni major trade,
   injury or `relocation`. Relocation is an owner-authorised, entity-scoped rule (#191): the same
   relocation article is `feed` for Guy. This profile must not drift unintentionally; the gate
@@ -285,7 +293,8 @@ deterministic rule changelog, §1–§18).
   ([ARTICLE_FACTS.md](ARTICLE_FACTS.md)).
 - **`news` with no competition.** In census #2, 71 of 76 false hides had no
   `primary_competition` and 34 had no entity. Hapoel TLV basketball narrative stories (13 false
-  hides) are a relevance question, not a classification one.
+  hides) are a relevance question, not a classification one. #257 answers it for Guy with a
+  profile entry (§7), which takes effect once `apply_257_hapoel_profile.py` has run.
 
 ---
 
@@ -434,8 +443,10 @@ milestone 11's gate.
 3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
    - done: #256 (measurement), #259 (Maccabi/Hapoel Tel Aviv people registered)
    - open: #345 (the corroborated basketball exception landed; wanted stories with no non-LLM
-     cue, such as the Super Cup grant, are still dropped), #257 (product decision on non-Maccabi
-     club narrative), #258 (ONE probe and decision)
+     cue, such as the Super Cup grant, are still dropped), #257 (non-Maccabi club narrative: the
+     owner decided feed for Hapoel TLV basketball, for Guy only; the seed and the ceiling-backing
+     change are implemented, and the live profile needs the owner's `apply_257_hapoel_profile.py`
+     run), #258 (ONE probe and decision)
    - moved out: #377 is now a recurring roster routine (TAXONOMY.md); #352 was split into
      backlog issues #380 #381 #382
 
@@ -574,3 +585,4 @@ review intake, security diff review, UI and React review, browser checks, Python
 | 8 | Feed Quality — Recall & Push (N05) | 2026-09-16 | The 282-rating ground truth and gate; former-affiliation fix; Israeli clubs; push 41%→100%; LLM cost −45% (#217); live scoreline (#218); census tool and census #1 | qa/N05_*, LLM_CLASSIFICATION |
 | 9 | Census #2 & Classification Truth | 2026-10-10 | Census #2 (804); title-local trade and schedule; Israeli cups; executives; `club_governance` | qa/CENSUS_2026-10, RSS_QUALITY_GUARDRAILS §13–§17 |
 | — | First census calibration (#237) + QA tooling | 2026-10-12 | Live-profile calibration with a held-out check; `worker.ps1`, `corpus_rerun_diff.py`, census review/merge-review | PREFERENCE_MODEL_V2 |
+| — | Hapoel TLV basketball for Guy (#257) | 2026-10-30 | Owner decision as a profile entry (medium follow plus scoped deltas). Membership-ceiling backing now needs level ≥ +1 | PREFERENCE_MODEL_V2, RELEVANCE_VISIBILITY_CONTRACT |

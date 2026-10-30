@@ -100,6 +100,16 @@ def _tier_for_level(scope: str, level: int) -> Optional[bool]:
     return None
 
 
+def _displayed_starred(scope: str, level: int) -> bool:
+    """The Follow/Star state the interests page shows for a managed level. A level
+    outside the tier space (e.g. a seed team at medium 0, or a sport at +2 written
+    by an older tool) is shown at the nearest tier."""
+    starred = _tier_for_level(scope, level)
+    if starred is None:
+        starred = level >= TIER_LEVELS[scope]["star"]
+    return starred
+
+
 # ── Read: profile → interests document ────────────────────────────────────────
 
 def interests_document(profile: UserProfile, completed: bool) -> InterestsDocument:
@@ -109,13 +119,9 @@ def interests_document(profile: UserProfile, completed: bool) -> InterestsDocume
     for aff in v2.scope_affinities:
         if not _is_managed_scope(aff):
             continue
-        starred = _tier_for_level(aff.scope, aff.level)
-        if starred is None:
-            # Managed level outside the Follow/Star space (e.g. a sport at
-            # +2 written by an older tool) — surface at the nearest tier.
-            starred = aff.level >= TIER_LEVELS[aff.scope]["star"]
         follows.append(InterestFollow(
-            scope=aff.scope, target_id=aff.target_id, starred=starred,
+            scope=aff.scope, target_id=aff.target_id,
+            starred=_displayed_starred(aff.scope, aff.level),
         ))
 
     # Reconstruct preset states from the stored global explicit deltas: a
@@ -161,18 +167,27 @@ def _validate(payload: InterestsPutRequest) -> None:
 
 
 def _build_managed_entries(
-    payload: InterestsPutRequest, now: datetime
+    payload: InterestsPutRequest, now: datetime, stored: List[ScopeAffinity]
 ) -> tuple[List[ScopeAffinity], List[EventAffinity]]:
-    scopes = [
-        ScopeAffinity(
+    # A follow the user left as displayed keeps its stored entry, so an off-tier
+    # level (#257: Guy's medium Hapoel follow) is not silently moved to a tier.
+    unchanged = {
+        (a.scope, a.target_id): a for a in stored
+        if _is_managed_scope(a) and _tier_for_level(a.scope, a.level) is None
+    }
+    scopes = []
+    for f in payload.follows:
+        kept = unchanged.get((f.scope, f.target_id))
+        if kept is not None and _displayed_starred(kept.scope, kept.level) == f.starred:
+            scopes.append(kept)
+            continue
+        scopes.append(ScopeAffinity(
             scope=f.scope,
             target_id=f.target_id,
             level=TIER_LEVELS[f.scope]["star" if f.starred else "follow"],
             source="explicit",
             updated_at=now,
-        )
-        for f in payload.follows
-    ]
+        ))
     events: List[EventAffinity] = []
     for group, state in payload.event_preferences.items():
         delta = _PRESET_DELTAS.get(state)
@@ -193,9 +208,9 @@ def replace_managed_interests(
     InterestsValidationError on bad targets. Persists the profile row."""
     _validate(payload)
     now = datetime.now(tz=timezone.utc)
-    new_scopes, new_events = _build_managed_entries(payload, now)
-
     v2 = profile.profile_v2 or ProfileV2()
+    new_scopes, new_events = _build_managed_entries(payload, now, v2.scope_affinities)
+
     kept_scopes = [a for a in v2.scope_affinities if not _is_managed_scope(a)]
     kept_events = [e for e in v2.event_affinities if not _is_managed_event(e)]
     profile.profile_v2 = ProfileV2(

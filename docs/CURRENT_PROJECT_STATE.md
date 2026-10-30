@@ -433,7 +433,8 @@ milestone 11's gate.
    - #242 venue-move vocabulary, if census #3 brings enough examples
 3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
    - done: #256 (measurement), #259 (Maccabi/Hapoel Tel Aviv people registered)
-   - open: #345 (facts stage drops LLM-resolved Maccabi), #257 (product decision on non-Maccabi
+   - open: #345 (the corroborated basketball exception landed; wanted stories with no non-LLM
+     cue, such as the Super Cup grant, are still dropped), #257 (product decision on non-Maccabi
      club narrative), #258 (ONE probe and decision)
    - moved out: #377 is now a recurring roster routine (TAXONOMY.md); #352 was split into
      backlog issues #380 #381 #382

@@ -230,6 +230,7 @@ def test_tied_odds_are_not_a_basketball_scoreline():
     # "50:50" reports fitness odds; a basketball game cannot end level.
     for title, subtitle in (
         ('מכבי ת"א: 50:50 לגבי כשירותו של הקפטן לקראת הדרבי', None),
+        ('מכבי ת"א: 050:50 לגבי כשירותו של הקפטן', None),  # a tie by value, not by text
         ('מכבי ת"א לפני הדרבי', "הסיכויים שהקפטן יחזור הם 50:50"),
     ):
         f = _maccabi_facts(title, subtitle)

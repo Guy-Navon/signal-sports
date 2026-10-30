@@ -281,10 +281,8 @@ _BASKETBALL_SCORELINE = re.compile(r"(?<![\d:.,])(\d{2,3}):(\d{2,3})(?![\d:])")
 
 
 def _has_basketball_scoreline(text: str) -> bool:
-    return any(
-        50 <= int(a) <= 199 and 50 <= int(b) <= 199 and a != b
-        for a, b in _BASKETBALL_SCORELINE.findall(text)
-    )
+    pairs = ((int(a), int(b)) for a, b in _BASKETBALL_SCORELINE.findall(text))
+    return any(50 <= a <= 199 and 50 <= b <= 199 and a != b for a, b in pairs)
 
 
 def _names_its_sport(ent, text_norm: str) -> bool:

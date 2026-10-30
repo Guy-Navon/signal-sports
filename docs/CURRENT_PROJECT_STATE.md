@@ -265,13 +265,16 @@ deterministic rule changelog, §1–§18).
   and is mostly right to (#218).
 - **Event types:** the specific types need positive evidence; `news` is abstention, with a
   recorded reason. Newer types: `relocation` (#191), `club_governance` (#229).
-- **Taxonomy** ([TAXONOMY.md](TAXONOMY.md)): 88 entities (79 teams, 3 players, 1 coach,
+- **Taxonomy** ([TAXONOMY.md](TAXONOMY.md)): 117 entities (79 teams, 31 players, 2 coaches,
   5 executives) and 21 competitions, 15 of them selectable. Bare club-family names (`מכבי`,
-  `הפועל`) never resolve. Coaches and executives imply their team.
+  `הפועל`) never resolve. Coaches and executives imply their team, and so do the #259
+  Maccabi/Hapoel Tel Aviv roster people (`implies_team`). That roster is season data, kept
+  current by the TAXONOMY.md roster-maintenance routine (#377).
 
 **Structural limits (measured, not fixed):**
-- **Person-level coverage.** The registry holds 3 players, all NBA. Israeli-league players and
-  coaches are invisible, so a story about them has no entity and often no sport.
+- **Person-level coverage.** Besides 3 NBA players, only Maccabi and Hapoel Tel Aviv people are
+  registered (#259). Other Israeli-league players and coaches are invisible, so a story about
+  them has no entity and often no sport.
 - **Cross-sport club deadlock** (#194). `מכבי תל אביב`, `הפועל ת"א` and others without sport
   evidence stay `sport=unknown`. The bucket mixes sports, so defaulting a sport would fabricate
   facts.
@@ -424,10 +427,11 @@ milestone 11's gate.
    - #255 protect rated rows from retention (code landed; owner runs the one-off `--apply`)
    - #242 venue-move vocabulary, if census #3 brings enough examples
 3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
-   - #256 measure which people matter (no registry change)
-   - #259 register the approved batch, blocked by #256
-   - #257 product decision on non-Maccabi club narrative
-   - #258 ONE probe and decision
+   - done: #256 (measurement), #259 (Maccabi/Hapoel Tel Aviv people registered)
+   - open: #345 (facts stage drops LLM-resolved Maccabi), #257 (product decision on non-Maccabi
+     club narrative), #258 (ONE probe and decision)
+   - moved out: #377 is now a recurring roster routine (TAXONOMY.md); #352 was split into
+     backlog issues #380 #381 #382
 
 Deliberately not in these milestones: platform hardening (#198–#200), which matters
 before wider access or a split deployment, and #21 (mobile ops pages).

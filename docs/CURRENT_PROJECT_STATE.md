@@ -226,7 +226,10 @@ applies a live change with a reviewed `backend/scripts/apply_*.py` script, after
   six Hapoel-scoped event deltas (69 event affinities in total). With these, Hapoel club coverage
   that no followed competition reaches lands at `feed`. The live row changes only after
   `scripts/apply_257_hapoel_profile.py --apply` is run. Until then the live feed still hides
-  that coverage.
+  that coverage. Run it only after the API and worker are on the #257 code: pull, re-install the
+  venv (`.venv\Scripts\python.exe -m pip install --require-hashes -r requirements.lock` from
+  `backend/`), restart. On the old engine, the medium follow would lift 14 Hapoel transfer stories
+  to `high_feed`.
 - **`casual_deni_fan`** (demo): Deni Avdija +2 and nothing else. Pushes on a Deni major trade,
   injury or `relocation`. Relocation is an owner-authorised, entity-scoped rule (#191): the same
   relocation article is `feed` for Guy. This profile must not drift unintentionally; the gate
@@ -282,7 +285,8 @@ deterministic rule changelog, §1–§18).
   facts.
 - **`news` with no competition.** In census #2, 71 of 76 false hides had no
   `primary_competition` and 34 had no entity. Hapoel TLV basketball narrative stories (13 false
-  hides) are a relevance question, not a classification one.
+  hides) are a relevance question, not a classification one. #257 answers it for Guy with a
+  profile entry (§7), which takes effect once `apply_257_hapoel_profile.py` has run.
 
 ---
 

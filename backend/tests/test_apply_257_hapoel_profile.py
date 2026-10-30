@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from app.models.profile_v2 import ScopeAffinity
+from app.models.profile_v2 import EventAffinity, ScopeAffinity
 from app.seed.seed_profiles import GUY_PROFILE_V2
 
 _SPEC = importlib.util.spec_from_file_location(
@@ -51,5 +51,22 @@ def test_second_run_changes_nothing():
 def test_refuses_to_overwrite_an_owner_edit():
     v2 = _pre_257_guy()
     v2.scope_affinities.append(ScopeAffinity(scope="team", target_id=HAPOEL, level=1))
+    with pytest.raises(apply_257.Conflict):
+        apply_257.plan_changes(v2)
+
+
+def test_an_owner_edit_behind_a_matching_duplicate_is_still_refused():
+    # Review nit on #386: the check looked only at the first explicit entry.
+    v2 = _pre_257_guy()
+    v2.scope_affinities.append(ScopeAffinity(scope="team", target_id=HAPOEL, level=0))
+    v2.scope_affinities.append(ScopeAffinity(scope="team", target_id=HAPOEL, level=1))
+    with pytest.raises(apply_257.Conflict):
+        apply_257.plan_changes(v2)
+
+
+def test_a_conflicting_event_duplicate_is_refused():
+    v2 = _pre_257_guy()
+    v2.event_affinities.append(EventAffinity(scope_ref=HAPOEL, event_type="news", delta=2))
+    v2.event_affinities.append(EventAffinity(scope_ref=HAPOEL, event_type="news", delta=1))
     with pytest.raises(apply_257.Conflict):
         apply_257.plan_changes(v2)

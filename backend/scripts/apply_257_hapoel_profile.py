@@ -45,8 +45,9 @@ def plan_changes(v2) -> list[str]:
     scopes = [a for a in v2.scope_affinities
               if a.scope == "team" and a.target_id == TEAM and a.source == "explicit"]
     if scopes:
-        if scopes[0].level != SCOPE_LEVEL:
-            raise Conflict(f"{TEAM} already explicit at level {scopes[0].level}; refusing to overwrite")
+        levels = sorted({a.level for a in scopes})
+        if levels != [SCOPE_LEVEL]:
+            raise Conflict(f"{TEAM} already explicit at level(s) {levels}; refusing to overwrite")
     else:
         v2.scope_affinities.append(ScopeAffinity(scope="team", target_id=TEAM, level=SCOPE_LEVEL))
         added.append(f"scope {TEAM} level {SCOPE_LEVEL}")
@@ -54,9 +55,10 @@ def plan_changes(v2) -> list[str]:
         existing = [e for e in v2.event_affinities
                     if e.scope_ref == TEAM and e.event_type == event_type and e.source == "explicit"]
         if existing:
-            if existing[0].delta != delta:
-                raise Conflict(f"{TEAM} × {event_type} already explicit with delta "
-                               f"{existing[0].delta}; refusing to overwrite")
+            deltas = sorted({e.delta for e in existing})
+            if deltas != [delta]:
+                raise Conflict(f"{TEAM} × {event_type} already explicit with delta(s) "
+                               f"{deltas}; refusing to overwrite")
             continue
         v2.event_affinities.append(EventAffinity(scope_ref=TEAM, event_type=event_type, delta=delta))
         added.append(f"{TEAM} × {event_type} {delta:+d}")
@@ -92,6 +94,10 @@ def main():
         if args.apply:
             put_profile(profile.user_id, payload, session=session, acting_admin=None)
         print(f"{'Applied' if args.apply else 'Would add'} {len(added)}: {'; '.join(added)}; Deni unchanged")
+        if not args.apply:
+            # An API/worker still on the pre-#257 engine would let the medium follow lift
+            # the membership ceiling (14 Hapoel transfer stories to high_feed, golden C9).
+            print("Apply only after the API and worker have been restarted on the #257 code.")
     return 0
 
 

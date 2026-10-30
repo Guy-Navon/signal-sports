@@ -116,7 +116,9 @@ neither Follow nor Star for its kind, such as Guy's seed `team:hapoel_tlv_bb` at
 page shows such an entry at the nearest tier: a team at 0 shows as Follow. If a save leaves it in
 that state, the stored entry is kept unchanged. A Hapoel follow that moved from 0 to +1 would add
 the entity boost to every Hapoel story in a followed competition. Starring or unfollowing the entry
-writes the normal tier level, or removes it.
+writes the normal tier level, or removes it. Only the saved state counts: if the user unfollows the
+entry and follows it again before saving, it is unchanged and keeps its stored level. A sport stored
+at +2 is kept the same way, since it shows as Star.
 
 Validation: every target id must exist in the taxonomy AND be selectable
 per the shared policy (`backend/app/taxonomy/policy.py`); the tier→level

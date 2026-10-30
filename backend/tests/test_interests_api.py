@@ -176,7 +176,8 @@ class TestOffTierLevelSurvivesUnchangedSave:
     """#257: Guy's seed follows Hapoel TLV basketball at medium (0), which is not a
     Follow (+1) or Star (+2) level for a team. The interests page shows it as Follow.
     Saving the page without touching that follow must keep the stored level. A silent
-    0 → +1 would add the entity boost to every Hapoel story in a followed competition."""
+    0 → +1 would add the entity boost to every Hapoel story in a followed competition.
+    The same rule keeps a sport stored at +2 (off-tier; shown as Star) on an unchanged save."""
 
     @pytest.fixture()
     def stored(self, client):
@@ -184,6 +185,8 @@ class TestOffTierLevelSurvivesUnchangedSave:
             user_id="offtier_user", display_name="Off-tier", profile_type="test", topics=[],
             profile_v2=ProfileV2(scope_affinities=[
                 ScopeAffinity(scope="team", target_id="team:hapoel_tlv_bb", level=0,
+                              source="explicit"),
+                ScopeAffinity(scope="sport", target_id="basketball", level=2,
                               source="explicit"),
             ]),
         )
@@ -211,7 +214,7 @@ class TestOffTierLevelSurvivesUnchangedSave:
             event_preferences={},
         )
         saved = replace_managed_interests(session, profile, put)
-        assert self._levels(saved) == {"team:hapoel_tlv_bb": 0, "comp:nba": 1}
+        assert self._levels(saved) == {"team:hapoel_tlv_bb": 0, "basketball": 2, "comp:nba": 1}
 
     def test_starring_it_moves_it_to_the_star_level(self, stored):
         session, profile = stored
@@ -221,6 +224,15 @@ class TestOffTierLevelSurvivesUnchangedSave:
         )
         saved = replace_managed_interests(session, profile, put)
         assert self._levels(saved) == {"team:hapoel_tlv_bb": 2}
+
+    def test_unstarring_an_off_tier_sport_writes_the_follow_level(self, stored):
+        session, profile = stored
+        put = InterestsPutRequest(
+            follows=[{"scope": "sport", "target_id": "basketball", "starred": False}],
+            event_preferences={},
+        )
+        saved = replace_managed_interests(session, profile, put)
+        assert self._levels(saved) == {"basketball": 0}
 
 
 class TestValidationRules:

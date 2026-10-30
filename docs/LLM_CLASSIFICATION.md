@@ -7,8 +7,9 @@ sections below them describe the current mechanism.
 
 **2026-10-30 - LLM cross-sport club entities need non-LLM corroboration (#345).** An
 LLM-proposed club whose name does not prove its sport (`מכבי ת"א`) is still dropped by the
-facts stage without explicit sport evidence. It now survives only when a deterministic cue
-the LLM did not produce corroborates the LLM's sport and the text names the club. The
+facts stage without explicit sport evidence. It now survives, for basketball only, when a
+deterministic cue the LLM did not produce corroborates the LLM's basketball and the text
+names the club. The
 LLM's sport alone is never enough: on the corpus it labels most football Maccabi stories
 basketball. Mechanism and measurements: [ARTICLE_FACTS.md](ARTICLE_FACTS.md).
 

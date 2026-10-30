@@ -276,8 +276,9 @@ deterministic rule changelog, §1–§18).
   evidence stay `sport=unknown`. The bucket mixes sports, so defaulting a sport would fabricate
   facts. When the LLM proposes such a club, the facts stage drops it unless the sport has
   explicit evidence (#61) — the LLM calls most football Maccabi stories basketball. Since
-  #345 it keeps one only when a non-LLM cue corroborates the LLM's sport (a sport-proving
-  entity in the text, or a basketball scoreline) and the text names the club
+  #345 it keeps one, for basketball only, when a non-LLM cue corroborates the LLM's
+  basketball (a basketball entity named in a sport-proving form, or a basketball scoreline)
+  and the text names the club
   ([ARTICLE_FACTS.md](ARTICLE_FACTS.md)).
 - **`news` with no competition.** In census #2, 71 of 76 false hides had no
   `primary_competition` and 34 had no entity. Hapoel TLV basketball narrative stories (13 false

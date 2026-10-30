@@ -4,12 +4,13 @@ The #61 guard (``cross_sport_entity_requires_explicit_sport``) drops an entity t
 LLM proposed when its name cannot prove its sport (``מכבי ת"א`` is a basketball AND
 a football club) and the article sport has no explicit evidence. On the real corpus
 the LLM labels football Maccabi stories "basketball" over and over, so the guard
-stays. It now yields only to INDEPENDENT, deterministic corroboration of the same
-sport the LLM chose, and only for a club the article text actually names:
+stays. It now yields, for basketball only, to INDEPENDENT, deterministic
+corroboration of the LLM's basketball, and only for a club the article text
+actually names:
 
-  - a text-resolved entity of that sport whose own name proves the sport
-    (``עירוני נס ציונה``, ``ז'לגיריס``), or
-  - a basketball scoreline (both sides 50 or more, e.g. ``73:81``).
+  - a basketball entity the text names in a sport-proving form: a person, or a
+    team through a multi-word alias (``עירוני נס ציונה``), or
+  - a basketball scoreline (both sides 50-199 and different, e.g. ``73:81``).
 
 Real corpus headlines, with the recorded LLM answers (Groq gpt-oss-20b from
 docs/qa/week_sample_responses, or the stored Ollama proposal), replayed through
@@ -185,3 +186,93 @@ def test_a_cross_sport_text_entity_does_not_corroborate():
         classified_by="llm", text_resolved_entities=["Hapoel Jerusalem Basketball"],
     )
     assert "team:maccabi_tlv_bb" not in f.entity_ids
+
+
+# ── Review of PR #385: cues that must NOT corroborate ──────────────────────────
+
+_MACCABI_BB = _llm("basketball", ["Maccabi Tel Aviv Basketball"])
+
+
+def _maccabi_facts(title, subtitle=None, llm=_MACCABI_BB, text_resolved=()):
+    return build_article_facts(
+        title=title, subtitle=subtitle, url="", source_id="walla_sport",
+        source_sport_hint=None, result=_merged(["Maccabi Tel Aviv Basketball"]),
+        llm_raw=llm, classified_by="llm", text_resolved_entities=list(text_resolved),
+    )
+
+
+def _corroborated(facts):
+    return any(c["rule"] == "cross_sport_entity_corroborated" for c in facts.conflicts)
+
+
+def test_single_word_town_or_nickname_alias_does_not_corroborate():
+    # A one-word alias is a substring hit, not a name that proves the sport:
+    # "באילת" (a preseason camp in Hapoel Eilat's town), "ספרס" (Tottenham in
+    # football copy), "מגדל העמק" (contains Hapoel HaEmek's "העמק"), "מדאלאס".
+    for title in (
+        'מכבי ת"א יצאה למחנה אימון באילת',
+        'ספרס מול מכבי ת"א: כל מה שצריך לדעת',
+        'מכבי ת"א תפגוש את מגדל העמק בגביע',
+        'מכבי ת"א: השחקן חוזר מדאלאס',
+    ):
+        f = _maccabi_facts(title)
+        assert "team:maccabi_tlv_bb" not in f.entity_ids, title
+        assert not _corroborated(f), title
+
+
+def test_single_word_alias_headline_through_the_pipeline(monkeypatch):
+    a = _run(monkeypatch, 'מכבי ת"א יצאה למחנה אימון באילת', None, _MACCABI_BB)
+    assert "team:maccabi_tlv_bb" not in a.entity_ids
+    assert GUARD in _rules(a)
+
+
+def test_tied_odds_are_not_a_basketball_scoreline():
+    # "50:50" reports fitness odds; a basketball game cannot end level.
+    for title, subtitle in (
+        ('מכבי ת"א: 50:50 לגבי כשירותו של הקפטן לקראת הדרבי', None),
+        ('מכבי ת"א לפני הדרבי', "הסיכויים שהקפטן יחזור הם 50:50"),
+    ):
+        f = _maccabi_facts(title, subtitle)
+        assert "team:maccabi_tlv_bb" not in f.entity_ids, title
+
+
+def test_a_named_club_of_the_other_sport_voids_the_corroboration():
+    # A basketball scoreline is present, but the text also names a club whose
+    # name proves FOOTBALL (Beitar Jerusalem: not a football keyword, so there is
+    # no explicit sport evidence and the guard is reached). That club is not in
+    # result.entities, so nothing but the contradiction check stops the Maccabi
+    # basketball proposal.
+    f = _maccabi_facts('מכבי ת"א 92:87 בדרבי, ובבית"ר ירושלים עוקבים')
+    assert "team:maccabi_tlv_bb" not in f.entity_ids
+    assert not _corroborated(f)
+
+
+def test_exception_is_basketball_only():
+    # The registry lists multi-sport clubs such as Maccabi Haifa as football-only,
+    # so a "football-proving" name is weak evidence, and no football case was
+    # measured. A football twin-club proposal keeps the #61 guard as before, even
+    # next to Beitar Jerusalem (football-only by name, and not a football keyword,
+    # so the article has no explicit sport evidence).
+    f = build_article_facts(
+        title='מכבי ת"א מול בית"ר ירושלים', subtitle=None, url="", source_id="walla_sport",
+        source_sport_hint=None,
+        result=_merged(["Maccabi Tel Aviv Football", "Beitar Jerusalem"], sport="football"),
+        llm_raw=_llm("football", ["Maccabi Tel Aviv Football"]),
+        classified_by="llm", text_resolved_entities=["Beitar Jerusalem"],
+    )
+    assert "team:beitar_jlm_fc" in f.entity_ids  # text-resolved: exempt from the guard
+    assert "team:maccabi_tlv_fc" not in f.entity_ids
+    assert not _corroborated(f)
+
+
+def test_former_club_mention_stays_dropped_despite_a_scoreline():
+    # "אקס מכבי ת"א" names Maccabi as a former club, not the subject.
+    f = _maccabi_facts('אקס מכבי ת"א קלע 20 נקודות ב-92:87 של ברצלונה')
+    assert "team:maccabi_tlv_bb" not in f.entity_ids
+
+
+def test_scoreline_only_in_the_subtitle_corroborates():
+    # The cue may sit in the subtitle alone (the LLM saw both).
+    f = _maccabi_facts('מכבי ת"א חזרה לנצח', "הצהובים גברו 92:87 בחוץ")
+    assert "team:maccabi_tlv_bb" in f.entity_ids
+    assert _corroborated(f)

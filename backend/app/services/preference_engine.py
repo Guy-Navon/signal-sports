@@ -21,9 +21,9 @@ Scoring pipeline (monotonic by construction):
    one exists, else the global entry; event aliases are honored.
 5. Importance interaction — very_high +1, low/very_low −1.
 6. Membership ceiling — a base that matched via diffuse membership reach
-   (match_kind == "membership") with no followed-entity backing is capped at
-   feed, exactly like the legacy engine (#29). Participant-inferred and
-   explicit matches are never capped.
+   (match_kind == "membership") with no followed-entity backing (a team/player
+   at level ≥ +1, #257) is capped at feed, exactly like the legacy engine
+   (#29). Participant-inferred and explicit matches are never capped.
 7. Threshold mapping — score ≤0 hidden, 1 low_feed, 2 feed, ≥3 high_feed.
    **Push exists ONLY via explicit always_push overrides** (step 8) — no
    boost, delta, or importance combination can reach push.
@@ -293,21 +293,20 @@ def score_article_v2(
     )
 
     # ── 3. Entity boost ──────────────────────────────────────────────────────
+    # A FOLLOWED entity (team/player at level ≥ +1) on the article both boosts a
+    # broad base and backs a membership match (exempting it from the step-6
+    # ceiling). A medium (0) follow is a low_feed interest in the team's own
+    # stories, not proof that a diffuse membership match is about something the
+    # user follows (#257, golden C9).
     entity_backing = next(
         (
             m for m in matches
-            if m.affinity.scope in ("team", "player") and m.affinity.level >= 0
+            if m.affinity.scope in ("team", "player") and m.affinity.level >= 1
         ),
         None,
     )
     if base.affinity.scope in ("competition", "sport"):
-        boost_entity = next(
-            (
-                m for m in matches
-                if m.affinity.scope in ("team", "player") and m.affinity.level >= 1
-            ),
-            None,
-        )
+        boost_entity = entity_backing
         if boost_entity is not None:
             score += 1
             reasoning.append(f"ישות במעקב בכתבה ({boost_entity.detail}) → ‎+1")

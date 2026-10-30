@@ -1,5 +1,25 @@
 # Preference Model V2 — Affinity Scorer (issue #32)
 
+**2026-10-30 - Hapoel Tel Aviv basketball for Guy (#257).** The owner decided on 2026-10-26
+that `feed` is the baseline for Hapoel Tel Aviv basketball coverage in Guy's profile, with
+`high_feed` where justified. The decision applies to his profile only. Before, Guy reached Hapoel
+only through `comp:ibl` / `comp:euroleague` membership reach. That reach is limited to
+team-anchored events, so club news with no competition evidence was hidden. Seed entries:
+`team:hapoel_tlv_bb` at medium (0), plus Hapoel-scoped deltas `news +2` and `match_result`,
+`interview`, `analysis`, `opinion`, `club_governance +1`. The scoped deltas fire only when the
+Hapoel follow is the base, which means no followed competition matched. Club news is
+low-importance in the corpus (−1), which is why news gets +2: base 1 + 2 − 1 lands at `feed`,
+the same level as Maccabi news. Medium-importance news reaches `high_feed`. A high (+1) follow
+was rejected: the entity boost would move 84 competition-matched Hapoel stories from `feed`
+to `high_feed`, and the owner rated most of them `feed`. A related engine change: membership-ceiling
+backing now needs level ≥ +1, the same threshold as the boost (step 6). Otherwise the medium follow
+would have lifted the ceiling on 14 Hapoel transfer stories, golden C9 among them, which the owner
+pinned at `feed`. Real-corpus diff (3,785 articles): Guy 46 hidden → `feed` and 1 → `high_feed`.
+Push 16 → 16. Every other profile has 0 flips. Persist with `scripts/apply_257_hapoel_profile.py`.
+Legacy topics are unchanged, so the `PREFERENCE_ENGINE=legacy` rollback does not include #257.
+An interests-page save that leaves the Hapoel follow as shown keeps its medium level
+([INTERESTS.md](INTERESTS.md), off-tier managed levels).
+
 **2026-10-12 - First census calibration (#237).** Two owner-approved explicit entries
 in Guy's profile: `team:maccabi_tlv_bb × candidate = -1` (Maccabi speculation: high_feed
 -> feed) and `comp:euroleague × news = +1` (general EuroLeague stories: low_feed -> feed).
@@ -95,7 +115,8 @@ contribution `{step, scope, effect, detail}` plus a Hebrew reasoning line:
    this gate every very_high World Cup story leaked to low_feed through
    Guy's low-interest football scope); low/very_low −1.
 6. **Membership ceiling** — a base matched via diffuse `membership` reach
-   with no followed-entity backing caps at feed (legacy #29 parity);
+   with no followed-entity backing (a matched team/player at level ≥ +1,
+   #257) caps at feed (legacy #29 parity);
    `participant_inference` and `explicit` are never capped.
 7. **Threshold** — ≤0 hidden, 1 low_feed, 2 feed, ≥3 high_feed.
 8. **always_push overrides** — **the only path to push**. Fire when the

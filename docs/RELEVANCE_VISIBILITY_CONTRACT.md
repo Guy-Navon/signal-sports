@@ -126,6 +126,20 @@ push discipline holds (membership alone can never exceed `feed`, so it can
 never manufacture push); `low_feed` still means "matched a real scope, just
 a minor story," never "no reason, bottom of the pile."
 
+**Preference V2: backing means a followed entity, level ≥ +1 (2026-10-30, #257).**
+In the v2 scorer, a matched team/player affinity backs a membership match only
+at level ≥ +1. This is the same threshold as the entity boost. A medium (0)
+follow is a `low_feed` interest in the team's own stories. It does not show
+that a diffuse membership match is about something the user follows. Before
+#257 a medium follow also lifted the ceiling. No seed or live profile had a
+medium team/player entry, so that change moved no decision. Worked example:
+Guy follows Hapoel Tel Aviv basketball at medium (#257). Golden C9 ("זאק לידיי
+על סף סיכום בהפועל", a probable negotiation) reaches `comp:euroleague` only by
+membership. Guy's EuroLeague negotiation rule scores it 3, and the ceiling still
+caps it at `feed`, the owner's pinned answer. Hapoel club news that no followed
+competition reaches gets its `feed` baseline from the Hapoel follow and its
+scoped event deltas (`PREFERENCE_MODEL_V2.md`).
+
 ## sport=unknown handling
 
 On sport abstention (ArticleFacts, #28), `primary_competition` /

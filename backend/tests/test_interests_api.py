@@ -172,6 +172,57 @@ class TestManagedSubsetReplacement:
         assert doc.selected == 2
 
 
+class TestOffTierLevelSurvivesUnchangedSave:
+    """#257: Guy's seed follows Hapoel TLV basketball at medium (0), which is not a
+    Follow (+1) or Star (+2) level for a team. The interests page shows it as Follow.
+    Saving the page without touching that follow must keep the stored level. A silent
+    0 → +1 would add the entity boost to every Hapoel story in a followed competition."""
+
+    @pytest.fixture()
+    def stored(self, client):
+        profile = UserProfile(
+            user_id="offtier_user", display_name="Off-tier", profile_type="test", topics=[],
+            profile_v2=ProfileV2(scope_affinities=[
+                ScopeAffinity(scope="team", target_id="team:hapoel_tlv_bb", level=0,
+                              source="explicit"),
+            ]),
+        )
+        with SessionLocal() as session:
+            profile_repository.insert(session, profile)
+            try:
+                yield session, profile
+            finally:
+                from app.db.orm_models import ProfileRow
+                session.query(ProfileRow).filter(
+                    ProfileRow.user_id == "offtier_user"
+                ).delete(synchronize_session=False)
+                session.commit()
+
+    def _levels(self, profile):
+        return {a.target_id: a.level for a in profile.profile_v2.scope_affinities}
+
+    def test_unchanged_follow_keeps_its_level(self, stored):
+        session, profile = stored
+        doc = interests_document(profile, completed=True)
+        put = InterestsPutRequest(
+            follows=[*({"scope": f.scope, "target_id": f.target_id, "starred": f.starred}
+                       for f in doc.follows),
+                     {"scope": "competition", "target_id": "comp:nba", "starred": False}],
+            event_preferences={},
+        )
+        saved = replace_managed_interests(session, profile, put)
+        assert self._levels(saved) == {"team:hapoel_tlv_bb": 0, "comp:nba": 1}
+
+    def test_starring_it_moves_it_to_the_star_level(self, stored):
+        session, profile = stored
+        put = InterestsPutRequest(
+            follows=[{"scope": "team", "target_id": "team:hapoel_tlv_bb", "starred": True}],
+            event_preferences={},
+        )
+        saved = replace_managed_interests(session, profile, put)
+        assert self._levels(saved) == {"team:hapoel_tlv_bb": 2}
+
+
 class TestValidationRules:
     def _attempt(self, payload: InterestsPutRequest):
         profile = UserProfile(user_id="v_user", display_name="V",

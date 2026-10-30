@@ -222,6 +222,11 @@ applies a live change with a reviewed `backend/scripts/apply_*.py` script, after
   pre-match, schedule, generic preview). Recent live mutations: #229 (governance push, which
   fires on a concrete step only) and #237 (`team:maccabi_tlv_bb × candidate −1`,
   `comp:euroleague × news +1`, fitted on census #2 and confirmed on its held-out half).
+  **Pending owner apply (#257):** the seed adds Hapoel Tel Aviv basketball at medium (0), plus
+  six Hapoel-scoped event deltas (69 event affinities in total). With these, Hapoel club coverage
+  that no followed competition reaches lands at `feed`. The live row changes only after
+  `scripts/apply_257_hapoel_profile.py --apply` is run. Until then the live feed still hides
+  that coverage.
 - **`casual_deni_fan`** (demo): Deni Avdija +2 and nothing else. Pushes on a Deni major trade,
   injury or `relocation`. Relocation is an owner-authorised, entity-scoped rule (#191): the same
   relocation article is `feed` for Guy. This profile must not drift unintentionally; the gate
@@ -425,7 +430,9 @@ milestone 11's gate.
 3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
    - #256 measure which people matter (no registry change)
    - #259 register the approved batch, blocked by #256
-   - #257 product decision on non-Maccabi club narrative
+   - #257 non-Maccabi club narrative: owner decided feed for Hapoel TLV basketball (Guy only).
+     The seed and the ceiling-backing change are implemented. The live profile needs the owner's
+     `apply_257_hapoel_profile.py` run
    - #258 ONE probe and decision
 
 Deliberately not in these milestones: platform hardening (#198–#200), which matters
@@ -563,3 +570,4 @@ review intake, security diff review, UI and React review, browser checks, Python
 | 8 | Feed Quality — Recall & Push (N05) | 2026-09-16 | The 282-rating ground truth and gate; former-affiliation fix; Israeli clubs; push 41%→100%; LLM cost −45% (#217); live scoreline (#218); census tool and census #1 | qa/N05_*, LLM_CLASSIFICATION |
 | 9 | Census #2 & Classification Truth | 2026-10-10 | Census #2 (804); title-local trade and schedule; Israeli cups; executives; `club_governance` | qa/CENSUS_2026-10, RSS_QUALITY_GUARDRAILS §13–§17 |
 | — | First census calibration (#237) + QA tooling | 2026-10-12 | Live-profile calibration with a held-out check; `worker.ps1`, `corpus_rerun_diff.py`, census review/merge-review | PREFERENCE_MODEL_V2 |
+| — | Hapoel TLV basketball for Guy (#257) | 2026-10-30 | Owner decision as a profile entry (medium follow plus scoped deltas). Membership-ceiling backing now needs level ≥ +1 | PREFERENCE_MODEL_V2, RELEVANCE_VISIBILITY_CONTRACT |

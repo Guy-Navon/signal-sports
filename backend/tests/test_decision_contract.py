@@ -300,10 +300,24 @@ class TestDirectVsDiffuseReach:
     def test_entity_backing_exempts_membership_ceiling(self):
         profile = _profile(ProfileV2(scope_affinities=[
             ScopeAffinity(scope="competition", target_id="comp:euroleague", level=2),
-            ScopeAffinity(scope="team", target_id="team:maccabi_tlv_bb", level=0),
+            ScopeAffinity(scope="team", target_id="team:maccabi_tlv_bb", level=1),
         ]))
         signing = _article(entity_ids=["team:maccabi_tlv_bb"], event_type="signing")
         assert _decision(signing, profile) == "high_feed"
+
+    def test_medium_entity_follow_does_not_back_membership_reach(self):
+        """#257: backing means a FOLLOWED entity (level ≥ +1), the same threshold as the
+        entity boost. A medium (0) follow is a low_feed interest in the team's own
+        stories; it does not certify a diffuse membership match (Guy's medium Hapoel
+        follow must leave golden C9 at feed)."""
+        profile = _profile(ProfileV2(scope_affinities=[
+            ScopeAffinity(scope="competition", target_id="comp:euroleague", level=2),
+            ScopeAffinity(scope="team", target_id="team:maccabi_tlv_bb", level=0),
+        ]))
+        signing = _article(entity_ids=["team:maccabi_tlv_bb"], event_type="signing")
+        result = score_article_v2(signing, profile)
+        assert result.decision == "feed"
+        assert any(c["step"] == "ceiling" for c in result.contributions)
 
     def test_tier1_explicit_evidence_never_capped(self):
         profile = _profile(ProfileV2(scope_affinities=[

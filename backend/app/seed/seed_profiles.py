@@ -275,6 +275,11 @@ GUY_PROFILE_V2 = ProfileV2(
         ScopeAffinity(scope="competition", target_id="comp:greek_basket", level=-1),
         ScopeAffinity(scope="competition", target_id="comp:lba", level=-1),
         ScopeAffinity(scope="competition", target_id="comp:lnb", level=-1),
+        # #257 (owner decision 2026-10-26): Hapoel Tel Aviv basketball coverage is feed
+        # by baseline. Medium, not high: a high follow would add the entity boost to every
+        # Hapoel story inside a followed competition (feed → high_feed on 84 corpus rows).
+        # The scoped deltas below lift the club narrative that no competition reaches.
+        ScopeAffinity(scope="team", target_id="team:hapoel_tlv_bb", level=0),
         # Low-interest sports — visible only through event affinities.
         ScopeAffinity(scope="sport", target_id="football", level=-1),
         ScopeAffinity(scope="sport", target_id="tennis", level=-1),
@@ -331,6 +336,15 @@ GUY_PROFILE_V2 = ProfileV2(
         # #237 (owner-approved calibration from census #2): speculation around
         # Maccabi is feed, not high_feed — the high base stays for real transactions.
         _ev("team:maccabi_tlv_bb", "candidate", -1),
+        # #257 Hapoel Tel Aviv basketball (base 1 = low_feed). These apply only when the
+        # Hapoel follow is the base, i.e. no followed competition matched. Club news is
+        # low importance in the corpus (−1), hence +2: it lands at feed, like Maccabi news.
+        _ev("team:hapoel_tlv_bb", "news", 2),
+        _ev("team:hapoel_tlv_bb", "match_result", 1),
+        _ev("team:hapoel_tlv_bb", "interview", 1),
+        _ev("team:hapoel_tlv_bb", "analysis", 1),
+        _ev("team:hapoel_tlv_bb", "opinion", 1),
+        _ev("team:hapoel_tlv_bb", "club_governance", 1),
         # Secondary European leagues (base 0): only genuinely major events.
         _ev("comp:acb", "title_win", 2),
         _ev("comp:acb", "major_match_result", 2),

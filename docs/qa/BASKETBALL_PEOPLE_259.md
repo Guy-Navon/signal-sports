@@ -219,7 +219,7 @@ from a person (the text did not name the club):
 | National team | the text marker "נבחרת" suppresses the club (sport still counts) | Only that word is recognized; "ישראל ניצחה", "יורובאסקט" or age-group teams are not. The marker also fires on incidental mentions inside club stories ("שחקן הנבחרת"), dropping club evidence. 1 corpus case, where dropping it happened to be right (Blatt, July: "still looking for a team") |
 | Former club, transfer, farewell | the current club is attached; the former club only if named | A farewell is filed under the destination club. A future "X returns to his old club" headline would attach the current one |
 | Historical or retrospective articles | today's roster is applied to past events | A July article about Blatt seeking a team would carry today's Hapoel. Safe only for articles ingested while the roster is current: **no backfill** |
-| Roster changes mid-season | stale entries attach the wrong club until updated | Needs a maintenance owner; there is no automatic expiry |
+| Roster changes mid-season | stale entries attach the wrong club until updated | No automatic expiry: the roster-maintenance routine in [TAXONOMY.md](../TAXONOMY.md#roster-maintenance-club-people-implies_team-377) keeps it current (#377) |
 | Incidental person in the subtitle | sport only | covered by tests |
 | Ambiguous surnames | full-name aliases only | covered by tests and the alias table |
 

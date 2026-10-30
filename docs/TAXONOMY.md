@@ -107,6 +107,78 @@ No other file needs to change; every registry addition permanently converts a
 class of LLM calls into deterministic hits (the taxonomy is the gating
 function — see the LLM-as-exception architecture principle).
 
+## Roster maintenance: club people (`implies_team`, #377)
+
+A recurring routine, not a one-off fix. The #259 people (Maccabi and Hapoel Tel Aviv players
+plus Itoudis) carry `team_id` and `implies_team`: a title mention attaches the **registry**
+club. A player who moved but was not updated attaches the old club to ordinary stories; a new
+signing resolves to nothing until registered. There is no automatic expiry. #377 stays open
+as the recurring task.
+
+**When:** at each transfer window and at the season rollover (summer), and whenever a story
+shows a registered person at a different club. Re-check the other people of the same clubs
+too (`coach:oded_kattash`, the Maccabi executives): their `team_id` is data in the same way,
+though `roster_review.py` lists only the `implies_team` block.
+
+**Steps** (from `backend/`, on a branch; never edit the checkout that runs the live worker. A
+worktree has no `.venv`: use the main checkout's interpreter):
+
+1. List what is registered now:
+   `.venv\Scripts\python.exe scripts\roster_review.py`
+   It prints every `implies_team` person by club, with aliases, next to the club's official
+   page: basket.co.il [team 2111 (Maccabi)](https://basket.co.il/team.asp?TeamId=2111&lang=en)
+   and [team 2112 (Hapoel)](https://basket.co.il/team.asp?TeamId=2112&lang=en). Compare the
+   two. "Inactive" on those pages means on the club but not registered domestically: keep
+   them. A headline is not a roster source (the Tamir Blatt correction in
+   [qa/BASKETBALL_PEOPLE_259.md](qa/BASKETBALL_PEOPLE_259.md)).
+2. For alias safety, make a verified copy of the corpus and search it (both read-only; never
+   query the live file):
+   `.venv\Scripts\python.exe scripts\backup_db.py`, run in the backend of the checkout that
+   holds the corpus (or pass `--src`); it prints `backup written: <path>`. Then
+   `.venv\Scripts\python.exe scripts\roster_review.py --db <that path> "טופין" "ג'ייקוב טופין"`.
+   It lists the rows that mention the name **as the resolver matches a club-person alias**:
+   any geresh spelling, hyphens folded, and a standalone word (a prefix such as `ל`/`ו` is
+   allowed, a letter after it is not). It also prints the raw substring count beside it; a
+   hit inside a longer word (`מדריד` for `מדר`) is not a collision, because every
+   `_club_person` alias is word-bounded. It skips the week-sample holdout rows. It refuses a
+   file named `signal_sports.db` or one with `-wal`/`-shm` sidecars (a live WAL database).
+   Delete the copy afterwards.
+3. Edit the `_club_person(...)` entries in `backend/app/taxonomy/entities.py` (the "Israeli-league
+   basketball people (#259)" block):
+   - **New signing:** add an entry if he is on the official roster **and** named in the corpus
+     (the #259 selection; the signing reports usually supply the mention). Use the full Hebrew
+     name, spelling variants seen in the corpus and the English name. Add the bare surname only
+     if every listed mention (not every raw substring hit) is this person; otherwise list the
+     surname in the full-name-only table of qa/BASKETBALL_PEOPLE_259.md and add the colliding
+     text to
+     `TestCollisionsStayUnresolved` in `tests/test_basketball_people_259.py`. `_club_person`
+     makes every alias word-bounded and adds the geresh variants.
+   - **Moved between the two clubs** (as Madar did, Hapoel → Maccabi, before #259): change
+     `team_id`.
+   - **Left both clubs:** delete the entry. Do not retarget him to another club: the batch is
+     scoped to Maccabi and Hapoel Tel Aviv (enforced by `test_basketball_people_259.py`), and
+     widening it is its own decision. Removing an id is safe for stored rows; readers skip
+     unknown ids.
+   - Update the selection comment above the block (date checked) and the roster table and the
+     check date in qa/BASKETBALL_PEOPLE_259.md.
+4. Regenerate the frontend export (needed when an entry is added or removed; harmless otherwise,
+   because the export carries ids, kinds and memberships, not `team_id`):
+   `.venv\Scripts\python.exe scripts\generate_taxonomy_export.py`, then commit
+   `frontend/src/data/taxonomyReach.generated.json`.
+5. Run the tests:
+   `.venv\Scripts\python.exe -m pytest tests/test_taxonomy_integrity.py tests/test_entity_resolver.py tests/test_taxonomy_export_freshness.py tests/test_basketball_people_259.py -q`,
+   then the full backend suite (`-m pytest tests/ -q`) and `npm run test` in `frontend/`.
+6. Verify a changed person on a title, in memory (no DB):
+   `.venv\Scripts\python.exe -X utf8 -c "from app.ingestion.classifier import classify; r = classify('טופין: אני מרוצה מהעונה', language='he'); print(r.sport, r.entities)"`
+   prints `basketball ['Hapoel Tel Aviv Basketball']` today (the title names only the player).
+   A removed person prints `unknown []` for the same kind of title.
+7. Open a PR with the roster diff and the check date. The change reaches articles ingested
+   after the worker runs the new code.
+
+**Never backfill stored articles with the registry.** `team_id` is today's club. A rules-only
+backfill or reclassification would attach it to past stories (a July transfer story about a
+player who has since moved). Stored rows keep the facts they were ingested with.
+
 ## Accepted trade-off (PR 1)
 
 Colloquial bare-"מכבי" headlines meaning Maccabi Tel Aviv lose deterministic
@@ -236,7 +308,9 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
 - **Israeli-league players** (6 rows). The registry holds **3 players total**, all
   NBA. These articles name a player and never a club, so nothing else can catch
   them — but an Israeli-league roster is season-volatile and needs a maintenance
-  policy first. Tracked as its own issue.
+  policy first. Tracked as its own issue. (Since done: #259 registered the Maccabi and
+  Hapoel Tel Aviv people, and the policy is
+  [Roster maintenance](#roster-maintenance-club-people-implies_team-377), #377.)
 - ~~**`העמק`**~~ — **resolved 2026-09-16.** Owner's answer: Hapoel HaEmek is its
   own club — the merger of Hapoel Afula and the former Hapoel Gilboa/Galil, playing
   in the top league — and is *not* `team:emek_yizrael_bb`. Registered as
@@ -318,8 +392,9 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
     **Spelling variants:** `_geresh_variants` adds the `'` / `׳` / `` ` `` forms; the corpus
     writes `ג`ייקוב טופין` and `ג`ייסון לוין`. Jason Levin (#229) gets the same variants.
   - **Season data.** `team_id` is this season's club. Re-check at every roster change,
-    like a coach. Do not backfill old articles with it: it would attach today's club to a
-    past transfer story.
+    like a coach, with the [roster maintenance](#roster-maintenance-club-people-implies_team-377)
+    routine. Do not backfill old articles with it: it would attach today's club to a past
+    transfer story.
 - **Bare family names** (`בהפועל`) stay unresolvable. That abstention is a
   designed success mode, not a remaining gap.
 

@@ -28,6 +28,7 @@ Architecture contract (Intelligence Architecture v2):
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -46,8 +47,10 @@ from app.taxonomy import (
     entity_by_legacy_name,
     is_cross_sport_ambiguous,
     legacy_sport,
+    resolve_entities,
     resolve_mention,
 )
+from app.taxonomy.resolver import normalize_alias_text
 
 
 # ── Competition evidence keywords ─────────────────────────────────────────────
@@ -251,6 +254,69 @@ def _sport_has_explicit_support(evidence: list[dict], sport: str) -> bool:
     )
 
 
+# ── Corroboration of an LLM "basketball" for derived cross-sport entities (#345)
+# Used ONLY inside the #61 guard, to answer one question: is the basketball the
+# LLM chose backed by something deterministic and independent of the LLM? These
+# cues never vote on, override or decide the sport, and the scoreline has no
+# place in the weight order above. (A classifier-resolved basketball entity
+# already counts there as entity_derived evidence; what is new is only its use
+# as corroboration for the LLM's twin-club entity.) Two kinds:
+#   - a basketball entity the text names in a form that proves the sport: the
+#     resolver finds it with NO sport context, and for a TEAM through a
+#     multi-word alias ("עירוני נס ציונה"; a one-word name such as "ז'לגיריס"
+#     does not qualify).
+#     One-word team aliases are substring hits on town names and nicknames
+#     ("באילת" = Hapoel Eilat's town, "ספרס" = Tottenham in football copy,
+#     "העמק" inside "מגדל העמק"), so they prove nothing;
+#   - a basketball scoreline: "A:B", both sides 50-199 and different. Football
+#     and tennis never get there; handball tops out in the 40s ("21:43"); a
+#     kick-off time has an hour below 24 ("19:30"); a game cannot end level, and
+#     "50:50" reports odds. Colon only, because a hyphen also writes ranges
+#     ("60-70 אלף"); a colon wrapped in RTL marks ("87\u200f:\u200f92") does not
+#     match either, a fail-safe miss.
+# Basketball only: the registry lists multi-sport clubs such as Maccabi Haifa as
+# football-only, so a "football-proving" name is weak, and no football case was
+# measured.
+_BASKETBALL_SCORELINE = re.compile(r"(?<![\d:.,])(\d{2,3}):(\d{2,3})(?![\d:])")
+
+
+def _has_basketball_scoreline(text: str) -> bool:
+    pairs = ((int(a), int(b)) for a, b in _BASKETBALL_SCORELINE.findall(text))
+    return any(50 <= a <= 199 and 50 <= b <= 199 and a != b for a, b in pairs)
+
+
+def _names_its_sport(ent, text_norm: str) -> bool:
+    """A self-resolved entity proves its sport: a person by name; a team only
+    through a multi-word alias present in the text."""
+    if ent.kind != "team":
+        return True
+    return any(
+        " " in alias and alias in text_norm
+        for alias in (normalize_alias_text(a) for a in ent.aliases)
+    )
+
+
+def _basketball_corroboration(text: str, text_resolved_entities: list[str]) -> Optional[str]:
+    """A deterministic, LLM-independent basketball cue (None if there is none).
+
+    Any entity of another sport the text names (resolved with no sport context,
+    any alias) or the classifier resolved is a contradiction, and then nothing
+    corroborates.
+    """
+    self_resolved = resolve_entities(text, None).resolved
+    classifier = [entity_by_legacy_name(e) for e in text_resolved_entities]
+    named = [ent for ent in (*self_resolved, *classifier) if ent is not None]
+    if any(ent.sport != "basketball" for ent in named):
+        return None
+    text_norm = normalize_alias_text(text)
+    for ent in self_resolved:
+        if ent.sport == "basketball" and _names_its_sport(ent, text_norm):
+            return f"text_entity:{ent.id}"
+    if _has_basketball_scoreline(text):
+        return "basketball_scoreline"
+    return None
+
+
 def _strongest_for(evidence: list[dict], sport: str) -> Optional[dict]:
     """The highest-weight evidence item supporting ``sport`` (None if none)."""
     candidates = [e for e in evidence if e["sport"] == sport]
@@ -410,27 +476,54 @@ def build_article_facts(
     # club names in the sport-detection lists), so re-checking its work here
     # would create false drops. Abstention beats guessing: the entity is
     # dropped-with-record; the sport keeps its honest provenance.
+    #
+    # One narrow exception (#345), basketball only: the LLM chose basketball,
+    # a deterministic cue independent of the LLM corroborates it (see
+    # _basketball_corroboration), AND the article text names the entity —
+    # resolving the text under basketball yields it. Then the only thing the
+    # text lacked was sport evidence, and it has been supplied without the LLM.
+    # A club the text never names (an LLM entity hallucination) stays dropped.
+    # Recorded in the trace as ``cross_sport_entity_corroborated``.
     if (
         kept_entities
         and text_resolved_entities is not None
         and not _sport_has_explicit_support(sport_evidence, sport)
     ):
+        corroboration: Optional[str] = None
+        named_in_text: set[str] = set()
+        if llm_raw is not None and llm_raw.sport == sport == "basketball":
+            text = f"{title_l} {sub_l}"
+            corroboration = _basketball_corroboration(text, text_resolved_entities)
+            if corroboration is not None:
+                named_in_text = set(resolve_entities(text, sport).resolved_legacy_names)
         surviving: list[str] = []
         for e in kept_entities:
             ent = entity_by_legacy_name(e)
-            if (
+            derived_cross_sport = (
                 e not in text_resolved_entities
                 and ent is not None
                 and is_cross_sport_ambiguous(ent)
-            ):
+            )
+            if not derived_cross_sport:
+                surviving.append(e)
+            elif e in named_in_text:
+                conflicts.append({
+                    "field": "entity",
+                    "candidates": [
+                        f"{e} (cross-sport name, derived provenance, "
+                        f"named in text; corroborated by {corroboration})"
+                    ],
+                    "winner": e,
+                    "rule": "cross_sport_entity_corroborated",
+                })
+                surviving.append(e)
+            else:
                 conflicts.append({
                     "field": "entity",
                     "candidates": [f"{e} (cross-sport name, derived provenance)"],
                     "winner": None,
                     "rule": "cross_sport_entity_requires_explicit_sport",
                 })
-            else:
-                surviving.append(e)
         kept_entities = surviving
 
     # Abstention: entities were dropped for conflicting with a sport that has no

@@ -1,5 +1,13 @@
 # ArticleFacts — Evidence-Backed Competitions, Entity IDs & Classification Trace
 
+**2026-10-30 - Corroborated LLM cross-sport entities (#345).** The #61 provenance
+guard (`cross_sport_entity_requires_explicit_sport`) now has one narrow exception,
+for basketball only: an LLM-proposed club whose name cannot prove its sport survives
+when the LLM's basketball is corroborated by a deterministic cue the LLM did not
+produce, and the article text names the club. The guard itself, the evidence weights and the sport
+resolution are unchanged. See
+[Derived cross-sport entities](#derived-cross-sport-entities-provenance-guard-61-and-its-one-exception-345).
+
 **2026-09-11 - Event abstention and attention evidence (#191/#192).** The
 post-facts event trace now includes `proposed` and `abstention_reason` (failed
 semantic proposal versus no positively supported event). `news` remains a valid
@@ -69,6 +77,68 @@ conflict and enforces the invariants:
   *no explicit support of its own*, the article sport is untrustworthy → collapse
   to `sport=unknown`, drop the entity, record the abstention. (Case 10:
   Maccabi Tel Aviv **Football** + `sport=basketball` cannot persist.)
+
+### Derived cross-sport entities: provenance guard (#61) and its one exception (#345)
+
+Some entities' names cannot prove their sport: a shared cross-sport alias
+(`מכבי תל אביב`, `הפועל ירושלים`) or a guarded club (`ריאל מדריד`,
+`אולימפיאקוס`; `taxonomy.is_cross_sport_ambiguous`). When such an entity is
+**derived** — proposed by the LLM or injected by post-merge enrichment, not
+resolved from the text by the deterministic resolver — it persists only if the
+article sport has **explicit** evidence. Otherwise it is dropped with
+`rule: cross_sport_entity_requires_explicit_sport`; the sport keeps its honest
+(non-explicit) provenance. Text-resolved entities are exempt: the resolver only
+resolves these names under sport evidence. Derived entities never count as
+`entity_derived` sport evidence either (no laundering of one guess into two
+signals).
+
+The guard is load-bearing. On the corpus (2026-10-30 replay with stored LLM
+answers, 3,777 rows) it fired on 54 rows. By a reading of the headlines, **41 were
+football stories the LLM called basketball** (Maccabi, Hapoel Be'er Sheva, Hapoel
+Haifa …), 2 were handball, and 11 were basketball.
+
+**Exception (#345, basketball only): corroborated, and named in the text.** A
+derived cross-sport entity is kept, recorded as
+`rule: cross_sport_entity_corroborated`, when ALL hold:
+
+1. an LLM proposal exists, it says basketball, and the article sport is basketball;
+2. a deterministic cue independent of the LLM corroborates basketball
+   (`facts._basketball_corroboration`):
+   - the text names a basketball entity in a form that proves the sport: the
+     resolver finds it with **no** sport context and, for a **team**, through a
+     **multi-word** alias (`עירוני נס ציונה`; a person by name). A one-word team
+     alias does not count: it is a substring hit on town names and nicknames
+     (`באילת` is a football preseason camp in Hapoel Eilat's town, `ספרס` is
+     Tottenham in football copy, `העמק` sits inside `מגדל העמק`); or
+   - a **basketball scoreline**: `A:B` with both sides 50–199 **and different**
+     (football and tennis never reach it, handball tops out in the 40s, a kick-off
+     time has an hour below 24, a game cannot end level, and `50:50` reports
+     fitness odds; colon only, because a hyphen also writes ranges; a colon
+     wrapped in RTL marks does not match either, a fail-safe miss);
+
+   and no entity of another sport is named (resolved with no sport context, any
+   alias) or resolved by the classifier: a contradiction voids the corroboration;
+3. resolving the title + subtitle under basketball yields the entity — the text
+   really names it, and not only as a former club (`אקס מכבי ת"א`). An entity the
+   LLM invents (it named Panathinaikos on a Fenerbahce game) stays dropped.
+
+**Basketball only** because the registry lists multi-sport clubs such as Maccabi
+Haifa as football-only, so a "football-proving" name is weak, and no football case
+was measured. A football twin-club proposal keeps the #61 guard unchanged.
+
+These cues never decide, override or abstain a sport, and the scoreline has no
+place in the weight order below. A classifier-resolved basketball entity already
+counts there as `entity_derived` evidence (40); what is new is only its use as
+corroboration for the LLM's twin-club entity. With the LLM disabled the exception
+cannot fire, so the no-LLM path is unchanged.
+
+Effect (replay with recorded LLM answers, holdout excluded): 4 rows gain an entity,
+all basketball (a Maccabi youth-department appointment and three Olympiacos
+EuroLeague games with scorelines); Guy 2 hidden → feed, push and the Deni fan
+unchanged; no football or handball row gains an entity. The other 7 basketball rows
+have no non-LLM cue this rule accepts (a Super Cup grant story, Cyprus hosting
+Maccabi's games, a "first quarter" knockout, a game named only by one-word club
+names …) and are still dropped. Tests: `tests/test_cross_sport_corroboration_345.py`.
 
 ### Naming a club is not being about it (former affiliation)
 

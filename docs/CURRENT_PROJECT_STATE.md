@@ -277,7 +277,12 @@ deterministic rule changelog, §1–§18).
   them has no entity and often no sport.
 - **Cross-sport club deadlock** (#194). `מכבי תל אביב`, `הפועל ת"א` and others without sport
   evidence stay `sport=unknown`. The bucket mixes sports, so defaulting a sport would fabricate
-  facts.
+  facts. When the LLM proposes such a club, the facts stage drops it unless the sport has
+  explicit evidence (#61) — the LLM calls most football Maccabi stories basketball. Since
+  #345 it keeps one, for basketball only, when a non-LLM cue corroborates the LLM's
+  basketball (a basketball entity named in a sport-proving form, or a basketball scoreline)
+  and the text names the club
+  ([ARTICLE_FACTS.md](ARTICLE_FACTS.md)).
 - **`news` with no competition.** In census #2, 71 of 76 false hides had no
   `primary_competition` and 34 had no entity. Hapoel TLV basketball narrative stories (13 false
   hides) are a relevance question, not a classification one.
@@ -428,7 +433,8 @@ milestone 11's gate.
    - #242 venue-move vocabulary, if census #3 brings enough examples
 3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
    - done: #256 (measurement), #259 (Maccabi/Hapoel Tel Aviv people registered)
-   - open: #345 (facts stage drops LLM-resolved Maccabi), #257 (product decision on non-Maccabi
+   - open: #345 (the corroborated basketball exception landed; wanted stories with no non-LLM
+     cue, such as the Super Cup grant, are still dropped), #257 (product decision on non-Maccabi
      club narrative), #258 (ONE probe and decision)
    - moved out: #377 is now a recurring roster routine (TAXONOMY.md); #352 was split into
      backlog issues #380 #381 #382

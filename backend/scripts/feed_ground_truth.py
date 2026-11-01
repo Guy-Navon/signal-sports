@@ -98,12 +98,14 @@ SEED = 20260905
 
 
 def _git_sha() -> str:
-    """HEAD, suffixed ``-dirty`` when tracked files differ from it: a measurement
-    taken on uncommitted code is not reproducible from the SHA alone."""
+    """HEAD, suffixed ``-dirty`` when tracked files under backend/ differ from it: a
+    measurement taken on uncommitted code is not reproducible from the SHA alone.
+    Only backend/ counts: the rating files are fingerprinted separately, and a
+    baseline JSON being rewritten is not a code change."""
     try:
         sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
         changed = subprocess.check_output(
-            ["git", "status", "--porcelain", "--untracked-files=no"], text=True
+            ["git", "status", "--porcelain", "--untracked-files=no", "--", str(_BACKEND)], text=True
         ).strip()
     except Exception:
         return "unknown"

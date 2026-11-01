@@ -115,6 +115,12 @@ def test_broadcast_announcement_shapes_are_schedule(text):
     assert validate_event_evidence("schedule", text, sport="basketball").valid
 
 
+def test_future_broadcast_title_is_proposed_and_kept():
+    # The classifier proposes on "ישודר" too, not only validation accepting it.
+    a = _ingest("walla_sport", "הדרבי בין מכבי להפועל ת\"א בכדורסל ישודר בערוץ 5 ביום חמישי")
+    assert a.event_type == "schedule"
+
+
 @pytest.mark.parametrize("text", [
     # "ישודרג" / "משודרג" (upgraded) contain the future-broadcast letters
     "יש כבר מו\"מ על חוזה משודרג: היהלום שמלהיב את מכבי נתניה",

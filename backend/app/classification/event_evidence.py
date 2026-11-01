@@ -573,7 +573,7 @@ TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset(
 )
 
 # Broadcast vocabulary that ANNOUNCES a broadcast (#406). The bare word "שידור" is not one:
-# on the 2026-11-01 corpus most "שידור" schedule titles were something that happened on air
+# on the 2026-11-01 corpus 7 of 16 "שידור" schedule titles were something that happened on air
 # ("בארקלי פרץ בבכי בשידור חי", "התפוצץ בשידור") or broadcasting-industry news ("זכויות
 # השידור", "שידורי אתלטיקת הנשים בדרך לשינוי"). The real announcements took four forms:
 # a call to watch, a broadcast label heading the title (optionally after a time slot), a

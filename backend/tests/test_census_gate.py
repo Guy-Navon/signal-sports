@@ -316,6 +316,25 @@ def test_empty_baseline_is_an_error():
         gate.evaluate({"profiles": {}}, _merged(), _decisions())
 
 
+def test_a_run_on_other_facts_than_the_baseline_is_an_error(baseline):
+    """Stored facts and a rules-only rerun are different measurements (#398 lesson)."""
+    assert baseline["facts"] == "stored"
+    with pytest.raises(GateInputError, match="facts"):
+        gate.evaluate(baseline, _merged(), _decisions(), facts="rerun")
+
+
+def test_a_rerun_baseline_accepts_a_rerun_run():
+    rerun = gate.build_baseline(_merged(), _decisions(), meta={}, facts="rerun")
+    assert gate.evaluate(rerun, _merged(), _decisions(), facts="rerun").passed
+    with pytest.raises(GateInputError, match="facts"):
+        gate.evaluate(rerun, _merged(), _decisions())
+
+
+def test_an_unknown_facts_source_is_rejected():
+    with pytest.raises(ValueError, match="facts"):
+        gate.build_baseline(_merged(), _decisions(), meta={}, facts="llm")
+
+
 # ── inputs: several censuses, deduplicated, with reviews on top ───────────────
 
 
@@ -390,20 +409,27 @@ def test_rendered_verdict_leads_with_precision_and_recall(baseline):
 # and (2) run the acceptance demonstrations on the real census, without a corpus.
 
 _REPO = Path(__file__).resolve().parents[2]
-_BASELINE_PATH = _REPO / "docs" / "qa" / "census_gate_baseline.json"
+# One baseline per facts source: stored facts (what the corpus serves; relevance and
+# profile changes) and a rules-only rerun (classifier and taxonomy changes).
+_BASELINES = {
+    "stored": _REPO / "docs" / "qa" / "census_gate_baseline.json",
+    "rerun": _REPO / "docs" / "qa" / "census_gate_rerun_baseline.json",
+}
 
 
 def _load(rel: str) -> dict:
     return json.loads((_REPO / rel).read_text(encoding="utf-8"))
 
 
-@pytest.fixture(scope="module")
-def committed():
-    assert _BASELINE_PATH.exists(), (
-        f"{_BASELINE_PATH} is missing. Regenerate deliberately with:\n"
-        "  scripts/feed_ground_truth.py gate --census --update-baseline"
+@pytest.fixture(scope="module", params=sorted(_BASELINES))
+def committed(request):
+    facts = request.param
+    path = _BASELINES[facts]
+    assert path.exists(), (
+        f"{path} is missing. Regenerate deliberately with:\n"
+        f"  scripts/feed_ground_truth.py gate --census --facts {facts} --update-baseline"
     )
-    baseline = json.loads(_BASELINE_PATH.read_text(encoding="utf-8"))
+    baseline = json.loads(path.read_text(encoding="utf-8"))
     inputs = baseline["inputs"]
     merged = gate.merge_census(
         [
@@ -416,12 +442,24 @@ def committed():
     return baseline, merged, decisions
 
 
+def _replay(committed, guy):
+    baseline, merged, decisions = committed
+    return gate.evaluate(baseline, merged, dict(decisions) | {"guy": guy}, facts=baseline["facts"])
+
+
 def test_committed_baseline_shape(committed):
     baseline, _, _ = committed
     assert baseline["baseline_version"] == gate.BASELINE_VERSION
     assert baseline["kind"] == "census"
+    assert baseline["facts"] in gate.FACTS_SOURCES
     assert "casual_deni_fan" in baseline["policy"]["drift_must_be_zero"]
     assert set(baseline["profiles"]) == {"guy", "casual_deni_fan"}
+
+
+def test_committed_baselines_use_the_same_census():
+    """Both facts sources must measure the same rows, or comparing them means nothing."""
+    inputs = [json.loads(p.read_text(encoding="utf-8"))["inputs"] for p in _BASELINES.values()]
+    assert inputs[0] == inputs[1]
 
 
 def test_committed_baseline_matches_the_committed_ratings(committed):
@@ -444,21 +482,16 @@ def test_committed_baseline_covers_every_census_article_for_the_canary(committed
 
 
 def test_committed_baseline_passes_against_itself(committed):
-    baseline, merged, decisions = committed
-    assert gate.evaluate(baseline, merged, decisions).passed
+    assert _replay(committed, committed[2]["guy"]).passed
 
 
 def test_real_census_surface_everything_fails_on_shown_precision(committed):
     """ACCEPTANCE (#254) on census #2: the N05 lesson replayed on 804 real rows."""
-    baseline, merged, decisions = committed
-    decisions = dict(decisions) | {"guy": _surface_everything(decisions["guy"])}
-    verdict = gate.evaluate(baseline, merged, decisions)
+    verdict = _replay(committed, _surface_everything(committed[2]["guy"]))
     assert _check(verdict, "guy.shown_precision").passed is False
     assert _check(verdict, "guy.feed_plus_recall").passed is True
 
 
 def test_real_census_hide_more_fails_on_feed_plus_recall(committed):
-    baseline, merged, decisions = committed
-    decisions = dict(decisions) | {"guy": _hide_more(decisions["guy"])}
-    verdict = gate.evaluate(baseline, merged, decisions)
+    verdict = _replay(committed, _hide_more(committed[2]["guy"]))
     assert _check(verdict, "guy.feed_plus_recall").passed is False

@@ -69,6 +69,15 @@ from app.qa import feed_quality_gate
 BASELINE_VERSION = 1
 DEFAULT_DRIFT_PROFILES = ("casual_deni_fan",)
 
+# Where the article facts behind the decisions come from. Each needs its own baseline.
+# - "stored": the facts persisted in the corpus (LLM-assisted, written by whatever
+#   pipeline version ingested the row). What the product serves for these rows;
+#   the source for relevance and profile changes.
+# - "rerun": a rules-only reclassification of the same rows in memory (LLM and
+#   translation off), as scripts/corpus_rerun_diff.py does. Stored rows change only
+#   through a backfill, so a classifier or taxonomy change is visible ONLY here.
+FACTS_SOURCES = ("stored", "rerun")
+
 # Owner rating at or above this notch counts as "wanted in the feed" for recall.
 _FEED_NOTCH = OWNER_NOTCH["feed"]
 _PUSH_NOTCH = OWNER_NOTCH["push"]
@@ -300,8 +309,11 @@ def build_baseline(
     *,
     meta: Mapping[str, Any],
     drift_must_be_zero: Sequence[str] = DEFAULT_DRIFT_PROFILES,
+    facts: str = "stored",
 ) -> dict[str, Any]:
     """Freeze the current decisions and metrics as the reference."""
+    if facts not in FACTS_SOURCES:
+        raise ValueError(f"unknown facts source {facts!r}; expected one of {FACTS_SOURCES}")
     profiles: dict[str, Any] = {}
     for profile_id in sorted(set(merged.ratings) | set(drift_must_be_zero)):
         current = decisions.get(profile_id, {})
@@ -324,6 +336,7 @@ def build_baseline(
     return {
         "baseline_version": BASELINE_VERSION,
         "kind": "census",
+        "facts": facts,
         "meta": dict(meta),
         "inputs": dict(merged.inputs),
         "policy": {
@@ -346,12 +359,20 @@ def evaluate(
     *,
     accepted: Iterable[str] = (),
     accept_reason: str | None = None,
+    facts: str = "stored",
 ) -> GateVerdict:
     """Compare the current decisions over the census against the frozen baseline."""
     accepted_ids = set(accepted)
     base_profiles: Mapping[str, Any] = baseline.get("profiles", {})
     if not any("metrics" in block for block in base_profiles.values()):
         raise GateInputError("Baseline contains no rated profiles.")
+    base_facts = baseline.get("facts", "stored")
+    if base_facts != facts:
+        raise GateInputError(
+            f"The baseline was built on {base_facts} facts and this run uses {facts} facts. "
+            "They are different measurements (131 of census #2's 804 rows differ in "
+            "sport, event or competition), so use the matching baseline."
+        )
 
     base_ids_hash = baseline.get("inputs", {}).get("article_ids_sha256")
     if base_ids_hash != merged.inputs.get("article_ids_sha256"):

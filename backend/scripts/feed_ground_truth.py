@@ -9,7 +9,8 @@ Usage (from backend/):
     .venv\\Scripts\\python.exe scripts/feed_ground_truth.py sample   --out ../docs/qa/n05_sample.json
     .venv\\Scripts\\python.exe scripts/feed_ground_truth.py score    --ratings ../docs/qa/n05_ratings.json
     .venv\\Scripts\\python.exe scripts/feed_ground_truth.py gate              # N05 regression gate (#189)
-    .venv\\Scripts\\python.exe scripts/feed_ground_truth.py gate --census     # census regression gate (#254)
+    .venv\\Scripts\\python.exe scripts/feed_ground_truth.py gate --census     # census gate, stored facts (#254)
+    .venv\\Scripts\\python.exe scripts/feed_ground_truth.py gate --census --facts rerun   # census gate, rules-only rerun
 
 ``gate`` is described in docs/RELEVANCE_CONTRACT.md §Quality gate; the census
 checks live in app/qa/census_gate.py.
@@ -526,7 +527,10 @@ DEFAULT_N05_SAMPLE = _QA / "n05_sample.json"
 # passing a second --ratings/--sample pair and regenerating the baseline. Census
 # #2's blind review is listed so the baseline records it: its 58 values are
 # already folded into census2_ratings.json, so applying it changes 0 rows.
-DEFAULT_CENSUS_BASELINE = _QA / "census_gate_baseline.json"
+DEFAULT_CENSUS_BASELINES = {
+    "stored": _QA / "census_gate_baseline.json",
+    "rerun": _QA / "census_gate_rerun_baseline.json",
+}
 DEFAULT_CENSUS_RATINGS = (_QA / "census2_ratings.json",)
 DEFAULT_CENSUS_SAMPLES = (_QA / "census2_sample.json",)
 DEFAULT_CENSUS_REVIEWS = (_QA / "census2_review_ratings.json",)
@@ -549,8 +553,8 @@ def cmd_gate(args) -> None:
     if args.census:
         _cmd_census_gate(args, accepted)
         return
-    if args.review:
-        raise SystemExit("--review applies to the census gate only (add --census).")
+    if args.review or args.facts != "stored":
+        raise SystemExit("--review and --facts apply to the census gate only (add --census).")
     if len(args.ratings or []) > 1 or len(args.sample or []) > 1:
         raise SystemExit("The N05 gate takes one --ratings and one --sample.")
     ratings_path = (args.ratings or [str(DEFAULT_N05_RATINGS)])[0]
@@ -649,11 +653,56 @@ def _load_census(ratings: list, samples: list, reviews: list):
         raise SystemExit(f"Cannot build the census: {exc}")
 
 
-def _census_decisions(article_ids, profiles) -> tuple[dict, int]:
-    """Current live decisions, per profile, over the census article ids only."""
+def _rerun_articles(articles) -> list:
+    """Rules-only reclassification of ``articles`` in memory: no LLM, no translation,
+    no DB writes. Mirrors ``scripts/corpus_rerun_diff.py snapshot`` so the numbers are
+    comparable with a rerun diff. An article whose source has no config is dropped,
+    which the census metrics then report as a row without a decision."""
+    import logging
+    import os
+
+    os.environ["CLASSIFICATION_PROVIDER"] = "disabled"
+    os.environ["TRANSLATION_PROVIDER"] = "disabled"
+    logging.disable(logging.CRITICAL)
+    from app.ingestion import ingestion_service
+    from app.ingestion.adapters.base import RawSourceItem
+    from app.ingestion.config import get_source_config
+
+    out = []
+    for stored in articles:
+        cfg = get_source_config(stored.source)
+        if cfg is None:
+            continue
+        fresh, _, _ = ingestion_service._normalise(
+            RawSourceItem(source_id=stored.source, url=stored.url, title=stored.title,
+                          published_at=None, summary=stored.subtitle or ""),
+            cfg,
+        )
+        out.append(fresh.model_copy(update={"id": stored.id, "published_at": stored.published_at}))
+    return out
+
+
+def _census_decisions(article_ids, profiles, facts: str) -> tuple[dict, int]:
+    """Current decisions, per profile, over the census article ids only.
+
+    ``stored`` scores the persisted facts (what the corpus serves). ``rerun`` scores
+    a rules-only reclassification of the same rows, which is the only way a
+    classifier or taxonomy change shows up before a backfill. Both use the
+    persisted profiles from the DB."""
     wanted = set(article_ids)
     with SessionLocal() as session:
-        feeds, corpus_size = _score_all(session)
+        if facts == "stored":
+            feeds, corpus_size = _score_all(session)
+        else:
+            corpus = article_repository.get_rss_articles(session)
+            corpus_size = len(corpus)
+            rerun = _rerun_articles([a for a in corpus if a.id in wanted])
+            feeds = {}
+            for user_id in PROFILE_IDS:
+                profile = profile_repository.get_by_id(session, user_id)
+                if profile is None:
+                    raise SystemExit(f"Profile '{user_id}' is missing from the corpus DB.")
+                feeds[user_id] = build_feed(rerun, profile, include_hidden=True)
     decisions = {
         user_id: {s.article.id: s.decision for s in feed if s.article.id in wanted}
         for user_id, feed in feeds.items()
@@ -679,14 +728,14 @@ def _print_census_metrics(baseline: dict) -> None:
 
 def _cmd_census_gate(args, accepted: list) -> None:
     """The census gate: same contract as the N05 gate, census checks (#254)."""
-    baseline_path = Path(args.baseline or DEFAULT_CENSUS_BASELINE)
+    baseline_path = Path(args.baseline or DEFAULT_CENSUS_BASELINES[args.facts])
     baseline = None
     if baseline_path.exists():
         baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
     elif not args.update_baseline:
         raise SystemExit(
             f"No census baseline at {baseline_path}. Create one deliberately with:\n"
-            "  scripts/feed_ground_truth.py gate --census --update-baseline"
+            f"  scripts/feed_ground_truth.py gate --census --facts {args.facts} --update-baseline"
         )
 
     merged = _load_census(*_census_input_paths(args, baseline))
@@ -695,14 +744,15 @@ def _cmd_census_gate(args, accepted: list) -> None:
     else:
         drift_profiles = list(census_gate.DEFAULT_DRIFT_PROFILES)
     decisions, corpus_size = _census_decisions(
-        merged.article_ids, set(merged.ratings) | set(drift_profiles)
+        merged.article_ids, set(merged.ratings) | set(drift_profiles), args.facts
     )
     # The file name only: which corpus copy was read, without a local path.
     meta = _run_meta(corpus_size) | {"database": Path(DATABASE_URL.split("///", 1)[-1]).name}
+    print(f"census gate on {args.facts} facts, baseline {baseline_path.name}")
 
     if args.update_baseline:
         try:
-            fresh = census_gate.build_baseline(merged, decisions, meta=meta)
+            fresh = census_gate.build_baseline(merged, decisions, meta=meta, facts=args.facts)
         except feed_quality_gate.GateInputError as exc:
             raise SystemExit(f"Cannot build the baseline: {exc}")
         _write(baseline_path, fresh)
@@ -715,7 +765,8 @@ def _cmd_census_gate(args, accepted: list) -> None:
 
     try:
         verdict = census_gate.evaluate(
-            baseline, merged, decisions, accepted=accepted, accept_reason=args.reason
+            baseline, merged, decisions, accepted=accepted, accept_reason=args.reason,
+            facts=args.facts,
         )
     except feed_quality_gate.GateInputError as exc:
         raise SystemExit(f"Cannot compare: {exc}")
@@ -781,6 +832,12 @@ def main() -> None:
     p_gate.add_argument(
         "--census", action="store_true",
         help="run the census gate (#254) instead of the N05 gate",
+    )
+    p_gate.add_argument(
+        "--facts", choices=census_gate.FACTS_SOURCES, default="stored",
+        help="--census only: score the STORED facts (relevance/profile changes) or a "
+             "rules-only RERUN of the census rows (classifier/taxonomy changes); "
+             "each has its own baseline",
     )
     p_gate.add_argument(
         "--ratings", action="append",

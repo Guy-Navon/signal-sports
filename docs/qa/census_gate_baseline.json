@@ -1,9 +1,10 @@
 {
   "baseline_version": 1,
   "kind": "census",
+  "facts": "stored",
   "meta": {
-    "generated_at": "2026-11-01T06:27:26.199583+00:00",
-    "git_sha": "a0c3477d5c472466e0a1bdb90f9ab693c218d9e6",
+    "generated_at": "2026-11-01T06:40:53.854517+00:00",
+    "git_sha": "1d67328ab7083d3e7e6fafb8e59407b395139379",
     "engine": "v2",
     "corpus_articles": 3868,
     "scope": "Relevance rules over the whole ingested corpus, freshness window not applied, raw profiles without learned augmentation.",

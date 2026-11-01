@@ -41,7 +41,14 @@ why. Since the 2026-07-12 rebuild after the #106 wipe the corpus holds **zero** 
 `sport5_sport` has run on every cycle; it is a production source in practice, even though the
 code still labels it a pilot.
 
-**#258 probe, 2026-10-30. The decisions are pending the owner.** `backend/scripts/one_sport_probe.py`
+**Owner decision, 2026-11-01 (#258): ONE is enabled** (runtime override `one_sport=true`, set
+after the probe below). Its first live cycle (2026-11-01 06:26 UTC) fetched and inserted 50
+articles with 0 failures. 15 of its 25 LLM calls hit Groq free-plan 429s during the post-outage
+backlog burst and fell back to rules; at the steady ~30 calls a day this is not expected to
+recur. **Sport5 stays enabled by override**; removing its code-default "pilot" label is a
+separate follow-up (#395). To roll back ONE, switch its Sources card to כבוי.
+
+**#258 probe, 2026-10-30.** `backend/scripts/one_sport_probe.py`
 runs the real `OneSportAdapter.fetch()` (six GETs, the adapter's own headers), with no DB
 writes. It reads a corpus copy opened `mode=ro`.
 

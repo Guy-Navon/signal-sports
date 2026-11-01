@@ -4,6 +4,11 @@ from retention, whatever the rating document is called.
 The 2026-10-30 triage found the first version's file list had silently missed
 three newer rating sets (week sample, focused #345, people #259). The coverage
 test below reads the real docs/qa so the next new rating file fails CI instead.
+
+Scope of that guard: it recognises the two formats the rating tooling writes
+(a ratings store and a sample, see `_names_rated_or_sampled_articles`), anywhere
+under docs/qa. Files in other formats (correction logs, score and analysis
+output with "rows" or lists) are not rating files and are not checked.
 """
 
 import json
@@ -13,7 +18,6 @@ from pathlib import Path
 import pytest
 from sqlalchemy import text
 
-from app.qa import census_rating as cr
 from scripts import protect_rated_articles as tool
 
 REPO_QA = Path(__file__).resolve().parents[2] / "docs" / "qa"
@@ -34,18 +38,44 @@ def _names_rated_or_sampled_articles(doc) -> bool:
 def test_every_rating_or_sample_document_in_docs_qa_is_covered():
     # A new census3_ratings.json, a re-rate, a focused sample: if it names rated
     # articles, the backfill must read it. Rename it to *_ratings.json /
-    # *_sample.json (or <name>.json beside <name>_ratings.json) to be covered.
+    # *_sample.json (or <name>.json beside <name>_ratings.json) and keep it at
+    # the top level of docs/qa to be covered; a subdirectory is not read.
     covered = set(tool.documents(REPO_QA))
-    shaped = {p for p in REPO_QA.glob("*.json")
+    shaped = {p for p in REPO_QA.rglob("*.json")
               if _names_rated_or_sampled_articles(json.loads(p.read_text(encoding="utf-8")))}
     assert shaped, "docs/qa holds no rating documents: the test is looking in the wrong place"
-    assert sorted(p.name for p in shaped - covered) == []
+    assert sorted(str(p.relative_to(REPO_QA)) for p in shaped - covered) == []
 
 
-def test_every_covered_document_names_articles():
+def test_every_covered_document_is_readable():
     # A covered file whose shape the reader does not understand would protect nothing.
     for path in tool.documents(REPO_QA):
-        assert cr.article_ids(json.loads(path.read_text(encoding="utf-8"))), path.name
+        assert not tool.unreadable(json.loads(path.read_text(encoding="utf-8"))), path.name
+
+
+@pytest.mark.parametrize("doc, unreadable", [
+    ({"ratings": {"guy": {"rss_x": "feed"}}}, False),
+    ({"meta": {}, "profiles": {"guy": {"items": [{"id": "rss_x"}]}}}, False),
+    # A ratings store committed before the first keypress protects nothing yet, legitimately.
+    ({"generated": "x", "seed": 1, "ratings": {"guy": {}}}, False),
+    ({"ratings": {}}, False),
+    # A sample with no items, or a shape article_ids() cannot read, is a broken file.
+    ({"meta": {}, "profiles": {"guy": {"strata": {}, "items": []}}}, True),
+    ({"rows": [{"id": "rss_x"}]}, True),
+    ([{"id": "rss_x"}], True),
+    ({"profiles": ["guy"]}, True),
+])
+def test_unreadable_flags_documents_that_would_protect_nothing(doc, unreadable):
+    assert tool.unreadable(doc) is unreadable
+
+
+def test_documents_order_numbers_naturally(tmp_path):
+    for name in ("census10_ratings.json", "census2_ratings.json", "census_ratings.json",
+                 "census10_sample.json", "census2_sample.json"):
+        (tmp_path / name).write_text("{}", encoding="utf-8")
+    assert [p.name for p in tool.documents(tmp_path)] == [
+        "census_ratings.json", "census2_ratings.json", "census10_ratings.json",
+        "census2_sample.json", "census10_sample.json"]
 
 
 # ── the script against the test database ──────────────────────────────────────
@@ -149,7 +179,10 @@ def test_report_shows_retention_would_keep_every_rated_id(session, qa_dir, capsy
     assert "0 rated or sampled ids in the corpus are NOT protected" in after
     from app.ingestion.retention import cleanup_articles
     summary = cleanup_articles(session, dry_run=True)
+    assert summary["protected_rated"] >= 5                          # a..e, all 40 days old
     assert f"protected_rated={summary['protected_rated']}" in after
+    protected = set(_reasons(session))
+    assert f"{_PREFIX}z" not in protected and f"{_PREFIX}unrated" not in protected
     session.expire_all()
     assert session.execute(text(                                    # a dry run deletes nothing
         f"SELECT COUNT(*) FROM articles WHERE id LIKE '{_PREFIX}%'")).scalar_one() == 7
@@ -165,3 +198,12 @@ def test_apply_on_the_live_corpus_needs_the_backup_acknowledgement(session, qa_d
     assert tool.main(["--qa-dir", str(qa_dir), "--apply", "--i-know-this-is-the-live-corpus"]) == 0
     session.expire_all()
     assert len(_reasons(session)) == 5
+
+
+def test_an_unreadable_covered_document_stops_the_apply_before_any_write(session, qa_dir, capsys):
+    (qa_dir / "broken_sample.json").write_text(json.dumps({"rows": [{"id": f"{_PREFIX}a"}]}),
+                                               encoding="utf-8")
+    assert tool.main(["--qa-dir", str(qa_dir), "--apply"]) == 2
+    assert "broken_sample.json" in capsys.readouterr().out
+    session.expire_all()
+    assert _reasons(session) == {}

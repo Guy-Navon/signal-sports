@@ -130,17 +130,21 @@ visible signal only: no alert is sent anywhere.
   was decided, the whole corpus sat inside the 30-day window. **Still disabled as of
   2026-11-01.** Enabling it is an owner decision; the other activation preconditions are in
   `retention.py` and `.env.example`.
-- **Human-rated articles are guarded, not just documented** (#255). `retention.py` never deletes
-  an id in `protected_articles` and reports those as `protected_rated`, dry run included.
+- **Human-rated articles are guarded once the backfill has run on a database** (#255).
+  `retention.py` never deletes an id in `protected_articles` and reports those as
+  `protected_rated`, dry run included. On the live corpus that table is still empty (below).
   - *Who fills the table:* `rate_census.py build` protects each new census on the database it
-    builds against. `scripts/protect_rated_articles.py` backfills everything in `docs/qa`. It
+    builds against. `scripts/protect_rated_articles.py` backfills the top level of `docs/qa`. It
     reads files by name, not from a list: every `*_ratings.json`, every `*_sample.json`, and a
     `<name>.json` sample saved beside its `<name>_ratings.json`. Today that is N05, censuses #1
     and #2 with the #2 re-rate, the week sample, focused #345 and people #259, and a future
-    `census3_*` needs no code change. `test_protect_rated_articles_255.py` fails if a `docs/qa`
-    file shaped like a ratings store or a sample is not covered.
+    `census3_*` needs no code change. `test_protect_rated_articles_255.py` fails if a file
+    anywhere under `docs/qa` in one of the two formats the rating tooling writes (a ratings
+    store or a sample) is not covered. Other formats (correction logs, score and analysis
+    output) are not checked. The script refuses to run if a covered file names no article id,
+    unless it is a ratings store still waiting for its first rating.
   - *Reasons:* each row's `reason` names the first document that rated the id (ratings documents
-    are read before samples, `census_` before `census2_`).
+    are read before samples, in natural order: `census_`, `census2_`, `census10_`).
   - *Rehearsal on the 2026-11-01 frozen copy* (3,884 articles, 30-day window): 1,211 rows added
     (1,159 of the ids are in the corpus; 52 week-sample items came from an archive and were never
     ingested). The retention dry run then reported 2,144 candidates, `protected_rated` 996,

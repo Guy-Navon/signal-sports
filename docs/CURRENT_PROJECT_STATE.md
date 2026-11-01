@@ -357,8 +357,10 @@ deterministic rule changelog, §1–§20).
 - Recall: about one wanted story in three was hidden at census #2 (§8). Milestone 9 raised it on
   reruns (cups 93→100/140, schedule 103→107/140), and census #3 will measure it on real
   ingestion.
-- Push recall is low (2/8 on the rerun), and the misses are mostly institutional Maccabi news.
-  The #242 venue-move vocabulary adds one (the Cyprus move, owner: push; RSS_QUALITY_GUARDRAILS §20).
+- Push recall is low, and the misses are mostly institutional Maccabi news: 2/8 on the #229
+  rerun. The current `census2_ratings.json` holds 7 owner pushes, so the same rerun reads
+  2/7 there. The #242 venue-move vocabulary (PR #398) raises it to 3/7 with the Cyprus move
+  (owner: push; RSS_QUALITY_GUARDRAILS §20).
 
 **Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #197 results-sync attempt record and lease (the feedback half is done), #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #199 bundle weight and unfiltered feed query, #200 signup/login abuse
 protection (a **gate before widening access**, not needed while single-user behind Tailscale).
@@ -439,7 +441,9 @@ milestone 11's gate.
    - #241 census #3
    - #254 census-based gate (feed+ recall, push recall, noise band)
    - #255 protect rated rows from retention (code landed; owner runs the one-off `--apply`)
-   - #242 venue-move vocabulary for `club_governance` (PR open; RSS_QUALITY_GUARDRAILS §20)
+   - #242 venue-move vocabulary for `club_governance`, landed in PR #398 (RSS_QUALITY_GUARDRAILS
+     §20); its two high_feed side effects await owner rating, and #401 (the pre-existing #229
+     subtitle → push path) awaits an owner decision
 3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
    - done: #256 (measurement), #259 (Maccabi/Hapoel Tel Aviv people registered)
    - open: #345 (the corroborated basketball exception landed; wanted stories with no non-LLM

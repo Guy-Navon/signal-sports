@@ -221,3 +221,21 @@ class TestHomeVenueMove242:
         assert "cross_sport_entity_requires_explicit_sport" not in rules
         assert a.event_type == "club_governance"
         assert _decision(a) == "push"
+
+    # Review of #398: the push gate reads its concrete step in the TITLE, but the event can
+    # come from the subtitle. While Maccabi hosts in Limassol, the #242 hosting phrases are
+    # routine background in subtitles, so a subtitle-only #242 match must not make an
+    # unrelated title decision ("החליט", "אישרה") a governance push.
+    @pytest.mark.parametrize("title,subtitle", [
+        ('אודקה החליט: סורקין יפתח בחמישייה של מכבי ת"א מול ריאל',
+         "הצהובים, שבחרו לארח את משחקי היורוליג בלימסול, ייפגשו ביום חמישי עם ריאל מדריד"),
+        ('מכבי ת"א אישרה: הכרטיסים לאוהדים יימכרו רק באפליקציה',
+         'לאחר שהקבוצה סיכמה לארח באולם "ספירוס קיפריאנו", הכרטיסים יימכרו בהגבלה'),
+        ('מכבי ת"א החליטה: לא תהיה הסעה מאורגנת לאוהדים',
+         "ההחלטה לארח את משחקי היורוליג בקפריסין מעוררת ביקורת"),
+    ], ids=["lineup_decision", "ticket_decision", "transport_decision"])
+    def test_subtitle_only_venue_phrase_does_not_push(self, title, subtitle):
+        a = _ingest("ynet_sport", "https://www.ynet.co.il/sport/israelibasketball/article/r398",
+                    title, subtitle)
+        assert a.classification_trace["attention"]["development"] != "concrete_step"
+        assert _decision(a) in ("feed", "high_feed")

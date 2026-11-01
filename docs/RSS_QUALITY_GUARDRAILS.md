@@ -982,7 +982,22 @@ as a move, and the hosting verb.
 
 A normal home game is written `תארח` (future tense: `תארח באולם היובל`, `תארח הערב את
 פריז`) and is not matched. A player returning to an arena (`קולסון שב להיכל מנורה`) is not
-matched either.
+matched either. Prefixed forms (`והמעבר של מכבי`, `ולארח באולם`) are missed too, which
+fails safe.
+
+**A subtitle-only #242 phrase never makes a push.** The push gate reads its concrete step
+in the title, while the event may be proven by the subtitle alone. While Maccabi hosts in
+Limassol, the #242 hosting phrases are routine background in subtitles. Without a guard, a
+title like `אודקה החליט: סורקין יפתח בחמישייה של מכבי ת"א` over such a subtitle would push.
+The phrases live in their own tuple (`_HOME_VENUE_MOVE`). `governance_step_context()` lets a
+title step count only when the title carries governance evidence or the subtitle carries a
+**#229** phrase. Such rows stay `club_governance` (high_feed for Guy) but do not push. The
+#229 vocabulary keeps its pre-existing subtitle → push path. Narrowing that path would cost
+the N05-rated Recanati push, so it is an owner decision: **#401**.
+
+Governance is proposed before the transfer cycle (`classifier.py`), so a constructed mixed
+headline such as `חתם: המעבר של מכבי ת"א לטאקר הושלם` becomes `club_governance` rather than
+`signing`. There is no corpus case.
 
 **Measured on the 2026-11-01 corpus (3,884 rows, titles + subtitles):**
 
@@ -1011,7 +1026,10 @@ effects, and high_feed is **not** confirmed right for either of them:
   Mail opinion column about the decision.
 
 A report and an opinion about it are different content. The owner accepted both
-(2026-11-01) as a temporary compromise because they are the only side effects. Opinion
+(2026-11-01) as a temporary compromise because they are the only side effects for Guy and
+Deni. On the frozen copy, two dormant self-serve profiles (`usr_01KX6MTS…`, `usr_01KX9XH6…`)
+also see the Hapoel row (`rss_9766f80130aabc0b9856`) move low_feed → feed. No other profile
+and no other row changes. Opinion
 columns are deliberately not blocked from `club_governance`. Revisit both once they are
 rated (census #3).
 

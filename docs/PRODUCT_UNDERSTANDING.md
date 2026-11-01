@@ -123,7 +123,7 @@ The MVP does not need real sources, real scraping, backend persistence, or produ
 
 The following were explicitly out of scope when this document was first written. **Status update (2026-10-12): most of this has since been built. For current, authoritative state, see `docs/CURRENT_PROJECT_STATE.md`.**
 
-- ~~Real RSS or scraping from live sources~~: **done.** Walla, Israel Hayom and Ynet run over RSS. Sport5 is scraped and runs live. ONE (public JSON) is implemented but currently switched off.
+- ~~Real RSS or scraping from live sources~~: **done.** Walla, Israel Hayom and Ynet run over RSS. Sport5 is scraped and runs live. ONE (public JSON) runs live since 2026-11-01 (#258).
 - ~~Backend server, database, or API layer~~: **done.** FastAPI + SQLite, `backend/app/`.
 - ~~User authentication or accounts~~: **built** (User Platform, 2026-07-10). Email/password accounts, cookie sessions, session-derived `/api/me/*`, fail-closed admin gating. The two seeded demo profiles remain permanent QA fixtures.
 - ~~Push notifications to devices~~: **built as a single-user pilot** (Milestone 7, 2026-07-18). PUSH-tier stories go to Guy's private Telegram chat at most once per story. It is currently switched off; see `docs/NOTIFICATIONS.md`. There is no native mobile/web push and no multi-user delivery.

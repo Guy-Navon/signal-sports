@@ -6,6 +6,11 @@
     "corpus_articles": 3868,
     "scope": "SIMPLE RANDOM SAMPLE (first 300 of a seeded shuffle) of the RSS articles published on/after the cutoff, one stratum, equal weights. Relevance rules, freshness window not applied, raw profiles without learned augmentation.",
     "size": 300,
+    "sealed_heldout": {
+      "ids": "census3_heldout_ids.json",
+      "ratings": "census3_heldout_ratings.json",
+      "policy": "Guy rates all rows blind. rate_census.py seal then moves the held-out ratings into the sealed file. They are never used for tuning, calibration or rule design; they are read once, for the final evaluation (--final-heldout-eval / passing the sealed file explicitly)."
+    },
     "engine": "v2"
   },
   "profiles": {

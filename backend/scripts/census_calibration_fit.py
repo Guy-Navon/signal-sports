@@ -12,6 +12,10 @@ is proposed (docs/PREFERENCE_MODEL_V2.md, docs/qa/CENSUS_2026-10.md).
     python scripts/census_calibration_fit.py --candidate changes.json --show
     python scripts/census_calibration_fit.py --db data/snapshots/<snapshot>.db   # a dev snapshot
 
+Census #3 has a SEALED held-out half (#241, docs/qa/CENSUS_3_2026-11.md): its ratings
+are excluded here, even when passed via --review, unless --final-heldout-eval is given
+for the one final evaluation.
+
 A candidate file is a JSON list of changes:
     {"kind": "event", "scope_ref": "team:maccabi_tlv_bb", "event_type": "candidate", "delta": -1}
     {"kind": "never_show", "scope": "...", "target_id": "...", "event_type": "..."}
@@ -135,6 +139,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--review", type=Path, help="re-rated rows that override --ratings")
     parser.add_argument("--candidate", type=Path, help="JSON list of proposed profile changes")
     parser.add_argument("--show", action="store_true", help="list each flipped row (with --candidate)")
+    parser.add_argument("--final-heldout-eval", action="store_true",
+                        help="include a sealed held-out half's ratings (the one final evaluation only)")
     args = parser.parse_args(argv)
     logging.disable(logging.CRITICAL)
 
@@ -149,7 +155,16 @@ def main(argv: list[str] | None = None) -> int:
         changed = {k: (ratings[k], v) for k, v in rev.items() if ratings.get(k) != v}
         print(f"review: {len(rev)} re-rated, {len(changed)} changed")
         ratings = {**ratings, **rev}
-    items = json.loads(args.sample.read_text(encoding="utf-8"))["profiles"]["guy"]["items"]
+    sample = json.loads(args.sample.read_text(encoding="utf-8"))
+    items = sample["profiles"]["guy"]["items"]
+    # A census with a sealed held-out half (#241, census #3): calibration never sees those
+    # labels. Only the one final evaluation reads them, and says so with the flag.
+    from app.qa.census_rating import exclude_sealed, sealed_ids
+
+    if not args.final_heldout_eval:
+        ratings, dropped = exclude_sealed(ratings, sealed_ids(sample, args.sample))
+        if dropped:
+            print(f"sealed held-out half: {dropped} ratings excluded (--final-heldout-eval reads them)")
 
     articles = load_articles(args.db, items)
     ids = sorted(articles)

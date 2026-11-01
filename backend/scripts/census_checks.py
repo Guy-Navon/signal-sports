@@ -1,18 +1,14 @@
-"""Census #3 targeted checks (#241) over the WHOLE fresh cohort. Read-only.
+"""Census #3 targeted checks and per-classification-path metrics (#241). Read-only.
 
 Run against a COPY of the corpus (the app engine opens DATABASE_URL; nothing is written):
 
     set DATABASE_URL=sqlite:///C:/path/to/copy.db
     python scripts/census_checks.py --since 2026-10-11 \\
         --sample ../docs/qa/census3_sample.json --ratings ../docs/qa/census3_ratings.json \\
-        [--out checks.json] [--snapshot-out stored.json]
+        [--out checks.json] [--snapshot-out stored.json] [--final-heldout-eval]
 
-``--snapshot-out`` writes the cohort's stored-fact decisions in corpus_rerun_diff's
-snapshot shape, for ``eval_stats.py census`` (intervals) and ``rate_census.py review
---snapshot``.
-
-The four checks #241 asks for. Each lists rows for the owner to read; none of them is a
-verdict on its own (a rating, or the owner's reading of the headline, decides):
+The four checks #241 asks for run over the WHOLE cohort. Each lists rows for the owner to
+read; none of them is a verdict on its own (a rating, or the owner's reading, decides):
 
 1. ``club_governance`` pushes (#229): does every push report a concrete step?
 2. Executives (``exec:*``, #229): every title/subtitle the current rules resolve to a
@@ -21,9 +17,19 @@ verdict on its own (a rating, or the owner's reading of the headline, decides):
 4. ``schedule`` (#224): is a story whose only "לקראת" is in the subtitle still a
    ``schedule`` row, or hidden?
 
+With ``--ratings``, every census metric (exact, shown precision, feed+ recall, push
+precision and recall; definitions from corpus_rerun_diff.census_metrics) is reported for
+the rated SAMPLE rows: all of them, then per classification path (LLM success, rules only,
+rules after an LLM failure, rules after a low-confidence LLM answer).
+
+Guards (#241):
+- Metrics and ``--snapshot-out`` cover sample rows only. A rating for an id outside the
+  sample is refused: out-of-sample rows are checked separately and never scored here.
+- Held-out ratings (a sealed census) are excluded unless ``--final-heldout-eval``.
+
 Decisions are the current engine's on stored facts, scored exactly as
-``rate_census.py build`` scores them. ``--sample``/``--ratings`` only annotate rows with
-"in sample" and the owner's rating when one exists.
+``rate_census.py build`` scores them. ``--snapshot-out`` writes them in corpus_rerun_diff's
+snapshot shape, for ``eval_stats.py census`` and ``rate_census.py review --snapshot``.
 """
 
 from __future__ import annotations
@@ -37,11 +43,31 @@ from typing import Callable, Iterable
 
 _BACKEND = Path(__file__).resolve().parents[1]
 
+try:  # run as a script (scripts/ on sys.path) or imported as scripts.census_checks (tests)
+    from corpus_rerun_diff import census_metrics
+except ImportError:  # pragma: no cover - import style depends on the caller
+    from scripts.corpus_rerun_diff import census_metrics
+
 # Israeli basketball cups registered by #230, plus their spellings, so a cup story the
 # classifier did not tag still surfaces here.
 CUP_COMPETITIONS = frozenset({"comp:winner_cup", "comp:il_super_cup"})
 CUP_WORDS = ("גביע ווינר", "גביע וינר", "סופרקאפ", "סופר קאפ")
 AHEAD = "לקראת"
+
+# Stored ``classified_by`` → classification path (ingestion_service.py). "rules" means the
+# LLM was not called (gated out, or no provider); the stored row does not say which.
+PATHS = {
+    "llm": "llm_success",
+    "llm+rules_guardrail": "llm_success",
+    "rules": "rules_only",
+    "rules_fallback_after_llm_failure": "fallback_llm_failure",
+    "rules_fallback_low_confidence": "fallback_low_confidence",
+}
+PATH_ORDER = ("llm_success", "rules_only", "fallback_llm_failure", "fallback_low_confidence", "other")
+
+
+def classification_path(classified_by: str | None) -> str:
+    return PATHS.get(classified_by or "rules", "other")
 
 
 def row_from_scored(scored) -> dict:
@@ -57,6 +83,7 @@ def row_from_scored(scored) -> dict:
         "matched_event_rule": scored.matched_event_rule,
         "entity_ids": list(a.entity_ids or []),
         "competitions": [c for c in [a.primary_competition, *(a.article_competitions or [])] if c],
+        "path": classification_path(a.classified_by),
     }
 
 
@@ -105,12 +132,42 @@ def resolve_executives(text: str, source: str) -> list[str]:
 SNAPSHOT_FIELD = {"guy": "guy", "casual_deni_fan": "deni"}  # corpus_rerun_diff's keys
 
 
-def stored_snapshot(rows: Iterable[dict], profile: str = "guy") -> dict:
-    """The cohort's decisions ON STORED FACTS in ``corpus_rerun_diff`` snapshot shape, so
-    ``eval_stats.py census`` and ``rate_census.py review --snapshot`` can read them. A
-    corpus_rerun_diff snapshot is a rules-only replay; this one is what production stored."""
+def stored_snapshot(rows: Iterable[dict], sample_ids: set[str], profile: str = "guy") -> dict:
+    """The SAMPLE rows' decisions on stored facts, in ``corpus_rerun_diff`` snapshot shape, so
+    ``eval_stats.py census`` and ``rate_census.py review --snapshot`` can read them. Sample
+    rows only: a rating for any other row can never meet a decision through this file.
+    (A corpus_rerun_diff snapshot is a rules-only replay; this is what production stored.)"""
     field = SNAPSHOT_FIELD[profile]
-    return {r["id"]: {field: r["decision"], "sport": r["sport"], "event": r["event_type"]} for r in rows}
+    return {
+        r["id"]: {field: r["decision"], "sport": r["sport"], "event": r["event_type"], "path": r["path"]}
+        for r in rows if r["id"] in sample_ids
+    }
+
+
+def usable_ratings(ratings: dict[str, str], sample_ids: set[str], sealed: set[str],
+                   final_heldout_eval: bool = False) -> tuple[dict[str, str], int]:
+    """The ratings this run may read: refuses out-of-sample ids, drops held-out ones unless
+    this is the final evaluation. Returns ``(ratings, held-out ratings dropped)``."""
+    outside = [k for k in ratings if k not in sample_ids]
+    if outside:
+        raise ValueError(
+            f"{len(outside)} ratings are for rows outside the sample (e.g. {outside[0]}); "
+            "out-of-sample rows are rated and checked separately, never in the census score")
+    if final_heldout_eval:
+        return dict(ratings), 0
+    kept = {k: v for k, v in ratings.items() if k not in sealed}
+    return kept, len(ratings) - len(kept)
+
+
+def metrics_by_path(snapshot: dict, ratings: dict[str, str], profile: str = "guy") -> dict:
+    """``census_metrics`` for every rated row, then per classification path."""
+    field = SNAPSHOT_FIELD[profile]
+    out = {"all": census_metrics(snapshot, ratings, field)}
+    for path in PATH_ORDER:
+        sub = {k: v for k, v in ratings.items() if k in snapshot and snapshot[k]["path"] == path}
+        if sub:
+            out[path] = census_metrics(snapshot, sub, field)
+    return out
 
 
 def annotate(rows: list[dict], sample_ids: set[str], ratings: dict[str, str]) -> list[dict]:
@@ -172,44 +229,73 @@ def _print(report: dict) -> None:
                 print(f"      title={r['exec_in_title']} subtitle={r['exec_in_subtitle']}")
 
 
+def _print_metrics(by_path: dict) -> None:
+    print("\nmetrics by classification path (rated sample rows; k/n):")
+    print(f"  {'path':24} {'rated':>5} {'exact':>9} {'shown prec':>11} {'feed+ recall':>13} "
+          f"{'push prec':>10} {'push recall':>12}")
+    for path, m in by_path.items():
+        cells = [f"{k}/{n}" for k, n in (
+            (m["exact"], m["rated"]), m["shown_precision"], m["feed_plus_recall"],
+            m["push_precision"], m["push_recall"])]
+        print(f"  {path:24} {m['rated']:5} {cells[0]:>9} {cells[1]:>11} {cells[2]:>13} "
+              f"{cells[3]:>10} {cells[4]:>12}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--since", required=True, help="YYYY-MM-DD cutoff (inclusive)")
     parser.add_argument("--profile", default="guy")
-    parser.add_argument("--sample", help="census sample (marks in-sample rows)")
-    parser.add_argument("--ratings", help="owner ratings (annotates rated rows)")
+    parser.add_argument("--sample", help="census sample (required with --ratings or --snapshot-out)")
+    parser.add_argument("--ratings", action="append", default=[],
+                        help="owner ratings for sample rows (repeatable)")
+    parser.add_argument("--final-heldout-eval", action="store_true",
+                        help="read a sealed held-out half's ratings (the one final evaluation only)")
     parser.add_argument("--out", help="write the full report as JSON")
     parser.add_argument("--snapshot-out",
-                        help="write stored-fact decisions as a corpus_rerun_diff-shaped snapshot "
-                             "(input for eval_stats.py census and rate_census.py review --snapshot)")
+                        help="write the sample rows' stored-fact decisions as a corpus_rerun_diff-"
+                             "shaped snapshot (eval_stats.py census, rate_census.py review --snapshot)")
     args = parser.parse_args(argv)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+    if (args.ratings or args.snapshot_out) and not args.sample:
+        parser.error("--ratings and --snapshot-out need --sample")
 
     sys.path.insert(0, str(_BACKEND))
     sys.path.insert(0, str(_BACKEND / "scripts"))
-    from app.qa.census_rating import is_fresh
+    from app.qa.census_rating import is_fresh, sealed_ids
     from rate_census import score_feeds
 
-    _, feeds = score_feeds([args.profile])
-    rows = [row_from_scored(s) for s in feeds[args.profile] if is_fresh(s.article.published_at, args.since)]
     sample_ids: set[str] = set()
+    sealed: set[str] = set()
     if args.sample:
         sample = json.loads(Path(args.sample).read_text(encoding="utf-8"))
         sample_ids = {it["id"] for it in sample["profiles"][args.profile]["items"]}
+        sealed = sealed_ids(sample, args.sample)
     ratings: dict[str, str] = {}
-    if args.ratings and Path(args.ratings).exists():
-        ratings = json.loads(Path(args.ratings).read_text(encoding="utf-8"))["ratings"].get(args.profile, {})
+    for path in args.ratings:
+        ratings.update(json.loads(Path(path).read_text(encoding="utf-8"))["ratings"].get(args.profile, {}))
+    try:
+        ratings, dropped = usable_ratings(ratings, sample_ids, sealed, args.final_heldout_eval)
+    except ValueError as exc:
+        raise SystemExit(f"refused: {exc}")
+    if dropped:
+        print(f"sealed held-out half: {dropped} ratings excluded (--final-heldout-eval reads them)")
+
+    _, feeds = score_feeds([args.profile])
+    rows = [row_from_scored(s) for s in feeds[args.profile] if is_fresh(s.article.published_at, args.since)]
 
     report = run_checks(rows, sample_ids, ratings, resolve_executives)
     _print(report)
+    snapshot = stored_snapshot(rows, sample_ids, args.profile)
+    if ratings:
+        report["metrics_by_path"] = metrics_by_path(snapshot, ratings, args.profile)
+        _print_metrics(report["metrics_by_path"])
     if args.out:
         Path(args.out).write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
         print(f"\nwrote {args.out}")
     if args.snapshot_out:
-        snapshot = stored_snapshot(rows, args.profile)
         Path(args.snapshot_out).write_text(json.dumps(snapshot, ensure_ascii=False), encoding="utf-8")
-        print(f"wrote {args.snapshot_out} ({len(snapshot)} stored-fact decisions)")
+        print(f"wrote {args.snapshot_out} ({len(snapshot)} sample rows, stored-fact decisions)")
     return 0
 
 

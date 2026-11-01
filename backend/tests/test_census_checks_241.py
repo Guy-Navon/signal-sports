@@ -7,24 +7,30 @@ list. No DB: rows are plain dicts, and the executive resolver is the real taxono
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # for `scripts.*` (as test_208 does)
 
 from scripts.census_checks import (  # noqa: E402
+    classification_path,
     club_governance_check,
     cup_check,
     exec_check,
+    metrics_by_path,
     resolve_executives,
     run_checks,
     stored_snapshot,
     subtitle_ahead_check,
+    usable_ratings,
 )
 
 
-def _row(i, title="כותרת", subtitle="", event_type="news", decision="feed", competitions=()):
+def _row(i, title="כותרת", subtitle="", event_type="news", decision="feed", competitions=(),
+         path="rules_only"):
     return {
         "id": f"rss_{i}", "title": title, "subtitle": subtitle, "source": "walla_sport",
-        "event_type": event_type, "decision": decision, "matched_event_rule": None,
-        "entity_ids": [], "competitions": list(competitions),
+        "sport": "basketball", "event_type": event_type, "decision": decision,
+        "matched_event_rule": None, "entity_ids": [], "competitions": list(competitions), "path": path,
     }
 
 
@@ -69,19 +75,57 @@ def test_executives_use_the_real_resolver_and_keep_title_and_subtitle_apart():
     assert found["rss_2"]["exec_in_title"] == [] and found["rss_2"]["exec_in_subtitle"] == ["exec:shimon_mizrahi"]
 
 
-def test_stored_snapshot_is_readable_by_the_census_metrics():
+def test_stored_snapshot_covers_sample_rows_only_and_feeds_the_census_metrics():
     # eval_stats.py census and rate_census.py review --snapshot read this shape; the metric
     # definitions come from corpus_rerun_diff, so feed it the real function.
     from scripts.corpus_rerun_diff import census_metrics
 
-    rows = [_row(1, decision="push"), _row(2, decision="hidden"), _row(3, decision="feed")]
-    for r in rows:
-        r["sport"] = "basketball"
-    snap = stored_snapshot(rows)
-    assert snap["rss_1"] == {"guy": "push", "sport": "basketball", "event": "news"}
-    m = census_metrics(snap, {"rss_1": "push", "rss_2": "feed", "rss_3": "hide"})
-    assert m["push_recall"] == (1, 1) and m["feed_plus_recall"] == (1, 2) and m["shown_precision"] == (1, 2)
-    assert set(stored_snapshot(rows, "casual_deni_fan")["rss_1"]) == {"deni", "sport", "event"}
+    rows = [_row(1, decision="push"), _row(2, decision="hidden"), _row(3, decision="feed"),
+            _row(9, decision="push")]                       # outside the sample
+    snap = stored_snapshot(rows, {"rss_1", "rss_2", "rss_3"})
+    assert set(snap) == {"rss_1", "rss_2", "rss_3"}
+    assert snap["rss_1"] == {"guy": "push", "sport": "basketball", "event": "news", "path": "rules_only"}
+    m = census_metrics(snap, {"rss_1": "push", "rss_2": "feed", "rss_3": "hide", "rss_9": "push"})
+    # The out-of-sample push rating cannot meet a decision through the snapshot.
+    assert m["rated"] == 3 and m["push_recall"] == (1, 1)
+    assert m["feed_plus_recall"] == (1, 2) and m["shown_precision"] == (1, 2)
+    assert set(stored_snapshot(rows, {"rss_1"}, "casual_deni_fan")["rss_1"]) == {"deni", "sport", "event", "path"}
+
+
+def test_usable_ratings_refuses_out_of_sample_rows():
+    with pytest.raises(ValueError, match="outside the sample"):
+        usable_ratings({"rss_1": "feed", "rss_9": "push"}, {"rss_1"}, set())
+
+
+def test_usable_ratings_drops_held_out_unless_final_evaluation():
+    ratings = {"rss_1": "feed", "rss_2": "hide"}
+    assert usable_ratings(ratings, {"rss_1", "rss_2"}, {"rss_2"}) == ({"rss_1": "feed"}, 1)
+    assert usable_ratings(ratings, {"rss_1", "rss_2"}, {"rss_2"}, final_heldout_eval=True) == (ratings, 0)
+
+
+def test_classification_path_groups_the_stored_values():
+    assert classification_path("llm") == classification_path("llm+rules_guardrail") == "llm_success"
+    assert classification_path("rules") == classification_path(None) == "rules_only"
+    assert classification_path("rules_fallback_after_llm_failure") == "fallback_llm_failure"
+    assert classification_path("rules_fallback_low_confidence") == "fallback_low_confidence"
+    assert classification_path("something_new") == "other"
+
+
+def test_metrics_by_path_reports_every_metric_for_all_rows_and_each_path():
+    rows = [_row(1, decision="push", path="llm_success"),
+            _row(2, decision="hidden", path="fallback_llm_failure"),
+            _row(3, decision="feed", path="fallback_llm_failure"),
+            _row(4, decision="hidden", path="rules_only")]
+    snap = stored_snapshot(rows, {r["id"] for r in rows})
+    ratings = {"rss_1": "push", "rss_2": "high", "rss_3": "feed", "rss_4": "hide"}
+    by_path = metrics_by_path(snap, ratings)
+    assert list(by_path) == ["all", "llm_success", "rules_only", "fallback_llm_failure"]
+    assert by_path["all"]["rated"] == 4 and by_path["all"]["exact"] == 3
+    failure = by_path["fallback_llm_failure"]
+    assert failure["rated"] == 2 and failure["feed_plus_recall"] == (1, 2)  # the wanted row it hid
+    assert failure["shown_precision"] == (1, 1) and failure["push_recall"] == (0, 0)
+    for m in by_path.values():
+        assert set(m) == {"rated", "exact", "shown_precision", "feed_plus_recall", "push_precision", "push_recall"}
 
 
 def test_run_checks_annotates_sample_membership_and_owner_rating():

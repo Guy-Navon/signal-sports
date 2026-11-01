@@ -152,6 +152,62 @@ def article_ids(doc: dict) -> set[str]:
     return ids
 
 
+# ── Sealed held-out half (census #3, #241) ───────────────────────────────────
+# The owner rates every row blind, in one page. Then ``rate_census.py seal`` moves the
+# held-out half's ratings into their own file, so the census ratings file every tool reads
+# holds the FIT half only. Held-out ratings are read once, for a final evaluation, by
+# passing the sealed file explicitly. The sample names both files in
+# ``meta["sealed_heldout"]``, paths relative to the sample file.
+
+SEALED_META_KEY = "sealed_heldout"
+
+
+def sealed_files(sample: dict, sample_path) -> tuple[Path, Path] | None:
+    """``(held-out ids file, sealed ratings file)``, or None for an unsealed census."""
+    spec = sample.get("meta", {}).get(SEALED_META_KEY)
+    if not spec:
+        return None
+    base = Path(sample_path).parent
+    return base / spec["ids"], base / spec["ratings"]
+
+
+def sealed_ids(sample: dict, sample_path) -> set[str]:
+    """The pre-registered held-out ids (empty for an unsealed census)."""
+    files = sealed_files(sample, sample_path)
+    if files is None:
+        return set()
+    return set(json.loads(files[0].read_text(encoding="utf-8")))
+
+
+def exclude_sealed(ratings: dict[str, str], sealed: set[str]) -> tuple[dict[str, str], int]:
+    """Ratings without the held-out ids, and how many were dropped. The default for
+    every development path (review, checks, calibration): they never see held-out labels."""
+    kept = {k: v for k, v in ratings.items() if k not in sealed}
+    return kept, len(ratings) - len(kept)
+
+
+def seal_ratings(
+    sample_ids: list[str], sealed: set[str], ratings: dict[str, str]
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Split a COMPLETE census rating into ``(fit, held_out)``, keeping rating order.
+
+    Refuses a rating for an id outside the sample (an out-of-sample row must never enter
+    a census score) and an unrated sample row (sealing early would make the page re-ask
+    nothing and leave the halves unequal)."""
+    in_sample = set(sample_ids)
+    outside = [k for k in ratings if k not in in_sample]
+    if outside:
+        raise ValueError(f"{len(outside)} ratings are for ids outside the sample, e.g. {outside[0]}")
+    missing = [k for k in sample_ids if k not in ratings]
+    if missing:
+        raise ValueError(f"{len(missing)} sample rows are not rated yet; finish rating before sealing")
+    if not sealed <= in_sample:
+        raise ValueError("held-out ids file names ids outside the sample")
+    fit = {k: v for k, v in ratings.items() if k not in sealed}
+    held = {k: v for k, v in ratings.items() if k in sealed}
+    return fit, held
+
+
 def rater_view(item: dict) -> dict:
     """The only projection the rating page receives. Allow-list, not deny-list:
     a new engine field added to the item shape stays hidden by default."""

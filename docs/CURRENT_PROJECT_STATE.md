@@ -306,7 +306,7 @@ deterministic rule changelog, §1–§18).
 | **Census #2** | 804 fresh articles (published since 2026-08-01), every one owner-rated, plus a blind re-review of 58 large gaps | [qa/CENSUS_2026-10.md](qa/CENSUS_2026-10.md), `docs/qa/census2_*.json` |
 | Rating tool | `scripts/rate_census.py build / serve / review / merge-review`: a local single-keypress page, blind, resumable | usage in the script docstring |
 | Rerun diff | `scripts/corpus_rerun_diff.py snapshot / compare`: an in-memory, rules-only rerun of the whole corpus, scored against census ratings; no DB writes | before/after any classification or taxonomy change |
-| Census #3 | sample built 2026-11-01 (#241): 300 of the 1,440 articles published since 2026-10-11 (simple random sample, held-out half pre-registered). **Owner rating pending; no results yet** | [qa/CENSUS_3_2026-11.md](qa/CENSUS_3_2026-11.md), `docs/qa/census3_*.json`, `scripts/census_checks.py` |
+| Census #3 | sample built 2026-11-01 (#241): 300 of the 1,440 articles published since 2026-10-11 (simple random sample; held-out half pre-registered and sealed after rating by `rate_census.py seal`, read once for a final evaluation). **Owner rating pending; no results yet** | [qa/CENSUS_3_2026-11.md](qa/CENSUS_3_2026-11.md), `docs/qa/census3_*.json`, `scripts/census_checks.py` |
 
 **Lessons that bind:**
 - Read recall and shown precision separately. `false_hide` as a share of the corpus is diluted

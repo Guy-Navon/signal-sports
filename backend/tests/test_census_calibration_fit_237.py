@@ -72,3 +72,27 @@ def test_missing_database_is_an_error(tmp_path):
     )
     assert proc.returncode == 1
     assert not (tmp_path / "absent.db").exists()
+
+
+def test_a_sealed_held_out_half_is_excluded_unless_final_evaluation(tmp_path):
+    # Census #3 (#241): calibration never sees the held-out labels, even passed via --review.
+    db, ratings, sample, _ = _fixture(tmp_path)
+    doc = json.loads(sample.read_text(encoding="utf-8"))
+    held = [doc["profiles"]["guy"]["items"][i]["id"] for i in (1, 4)]
+    doc["meta"] = {"sealed_heldout": {"ids": "held.json", "ratings": "held_ratings.json"}}
+    sample.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    (tmp_path / "held.json").write_text(json.dumps(held), encoding="utf-8")
+    review = tmp_path / "held_ratings.json"
+    review.write_text(json.dumps({"ratings": {"guy": {k: "push" for k in held}}}), encoding="utf-8")
+
+    def run(*extra):
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), "--db", str(db), "--ratings", str(ratings), "--sample", str(sample),
+             "--review", str(review), *extra],
+            cwd=BACKEND, capture_output=True, text=True, encoding="utf-8", timeout=300,
+        )
+        assert proc.returncode == 0, proc.stderr[-2000:]
+        return proc.stdout
+
+    assert "sealed held-out half: 2 ratings excluded" in run()
+    assert "excluded" not in run("--final-heldout-eval")

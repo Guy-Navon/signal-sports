@@ -572,6 +572,20 @@ TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset(
     {"title_win", "grand_slam_winner", "major_trade", "schedule"}
 )
 
+# Broadcast vocabulary that ANNOUNCES a broadcast (#406). The bare word "שידור" is not one:
+# on the 2026-11-01 corpus most "שידור" schedule titles were something that happened on air
+# ("בארקלי פרץ בבכי בשידור חי", "התפוצץ בשידור") or broadcasting-industry news ("זכויות
+# השידור", "שידורי אתלטיקת הנשים בדרך לשינוי"). The real announcements took four forms:
+# a call to watch, a broadcast label heading the title (optionally after a time slot), a
+# future-tense broadcast, and a listing. "ישודר" needs a word boundary: "ישודרג" / "משודרג"
+# mean "(will be) upgraded".
+_BROADCAST_ANNOUNCEMENT = (
+    regex(r"צפו\s+ב(?:ה)?שידור"),
+    regex(r"^(?:ב-?\d{1,2}:\d{2}:?\s*)?שידור\s+(?:חי|ישיר)\s*(?::|מ)"),
+    hword("ישודר"), hword("ישודרו"), hword("תשודר"),
+    regex(r"לוח\s+(?:ה)?שידורים"),
+)
+
 
 EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
     # Existing editorial types already have preference affinities and are explicitly
@@ -685,10 +699,10 @@ EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
     ),
     "schedule": EventEvidenceRule(
         required_any=((
-            phrase('לו"ז'), phrase("לוח משחקים"), phrase("שידורים"), phrase("שידור"),
-            phrase("לקראת"), phrase("תאריכים"), phrase("schedule"), phrase("preview"),
-            phrase("upcoming"), phrase("fixture"), phrase("fixtures"),
-        ),),
+            phrase('לו"ז'), phrase("לוח משחקים"), phrase("לקראת"), phrase("תאריכים"),
+            phrase("schedule"), phrase("preview"), phrase("upcoming"), phrase("fixture"),
+            phrase("fixtures"),
+        ) + _BROADCAST_ANNOUNCEMENT,),
         # A live stream of a press conference is not a fixture (#224): "צפו בשידור הישיר:
         # מסיבת העיתונאים של מכבי והפועל" was schedule only because "שידור" (broadcast).
         blockers=(phrase("מסיבת העיתונאים"), phrase("מסיבת עיתונאים"), phrase("press conference")),

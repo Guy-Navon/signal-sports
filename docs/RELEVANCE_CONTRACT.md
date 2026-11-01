@@ -262,8 +262,24 @@ its own evidence and its own baseline.
 
 ```
 cd backend
-.venv/Scripts/python.exe scripts/feed_ground_truth.py gate --census
+.venv/Scripts/python.exe scripts/feed_ground_truth.py gate --census                # stored facts
+.venv/Scripts/python.exe scripts/feed_ground_truth.py gate --census --facts rerun  # rules-only rerun
 ```
+
+**Pick the facts source by the kind of change, and run both when unsure.** Each source has
+its own baseline, and the gate refuses to compare across them:
+
+| `--facts` | decisions come from | use it for | baseline |
+|---|---|---|---|
+| `stored` (default) | the facts persisted in the corpus, as ingested (LLM-assisted where the LLM ran) | relevance, profile and scoring changes: what the product serves for these rows | `census_gate_baseline.json` |
+| `rerun` | a rules-only reclassification of the census rows in memory (LLM and translation off, no writes), the same path as `corpus_rerun_diff.py` | **classifier and taxonomy changes**. Stored rows change only through a backfill, so the stored gate cannot see them | `census_gate_rerun_baseline.json` |
+
+The two sources disagree a lot. 131 of census #2's 804 rows have a different stored
+sport, event or competition than a rerun of main gives: rows keep the facts of the pipeline
+that ingested them, and blanket backfills are forbidden. The profile makes no difference
+(persisted and seed Guy give identical metrics). The first real change through the gate
+was #398, a classifier vocabulary change. It moved nothing on stored facts (N05 also stayed
+flat). On the rerun it took push precision 2/3 → 3/4 and push recall 2/7 → 3/7, and passed.
 
 Same contract as N05: local-only, exit 0 / 1, `--accept <check_id> --reason`, a stale accept
 fails. The pure rules are `app/qa/census_gate.py`, covered in CI by
@@ -292,7 +308,7 @@ large disagreements before treating them as engine errors.
 row to `low_feed`) takes feed+ recall to 100% and *lowers* the ≥2-notch count from 48 to 17;
 only shown precision (95.9% → 25.9%) catches it. "Hide more" (`low_feed` and `feed` to hidden)
 takes shown precision to 100%; feed+ recall (73.9% → 12.3%) and the ≥2-notch count catch it.
-Both replays are CI tests on the committed baseline.
+Both replays are CI tests on both committed baselines.
 
 **Inputs.** By default the gate reads the files its baseline records. Census #2 alone today:
 `census2_ratings.json` + `census2_sample.json`, plus `census2_review_ratings.json` (the blind
@@ -312,12 +328,22 @@ are an error unless a review file settles it. The baseline stores a content hash
 merged ratings and of the article id set, so a re-rated or regrown census is an invalid
 comparison, not a score.
 
-Baseline: `docs/qa/census_gate_baseline.json`, generated at `a0c3477` (2026-11-01) on a
-frozen copy of the live corpus (3,868 RSS articles). Guy: shown precision 95.9% (141/147),
-feed+ recall 73.9% (102/138), push precision 1/3, push recall 1/7, 48 gaps of ≥2 notches.
-Deni: 804 frozen decisions (792 hidden). Regenerating it (`gate --census --update-baseline`)
-needs the same written justification as N05's.
+Baselines, generated on main's engine (`a0c3477`) on 2026-11-01 against a frozen copy of
+the live corpus (3,868 RSS articles):
+
+| | shown precision | feed+ recall | push precision | push recall | ≥2-notch | Deni (804 ids) |
+|---|---:|---:|---:|---:|---:|---|
+| stored | 95.9% (141/147) | 73.9% (102/138) | 1/3 | 1/7 | 48 | 792 hidden |
+| rerun | 94.0% (173/184) | 89.1% (123/138) | 2/3 | 2/7 | 27 | 790 hidden |
+
+Regenerating either (`gate --census [--facts rerun] --update-baseline`) needs the same
+written justification as N05's. Regenerate the rerun baseline whenever a classifier or
+taxonomy change merges, because it measures the code. The stored baseline moves only with a
+profile change, a relevance change, or a reviewed correction script.
 
 **Known weakness, shared with N05:** with 3 pushes, one push of slack lets push precision
 fall to 0/3. Push recall and push volume cover the two ways that can happen (losing the
 correct push, adding wrong ones).
+
+**The rerun is rules-only.** Production also calls the LLM on gated rows, so the rerun
+approximates what new ingestion would produce. Say so when quoting its numbers.

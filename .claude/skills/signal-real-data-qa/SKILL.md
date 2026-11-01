@@ -23,7 +23,8 @@ make it worse?" in one command:
 ```
 cd backend
 .venv\Scripts\python.exe scripts/feed_ground_truth.py gate            # N05: 282 stratified ratings, frozen July corpus
-.venv\Scripts\python.exe scripts/feed_ground_truth.py gate --census   # census: every census #2 row (804), fresh cohort
+.venv\Scripts\python.exe scripts/feed_ground_truth.py gate --census   # census: every census #2 row (804), stored facts
+.venv\Scripts\python.exe scripts/feed_ground_truth.py gate --census --facts rerun   # census on a rules-only rerun
 # exit 0 = clean, 1 = blocked
 ```
 
@@ -44,6 +45,13 @@ that hides wanted rows fails `feed_plus_recall`; one that surfaces noise fails
 `--ratings/--sample` pairs (and `--review` files, whose ratings win) with
 `--census --update-baseline`; details in `docs/RELEVANCE_CONTRACT.md` §Census gate. N05 stays as a
 second gate until the census gate has gated two real changes.
+
+**Stored facts cannot see a classifier change.** N05 and `gate --census` score the facts
+persisted in the corpus, and stored rows change only through a backfill. A classifier or
+taxonomy change therefore passes them with zero movement, which happened with #398. For those
+changes, the gate that counts is `gate --census --facts rerun`: a rules-only reclassification of
+the census rows in memory, with its own baseline. Regenerate that baseline after such a change
+merges.
 
 **From N05, report both numbers it gives you, always.** Overall accuracy is a trap here: `casual_deni_fan`
 scores 98% exact agreement while hiding 98.3% of the corpus. The pair that describes the product

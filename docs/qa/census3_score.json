@@ -1,0 +1,520 @@
+{
+  "meta": {
+    "generated_at": "2026-11-01T21:55:36.772213+00:00",
+    "git_sha": "51a538343469603b6752515b21d354a234757df9",
+    "engine": "v2",
+    "corpus_articles": 3868,
+    "scope": "Relevance rules over the whole ingested corpus, freshness window not applied, raw profiles without learned augmentation.",
+    "rated_against_sample": "2026-11-01T06:26:05.180029+00:00"
+  },
+  "profiles": {
+    "guy": {
+      "rated": 150,
+      "sample_counts": {
+        "rated": 150,
+        "exact": 104,
+        "false_hide": 15,
+        "over_ranked": 24,
+        "false_show": 4,
+        "under_ranked": 3
+      },
+      "false_hide_by_sport": {
+        "basketball": {
+          "rows": 11,
+          "wanted_rows": 3,
+          "share_of_corpus": 0.0733
+        },
+        "football": {
+          "rows": 2,
+          "wanted_rows": 1,
+          "share_of_corpus": 0.0133
+        },
+        "unknown": {
+          "rows": 2,
+          "wanted_rows": 1,
+          "share_of_corpus": 0.0133
+        }
+      },
+      "shown_precision": {
+        "shown": 40,
+        "worth_showing": 36,
+        "precision": 0.9,
+        "note": "census of the visible tiers; not an estimate"
+      },
+      "population_estimates": {
+        "exact": 0.6933,
+        "false_show": 0.0267,
+        "false_hide": 0.1,
+        "over_ranked": 0.16,
+        "under_ranked": 0.02
+      },
+      "push_precision": {
+        "rated": 0,
+        "agreed_push_worthy": 0,
+        "precision": null
+      },
+      "disagreements": [
+        {
+          "id": "rss_0c58fa47fcf32c889b2e",
+          "title": "לברון נגד ווסטברוק: הסודות מחדר ההלבשה של הלייקרס נחשפים",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_ba27a1aebdb3e9f91a23",
+          "title": "מוכנים לפתיחת העונה: יאניס להט במיאמי, וומבי הוביל את סן אנטוניו לניצחון",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_a39bcb626dde7284a7e8",
+          "title": "הבכורה העונה לא הספיקה: בן שרף ירד לליגת הפיתוח",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_fd09dded9f014f7025c7",
+          "title": "סאנוגו כיכב, הפועל חולון ניצחה לראשונה בליגת האלופות",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_69c1da70a9bc7d7396bd",
+          "title": "פורזינגיס אחרי שנעלם: \"אין לי איידס\"",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_ba0fbd5e73027fcd4b20",
+          "title": "יצאה מהמשבר: הפועל חולון גברה על ב\"ש/דימונה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_291fbb5e8c7ed8f38f3c",
+          "title": "\"ההנגאובר נגמר\": בניו יורק נושמים לרווחה, אבל מזהירים",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_0fca87c4e215fa7c3dfd",
+          "title": "\"זה לא לרמות האלה\": הפועל ירושלים מודאגת מההגנה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_94ceb686a39673aa9c82",
+          "title": "חזר הביתה וסירב למתנה: הדרמה של ז'ליקו אוברדוביץ' בבלגרד",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_39b711187a25adb6a9a0",
+          "title": "זכה להערכה: האקס פקטור של הפועל ת\"א",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_def3a91e01685fb93d03",
+          "title": "לקראת פתיחת העונה: הצעד העסקי החדש של דני אבדיה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_46535dad352af4846b4d",
+          "title": "\"להתאהב בה\": ירושלים חזרה להיות הקבוצה הכי \"מעצבנת\" בליגה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_91a80ecd2760996c9ae9",
+          "title": "דווקא אחרי משחק השיא: ניקולה יוקיץ' נגד אוהדי דנבר",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_912dce7a909f03a572d3",
+          "title": "סוף עידן ב-NBA: ארני ג'ונסון פורש, בארקלי פרץ בבכי בשידור חי",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "feed",
+          "kind": "false_hide",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_dca2debe352da31fd40d",
+          "title": "\"שיחקנו חזק בהגנה\": שביעות רצון בהרצליה",
+          "stratum": "census",
+          "engine": "hidden",
+          "human": "low_feed",
+          "kind": "false_hide",
+          "matched_topic": null,
+          "matched_event_rule": "no_matching_scope"
+        },
+        {
+          "id": "rss_c38b4b12fcce6413e6d0",
+          "title": "אחרי 68 שנה: \"הפתיחה מול מכבי תל אביב היא היפה שראיתי בחיי\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_f0e921466ed4fb1e64d4",
+          "title": "בגיל 50: אלוף העולם לשעבר עבר מהפך גופני בלתי נתפס",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_7cab6b854db6a4678833",
+          "title": "בפעם השנייה ברציפות: בני יהודה זכתה בגביע הטוטו לאומית",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "football",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a1b2aecbc61ab761b097",
+          "title": "מחצית ראשונה: ברצלונה - מכבי ת\"א 00:00",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "hidden",
+          "kind": "false_show",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_b9776e8d6c1f45169eaa",
+          "title": "אבדיה כיכב עם 23 נקודות: ניצחון ענק לפורטלנד על הלייקרס",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_cb14a3d21228c620f43a",
+          "title": "עזב כדי לשחק ביורוליג, ונשאר בחוץ: קרינגטון פוגש את ירושלים",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_740b89ba36bd61e1ebec",
+          "title": "״הרבה לחץ ירד. צריכים לייצר המשכיות״",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:ibl",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_2cc08e167f1d1fcb8bb8",
+          "title": "\"מכבי תל אביב אנדרדוג, אבל צריך לגשת אליה ברצינות מירבית\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_b9528f222ec42a6d679e",
+          "title": "מכבי תל אביב נגד ברצלונה: פיני גרשון ועפר \"ג'ובה\" גרוס מסכמים",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_8a66d42cfe4aa569e936",
+          "title": "אצל אחד הכוכבים הגדולים ב-NBA: דני אבדיה בראיון נדיר",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_ca6c98aeaedba8522316",
+          "title": "דני אבדיה זינק בדירוג החדש - ויש גם מחמאות גדולות",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a6c58db2c58c99300dfc",
+          "title": "\"ניהלתי משא ומתן עם הפועל ת״א, מכבי תל אביב פספסה אותי\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_93a09f2a7bc1d13c66bb",
+          "title": "קרי \"שבר את הקרסול\" של דונצ'יץ' בדרך לקאמבק היסטורי: \"לא ציפיתי שזה יהיה אכזרי\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_be075ecb4e8d2e9c02e4",
+          "title": "הופעת בכורה העונה לישראלים של ברוקלין, זה הסתיים בתבוסה לאינדיאנה",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_d29adabec56a40f38095",
+          "title": "בשיקטאש מובילה, הספרדיות בתמונה: לאן יעבור לוני ווקר?",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_afdf1e5a21099cd65ead",
+          "title": "כאוס בדנבר נאגטס: \"אולי הגיע הזמן שניקולה יוקיץ' יעבור בטרייד\"",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_ef3e17f63f3aa42e1374",
+          "title": "ממיליארדר תומך ישראל: הפרס שמחכה לדני אבדיה בפורטלנד",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_f535122b6d03c823bea3",
+          "title": "דימיטריס איטודיס: \"שתי היריבות מאוד תובעניות\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:hapoel_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_441e0ed38f88848c59c5",
+          "title": "\"ילד\": פליטת הפה של דני אבדיה על מוראנט עלולה לסבך אותו",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_20f77d78ab852782ed91",
+          "title": "\"דני אבדיה חבר קרוב שלי, רוצה שישאר בפורטלנד\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "player:deni_avdija",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_afb66c8a12e780c6a3be",
+          "title": "עדיין מושלמת: ממפיס גברה על סקרמנטו, 2 לשארפ",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_04658bbd69c47c2991a3",
+          "title": "היה סקורר קטלני ב-NBA, ויכול להציל את מכבי תל אביב",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_331e27a2b4fe0c86e166",
+          "title": "הפועל ת\"א תובעת את האיגוד: \"שופטים יהיו חייבים לחשוף את אהדתם\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:hapoel_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_c6f8b4499cf73325e25d",
+          "title": "\"הפועל תל אביב שינתה כיוון - וזה כואב לי מאוד\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:eurocup",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_0f9c3748b1d57882e8fb",
+          "title": "כוכבת \"אהבה חדשה\" וזוגתו של שחקן מכבי תל אביב: \"המצב לא הגיוני\"",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_696f7b5c19de87567fb0",
+          "title": "בלייקני כוכב עליון: הטור של דבורין",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_a2aa13723f38927db365",
+          "title": "הפועל תל אביב נגד אנאדולו אפס: פיני גרשון ועפר \"ג'ובה\" גרוס מסכמים",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "low_feed",
+          "kind": "over_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_ab23b0bcf939f23c516b",
+          "title": "אחרי ההפסד המפתיע בליגה: מכבי תל אביב קיבלה החלטה משמעותית",
+          "stratum": "census",
+          "engine": "high_feed",
+          "human": "feed",
+          "kind": "over_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_df5c16fe086183e654fe",
+          "title": "מעל כולם: הצגה לוומבי, קאמבק לפילי, ממפיס עדיין מושלמת",
+          "stratum": "census",
+          "engine": "low_feed",
+          "human": "feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:nba",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_d181f1d6194464826a08",
+          "title": "דיווח: מכבי תל אביב עוקבת אחרי מצבו של ג'ון קונצ'אר",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "push",
+          "kind": "under_ranked",
+          "matched_topic": "team:maccabi_tlv_bb",
+          "matched_event_rule": "affinity_score"
+        },
+        {
+          "id": "rss_05fa5f923926523b27ce",
+          "title": "היסטוריה ביורוליג: בלייקני ובריאנט נבחרו יחד למצטייני המחזור",
+          "stratum": "census",
+          "engine": "feed",
+          "human": "high_feed",
+          "kind": "under_ranked",
+          "matched_topic": "comp:euroleague",
+          "matched_event_rule": "affinity_score"
+        }
+      ]
+    }
+  }
+}

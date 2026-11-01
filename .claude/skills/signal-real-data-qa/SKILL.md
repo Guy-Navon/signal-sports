@@ -39,7 +39,9 @@ diffs, and do not regenerate a baseline to make it pass.
 **The census gate** (`app/qa/census_gate.py`, baseline `docs/qa/census_gate_baseline.json`)
 reads recall directly because every row is rated: report **shown precision, feed+ recall,
 push precision, push recall** and the **≥2-notch disagreement count**. One-notch gaps are
-rating noise (census #2's blind re-rate changed 28 of 58 large gaps) and are not gated. A change
+rating noise (census #2's blind re-rate changed 28 of 58 large gaps) and are not gated. That
+also means a same-direction one-notch drift is not caught (known gap, #402): read the decision delta
+for one-direction moves. A change
 that hides wanted rows fails `feed_plus_recall`; one that surfaces noise fails
 `shown_precision`, even though it *lowers* the ≥2-notch count. Census #3 (#241) joins by passing
 `--ratings/--sample` pairs (and `--review` files, whose ratings win) with
@@ -68,7 +70,10 @@ user-facing decision, so ask rather than doing it to clear a red gate.
 absorb a change before its delta against the PREVIOUS baseline is recorded and reviewed:
 before → after per check, plus every rated row whose decision moved, with its rating. Otherwise a
 regression is laundered into the reference. The commit that rewrites a baseline cites that delta.
-The census gate's `--update-baseline` enforces this: it prints the delta, refuses to write on a
+The census gate's `--update-baseline` enforces this: it prints the decision delta and a ratings
+delta (re-rated, added and removed rows, and metrics under old vs new ratings). It refuses when any
+already-rated row was re-rated or removed, and when there is no previous baseline. New rows (census
+#3) are fine. It also refuses to write on a
 failing or invalid comparison, and stores the delta in the new baseline. Override with
 `--accept <check> --reason` (an argued regression) or `--force-update --reason`. N05's update does
 not enforce it; follow the rule by hand there. Rule and procedure: `docs/RELEVANCE_CONTRACT.md`

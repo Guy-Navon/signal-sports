@@ -234,13 +234,23 @@ into the new reference. So, for every gate:
    before → after per check, and which rated rows changed.
 
 The census gate enforces this. `gate --census [--facts rerun] --update-baseline` first runs
-the gate against the previous baseline, on the census that baseline recorded. It prints the
-delta and **refuses to write** when the gate fails or the comparison is invalid. A regression
-that was reviewed and argued passes with `--accept <check_id> --reason`. `--force-update
---reason` overrides everything else and needs a reason citing the review. The delta, the
-accepts and any forced reason are stored in the new baseline's `previous` block. N05's
-`--update-baseline` does not enforce the rule (its code is out of scope here), so for N05 it
-is followed by hand.
+the gate against the previous baseline, on the census that baseline was built on. That census
+is rebuilt from the ratings the baseline stores, so it is independent of the files on disk.
+The update prints two deltas:
+
+- **decisions**: before → after per check, and every rated row whose decision moved;
+- **ratings**: rows re-rated (old → new), added and removed, and the metrics of the current
+  decisions under the previous ratings and under the new ones. A re-label moves every metric
+  while no decision moves, so a decision-only delta would hide it.
+
+It **refuses to write** when the gate fails, the comparison is invalid, any already-rated row
+was re-rated or removed (a new `--review` file, or a ratings file edited in place), or there
+is no previous baseline (a first baseline, or a new `--baseline` path). New rows, such as
+census #3 joining, are allowed. A failing check that was reviewed and argued passes with
+`--accept <check_id> --reason`, and the update message says so. Everything else needs
+`--force-update --reason`, citing the review. The deltas, the accepts and any forced reason
+are stored in the new baseline's `previous` block. N05's `--update-baseline` does not enforce
+the rule (its code is out of scope here), so for N05 it is followed by hand.
 
 **N05 is one of two gates.** The census gate below runs alongside it. N05 stays until the
 census gate has gated at least two real changes; then the keep-or-retire decision on N05 is
@@ -321,9 +331,16 @@ directly** instead of `false_hide`, which the 74% hide base rate dilutes:
 
 **The noise band.** Census ratings repeat only about half the time on borderline rows: in
 census #2's blind re-rate, 28 of 58 large disagreements changed, 26 toward the engine, mostly
-by one notch. So the disagreement check ignores one-notch gaps: a change confined to one-notch
-moves cannot fail it, while a new two-notch gap does. Exact agreement is not gated. Re-rate
-large disagreements before treating them as engine errors.
+by one notch. So the disagreement check ignores one-notch gaps: a change that opens only
+one-notch gaps cannot fail it, while a new two-notch gap does. Exact agreement is not gated.
+Re-rate large disagreements before treating them as engine errors.
+
+**Known gap: same-direction one-notch drift (#402).** Ignoring one-notch gaps row by row also
+means no check sees a *systematic* one-notch move away from the owner's ratings. Replayed on
+the stored baseline, demoting all 69 owner-`feed` rows shown at `feed`/`high_feed` to
+`low_feed` passes every check, and so does hiding up to 21 of the 39 shown owner-`low` rows.
+#402 proposes a directional check: one-notch moves away from the rating vs toward it, with a
+slack or a sign test. Until it lands, review the decision delta for one-direction drift by eye.
 
 **Why both directions are needed.** Replayed on census #2, "surface everything" (every hidden
 row to `low_feed`) takes feed+ recall to 100% and *lowers* the ≥2-notch count from 48 to 17;
@@ -350,8 +367,11 @@ are an error unless a review file settles it. The baseline stores a content hash
 merged ratings and of the article id set, so a re-rated or regrown census is an invalid
 comparison, not a score.
 
-Baselines, generated on main's engine (`a0c3477`) on 2026-11-01 against a frozen copy of
-the live corpus (3,868 RSS articles):
+Baselines, generated on 2026-11-01 against a frozen copy of the live corpus (3,868 RSS
+articles) by this PR's gate code at `d82e161` (clean tree, recorded in `meta.git_sha`). Its
+engine, classifier and relevance code are identical to main at `a0c3477`; the PR changes only
+the gate. A `-dirty` suffix on `meta.git_sha` means uncommitted `backend/` changes at
+generation time:
 
 | | shown precision | feed+ recall | push precision | push recall | ≥2-notch | Deni (804 ids) |
 |---|---:|---:|---:|---:|---:|---|
@@ -371,9 +391,11 @@ precision improved), ≥2-notch 27 → 26, and nothing else moved (stored facts 
 The only rated row that changed is the Cyprus move, `rss_60dbc2f4aa7316584e2d`: feed → push,
 rated push.
 
-**Known weakness, shared with N05:** with 3 pushes, one push of slack lets push precision
-fall to 0/3. Push recall and push volume cover the two ways that can happen (losing the
-correct push, adding wrong ones).
+**`push_precision` is redundant on a census.** Every row is rated, so its numerator (rows
+both pushed and rated push) is the same count as push recall's. Push precision can fall only
+if push recall falls (zero slack) or push volume rises without a precision gain (zero slack),
+so its one-push slack cannot let a regression through on its own. It is kept for continuity
+with N05, where the push stratum is a census but the rest is sampled.
 
 **The rerun is rules-only.** Production also calls the LLM on gated rows, so the rerun
 approximates what new ingestion would produce. Say so when quoting its numbers.

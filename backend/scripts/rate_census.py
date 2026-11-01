@@ -102,6 +102,10 @@ def cmd_build(args) -> None:
         size=args.size,
     )
     out = Path(args.out)
+    try:  # never silently drop a held-out split (#241)
+        doc = cr.carry_sealed_forward(doc, out, args.keep_sealed_from)
+    except (ValueError, FileNotFoundError) as exc:
+        raise SystemExit(f"not written: {exc}")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8", newline="")
     for user_id, block in doc["profiles"].items():
@@ -244,6 +248,8 @@ class _Handler(BaseHTTPRequestHandler):
                     if body.get("id") not in srv.by_id:
                         return self._json({"error": "unknown id"}, 400)
                     srv.store.rate(body["id"], body["rating"])
+                    if srv.autoseal is not None and not srv.store.pending(srv.items):
+                        srv.autoseal()  # last row rated: seal now, close the both-halves window
                     return self._json({"ok": True, "rated_total": len(srv.store.ratings)})
             if self.path == "/api/undo":
                 with srv.lock:
@@ -267,6 +273,33 @@ class _RatingServer(ThreadingHTTPServer):
         self.by_id = {it["id"]: it for it in items}
         self.store = store
         self.lock = threading.Lock()
+        self.autoseal = None  # set by make_server for an unsealed census with a held-out split
+
+
+def make_server(sample_path, ratings_path, profile: str, port: int) -> _RatingServer:
+    """The rating server over a census sample. For a census with a held-out split that is
+    not sealed yet, rating the last row seals it on the spot (``census_rating.seal_census``)
+    and the server continues over the fit half only, so undo can never put a held-out
+    rating back into the census ratings file."""
+    sample = json.loads(Path(sample_path).read_text(encoding="utf-8"))
+    if profile not in sample["profiles"]:
+        raise SystemExit(f"Sample has no profile {profile!r}: {list(sample['profiles'])}")
+    seed = sample["meta"]["seed"]
+    items = serve_items(sample, sample_path, profile)
+    srv = _RatingServer(("127.0.0.1", port), items, cr.RatingsStore(Path(ratings_path), seed=seed, profile=profile))
+    files = cr.sealed_files(sample, sample_path)
+    if files and not files[1].exists():
+        cr.sealed_ids(sample, sample_path)  # fail now, not at the last row, if the ids file is missing
+
+        def autoseal() -> None:
+            print(cr.seal_census(sample, sample_path, ratings_path, profile), flush=True)
+            srv.items = serve_items(sample, sample_path, profile)
+            srv.by_id = {it["id"]: it for it in srv.items}
+            srv.store = cr.RatingsStore(Path(ratings_path), seed=seed, profile=profile)
+            srv.autoseal = None
+
+        srv.autoseal = autoseal
+    return srv
 
 
 def serve_items(sample: dict, sample_path, profile: str) -> list[dict]:
@@ -282,22 +315,19 @@ def serve_items(sample: dict, sample_path, profile: str) -> list[dict]:
 
 
 def cmd_serve(args) -> None:
-    sample = json.loads(Path(args.sample).read_text(encoding="utf-8"))
-    if args.profile not in sample["profiles"]:
-        raise SystemExit(f"Sample has no profile {args.profile!r}: {list(sample['profiles'])}")
-    items = serve_items(sample, args.sample, args.profile)
-    store = cr.RatingsStore(Path(args.ratings), seed=sample["meta"]["seed"], profile=args.profile)
-    pending = store.pending(items)
-    print(f"{args.profile}: {len(items)} in census, {len(store.ratings)} already rated, {len(pending)} to go", flush=True)
-    print(f"ratings -> {store.path}  (saved after every keypress; Ctrl+C is safe)", flush=True)
-
     try:
-        srv = _RatingServer(("127.0.0.1", args.port), items, store)
+        srv = make_server(args.sample, args.ratings, args.profile, args.port)
     except OSError as exc:
         raise SystemExit(
             f"port {args.port} is taken - a rating server is probably still running "
             f"from an earlier session. Use it, or stop it, or pass --port. ({exc})"
         )
+    pending = srv.store.pending(srv.items)
+    print(f"{args.profile}: {len(srv.items)} in census, {len(srv.store.ratings)} already rated, "
+          f"{len(pending)} to go", flush=True)
+    print(f"ratings -> {srv.store.path}  (saved after every keypress; Ctrl+C is safe)", flush=True)
+    if srv.autoseal is not None:
+        print("the held-out half is sealed automatically when the last row is rated", flush=True)
     url = f"http://127.0.0.1:{args.port}/"
     print(f"open {url}   keys: 5 push / 4 high / 3 feed / 2 low / 1 hide / u undo / q quit", flush=True)
     if not args.no_browser:
@@ -308,7 +338,7 @@ def cmd_serve(args) -> None:
         pass
     finally:
         srv.server_close()
-        print(f"\n{len(store.ratings)} rated, saved at {store.path}")
+        print(f"\n{len(srv.store.ratings)} rated, saved at {srv.store.path}")
 
 
 # ── review / merge-review ─────────────────────────────────────────────────────
@@ -316,14 +346,22 @@ def cmd_serve(args) -> None:
 def cmd_review(args) -> None:
     """Sample of the largest engine-vs-owner gaps, for a blind re-rate before acting."""
     sample = json.loads(Path(args.sample).read_text(encoding="utf-8"))
-    ratings = json.loads(Path(args.ratings).read_text(encoding="utf-8"))["ratings"][args.profile]
-    # Re-rating is for rows we may act on. The held-out half is never acted on (#241).
-    ratings, dropped = cr.exclude_sealed(ratings, cr.sealed_ids(sample, args.sample))
-    if dropped:
-        print(f"{dropped} held-out ratings excluded (sealed half; never reviewed or acted on)")
+    payload = json.loads(Path(args.ratings).read_text(encoding="utf-8"))
+    try:
+        cr.refuse_sealed(payload, args.ratings, final_heldout_eval=args.final_heldout_eval)
+    except cr.SealedRatingsError as exc:
+        raise SystemExit(str(exc))
+    ratings = payload["ratings"][args.profile]
+    # Re-rating is for rows we may act on. The held-out half is never acted on (#241); its
+    # optional re-rate happens only at the final evaluation, into its own file.
+    if not args.final_heldout_eval:
+        ratings, dropped = cr.exclude_sealed(ratings, cr.sealed_ids(sample, args.sample))
+        if dropped:
+            print(f"{dropped} held-out ratings excluded (sealed half; never reviewed or acted on)")
     if args.snapshot:  # current engine, from scripts/corpus_rerun_diff.py snapshot
         snap = json.loads(Path(args.snapshot).read_text(encoding="utf-8"))
-        engine = {k: v[args.profile] for k, v in snap.items()}
+        field = {"casual_deni_fan": "deni"}.get(args.profile, args.profile)  # snapshot keys
+        engine = {k: v[field] for k, v in snap.items()}
     else:  # the engine decision recorded when the census was built
         engine = {it["id"]: it["engine_decision"] for it in sample["profiles"][args.profile]["items"]}
     doc = cr.build_review(sample, ratings, engine, profile=args.profile, min_gap=args.min_gap)
@@ -337,39 +375,19 @@ def cmd_seal(args) -> None:
     """Move the held-out half's ratings into the sealed file named by the sample (#241).
     Run once, right after the last rating and before anything else reads the ratings."""
     sample = json.loads(Path(args.sample).read_text(encoding="utf-8"))
-    files = cr.sealed_files(sample, args.sample)
-    if files is None:
-        raise SystemExit(f"{args.sample} has no {cr.SEALED_META_KEY!r} entry: nothing to seal")
-    sealed_path = files[1]
-    if sealed_path.exists():
-        raise SystemExit(f"already sealed: {sealed_path} exists")
-    path = Path(args.ratings)
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    if raw.get("seed") != sample["meta"]["seed"]:
-        raise SystemExit(f"{path} is seed {raw.get('seed')}, the sample is seed {sample['meta']['seed']}")
-    ids = [it["id"] for it in sample["profiles"][args.profile]["items"]]
     try:
-        fit, held = cr.seal_ratings(ids, cr.sealed_ids(sample, args.sample), raw["ratings"][args.profile])
-    except ValueError as exc:
+        print(cr.seal_census(sample, args.sample, args.ratings, args.profile))
+    except (ValueError, FileNotFoundError) as exc:
         raise SystemExit(f"not sealed: {exc}")
-
-    def dump(ratings: dict, note: str | None = None) -> str:
-        payload = {"generated": raw.get("generated"), "seed": raw["seed"]}
-        if note:
-            payload["sealed"] = note
-        payload["ratings"] = {args.profile: ratings}
-        return json.dumps(payload, ensure_ascii=False, indent=1)
-
-    sealed_path.write_text(dump(held, (
-        "HELD-OUT half of the census (#241). Not for tuning, calibration or rule design; "
-        "read once, for the final evaluation.")), encoding="utf-8", newline="")
-    path.write_text(dump(fit), encoding="utf-8", newline="")
-    print(f"sealed {len(held)} held-out ratings -> {sealed_path}; {len(fit)} fit ratings stay in {path}")
 
 
 def cmd_merge_review(args) -> None:
-    """Fold a finished review into the census ratings, editing only changed lines."""
+    """Fold a finished review into the census ratings, editing only changed lines. Never into
+    a sealed file: held-out ratings stay raw; their optional final re-rate is its own file."""
     path = Path(args.ratings)
+    if json.loads(path.read_text(encoding="utf-8")).get("sealed"):
+        raise SystemExit(f"{path} is a sealed held-out ratings file; merge-review never edits it "
+                         "(keep a final-evaluation re-rate in its own file)")
     review = json.loads(Path(args.review).read_text(encoding="utf-8"))["ratings"][args.profile]
     text, changed = cr.merge_review_text(path.read_text(encoding="utf-8"), review, profile=args.profile)
     path.write_text(text, encoding="utf-8", newline="")
@@ -391,6 +409,9 @@ def main() -> None:
                               "default: every fresh article)")
     p_build.add_argument("--profile", action="append", default=None,
                          help="repeatable; default guy only")
+    p_build.add_argument("--keep-sealed-from",
+                         help="old sample whose held-out split to carry forward (required to rebuild a "
+                              "sealed census; new rows join the fit half)")
     p_build.set_defaults(func=cmd_build)
 
     p_serve = sub.add_parser("serve", help="local rating page over a census sample")
@@ -408,6 +429,8 @@ def main() -> None:
     p_review.add_argument("--snapshot", help="corpus_rerun_diff.py snapshot = the CURRENT engine")
     p_review.add_argument("--min-gap", type=int, default=2)
     p_review.add_argument("--profile", default="guy")
+    p_review.add_argument("--final-heldout-eval", action="store_true",
+                          help="final evaluation only: re-rate the sealed held-out half's big gaps")
     p_review.set_defaults(func=cmd_review)
 
     p_seal = sub.add_parser("seal", help="move the held-out half's ratings into their sealed file")

@@ -149,26 +149,33 @@ def main(argv: list[str] | None = None) -> int:
     if not args.db.is_file():
         print(f"no such database: {args.db}")
         return 1
-    ratings = json.loads(args.ratings.read_text(encoding="utf-8"))["ratings"]["guy"]
-    if args.review:
-        rev = json.loads(args.review.read_text(encoding="utf-8"))["ratings"]["guy"]
-        changed = {k: (ratings[k], v) for k, v in rev.items() if ratings.get(k) != v}
-        print(f"review: {len(rev)} re-rated, {len(changed)} changed")
-        ratings = {**ratings, **rev}
     sample = json.loads(args.sample.read_text(encoding="utf-8"))
     items = sample["profiles"]["guy"]["items"]
     # A census with a sealed held-out half (#241, census #3): calibration never sees those
     # labels. Only the one final evaluation reads them, and says so with the flag.
     from app.qa.census_rating import exclude_sealed, sealed_ids
 
+    sealed = sealed_ids(sample, args.sample)
+    ratings = json.loads(args.ratings.read_text(encoding="utf-8"))["ratings"]["guy"]
+    rev = json.loads(args.review.read_text(encoding="utf-8"))["ratings"]["guy"] if args.review else {}
     if not args.final_heldout_eval:
-        ratings, dropped = exclude_sealed(ratings, sealed_ids(sample, args.sample))
-        if dropped:
-            print(f"sealed held-out half: {dropped} ratings excluded (--final-heldout-eval reads them)")
+        held_rated = (set(ratings) | set(rev)) & sealed
+        ratings, _ = exclude_sealed(ratings, sealed)
+        rev, _ = exclude_sealed(rev, sealed)
+        if held_rated:
+            print(f"sealed held-out half: {len(held_rated)} ratings excluded (--final-heldout-eval reads them)")
+    if args.review:
+        changed = {k: (ratings.get(k), v) for k, v in rev.items() if ratings.get(k) != v}
+        print(f"review: {len(rev)} re-rated, {len(changed)} changed")
+        ratings = {**ratings, **rev}
 
     articles = load_articles(args.db, items)
     ids = sorted(articles)
-    fit, hold = split(ids)
+    if sealed:  # the pre-registered half, not a fresh split of whichever rows loaded
+        hold = set(ids) & sealed
+        fit = set(ids) - hold
+    else:
+        fit, hold = split(ids)
     base_profile = next(p for p in SEED_PROFILES if p.user_id == "guy")
 
     base = score_all(articles, base_profile)

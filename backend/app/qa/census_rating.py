@@ -176,7 +176,112 @@ def sealed_ids(sample: dict, sample_path) -> set[str]:
     files = sealed_files(sample, sample_path)
     if files is None:
         return set()
+    if not files[0].exists():
+        raise FileNotFoundError(
+            f"the held-out ids file {files[0]} named in {sample_path} (meta.{SEALED_META_KEY}) is "
+            "missing; it must sit next to the sample. Without it no tool can keep the half out.")
     return set(json.loads(files[0].read_text(encoding="utf-8")))
+
+
+def carry_sealed_forward(new_doc: dict, out_path, keep_sealed_from) -> dict:
+    """``build`` guard: never silently drop a held-out split.
+
+    Writing over a sample that carries ``meta.sealed_heldout`` requires
+    ``keep_sealed_from`` (the old sample). The split then moves to the new sample
+    unchanged: every old held-out id must still be in it, and new rows join the FIT half.
+    The pointers are relative, so the new sample must sit in the same directory."""
+    out_path = Path(out_path)
+    old_path = Path(keep_sealed_from) if keep_sealed_from else out_path
+    old = json.loads(old_path.read_text(encoding="utf-8")) if old_path.exists() else {}
+    spec = old.get("meta", {}).get(SEALED_META_KEY)
+    if not spec:
+        if keep_sealed_from:
+            raise ValueError(f"{keep_sealed_from} has no meta.{SEALED_META_KEY} to keep")
+        return new_doc
+    if not keep_sealed_from:
+        raise ValueError(
+            f"{out_path} carries a sealed held-out split; rebuilding it would drop the split. "
+            f"Pass --keep-sealed-from {out_path} to carry it forward (new rows join the fit half).")
+    if old_path.resolve().parent != out_path.resolve().parent:
+        raise ValueError("the new sample must be written to the same directory as the old one "
+                         "(the held-out pointers are relative)")
+    held = sealed_ids(old, old_path)
+    new_ids = {it["id"] for block in new_doc["profiles"].values() for it in block["items"]}
+    if not held <= new_ids:
+        raise ValueError(f"{len(held - new_ids)} held-out ids are missing from the new sample; "
+                         "the split cannot be carried forward")
+    new_doc["meta"][SEALED_META_KEY] = spec
+    return new_doc
+
+
+class SealedRatingsError(ValueError):
+    """A sealed (held-out) ratings file reached a tool outside the final evaluation."""
+
+
+def refuse_sealed(payload: dict, source, *, final_heldout_eval: bool = False) -> dict:
+    """Shared loaders call this on every ratings payload they read: a sealed file is read
+    only with an explicit final-evaluation flag."""
+    if payload.get("sealed") and not final_heldout_eval:
+        raise SealedRatingsError(
+            f"{source} is a SEALED held-out ratings file (#241); it is read only for the final "
+            "evaluation (--final-heldout-eval)")
+    return payload
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8", newline="")
+    tmp.replace(path)
+
+
+SEALED_NOTE = ("HELD-OUT half of the census (#241). Not for tuning, calibration or rule design; "
+               "read once, for the final evaluation.")
+
+
+def seal_census(sample: dict, sample_path, ratings_path, profile: str = "guy") -> str:
+    """Move the held-out ratings out of ``ratings_path`` into the sealed file, keeping a raw
+    copy of the fit half (``fit_raw`` in the spec) for the like-for-like comparison.
+
+    Recoverable: the sealed file is written first and the census ratings file last, so an
+    interruption leaves the full ratings file intact, and re-running completes the seal
+    (after checking the held-out ratings still match the sealed file). Raises ValueError
+    on every refusal; returns a one-line summary."""
+    spec = sample.get("meta", {}).get(SEALED_META_KEY)
+    if not spec:
+        raise ValueError(f"{sample_path} has no meta.{SEALED_META_KEY}: nothing to seal")
+    base = Path(sample_path).parent
+    sealed_path = base / spec["ratings"]
+    fit_raw_path = base / spec["fit_raw"] if spec.get("fit_raw") else None
+    ratings_path = Path(ratings_path)
+    raw = json.loads(ratings_path.read_text(encoding="utf-8"))
+    if raw.get("seed") != sample["meta"]["seed"]:
+        raise ValueError(f"{ratings_path} is seed {raw.get('seed')}, the sample is seed {sample['meta']['seed']}")
+    held_ids = sealed_ids(sample, sample_path)
+    current = raw["ratings"].get(profile, {})
+
+    if sealed_path.exists():
+        sealed = json.loads(sealed_path.read_text(encoding="utf-8"))["ratings"][profile]
+        left = {k: v for k, v in current.items() if k in held_ids}
+        if not left:
+            if fit_raw_path and not fit_raw_path.exists():
+                raise ValueError(f"already sealed, but {fit_raw_path} is missing; restore it from git")
+            raise ValueError(f"already sealed: {sealed_path} exists")
+        if left != sealed:
+            raise ValueError(f"interrupted seal: the held-out ratings in {ratings_path} differ from "
+                             f"{sealed_path}; resolve by hand")
+        fit = {k: v for k, v in current.items() if k not in held_ids}  # finish the interrupted seal
+        held = sealed
+    else:
+        ids = [it["id"] for it in sample["profiles"][profile]["items"]]
+        fit, held = seal_ratings(ids, held_ids, current)
+        _write_json(sealed_path, {"generated": raw.get("generated"), "seed": raw["seed"],
+                                  "sealed": SEALED_NOTE, "ratings": {profile: held}})
+
+    fit_payload = {"generated": raw.get("generated"), "seed": raw["seed"], "ratings": {profile: fit}}
+    if fit_raw_path and not fit_raw_path.exists():
+        _write_json(fit_raw_path, fit_payload)
+    _write_json(ratings_path, fit_payload)  # last: until here the full file is intact
+    return f"sealed {len(held)} held-out ratings -> {sealed_path}; {len(fit)} fit ratings stay in {ratings_path}"
 
 
 def exclude_sealed(ratings: dict[str, str], sealed: set[str]) -> tuple[dict[str, str], int]:
@@ -245,7 +350,9 @@ def build_review(
     ]
     n = len(block["items"])
     block["strata"] = {STRATUM: {"population": n, "sampled": n, "weight": 1.0}}
-    out["meta"] = {**out["meta"], "scope": (
+    # A review sample is not a census: no held-out split of its own, and the page must
+    # never try to seal it.
+    out["meta"] = {**{k: v for k, v in out["meta"].items() if k != "sealed_heldout"}, "scope": (
         f"REVIEW: rows where engine and owner differ by >={min_gap} notches; blind re-rate."
     )}
     return out

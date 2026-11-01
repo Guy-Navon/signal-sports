@@ -84,12 +84,13 @@ def test_stored_snapshot_covers_sample_rows_only_and_feeds_the_census_metrics():
             _row(9, decision="push")]                       # outside the sample
     snap = stored_snapshot(rows, {"rss_1", "rss_2", "rss_3"})
     assert set(snap) == {"rss_1", "rss_2", "rss_3"}
-    assert snap["rss_1"] == {"guy": "push", "sport": "basketball", "event": "news", "path": "rules_only"}
+    assert snap["rss_1"] == {"guy": "push", "sport": "basketball", "event": "news", "path": "rules_only",
+                             "gate": None}
     m = census_metrics(snap, {"rss_1": "push", "rss_2": "feed", "rss_3": "hide", "rss_9": "push"})
     # The out-of-sample push rating cannot meet a decision through the snapshot.
     assert m["rated"] == 3 and m["push_recall"] == (1, 1)
     assert m["feed_plus_recall"] == (1, 2) and m["shown_precision"] == (1, 2)
-    assert set(stored_snapshot(rows, {"rss_1"}, "casual_deni_fan")["rss_1"]) == {"deni", "sport", "event", "path"}
+    assert set(stored_snapshot(rows, {"rss_1"}, "casual_deni_fan")["rss_1"]) == {"deni", "sport", "event", "path", "gate"}
 
 
 def test_usable_ratings_refuses_out_of_sample_rows():
@@ -136,3 +137,43 @@ def test_run_checks_annotates_sample_membership_and_owner_rating():
     gov = report["club_governance"]
     assert gov["n"] == 2 and gov["decisions"] == {"push": 1, "feed": 1} and gov["owner"] == {"push": 1}
     assert gov["pushes"][0]["owner"] == "push" and gov["pushes"][0]["in_sample"] is True
+
+
+def test_listings_tag_held_out_rows_and_hide_their_engine_decision():
+    from scripts.census_checks import _line
+
+    rows = [_row(1, event_type="club_governance", decision="push"),
+            _row(2, event_type="club_governance", decision="push")]
+    report = run_checks(rows, {"rss_1", "rss_2"}, {}, lambda text, source: [], sealed={"rss_2"})
+    fit_row, held_row = report["club_governance"]["pushes"]
+    assert fit_row["heldout"] is False and held_row["heldout"] is True
+    assert "push" in _line(fit_row)
+    assert "held-out: do not act" in _line(held_row) and "push" not in _line(held_row)
+
+
+def test_rules_only_is_split_by_the_recorded_gate_reason():
+    rows = [_row(1, decision="feed", path="rules_only"), _row(2, decision="hidden", path="rules_only"),
+            _row(3, decision="feed", path="llm_success")]
+    rows[0]["gate_reason"], rows[1]["gate_reason"], rows[2]["gate_reason"] = (
+        "strong_source_sport_hint", "clear_league_in_title", None)
+    snap = stored_snapshot(rows, {r["id"] for r in rows})
+    assert snap["rss_1"]["gate"] == "strong_source_sport_hint"
+    by_path = metrics_by_path(snap, {"rss_1": "feed", "rss_2": "hide", "rss_3": "feed"})
+    assert by_path["rules_only"]["rated"] == 2
+    assert by_path["rules_only/strong_source_sport_hint"]["rated"] == 1
+    assert by_path["rules_only/clear_league_in_title"]["rated"] == 1
+    assert not any(k.startswith("llm_success/") for k in by_path)
+
+
+def test_gate_reason_comes_from_the_stored_trace():
+    from types import SimpleNamespace
+
+    from scripts.census_checks import row_from_scored
+
+    article = SimpleNamespace(
+        id="rss_1", translated_title=None, title="t", subtitle=None, source="walla_sport", sport="football",
+        event_type="news", entity_ids=[], primary_competition=None, article_competitions=[],
+        classified_by="rules",
+        classification_trace={"llm": {"gate_should_call": False, "gate_reason": "clear_league_in_title"}})
+    row = row_from_scored(SimpleNamespace(article=article, decision="hidden", matched_event_rule=None))
+    assert row["path"] == "rules_only" and row["gate_reason"] == "clear_league_in_title"

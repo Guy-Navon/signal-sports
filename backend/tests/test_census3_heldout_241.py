@@ -27,7 +27,8 @@ HELD = {"rss_001", "rss_004", "rss_005"}
 
 def _census(tmp_path: Path) -> tuple[Path, Path]:
     sample = {
-        "meta": {"seed": 11, cr.SEALED_META_KEY: {"ids": "held.json", "ratings": "held_ratings.json"}},
+        "meta": {"seed": 11, cr.SEALED_META_KEY: {
+            "ids": "held.json", "ratings": "held_ratings.json", "fit_raw": "fit_raw.json"}},
         "profiles": {"guy": {"items": [{"id": i, "title": f"t{i}", "engine_decision": "feed"} for i in IDS]}},
     }
     sample_path = tmp_path / "sample.json"
@@ -124,7 +125,7 @@ def test_review_never_includes_held_out_rows(tmp_path):
     out = tmp_path / "review.json"
     rate_census.cmd_review(argparse.Namespace(
         sample=str(sample_path), ratings=str(ratings_path), out=str(out),
-        snapshot=None, min_gap=2, profile="guy"))
+        snapshot=None, min_gap=2, profile="guy", final_heldout_eval=False))
     review_ids = {it["id"] for it in json.loads(out.read_text(encoding="utf-8"))["profiles"]["guy"]["items"]}
     assert review_ids == set(IDS) - HELD  # feed vs hide is a 2-notch gap on every row
 

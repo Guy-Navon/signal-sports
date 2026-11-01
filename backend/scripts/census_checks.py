@@ -55,7 +55,9 @@ CUP_WORDS = ("גביע ווינר", "גביע וינר", "סופרקאפ", "סו
 AHEAD = "לקראת"
 
 # Stored ``classified_by`` → classification path (ingestion_service.py). "rules" means the
-# LLM was not called (gated out, or no provider); the stored row does not say which.
+# LLM was not called: the gate said no. The stored trace records why
+# (``classification_trace.llm.gate_should_call`` / ``gate_reason``), so rules_only is also
+# reported per gate reason.
 PATHS = {
     "llm": "llm_success",
     "llm+rules_guardrail": "llm_success",
@@ -84,6 +86,7 @@ def row_from_scored(scored) -> dict:
         "entity_ids": list(a.entity_ids or []),
         "competitions": [c for c in [a.primary_competition, *(a.article_competitions or [])] if c],
         "path": classification_path(a.classified_by),
+        "gate_reason": ((a.classification_trace or {}).get("llm") or {}).get("gate_reason"),
     }
 
 
@@ -139,7 +142,8 @@ def stored_snapshot(rows: Iterable[dict], sample_ids: set[str], profile: str = "
     (A corpus_rerun_diff snapshot is a rules-only replay; this is what production stored.)"""
     field = SNAPSHOT_FIELD[profile]
     return {
-        r["id"]: {field: r["decision"], "sport": r["sport"], "event": r["event_type"], "path": r["path"]}
+        r["id"]: {field: r["decision"], "sport": r["sport"], "event": r["event_type"], "path": r["path"],
+                  "gate": r.get("gate_reason")}
         for r in rows if r["id"] in sample_ids
     }
 
@@ -160,18 +164,26 @@ def usable_ratings(ratings: dict[str, str], sample_ids: set[str], sealed: set[st
 
 
 def metrics_by_path(snapshot: dict, ratings: dict[str, str], profile: str = "guy") -> dict:
-    """``census_metrics`` for every rated row, then per classification path."""
+    """``census_metrics`` for every rated row, then per classification path, and rules_only
+    once more per recorded gate reason (``rules_only/<reason>``)."""
     field = SNAPSHOT_FIELD[profile]
     out = {"all": census_metrics(snapshot, ratings, field)}
     for path in PATH_ORDER:
         sub = {k: v for k, v in ratings.items() if k in snapshot and snapshot[k]["path"] == path}
         if sub:
             out[path] = census_metrics(snapshot, sub, field)
+        if path == "rules_only":
+            reasons = sorted({snapshot[k]["gate"] for k in sub if snapshot[k].get("gate")})
+            for reason in reasons:
+                part = {k: v for k, v in sub.items() if snapshot[k].get("gate") == reason}
+                out[f"rules_only/{reason}"] = census_metrics(snapshot, part, field)
     return out
 
 
-def annotate(rows: list[dict], sample_ids: set[str], ratings: dict[str, str]) -> list[dict]:
-    return [{**r, "in_sample": r["id"] in sample_ids, "owner": ratings.get(r["id"])} for r in rows]
+def annotate(rows: list[dict], sample_ids: set[str], ratings: dict[str, str],
+             sealed: set[str] = frozenset()) -> list[dict]:
+    return [{**r, "in_sample": r["id"] in sample_ids, "owner": ratings.get(r["id"]),
+             "heldout": r["id"] in sealed} for r in rows]
 
 
 def summarize(rows: list[dict]) -> dict:
@@ -183,8 +195,9 @@ def summarize(rows: list[dict]) -> dict:
 
 
 def run_checks(rows: list[dict], sample_ids: set[str], ratings: dict[str, str],
-               resolve: Callable[[str, str], list[str]]) -> dict:
-    rows = annotate(rows, sample_ids, ratings)
+               resolve: Callable[[str, str], list[str]], sealed: set[str] = frozenset()) -> dict:
+    """The four checks. Held-out rows are tagged; the listing hides their engine decision."""
+    rows = annotate(rows, sample_ids, ratings, sealed)
     governance, governance_push = club_governance_check(rows)
     cups, cups_hidden = cup_check(rows)
     ahead, ahead_schedule = subtitle_ahead_check(rows)
@@ -204,6 +217,8 @@ def run_checks(rows: list[dict], sample_ids: set[str], ratings: dict[str, str],
 
 
 def _line(r: dict) -> str:
+    if r.get("heldout"):  # never inspected for rule design: no decision, no rating shown
+        return f"    [held-out: do not act] {r['id']}"
     owner = r.get("owner") or ("unrated" if r.get("in_sample") else "-")
     return f"    {r['decision']:9} {r['event_type'] or '-':16} owner={owner:7} {r['id']}  {r['title'][:70]}"
 
@@ -284,7 +299,8 @@ def main(argv: list[str] | None = None) -> int:
     _, feeds = score_feeds([args.profile])
     rows = [row_from_scored(s) for s in feeds[args.profile] if is_fresh(s.article.published_at, args.since)]
 
-    report = run_checks(rows, sample_ids, ratings, resolve_executives)
+    report = run_checks(rows, sample_ids, ratings, resolve_executives,
+                        set() if args.final_heldout_eval else sealed)
     _print(report)
     snapshot = stored_snapshot(rows, sample_ids, args.profile)
     if ratings:

@@ -99,6 +99,9 @@ which also uses the LLM. Say so whenever you quote their numbers.
 - **Census #2:** find biases on `--split fit`, confirm on `--split heldout` (this reproduces
   `census_calibration_fit.py`'s seeded #237 split exactly). Every reuse of the held-out half erodes
   it; for a major tuning effort, ask Guy for a fresh rated sample (census #3 is milestone 11).
+- **Census #3 has a sealed held-out half** (`docs/qa/CENSUS_3_2026-11.md` §3): develop on
+  `census3_ratings.json` (fit) only. `census3_heldout_ratings.json` is read once, for the final
+  evaluation, with `--final-heldout-eval`; never feed it to a gate or a tuning loop.
 - **Data a fix was built from is never an accuracy estimate:** golden cases, n190/n191 corrections,
   clustering fixtures, rows quoted in the issue.
 - **Small groups don't carry a calibration** (n < 5 per group per the census protocol); a large

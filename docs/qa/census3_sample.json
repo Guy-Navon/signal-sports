@@ -9,7 +9,8 @@
     "sealed_heldout": {
       "ids": "census3_heldout_ids.json",
       "ratings": "census3_heldout_ratings.json",
-      "policy": "Guy rates all rows blind. rate_census.py seal then moves the held-out ratings into the sealed file. They are never used for tuning, calibration or rule design; they are read once, for the final evaluation (--final-heldout-eval / passing the sealed file explicitly)."
+      "fit_raw": "census3_fit_raw_ratings.json",
+      "policy": "Guy rates all rows blind. Rating the last row (or rate_census.py seal) moves the held-out ratings into the sealed file and keeps a raw copy of the fit half. Held-out ratings are never used for tuning, calibration or rule design; they are read once, for the final evaluation (--final-heldout-eval / the sealed file passed explicitly)."
     },
     "engine": "v2"
   },

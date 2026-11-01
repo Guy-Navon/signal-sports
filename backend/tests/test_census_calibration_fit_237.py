@@ -96,3 +96,44 @@ def test_a_sealed_held_out_half_is_excluded_unless_final_evaluation(tmp_path):
 
     assert "sealed held-out half: 2 ratings excluded" in run()
     assert "excluded" not in run("--final-heldout-eval")
+
+
+def _sealed_fixture(tmp_path):
+    """Post-seal census files: the ratings file holds the fit half only, the held-out half
+    sits in its own sealed file, and the sample points at the pre-registered ids."""
+    db, ratings, sample, _ = _fixture(tmp_path)
+    doc = json.loads(sample.read_text(encoding="utf-8"))
+    ids = [it["id"] for it in doc["profiles"]["guy"]["items"]]
+    held = [ids[1], ids[4]]
+    doc["meta"] = {"sealed_heldout": {"ids": "held.json", "ratings": "held_ratings.json"}}
+    sample.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    (tmp_path / "held.json").write_text(json.dumps(held), encoding="utf-8")
+    all_ratings = json.loads(ratings.read_text(encoding="utf-8"))["ratings"]["guy"]
+    ratings.write_text(json.dumps({"ratings": {"guy": {k: v for k, v in all_ratings.items() if k not in held}}}),
+                       encoding="utf-8")
+    sealed = tmp_path / "held_ratings.json"
+    sealed.write_text(json.dumps({"sealed": "HELD-OUT", "ratings": {"guy": {k: all_ratings[k] for k in held}}}),
+                      encoding="utf-8")
+    return db, ratings, sample, sealed
+
+
+def _run_fit(db, ratings, sample, *extra):
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), "--db", str(db), "--ratings", str(ratings), "--sample", str(sample), *extra],
+        cwd=BACKEND, capture_output=True, text=True, encoding="utf-8", timeout=300,
+    )
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    return proc.stdout
+
+
+def test_post_seal_files_work_and_the_halves_are_the_pre_registered_ones(tmp_path):
+    # The sealed file as --review names ids the fit-only ratings file does not have.
+    db, ratings, sample, sealed = _sealed_fixture(tmp_path)
+    out = _run_fit(db, ratings, sample, "--review", str(sealed))
+    assert "sealed held-out half: 2 ratings excluded" in out
+    # The halves come from the pre-registered ids file, not a fresh split of the loaded rows.
+    assert "articles replayed: 6 (fit 4, hold-out 2)" in out
+    assert "BASE hold: no rated rows" in out
+
+    final = _run_fit(db, ratings, sample, "--review", str(sealed), "--final-heldout-eval")
+    assert "excluded" not in final and "BASE hold: no rated rows" not in final

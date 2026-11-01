@@ -177,6 +177,13 @@ _CLUB_GOVERNANCE = (
     # home venue / league membership
     phrase("המגרש הביתי"), phrase("משחקי הבית"), phrase("להחזיר את משחקי"),
     phrase("יחזרו לישראל"), phrase("יחזרו ארצה"),
+    # A home-venue move written as a move (#242). "המעבר של" alone is a person's
+    # transfer in 5 of its 6 corpus rows ("המעבר של קאדין קרינגטון להפועל"), so it
+    # counts only with a club family name as its subject. Hosting is the infinitive
+    # "לארח" with a venue object; a normal home game is "תארח" and is not matched.
+    regex(r'(?<![א-ת])המעבר של (?:מכבי|הפועל|בית["״]ר|עירוני)(?![א-ת])'),
+    phrase("לארח את משחקי"),
+    regex(r"(?<![א-ת])לארח ב(?:אולם|היכל)"),
     phrase('מנכ"ל היורוליג'), phrase('יו"ר היורוליג'), phrase("נציגי היורוליג"),
     phrase("ownership"), phrase("controlling stake"), phrase("arbitration"),
 )

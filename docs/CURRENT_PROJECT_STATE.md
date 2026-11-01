@@ -261,7 +261,7 @@ them, and drift tests on both sides enforce it.
 Pipeline order and contracts: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) (map),
 [ARTICLE_FACTS.md](ARTICLE_FACTS.md) (facts stage), [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md)
 (gate, merge, metrics), and [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) (the
-deterministic rule changelog, §1–§18).
+deterministic rule changelog, §1–§20).
 
 - **Rules first, always.** The title is primary, and the subtitle only fills gaps. *Title-local*
   event types (`title_win`, `grand_slam_winner`, `major_trade`, `schedule`, …) never come from
@@ -358,7 +358,7 @@ deterministic rule changelog, §1–§18).
   reruns (cups 93→100/140, schedule 103→107/140), and census #3 will measure it on real
   ingestion.
 - Push recall is low (2/8 on the rerun), and the misses are mostly institutional Maccabi news.
-  #242 (venue move) is waiting for more examples.
+  The #242 venue-move vocabulary adds one (the Cyprus move, owner: push; RSS_QUALITY_GUARDRAILS §20).
 
 **Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #197 results-sync attempt record and lease (the feedback half is done), #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #199 bundle weight and unfiltered feed query, #200 signup/login abuse
 protection (a **gate before widening access**, not needed while single-user behind Tailscale).
@@ -439,7 +439,7 @@ milestone 11's gate.
    - #241 census #3
    - #254 census-based gate (feed+ recall, push recall, noise band)
    - #255 protect rated rows from retention (code landed; owner runs the one-off `--apply`)
-   - #242 venue-move vocabulary, if census #3 brings enough examples
+   - #242 venue-move vocabulary for `club_governance` (PR open; RSS_QUALITY_GUARDRAILS §20)
 3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
    - done: #256 (measurement), #259 (Maccabi/Hapoel Tel Aviv people registered)
    - open: #345 (the corroborated basketball exception landed; wanted stories with no non-LLM

@@ -966,6 +966,53 @@ guard is not weakened. Tests: `tests/test_basketball_people_259.py`. Measurement
 
 ---
 
+## 20. On Air Is Not a Broadcast Slot (#406, 2026-11-02)
+
+**The defect.** `schedule` hides broadcast and fixture filler, and the bare word `שידור`
+(broadcast) was schedule evidence. A story about something that happened on air became a
+schedule: census #3 (fit half) `סוף עידן ב-NBA: ארני ג'ונסון פורש, בארקלי פרץ בבכי בשידור חי`,
+rated feed, was hidden from Guy.
+
+**Measured shapes (2026-11-01 frozen corpus, deterministic rerun).** 16 rows outside the
+census #3 held-out half were `schedule` with `שידור` in the title:
+
+| shape | rows | example | should be |
+|---|---:|---|---|
+| happened on air | 4 | `בארקלי פרץ בבכי בשידור חי`, `התפוצץ בשידור` | not schedule |
+| broadcasting-industry news | 3 | `נטפליקס רכשה את זכויות השידור`, `שידורי אתלטיקת הנשים בדרך לשינוי` | not schedule |
+| call to watch | 5 | `צפו בשידור: מכבי אשדוד - עירוני נס ציונה` (rated hide) | schedule |
+| broadcast label heading the title | 4 | `ב-11:00: שידור חי מהגרלת…`, `שידור חי: מסע"ת…` | schedule |
+
+`ישודר` (will be broadcast) and a broadcast listing had no title in the corpus. Lineups with a
+time and a channel (`19:30, ספורט2: …`) are not `schedule` today and were left alone: this
+fix only narrows.
+
+**Fix.** `event_evidence._BROADCAST_ANNOUNCEMENT` replaces `שידור` / `שידורים`. A broadcast
+word is evidence only as a call to watch (`צפו ב(ה)שידור`), a label heading the title
+(`שידור חי:` / `שידור ישיר:` / `שידור חי מ…`, optionally after a time), a future broadcast
+(`ישודר` / `ישודרו` / `תשודר`, word-bounded because `ישודרג` / `משודרג` mean "upgraded"), or a
+listing (`לוח (ה)שידורים`). The classifier still proposes on any `שידור`, and validation
+decides, so the LLM path (Guardrail 4b) is narrowed the same way. `schedule` stays title-local
+(§17).
+
+**Measured (deterministic rerun, 3,877 rows, against main).** 8 rows outside the held-out
+half change facts and 1 decision flips: the reported row, Guy hidden → low_feed (rated feed).
+Deni has no flip. Push is unchanged (Guy 22/22, Deni 4/4). Census #2 and N05 agreement are
+unchanged; census #3 fit: shown precision 37/40 → 38/41, feed+ recall 14/19 → 15/19, exact
+105 → 105. No row rated hide and no unrated row becomes visible.
+
+Two rows fall through to an event their subtitle proposes once `schedule` no longer masks
+it, both hidden for both profiles: the Netflix rights deal becomes `signing` (the subtitle
+says `חתמה על הסכם`), and a pundit quote becomes `match_result` (`בניצחון הפועל` in the
+subtitle). Neither is a correct event; both are the general subtitle-fallthrough weakness,
+not new vocabulary.
+
+Stored rows keep their old facts until a backfill; none was run.
+
+Tests: `tests/test_broadcast_schedule_406.py`.
+
+---
+
 ## Where open classification work is tracked
 
 This file is a changelog of shipped rules. Open gaps live in GitHub issues (for example #242,

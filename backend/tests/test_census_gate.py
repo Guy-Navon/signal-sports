@@ -8,7 +8,7 @@ local-only, while the rules it enforces live in the pure
 The census differs from N05 in two ways that shape the checks:
 
 - every row is rated (weight 1.0), so recall can be read directly instead of
-  through `false_hide`, which the 76% hide base rate dilutes;
+  through `false_hide`, which the hide base rate dilutes (596 of 804 rows, 74.1%);
 - a single owner rating is noisy by about one notch (census #2's blind review:
   28 of 58 large gaps changed, 26 toward the engine), so the disagreement check
   counts only gaps of two notches or more.
@@ -188,7 +188,7 @@ def test_feed_plus_recall_may_trade_one_loss_for_a_larger_gain(baseline):
 # ── acceptance: the noise band ────────────────────────────────────────────────
 
 
-def test_one_notch_moves_do_not_fail_the_two_notch_check(baseline):
+def test_a_change_that_opens_only_one_notch_gaps_does_not_fail_the_two_notch_check(baseline):
     """ACCEPTANCE (#254): moves inside the rating noise band are not regressions.
 
     Every move here opens a ONE-notch gap on a row the engine agreed with, so
@@ -453,9 +453,130 @@ def test_an_incomparable_previous_baseline_refuses_without_force(baseline):
     assert forced.allowed
 
 
-def test_the_first_baseline_needs_no_delta():
-    update = gate.check_baseline_update(None, _merged(), _decisions(), facts="stored")
-    assert update.allowed and update.delta is None
+def test_a_first_baseline_needs_an_explicit_forced_reason():
+    """Review finding: a missing file or a new --baseline path wrote with no delta."""
+    refused = gate.check_baseline_update(None, _merged(), _decisions(), facts="stored")
+    assert not refused.allowed
+    assert "first baseline" in refused.message.lower()
+    forced = gate.check_baseline_update(
+        None, _merged(), _decisions(), facts="stored", force=True, force_reason="new census #9, #999"
+    )
+    assert forced.allowed
+    assert forced.delta == {"first_baseline": True, "forced_reason": "new census #9, #999"}
+
+
+def test_a_pass_that_needs_an_accept_says_so(baseline):
+    update = _check_update(
+        baseline,
+        _decisions(guy={"f0": "hidden", "fs0": "hidden"}),
+        accepted=["guy.feed_plus_recall"],
+        accept_reason="reviewed in #999",
+    )
+    assert update.allowed
+    assert "only because of --accept" in update.message
+    assert "guy.feed_plus_recall" in update.message
+
+
+# ── re-rating is a change too (review finding, PR #399) ───────────────────────
+#
+# A new --review file, or a ratings file edited in place, can relabel rows toward
+# the engine. The decisions do not move, so the decision delta reads "0 rows
+# changed" while every metric moves. That is the laundering the owner rule
+# forbids, so a rating change on an already-rated row needs --force-update.
+
+
+def _relabelled(**changes):
+    return gate.merge_census([_source(dict(_RATINGS) | changes)])
+
+
+def test_the_previous_census_is_rebuilt_from_the_baseline_itself(baseline):
+    previous = gate.previous_census(baseline)
+    assert previous.ratings == _merged().ratings
+    assert previous.article_ids == _merged().article_ids
+
+
+def test_relabelling_rated_rows_refuses_the_update_and_lists_them(baseline):
+    # Relabel the two false hides toward the engine: >=2-notch falls, nothing moves.
+    new = _relabelled(fh0="hide", fh1="hide")
+    update = gate.check_baseline_update(
+        baseline, gate.previous_census(baseline), _decisions(), facts="stored", merged=new
+    )
+    assert not update.allowed
+    assert "re-rated" in update.message
+    ratings = update.delta["ratings"]["guy"]
+    assert ratings["re_rated"] == [
+        {"article_id": "fh0", "before": "feed", "after": "hide"},
+        {"article_id": "fh1", "before": "feed", "after": "hide"},
+    ]
+    assert ratings["metrics_previous_ratings"]["two_notch"] == 4
+    assert ratings["metrics_new_ratings"]["two_notch"] == 2
+    assert update.delta["rated_rows_changed"] == []  # why a decision-only delta is not enough
+
+
+def test_a_new_review_file_that_relabels_rows_is_caught(baseline):
+    review = gate.ReviewSource(path="r.json", doc={"seed": 7, "ratings": {"guy": {"pm": "low"}}})
+    new = gate.merge_census([_source()], [review])
+    update = gate.check_baseline_update(
+        baseline, gate.previous_census(baseline), _decisions(), facts="stored", merged=new
+    )
+    assert not update.allowed
+    assert update.delta["ratings"]["guy"]["re_rated"] == [
+        {"article_id": "pm", "before": "push", "after": "low"}
+    ]
+
+
+def test_a_reviewed_relabel_goes_through_only_when_forced_with_a_reason(baseline):
+    new = _relabelled(fh0="hide")
+    update = gate.check_baseline_update(
+        baseline, gate.previous_census(baseline), _decisions(), facts="stored", merged=new,
+        force=True, force_reason="blind re-rate reviewed in #999",
+    )
+    assert update.allowed
+    assert update.delta["forced_reason"] == "blind re-rate reviewed in #999"
+
+
+def test_new_rows_from_another_census_are_allowed(baseline):
+    """Census #3 joining adds rows; it re-rates none."""
+    extra = _source({"z1": "feed", "z2": "hide"}, path="c3.json")
+    new = gate.merge_census([_source(), extra])
+    decisions = _decisions(guy={"z1": "feed", "z2": "hidden"}, deni={"z1": "hidden", "z2": "hidden"})
+    update = gate.check_baseline_update(
+        baseline, gate.previous_census(baseline), decisions, facts="stored", merged=new
+    )
+    assert update.allowed, update.message
+    assert update.delta["ratings"]["guy"]["added"] == 2
+    assert update.delta["ratings"]["guy"]["re_rated"] == []
+
+
+def test_dropping_rated_rows_refuses_the_update(baseline):
+    smaller = gate.merge_census([_source({k: v for k, v in _RATINGS.items() if k != "pm"})])
+    update = gate.check_baseline_update(
+        baseline, gate.previous_census(baseline), _decisions(), facts="stored", merged=smaller
+    )
+    assert not update.allowed
+    assert update.delta["ratings"]["guy"]["removed"] == ["pm"]
+
+
+def test_the_new_baseline_records_the_previous_inputs_and_ratings_hash(baseline):
+    update = _check_update(baseline, _decisions())
+    fresh = gate.build_baseline(_merged(), _decisions(), meta={}, previous=baseline, delta=update.delta)
+    assert fresh["previous"]["inputs"] == baseline["inputs"]
+    assert fresh["previous"]["ratings_sha256"] == {"guy": baseline["profiles"]["guy"]["ratings_sha256"]}
+
+
+def test_a_baseline_stores_the_ratings_it_was_built_on(baseline):
+    stored = baseline["profiles"]["guy"]["ratings"]
+    assert stored == _RATINGS
+    assert gate.ratings_fingerprint(stored) == baseline["profiles"]["guy"]["ratings_sha256"]
+
+
+def test_the_delta_renders_the_re_rated_rows(baseline):
+    new = _relabelled(fh0="hide")
+    update = gate.check_baseline_update(
+        baseline, gate.previous_census(baseline), _decisions(), facts="stored", merged=new
+    )
+    text = gate.format_delta(update.delta)
+    assert "re-rated" in text and "fh0: feed -> hide" in text
 
 
 def test_the_new_baseline_records_the_reviewed_delta(baseline):
@@ -472,6 +593,26 @@ def test_the_delta_renders_before_and_after_per_check_and_the_rated_rows(baselin
     text = gate.format_delta(update.delta)
     assert "guy.push_recall" in text and "0.6667 -> 1.0" in text
     assert "pm" in text and "hidden -> push" in text and "rated push" in text
+
+
+def test_two_reviews_disagreeing_on_a_row_is_an_error():
+    """Review finding: file order used to settle it silently."""
+    first = gate.ReviewSource(path="r1.json", doc={"seed": 7, "ratings": {"guy": {"f0": "low"}}})
+    second = gate.ReviewSource(path="r2.json", doc={"seed": 7, "ratings": {"guy": {"f0": "high"}}})
+    with pytest.raises(GateInputError, match="f0"):
+        gate.merge_census([_source()], [first, second])
+
+
+def test_two_reviews_agreeing_on_a_row_are_fine():
+    first = gate.ReviewSource(path="r1.json", doc={"seed": 7, "ratings": {"guy": {"f0": "low"}}})
+    second = gate.ReviewSource(path="r2.json", doc={"seed": 7, "ratings": {"guy": {"f0": "low"}}})
+    assert gate.merge_census([_source()], [first, second]).ratings["guy"]["f0"] == "low"
+
+
+def test_a_review_rated_against_another_sample_is_rejected():
+    review = gate.ReviewSource(path="r.json", doc={"seed": 99, "ratings": {"guy": {"f0": "low"}}})
+    with pytest.raises(GateInputError, match="seed"):
+        gate.merge_census([_source()], [review])
 
 
 # ── the report ────────────────────────────────────────────────────────────────
@@ -551,7 +692,16 @@ def test_committed_baseline_matches_the_committed_ratings(committed):
     """Editing a rating without regenerating the baseline is caught here."""
     baseline, merged, _ = committed
     for profile_id, ratings in merged.ratings.items():
-        assert baseline["profiles"][profile_id]["ratings_sha256"] == gate.ratings_fingerprint(ratings)
+        block = baseline["profiles"][profile_id]
+        assert block["ratings_sha256"] == gate.ratings_fingerprint(ratings)
+        assert block["ratings"] == ratings
+
+
+def test_committed_baseline_rebuilds_its_own_census(committed):
+    baseline, merged, _ = committed
+    previous = gate.previous_census(baseline)
+    assert previous.ratings == merged.ratings
+    assert previous.article_ids == merged.article_ids
 
 
 def test_committed_baseline_metrics_recompute_from_its_own_decisions(committed):

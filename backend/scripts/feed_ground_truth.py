@@ -98,10 +98,16 @@ SEED = 20260905
 
 
 def _git_sha() -> str:
+    """HEAD, suffixed ``-dirty`` when tracked files differ from it: a measurement
+    taken on uncommitted code is not reproducible from the SHA alone."""
     try:
-        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        changed = subprocess.check_output(
+            ["git", "status", "--porcelain", "--untracked-files=no"], text=True
+        ).strip()
     except Exception:
         return "unknown"
+    return f"{sha}-dirty" if changed else sha
 
 
 def _title(article) -> str:
@@ -664,28 +670,38 @@ def _rerun_articles(articles) -> list:
     """Rules-only reclassification of ``articles`` in memory: no LLM, no translation,
     no DB writes. Mirrors ``scripts/corpus_rerun_diff.py snapshot`` so the numbers are
     comparable with a rerun diff. An article whose source has no config is dropped,
-    which the census metrics then report as a row without a decision."""
+    which the census metrics then report as a row without a decision.
+
+    The LLM provider singleton is built from the environment when
+    ``ingestion_service`` is first imported, and backend/.env may enable one, so the
+    environment variable alone is not a guarantee: ``llm_available=False`` makes the
+    LLM branch unreachable regardless (tests/test_census_gate_rerun.py)."""
     import logging
     import os
 
     os.environ["CLASSIFICATION_PROVIDER"] = "disabled"
     os.environ["TRANSLATION_PROVIDER"] = "disabled"
-    logging.disable(logging.CRITICAL)
     from app.ingestion import ingestion_service
     from app.ingestion.adapters.base import RawSourceItem
     from app.ingestion.config import get_source_config
 
     out = []
-    for stored in articles:
-        cfg = get_source_config(stored.source)
-        if cfg is None:
-            continue
-        fresh, _, _ = ingestion_service._normalise(
-            RawSourceItem(source_id=stored.source, url=stored.url, title=stored.title,
-                          published_at=None, summary=stored.subtitle or ""),
-            cfg,
-        )
-        out.append(fresh.model_copy(update={"id": stored.id, "published_at": stored.published_at}))
+    previous_disable = logging.root.manager.disable
+    logging.disable(logging.CRITICAL)  # per-row classifier logging, for this loop only
+    try:
+        for stored in articles:
+            cfg = get_source_config(stored.source)
+            if cfg is None:
+                continue
+            fresh, _, _ = ingestion_service._normalise(
+                RawSourceItem(source_id=stored.source, url=stored.url, title=stored.title,
+                              published_at=None, summary=stored.subtitle or ""),
+                cfg,
+                llm_available=False,
+            )
+            out.append(fresh.model_copy(update={"id": stored.id, "published_at": stored.published_at}))
+    finally:
+        logging.disable(previous_disable)
     return out
 
 
@@ -748,10 +764,16 @@ def _cmd_census_gate(args, accepted: list) -> None:
     merged = _load_census(*_census_input_paths(args, baseline))
     # An update is first checked against the PREVIOUS baseline on the census that
     # baseline recorded, which may differ from the new inputs (census #3 joining).
+    # The previous census is rebuilt from the baseline's own stored ratings, so a
+    # ratings file edited in place, or a new review, shows up as re-rated rows.
+    # Baselines written before ratings were stored fall back to their recorded files.
     previous_merged = merged
     if args.update_baseline and baseline is not None:
         try:
-            previous_merged = _load_census(*_recorded_paths(baseline))
+            try:
+                previous_merged = census_gate.previous_census(baseline)
+            except feed_quality_gate.GateInputError:
+                previous_merged = _load_census(*_recorded_paths(baseline))
         except (SystemExit, OSError) as exc:
             raise SystemExit(
                 f"Cannot reload the census the previous baseline recorded ({exc}). Without it "
@@ -773,7 +795,7 @@ def _cmd_census_gate(args, accepted: list) -> None:
         # A baseline is a change detector, not proof the result is correct: the delta
         # against the previous one is shown, and a failing gate refuses the rewrite.
         update = census_gate.check_baseline_update(
-            baseline, previous_merged, decisions, facts=args.facts,
+            baseline, previous_merged, decisions, facts=args.facts, merged=merged,
             accepted=accepted, accept_reason=args.reason,
             force=args.force_update, force_reason=args.reason if args.force_update else None,
         )

@@ -7,15 +7,18 @@ cohort rated by the owner, one stratum at weight 1.0
 are worth guarding:
 
 - **Recall can be read directly.** N05's `false_hide` is a share of the whole
-  corpus, and 76% of census #2 is rated hide, so the base rate dilutes it. Here
+  corpus, and 74.1% of census #2 is rated hide (596 of 804), so the base rate
+  dilutes it. Here
   the question is asked of the rows the owner wanted: of the rows rated feed or
   better, how many does the feed show (**feed+ recall**), and of the rows rated
   push, how many does it push (**push recall**).
 - **A single rating is noisy by about one notch.** Census #2's blind re-review
   changed 28 of 58 large disagreements, 26 of them toward the engine. So the
-  disagreement check counts only gaps of **two notches or more**: a change
-  confined to one-notch moves sits inside the rating noise band and must not
-  read as a regression, while a new two-notch gap is outside it.
+  disagreement check counts only gaps of **two notches or more**: a change that
+  opens only one-notch gaps sits inside the rating noise band and must not read
+  as a regression, while a new two-notch gap is outside it. (A same-direction
+  one-notch drift across many rows is NOT caught by any check: a known gap, #254
+  follow-up.)
 
 Checks and slack (the slack rule is N05's: one rated item at the metric's own
 denominator, or none):
@@ -146,6 +149,7 @@ def merge_census(
     ratings: dict[str, dict[str, str]] = {}
     conflicts: dict[tuple[str, str], set[str]] = {}
     article_ids: set[str] = set()
+    seed_of: dict[str, Any] = {}               # article id -> seed of the sample it came from
     censuses: list[dict[str, Any]] = []
     duplicates = 0
 
@@ -160,6 +164,8 @@ def merge_census(
         sample_profiles = src.sample_doc.get("profiles", {})
         src_ids = {it["id"] for block in sample_profiles.values() for it in block.get("items", [])}
         article_ids |= src_ids
+        for aid in src_ids:
+            seed_of.setdefault(aid, sample_seed if sample_seed is not None else ratings_seed)
 
         rated_counts: dict[str, int] = {}
         for profile_id, per in _ratings_of(src.ratings_doc).items():
@@ -193,10 +199,19 @@ def merge_census(
         })
 
     review_entries: list[dict[str, Any]] = []
+    reviewed: dict[tuple[str, str], tuple[str, str]] = {}   # (profile, id) -> (rating, review path)
     settled = 0
     for review in reviews:
         rows = changed = 0
+        review_seed = review.doc.get("seed")
         for profile_id, per in _ratings_of(review.doc).items():
+            if review_seed is not None:
+                other = sorted({seed_of[a] for a in per if seed_of.get(a) not in (None, review_seed)}, key=str)
+                if other:
+                    raise GateInputError(
+                        f"{review.path} was rated against seed {review_seed}, but its rows come "
+                        f"from a sample with seed {other}: it describes a different item set."
+                    )
             dest = ratings.get(profile_id, {})
             missing = sorted(set(per) - set(dest))
             if missing:
@@ -206,6 +221,14 @@ def merge_census(
                 )
             _validate_values(per, review.path)
             for aid, rating in per.items():
+                earlier = reviewed.get((profile_id, aid))
+                if earlier is not None and earlier[0] != rating:
+                    raise GateInputError(
+                        f"Two reviews disagree on {aid} ({profile_id}): {earlier[1]} says "
+                        f"'{earlier[0]}', {review.path} says '{rating}'. File order must not "
+                        "settle it: re-rate the row once more and keep one answer."
+                    )
+                reviewed[(profile_id, aid)] = (rating, review.path)
                 rows += 1
                 if dest[aid] != rating:
                     changed += 1
@@ -335,6 +358,9 @@ def build_baseline(
             ratings = merged.ratings[profile_id]
             block["rated"] = len(ratings)
             block["ratings_sha256"] = ratings_fingerprint(ratings)
+            # Stored so a later update can be checked against exactly these labels,
+            # even if the ratings file is edited in place or a review is added.
+            block["ratings"] = {aid: ratings[aid] for aid in sorted(ratings)}
             block["metrics"] = census_metrics(ratings, current)
         block["decisions"] = {aid: current[aid] for aid in scope}
         profiles[profile_id] = block
@@ -358,9 +384,34 @@ def build_baseline(
             "generated_at": previous.get("meta", {}).get("generated_at"),
             "git_sha": previous.get("meta", {}).get("git_sha"),
             "facts": previous.get("facts", "stored"),
+            "inputs": dict(previous.get("inputs", {})),
+            "ratings_sha256": {
+                p: block["ratings_sha256"]
+                for p, block in sorted(previous.get("profiles", {}).items())
+                if "ratings_sha256" in block
+            },
             "delta": dict(delta) if delta is not None else None,
         }
     return out
+
+
+def previous_census(baseline: Mapping[str, Any]) -> MergedCensus:
+    """The census a baseline was built on, rebuilt from the baseline itself.
+
+    Independent of the files on disk, so a ratings file edited in place since the
+    baseline was written still shows up as re-rated rows."""
+    blocks = baseline.get("profiles", {})
+    ratings = {p: dict(b["ratings"]) for p, b in blocks.items() if "ratings" in b}
+    if not ratings:
+        raise GateInputError("This baseline predates stored ratings; its census must be reloaded from its files.")
+    ids = tuple(sorted({aid for b in blocks.values() for aid in b.get("decisions", {})}))
+    inputs = dict(baseline.get("inputs", {}))
+    if _sha256_lines(ids) != inputs.get("article_ids_sha256"):
+        raise GateInputError("The baseline's stored decisions do not cover its recorded census article set.")
+    for p, per in ratings.items():
+        if ratings_fingerprint(per) != blocks[p].get("ratings_sha256"):
+            raise GateInputError(f"Profile '{p}': stored ratings do not match the baseline's ratings hash.")
+    return MergedCensus(ratings=ratings, article_ids=ids, inputs=inputs)
 
 
 # ── regenerating a baseline: delta first ──────────────────────────────────────
@@ -368,9 +419,11 @@ def build_baseline(
 # A baseline is a change detector, not proof the result is correct. Rewriting it to
 # absorb a change before the delta against the PREVIOUS baseline has been reviewed
 # would launder a regression into the reference. So an update first runs the gate
-# against the previous baseline on that baseline's own inputs, and is refused when
-# the gate fails or cannot compare, unless the regression is argued (--accept with
-# a reason) or the update is explicitly forced with a reason.
+# against the previous baseline on that baseline's own census, and is refused when
+# the gate fails or cannot compare, or when already-rated rows changed their rating
+# (a re-label moves every metric while no decision moves), unless the regression is
+# argued (--accept with a reason) or the update is explicitly forced with a reason.
+# A first baseline has no previous reference and also needs a forced reason.
 
 
 @dataclass(frozen=True)
@@ -410,23 +463,67 @@ def baseline_delta(
     }
 
 
+def _headline(metrics: Mapping[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in metrics.items() if k != "two_notch_ids"}
+
+
+def ratings_delta(
+    previous: MergedCensus, new: MergedCensus, decisions: Mapping[str, Mapping[str, str]]
+) -> dict[str, Any]:
+    """Rows re-rated (old -> new), added and removed, and the metrics of the CURRENT
+    decisions under the previous ratings and under the new ones."""
+    out: dict[str, Any] = {}
+    for profile_id in sorted(set(previous.ratings) | set(new.ratings)):
+        old = previous.ratings.get(profile_id, {})
+        cur = new.ratings.get(profile_id, {})
+        current = decisions.get(profile_id, {})
+        out[profile_id] = {
+            "re_rated": [
+                {"article_id": aid, "before": old[aid], "after": cur[aid]}
+                for aid in sorted(set(old) & set(cur)) if old[aid] != cur[aid]
+            ],
+            "added": len(set(cur) - set(old)),
+            "removed": sorted(set(old) - set(cur)),
+            "metrics_previous_ratings": _headline(census_metrics(old, current)) if old else None,
+            "metrics_new_ratings": _headline(census_metrics(cur, current)) if cur else None,
+        }
+    return out
+
+
 def check_baseline_update(
     previous: Mapping[str, Any] | None,
     previous_merged: MergedCensus,
     decisions: Mapping[str, Mapping[str, str]],
     *,
     facts: str,
+    merged: MergedCensus | None = None,
     accepted: Iterable[str] = (),
     accept_reason: str | None = None,
     force: bool = False,
     force_reason: str | None = None,
 ) -> BaselineUpdate:
-    """May the baseline be rewritten? ``previous_merged`` is the census the PREVIOUS
-    baseline recorded, so the delta is measured on the rows it was built from."""
+    """May the baseline be rewritten?
+
+    ``previous_merged`` is the census the PREVIOUS baseline was built on (see
+    ``previous_census``), so the decision delta is measured on those rows and
+    labels. ``merged`` is the census the new baseline will be built on (default:
+    the same). Any already-rated row whose rating differs between the two, or that
+    disappears, needs a forced reason. New rows (a further census) are allowed."""
     if force and not force_reason:
         raise ValueError("A forced baseline update needs a reason: cite the reviewed delta.")
+    merged = merged if merged is not None else previous_merged
     if previous is None:
-        return BaselineUpdate(True, "First baseline: there is no previous reference to compare with.", None)
+        if force:
+            return BaselineUpdate(
+                True, f"First baseline, forced: {force_reason}",
+                {"first_baseline": True, "forced_reason": force_reason},
+            )
+        return BaselineUpdate(
+            False,
+            "No previous baseline: a first baseline has no delta to review. Write it with "
+            "--force-update --reason saying why this reference is right.",
+            None,
+        )
 
     try:
         verdict = evaluate(
@@ -449,17 +546,38 @@ def check_baseline_update(
         )
 
     delta = baseline_delta(verdict, previous_merged, accept_reason=accept_reason)
-    if verdict.passed:
-        return BaselineUpdate(True, "The gate passes against the previous baseline.", delta)
+    delta["ratings"] = ratings_delta(previous_merged, merged, decisions)
+
+    problems = []
+    if not verdict.passed:
+        blocking = [c.check_id for c in verdict.blocking] + list(verdict.unknown_accepts)
+        problems.append(f"the gate fails against the previous baseline ({', '.join(blocking)})")
+    re_rated = sum(len(r["re_rated"]) for r in delta["ratings"].values())
+    removed = sum(len(r["removed"]) for r in delta["ratings"].values())
+    if re_rated or removed:
+        problems.append(
+            f"{re_rated} already-rated row(s) were re-rated and {removed} removed; a re-label "
+            "moves every metric while no decision moves"
+        )
+
+    if not problems:
+        accepted_ids = [c["check_id"] for c in delta["checks"] if c["accepted"]]
+        if accepted_ids:
+            message = (
+                "The gate passes against the previous baseline only because of --accept: "
+                f"{', '.join(accepted_ids)} ({accept_reason})."
+            )
+        else:
+            message = "The gate passes against the previous baseline, and no rated row was re-rated."
+        return BaselineUpdate(True, message, delta)
     if force:
         delta["forced_reason"] = force_reason
-        return BaselineUpdate(True, f"Forced past a failing gate: {force_reason}", delta)
-    blocking = [c.check_id for c in verdict.blocking] + list(verdict.unknown_accepts)
+        return BaselineUpdate(True, f"Forced past: {'; '.join(problems)}. Reason: {force_reason}", delta)
     return BaselineUpdate(
         False,
-        "Refusing to rewrite the baseline: the gate fails against the previous one "
-        f"({', '.join(blocking)}). Review the delta first, then argue each regression "
-        "with --accept <check_id> --reason, or force with --force-update --reason.",
+        f"Refusing to rewrite the baseline: {'; '.join(problems)}. Review the delta first, then "
+        "argue each failing check with --accept <check_id> --reason, or force with "
+        "--force-update --reason.",
         delta,
     )
 
@@ -468,7 +586,9 @@ def format_delta(delta: Mapping[str, Any] | None) -> str:
     """The delta a baseline-update commit must cite."""
     if delta is None:
         return "No previous baseline: nothing to compare with."
-    if not delta["comparable"]:
+    if delta.get("first_baseline"):
+        lines = ["FIRST baseline: no previous reference."]
+    elif not delta["comparable"]:
         lines = [f"NOT COMPARABLE with the previous baseline: {delta['reason']}"]
     else:
         lines = ["Delta against the previous baseline (before -> after):"]
@@ -481,6 +601,20 @@ def format_delta(delta: Mapping[str, Any] | None) -> str:
             lines.append(f"  {r['profile']} {r['article_id']}: {r['before']} -> {r['after']} (rated {r['rating']})")
         for profile, n in sorted(delta["unrated_flips"].items()):
             lines.append(f"Unrated decisions changed: {profile} {n}")
+        for profile, r in sorted(delta.get("ratings", {}).items()):
+            lines.append(
+                f"Ratings ({profile}): {len(r['re_rated'])} re-rated, {r['added']} added, "
+                f"{len(r['removed'])} removed"
+            )
+            for row in r["re_rated"]:
+                lines.append(f"  re-rated {row['article_id']}: {row['before']} -> {row['after']}")
+            if r["removed"]:
+                lines.append(f"  removed: {', '.join(r['removed'][:20])}")
+            if r["re_rated"] or r["removed"] or r["added"]:
+                for key in ("shown_precision", "feed_plus_recall", "push_precision", "push_recall", "two_notch"):
+                    old = (r["metrics_previous_ratings"] or {}).get(key)
+                    new = (r["metrics_new_ratings"] or {}).get(key)
+                    lines.append(f"    {key}: {old} under previous ratings -> {new} under new ratings")
         if delta.get("accept_reason"):
             lines.append(f"Accepted because: {delta['accept_reason']}")
     if delta.get("forced_reason"):

@@ -221,6 +221,27 @@ measurement (98% / 19.4% / 41%). Regenerating it is a deliberate act
 (`gate --update-baseline`) and needs its own justification in the commit, because it redefines
 what every later change is measured against.
 
+**Baselines are change detectors, not proof the result is correct (owner rule, 2026-11-01).**
+A baseline is never regenerated to absorb a change before that change's delta against the
+**previous** baseline has been recorded and reviewed. Otherwise a regression is laundered
+into the new reference. So, for every gate:
+
+1. Run the gate on the change against the current baseline and record its per-check delta
+   (before → after for every check) and every rated row whose decision moved, with the
+   owner's rating.
+2. Have that delta reviewed: on the PR, or by Guy for anything that moves push or a canary.
+3. Only then run `--update-baseline`. The commit that rewrites a baseline must cite the delta:
+   before → after per check, and which rated rows changed.
+
+The census gate enforces this. `gate --census [--facts rerun] --update-baseline` first runs
+the gate against the previous baseline, on the census that baseline recorded. It prints the
+delta and **refuses to write** when the gate fails or the comparison is invalid. A regression
+that was reviewed and argued passes with `--accept <check_id> --reason`. `--force-update
+--reason` overrides everything else and needs a reason citing the review. The delta, the
+accepts and any forced reason are stored in the new baseline's `previous` block. N05's
+`--update-baseline` does not enforce the rule (its code is out of scope here), so for N05 it
+is followed by hand.
+
 **N05 is one of two gates.** The census gate below runs alongside it. N05 stays until the
 census gate has gated at least two real changes; then the keep-or-retire decision on N05 is
 recorded here (#254).
@@ -314,7 +335,8 @@ Both replays are CI tests on both committed baselines.
 `census2_ratings.json` + `census2_sample.json`, plus `census2_review_ratings.json` (the blind
 review). A review rating wins over a census rating. Census #2's review is already folded into
 `census2_ratings.json`, so it changes 0 rows; it is listed so the baseline records it. To add
-census #3 (#241), pass each pair in order and regenerate deliberately:
+census #3 (#241), pass each pair in order and regenerate deliberately. The update is checked
+against the previous baseline on census #2 alone, and the new rows join only after that:
 
 ```
 gate --census --update-baseline \
@@ -336,10 +358,18 @@ the live corpus (3,868 RSS articles):
 | stored | 95.9% (141/147) | 73.9% (102/138) | 1/3 | 1/7 | 48 | 792 hidden |
 | rerun | 94.0% (173/184) | 89.1% (123/138) | 2/3 | 2/7 | 27 | 790 hidden |
 
-Regenerating either (`gate --census [--facts rerun] --update-baseline`) needs the same
-written justification as N05's. Regenerate the rerun baseline whenever a classifier or
-taxonomy change merges, because it measures the code. The stored baseline moves only with a
-profile change, a relevance change, or a reviewed correction script.
+Regenerating either (`gate --census [--facts rerun] --update-baseline`) follows the rule
+above: delta against the previous baseline first, reviewed, then cited in the commit. The
+rerun baseline measures the classifier code, so a merged classifier or taxonomy change leaves
+it behind main. It is brought forward only after that change's reviewed delta, never as a
+formality. The stored baseline moves only with a profile change, a relevance change, or a
+reviewed correction script, under the same rule.
+
+The delta to review before the rerun baseline absorbs #398, measured against the current
+baselines: push precision 2/3 → 3/4, push recall 2/7 → 3/7, push volume 3 → 4 (allowed,
+precision improved), ≥2-notch 27 → 26, and nothing else moved (stored facts and N05 stay flat).
+The only rated row that changed is the Cyprus move, `rss_60dbc2f4aa7316584e2d`: feed → push,
+rated push.
 
 **Known weakness, shared with N05:** with 3 pushes, one push of slack lets push precision
 fall to 0/3. Push recall and push volume cover the two ways that can happen (losing the

@@ -27,7 +27,7 @@ single complaints. Results feed `signal-pr-open` / `signal-pr-merge` evidence, n
   open their `--db` with `mode=ro`.
 - **Never** run ingestion, backfill, retention or dispatch against the live corpus; set
   `TELEGRAM_NOTIFICATIONS_ENABLED`; click feedback buttons; regenerate a baseline
-  (`feed_ground_truth.py gate [--census] --update-baseline` redefines every future measurement — Guy's
+  (`feed_ground_truth.py gate [--census] --update-baseline` redefines every future measurement, and only follows a reviewed delta against the previous baseline — Guy's
   decision); or edit labels to agree with the engine.
 - **Live LLM calls spend money and quota.** Go through `scripts/llm_bakeoff.py`: dry run by default,
   call ceilings, cached responses, read-only corpus. Use `--live` only with Guy's agreement.

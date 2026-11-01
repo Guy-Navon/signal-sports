@@ -550,6 +550,8 @@ def cmd_gate(args) -> None:
             "--accept requires --reason. An accepted regression must carry an "
             "argument, otherwise it is just a silently relaxed threshold."
         )
+    if args.force_update and not (args.census and args.update_baseline and args.reason):
+        raise SystemExit("--force-update needs --census --update-baseline and a --reason citing the reviewed delta.")
     if args.census:
         _cmd_census_gate(args, accepted)
         return
@@ -632,13 +634,18 @@ def _census_input_paths(args, baseline: dict | None) -> tuple[list, list, list]:
             [Path(p).resolve() for p in args.review or []],
         )
     if baseline is not None:
-        inputs = baseline["inputs"]
-        return (
-            [_REPO / c["ratings"] for c in inputs["censuses"]],
-            [_REPO / c["sample"] for c in inputs["censuses"]],
-            [_REPO / r["path"] for r in inputs["reviews"]],
-        )
+        return _recorded_paths(baseline)
     return list(DEFAULT_CENSUS_RATINGS), list(DEFAULT_CENSUS_SAMPLES), list(DEFAULT_CENSUS_REVIEWS)
+
+
+def _recorded_paths(baseline: dict) -> tuple[list, list, list]:
+    """The census files a baseline was built from (repo-relative in the record)."""
+    inputs = baseline["inputs"]
+    return (
+        [_REPO / c["ratings"] for c in inputs["censuses"]],
+        [_REPO / c["sample"] for c in inputs["censuses"]],
+        [_REPO / r["path"] for r in inputs["reviews"]],
+    )
 
 
 def _load_census(ratings: list, samples: list, reviews: list):
@@ -739,26 +746,52 @@ def _cmd_census_gate(args, accepted: list) -> None:
         )
 
     merged = _load_census(*_census_input_paths(args, baseline))
-    if baseline is not None and not args.update_baseline:
-        drift_profiles = baseline["policy"]["drift_must_be_zero"]
-    else:
-        drift_profiles = list(census_gate.DEFAULT_DRIFT_PROFILES)
+    # An update is first checked against the PREVIOUS baseline on the census that
+    # baseline recorded, which may differ from the new inputs (census #3 joining).
+    previous_merged = merged
+    if args.update_baseline and baseline is not None:
+        try:
+            previous_merged = _load_census(*_recorded_paths(baseline))
+        except (SystemExit, OSError) as exc:
+            raise SystemExit(
+                f"Cannot reload the census the previous baseline recorded ({exc}). Without it "
+                "there is no delta to review, so the baseline is not rewritten."
+            )
+    drift_profiles = set(census_gate.DEFAULT_DRIFT_PROFILES)
+    if baseline is not None:
+        drift_profiles |= set(baseline["policy"]["drift_must_be_zero"])
     decisions, corpus_size = _census_decisions(
-        merged.article_ids, set(merged.ratings) | set(drift_profiles), args.facts
+        set(merged.article_ids) | set(previous_merged.article_ids),
+        set(merged.ratings) | set(previous_merged.ratings) | drift_profiles,
+        args.facts,
     )
     # The file name only: which corpus copy was read, without a local path.
     meta = _run_meta(corpus_size) | {"database": Path(DATABASE_URL.split("///", 1)[-1]).name}
     print(f"census gate on {args.facts} facts, baseline {baseline_path.name}")
 
     if args.update_baseline:
+        # A baseline is a change detector, not proof the result is correct: the delta
+        # against the previous one is shown, and a failing gate refuses the rewrite.
+        update = census_gate.check_baseline_update(
+            baseline, previous_merged, decisions, facts=args.facts,
+            accepted=accepted, accept_reason=args.reason,
+            force=args.force_update, force_reason=args.reason if args.force_update else None,
+        )
+        print(census_gate.format_delta(update.delta))
+        print(f"\n{update.message}")
+        if not update.allowed:
+            sys.exit(1)
         try:
-            fresh = census_gate.build_baseline(merged, decisions, meta=meta, facts=args.facts)
+            fresh = census_gate.build_baseline(
+                merged, decisions, meta=meta, facts=args.facts,
+                previous=baseline, delta=update.delta,
+            )
         except feed_quality_gate.GateInputError as exc:
             raise SystemExit(f"Cannot build the baseline: {exc}")
         _write(baseline_path, fresh)
         print(
-            "\nCensus baseline REWRITTEN. Every future change is now measured "
-            "against these numbers. Commit it with the reasoning in the message."
+            "\nCensus baseline REWRITTEN; the delta above is stored in its `previous` block. "
+            "The commit must cite it: before -> after per check, and the rated rows that changed."
         )
         _print_census_metrics(fresh)
         return
@@ -866,7 +899,14 @@ def main() -> None:
     )
     p_gate.add_argument(
         "--update-baseline", action="store_true",
-        help="REWRITE the baseline from this run instead of checking against it",
+        help="REWRITE the baseline from this run instead of checking against it. With "
+             "--census: prints the delta against the previous baseline first and refuses "
+             "to write when the gate fails (argue a regression with --accept, or --force-update)",
+    )
+    p_gate.add_argument(
+        "--force-update", action="store_true",
+        help="--census --update-baseline only: write despite a failing or incomparable gate. "
+             "Requires --reason citing the reviewed delta; the reason is stored in the baseline",
     )
     p_gate.set_defaults(func=cmd_gate)
 

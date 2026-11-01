@@ -310,8 +310,14 @@ def build_baseline(
     meta: Mapping[str, Any],
     drift_must_be_zero: Sequence[str] = DEFAULT_DRIFT_PROFILES,
     facts: str = "stored",
+    previous: Mapping[str, Any] | None = None,
+    delta: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Freeze the current decisions and metrics as the reference."""
+    """Freeze the current decisions and metrics as the reference.
+
+    ``previous`` and ``delta`` (from ``check_baseline_update``) record what this
+    baseline replaced and the reviewed change against it, so the file itself
+    carries the evidence its commit must cite."""
     if facts not in FACTS_SOURCES:
         raise ValueError(f"unknown facts source {facts!r}; expected one of {FACTS_SOURCES}")
     profiles: dict[str, Any] = {}
@@ -333,7 +339,7 @@ def build_baseline(
         block["decisions"] = {aid: current[aid] for aid in scope}
         profiles[profile_id] = block
 
-    return {
+    out: dict[str, Any] = {
         "baseline_version": BASELINE_VERSION,
         "kind": "census",
         "facts": facts,
@@ -347,6 +353,139 @@ def build_baseline(
         },
         "profiles": profiles,
     }
+    if previous is not None:
+        out["previous"] = {
+            "generated_at": previous.get("meta", {}).get("generated_at"),
+            "git_sha": previous.get("meta", {}).get("git_sha"),
+            "facts": previous.get("facts", "stored"),
+            "delta": dict(delta) if delta is not None else None,
+        }
+    return out
+
+
+# ── regenerating a baseline: delta first ──────────────────────────────────────
+#
+# A baseline is a change detector, not proof the result is correct. Rewriting it to
+# absorb a change before the delta against the PREVIOUS baseline has been reviewed
+# would launder a regression into the reference. So an update first runs the gate
+# against the previous baseline on that baseline's own inputs, and is refused when
+# the gate fails or cannot compare, unless the regression is argued (--accept with
+# a reason) or the update is explicitly forced with a reason.
+
+
+@dataclass(frozen=True)
+class BaselineUpdate:
+    allowed: bool
+    message: str
+    delta: dict[str, Any] | None
+
+
+def baseline_delta(
+    verdict: GateVerdict, merged: MergedCensus, *, accept_reason: str | None = None
+) -> dict[str, Any]:
+    """Per-check before -> after, and every rated row whose decision moved."""
+    rated_rows, unrated = [], {}
+    for flip in verdict.flips:
+        rating = merged.ratings.get(flip.profile, {}).get(flip.article_id)
+        if rating is None:
+            unrated[flip.profile] = unrated.get(flip.profile, 0) + 1
+        else:
+            rated_rows.append({
+                "profile": flip.profile, "article_id": flip.article_id,
+                "before": flip.before, "after": flip.after, "rating": rating,
+            })
+    checks = [
+        {"check_id": c.check_id, "baseline": c.baseline, "current": c.current,
+         "passed": c.passed, "accepted": c.accepted}
+        for c in verdict.checks
+    ]
+    return {
+        "comparable": True,
+        "passed": verdict.passed,
+        "checks": checks,
+        "accept_reason": accept_reason if any(c["accepted"] for c in checks) else None,
+        "rated_rows_changed": rated_rows,
+        "unrated_flips": unrated,
+        "forced_reason": None,
+    }
+
+
+def check_baseline_update(
+    previous: Mapping[str, Any] | None,
+    previous_merged: MergedCensus,
+    decisions: Mapping[str, Mapping[str, str]],
+    *,
+    facts: str,
+    accepted: Iterable[str] = (),
+    accept_reason: str | None = None,
+    force: bool = False,
+    force_reason: str | None = None,
+) -> BaselineUpdate:
+    """May the baseline be rewritten? ``previous_merged`` is the census the PREVIOUS
+    baseline recorded, so the delta is measured on the rows it was built from."""
+    if force and not force_reason:
+        raise ValueError("A forced baseline update needs a reason: cite the reviewed delta.")
+    if previous is None:
+        return BaselineUpdate(True, "First baseline: there is no previous reference to compare with.", None)
+
+    try:
+        verdict = evaluate(
+            previous, previous_merged, decisions,
+            accepted=accepted, accept_reason=accept_reason, facts=facts,
+        )
+    except GateInputError as exc:
+        delta = {
+            "comparable": False, "passed": None, "reason": str(exc), "checks": [],
+            "accept_reason": None, "rated_rows_changed": [], "unrated_flips": {},
+            "forced_reason": force_reason if force else None,
+        }
+        if force:
+            return BaselineUpdate(True, f"Forced past an incomparable previous baseline: {force_reason}", delta)
+        return BaselineUpdate(
+            False,
+            f"Cannot compare with the previous baseline: {exc} Review why, then rerun with "
+            "--force-update --reason citing that review.",
+            delta,
+        )
+
+    delta = baseline_delta(verdict, previous_merged, accept_reason=accept_reason)
+    if verdict.passed:
+        return BaselineUpdate(True, "The gate passes against the previous baseline.", delta)
+    if force:
+        delta["forced_reason"] = force_reason
+        return BaselineUpdate(True, f"Forced past a failing gate: {force_reason}", delta)
+    blocking = [c.check_id for c in verdict.blocking] + list(verdict.unknown_accepts)
+    return BaselineUpdate(
+        False,
+        "Refusing to rewrite the baseline: the gate fails against the previous one "
+        f"({', '.join(blocking)}). Review the delta first, then argue each regression "
+        "with --accept <check_id> --reason, or force with --force-update --reason.",
+        delta,
+    )
+
+
+def format_delta(delta: Mapping[str, Any] | None) -> str:
+    """The delta a baseline-update commit must cite."""
+    if delta is None:
+        return "No previous baseline: nothing to compare with."
+    if not delta["comparable"]:
+        lines = [f"NOT COMPARABLE with the previous baseline: {delta['reason']}"]
+    else:
+        lines = ["Delta against the previous baseline (before -> after):"]
+        for c in delta["checks"]:
+            mark = "PASS" if c["passed"] else ("ACCEPTED" if c["accepted"] else "FAIL")
+            lines.append(f"  [{mark:8}] {c['check_id']}: {c['baseline']} -> {c['current']}")
+        rows = delta["rated_rows_changed"]
+        lines.append(f"Rated rows whose decision changed: {len(rows)}")
+        for r in rows:
+            lines.append(f"  {r['profile']} {r['article_id']}: {r['before']} -> {r['after']} (rated {r['rating']})")
+        for profile, n in sorted(delta["unrated_flips"].items()):
+            lines.append(f"Unrated decisions changed: {profile} {n}")
+        if delta.get("accept_reason"):
+            lines.append(f"Accepted because: {delta['accept_reason']}")
+    if delta.get("forced_reason"):
+        lines.append(f"FORCED because: {delta['forced_reason']}")
+    return "\n".join(lines)
 
 
 # ── evaluation ────────────────────────────────────────────────────────────────

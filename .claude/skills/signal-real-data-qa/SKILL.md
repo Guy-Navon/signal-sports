@@ -50,8 +50,8 @@ second gate until the census gate has gated two real changes.
 persisted in the corpus, and stored rows change only through a backfill. A classifier or
 taxonomy change therefore passes them with zero movement, which happened with #398. For those
 changes, the gate that counts is `gate --census --facts rerun`: a rules-only reclassification of
-the census rows in memory, with its own baseline. Regenerate that baseline after such a change
-merges.
+the census rows in memory, with its own baseline. After such a change merges, that baseline is
+behind main. Bring it forward only once the change's delta against it has been reviewed (below).
 
 **From N05, report both numbers it gives you, always.** Overall accuracy is a trap here: `casual_deni_fan`
 scores 98% exact agreement while hiding 98.3% of the corpus. The pair that describes the product
@@ -63,6 +63,16 @@ A regression the change genuinely needs is declared, not hidden:
 `gate --accept <check_id> --reason "<why>"`. Regenerating the baseline
 (`gate --update-baseline`, or `gate --census --update-baseline`) redefines what every future change is measured against — that is a
 user-facing decision, so ask rather than doing it to clear a red gate.
+
+**A baseline is a change detector, not proof the result is correct.** Never regenerate one to
+absorb a change before its delta against the PREVIOUS baseline is recorded and reviewed:
+before → after per check, plus every rated row whose decision moved, with its rating. Otherwise a
+regression is laundered into the reference. The commit that rewrites a baseline cites that delta.
+The census gate's `--update-baseline` enforces this: it prints the delta, refuses to write on a
+failing or invalid comparison, and stores the delta in the new baseline. Override with
+`--accept <check> --reason` (an argued regression) or `--force-update --reason`. N05's update does
+not enforce it; follow the rule by hand there. Rule and procedure: `docs/RELEVANCE_CONTRACT.md`
+§Quality gate.
 
 Rules and baselines: `docs/RELEVANCE_CONTRACT.md` §Quality gate and §Census gate,
 `docs/qa/n05_gate_baseline.json`, `docs/qa/census_gate_baseline.json`.

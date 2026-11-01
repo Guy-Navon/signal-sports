@@ -389,6 +389,91 @@ def test_an_unknown_rating_value_is_rejected():
         gate.merge_census([_source({"x1": "meh"})])
 
 
+# ── regenerating a baseline: the delta first (owner rule, PR #399) ────────────
+#
+# A baseline is a change detector, not proof the result is correct. Rewriting it
+# to absorb a change before its delta against the PREVIOUS baseline is reviewed
+# would launder a regression into the reference. So an update runs the gate
+# against the previous baseline first and refuses to write on a failure.
+
+
+def _check_update(baseline, decisions, **kwargs):
+    return gate.check_baseline_update(baseline, _merged(), decisions, facts="stored", **kwargs)
+
+
+def test_update_is_allowed_when_the_gate_passes_and_reports_the_delta(baseline):
+    update = _check_update(baseline, _decisions(guy={"pm": "push"}))
+    assert update.allowed
+    delta = update.delta
+    checks = {c["check_id"]: c for c in delta["checks"]}
+    assert (checks["guy.push_recall"]["baseline"], checks["guy.push_recall"]["current"]) == (0.6667, 1.0)
+    assert delta["rated_rows_changed"] == [
+        {"profile": "guy", "article_id": "pm", "before": "hidden", "after": "push", "rating": "push"}
+    ]
+
+
+def test_update_is_refused_when_the_gate_fails(baseline):
+    update = _check_update(baseline, _decisions(guy=_hide_more(_GUY)))
+    assert not update.allowed
+    assert "guy.feed_plus_recall" in update.message
+    assert update.delta["passed"] is False
+
+
+def test_an_argued_accept_allows_the_update_and_is_recorded(baseline):
+    update = _check_update(
+        baseline,
+        _decisions(guy={"f0": "hidden", "fs0": "hidden"}),
+        accepted=["guy.feed_plus_recall"],
+        accept_reason="reviewed in #999",
+    )
+    assert update.allowed
+    accepted = [c for c in update.delta["checks"] if c["accepted"]]
+    assert [c["check_id"] for c in accepted] == ["guy.feed_plus_recall"]
+    assert update.delta["accept_reason"] == "reviewed in #999"
+
+
+def test_force_overrides_a_failing_gate_only_with_a_reason(baseline):
+    failing = _decisions(guy=_hide_more(_GUY))
+    with pytest.raises(ValueError, match="reason"):
+        _check_update(baseline, failing, force=True)
+    update = _check_update(baseline, failing, force=True, force_reason="owner reviewed the delta in #999")
+    assert update.allowed
+    assert update.delta["forced_reason"] == "owner reviewed the delta in #999"
+
+
+def test_an_incomparable_previous_baseline_refuses_without_force(baseline):
+    changed = gate.merge_census([_source(dict(_RATINGS) | {"f0": "high"})])
+    update = gate.check_baseline_update(baseline, changed, _decisions(), facts="stored")
+    assert not update.allowed
+    assert update.delta["comparable"] is False
+    assert "ratings changed" in update.message
+    forced = gate.check_baseline_update(
+        baseline, changed, _decisions(), facts="stored", force=True, force_reason="census re-rated, #999"
+    )
+    assert forced.allowed
+
+
+def test_the_first_baseline_needs_no_delta():
+    update = gate.check_baseline_update(None, _merged(), _decisions(), facts="stored")
+    assert update.allowed and update.delta is None
+
+
+def test_the_new_baseline_records_the_reviewed_delta(baseline):
+    update = _check_update(baseline, _decisions(guy={"pm": "push"}))
+    fresh = gate.build_baseline(
+        _merged(), _decisions(guy={"pm": "push"}), meta={}, previous=baseline, delta=update.delta
+    )
+    assert fresh["previous"]["delta"]["rated_rows_changed"][0]["article_id"] == "pm"
+    assert fresh["previous"]["facts"] == "stored"
+
+
+def test_the_delta_renders_before_and_after_per_check_and_the_rated_rows(baseline):
+    update = _check_update(baseline, _decisions(guy={"pm": "push"}))
+    text = gate.format_delta(update.delta)
+    assert "guy.push_recall" in text and "0.6667 -> 1.0" in text
+    assert "pm" in text and "hidden -> push" in text and "rated push" in text
+
+
 # ── the report ────────────────────────────────────────────────────────────────
 
 

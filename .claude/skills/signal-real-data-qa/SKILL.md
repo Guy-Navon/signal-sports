@@ -15,21 +15,37 @@ case, the World Cup noise wave). It is git-ignored and irreplaceable in the shor
   ingestion runs — same warning applies.
 - pytest never touches this DB (conftest uses a temp file) — running tests is always safe.
 
-## Start here: the ground-truth gate (issue #189)
+## Start here: the two ground-truth gates (issues #189, #254)
 
-Before the endpoint-diffing procedure below, run the gate. It scores the engine against 282
-hand-rated real corpus items and answers "did this change make it worse?" in one command:
+Before the endpoint-diffing procedure below, run **both** gates. Each answers "did this change
+make it worse?" in one command:
 
 ```
 cd backend
-.venv\Scripts\python.exe scripts/feed_ground_truth.py gate      # exit 0 = clean, 1 = blocked
+.venv\Scripts\python.exe scripts/feed_ground_truth.py gate            # N05: 282 stratified ratings, frozen July corpus
+.venv\Scripts\python.exe scripts/feed_ground_truth.py gate --census   # census: every census #2 row (804), fresh cohort
+# exit 0 = clean, 1 = blocked
 ```
 
-Read-only; needs no server. Run it **before** the change to confirm a clean start, and again
-after. If it fails, the failing check is named and the change is not ready — do not proceed to
-interpreting decision diffs, and do not regenerate the baseline to make it pass.
+Read-only; needs no server. Both read the DB through `DATABASE_URL`. To run against a frozen
+corpus copy instead of the live DB, copy it to a scratch file first (opening it switches the
+file to WAL) and set `DATABASE_URL=sqlite:///<copy>`. Decisions come from the profiles stored
+in that DB, so a copy taken before an owner `apply_*` run measures the profile without it.
+Run them **before** the change to confirm a clean start, and again after. If either fails, the
+failing check is named and the change is not ready — do not proceed to interpreting decision
+diffs, and do not regenerate a baseline to make it pass.
 
-**Report both numbers it gives you, always.** Overall accuracy is a trap here: `casual_deni_fan`
+**The census gate** (`app/qa/census_gate.py`, baseline `docs/qa/census_gate_baseline.json`)
+reads recall directly because every row is rated: report **shown precision, feed+ recall,
+push precision, push recall** and the **≥2-notch disagreement count**. One-notch gaps are
+rating noise (census #2's blind re-rate changed 28 of 58 large gaps) and are not gated. A change
+that hides wanted rows fails `feed_plus_recall`; one that surfaces noise fails
+`shown_precision`, even though it *lowers* the ≥2-notch count. Census #3 (#241) joins by passing
+`--ratings/--sample` pairs (and `--review` files, whose ratings win) with
+`--census --update-baseline`; details in `docs/RELEVANCE_CONTRACT.md` §Census gate. N05 stays as a
+second gate until the census gate has gated two real changes.
+
+**From N05, report both numbers it gives you, always.** Overall accuracy is a trap here: `casual_deni_fan`
 scores 98% exact agreement while hiding 98.3% of the corpus. The pair that describes the product
 is `shown_precision` (of what the user sees, how much did they want) and `false_hide` (how much
 they wanted and never saw). A change that improves one by wrecking the other is not progress —
@@ -37,10 +53,11 @@ a synthetic "recall fix" once took false_hide 19.4% → 11.4% while shown precis
 
 A regression the change genuinely needs is declared, not hidden:
 `gate --accept <check_id> --reason "<why>"`. Regenerating the baseline
-(`gate --update-baseline`) redefines what every future change is measured against — that is a
+(`gate --update-baseline`, or `gate --census --update-baseline`) redefines what every future change is measured against — that is a
 user-facing decision, so ask rather than doing it to clear a red gate.
 
-Rules and baseline: `docs/RELEVANCE_CONTRACT.md` §Quality gate, `docs/qa/n05_gate_baseline.json`.
+Rules and baselines: `docs/RELEVANCE_CONTRACT.md` §Quality gate and §Census gate,
+`docs/qa/n05_gate_baseline.json`, `docs/qa/census_gate_baseline.json`.
 
 ## Setup
 

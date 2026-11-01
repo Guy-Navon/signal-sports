@@ -27,7 +27,7 @@ single complaints. Results feed `signal-pr-open` / `signal-pr-merge` evidence, n
   open their `--db` with `mode=ro`.
 - **Never** run ingestion, backfill, retention or dispatch against the live corpus; set
   `TELEGRAM_NOTIFICATIONS_ENABLED`; click feedback buttons; regenerate a baseline
-  (`feed_ground_truth.py gate --update-baseline` redefines every future measurement — Guy's
+  (`feed_ground_truth.py gate [--census] --update-baseline` redefines every future measurement — Guy's
   decision); or edit labels to agree with the engine.
 - **Live LLM calls spend money and quota.** Go through `scripts/llm_bakeoff.py`: dry run by default,
   call ceilings, cached responses, read-only corpus. Use `--live` only with Guy's agreement.
@@ -84,7 +84,8 @@ which also uses the LLM. Say so whenever you quote their numbers.
    exact-notch agreement changed. Report the discordant counts (got worse / got better), not only
    the p-value. Slices and metrics with n below `--min-n` (default 10) are printed as "not
    estimated".
-5. **Gate:** `scripts/feed_ground_truth.py gate` (exit 0 = clean) — owned by `signal-real-data-qa`.
+5. **Gates:** `scripts/feed_ground_truth.py gate` and `gate --census` (exit 0 = clean) — owned by
+   `signal-real-data-qa`.
 6. **Interpret honestly:** few discordant rows plus overlapping intervals means **no demonstrated
    change** — don't call it an improvement. Always pair precision with recall: `casual_deni_fan`
    scores ~98% exact while hiding almost everything, and a past "recall fix" cut false hides from

@@ -187,8 +187,9 @@ traces stay in Debug/ops.
 ## Quality gate — run this before landing a relevance change (issue #189)
 
 The suite proves the engine does what it was told. It does not prove that what
-it was told is any good. That question is answered against 282 hand-rated real
-corpus items ([qa/N05_FEED_GROUND_TRUTH.md](qa/N05_FEED_GROUND_TRUTH.md)):
+it was told is any good. Two gates answer that question: the N05 gate below, over 282
+hand-rated real corpus items ([qa/N05_FEED_GROUND_TRUTH.md](qa/N05_FEED_GROUND_TRUTH.md)),
+and the [census gate](#census-gate-254) over every article of an owner-rated census. Run both:
 
 ```
 cd backend
@@ -220,12 +221,9 @@ measurement (98% / 19.4% / 41%). Regenerating it is a deliberate act
 (`gate --update-baseline`) and needs its own justification in the commit, because it redefines
 what every later change is measured against.
 
-**This is still the only regression gate.** Census #2 (804 fresh articles,
-[qa/CENSUS_2026-10.md](qa/CENSUS_2026-10.md)) measures the live engine on newer ingestion and
-is used for before/after reruns. Promoting a census to the gate is an open decision (#241).
-Census ratings carry a test-retest noise band of about one notch: in census #2's blind
-re-rate, 28 of 58 large disagreements changed and 26 of those moved toward the engine. Re-rate
-large disagreements before treating them as engine errors.
+**N05 is one of two gates.** The census gate below runs alongside it. N05 stays until the
+census gate has gated at least two real changes; then the keep-or-retire decision on N05 is
+recorded here (#254).
 
 A change that genuinely needs to regress a check says so explicitly:
 
@@ -259,3 +257,67 @@ less than a single football rater disagreement.
 Report the per-sport line whenever you claim a recall change, or you may be
 reporting sampling noise. It is **not gated**: a per-sport threshold would need
 its own evidence and its own baseline.
+
+### Census gate (#254)
+
+```
+cd backend
+.venv/Scripts/python.exe scripts/feed_ground_truth.py gate --census
+```
+
+Same contract as N05: local-only, exit 0 / 1, `--accept <check_id> --reason`, a stale accept
+fails. The pure rules are `app/qa/census_gate.py`, covered in CI by
+`backend/tests/test_census_gate.py`. It scores the live engine over every census article
+(census #2: 804 articles published since 2026-08-01, all rated by the owner, weight 1.0;
+[qa/CENSUS_2026-10.md](qa/CENSUS_2026-10.md)). Because every row is rated, it reads **recall
+directly** instead of `false_hide`, which the 74% hide base rate dilutes:
+
+| Check | Rule | Slack |
+|---|---|---|
+| `guy.shown_precision` | of the rows shown, how many were rated low or better | one shown row (`1/n`) |
+| `guy.feed_plus_recall` | of the rows rated feed or better, how many are shown | **none** |
+| `guy.push_precision` | of the pushes, how many were rated push | one push (`1/n`) |
+| `guy.push_recall` | of the rows rated push, how many are pushed | **none** |
+| `guy.push_volume` | may not rise | **none**, unless push precision improved |
+| `guy.two_notch` | count of disagreements of **≥2 notches** may not rise | **none** |
+| `casual_deni_fan.no_drift` | the canary's decisions over the census ids may not move (it needs no ratings) | **none** |
+
+**The noise band.** Census ratings repeat only about half the time on borderline rows: in
+census #2's blind re-rate, 28 of 58 large disagreements changed, 26 toward the engine, mostly
+by one notch. So the disagreement check ignores one-notch gaps: a change confined to one-notch
+moves cannot fail it, while a new two-notch gap does. Exact agreement is not gated. Re-rate
+large disagreements before treating them as engine errors.
+
+**Why both directions are needed.** Replayed on census #2, "surface everything" (every hidden
+row to `low_feed`) takes feed+ recall to 100% and *lowers* the ≥2-notch count from 48 to 17;
+only shown precision (95.9% → 25.9%) catches it. "Hide more" (`low_feed` and `feed` to hidden)
+takes shown precision to 100%; feed+ recall (73.9% → 12.3%) and the ≥2-notch count catch it.
+Both replays are CI tests on the committed baseline.
+
+**Inputs.** By default the gate reads the files its baseline records. Census #2 alone today:
+`census2_ratings.json` + `census2_sample.json`, plus `census2_review_ratings.json` (the blind
+review). A review rating wins over a census rating. Census #2's review is already folded into
+`census2_ratings.json`, so it changes 0 rows; it is listed so the baseline records it. To add
+census #3 (#241), pass each pair in order and regenerate deliberately:
+
+```
+gate --census --update-baseline \
+  --ratings ../docs/qa/census2_ratings.json --sample ../docs/qa/census2_sample.json \
+  --ratings ../docs/qa/census3_ratings.json --sample ../docs/qa/census3_sample.json \
+  --review ../docs/qa/census2_review_ratings.json
+```
+
+Censuses are deduplicated by article id. Two censuses that rate the same article differently
+are an error unless a review file settles it. The baseline stores a content hash of the
+merged ratings and of the article id set, so a re-rated or regrown census is an invalid
+comparison, not a score.
+
+Baseline: `docs/qa/census_gate_baseline.json`, generated at `a0c3477` (2026-11-01) on a
+frozen copy of the live corpus (3,868 RSS articles). Guy: shown precision 95.9% (141/147),
+feed+ recall 73.9% (102/138), push precision 1/3, push recall 1/7, 48 gaps of ≥2 notches.
+Deni: 804 frozen decisions (792 hidden). Regenerating it (`gate --census --update-baseline`)
+needs the same written justification as N05's.
+
+**Known weakness, shared with N05:** with 3 pushes, one push of slack lets push precision
+fall to 0/3. Push recall and push volume cover the two ways that can happen (losing the
+correct push, adding wrong ones).

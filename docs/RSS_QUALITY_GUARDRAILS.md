@@ -998,15 +998,31 @@ matched either.
 Guy has 3 flips: the issue headline goes feed → **push** (owner: push; `סוכם` is the
 concrete step the #229 gate requires), and two unrated Maccabi Cyprus stories go
 feed → high_feed. One Hapoel row changes event only (still feed). Deni has no flips. Guy's
-push count goes 22 → 23, visible stays 898. Census #2: push precision 2/3 → 3/4, push recall
-2/7 → 3/7, exact 669 → 670. Stored rows are unchanged; there was no backfill.
+push count goes 22 → 23, visible stays 898. The seed profiles and the persisted profiles give
+the same result. Census #2: push precision 2/3 → 3/4, push recall 2/7 → 3/7, exact
+669 → 670. Stored rows are unchanged; there was no backfill.
+
+**Temporary compromise, pending owner rating.** The two feed → high_feed rows are side
+effects, and high_feed is **not** confirmed right for either of them:
+
+- `rss_d14fdd50bec657067583` `דיווח: מכבי ת"א תארח את הדרבי במסגרת היורוליג בקפריסין`,
+  a report of the venue change.
+- `rss_bd91b96ba6a172068267` `"יש משהו מטריד מאוד בהחלטה לגבי מכבי תל אביב"`, a Cyprus
+  Mail opinion column about the decision.
+
+A report and an opinion about it are different content. The owner accepted both
+(2026-11-01) as a temporary compromise because they are the only side effects. Opinion
+columns are deliberately not blocked from `club_governance`. Revisit both once they are
+rated (census #3).
 
 **The entity concern in #242 does not apply to this row.** Its URL
 (`/sport/israeli-basketball/`) is explicit basketball evidence (weight 100). The gate does
 not call the LLM, and when the LLM is forced, Maccabi Tel Aviv Basketball survives the facts
 stage. The Cyprus rows that do lose the entity under the LLM are walla.co.il rows with no URL
 hint and no basketball word (`בקפריסין מבטיחים`, `המתקפה בקפריסין`). This change does not
-cover them.
+cover them. **Non-goal (owner, 2026-11-01):** no arena or venue name is added as basketball
+evidence to rescue a few headlines. Such a cue must first be shown to hold on other examples.
+Revisit after census #3 is rated.
 
 Tests: `tests/test_club_governance_229.py::TestHomeVenueMove242`.
 

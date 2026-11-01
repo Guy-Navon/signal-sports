@@ -2,7 +2,7 @@
 
 **Status: living contract** for the configured news sources, the adapters that read
 them, and what one ingestion pass does to an item before it becomes an article.
-Last updated: 2026-10-30 (#258 ONE probe; earlier: 2026-10-12 truth sweep, which absorbed the former `HEBREW_RSS_SOURCE.md`).
+Last updated: 2026-11-01 (#258: ONE enabled by the owner after the 2026-10-30 probe; earlier: 2026-10-12 truth sweep, which absorbed the former `HEBREW_RSS_SOURCE.md`).
 
 Related contracts: scheduling, the worker and the single-flight lease are in
 [SCHEDULER.md](SCHEDULER.md). Source-level URL and language filters and the deterministic
@@ -22,26 +22,35 @@ restarts. Every runtime consumer resolves the effective state through
 `app/ingestion/source_state.py`: run-all ingestion, the scheduler, `GET /api/ingest/sources`
 and source health.
 
-| source_id | Display | Type | Code default | **Live state (local DB, re-checked 2026-10-30)** | Endpoint |
+| source_id | Display | Type | Code default | **Live state (local DB, re-checked 2026-11-01)** | Endpoint |
 |---|---|---|---|---|---|
 | `walla_sport` | וואלה ספורט | rss | enabled | enabled | `https://rss.walla.co.il/feed/7` |
 | `israel_hayom_sport` | ישראל היום ספורט | rss + `/sport/` allowlist | enabled | enabled | `https://www.israelhayom.co.il/rss.xml` |
 | `ynet_sport` | ynet ספורט | rss | enabled | enabled | `https://www.ynet.co.il/Integration/StoryRss3.xml` |
 | `sport5_sport` | ערוץ הספורט | html_scrape (pilot) | **disabled** | **enabled by override** | `https://www.sport5.co.il/liga.aspx?FolderID=273` |
-| `one_sport` | ONE ספורט | html_scrape (public JSON) | enabled | **disabled by override** | `https://api.one.co.il/JSON/v6/Articles/Category/{1,2,3,5,7,155}` |
+| `one_sport` | ONE ספורט | html_scrape (public JSON) | enabled | **enabled by override (2026-11-01)** | `https://api.one.co.il/JSON/v6/Articles/Category/{1,2,3,5,7,155}` |
 | `eurohoops` | Eurohoops | rss (English) | disabled | disabled | `https://www.eurohoops.net/feed/` |
 | `sportando` | Sportando | rss (English/Italian) | disabled | disabled (override) | `https://sportando.basketball/feed/` |
 
-**The live state differs from the code defaults in two places.** Both overrides were already in
+**The live state now differs from the code defaults only for Sport5.** Until 2026-11-01 ONE also
+differed. Both overrides were already in
 the 2026-07-10 backup (`signal_sports.pre_reliability_backfill.backup.db`), and `one_sport` has
 no `ingestion_runs` row in that backup, in the July 18 frozen copy or in the live DB. So ONE was
 switched off within five days of being added (2026-07-05), before it ever ran on a schedule.
 The `source_overrides` table stores no timestamp or reason, and no commit, doc or issue records
-why. Since the 2026-07-12 rebuild after the #106 wipe the corpus holds **zero** ONE articles.
+why. From the 2026-07-12 rebuild after the #106 wipe until 2026-11-01 the corpus held **zero** ONE
+articles; the owner enabled ONE on 2026-11-01 (#258, see below).
 `sport5_sport` has run on every cycle; it is a production source in practice, even though the
 code still labels it a pilot.
 
-**#258 probe, 2026-10-30. The decisions are pending the owner.** `backend/scripts/one_sport_probe.py`
+**Owner decision, 2026-11-01 (#258): ONE is enabled** (runtime override `one_sport=true`, set
+after the probe below). Its first live cycle (2026-11-01 06:26 UTC) fetched and inserted 50
+articles with 0 failures. 15 of its 25 LLM calls hit Groq free-plan 429s during the post-outage
+backlog burst and fell back to rules; at the steady ~30 calls a day this is not expected to
+recur. **Sport5 stays enabled by override**; removing its code-default "pilot" label is a
+separate follow-up (#395). To roll back ONE, switch its Sources card to כבוי.
+
+**#258 probe, 2026-10-30.** `backend/scripts/one_sport_probe.py`
 runs the real `OneSportAdapter.fetch()` (six GETs, the adapter's own headers), with no DB
 writes. It reads a corpus copy opened `mode=ro`.
 
@@ -65,11 +74,10 @@ writes. It reads a corpus copy opened `mode=ro`.
   (newest 43 h old: the basketball page updates slowly). Over the last 30 days it had 2,790
   runs, 0 errors and 93 new articles (about 3 a day). 214 of its 216 stored articles (99%) are
   basketball.
-- **Recommendation:** enable ONE, then review its first day in Debug per `signal-real-data-qa`.
-  Promote Sport5 out of "pilot" in `config.py` and in these docs. **Owner action to enable ONE:**
-  on the Sources page, switch the ONE ספורט card from כבוי to פעיל. That is
-  `PATCH /api/ingest/sources/one_sport` with `{"enabled": true}` as the admin. The next worker
-  cycle picks it up.
+- **Recommendation (adopted 2026-11-01):** enable ONE, then review its first day in Debug per
+  `signal-real-data-qa`. Done through the same override the Sources page toggle writes (the ONE
+  ספורט card; `PATCH /api/ingest/sources/one_sport` with `{"enabled": true}` as the admin), so the
+  card switches it back off. Promoting Sport5 out of "pilot" in `config.py` is #395.
 
 English sources and translation are **post-MVP**: the product is Hebrew-only. Do not re-enable
 `eurohoops` or `sportando` as a side effect of other work. The translation path they need is

@@ -86,24 +86,41 @@ def build_census(
     seed: int,
     corpus_articles: int,
     meta_extra: dict | None = None,
+    size: int | None = None,
 ) -> dict:
     """``{profile: [ScoredArticle]}`` → the census sample document.
 
     One stratum, ``weight`` 1.0, ``population == sampled``: every fresh article
     is rated, nothing is projected. Items are shuffled with ``seed`` so the
     order carries no signal but the run is reproducible.
+
+    ``size`` (census #3, #241) keeps only the first ``size`` items of that same
+    shuffle: a simple random sample, still one stratum, so every row carries the
+    same weight (``population / sampled``) and proportions need no reweighting.
+    Because it is a prefix, a later build with a larger ``size`` (same seed, same
+    corpus) is a superset in the same order, and existing ratings carry over.
     """
+    if size is not None and size < 1:
+        raise ValueError(f"size must be positive, got {size}")
+    scope = (
+        "CENSUS of every RSS article published on/after the cutoff, one "
+        "stratum at weight 1.0. Relevance rules, freshness window not "
+        "applied, raw profiles without learned augmentation."
+    )
+    if size is not None:
+        scope = (
+            f"SIMPLE RANDOM SAMPLE (first {size} of a seeded shuffle) of the RSS articles "
+            "published on/after the cutoff, one stratum, equal weights. Relevance rules, "
+            "freshness window not applied, raw profiles without learned augmentation."
+        )
     out = {
         "meta": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "seed": seed,
             "since": since,
             "corpus_articles": corpus_articles,
-            "scope": (
-                "CENSUS of every RSS article published on/after the cutoff, one "
-                "stratum at weight 1.0. Relevance rules, freshness window not "
-                "applied, raw profiles without learned augmentation."
-            ),
+            "scope": scope,
+            **({"size": size} if size is not None else {}),
             **(meta_extra or {}),
         },
         "profiles": {},
@@ -112,9 +129,16 @@ def build_census(
         items = [census_item(s) for s in feed if is_fresh(s.article.published_at, since)]
         items.sort(key=lambda it: it["id"])  # stable input before the shuffle
         random.Random(seed).shuffle(items)
-        n = len(items)
+        population = len(items)
+        if size is not None:
+            items = items[:size]
+        sampled = len(items)
         out["profiles"][user_id] = {
-            "strata": {STRATUM: {"population": n, "sampled": n, "weight": 1.0}},
+            "strata": {STRATUM: {
+                "population": population,
+                "sampled": sampled,
+                "weight": population / sampled if sampled else 1.0,
+            }},
             "items": items,
         }
     return out

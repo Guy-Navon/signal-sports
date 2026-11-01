@@ -95,6 +95,35 @@ def test_order_is_a_seeded_shuffle_not_tier_order():
     assert decisions != tiers and decisions != sorted(tiers)  # no tier blocks
 
 
+def test_size_takes_a_prefix_of_the_same_shuffle_with_equal_weights():
+    # Census #3 (#241): a simple random sample, so a later, larger build extends it in
+    # the same order and the ratings already given carry over.
+    feed = [_scored(i, "2026-10-12") for i in range(40)] + [_scored(99, "2026-10-01")]
+    full = cr.build_census({"guy": feed}, since="2026-10-11", seed=5, corpus_articles=41)
+    ten = cr.build_census({"guy": feed}, since="2026-10-11", seed=5, corpus_articles=41, size=10)
+    twenty = cr.build_census({"guy": feed}, since="2026-10-11", seed=5, corpus_articles=41, size=20)
+
+    order = [it["id"] for it in full["profiles"]["guy"]["items"]]
+    ten_ids = [it["id"] for it in ten["profiles"]["guy"]["items"]]
+    assert ten_ids == order[:10]
+    assert [it["id"] for it in twenty["profiles"]["guy"]["items"]][:10] == ten_ids
+    assert "rss_0099" not in order  # the cutoff still applies before sampling
+    assert ten["profiles"]["guy"]["strata"] == {"census": {"population": 40, "sampled": 10, "weight": 4.0}}
+    assert ten["meta"]["size"] == 10 and "size" not in full["meta"]
+    assert cr.article_ids(ten) == set(ten_ids)  # only the sampled rows get protected
+
+
+def test_size_larger_than_the_cohort_is_the_whole_census():
+    feed = [_scored(i, "2026-10-12") for i in range(3)]
+    doc = cr.build_census({"guy": feed}, since="2026-10-11", seed=5, corpus_articles=3, size=300)
+    assert doc["profiles"]["guy"]["strata"] == {"census": {"population": 3, "sampled": 3, "weight": 1.0}}
+
+
+def test_size_must_be_positive():
+    with pytest.raises(ValueError):
+        cr.build_census({"guy": []}, since="2026-10-11", seed=5, corpus_articles=0, size=0)
+
+
 # ── the blind-rating invariant ────────────────────────────────────────────────
 
 def test_rater_view_carries_no_engine_field():

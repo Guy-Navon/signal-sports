@@ -11,6 +11,8 @@ Usage (from backend/):
     scores it for ``--profile`` (default guy) exactly as feed_ground_truth does,
     and writes a census "sample": one stratum, weight 1.0, seeded shuffle. The
     engine's decision travels in the file for ``score`` — never for the rater.
+    ``--size N`` keeps the first N of that shuffle, a simple random sample with
+    equal weights (census #3: 300 of 1,440 — docs/qa/CENSUS_3_2026-11.md).
 
 ``serve``
     A tiny local page over the census file. NO database access at all: the page
@@ -57,7 +59,9 @@ DEFAULT_PORT = 8765
 
 # ── build ─────────────────────────────────────────────────────────────────────
 
-def cmd_build(args) -> None:
+def score_feeds(profile_ids: list[str]) -> tuple[list, dict]:
+    """Every RSS article scored for each profile, hidden included: ``(articles, feeds)``.
+    Reads only. Shared with scripts/census_checks.py so both see the same decisions."""
     # Imported here so `serve` never loads the app, the .env, or the DB engine.
     try:
         from dotenv import load_dotenv
@@ -67,16 +71,22 @@ def cmd_build(args) -> None:
         pass
     from app.db.database import SessionLocal
     from app.repositories import article_repository, profile_repository
-    from app.services.feed_service import active_engine, build_feed
+    from app.services.feed_service import build_feed
 
     with SessionLocal() as session:
         articles = article_repository.get_rss_articles(session)
         feeds = {}
-        for user_id in args.profile:
+        for user_id in profile_ids:
             profile = profile_repository.get_by_id(session, user_id)
             if profile is None:
                 raise SystemExit(f"Profile '{user_id}' is missing from the corpus DB.")
             feeds[user_id] = build_feed(articles, profile, include_hidden=True, session=session)
+    return articles, feeds
+
+
+def cmd_build(args) -> None:
+    articles, feeds = score_feeds(args.profile)  # loads .env first
+    from app.services.feed_service import active_engine
 
     doc = cr.build_census(
         feeds,
@@ -84,17 +94,19 @@ def cmd_build(args) -> None:
         seed=args.seed,
         corpus_articles=len(articles),
         meta_extra={"engine": active_engine()},
+        size=args.size,
     )
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8", newline="")
     for user_id, block in doc["profiles"].items():
-        n = block["strata"][cr.STRATUM]["population"]
-        print(f"{user_id}: {n} fresh articles (since {args.since}) -> census, weight 1.0")
+        s = block["strata"][cr.STRATUM]
+        print(f"{user_id}: {s['population']} fresh articles (since {args.since}) -> "
+              f"{s['sampled']} to rate, weight {s['weight']:.2f}")
     print(f"wrote {out}")
 
     # Census articles are ground truth from now on: keep them out of retention (#255).
-    from app.db.database import init_db
+    from app.db.database import SessionLocal, init_db
     from app.repositories import protected_article_repository
 
     init_db()  # creates protected_articles on a pre-#255 database
@@ -319,6 +331,9 @@ def main() -> None:
     p_build.add_argument("--out", required=True)
     p_build.add_argument("--since", default=cr.DEFAULT_SINCE, help="YYYY-MM-DD cutoff (inclusive)")
     p_build.add_argument("--seed", type=int, default=cr.DEFAULT_SEED)
+    p_build.add_argument("--size", type=int, default=None,
+                         help="rate only the first N of the seeded shuffle (simple random sample; "
+                              "default: every fresh article)")
     p_build.add_argument("--profile", action="append", default=None,
                          help="repeatable; default guy only")
     p_build.set_defaults(func=cmd_build)

@@ -166,7 +166,19 @@ _RELEASE_COMPLETE = (
     phrase("released"), phrase("waived"), phrase("cut by"), phrase("roster cuts"),
 )
 
-_CLUB_GOVERNANCE = (
+# A home-venue move written as a move (#242). "המעבר של" alone is a person's transfer in
+# 5 of its 6 corpus rows ("המעבר של קאדין קרינגטון להפועל"), so it counts only with a club
+# family name as its subject. Hosting is the infinitive "לארח" with a venue object; a
+# normal home game is "תארח" and is not matched. Kept apart from the #229 vocabulary
+# because these phrases are routine BACKGROUND in subtitles while a club plays abroad
+# ("הצהובים, שבחרו לארח את משחקי היורוליג בלימסול, ..."): see governance_step_context().
+_HOME_VENUE_MOVE = (
+    regex(r'(?<![א-ת])המעבר של (?:מכבי|הפועל|בית["״]ר|עירוני)(?![א-ת])'),
+    phrase("לארח את משחקי"),
+    regex(r"(?<![א-ת])לארח ב(?:אולם|היכל)"),
+)
+
+_CLUB_GOVERNANCE_229 = (
     # ownership / control
     # "אחוז(ים) מהבעלות", not bare "מהבעלות": "חלק מהבעלות על המונדיאל" is FIFA.
     phrase("אחוז מהבעלות"), phrase("אחוזים מהבעלות"), phrase("בעלי המניות"), phrase("בעל המניות"), phrase("מניות המועדון"),
@@ -180,6 +192,21 @@ _CLUB_GOVERNANCE = (
     phrase('מנכ"ל היורוליג'), phrase('יו"ר היורוליג'), phrase("נציגי היורוליג"),
     phrase("ownership"), phrase("controlling stake"), phrase("arbitration"),
 )
+
+_CLUB_GOVERNANCE = _CLUB_GOVERNANCE_229 + _HOME_VENUE_MOVE
+
+
+def governance_step_context(title: str, subtitle: str) -> bool:
+    """May a concrete step in the TITLE count as a club-governance step? (#242 review)
+
+    The push gate reads its step verb in the title, while the event may be proven by the
+    subtitle alone. A #242 home-venue phrase that appears only in the subtitle is
+    background, so it never makes an unrelated title decision ("אודקה החליט: סורקין
+    יפתח") a governance step. The #229 vocabulary keeps its subtitle path unchanged
+    (follow-up issue: an owner decision, because narrowing it costs the Recanati push).
+    """
+    title, subtitle = (title or "").lower(), (subtitle or "").lower()
+    return _has_any(title, _CLUB_GOVERNANCE) or _has_any(subtitle, _CLUB_GOVERNANCE_229)
 
 _RELEASE_BLOCKERS = (
     phrase("לא שוחרר"), phrase("לא שוחררה"), phrase("לא שוחררו"),

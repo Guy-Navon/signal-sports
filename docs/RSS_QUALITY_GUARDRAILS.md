@@ -964,7 +964,7 @@ is text-resolved, so `cross_sport_entity_requires_explicit_sport` does not apply
 guard is not weakened. Tests: `tests/test_basketball_people_259.py`. Measurements:
 [qa/BASKETBALL_PEOPLE_259.md](qa/BASKETBALL_PEOPLE_259.md).
 
-## 20. A Shared Competition Name Takes the Sport the Text Proves (#407, 2026-11-02)
+## 22. A Shared Competition Name Takes the Sport the Text Proves (#407, 2026-11-02)
 
 `ליגת האלופות` / `champions league` was **committed football vocabulary** (`sport_guards.py`,
 #113), a football context keyword and the `comp:ucl` keyword. It is also the name of the FIBA
@@ -977,37 +977,67 @@ The bare name now fails the committed-vocabulary bar (a term that "cannot plausi
 other sport's coverage"), and is resolved by one function,
 `sport_guards.shared_champions_league_sport(text)`:
 
-- **basketball** when the text proves it: committed basketball vocabulary with no committed
-  football (this covers the qualified `ליגת האלופות של פיב"א`), or a named basketball cue
-  (`basketball_named_cue`: a basketball entity the resolver finds with no sport context, named
-  in a sport-proving form, or a basketball scoreline, with no entity of another sport named);
+- **basketball** when the text proves it. Either a qualified FIBA name
+  (`ליגת האלופות של פיב"א`, `basketball champions league`) or the word `כדורסל` / `basketball`,
+  with no committed football vocabulary. Or a named basketball cue (`basketball_named_cue`): a
+  basketball entity the resolver finds with no sport context and that the text names by a
+  multi-word alias, or a basketball scoreline, with no entity of another sport named.
 - **football** otherwise. That is the corpus prior (65 of 72), and the safe side: a wrong
   basketball reading would put a UEFA story into a basketball follower's interests.
 
-The cue is the #345 corroboration cue, moved from `facts.py` to `sport_guards.py` so the
-classifier and the facts stage share it. Its rules are unchanged: a one-word alias proves
-nothing (`ספרס` is Tottenham in football copy), and a cross-sport twin (`הפועל ירושלים`) or a
-guarded European club (`ריאל מדריד`) is not a cue.
+Two narrowings, from the PR #417 review:
 
-Where the result is used: `committed_sport()` counts the name for that sport (so the title
-check in `_detect_sport` and merge Guardrail 1b keep football protection for UEFA stories);
-`_has_basketball_context` / `_has_football_context` count it for that sport (the resolver
-context and the ambiguous-club branches); the facts stage maps it to `comp:bcl` or `comp:ucl`
-and counts it as a title/subtitle keyword of that sport. `_detect_league` returns
-`Basketball Champions League` for a basketball article that names it, ahead of the IBL club
-list. The trace records the reading as `competitions.shared_name_sport`.
+- **Committed basketball words are not enough.** Football copy says `כבש מריבאונד` (scored from
+  a rebound). If `ריבאונד` counted, `גול מריבאונד של מכבי תל אביב בליגת האלופות` would become
+  basketball / `comp:bcl` / Maccabi basketball. Worse, merge Guardrail 1b would then override an
+  LLM that correctly said football. Only the qualified names and the sport's own name count;
+  everything else goes through the cue, which has the contradiction check.
+- **A one-word person alias is not a cue here.** The #345 cue accepts a person by any alias.
+  For the shared name a person needs a multi-word alias too (`multiword_people=True`), because
+  `deni` matches inside `denied` (#415). Without this, `Arsenal denied a late penalty in
+  Champions League defeat` would read basketball and keep Deni Avdija as an entity, so it would
+  reach high_feed for Guy and the Deni fan. The #345 corroboration itself is unchanged.
+
+The cue is the #345 corroboration cue, moved from `facts.py` to `sport_guards.py` so the
+classifier and the facts stage share it. A one-word team alias still proves nothing (`ספרס` is
+Tottenham in football copy). A cross-sport twin (`הפועל ירושלים`) or a guarded European club
+(`ריאל מדריד`) is not a cue.
+
+Where the result is used:
+
+- `committed_sport()` counts the name for that sport. So the title check in `_detect_sport` and
+  merge Guardrail 1b keep football protection for UEFA stories.
+- `_has_basketball_context` / `_has_football_context` count it for that sport (the resolver
+  context and the ambiguous-club branches).
+- The facts stage maps it to `comp:bcl` or `comp:ucl`, and counts it as a title/subtitle keyword
+  of that sport.
+- `_detect_league` returns `Basketball Champions League` for a basketball article when the
+  shared name reads basketball in title + subtitle, or for a qualified name. It checks this
+  before the IBL club list.
+- The title-win masking list (`event_evidence._champion_term_competition_names`) includes the
+  shared name. A competition name is never title-win evidence: `ברצלונה הוכתרה בליגת
+  האלופות` must not become title_win because of the word `האלופות`.
+- `BCL` is matched only as a whole Latin word (`ב-BCL`, not `abcl`), in sport detection, the
+  league and the competition scan.
+
+The trace records the reading as `competitions.shared_name_sport`.
 
 The decision reads the text only, never the sport the pipeline already chose, so it cannot
 launder a sport guess into evidence. Known limitation: a basketball-section URL hint is not
 consulted. A basketball-section article with the bare name and no text cue reads football, as
 it did before. The corpus has no such row.
 
-Real-corpus effect (rules-only rerun, 3,877 rows): 11 rows change facts, all BCL basketball
-stories (2 football → basketball, 11 gain `comp:bcl`); no football row changes. No decision
-changes for either seed profile: no followed scope reaches a BCL game yet. `comp:bcl` is
-listed but not selectable, and whether Guy follows it is an owner decision (measured on the
-#407 PR: 10 Guy rows hidden → visible, push unchanged). Tests:
-`tests/test_champions_league_407.py`.
+**Real-corpus effect** (rules-only rerun, 3,877 rows):
+- 11 rows change facts, all BCL basketball stories (2 football → basketball, 11 gain
+  `comp:bcl`). No football row changes.
+- Guy and the Deni fan: 0 decision changes. No followed scope reaches a BCL game yet.
+- The four stored test/admin profiles: 8 decisions change, all on the two rows that move from
+  football to basketball. The football followers lose them, the basketball followers gain them
+  at `low_feed`. None involves push.
+- `comp:bcl` is listed but not selectable. Whether Guy follows it is an owner decision. The
+  #407 PR measured it: 10 Guy rows hidden → visible, push unchanged.
+
+Tests: `tests/test_champions_league_407.py`.
 
 ---
 

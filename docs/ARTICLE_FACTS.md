@@ -181,9 +181,11 @@ stray keyword cannot override or abstain them.
 
 No new evidence source was added for #407. The shared name `ליגת האלופות` /
 `champions league` keeps the keyword and competition-keyword slots above, but for the
-sport the text proves (`sport_guards.shared_champions_league_sport`: basketball when a
-basketball entity or scoreline is named, football otherwise). It maps to `comp:bcl` or
-`comp:ucl` accordingly ([RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) §20).
+sport the text proves (`sport_guards.shared_champions_league_sport`: basketball for a
+qualified FIBA name or the word basketball with no committed football vocabulary, or when a
+basketball entity is named by a multi-word alias or a basketball scoreline appears and no
+other-sport entity is named; football otherwise). It maps to `comp:bcl` or
+`comp:ucl` accordingly ([RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) §22).
 
 Bare club-family names (`מכבי`, `הפועל`, …) are **not** sport evidence — the last
 entity→basketball bias path was removed (`"מכבי"`/`"maccabi"` dropped from the

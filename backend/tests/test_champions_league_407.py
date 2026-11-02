@@ -274,3 +274,109 @@ class TestRelevance:
             assert score_article_v2(_ingest(*row), guy).decision != "push"
         for row in (CITY_PSG, BEER_SHEVA_QUALIFIER, ASIAN_CL, JERUSALEM_WOMEN_UCL):
             assert score_article_v2(_ingest(*row), guy).decision == "hidden"
+
+
+# ── 5. Review fixes (PR #417) ────────────────────────────────────────────────
+
+def _walla(title, subtitle=""):
+    return _ingest("walla_sport", "https://sports.walla.co.il/item/1", title, subtitle)
+
+
+class TestCompetitionNameIsNotTitleWinEvidence:
+    # The bare name is masked before title_win analysis, like every registered
+    # competition name containing a champion noun (event_evidence).
+    @pytest.mark.parametrize("title", [
+        "Champions League: Inter 2-1 Barcelona",
+        "ברצלונה הוכתרה בליגת האלופות",
+        "champions league odds 60:40 for city",
+    ])
+    def test_bare_name_does_not_make_a_title_win(self, title):
+        a = _walla(title)
+        assert a.event_type != "title_win"
+        assert a.sport == "football"
+        assert score_article_v2(a, PROFILES["guy"]).decision == "hidden"
+
+
+class TestSharedVocabularyIsNotEnough:
+    # "ריבאונד" is committed basketball vocabulary, but football copy says
+    # "כבש מריבאונד". Only qualified FIBA names (or כדורסל) make the bare name
+    # basketball through vocabulary; everything else needs a named cue.
+    @pytest.mark.parametrize("title", [
+        "גול מריבאונד של מכבי תל אביב בליגת האלופות",
+        "מכבי חיפה כבשה מריבאונד בליגת האלופות",
+    ])
+    def test_rebound_in_football_copy_is_not_basketball(self, title):
+        assert shared_champions_league_sport(title) == "football"
+        a = _walla(title)
+        assert a.sport != "basketball"
+        assert "comp:bcl" not in _comps(a)
+        assert "team:maccabi_tlv_bb" not in a.entity_ids
+        assert score_article_v2(a, PROFILES["guy"]).decision == "hidden"
+
+    def test_basketball_word_still_reads_basketball(self):
+        assert shared_champions_league_sport("ליגת האלופות בכדורסל: חולון ניצחה") == "basketball"
+
+    def test_an_llm_football_is_not_overridden_to_basketball(self):
+        from app.classification.llm_result import LLMClassificationResult
+        from app.classification.merge import merge_with_guardrails
+        from app.ingestion.classifier import classify
+
+        title = "גול מריבאונד של מכבי תל אביב בליגת האלופות"
+        rules = classify(title, source_id="walla_sport", language="he")
+        llm = LLMClassificationResult(
+            sport="football", league=None, entities=["Maccabi Tel Aviv FC"],
+            event_type="news", importance="medium", confidence=0.9, reason="recorded",
+        )
+        merged, _ = merge_with_guardrails(llm, rules, title.lower())
+        assert merged.sport == "football"
+
+    def test_an_llm_football_through_the_ingestion_path(self, monkeypatch):
+        from app.classification.llm_result import LLMClassificationResult
+
+        class _Recorded:
+            can_classify = True
+            last_failure_was_connect_error = False
+            provider_id = "recorded-407"
+
+            def classify_title(self, title, language, subtitle=None):
+                return LLMClassificationResult(
+                    sport="football", league=None, entities=["Maccabi Tel Aviv FC"],
+                    event_type="news", importance="medium", confidence=0.9, reason="recorded",
+                )
+
+        monkeypatch.setattr(ingestion_service, "_LLM_PROVIDER", _Recorded())
+        a = _walla("גול מריבאונד של מכבי תל אביב בליגת האלופות")
+        assert a.sport == "football"
+        assert "comp:bcl" not in _comps(a)
+
+
+class TestOneWordAliasIsNotACue:
+    # "deni" inside "denied" is a pre-existing substring alias bug (#415). It must not
+    # also turn a UEFA story into basketball through the shared name.
+    def test_one_word_person_alias_does_not_prove_basketball(self):
+        title = "Arsenal denied a late penalty in Champions League defeat"
+        assert shared_champions_league_sport(title.lower()) == "football"
+        a = _walla(title)
+        assert a.sport == "football"
+        assert "player:deni_avdija" not in a.entity_ids
+        assert score_article_v2(a, PROFILES["guy"]).decision == "hidden"
+        assert score_article_v2(a, PROFILES["casual_deni_fan"]).decision == "hidden"
+
+    def test_a_full_person_name_still_proves_basketball(self):
+        assert shared_champions_league_sport("דני אבדיה צפה בליגת האלופות") == "basketball"
+
+
+class TestBclAbbreviationIsAWholeWord:
+    def test_bcl_inside_a_word_is_not_the_competition(self):
+        a = _ingest("ynet_sport", "https://www.ynet.co.il/sport/article/x", "abcl report", "")
+        assert "comp:bcl" not in _comps(a)
+        assert a.sport != "basketball"
+
+
+class TestDetectLeagueAsksTheSharedName:
+    def test_basketball_hint_with_a_football_reading_is_not_bcl(self):
+        # A basketball-section article that mentions the UEFA competition in passing.
+        from app.ingestion.classifier import _detect_league
+        text = "מכבי חיפה בליגת האלופות"
+        assert shared_champions_league_sport(text) == "football"
+        assert _detect_league(text, "basketball") != "Basketball Champions League"

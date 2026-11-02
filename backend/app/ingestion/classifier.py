@@ -20,6 +20,7 @@ from typing import Optional
 
 from app.classification.sport_guards import (
     committed_sport,
+    has_bcl_abbreviation,
     has_shared_champions_league_name,
     is_unsupported_sport,
     shared_champions_league_sport,
@@ -192,7 +193,7 @@ def _has_football_context(text: str) -> bool:
 
 _BASKETBALL_KW = (
     "basketball", "כדורסל", "nba", "euroleague", "eurocup", "יורוליג", "יורוקאפ",
-    "acb", "bsl", "lba", "lnb", "bcl",
+    "acb", "bsl", "lba", "lnb",   # "bcl" is matched as a whole word (#407): _detect_sport
     # NOTE (issue #28): bare club-family names "מכבי" / "maccabi" were REMOVED here.
     # They are family markers, not sport evidence — a football מכבי story (מכבי חיפה,
     # or a bare "מכבי" whose subtitle says "שוער") must not be forced to basketball.
@@ -320,7 +321,7 @@ def _detect_sport(text: str, source_id: str, source_sport_hint: str | None = Non
             return "football"
         return "unknown"  # ambiguous_club — tagged in classify()
     # Generic keyword fallback (handles standalone "מכבי", English sources, etc.)
-    if _has(text, *_BASKETBALL_KW):
+    if _has(text, *_BASKETBALL_KW) or has_bcl_abbreviation(text):
         return "basketball"
     if _has(text, *_FOOTBALL_KW):
         return "football"
@@ -351,11 +352,11 @@ _NBA_TEAM_KW = (
     "לברון", "לברון ג'יימס",  # LeBron James
 )
 _EUROLEAGUE_KW = ("euroleague", "יורוליג", "היורוליג")
-# Basketball Champions League (#407): qualified names; the bare shared name counts too once
-# the sport is basketball (sport_guards.shared_champions_league_sport decided it).
+# Basketball Champions League (#407): qualified names, "BCL" as a whole word, and the bare
+# shared name when sport_guards.shared_champions_league_sport reads it as basketball.
 _BCL_KW = (
     'ליגת האלופות של פיב"א', "ליגת האלופות של פיב״א", "ליגת האלופות של פיבא",
-    "ליגת האלופות בכדורסל", "basketball champions league", "fiba champions league", "bcl",
+    "ליגת האלופות בכדורסל", "basketball champions league", "fiba champions league",
 )
 # Direct textual mentions of the Israeli Basketball League.
 # "הפועל תל אביב" is included here because, once sport is already resolved to
@@ -406,7 +407,11 @@ _US_OPEN_KW = ("us open",)
 _AUSTRALIAN_OPEN_KW = ("australian open",)
 
 
-def _detect_league(text: str, sport: str, url: str = "") -> Optional[str]:
+def _detect_league(
+    text: str, sport: str, url: str = "", shared_context: Optional[str] = None,
+) -> Optional[str]:
+    """``shared_context`` is the text the shared Champions League name is read in
+    (title + subtitle); defaults to ``text``."""
     if sport == "basketball":
         url_lower = url.lower()
         # EuroCup: check title AND URL before EuroLeague to avoid misclassification.
@@ -419,7 +424,12 @@ def _detect_league(text: str, sport: str, url: str = "") -> Optional[str]:
             return "EuroLeague"
         # Before the IBL: its list includes club names, and a named competition beats a
         # club's domestic league.
-        if _has(text, *_BCL_KW) or has_shared_champions_league_name(text):
+        if (
+            _has(text, *_BCL_KW)
+            or has_bcl_abbreviation(text)
+            or (has_shared_champions_league_name(text)
+                and shared_champions_league_sport(shared_context or text) == "basketball")
+        ):
             return "Basketball Champions League"
         if _has(text, *_ISRAELI_BBALL_DIRECT_KW):
             return "Israeli Basketball League"
@@ -1086,11 +1096,11 @@ def classify(
             )
             entities = _filter_entities_for_sport(sub_entities, sport)
 
-    league = _detect_league(text, sport, url=url)
+    league = _detect_league(text, sport, url=url, shared_context=f"{text} {sub_text}")
 
     # League gap from subtitle: when title produced no league, try subtitle.
     if league is None and sub_text:
-        league = _detect_league(sub_text, sport)
+        league = _detect_league(sub_text, sport, shared_context=f"{text} {sub_text}")
 
     # Entity-based league inference: Deni Avdija is an NBA player.
     # Titles that mention him without "NBA" (common in Hebrew news) still map to NBA.

@@ -408,12 +408,12 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
   owner, together with whether Guy follows it.
   - **Aliases.** Qualified forms only: `ליגת האלופות של פיב"א` (and `פיב״א` / `פיבא`),
     `ליגת האלופות בכדורסל`, `basketball champions league`, `fiba champions league`, and
-    `bcl` (2 corpus rows, both basketball; a competition keyword like `acb`/`bsl`).
+    `BCL` as a whole Latin word only (2 corpus rows, both basketball; `abcl` does not match).
   - **The bare name is shared, like a cross-sport twin club.** `ליגת האלופות` /
     `champions league` belong to neither competition's keyword list. The facts stage maps
     them to `comp:bcl` when the text proves basketball and to `comp:ucl` otherwise
     (`sport_guards.shared_champions_league_sport`; rule in
-    [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) §20). `comp:ucl` therefore has no
+    [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) §22). `comp:ucl` therefore has no
     keyword of its own.
   - **No memberships, deliberately.** The corpus shows Hapoel Holon and Bnei Herzliya in
     the 2026-27 BCL, but a `comp:bcl` membership would turn a Holon–Herzliya IBL game's

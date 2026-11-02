@@ -314,9 +314,12 @@ def _champion_term_competition_names() -> tuple[str, ...]:
     """All known competition-name phrases containing a champion noun."""
     try:  # deferred import — competition keywords live with the facts stage
         from app.classification.facts import _COMPETITION_KEYWORDS
+        from app.classification.sport_guards import SHARED_CHAMPIONS_LEAGUE_NAMES
+        # The shared Champions League name (#407) is in no competition's keyword list:
+        # it maps to comp:ucl or comp:bcl per article. It is a competition name all the same.
         registered = tuple(
             kw
-            for kws in _COMPETITION_KEYWORDS.values()
+            for kws in (*_COMPETITION_KEYWORDS.values(), SHARED_CHAMPIONS_LEAGUE_NAMES)
             for kw in kws
             if any(noun in kw for noun in _CHAMPION_NOUNS_HE + _CHAMPION_NOUNS_EN)
         )

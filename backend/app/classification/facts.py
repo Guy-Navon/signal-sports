@@ -67,7 +67,7 @@ _COMPETITION_KEYWORDS: dict[str, tuple[str, ...]] = {
     "comp:bcl": (
         'ליגת האלופות של פיב"א', "ליגת האלופות של פיב״א", "ליגת האלופות של פיבא",
         "ליגת האלופות בכדורסל", "basketball champions league", "fiba champions league",
-        "bcl",
+        "bcl",  # whole word only: _WORD_BOUNDED_COMP_KEYWORDS
     ),
     "comp:euroleague": ("euroleague", "יורוליג", "היורוליג"),
     "comp:nba": ("nba", "אן.בי.איי", "אן בי איי"),
@@ -174,6 +174,16 @@ def _overlaps(span: tuple[int, int], taken: list[tuple[int, int]]) -> bool:
     return any(s < te and ts < e for ts, te in taken)
 
 
+# Keywords too short to be substring-safe: matched only as a whole Latin word.
+_WORD_BOUNDED_COMP_KEYWORDS = frozenset({"bcl"})
+
+
+def _standalone_latin(text: str, start: int, end: int) -> bool:
+    before = text[start - 1] if start > 0 else " "
+    after = text[end] if end < len(text) else " "
+    return not (before.isascii() and before.isalnum()) and not (after.isascii() and after.isalnum())
+
+
 def _scan_competitions(text: str) -> list[str]:
     """Return explicit competition ids mentioned in ``text`` (longest-match, ordered)."""
     if not text:
@@ -188,6 +198,9 @@ def _scan_competitions(text: str) -> list[str]:
             if idx == -1:
                 break
             span = (idx, idx + len(kw))
+            if kw in _WORD_BOUNDED_COMP_KEYWORDS and not _standalone_latin(text, *span):
+                start = idx + 1
+                continue
             if not _overlaps(span, taken):
                 taken.append(span)
                 if comp_id not in seen:

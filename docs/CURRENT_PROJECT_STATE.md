@@ -261,7 +261,7 @@ them, and drift tests on both sides enforce it.
 Pipeline order and contracts: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) (map),
 [ARTICLE_FACTS.md](ARTICLE_FACTS.md) (facts stage), [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md)
 (gate, merge, metrics), and [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) (the
-deterministic rule changelog, §1–§18).
+deterministic rule changelog, §1–§22).
 
 - **Rules first, always.** The title is primary, and the subtitle only fills gaps. *Title-local*
   event types (`title_win`, `grand_slam_winner`, `major_trade`, `schedule`, …) never come from
@@ -277,7 +277,7 @@ deterministic rule changelog, §1–§18).
   5 executives) and 22 competitions, 15 of them selectable. The FIBA Basketball Champions
   League (`comp:bcl`, #407) is registered but not yet selectable. Its bare name
   `ליגת האלופות` is shared with UEFA's and is read by the sport the text proves (see
-  RSS_QUALITY_GUARDRAILS.md §20). Bare club-family names (`מכבי`,
+  RSS_QUALITY_GUARDRAILS.md §22). Bare club-family names (`מכבי`,
   `הפועל`) never resolve. Coaches and executives imply their team, and so do the #259
   Maccabi/Hapoel Tel Aviv roster people (`implies_team`). That roster is season data, kept
   current by the TAXONOMY.md roster-maintenance routine (#377).

@@ -50,7 +50,7 @@ _COMMITTED_BASKETBALL: tuple[str, ...] = (
     "ליגת ווינר", "ווינר סל", "ליגת העל בכדורסל",
     "הפגיז מהקשת",   # "מהקשת" alone is too generic ("קשת" = bow/arc/rainbow)
     # The Basketball Champions League by a name no football competition has (#407).
-    # Bare "bcl" is left out: a 3-letter token is not substring-safe here.
+    # "bcl" is left out: a 3-letter token is not substring-safe (has_bcl_abbreviation).
     'ליגת האלופות של פיב"א', "ליגת האלופות של פיב״א", "ליגת האלופות של פיבא",
     "basketball champions league", "fiba champions league",
 )
@@ -120,12 +120,15 @@ def has_basketball_scoreline(text: str) -> bool:
     return any(50 <= a <= 199 and 50 <= b <= 199 and a != b for a, b in pairs)
 
 
-def names_its_sport(ent, text_norm: str) -> bool:
+def names_its_sport(ent, text_norm: str, multiword_people: bool = False) -> bool:
     """A self-resolved entity proves its sport: a person by name; a team only
     through a multi-word alias present in the text (#345). One-word team aliases are
     substring hits on town names and nicknames ("באילת" = Hapoel Eilat's town, "ספרס" =
-    Tottenham in football copy, "העמק" inside "מגדל העמק"), so they prove nothing."""
-    if ent.kind != "team":
+    Tottenham in football copy, "העמק" inside "מגדל העמק"), so they prove nothing.
+
+    ``multiword_people`` holds a person to the same multi-word rule (#407): a one-word
+    person alias can be a substring hit too ("deni" inside "denied", #415)."""
+    if ent.kind != "team" and not multiword_people:
         return True
     return any(
         " " in alias and alias in text_norm
@@ -133,13 +136,16 @@ def names_its_sport(ent, text_norm: str) -> bool:
     )
 
 
-def basketball_named_cue(text: str, extra_entities=()) -> Optional[str]:
+def basketball_named_cue(
+    text: str, extra_entities=(), multiword_people: bool = False,
+) -> Optional[str]:
     """A deterministic basketball cue the text itself carries (None if there is none):
     a basketball entity the resolver finds with NO sport context, named in a form that
     proves its sport, or a basketball scoreline.
 
     Any entity of another sport the text names (or that the caller passes in
     ``extra_entities``) is a contradiction, and then nothing is a cue.
+    ``multiword_people``: see ``names_its_sport``.
     """
     self_resolved = resolve_entities(text, None).resolved
     named = [ent for ent in (*self_resolved, *extra_entities) if ent is not None]
@@ -147,7 +153,7 @@ def basketball_named_cue(text: str, extra_entities=()) -> Optional[str]:
         return None
     text_norm = normalize_alias_text(text)
     for ent in self_resolved:
-        if ent.sport == "basketball" and names_its_sport(ent, text_norm):
+        if ent.sport == "basketball" and names_its_sport(ent, text_norm, multiword_people):
             return f"text_entity:{ent.id}"
     if has_basketball_scoreline(text):
         return "basketball_scoreline"
@@ -158,19 +164,41 @@ def has_shared_champions_league_name(text: str) -> bool:
     return _has(text, SHARED_CHAMPIONS_LEAGUE_NAMES)
 
 
+# "BCL" as a whole Latin word ("ב-BCL", "the BCL"), never inside one ("abcl"). A 3-letter
+# token is not substring-safe, so it is matched with boundaries and kept out of the
+# committed vocabulary.
+_BCL_ABBREVIATION = re.compile(r"(?<![a-z0-9])bcl(?![a-z0-9])")
+
+
+def has_bcl_abbreviation(text: str) -> bool:
+    return _BCL_ABBREVIATION.search(text.lower()) is not None
+
+
+# The only VOCABULARY that reads the shared name as basketball: the qualified FIBA names
+# and the sport's own name. Other committed basketball words are not enough: football copy
+# says "כבש מריבאונד" (scored from a rebound). Everything else goes through
+# basketball_named_cue, which checks for a contradicting entity.
+_SHARED_NAME_BASKETBALL_VOCABULARY: tuple[str, ...] = (
+    'ליגת האלופות של פיב"א', "ליגת האלופות של פיב״א", "ליגת האלופות של פיבא",
+    "basketball champions league", "fiba champions league",
+    "כדורסל", "basketball",
+)
+
+
 def shared_champions_league_sport(text: str) -> str:
     """The sport the bare "ליגת האלופות" / "champions league" names in ``text``.
 
-    Basketball when the text proves basketball — committed basketball vocabulary (which
-    includes the qualified "ליגת האלופות של פיב\"א") with no committed football, or a
-    named basketball cue. Football otherwise: the corpus prior, and the safe side for a
-    user who follows basketball (a wrong basketball reading would leak a UEFA story into
-    basketball interests).
+    Basketball when the text proves basketball: a qualified FIBA name or the word
+    basketball, with no committed football vocabulary; or a named basketball cue (a
+    multi-word basketball name or a basketball scoreline, and no other-sport entity).
+    Football otherwise: the corpus prior, and the safe side for a user who follows
+    basketball (a wrong basketball reading would leak a UEFA story into basketball
+    interests).
     """
     lowered = text.lower()
-    if has_committed_basketball(lowered) and not has_committed_football(lowered):
+    if _has(lowered, _SHARED_NAME_BASKETBALL_VOCABULARY) and not has_committed_football(lowered):
         return "basketball"
-    if basketball_named_cue(lowered) is not None:
+    if basketball_named_cue(lowered, multiword_people=True) is not None:
         return "basketball"
     return "football"
 

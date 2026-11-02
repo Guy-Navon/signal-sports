@@ -21,6 +21,7 @@ Configuration via environment variables:
 
 import json
 import logging
+import threading
 import time
 from typing import Optional
 
@@ -347,6 +348,21 @@ DEFAULT_RATE_LIMIT_PAUSE_SECONDS = 60.0
 # may spend asleep on rate limits, unless the caller sets another budget.
 DEFAULT_RATE_LIMIT_WAIT_BUDGET_SECONDS = 300.0
 
+# Set on shutdown (the worker's stop handler calls interrupt_rate_limit_waits) so a
+# stopping worker does not keep sleeping through rate-limit pauses: an in-progress
+# wait ends early where the platform allows it (on Windows a signal is handled only
+# after that one wait, at most the cap), and every later pause fails fast as before.
+RATE_LIMIT_WAIT_INTERRUPT = threading.Event()
+
+
+def interrupt_rate_limit_waits() -> None:
+    RATE_LIMIT_WAIT_INTERRUPT.set()
+
+
+def _wait_interruptibly(seconds: float) -> bool:
+    """Sleep up to ``seconds``. False when a shutdown interrupted (or preceded) the wait."""
+    return not RATE_LIMIT_WAIT_INTERRUPT.wait(timeout=seconds)
+
 
 def _retry_after_seconds(response: httpx.Response) -> Optional[float]:
     value = response.headers.get("retry-after")
@@ -383,9 +399,20 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
       waits for it to end, and a 429 response is retried once after its pause.
       A second 429 falls back as above. All waiting is bounded by a per-run
       budget (``rate_limit_wait_budget_seconds``), restored by
-      ``reset_rate_limit_wait_budget()`` at the start of each ingestion run.
+      ``reset_rate_limit_wait_budget()`` at the start of each ingestion run
+      (a budget of 0 means never wait). One article can sleep twice: paused at
+      call start, then a 429 on its own request; that is up to 2x the cap, still
+      a single retry, and always within the budget. 401/403 and every other
+      status never wait or retry.
       ``last_rate_limit_wait_ms`` is the time the last call spent asleep; it is
       not part of ``last_call_latency_ms``.
+    - Shutdown: ``interrupt_rate_limit_waits()`` (the worker's stop handler)
+      ends waiting. Without it, a stop signal would only take effect after the
+      cycle, which waiting could stretch by up to the remaining budget. A hard
+      kill (``worker.ps1 -Stop`` uses Stop-Process -Force) mid-cycle leaves a
+      ``running`` cycle whose lease is taken over only after
+      ``SCHEDULER_STALE_AFTER_SECONDS``, as for any mid-cycle kill; longer
+      backlog cycles make that more likely.
     - ``last_usage`` holds the reported token counts (never content).
     - The key travels only in the Authorization header. It is never logged, and
       error logs carry the status code, not the response body.
@@ -455,13 +482,19 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
         remaining = self._paused_until - time.monotonic()
         if remaining <= 0:
             return True
-        if remaining > self._max_wait or remaining > self._wait_budget_left:
+        if (
+            remaining > self._max_wait
+            or remaining > self._wait_budget_left
+            or RATE_LIMIT_WAIT_INTERRUPT.is_set()
+        ):
             return False
         logger.info(
             "%s rate-limited: waiting %.1fs (budget left %.0fs) instead of falling back",
             self.provider_id, remaining, self._wait_budget_left,
         )
-        time.sleep(remaining)
+        if not _wait_interruptibly(remaining):
+            logger.info("%s rate-limit wait interrupted by shutdown", self.provider_id)
+            return False
         self._wait_budget_left -= remaining
         self.last_rate_limit_wait_ms += remaining * 1000
         return True

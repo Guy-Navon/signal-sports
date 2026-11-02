@@ -26,6 +26,18 @@ def _float_env(name: str, default: float) -> float:
         return default
 
 
+def _non_negative_float_env(name: str, default: float) -> float:
+    """Like _float_env, but 0 is a real value (for the rate-limit wait budget,
+    0 = never wait). Negative or invalid values use the default."""
+    raw = os.environ.get(name, str(default))
+    try:
+        value = float(raw)
+        return value if value >= 0 else default
+    except ValueError:
+        logger.warning("Invalid %s=%r; using %s", name, raw, default)
+        return default
+
+
 def _openai_compat_from_env() -> LLMClassificationProvider:
     """CLASSIFICATION_PROVIDER=openai_compat (#261).
 
@@ -46,7 +58,8 @@ def _openai_compat_from_env() -> LLMClassificationProvider:
                                               > 0 = sleep through a pause up to this long, and
                                               retry a 429 once (#409)
       CLASSIFICATION_RATE_LIMIT_WAIT_BUDGET_SECONDS
-                                              total waiting per ingestion run, default 300
+                                              total waiting per ingestion run, default 300;
+                                              0 = never wait
     Anything missing or invalid falls back to disabled, with a warning that
     names the variable and never its value.
     """
@@ -105,7 +118,7 @@ def _openai_compat_from_env() -> LLMClassificationProvider:
         token_limit_param=token_param,
         send_temperature=send_temperature,
         rate_limit_max_wait_seconds=max_wait,
-        rate_limit_wait_budget_seconds=_float_env(
+        rate_limit_wait_budget_seconds=_non_negative_float_env(
             "CLASSIFICATION_RATE_LIMIT_WAIT_BUDGET_SECONDS", DEFAULT_RATE_LIMIT_WAIT_BUDGET_SECONDS,
         ),
     )

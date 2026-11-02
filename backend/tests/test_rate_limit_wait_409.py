@@ -59,16 +59,21 @@ class _Post:
 
 @pytest.fixture
 def clock(monkeypatch):
-    """A fake monotonic clock; time.sleep advances it and records each sleep."""
+    """A fake monotonic clock; the provider's wait advances it and records each sleep.
+    Like the real wait, it returns at once (False) once a shutdown has interrupted waits."""
     state = {"now": 1000.0, "sleeps": []}
 
-    def sleep(seconds):
+    def wait(seconds):
+        if providers.RATE_LIMIT_WAIT_INTERRUPT.is_set():
+            return False
         state["sleeps"].append(seconds)
         state["now"] += seconds
+        return True
 
     monkeypatch.setattr(providers.time, "monotonic", lambda: state["now"])
-    monkeypatch.setattr(providers.time, "sleep", sleep)
-    return state
+    monkeypatch.setattr(providers, "_wait_interruptibly", wait)
+    yield state
+    providers.RATE_LIMIT_WAIT_INTERRUPT.clear()
 
 
 def _provider(**kwargs):
@@ -148,6 +153,89 @@ def test_wait_budget_bounds_the_run_and_reset_restores_it(monkeypatch, clock):
     assert sum(clock["sleeps"]) == pytest.approx(16.0)
 
 
+def test_one_article_can_wait_twice_but_retries_once(monkeypatch, clock):
+    # Paused at call start (waits 5 s), then its own request gets a 429 (waits 4 s)
+    # and is retried once: up to 2x the cap for one article, within the budget.
+    post = _Post(_429(5), _429(5), _429(4), _ok())
+    monkeypatch.setattr(httpx, "post", post)
+    p = _provider(rate_limit_max_wait_seconds=15)
+    p.classify_title("a", "he")                         # 429, wait 5, retry 429 -> paused 5 s
+    assert p.classify_title("b", "he") is not None
+    assert post.calls == 4
+    assert clock["sleeps"][-2:] == [pytest.approx(5.0), pytest.approx(4.0)]
+    assert p.last_rate_limit_wait_ms == pytest.approx(9000.0)
+
+
+@pytest.mark.parametrize("second", [401, 403])
+def test_auth_error_never_waits_or_retries(monkeypatch, clock, second):
+    post = _Post(_response(status=second, body={}), _ok())
+    monkeypatch.setattr(httpx, "post", post)
+    p = _provider(rate_limit_max_wait_seconds=15)
+    assert p.classify_title("a", "he") is None
+    assert p.last_failure_reason == "http_error" and p.last_http_status == second
+    assert post.calls == 1 and clock["sleeps"] == []
+
+
+def test_429_then_401_on_the_retry_falls_back_without_a_third_request(monkeypatch, clock):
+    post = _Post(_429(3), _response(status=401, body={}), _ok())
+    monkeypatch.setattr(httpx, "post", post)
+    p = _provider(rate_limit_max_wait_seconds=15)
+    assert p.classify_title("a", "he") is None
+    assert p.last_failure_reason == "http_error" and p.last_http_status == 401
+    assert post.calls == 2
+    assert clock["sleeps"] == [pytest.approx(3.0)]
+
+
+@pytest.mark.parametrize("max_wait,waited", [(15, False), (90, True)])
+def test_http_date_retry_after_uses_the_default_pause(monkeypatch, clock, max_wait, waited):
+    post = _Post(_response(status=429, body={}, headers={"retry-after": "Wed, 21 Oct 2026 07:28:00 GMT"}),
+                 _ok())
+    monkeypatch.setattr(httpx, "post", post)
+    p = _provider(rate_limit_max_wait_seconds=max_wait)
+    result = p.classify_title("a", "he")
+    if waited:      # the default 60 s pause fits a 90 s cap: wait it out and retry
+        assert result is not None
+        assert clock["sleeps"] == [pytest.approx(providers.DEFAULT_RATE_LIMIT_PAUSE_SECONDS)]
+    else:           # 60 s > the 15 s cap: fail fast, no retry
+        assert result is None and post.calls == 1 and clock["sleeps"] == []
+
+
+def test_failure_latency_excludes_the_wait(monkeypatch, clock):
+    # perf_counter follows the fake clock, so the 6 s wait would show in latency
+    # if it were not subtracted.
+    monkeypatch.setattr(providers.time, "perf_counter", lambda: clock["now"])
+    post = _Post(_429(6), _response(status=500, body={}))
+    monkeypatch.setattr(httpx, "post", post)
+    p = _provider(rate_limit_max_wait_seconds=15)
+    assert p.classify_title("a", "he") is None
+    assert p.last_failure_reason == "http_error" and p.last_http_status == 500
+    assert p.last_rate_limit_wait_ms == pytest.approx(6000.0)
+    assert p.last_call_latency_ms == pytest.approx(0.0)
+
+
+def test_shutdown_interrupts_waiting(monkeypatch, clock):
+    """After a stop signal (the worker calls interrupt_rate_limit_waits), a pause is
+    never slept through: the article falls back as before and the budget is untouched."""
+    post = _Post(_429(5), _ok())
+    monkeypatch.setattr(httpx, "post", post)
+    p = _provider(rate_limit_max_wait_seconds=15)
+    providers.interrupt_rate_limit_waits()
+    assert p.classify_title("a", "he") is None          # 429: no wait, no retry
+    assert p.classify_title("b", "he") is None          # paused: no wait, no request
+    assert post.calls == 1 and clock["sleeps"] == []
+    assert p._wait_budget_left == p._wait_budget
+
+
+def test_real_wait_returns_at_once_when_interrupted():
+    providers.RATE_LIMIT_WAIT_INTERRUPT.set()
+    try:
+        started = time.monotonic()
+        assert providers._wait_interruptibly(30) is False
+        assert time.monotonic() - started < 1
+    finally:
+        providers.RATE_LIMIT_WAIT_INTERRUPT.clear()
+
+
 # ── Wiring ───────────────────────────────────────────────────────────────────
 
 @pytest.fixture
@@ -184,6 +272,19 @@ def test_wiring_reads_the_settings(compat_env, monkeypatch, clock):
     clock["now"] += 100
     assert p.classify_title("b", "he") is None          # 3 s > the 1 s of budget left
     assert clock["sleeps"] == [pytest.approx(3.0)]
+
+
+def test_wiring_zero_budget_means_never_wait(compat_env, monkeypatch, clock):
+    from app.classification.service import get_llm_provider
+
+    compat_env.setenv("CLASSIFICATION_RATE_LIMIT_MAX_WAIT_SECONDS", "15")
+    compat_env.setenv("CLASSIFICATION_RATE_LIMIT_WAIT_BUDGET_SECONDS", "0")
+    post = _Post(_429(2), _ok())
+    monkeypatch.setattr(httpx, "post", post)
+    p = get_llm_provider()
+    p.reset_rate_limit_wait_budget()
+    assert p.classify_title("a", "he") is None
+    assert post.calls == 1 and clock["sleeps"] == []
 
 
 # ── Through a real ingestion run ─────────────────────────────────────────────

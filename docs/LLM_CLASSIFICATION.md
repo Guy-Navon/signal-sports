@@ -182,13 +182,22 @@ hosted model replaces Ollama is #262's evaluation and the owner's decision.
   0 = off, the behavior above) makes the provider sleep through a pause no longer than that cap
   instead of failing: a call made during a pause waits for it to end, and a 429 response is
   retried **once** after its `Retry-After`; a second 429 falls back as above. Total waiting is
-  bounded per ingestion run by `CLASSIFICATION_RATE_LIMIT_WAIT_BUDGET_SECONDS` (default 300),
-  reset at the start of every `run_ingestion`. Time asleep is excluded from `llm_avg_ms` /
+  bounded by `CLASSIFICATION_RATE_LIMIT_WAIT_BUDGET_SECONDS` (default 300; 0 also means never
+  wait). The budget belongs to a provider instance: the worker's (and the API's ingestion)
+  provider resets it at the start of every `run_ingestion`; `POST /api/classify/backfill`
+  builds a new provider per request, and `reclassify_copy.py` / `llm_failure_probe.py` one per
+  script run, so each of those gets a full budget. One article can sleep twice (paused at call
+  start, then a 429 on its own request): up to 2x the cap, still one retry, within the budget.
+  401/403 and other statuses never wait or retry. Time asleep is excluded from `llm_avg_ms` /
   `llm_p95_ms` and reported as `metrics.rate_limit_waits` / `rate_limit_wait_ms` and in the
-  Timing log line. Why: census #3 found every Groq-era failure but one was a 429 burst on a
-  backlog cycle, where one 429 failed the whole pause window (analysis on #409 and its PR).
-  Enabling it on the live worker is the owner's decision; it lengthens a backlog cycle by up to
-  the budget.
+  Timing log line. **Shutdown:** the worker's stop handler calls `interrupt_rate_limit_waits()`,
+  so no further pause is slept through (on Windows a wait already in progress finishes first: at
+  most one cap). A hard kill (`worker.ps1 -Stop` uses `Stop-Process -Force`) mid-cycle leaves a
+  `running` cycle whose lease is taken over only after `SCHEDULER_STALE_AFTER_SECONDS`, as for
+  any mid-cycle kill; longer backlog cycles make that more likely. Why: census #3 found every
+  Groq-era failure but one was a 429 burst on a backlog cycle, where one 429 failed the whole
+  pause window (analysis on #409 and its PR). Enabling it on the live worker is the owner's
+  decision; it lengthens a backlog cycle by up to the budget.
 - **Usage:** `last_usage` (prompt, completion, reasoning token counts) feeds the run's
   `metrics.llm_tokens`.
 - **Secrets:** the key travels only in the header. It is never logged; error logs carry the
@@ -715,11 +724,11 @@ llm_skip_reasons: dict[str, int]       # reason → count for gated-skip decisio
 llm_call_reasons: dict[str, int]       # reason → count for gated-call decisions
 ```
 
-**What is measured:** LLM latency is measured around the raw provider call, including failed attempts. A `ConnectError` that takes 2 seconds is recorded. A timeout at 30 seconds is recorded. This means `llm_avg_ms` and `llm_p95_ms` reflect realistic end-to-end overhead, not only successful classifications. Metrics schema v2 also persists `failure_latency_ms_by_reason`, with count/average/p95 for each typed failure reason.
+**What is measured:** LLM latency is measured around the raw provider call, including failed attempts. A `ConnectError` that takes 2 seconds is recorded. A timeout at 30 seconds is recorded. This means `llm_avg_ms` and `llm_p95_ms` reflect realistic end-to-end overhead, not only successful classifications. Metrics schema v2 also persists `failure_latency_ms_by_reason`, with count/average/p95 for each typed failure reason. Time spent asleep in the opt-in rate-limit wait (#409) is **excluded** from `llm_avg_ms`, `llm_p95_ms` and the failure latencies (it is reported separately, below); `total_ms` and `articles_per_minute` still include it, because the run really took that long.
 
 **Log line (INFO level, emitted at end of each source run):**
 ```
-Timing [israel_hayom_sport]: fetch=420ms total=18.3s | LLM: attempts=12 successes=10 avg=710ms p95=1420ms | Fallbacks: connect_error=0 timeout=0 http_error=0 bad_response_shape=0 unparseable_json=1 low_conf=1 | Gating: skipped=9 skip_reasons={'clear_league_in_title': 5, 'measured_generic_news_sufficient': 4} call_reasons={'sport_unknown': 7} | Slowest: ["מכבי..."(1820ms), "דיווח..."(1550ms)]
+Timing [israel_hayom_sport]: fetch=420ms total=18.3s | LLM: attempts=12 successes=10 avg=710ms p95=1420ms | Fallbacks: connect_error=0 timeout=0 http_error=0 bad_response_shape=0 unparseable_json=1 low_conf=1 | Rate-limit waits: 0 (0ms) | Gating: skipped=9 skip_reasons={'clear_league_in_title': 5, 'measured_generic_news_sufficient': 4} call_reasons={'sport_unknown': 7} | Slowest: ["מכבי..."(1820ms), "דיווח..."(1550ms)]
 ```
 
 A DEBUG-level line is also emitted for each individual gated-skip, showing the article title, skip reason, and the deterministic sport/league/event_type/confidence values that triggered it. The top 5 slowest articles (by LLM latency) are INFO logger-only — not included in the API response.
@@ -745,7 +754,7 @@ rates (deterministic_accept_rate, llm_call_rate, gate_skip_rate,
 fallback_rate, low_confidence_fallback_rate, abstention_rate, ambiguity_rate,
 conflict_rate, weighted_evidence_override_rate, event_correction_rate), plus
 latency (llm_avg_ms/llm_p95_ms/total_ms plus failure latency by reason), throughput (articles_per_minute)
-and reported token usage (`llm_tokens`, #261: prompt/completion/reasoning sums, `None` when no call reported usage), and cost estimates (`LLM_COST_PER_CALL_ESTIMATE` env × attempts; per-run and
+reported token usage (`llm_tokens`, #261: prompt/completion/reasoning sums, `None` when no call reported usage), rate-limit waits (`rate_limit_waits`, `rate_limit_wait_ms`, #409: calls that slept through a provider pause and the total time asleep; 0 while the wait is off; absent on older rows), and cost estimates (`LLM_COST_PER_CALL_ESTIMATE` env × attempts; per-run and
 per-1000-articles). Rates are `None` when the denominator is zero — "not
 measurable this run" is distinct from "measured zero". The disabled-provider
 path records `llm_call_rate=0.0` with everything else still measured.

@@ -144,6 +144,7 @@ untracked `backend/.env`):
 |---|---|---|
 | `CLASSIFICATION_PROVIDER` / `_MODEL` / `_TIMEOUT_SECONDS` | disabled / – / 15 | `ollama` / `qwen2.5:3b-instruct` / 30 |
 | `CLASSIFICATION_LLM_GATING` | enabled | enabled |
+| `CLASSIFICATION_RATE_LIMIT_MAX_WAIT_SECONDS` / `_WAIT_BUDGET_SECONDS` (openai_compat, #409) | 0 (off) / 300 | 0 (off): enabling is the owner's decision |
 | `CLUSTERING_ENABLED` | true | true |
 | `SCHEDULER_ENABLED` (+ `SCHEDULER_INTERVAL_SECONDS`) | false (300) | true (300) |
 | `FEED_FRESHNESS_ENABLED` / `FEED_MAX_AGE_HOURS` | false / 36 | true / 36 |

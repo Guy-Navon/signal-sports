@@ -983,7 +983,8 @@ census #3 held-out half were `schedule` with `שידור` in the title:
 | call to watch | 5 | `צפו בשידור: מכבי אשדוד - עירוני נס ציונה` (rated hide) | schedule |
 | broadcast label heading the title | 4 | `ב-11:00: שידור חי מהגרלת…`, `שידור חי: מסע"ת…` | schedule |
 
-`ישודר` (will be broadcast) and a broadcast listing had no title in the corpus. Lineups with a
+`ישודר` (will be broadcast) and a broadcast listing had no title in the corpus; the listing
+form is kept from an existing regression test (`שידורי יורוקאפ השבוע`). Lineups with a
 time and a channel (`19:30, ספורט2: …`) are not `schedule` today and were left alone: this
 fix only narrows.
 
@@ -991,7 +992,8 @@ fix only narrows.
 word is evidence only as a call to watch (`צפו ב(ה)שידור`), a label heading the title
 (`שידור חי:` / `שידור ישיר:` / `שידור חי מ…`, optionally after a time), a future broadcast
 (`ישודר` / `ישודרו` / `תשודר`, word-bounded because `ישודרג` / `משודרג` mean "upgraded"), or a
-listing (`לוח (ה)שידורים`). The classifier still proposes on any `שידור`, and validation
+listing (`לוח (ה)שידורים`, or a broadcast plural with a time word within three words:
+`שידורי יורוקאפ השבוע`). The classifier still proposes on any `שידור`, and validation
 decides, so the LLM path (Guardrail 4b) is narrowed the same way. `schedule` stays title-local
 (§17).
 

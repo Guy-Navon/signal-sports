@@ -110,6 +110,9 @@ def test_watch_now_announcement_stays_schedule(title, subtitle):
     "הדרבי ישודר בערוץ 5",
     "משחקי הנבחרת ישודרו בכאן 11",
     "לוח השידורים של סוף השבוע",
+    # a broadcast plural with a time word is a listing (test_quality_regressions, EuroCup)
+    "שידורי יורוקאפ השבוע",
+    "השידורים של הערב",
 ])
 def test_broadcast_announcement_shapes_are_schedule(text):
     assert validate_event_evidence("schedule", text, sport="basketball").valid

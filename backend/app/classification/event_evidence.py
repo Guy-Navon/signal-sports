@@ -577,13 +577,17 @@ TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset(
 # ("בארקלי פרץ בבכי בשידור חי", "התפוצץ בשידור") or broadcasting-industry news ("זכויות
 # השידור", "שידורי אתלטיקת הנשים בדרך לשינוי"). The real announcements took four forms:
 # a call to watch, a broadcast label heading the title (optionally after a time slot), a
-# future-tense broadcast, and a listing. "ישודר" needs a word boundary: "ישודרג" / "משודרג"
-# mean "(will be) upgraded".
+# future-tense broadcast, and a listing (a broadcast plural with a time word). "ישודר" needs
+# a word boundary: "ישודרג" / "משודרג" mean "(will be) upgraded".
 _BROADCAST_ANNOUNCEMENT = (
     regex(r"צפו\s+ב(?:ה)?שידור"),
     regex(r"^(?:ב-?\d{1,2}:\d{2}:?\s*)?שידור\s+(?:חי|ישיר)\s*(?::|מ)"),
     hword("ישודר"), hword("ישודרו"), hword("תשודר"),
     regex(r"לוח\s+(?:ה)?שידורים"),
+    # "שידורי יורוקאפ השבוע": a broadcast plural followed, within three words, by a time
+    # word is a listing. "שידורי אתלטיקת הנשים בדרך לשינוי" names no time and stays news.
+    regex(r"(?<![א-ת])(?:ה)?שידורי(?:ם)?\s+(?:[^\s:]+\s+){0,3}?"
+          r"(?:השבוע|הערב|היום|הלילה|מחר|בסוף השבוע|סוף השבוע|המחזור)(?![א-ת])"),
 )
 
 

@@ -28,11 +28,15 @@ Architecture contract (Intelligence Architecture v2):
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from typing import Optional
 
 from app.classification.llm_result import LLMClassificationResult
+from app.classification.sport_guards import (
+    SHARED_CHAMPIONS_LEAGUE_NAMES,
+    basketball_named_cue,
+    shared_champions_league_sport,
+)
 from app.ingestion.classifier import (
     ClassificationResult,
     _BASKETBALL_CTX_KW,
@@ -50,7 +54,6 @@ from app.taxonomy import (
     resolve_entities,
     resolve_mention,
 )
-from app.taxonomy.resolver import normalize_alias_text
 
 
 # ── Competition evidence keywords ─────────────────────────────────────────────
@@ -60,6 +63,12 @@ from app.taxonomy.resolver import normalize_alias_text
 _COMPETITION_KEYWORDS: dict[str, tuple[str, ...]] = {
     # basketball
     "comp:eurocup": ("eurocup", "euro cup", "fiba europe cup", "יורוקאפ"),
+    # Qualified names only (#407); the bare "ליגת האלופות" is a shared name, below.
+    "comp:bcl": (
+        'ליגת האלופות של פיב"א', "ליגת האלופות של פיב״א", "ליגת האלופות של פיבא",
+        "ליגת האלופות בכדורסל", "basketball champions league", "fiba champions league",
+        "bcl",
+    ),
     "comp:euroleague": ("euroleague", "יורוליג", "היורוליג"),
     "comp:nba": ("nba", "אן.בי.איי", "אן בי איי"),
     "comp:ibl": (
@@ -84,7 +93,7 @@ _COMPETITION_KEYWORDS: dict[str, tuple[str, ...]] = {
     "comp:lnb": ("lnb", "pro a", "french basketball"),
     # football
     "comp:ligat_haal": ("ליגת העל", "israeli premier league", "ligat haal"),
-    "comp:ucl": ("champions league", "ליגת האלופות"),
+    # comp:ucl has no keyword of its own: its names are shared with comp:bcl (#407).
     "comp:epl": ("premier league",),
     "comp:la_liga": ("la liga", "לה ליגה"),
     "comp:bundesliga": ("bundesliga", "בונדסליגה"),
@@ -98,8 +107,17 @@ _COMPETITION_KEYWORDS: dict[str, tuple[str, ...]] = {
 # (competition_id, keyword) pairs, longest keyword first so a longer competition
 # name claims its span before a shorter name contained inside it
 # ("ליגת העל סל" (IBL) beats "ליגת העל" (Ligat ha'Al)).
+# A competition NAME two sports share (#407): "ליגת האלופות" is the UEFA Champions League
+# and the FIBA Basketball Champions League. It is scanned under a placeholder id so a
+# qualified form (ליגת האלופות של פיב"א) still claims its span first, then resolved to
+# the competition of the sport the TEXT proves (sport_guards.shared_champions_league_sport)
+# — never the other way round, so the name cannot launder a sport decision into evidence.
+_SHARED_CHAMPIONS_LEAGUE = "shared:champions_league"
+_SHARED_NAME_COMPETITION = {"football": "comp:ucl", "basketball": "comp:bcl"}
+
 _COMP_KEYWORD_PAIRS: list[tuple[str, str]] = sorted(
-    ((cid, kw) for cid, kws in _COMPETITION_KEYWORDS.items() for kw in kws),
+    [(cid, kw) for cid, kws in _COMPETITION_KEYWORDS.items() for kw in kws]
+    + [(_SHARED_CHAMPIONS_LEAGUE, kw) for kw in SHARED_CHAMPIONS_LEAGUE_NAMES],
     key=lambda p: len(p[1]),
     reverse=True,
 )
@@ -190,6 +208,7 @@ def _collect_sport_evidence(
     competition_ids: list[str],
     entities: list[str],
     llm_raw: Optional[LLMClassificationResult],
+    shared_name_sport: Optional[str] = None,
 ) -> list[dict]:
     """Weighted sport-evidence candidates, strongest first. Bare club-family names
     are NOT sport evidence (removed entity→basketball bias).
@@ -212,9 +231,12 @@ def _collect_sport_evidence(
         evidence.append({"sport": "basketball", "source": "basketball_only_source",
                          "weight": _W_BASKETBALL_ONLY_SOURCE, "detail": source_id})
 
+    # The shared Champions League name (#407) is a keyword of the sport the text proves.
+    shared = {sport: SHARED_CHAMPIONS_LEAGUE_NAMES if sport == shared_name_sport else ()
+              for sport in ("basketball", "football")}
     _title_sets = (
-        ("basketball", _BASKETBALL_CTX_KW),
-        ("football", _FOOTBALL_CTX_KW + _FOOTBALL_MACCABI_KW),
+        ("basketball", _BASKETBALL_CTX_KW + shared["basketball"]),
+        ("football", _FOOTBALL_CTX_KW + _FOOTBALL_MACCABI_KW + shared["football"]),
         ("tennis", tennis_keywords_for(f"{title_l} {sub_l}")),
     )
     for sport, kws in _title_sets:
@@ -277,23 +299,7 @@ def _sport_has_explicit_support(evidence: list[dict], sport: str) -> bool:
 # Basketball only: the registry lists multi-sport clubs such as Maccabi Haifa as
 # football-only, so a "football-proving" name is weak, and no football case was
 # measured.
-_BASKETBALL_SCORELINE = re.compile(r"(?<![\d:.,])(\d{2,3}):(\d{2,3})(?![\d:])")
-
-
-def _has_basketball_scoreline(text: str) -> bool:
-    pairs = ((int(a), int(b)) for a, b in _BASKETBALL_SCORELINE.findall(text))
-    return any(50 <= a <= 199 and 50 <= b <= 199 and a != b for a, b in pairs)
-
-
-def _names_its_sport(ent, text_norm: str) -> bool:
-    """A self-resolved entity proves its sport: a person by name; a team only
-    through a multi-word alias present in the text."""
-    if ent.kind != "team":
-        return True
-    return any(
-        " " in alias and alias in text_norm
-        for alias in (normalize_alias_text(a) for a in ent.aliases)
-    )
+# The cue primitives live in sport_guards (shared with the #407 Champions League rule).
 
 
 def _basketball_corroboration(text: str, text_resolved_entities: list[str]) -> Optional[str]:
@@ -303,18 +309,8 @@ def _basketball_corroboration(text: str, text_resolved_entities: list[str]) -> O
     any alias) or the classifier resolved is a contradiction, and then nothing
     corroborates.
     """
-    self_resolved = resolve_entities(text, None).resolved
     classifier = [entity_by_legacy_name(e) for e in text_resolved_entities]
-    named = [ent for ent in (*self_resolved, *classifier) if ent is not None]
-    if any(ent.sport != "basketball" for ent in named):
-        return None
-    text_norm = normalize_alias_text(text)
-    for ent in self_resolved:
-        if ent.sport == "basketball" and _names_its_sport(ent, text_norm):
-            return f"text_entity:{ent.id}"
-    if _has_basketball_scoreline(text):
-        return "basketball_scoreline"
-    return None
+    return basketball_named_cue(text, classifier)
 
 
 def _strongest_for(evidence: list[dict], sport: str) -> Optional[dict]:
@@ -414,7 +410,12 @@ def build_article_facts(
     # Article-level text only (title + subtitle). URLs are deliberately NOT scanned:
     # short competition tokens ("acb", "nba", "lnb", "bsl") would false-match slugs.
     explicit_comp_ids: list[str] = []
+    shared_name_sport: Optional[str] = None
     for cid in _scan_competitions(title_l) + _scan_competitions(sub_l):
+        if cid == _SHARED_CHAMPIONS_LEAGUE:
+            if shared_name_sport is None:
+                shared_name_sport = shared_champions_league_sport(f"{title_l} {sub_l}")
+            cid = _SHARED_NAME_COMPETITION[shared_name_sport]
         if cid not in explicit_comp_ids:
             explicit_comp_ids.append(cid)
 
@@ -428,7 +429,7 @@ def build_article_facts(
 
     sport_evidence = _collect_sport_evidence(
         title_l, sub_l, source_id, source_sport_hint, explicit_comp_ids,
-        derived_pool, llm_raw,
+        derived_pool, llm_raw, shared_name_sport,
     )
 
     # ── Sport resolution: ENFORCE the weight order (B1) ───────────────────────
@@ -630,6 +631,8 @@ def build_article_facts(
             "article": article_competitions,
             "explicit_hits": explicit_comp_ids,
             "dropped": dropped_comps,
+            # #407: the sport the bare "ליגת האלופות" was read as (None = not named).
+            "shared_name_sport": shared_name_sport,
         },
         "entities": {
             "resolved_ids": entity_ids,

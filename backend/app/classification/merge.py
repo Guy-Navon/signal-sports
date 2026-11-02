@@ -23,7 +23,7 @@ _IMPORTANCE_RANK = {"very_high": 4, "high": 3, "medium": 2, "low": 1}
 
 # Basketball leagues: if final league is one of these, sport MUST be basketball.
 _BASKETBALL_LEAGUES = frozenset({
-    "EuroLeague", "EuroCup", "NBA",
+    "EuroLeague", "EuroCup", "Basketball Champions League", "NBA",
     "Spanish ACB", "Turkish BSL", "Greek Basket League",
     "Italian LBA", "French LNB", "Israeli Basketball League",
 })

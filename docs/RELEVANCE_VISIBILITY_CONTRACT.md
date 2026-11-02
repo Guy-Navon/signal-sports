@@ -97,12 +97,20 @@ are unchanged.
      unnamed ones were homonyms in the corpus, the Milwaukee Brewers' baseball title
      resolved `team:milwaukee_bucks`, and Guy has an NBA `title_win` push) and
      `friendly_match`;
-   - the union of ALL resolved entities' memberships is exactly one competition and that
-     competition is `closed` (an NBA club next to Maccabi abstains);
+   - the union of the memberships of the entities that have any is exactly one
+     competition and that competition is `closed` (an NBA club next to Maccabi abstains).
+     Unresolved ids and entities with no membership are ignored: Celtics +
+     `player:yam_madar` reaches the NBA;
    - at least one **team** carries it (a player's membership is season data; a Deni-only
      or LeBron-only story abstains);
    - `article.sport` equals the competition's sport (`unknown`/tennis rows abstain: census
      #2 had Rybakina's US Open title carrying `team:charlotte_hornets`).
+
+   **The sport check does not catch a mis-resolved alias.** The Brewers→Bucks, Chicago
+   marathon→Bulls and Kings Kangwa→Kings rows mostly carry `sport=basketball` that comes
+   from the same wrong entity; today only the event allowlist keeps them out (they are
+   `news`/`title_win`). A future Kangwa *match report* that resolves only the Kings would
+   show at `feed`. Alias precision (#415, #388) is a real dependency of this tier.
 
    It returns a `membership` match with provenance `via_closed_league_membership: comp:nba`,
    so the feed ceiling applies. **The flag, never "one registered membership", is the
@@ -111,14 +119,28 @@ are unchanged.
    untracked. `integrity.py` rejects a closed-league club registered in a second
    competition.
 
-   **V2 uses it only when no followed scope matched at all** (`no_matching_scope`). It
-   never re-ranks a story another scope already matched. Without that rule, on the frozen
+   **V2 uses it only when no competition, team or player scope matched.** A sport match
+   does not block it: calibration writes a `sport:basketball` entry (−2..0) for every
+   calibrated profile and the interests page writes sport follows at 0, so blocking on
+   it would deny the reach to most real profiles, and adding a sport affinity would lower
+   a decision. A matched team or player does block it, so it never re-ranks a story the
+   user already sees through an entity. Without that rule, on the frozen
    corpus 8 Deni game stories Guy already sees at `feed` (via his Deni follow) would gain
    an NBA base plus the Deni boost and rise to `high_feed`, the over-ranking census #3
    already flags (D3), and a Deni story stored as `schedule` (rated `feed` in N05) would
-   fall from `low_feed` to hidden through Guy's NBA `schedule −2`. Competition-scoped `always_push` overrides never match through it, while
-   `mute`/`never_show` do (inferred reach may hide, never push). The legacy engine does
-   not opt in.
+   fall from `low_feed` to hidden through Guy's NBA `schedule −2`.
+
+   **A rescued story never pushes.** If the story pushes without the rescue (e.g. a sport
+   override on a story a sport follow already showed), that scoring is returned
+   unchanged. Otherwise every `always_push` (team, player, sport or competition) is
+   withheld, traced as `override … withheld always_push:closed_league_rescue`.
+   Competition `mute`/`never_show` do match through closed-league reach, on every story
+   (inferred reach may hide, never push): Guy plus `mute comp:nba` would also hide an
+   unnamed Deni/Portland game. The legacy engine does not opt in.
+
+   Known exception to monotonicity: a medium or low (0/−1) follow of the club itself
+   blocks the rescue, so adding `team:san_antonio_spurs` at 0 to Guy turns an unnamed
+   Spurs game from `feed` into `low_feed`.
 
    `news`, `interview`, `analysis` and the other narrative events are **not** in the
    allowlist: the #64 Q2 lock ("Unknown event gets no diffuse reach",

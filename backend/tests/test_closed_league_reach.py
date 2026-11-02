@@ -17,9 +17,10 @@ The contract under test:
 - Competition-anchored events only (participant inference with one team, because the
   league is closed), minus title_win and friendly_match. `news`/`interview` keep no diffuse
   reach: the #64 Q2 owner lock (test_decision_contract.py) is untouched.
-- It is opt-in and the weakest tier: the v2 scorer uses it only when no followed scope matched
-  at all, as a `membership` match (feed ceiling). It never changes an already-visible
-  article, never fires an always_push, and the legacy engine does not use it.
+- It is opt-in and the weakest tier: the v2 scorer uses it only when no competition, team or
+  player scope matched (a sport match does not block it), as a `membership` match (feed
+  ceiling). It never re-ranks a story an entity already shows, a story it rescues never
+  gains a push, and the legacy engine does not use it.
 - Facts are untouched: nothing is written into primary_competition.
 """
 from datetime import datetime, timezone
@@ -32,6 +33,7 @@ from app.models.profile_v2 import EventAffinity, OverrideRule, ProfileV2, ScopeA
 from app.seed.seed_profiles import SEED_PROFILES
 from app.services.preference_engine import score_article_v2
 from app.services.relevance_engine import (
+    DECISION_RANK,
     closed_league_competition,
     match_competition_names,
     score_article,
@@ -240,3 +242,78 @@ def test_registry_rejects_a_closed_league_club_in_a_second_competition(monkeypat
     monkeypatch.setitem(integrity.ENTITIES, twin.id, twin)
     assert any("team:test_lakers_twin: member of closed comp:nba" in e
                for e in integrity.validate_registry())
+
+
+# ── Review of #414: a sport match must not block the rescue; the rescue never pushes ──
+
+def _with(profile: UserProfile, scope_affinities=(), overrides=()) -> UserProfile:
+    copy = profile.model_copy(deep=True)
+    copy.profile_v2.scope_affinities += list(scope_affinities)
+    copy.profile_v2.overrides += list(overrides)
+    return copy
+
+
+_NAMED = dict(primary_competition="comp:nba", article_competitions=["comp:nba"])
+
+
+class TestSportMatchDoesNotBlockRescue:
+    """Calibration always writes a sport:basketball entry and the interests page writes
+    sport follows at 0. A sport match is no evidence about the NBA, so it must not keep
+    an NBA club story from reaching a followed NBA."""
+
+    @pytest.mark.parametrize("level", [-2, -1, 0, 1, 2])
+    def test_unnamed_story_scores_like_the_named_one(self, guy, level):
+        profile = _with(guy, [ScopeAffinity(scope="sport", target_id="basketball", level=level)])
+        unnamed = score_article_v2(_article(), profile).decision
+        named = score_article_v2(_article(**_NAMED), profile).decision
+        assert unnamed == named
+
+    @pytest.mark.parametrize("level", [-2, -1, 0, 1, 2])
+    def test_adding_a_sport_affinity_never_lowers_the_rescued_story(self, guy, level):
+        profile = _with(guy, [ScopeAffinity(scope="sport", target_id="basketball", level=level)])
+        assert DECISION_RANK[score_article_v2(_article(), profile).decision] >= (
+            DECISION_RANK[score_article_v2(_article(), guy).decision]
+        )
+
+    def test_a_team_follow_still_blocks(self, deni_fan, guy):
+        # Deni + Portland: Guy's Deni follow matched, so no NBA base + Deni boost.
+        art = _article(entity_ids=["player:deni_avdija", "team:portland_blazers"])
+        assert score_article_v2(art, guy).decision == "feed"
+
+
+class TestRescueNeverPushes:
+    @pytest.mark.parametrize("override", [
+        OverrideRule(kind="always_push", scope="team", target_id="team:san_antonio_spurs"),
+        OverrideRule(kind="always_push", scope="sport", target_id="basketball",
+                     event_type="match_result"),
+        OverrideRule(kind="always_push", scope="competition", target_id="comp:nba"),
+    ])
+    def test_no_override_pushes_a_story_only_the_rescue_made_visible(self, override):
+        profile = _profile(ProfileV2(
+            scope_affinities=[ScopeAffinity(scope="competition", target_id="comp:nba", level=1)],
+            overrides=[override],
+        ))
+        assert score_article_v2(_article(), profile).decision == "feed"
+
+    def test_a_push_that_existed_without_the_rescue_is_kept(self):
+        # sport:basketball 0 already showed the story (low_feed) and the sport override
+        # pushed it; the rescue must not take that push away.
+        profile = _profile(ProfileV2(
+            scope_affinities=[
+                ScopeAffinity(scope="competition", target_id="comp:nba", level=1),
+                ScopeAffinity(scope="sport", target_id="basketball", level=0),
+            ],
+            overrides=[OverrideRule(kind="always_push", scope="sport", target_id="basketball",
+                                    event_type="match_result")],
+        ))
+        assert score_article_v2(_article(), profile).decision == "push"
+
+
+def test_a_withheld_push_is_visible_in_the_trace():
+    profile = _profile(ProfileV2(
+        scope_affinities=[ScopeAffinity(scope="competition", target_id="comp:nba", level=1)],
+        overrides=[OverrideRule(kind="always_push", scope="team", target_id="team:san_antonio_spurs")],
+    ))
+    result = score_article_v2(_article(), profile)
+    assert {"step": "override", "scope": None, "effect": "withheld",
+            "detail": "always_push:closed_league_rescue"} in result.contributions

@@ -464,11 +464,13 @@ def closed_league_competition(article: Article) -> Optional[str]:
     All of these must hold (fail-closed by shape):
     - a post-ArticleFacts row (identity is entity_ids-only) with an event type in
       CLOSED_LEAGUE_REACH_EVENTS;
-    - the union of ALL resolved entities' memberships is exactly one competition, and that
-      competition is `closed` in the registry — an entity from any other competition
-      makes the story possibly about that one, so it abstains;
+    - the union of the memberships of the entities that have any is exactly one
+      competition, and that competition is `closed` in the registry — an entity from any
+      other competition makes the story possibly about that one, so it abstains.
+      Unresolved ids and entities without memberships are ignored;
     - at least one TEAM carries the membership (a player's membership is season data);
-    - the article's sport is the competition's sport.
+    - the article's sport is the competition's sport. This does not catch a mis-resolved
+      alias, whose sport usually comes from the same wrong entity (#415, #388).
 
     Relevance-time only: never persisted into primary_competition/article_competitions.
     """

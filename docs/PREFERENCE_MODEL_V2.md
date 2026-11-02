@@ -102,16 +102,26 @@ contribution `{step, scope, effect, detail}` plus a Hebrew reasoning line:
    match_kind vocabulary); team/player scopes use the entity_ids-first
    identity contract (with the sport-compatibility guard); sport scopes use
    `article.sport`. Base points: very_high→3, high→2, medium→1, low→0.
-   **Max points win** (adding an affinity can never lower a decision); ties
+   **Max points win** (adding an affinity never lowers a decision, with the one
+   closed-league exception below); ties
    break toward the broader scope so a followed entity inside a followed
    broad scope reads as base + boost. An **exclude** hides unless a strictly
    more specific matched affinity is non-exclude (team follow beats sport
-   exclude; team exclude beats competition follow). **Only when no scope
-   matched**, competition scopes are retried with closed-league reach (#404,
-   `RELEVANCE_VISIBILITY_CONTRACT.md` tier 5): a game story about one NBA club
-   that never names the NBA reaches a followed NBA as a `membership` match.
-   It never changes a story another scope already matched, and competition
-   `always_push` overrides do not match through it (`mute`/`never_show` do).
+   exclude; team exclude beats competition follow). **When no competition,
+   team or player scope matched**, competition scopes are retried with
+   closed-league reach (#404, `RELEVANCE_VISIBILITY_CONTRACT.md` tier 5): a game
+   story about one NBA club that never names the NBA reaches a followed NBA as a
+   `membership` match. A sport match does not block the retry (calibration writes
+   a `sport:basketball` entry for every profile, and the interests page writes
+   sport follows at 0). A matched team or player does, so the retry never adds
+   an NBA base plus an entity boost to a story the user already sees.
+   **A rescued story never pushes:** if the story pushes without the rescue, that
+   scoring is returned unchanged; otherwise every `always_push` is withheld
+   (trace `override … withheld always_push:closed_league_rescue`).
+   Competition `mute`/`never_show` do match through closed-league reach, on every
+   story. **Monotonicity exception:** a medium or low (0/−1) follow of the club
+   itself blocks the retry, so adding `team:san_antonio_spurs` at 0 to Guy turns
+   an unnamed Spurs game from `feed` into `low_feed`.
 3. **Entity boost** — +1 when base came from a competition/sport scope and a
    followed (level ≥ +1) team/player is on the article.
 4. **Event delta** — scoped-then-global lookup, aliases honored.

@@ -261,7 +261,7 @@ them, and drift tests on both sides enforce it.
 Pipeline order and contracts: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) (map),
 [ARTICLE_FACTS.md](ARTICLE_FACTS.md) (facts stage), [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md)
 (gate, merge, metrics), and [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) (the
-deterministic rule changelog, §1–§20).
+deterministic rule changelog, §1–§21).
 
 - **Rules first, always.** The title is primary, and the subtitle only fills gaps. *Title-local*
   event types (`title_win`, `grand_slam_winner`, `major_trade`, `schedule`, …) never come from

@@ -9,11 +9,15 @@ owner rating feed, engine hidden.
 Measured on the 2026-11-01 frozen corpus: of the 16 rows (outside the held-out half) that were
 `schedule` in the deterministic rerun with "שידור" in the title, 4 happened on air, 3 are
 broadcast-rights / broadcasting-industry news, and 9 announce a stream or a slot. Only the
-announcements are broadcast filler, so only these forms are evidence now:
-  - a call to watch: "צפו בשידור (החי/הישיר)"
-  - a broadcast label heading the title: "שידור חי: …", "ב-11:00: שידור חי מ…"
-  - a future broadcast: "ישודר", "תשודר", "ישודרו" (word-bounded: "ישודרג" is "will be upgraded")
+announcements are broadcast filler, so only these five forms are evidence now:
+  - a call to watch: "צפו בשידור (החי/הישיר)", "צפו: שידור חי מ…"
+  - a broadcast label heading the title, optionally after a time word, a clock time or both:
+    "שידור חי: …", "הערב בשידור חי: …", "ב-11:00: שידור חי מ…", "שידור חי | …"
+  - a future broadcast: "ישודר", "תשודר", "ישודרו", "יועבר בשידור" (word-bounded: "ישודרג" is
+    "will be upgraded"); a negated one ("לא ישודר") is news about the broadcast, not a slot
   - a listing: "לוח (ה)שידורים"
+  - a broadcast plural with a time word: "שידורי יורוקאפ השבוע", "בשידורי הערב: …"
+An arbitrary word before the label is NOT allowed: "אימה בשידור חי: …" happened on air.
 
 Corpus rows run through the real ingestion path (`_normalise`, LLM disabled by conftest).
 """
@@ -80,8 +84,6 @@ def test_broadcast_rights_story_is_not_a_schedule(title):
     assert not validate_event_evidence("schedule", title.lower(), sport="football").valid
 
 
-
-
 # ── Adversarial neighbours: real broadcast announcements stay schedule ────────
 
 @pytest.mark.parametrize("title,subtitle", [
@@ -131,3 +133,58 @@ def test_future_broadcast_title_is_proposed_and_kept():
 ])
 def test_upgraded_is_not_broadcast(text):
     assert not validate_event_evidence("schedule", text, sport="football").valid
+
+
+# ── Review of #412: real announcements in other spellings stay schedule ──────
+
+@pytest.mark.parametrize("title", [
+    'הערב בשידור חי: מכבי ת"א נגד פנאתינייקוס ביורוליג',
+    "בשידור חי: דני אבדיה ופורטלנד נגד הלייקרס",
+    "הלילה בשידור חי: דני אבדיה ופורטלנד מול הלייקרס",
+    "הערב בשידור חי ב-ONE: הפועל ירושלים מול באיירן",
+    "היום ב-20:00 בשידור חי: מכבי - הפועל",
+    "שידור חי | מכבי תל אביב - ריאל מדריד",
+    "שידור חי - מכבי תל אביב נגד ריאל מדריד",
+    "שידור חי – מכבי תל אביב נגד ריאל מדריד",
+    '"שידור חי": מכבי תל אביב - ריאל מדריד',
+    " שידור חי: מכבי תל אביב - ריאל מדריד",
+    "11:00: שידור חי מהגרלת הגביע",
+    "ב–11:00: שידור חי מהגרלת הגביע",
+    "בשעה 20:00: שידור חי מהגרלת הגביע",
+    "צפו: שידור חי מהגרלת הגביע",
+    "המשחק של מכבי תל אביב ביורוליג יועבר בשידור חי בערוץ ספורט 5",
+    "המשחקים יועברו בשידור ישיר בכאן 11",
+    "בשידורי הערב: מכבי תל אביב מול ריאל",
+    "מה בשידורים הערב: מכבי, הפועל וה-NBA",
+    "שידורי ספורט 5 לסוף השבוע",
+    "שידורי הספורט היום",
+])
+def test_announcement_spellings_are_schedule(title):
+    assert validate_event_evidence("schedule", title.lower(), sport="basketball").valid
+
+
+def test_announced_deni_game_is_schedule_through_ingestion():
+    # Schedule on main; the first #412 head made it news, shown at high_feed to the Deni
+    # profile. A broadcast slot is not Deni news.
+    a = _ingest("walla_sport", "בשידור חי: דני אבדיה ופורטלנד נגד הלייקרס")
+    assert a.event_type == "schedule"
+
+
+@pytest.mark.parametrize("title", [
+    # an arbitrary word before the label: something happened on air
+    "אימה בשידור חי: אוהדים תקפו עיתונאים",
+    # a negated broadcast is news ABOUT the broadcast, not a slot
+    "המשחק לא ישודר בטלוויזיה: אוהדי מכבי זועמים",
+    "הדרבי לא תשודר בערוץ הפתוח",
+    "משחקי הגביע לא ישודרו השנה",
+    # a question about whether it will air is not an announcement
+    "דני אבדיה ישודר? הבלגן בזכויות השידור",
+    # "צפו" inside a longer word ("שצפו" = who watched) is past tense
+    "האוהדים שצפו בשידור נדהמו מהתקרית",
+    # "מ" + plural is "from the broadcasts", not a listing
+    "פרשן ספורט 5 נפרד מהשידורים הערב",
+    "קטש התפרץ על השופטים בשידור חי",
+    'הכוכב קילל בשידור ישיר: "אני לא מתנצל"',
+])
+def test_on_air_and_negated_shapes_are_not_schedule(title):
+    assert not validate_event_evidence("schedule", title.lower(), sport="basketball").valid

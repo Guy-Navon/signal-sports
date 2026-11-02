@@ -575,20 +575,39 @@ TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset(
 # Broadcast vocabulary that ANNOUNCES a broadcast (#406). The bare word "שידור" is not one:
 # on the 2026-11-01 corpus 7 of 16 "שידור" schedule titles were something that happened on air
 # ("בארקלי פרץ בבכי בשידור חי", "התפוצץ בשידור") or broadcasting-industry news ("זכויות
-# השידור", "שידורי אתלטיקת הנשים בדרך לשינוי"). The real announcements took four forms:
-# a call to watch, a broadcast label heading the title (optionally after a time slot), a
-# future-tense broadcast, and a listing (a broadcast plural with a time word). "ישודר" needs
-# a word boundary: "ישודרג" / "משודרג" mean "(will be) upgraded".
+# השידור", "שידורי אתלטיקת הנשים בדרך לשינוי"). The real announcements take five forms:
+# a call to watch, a broadcast label heading the title, a future-tense broadcast, a listing,
+# and a broadcast plural with a time word.
+#
+# The label may follow a time word and/or a clock time ("הערב בשידור חי:", "ב–11:00: שידור
+# חי מ…", "בשעה 20:00:") and be quoted or followed by : | - – or a "מ…" source. It may NOT
+# follow an arbitrary word: "אימה בשידור חי: אוהדים תקפו עיתונאים" happened on air.
+# Known limits, all schedule on main too: a bare past-tense "צפו" ("מיליונים צפו בשידור החי
+# של הגמר") reads like the imperative, and "שידור חי מ…" can be a metaphor ("מהגיהנום").
+_ON_AIR_TIME_WORD = r"(?:הערב|הלילה|היום|מחר)"
+_CLOCK_TIME = r"(?:(?:ב[-–]?|בשעה\s+)?\d{1,2}:\d{2})"
 _BROADCAST_ANNOUNCEMENT = (
-    regex(r"צפו\s+ב(?:ה)?שידור"),
-    regex(r"^(?:ב-?\d{1,2}:\d{2}:?\s*)?שידור\s+(?:חי|ישיר)\s*(?::|מ)"),
-    hword("ישודר"), hword("ישודרו"), hword("תשודר"),
+    # "שצפו" (who watched) is past tense; only a standalone "צפו" is a call to watch.
+    regex(r"(?<![א-ת])צפו\s*:?\s*ב?(?:ה)?שידור"),
+    regex(
+        r"^\s*(?:" + _ON_AIR_TIME_WORD + r"\s+)?(?:" + _CLOCK_TIME + r"\s*[:,]?\s*)?"
+        r"[\"״“”']?ב?שידור\s+(?:חי|ישיר)[\"״“”']?"
+        r"(?:\s+ב[-–]?[^\s:|]+(?:\s+\d+)?)?"          # an optional channel: "ב-ONE", "בספורט 5"
+        r"\s*(?::|\||-|–|—|מ)"
+    ),
+    # Word-bounded ("ישודרג" = will be upgraded); "ישודר?" asks whether it will air.
+    regex(r"(?<![א-ת])[וש]?(?:ישודר|ישודרו|תשודר)(?![א-ת?])"),
+    regex(r"(?<![א-ת])[וש]?(?:יועבר|יועברו|תועבר)\s+בשידור"),
     regex(r"לוח\s+(?:ה)?שידורים"),
-    # "שידורי יורוקאפ השבוע": a broadcast plural followed, within three words, by a time
-    # word is a listing. "שידורי אתלטיקת הנשים בדרך לשינוי" names no time and stays news.
-    regex(r"(?<![א-ת])(?:ה)?שידורי(?:ם)?\s+(?:[^\s:]+\s+){0,3}?"
-          r"(?:השבוע|הערב|היום|הלילה|מחר|בסוף השבוע|סוף השבוע|המחזור)(?![א-ת])"),
+    # "שידורי יורוקאפ השבוע", "בשידורי הערב:": a broadcast plural followed, within three
+    # words, by a time word is a listing. "שידורי אתלטיקת הנשים בדרך לשינוי" names no time;
+    # "מהשידורים הערב" (from the broadcasts) is not a listing, so only ב/ה may prefix it.
+    regex(r"(?<![א-ת])ב?(?:ה)?שידורי(?:ם)?\s+(?:[^\s:]+\s+){0,3}?"
+          r"(?:השבוע|הערב|היום|הלילה|מחר|ב?ל?סוף השבוע|המחזור)(?![א-ת])"),
 )
+
+# A negated broadcast ("המשחק לא ישודר בטלוויזיה") is news about the broadcast, not a slot.
+_BROADCAST_NEGATION = (phrase("לא ישודר"), phrase("לא תשודר"), phrase("לא יועבר"))
 
 
 EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
@@ -709,7 +728,8 @@ EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
         ) + _BROADCAST_ANNOUNCEMENT,),
         # A live stream of a press conference is not a fixture (#224): "צפו בשידור הישיר:
         # מסיבת העיתונאים של מכבי והפועל" was schedule only because "שידור" (broadcast).
-        blockers=(phrase("מסיבת העיתונאים"), phrase("מסיבת עיתונאים"), phrase("press conference")),
+        blockers=(phrase("מסיבת העיתונאים"), phrase("מסיבת עיתונאים"), phrase("press conference"))
+        + _BROADCAST_NEGATION,
         confirmed_any=(phrase('לו"ז'), phrase("לוח משחקים"), phrase("schedule"), phrase("fixtures")),
     ),
     "match_result": EventEvidenceRule(

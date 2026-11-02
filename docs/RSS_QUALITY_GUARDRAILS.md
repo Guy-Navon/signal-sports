@@ -966,7 +966,7 @@ guard is not weakened. Tests: `tests/test_basketball_people_259.py`. Measurement
 
 ---
 
-## 20. On Air Is Not a Broadcast Slot (#406, 2026-11-02)
+## 21. On Air Is Not a Broadcast Slot (#406, 2026-11-02)
 
 **The defect.** `schedule` hides broadcast and fixture filler, and the bare word `שידור`
 (broadcast) was schedule evidence. A story about something that happened on air became a
@@ -989,25 +989,48 @@ time and a channel (`19:30, ספורט2: …`) are not `schedule` today and were
 fix only narrows.
 
 **Fix.** `event_evidence._BROADCAST_ANNOUNCEMENT` replaces `שידור` / `שידורים`. A broadcast
-word is evidence only as a call to watch (`צפו ב(ה)שידור`), a label heading the title
-(`שידור חי:` / `שידור ישיר:` / `שידור חי מ…`, optionally after a time), a future broadcast
-(`ישודר` / `ישודרו` / `תשודר`, word-bounded because `ישודרג` / `משודרג` mean "upgraded"), or a
-listing (`לוח (ה)שידורים`, or a broadcast plural with a time word within three words:
-`שידורי יורוקאפ השבוע`). The classifier still proposes on any `שידור`, and validation
-decides, so the LLM path (Guardrail 4b) is narrowed the same way. `schedule` stays title-local
-(§17).
+word is evidence only in five forms:
+
+- a call to watch: `צפו ב(ה)שידור`, `צפו: שידור חי מ…` (a standalone `צפו`; `שצפו` is past);
+- a label heading the title: `שידור חי` / `שידור ישיר`, optionally prefixed `ב`, quoted, or
+  followed by a channel (`ב-ONE`), then `:` `|` `-` `–` or a `מ…` source. Only a time word
+  (`הערב` / `הלילה` / `היום` / `מחר`) and/or a clock time (`11:00`, `ב-11:00`, `ב–11:00`,
+  `בשעה 20:00`) may come before it, never an arbitrary word: `אימה בשידור חי: …` happened on
+  air;
+- a future broadcast: `ישודר` / `ישודרו` / `תשודר` (word-bounded: `ישודרג` / `משודרג` mean
+  "upgraded"; `ישודר?` is a question) or `יועבר(ו) בשידור`. A negated one (`לא ישודר` /
+  `לא תשודר` / `לא יועבר`) blocks `schedule`: it is news about the broadcast;
+- a listing: `לוח (ה)שידורים`;
+- a broadcast plural with a time word within three words: `שידורי יורוקאפ השבוע`,
+  `בשידורי הערב: …`, `מה בשידורים הערב`. Only `ב`/`ה` may prefix it: `מהשידורים הערב` is
+  "from the broadcasts".
+
+The classifier still proposes on any `שידור`, and validation decides, so the LLM path
+(Guardrail 4b) is narrowed the same way. `schedule` stays title-local (§17).
+
+Known limits, each `schedule` on main as well: a bare past-tense `צפו` (`מיליונים צפו בשידור
+החי של הגמר`) reads like the imperative; `שידור חי מ…` can be a metaphor (`שידור חי
+מהגיהנום`); and a plural with a time word can be industry news (`שידורי ה-NBA היום עוברים
+לפלטפורמה חדשה`).
 
 **Measured (deterministic rerun, 3,877 rows, against main).** 8 rows outside the held-out
-half change facts and 1 decision flips: the reported row, Guy hidden → low_feed (rated feed).
-Deni has no flip. Push is unchanged (Guy 22/22, Deni 4/4). Census #2 and N05 agreement are
-unchanged; census #3 fit: shown precision 37/40 → 38/41, feed+ recall 14/19 → 15/19, exact
-105 → 105. No row rated hide and no unrated row becomes visible.
+half change facts and 1 decision flips for the seed profiles: the reported row, Guy hidden →
+low_feed (rated feed). The Deni seed profile has no flip. Push is unchanged (Guy 22/22, Deni
+4/4). Census #2 and N05 agreement are unchanged; census #3 fit: shown precision 37/40 →
+38/41, feed+ recall 14/19 → 15/19, exact 105 → 105. For the two seed profiles, no row rated
+hide and no unrated row becomes visible.
+
+The stored (dormant/test) accounts score the same rows differently, with no push on any:
+the Netflix rights row goes low_feed → feed (the admin account), hidden → feed and hidden →
+low_feed (two test accounts); the Barkley row hidden → low_feed (one test account); three
+football rows that left `schedule` go low_feed → hidden for the admin account.
 
 Two rows fall through to an event their subtitle proposes once `schedule` no longer masks
-it, both hidden for both profiles: the Netflix rights deal becomes `signing` (the subtitle
-says `חתמה על הסכם`), and a pundit quote becomes `match_result` (`בניצחון הפועל` in the
-subtitle). Neither is a correct event; both are the general subtitle-fallthrough weakness,
-not new vocabulary.
+it, both hidden for both seed profiles: the Netflix rights deal becomes `signing` (the
+subtitle says `חתמה על הסכם`), and a pundit quote becomes `match_result` (`בניצחון הפועל` in
+the subtitle). Neither is a correct event. This is the general subtitle fall-through
+weakness, tracked as #413 (a basketball rights deal written the same way would be a wrong
+high_feed signing for Guy).
 
 Stored rows keep their old facts until a backfill; none was run.
 

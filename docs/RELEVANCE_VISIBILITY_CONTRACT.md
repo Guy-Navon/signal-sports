@@ -112,10 +112,11 @@ are unchanged.
    competition.
 
    **V2 uses it only when no followed scope matched at all** (`no_matching_scope`). It
-   never re-ranks a story another scope already matched: without that rule, 26 Deni +
-   Portland stories Guy already sees at `feed` (via his Deni follow) would gain an NBA
-   base plus the Deni boost and rise to `high_feed`, the over-ranking census #3 already
-   flags (D3). Competition-scoped `always_push` overrides never match through it, while
+   never re-ranks a story another scope already matched. Without that rule, on the frozen
+   corpus 8 Deni game stories Guy already sees at `feed` (via his Deni follow) would gain
+   an NBA base plus the Deni boost and rise to `high_feed`, the over-ranking census #3
+   already flags (D3), and a Deni story stored as `schedule` (rated `feed` in N05) would
+   fall from `low_feed` to hidden through Guy's NBA `schedule −2`. Competition-scoped `always_push` overrides never match through it, while
    `mute`/`never_show` do (inferred reach may hide, never push). The legacy engine does
    not opt in.
 

@@ -43,6 +43,16 @@ COMPETITION_ANCHORED_EVENTS = frozenset({
 # both participants belong to") does not hold for it.
 PARTICIPANT_INFERENCE_EXCLUDED_EVENTS = frozenset({"friendly_match"})
 
+# Closed-league reach (issue #404) — positive allowlist, fail-closed. A club of a
+# `closed` competition plays nowhere else, so a game story about ONE such club is a
+# game in that league: participant inference (#40) needs two teams only because an
+# open club's competitions are diffuse. Competition-anchored events only, minus
+# `title_win` (a real NBA title names the NBA; an unnamed one is a homonym — the
+# Milwaukee Brewers' baseball title resolved team:milwaukee_bucks — and it is a push
+# event) and `friendly_match` (not a league game). `news`/`interview`/`analysis` stay
+# out: the #64 Q2 lock (no diffuse reach for unknown events) is an owner decision.
+CLOSED_LEAGUE_REACH_EVENTS = COMPETITION_ANCHORED_EVENTS - {"title_win", "friendly_match"}
+
 DECISION_RANK = {
     "hidden": 0,
     "low_feed": 1,
@@ -448,11 +458,43 @@ def _participant_inferred_competition(article: Article) -> Optional[str]:
     return next(iter(shared)) if shared is not None and len(shared) == 1 else None
 
 
+def closed_league_competition(article: Article) -> Optional[str]:
+    """The closed competition (#404) an article belongs to through its clubs, or None.
+
+    All of these must hold (fail-closed by shape):
+    - a post-ArticleFacts row (identity is entity_ids-only) with an event type in
+      CLOSED_LEAGUE_REACH_EVENTS;
+    - the union of ALL resolved entities' memberships is exactly one competition, and that
+      competition is `closed` in the registry — an entity from any other competition
+      makes the story possibly about that one, so it abstains;
+    - at least one TEAM carries the membership (a player's membership is season data);
+    - the article's sport is the competition's sport.
+
+    Relevance-time only: never persisted into primary_competition/article_competitions.
+    """
+    if article.taxonomy_version is None or article.event_type not in CLOSED_LEAGUE_REACH_EVENTS:
+        return None
+    entities = [e for e in (entity_by_id(i) for i in article.entity_ids or []) if e is not None]
+    union = {comp_id for e in entities for comp_id, _season in e.memberships}
+    if len(union) != 1:
+        return None
+    comp = COMPETITIONS.get(next(iter(union)))
+    if comp is None or not comp.closed or article.sport != comp.sport:
+        return None
+    if not any(e.kind == "team" for e in entities if e.memberships):
+        return None
+    return comp.id
+
+
 def match_competition_names(
-    article: Article, wanted_names
+    article: Article, wanted_names, closed_league: bool = False
 ) -> Optional[tuple[str, str, str]]:
     """Four-tier competition-aware matching (issues #29 + #40) against an
-    iterable of competition display names.
+    iterable of competition display names, plus the opt-in closed-league tier
+    (#404, `closed_league=True`): the weakest evidence, reported as a
+    `membership` match so the feed ceiling applies. Only the Preference V2
+    scorer opts in, as a fallback (see preference_engine); the legacy engine
+    does not.
 
     THE single visibility primitive for competition scopes — used by the
     legacy topic engine and by the Preference V2 scorer (#32), so preference
@@ -514,6 +556,16 @@ def match_competition_names(
         if hit:
             comp_id = reach[hit]
             return ("membership", hit, f"via_team_membership: {comp_id}")
+
+    # 5. Closed-league reach (#404) — opt-in, see closed_league_competition().
+    if closed_league:
+        comp_id = closed_league_competition(article)
+        if comp_id is not None and COMPETITIONS[comp_id].display_en in wanted:
+            return (
+                "membership",
+                COMPETITIONS[comp_id].display_en,
+                f"via_closed_league_membership: {comp_id}",
+            )
 
     return None
 

@@ -85,6 +85,56 @@ are unchanged.
    requires an explicit rule; boosts cap at high_feed).
 4. **Membership-derived reach** — only when `event_type` is in
    `TEAM_ANCHORED_EVENTS` and none of the above matched.
+5. **Closed-league reach** (#404, 2026-11-02) — **opt-in** (`closed_league=True`), and only
+   the Preference V2 scorer opts in, as a last resort (below). A competition flagged
+   `closed` in the registry is one whose clubs play nowhere else; today only `comp:nba`
+   (NBA Cup, preseason and Summer League are NBA-run). A game story about ONE NBA club is
+   then an NBA game, which is participant inference with one participant: the two-team
+   requirement of tier 3 exists only because an open club's competitions are diffuse.
+   `closed_league_competition()` requires all of:
+   - a post-ArticleFacts row whose event is in `CLOSED_LEAGUE_REACH_EVENTS` =
+     `COMPETITION_ANCHORED_EVENTS` minus `title_win` (a real NBA title names the NBA;
+     unnamed ones were homonyms in the corpus, the Milwaukee Brewers' baseball title
+     resolved `team:milwaukee_bucks`, and Guy has an NBA `title_win` push) and
+     `friendly_match`;
+   - the union of ALL resolved entities' memberships is exactly one competition and that
+     competition is `closed` (an NBA club next to Maccabi abstains);
+   - at least one **team** carries it (a player's membership is season data; a Deni-only
+     or LeBron-only story abstains);
+   - `article.sport` equals the competition's sport (`unknown`/tennis rows abstain: census
+     #2 had Rybakina's US Open title carrying `team:charlotte_hornets`).
+
+   It returns a `membership` match with provenance `via_closed_league_membership: comp:nba`,
+   so the feed ceiling applies. **The flag, never "one registered membership", is the
+   test:** Hapoel Holon is registered only in the IBL and plays the Basketball Champions
+   League, and Partizan carries only the EuroLeague because its domestic league is
+   untracked. `integrity.py` rejects a closed-league club registered in a second
+   competition.
+
+   **V2 uses it only when no followed scope matched at all** (`no_matching_scope`). It
+   never re-ranks a story another scope already matched: without that rule, 26 Deni +
+   Portland stories Guy already sees at `feed` (via his Deni follow) would gain an NBA
+   base plus the Deni boost and rise to `high_feed`, the over-ranking census #3 already
+   flags (D3). Competition-scoped `always_push` overrides never match through it, while
+   `mute`/`never_show` do (inferred reach may hide, never push). The legacy engine does
+   not opt in.
+
+   `news`, `interview`, `analysis` and the other narrative events are **not** in the
+   allowlist: the #64 Q2 lock ("Unknown event gets no diffuse reach",
+   `RELEVANCE_CONTRACT.md`, `test_decision_contract.py`) is an owner decision. Extending
+   closed-league reach to them is measured below and awaits the owner.
+
+   Worked example: `rss_ba27a1aebdb3e9f91a23` "מוכנים לפתיחת העונה: יאניס להט במיאמי,
+   וומבי הוביל את סן אנטוניו לניצחון" resolves only `team:san_antonio_spurs`, stored
+   `match_result`, no competition. Guy: `no_matching_scope` → `feed` (`comp:nba` +1,
+   membership ceiling); the owner rated it `feed`. The Deni fan follows no competition, so
+   the reach cannot apply to them: hidden before and after.
+
+   Measured on the frozen 2026-11-01 corpus (3,868 RSS rows, stored facts, persisted
+   profiles): Guy 14 rows `hidden` → `feed`, nothing else moves, pushes 17 → 17; Deni fan
+   0 flips. Census #3 fit half: feed+ recall 14/19 → 15/19, shown precision 36/40 →
+   39/44, exact 104 → 104, one rated-hide row shown. Census #2: shown precision 141/147 →
+   142/148, recall and exact unchanged, no rated-hide row shown. N05 unchanged.
 
 ## entity_ids-first identity (canonical, not display-string)
 
@@ -256,7 +306,8 @@ What **remains** fail-closed-hidden after #40, by design:
   competition (two Israeli EuroLeague clubs: the domestic derby abstains —
   exactly the guarantee that protects a EuroLeague-only follower);
 - competition-anchored events with **fewer than two resolved team entities**
-  (single-team game reports, unregistered opponents);
+  (single-team game reports, unregistered opponents), except a club of a closed
+  league for a V2 follower of that league (tier 5, #404);
 - `friendly_match` (excluded from inference — participants' shared
   competition does not identify a friendly's competition);
 - event types in neither allowlist (e.g. `interview`).

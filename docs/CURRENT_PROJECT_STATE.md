@@ -208,6 +208,8 @@ event affinities (global or scoped deltas) and overrides (`always_push`, `never_
 Visibility comes from four-tier competition matching
 ([RELEVANCE_VISIBILITY_CONTRACT.md](RELEVANCE_VISIBILITY_CONTRACT.md)): explicit evidence →
 legacy league → participant-set inference → team-membership reach, the last capped at `feed`.
+When nothing matched, V2 also tries closed-league reach (#404): a game story about one NBA
+club that never names the NBA reaches a followed NBA, capped at `feed` and never pushed.
 Following `comp:ibl` also follows its cups (#230). Precedence for the same target is explicit >
 learned > calibration, and a scoped entry beats a global one.
 

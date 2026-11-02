@@ -91,6 +91,10 @@ topic engine and the v2 scorer:
    fail-closed by shape; never persisted
 4. team-membership reach — team-anchored events only; capped at `feed`
    without entity backing
+5. closed-league reach (#404) — opt-in, V2 only, and only when no followed scope
+   matched: one club of a `closed` competition (today the NBA) on a
+   competition-anchored event other than `title_win`/`friendly_match`; a `membership`
+   match (capped at `feed`); never fires a competition `always_push`
 
 Identity is entity_ids-first everywhere; legacy display strings are a
 compatibility path for pre-taxonomy rows only. sport=unknown articles can

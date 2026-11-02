@@ -14,7 +14,9 @@ Scoring pipeline (monotonic by construction):
    scopes wins (so adding an affinity can never lower a decision), with
    specificity (team/player > competition > sport) breaking ties for the
    trace. An `exclude` (-2) affinity hides the article unless a strictly
-   more specific matched affinity is non-exclude.
+   more specific matched affinity is non-exclude. Only when NO scope
+   matched, competition scopes are retried with closed-league reach (#404:
+   an NBA-club story that never names the NBA), as a membership match.
 3. Entity boost — +1 when base came from a broader scope (competition/sport)
    and a followed (level ≥ +1) team/player is present on the article.
 4. Event affinity delta — the scoped entry for (base scope, event_type) if
@@ -99,7 +101,9 @@ def _entity_on_article(article: Article, taxonomy_id: str) -> bool:
     return ent.legacy_name in (article.entities or [])
 
 
-def _match_scope(article: Article, affinity: ScopeAffinity) -> Optional[_ScopeMatch]:
+def _match_scope(
+    article: Article, affinity: ScopeAffinity, closed_league: bool = False
+) -> Optional[_ScopeMatch]:
     if affinity.scope == "sport":
         if article.sport == affinity.target_id:
             return _ScopeMatch(affinity, None, f"sport: {affinity.target_id}")
@@ -109,7 +113,7 @@ def _match_scope(article: Article, affinity: ScopeAffinity) -> Optional[_ScopeMa
         comp = COMPETITIONS.get(affinity.target_id)
         if comp is None:
             return None
-        hit = match_competition_names(article, [comp.display_en])
+        hit = match_competition_names(article, [comp.display_en], closed_league=closed_league)
         if hit is None:
             return None
         match_kind, _name, provenance = hit
@@ -168,7 +172,10 @@ def _override_matches(article: Article, rule: OverrideRule) -> bool:
         return article.sport == rule.target_id
     if rule.scope == "competition":
         comp = COMPETITIONS.get(rule.target_id)
-        return comp is not None and match_competition_names(article, [comp.display_en]) is not None
+        # Closed-league reach (#404) may hide (mute/never_show) but never push.
+        return comp is not None and match_competition_names(
+            article, [comp.display_en], closed_league=rule.kind != "always_push",
+        ) is not None
     return _entity_on_article(article, rule.target_id)
 
 
@@ -243,6 +250,16 @@ def score_article_v2(
         m = _match_scope(article, affinity)
         if m is not None:
             matches.append(m)
+
+    if not matches:
+        # Closed-league rescue (#404): only when no followed scope matched at all. An NBA
+        # club story with no competition named reaches a followed NBA as a membership
+        # match (feed ceiling); it never re-ranks a story another scope already matched.
+        for affinity in v2.effective_scope_affinities():
+            if affinity.scope == "competition":
+                m = _match_scope(article, affinity, closed_league=True)
+                if m is not None:
+                    matches.append(m)
 
     if not matches:
         reasoning.append(f"ספורט: {article.sport}, ליגה: {article.league or '—'}")

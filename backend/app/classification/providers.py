@@ -343,6 +343,9 @@ TOKEN_LIMIT_PARAMS = ("max_tokens", "max_completion_tokens")
 # can never hammer a rate-limited endpoint. No request is sent while paused.
 MAX_RATE_LIMIT_PAUSE_SECONDS = 300.0
 DEFAULT_RATE_LIMIT_PAUSE_SECONDS = 60.0
+# Opt-in waiting through a short pause (#409): total seconds one ingestion run
+# may spend asleep on rate limits, unless the caller sets another budget.
+DEFAULT_RATE_LIMIT_WAIT_BUDGET_SECONDS = 300.0
 
 
 def _retry_after_seconds(response: httpx.Response) -> Optional[float]:
@@ -362,7 +365,8 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
 
     Same contract as OllamaProvider: the same prompt and user message,
     ``temperature 0``, ``parse_and_validate_llm_json``, the typed failure
-    taxonomy (#217) and per-call latency. It never retries.
+    taxonomy (#217) and per-call latency. It never retries, except through the
+    opt-in rate-limit wait below.
 
     - ``response_format``: ``json_schema`` (strict, the classification schema;
       Groq's gpt-oss models support it), ``json_object`` (JSON mode), or
@@ -373,6 +377,15 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
     - 429: that article falls back as ``http_error``, then the provider pauses
       for ``Retry-After`` (default 60 s, capped at 300 s). Calls during the
       pause return None at once, also as ``http_error``, without a request.
+    - Opt-in rate-limit wait (#409, ``rate_limit_max_wait_seconds`` > 0; 0, the
+      default, keeps the behavior above). A pause no longer than that cap is
+      slept through instead of failing the article: a call made during the pause
+      waits for it to end, and a 429 response is retried once after its pause.
+      A second 429 falls back as above. All waiting is bounded by a per-run
+      budget (``rate_limit_wait_budget_seconds``), restored by
+      ``reset_rate_limit_wait_budget()`` at the start of each ingestion run.
+      ``last_rate_limit_wait_ms`` is the time the last call spent asleep; it is
+      not part of ``last_call_latency_ms``.
     - ``last_usage`` holds the reported token counts (never content).
     - The key travels only in the Authorization header. It is never logged, and
       error logs carry the status code, not the response body.
@@ -390,6 +403,8 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
         reasoning_effort: str = "low",
         token_limit_param: str = "max_tokens",
         send_temperature: bool = True,
+        rate_limit_max_wait_seconds: float = 0.0,
+        rate_limit_wait_budget_seconds: float = DEFAULT_RATE_LIMIT_WAIT_BUDGET_SECONDS,
     ) -> None:
         if response_format not in RESPONSE_FORMATS:
             raise ValueError(f"response_format must be one of {RESPONSE_FORMATS}")
@@ -407,6 +422,10 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
         self._token_limit_param = token_limit_param
         self._send_temperature = send_temperature
         self._paused_until = 0.0
+        self._max_wait = max(0.0, float(rate_limit_max_wait_seconds))
+        self._wait_budget = max(0.0, float(rate_limit_wait_budget_seconds))
+        self._wait_budget_left = self._wait_budget
+        self.last_rate_limit_wait_ms = 0.0
         self.last_failure_was_connect_error = False
         self.last_failure_reason = "none"
         self.last_call_latency_ms: Optional[float] = None
@@ -424,6 +443,37 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
 
     def rate_limit_paused(self) -> bool:
         return time.monotonic() < self._paused_until
+
+    def reset_rate_limit_wait_budget(self) -> None:
+        """Called at the start of each ingestion run: the wait budget is per run."""
+        self._wait_budget_left = self._wait_budget
+
+    def _wait_out_pause(self) -> bool:
+        """Sleep through the current rate-limit pause when it is short enough and
+        the run's wait budget allows. True when the provider is no longer paused.
+        With the default cap (0) it never sleeps, so a paused call fails as before."""
+        remaining = self._paused_until - time.monotonic()
+        if remaining <= 0:
+            return True
+        if remaining > self._max_wait or remaining > self._wait_budget_left:
+            return False
+        logger.info(
+            "%s rate-limited: waiting %.1fs (budget left %.0fs) instead of falling back",
+            self.provider_id, remaining, self._wait_budget_left,
+        )
+        time.sleep(remaining)
+        self._wait_budget_left -= remaining
+        self.last_rate_limit_wait_ms += remaining * 1000
+        return True
+
+    def _pause_after_429(self, response: httpx.Response) -> float:
+        retry_after = _retry_after_seconds(response)
+        pause = min(
+            DEFAULT_RATE_LIMIT_PAUSE_SECONDS if retry_after is None else retry_after,
+            MAX_RATE_LIMIT_PAUSE_SECONDS,
+        )
+        self._paused_until = time.monotonic() + pause
+        return pause
 
     def build_payload(self, title: str, subtitle: Optional[str] = None) -> dict:
         payload: dict = {
@@ -482,29 +532,28 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
         self.last_usage = None
         self.last_http_status = None
         self.last_finish_reason = None
+        self.last_rate_limit_wait_ms = 0.0
 
-        if self.rate_limit_paused():
+        if self.rate_limit_paused() and not self._wait_out_pause():
             self.last_failure_reason = "http_error"
             self.last_http_status = 429
             self.last_call_latency_ms = 0.0
             return None
 
         started_at = time.perf_counter()
+        waited_ms_in_call = 0.0
         try:
-            response = httpx.post(
-                self._url,
-                json=self.build_payload(title, subtitle),
-                headers={"Authorization": f"Bearer {self._api_key}"},
-                timeout=self._timeout,
-            )
-            self.last_http_status = response.status_code
+            response = self._post(title, subtitle)
             if response.status_code == 429:
-                retry_after = _retry_after_seconds(response)
-                pause = min(
-                    DEFAULT_RATE_LIMIT_PAUSE_SECONDS if retry_after is None else retry_after,
-                    MAX_RATE_LIMIT_PAUSE_SECONDS,
-                )
-                self._paused_until = time.monotonic() + pause
+                pause = self._pause_after_429(response)
+                before = self.last_rate_limit_wait_ms
+                if self._max_wait > 0 and self._wait_out_pause():
+                    # One retry after a short pause (#409, opt-in).
+                    waited_ms_in_call = self.last_rate_limit_wait_ms - before
+                    response = self._post(title, subtitle)
+                    if response.status_code == 429:
+                        pause = self._pause_after_429(response)
+            if response.status_code == 429:
                 self.last_failure_reason = "http_error"
                 logger.warning(
                     "%s rate-limited (429, retry-after=%s): no LLM calls for %.0fs",
@@ -552,4 +601,15 @@ class OpenAICompatibleProvider(LLMClassificationProvider):
             return None
         finally:
             if self.last_call_latency_ms is None:
-                self.last_call_latency_ms = (time.perf_counter() - started_at) * 1000
+                elapsed_ms = (time.perf_counter() - started_at) * 1000
+                self.last_call_latency_ms = max(0.0, elapsed_ms - waited_ms_in_call)
+
+    def _post(self, title: str, subtitle: Optional[str]) -> httpx.Response:
+        response = httpx.post(
+            self._url,
+            json=self.build_payload(title, subtitle),
+            headers={"Authorization": f"Bearer {self._api_key}"},
+            timeout=self._timeout,
+        )
+        self.last_http_status = response.status_code
+        return response

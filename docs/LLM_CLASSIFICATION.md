@@ -177,7 +177,18 @@ hosted model replaces Ollama is #262's evaluation and the owner's decision.
   recorded, so `length` truncation is visible.
 - **429:** that article falls back to rules as `http_error`; the provider then sends **no
   request** for `Retry-After` seconds (default 60, capped at 300). Calls in that window fall
-  back at once, also as `http_error`. There is no retry loop.
+  back at once, also as `http_error`. There is no retry loop. This is the default.
+- **Opt-in rate-limit wait (#409).** `CLASSIFICATION_RATE_LIMIT_MAX_WAIT_SECONDS` > 0 (default
+  0 = off, the behavior above) makes the provider sleep through a pause no longer than that cap
+  instead of failing: a call made during a pause waits for it to end, and a 429 response is
+  retried **once** after its `Retry-After`; a second 429 falls back as above. Total waiting is
+  bounded per ingestion run by `CLASSIFICATION_RATE_LIMIT_WAIT_BUDGET_SECONDS` (default 300),
+  reset at the start of every `run_ingestion`. Time asleep is excluded from `llm_avg_ms` /
+  `llm_p95_ms` and reported as `metrics.rate_limit_waits` / `rate_limit_wait_ms` and in the
+  Timing log line. Why: census #3 found every Groq-era failure but one was a 429 burst on a
+  backlog cycle, where one 429 failed the whole pause window (analysis on #409 and its PR).
+  Enabling it on the live worker is the owner's decision; it lengthens a backlog cycle by up to
+  the budget.
 - **Usage:** `last_usage` (prompt, completion, reasoning token counts) feeds the run's
   `metrics.llm_tokens`.
 - **Secrets:** the key travels only in the header. It is never logged; error logs carry the

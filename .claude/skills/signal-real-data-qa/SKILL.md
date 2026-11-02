@@ -40,8 +40,10 @@ diffs, and do not regenerate a baseline to make it pass.
 reads recall directly because every row is rated: report **shown precision, feed+ recall,
 push precision, push recall** and the **≥2-notch disagreement count**. One-notch gaps are
 rating noise (census #2's blind re-rate changed 28 of 58 large gaps) and are not gated. That
-also means a same-direction one-notch drift is not caught (known gap, #402): read the decision delta
-for one-direction moves. A change
+also means a same-direction one-notch drift does not fail the gate (#402). The gate prints a
+report-only **directional drift** block (upgrades and downgrades, each toward, away from or across
+the owner's rating, with ids). Read it on every run; a one-sided pile of "away" rows is a regression
+even when the gate passes. A change
 that hides wanted rows fails `feed_plus_recall`; one that surfaces noise fails
 `shown_precision`, even though it *lowers* the ≥2-notch count. Census #3 (#241) joins by passing
 `--ratings/--sample` pairs (and `--review` files, whose ratings win) with

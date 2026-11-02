@@ -828,9 +828,14 @@ def _cmd_census_gate(args, accepted: list) -> None:
     except feed_quality_gate.GateInputError as exc:
         raise SystemExit(f"Cannot compare: {exc}")
 
+    drift = census_gate.directional_drift(baseline, merged, decisions)
     print(census_gate.format_verdict(verdict))
+    print("\n" + census_gate.format_drift(drift))
     if args.out:
-        _write(args.out, {"meta": meta, "inputs": merged.inputs, "verdict": verdict.as_dict()})
+        _write(args.out, {
+            "meta": meta, "inputs": merged.inputs, "verdict": verdict.as_dict(),
+            "directional_drift": drift,
+        })
     if not verdict.passed:
         sys.exit(1)
 

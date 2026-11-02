@@ -547,6 +547,7 @@ def check_baseline_update(
 
     delta = baseline_delta(verdict, previous_merged, accept_reason=accept_reason)
     delta["ratings"] = ratings_delta(previous_merged, merged, decisions)
+    delta["directional_drift"] = directional_drift(previous, previous_merged, decisions)
 
     problems = []
     if not verdict.passed:
@@ -615,10 +616,77 @@ def format_delta(delta: Mapping[str, Any] | None) -> str:
                     old = (r["metrics_previous_ratings"] or {}).get(key)
                     new = (r["metrics_new_ratings"] or {}).get(key)
                     lines.append(f"    {key}: {old} under previous ratings -> {new} under new ratings")
+        if delta.get("directional_drift"):
+            lines.append(format_drift(delta["directional_drift"]))
         if delta.get("accept_reason"):
             lines.append(f"Accepted because: {delta['accept_reason']}")
     if delta.get("forced_reason"):
         lines.append(f"FORCED because: {delta['forced_reason']}")
+    return "\n".join(lines)
+
+
+# ── directional drift: report-only (#402) ─────────────────────────────────────
+#
+# One-notch gaps are ignored row by row (the rating noise band), so a systematic
+# move in one direction passes every check: demoting all 69 owner-"feed" rows
+# shown at feed/high_feed to low_feed does. Until #402 chooses a threshold, every
+# rated row whose decision moved is REPORTED, split into upgrades and downgrades,
+# and each into toward the owner's rating, away from it, or across it (jumping
+# over the rating to the other side). This never fails the gate.
+
+_DIRECTIONS = ("toward", "away", "across")
+
+
+def directional_drift(
+    baseline: Mapping[str, Any],
+    merged: MergedCensus,
+    decisions: Mapping[str, Mapping[str, str]],
+) -> dict[str, Any]:
+    """Moved rated rows per profile: {upgrades|downgrades: {toward|away|across: [ids]}, counts}."""
+    out: dict[str, Any] = {}
+    for profile_id, base in sorted(baseline.get("profiles", {}).items()):
+        ratings = merged.ratings.get(profile_id)
+        if not ratings or "metrics" not in base:
+            continue
+        rows: dict[str, dict[str, list[str]]] = {
+            kind: {d: [] for d in _DIRECTIONS} for kind in ("upgrades", "downgrades")
+        }
+        current = decisions.get(profile_id, {})
+        for aid in sorted(ratings):
+            before, after = base["decisions"].get(aid), current.get(aid)
+            if before is None or after is None or before == after:
+                continue
+            owner = OWNER_NOTCH[ratings[aid]]
+            gap_before = ENGINE_NOTCH[before] - owner
+            gap_after = ENGINE_NOTCH[after] - owner
+            kind = "upgrades" if gap_after > gap_before else "downgrades"
+            if gap_before * gap_after < 0:
+                direction = "across"
+            elif abs(gap_after) < abs(gap_before):
+                direction = "toward"
+            else:
+                direction = "away"
+            rows[kind][direction].append(aid)
+        out[profile_id] = {
+            **rows,
+            "counts": {kind: {d: len(ids) for d, ids in by.items()} for kind, by in rows.items()},
+        }
+    return out
+
+
+def format_drift(drift: Mapping[str, Any]) -> str:
+    lines = ["Directional drift vs the baseline (report-only, does not gate; threshold pending #402):"]
+    for profile_id, block in sorted(drift.items()):
+        for kind in ("upgrades", "downgrades"):
+            c = block["counts"][kind]
+            lines.append(
+                f"  {profile_id} {kind}: toward {c['toward']}, away {c['away']}, across {c['across']}"
+            )
+            for direction in _DIRECTIONS:
+                ids = block[kind][direction]
+                if ids:
+                    shown = ", ".join(ids[:10]) + (f", +{len(ids) - 10} more" if len(ids) > 10 else "")
+                    lines.append(f"    {direction}: {shown}")
     return "\n".join(lines)
 
 

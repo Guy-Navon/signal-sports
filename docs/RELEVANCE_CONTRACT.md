@@ -339,8 +339,13 @@ Re-rate large disagreements before treating them as engine errors.
 means no check sees a *systematic* one-notch move away from the owner's ratings. Replayed on
 the stored baseline, demoting all 69 owner-`feed` rows shown at `feed`/`high_feed` to
 `low_feed` passes every check, and so does hiding up to 21 of the 39 shown owner-`low` rows.
-#402 proposes a directional check: one-notch moves away from the rating vs toward it, with a
-slack or a sign test. Until it lands, review the decision delta for one-direction drift by eye.
+#402 proposes a blocking directional check (slack or sign test; threshold not chosen yet).
+Until then the gate **reports** directional drift without gating (owner decision 2026-11-02).
+Every rated row whose decision moved against the baseline is listed as an upgrade or a
+downgrade, and as toward the owner's rating, away from it, or across it (jumping over the
+rating), with counts and ids. It is printed after the verdict, written to `--out`, and stored
+in every baseline-update delta. Replayed, the 69-row demotion shows as 58 downgrades away and
+11 across, while every check still passes. Read it on every gate run.
 
 **Why both directions are needed.** Replayed on census #2, "surface everything" (every hidden
 row to `low_feed`) takes feed+ recall to 100% and *lowers* the ≥2-notch count from 48 to 17;

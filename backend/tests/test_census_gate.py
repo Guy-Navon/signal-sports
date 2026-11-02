@@ -615,6 +615,72 @@ def test_a_review_rated_against_another_sample_is_rejected():
         gate.merge_census([_source()], [review])
 
 
+# ── directional drift: report-only (#402, owner decision 2026-11-02) ─────────
+#
+# One-notch gaps are ignored row by row (the noise band), so a systematic
+# one-direction drift passes every check. Until #402 picks a threshold, the gate
+# REPORTS every rated row that moved, split into upgrades and downgrades, each
+# toward or away from the owner's rating. It never fails the gate.
+
+
+def test_drift_splits_moved_rated_rows_by_direction_and_by_the_owner_rating(baseline):
+    moves = {
+        "f0": "low_feed",   # feed-rated, feed -> low_feed: downgrade, away
+        "f1": "low_feed",   # same
+        "fh0": "feed",      # feed-rated, hidden -> feed: upgrade, toward
+        "g0": "push",       # high-rated, high_feed -> push: upgrade, away
+        "fs0": "hidden",    # hide-rated, feed -> hidden: downgrade, toward
+    }
+    drift = gate.directional_drift(baseline, _merged(), _decisions(guy=moves))["guy"]
+    assert drift["upgrades"]["toward"] == ["fh0"]
+    assert drift["upgrades"]["away"] == ["g0"]
+    assert drift["downgrades"]["toward"] == ["fs0"]
+    assert drift["downgrades"]["away"] == ["f0", "f1"]
+    assert drift["counts"] == {
+        "upgrades": {"toward": 1, "away": 1, "across": 0},
+        "downgrades": {"toward": 1, "away": 2, "across": 0},
+    }
+
+
+def test_a_move_that_jumps_over_the_rating_is_across_not_toward(baseline):
+    # p2 is rated high and pushed: push -> feed jumps from +1 over the rating to -1.
+    drift = gate.directional_drift(baseline, _merged(), _decisions(guy={"p2": "feed"}))["guy"]
+    assert drift["downgrades"]["across"] == ["p2"]
+    assert drift["counts"]["downgrades"] == {"toward": 0, "away": 0, "across": 1}
+
+
+def test_drift_is_report_only_and_never_fails_the_gate(baseline):
+    """The 69-row demotion from #402 passes every check; the report must still show it."""
+    demote = {aid: "low_feed" for aid, rating, decision in _ROWS
+              if rating == "feed" and decision in ("feed", "high_feed")}
+    verdict = _evaluate(baseline, _decisions(guy=demote))
+    assert verdict.passed
+    drift = gate.directional_drift(baseline, _merged(), _decisions(guy=demote))["guy"]
+    assert drift["counts"]["downgrades"]["away"] == len(demote)
+
+
+def test_unrated_profiles_and_unmoved_rows_are_not_in_the_drift_report(baseline):
+    drift = gate.directional_drift(baseline, _merged(), _decisions(deni={"h3": "feed"}))
+    assert set(drift) == {"guy"}
+    assert drift["guy"]["counts"] == {
+        "upgrades": {"toward": 0, "away": 0, "across": 0},
+        "downgrades": {"toward": 0, "away": 0, "across": 0},
+    }
+
+
+def test_the_rendered_drift_report_says_it_does_not_gate(baseline):
+    drift = gate.directional_drift(baseline, _merged(), _decisions(guy={"f0": "low_feed"}))
+    text = gate.format_drift(drift)
+    assert "report-only" in text and "#402" in text
+    assert "downgrades: toward 0, away 1, across 0" in text
+    assert "f0" in text
+
+
+def test_the_update_delta_carries_the_drift_report(baseline):
+    update = _check_update(baseline, _decisions(guy={"fh0": "feed"}))
+    assert update.delta["directional_drift"]["guy"]["upgrades"]["toward"] == ["fh0"]
+
+
 # ── the report ────────────────────────────────────────────────────────────────
 
 

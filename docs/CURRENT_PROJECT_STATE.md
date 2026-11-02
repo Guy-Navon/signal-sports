@@ -274,7 +274,10 @@ deterministic rule changelog, §1–§18).
 - **Event types:** the specific types need positive evidence; `news` is abstention, with a
   recorded reason. Newer types: `relocation` (#191), `club_governance` (#229).
 - **Taxonomy** ([TAXONOMY.md](TAXONOMY.md)): 117 entities (79 teams, 31 players, 2 coaches,
-  5 executives) and 21 competitions, 15 of them selectable. Bare club-family names (`מכבי`,
+  5 executives) and 22 competitions, 15 of them selectable. The FIBA Basketball Champions
+  League (`comp:bcl`, #407) is registered but not yet selectable. Its bare name
+  `ליגת האלופות` is shared with UEFA's and is read by the sport the text proves (see
+  RSS_QUALITY_GUARDRAILS.md §20). Bare club-family names (`מכבי`,
   `הפועל`) never resolve. Coaches and executives imply their team, and so do the #259
   Maccabi/Hapoel Tel Aviv roster people (`implies_team`). That roster is season data, kept
   current by the TAXONOMY.md roster-maintenance routine (#377).
@@ -440,6 +443,9 @@ milestone 11's gate.
    - #254 census-based gate (feed+ recall, push recall, noise band)
    - #255 protect rated rows from retention (code landed; owner runs the one-off `--apply`)
    - #242 venue-move vocabulary, if census #3 brings enough examples
+   - #407 (census #3 finding): a Basketball Champions League game was read as the UEFA
+     Champions League. The facts fix is in review. Whether Guy follows `comp:bcl` is an owner
+     decision, and it needs census #3 held-out confirmation
 3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
    - done: #256 (measurement), #259 (Maccabi/Hapoel Tel Aviv people registered)
    - open: #345 (the corroborated basketball exception landed; wanted stories with no non-LLM

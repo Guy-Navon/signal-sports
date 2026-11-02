@@ -133,7 +133,9 @@ interests validation and the catalog endpoint:
 - **Sports**: basketball, football, tennis — selectable.
 - **Competitions**: selectable except the ones the classifier cannot prove
   (zero member clubs + `ALLOWED_LEAGUES` gap): `comp:epl`, `comp:la_liga`,
-  `comp:bundesliga`, `comp:ucl`. Tennis Grand Slams ARE selectable
+  `comp:bundesliga`, `comp:ucl`. Also `comp:bcl` (#407): the classifier can prove it,
+  but it has no calibration items yet, and adding them is an owner decision. Tennis Grand
+  Slams ARE selectable
   competition-only (tier-1 explicit competition evidence matches any event
   type; no tennis entities needed).
 - **Entities**: every taxonomy team/player/coach is selectable

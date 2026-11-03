@@ -234,6 +234,9 @@ def _write_json(path: Path, payload: dict) -> None:
     tmp.replace(path)
 
 
+RAW_NOTE = ("RAW fit-half ratings as rated, before any review (#241): the like-for-like "
+            "baseline for the final evaluation. Never edited; merge-review refuses it.")
+
 SEALED_NOTE = ("HELD-OUT half of the census (#241). Not for tuning, calibration or rule design; "
                "read once, for the final evaluation.")
 
@@ -272,6 +275,9 @@ def seal_census(sample: dict, sample_path, ratings_path, profile: str = "guy") -
         fit = {k: v for k, v in current.items() if k not in held_ids}  # finish the interrupted seal
         held = sealed
     else:
+        if fit_raw_path and fit_raw_path.exists():
+            raise ValueError(f"{fit_raw_path} already exists before the first seal; it would not be "
+                             "the raw copy of these ratings. Move it away and seal again")
         ids = [it["id"] for it in sample["profiles"][profile]["items"]]
         fit, held = seal_ratings(ids, held_ids, current)
         _write_json(sealed_path, {"generated": raw.get("generated"), "seed": raw["seed"],
@@ -279,7 +285,7 @@ def seal_census(sample: dict, sample_path, ratings_path, profile: str = "guy") -
 
     fit_payload = {"generated": raw.get("generated"), "seed": raw["seed"], "ratings": {profile: fit}}
     if fit_raw_path and not fit_raw_path.exists():
-        _write_json(fit_raw_path, fit_payload)
+        _write_json(fit_raw_path, {**fit_payload, "raw": RAW_NOTE})
     _write_json(ratings_path, fit_payload)  # last: until here the full file is intact
     return f"sealed {len(held)} held-out ratings -> {sealed_path}; {len(fit)} fit ratings stay in {ratings_path}"
 

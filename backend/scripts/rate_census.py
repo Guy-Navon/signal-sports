@@ -285,9 +285,16 @@ def make_server(sample_path, ratings_path, profile: str, port: int) -> _RatingSe
     if profile not in sample["profiles"]:
         raise SystemExit(f"Sample has no profile {profile!r}: {list(sample['profiles'])}")
     seed = sample["meta"]["seed"]
+    files = cr.sealed_files(sample, sample_path)
+    if files and files[1].exists() and Path(ratings_path).exists():
+        current = json.loads(Path(ratings_path).read_text(encoding="utf-8"))["ratings"].get(profile, {})
+        if set(current) & cr.sealed_ids(sample, sample_path):  # an interrupted seal: finish it first
+            try:
+                print(cr.seal_census(sample, sample_path, ratings_path, profile), flush=True)
+            except ValueError as exc:
+                raise SystemExit(f"not serving: {exc}")
     items = serve_items(sample, sample_path, profile)
     srv = _RatingServer(("127.0.0.1", port), items, cr.RatingsStore(Path(ratings_path), seed=seed, profile=profile))
-    files = cr.sealed_files(sample, sample_path)
     if files and not files[1].exists():
         cr.sealed_ids(sample, sample_path)  # fail now, not at the last row, if the ids file is missing
 
@@ -385,9 +392,13 @@ def cmd_merge_review(args) -> None:
     """Fold a finished review into the census ratings, editing only changed lines. Never into
     a sealed file: held-out ratings stay raw; their optional final re-rate is its own file."""
     path = Path(args.ratings)
-    if json.loads(path.read_text(encoding="utf-8")).get("sealed"):
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("sealed"):
         raise SystemExit(f"{path} is a sealed held-out ratings file; merge-review never edits it "
                          "(keep a final-evaluation re-rate in its own file)")
+    if payload.get("raw"):
+        raise SystemExit(f"{path} is the raw fit-half ratings file; merge-review never edits it "
+                         "(merge into the census ratings file)")
     review = json.loads(Path(args.review).read_text(encoding="utf-8"))["ratings"][args.profile]
     text, changed = cr.merge_review_text(path.read_text(encoding="utf-8"), review, profile=args.profile)
     path.write_text(text, encoding="utf-8", newline="")

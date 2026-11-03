@@ -129,9 +129,17 @@ def _run_fit(db, ratings, sample, *extra):
 def test_post_seal_files_work_and_the_halves_are_the_pre_registered_ones(tmp_path):
     # The sealed file as --review names ids the fit-only ratings file does not have.
     db, ratings, sample, sealed = _sealed_fixture(tmp_path)
-    out = _run_fit(db, ratings, sample, "--review", str(sealed))
-    assert "sealed held-out half: 2 ratings excluded" in out
+    # The sealed file itself is refused without the final-evaluation flag (like every loader).
+    refused = subprocess.run(
+        [sys.executable, str(SCRIPT), "--db", str(db), "--ratings", str(ratings), "--sample", str(sample),
+         "--review", str(sealed)], cwd=BACKEND, capture_output=True, text=True, encoding="utf-8", timeout=300)
+    assert refused.returncode != 0 and "SEALED" in (refused.stdout + refused.stderr)
+    refused = subprocess.run(
+        [sys.executable, str(SCRIPT), "--db", str(db), "--ratings", str(sealed), "--sample", str(sample)],
+        cwd=BACKEND, capture_output=True, text=True, encoding="utf-8", timeout=300)
+    assert refused.returncode != 0 and "SEALED" in (refused.stdout + refused.stderr)
     # The halves come from the pre-registered ids file, not a fresh split of the loaded rows.
+    out = _run_fit(db, ratings, sample)
     assert "articles replayed: 6 (fit 4, hold-out 2)" in out
     assert "BASE hold: no rated rows" in out
 

@@ -254,3 +254,44 @@ def test_the_page_seals_itself_when_the_last_row_is_rated(tmp_path):
     finally:
         srv.shutdown()
         srv.server_close()
+
+
+# ── delta review of PR #400 ───────────────────────────────────────────────────
+
+def test_merge_review_never_rewrites_the_raw_fit_file(tmp_path):
+    sample_path, ratings_path = _census(tmp_path)
+    _seal(sample_path, ratings_path)
+    raw = json.loads((tmp_path / "fit_raw.json").read_text(encoding="utf-8"))
+    assert raw.get("raw")  # marked at seal time
+    review = tmp_path / "rev.json"
+    review.write_text(json.dumps({"ratings": {"guy": {"rss_000": "push"}}}), encoding="utf-8")
+    with pytest.raises(SystemExit, match="raw"):
+        rate_census.cmd_merge_review(argparse.Namespace(
+            ratings=str(tmp_path / "fit_raw.json"), review=str(review), profile="guy"))
+
+
+def test_committed_fit_raw_file_is_marked_raw():
+    raw = json.loads((BACKEND.parent / "docs" / "qa" / "census3_fit_raw_ratings.json").read_text(encoding="utf-8"))
+    assert raw.get("raw") and "sealed" not in raw
+
+
+def test_a_first_seal_refuses_a_pre_existing_fit_raw_file(tmp_path):
+    sample_path, ratings_path = _census(tmp_path)
+    (tmp_path / "fit_raw.json").write_text(json.dumps({"seed": 11, "ratings": {"guy": {}}}), encoding="utf-8")
+    with pytest.raises(SystemExit, match="fit_raw.json"):
+        _seal(sample_path, ratings_path)
+    assert not (tmp_path / "held_ratings.json").exists()
+
+
+def test_serve_completes_an_interrupted_auto_seal_before_serving(tmp_path):
+    sample_path, ratings_path = _census(tmp_path)
+    full = json.loads(ratings_path.read_text(encoding="utf-8"))
+    _seal(sample_path, ratings_path)
+    ratings_path.write_text(json.dumps(full), encoding="utf-8")  # crash before the ratings file was rewritten
+    srv = rate_census.make_server(sample_path, ratings_path, "guy", port=0)
+    try:
+        assert set(_fit(ratings_path)) == set(IDS) - HELD  # held-out ids gone from the census file
+        assert set(srv.store.ratings) == set(IDS) - HELD
+        assert srv.store.pending(srv.items) == []
+    finally:
+        srv.server_close()

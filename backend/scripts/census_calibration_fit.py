@@ -153,11 +153,17 @@ def main(argv: list[str] | None = None) -> int:
     items = sample["profiles"]["guy"]["items"]
     # A census with a sealed held-out half (#241, census #3): calibration never sees those
     # labels. Only the one final evaluation reads them, and says so with the flag.
-    from app.qa.census_rating import exclude_sealed, sealed_ids
+    from app.qa.census_rating import SealedRatingsError, exclude_sealed, refuse_sealed, sealed_ids
 
     sealed = sealed_ids(sample, args.sample)
-    ratings = json.loads(args.ratings.read_text(encoding="utf-8"))["ratings"]["guy"]
-    rev = json.loads(args.review.read_text(encoding="utf-8"))["ratings"]["guy"] if args.review else {}
+    try:
+        ratings = refuse_sealed(json.loads(args.ratings.read_text(encoding="utf-8")), args.ratings,
+                                final_heldout_eval=args.final_heldout_eval)["ratings"]["guy"]
+        rev = (refuse_sealed(json.loads(args.review.read_text(encoding="utf-8")), args.review,
+                             final_heldout_eval=args.final_heldout_eval)["ratings"]["guy"] if args.review else {})
+    except SealedRatingsError as exc:
+        print(exc)
+        return 2
     if not args.final_heldout_eval:
         held_rated = (set(ratings) | set(rev)) & sealed
         ratings, _ = exclude_sealed(ratings, sealed)

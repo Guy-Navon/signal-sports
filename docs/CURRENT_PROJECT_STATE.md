@@ -262,11 +262,12 @@ them, and drift tests on both sides enforce it.
 Pipeline order and contracts: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) (map),
 [ARTICLE_FACTS.md](ARTICLE_FACTS.md) (facts stage), [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md)
 (gate, merge, metrics), and [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) (the
-deterministic rule changelog, §1–§20).
+deterministic rule changelog, §1–§21).
 
 - **Rules first, always.** The title is primary, and the subtitle only fills gaps. *Title-local*
   event types (`title_win`, `grand_slam_winner`, `major_trade`, `schedule`, …) never come from
-  the subtitle alone (#223, #224).
+  the subtitle alone (#223, #224). A broadcast word makes a `schedule` only when it announces a
+  broadcast, not when something happened on air (#406).
 - **The LLM is gated.** It is force-called on `sport_unknown`, `ambiguous_club` or low
   confidence, and skipped when the rules are already strong or the article is measured-sufficient
   generic `news` (#217). The call rate is about 28% of eligible articles. Proposals pass the merge

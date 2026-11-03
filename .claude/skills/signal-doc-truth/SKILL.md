@@ -34,7 +34,7 @@ One-off run evidence goes in the PR or issue, not in `docs/qa/`.
 | `PREFERENCE_MODEL_V2.md` | ProfileV2, scorer layers, shadow checkpoint record, census calibration (#237) |
 | `INTERESTS.md`, `CALIBRATION_V2.md`, `FEEDBACK_LEARNING.md` | Explicit interests; calibration dataset/inference/apply; learning pipeline + safety invariants |
 | `LLM_CLASSIFICATION.md` | Providers, gating (+ the binding #217 caveats), merge guardrails (4b), run metrics (#31) |
-| `RSS_QUALITY_GUARDRAILS.md` | Source filters + numbered deterministic-rule changelog (§1–§20) |
+| `RSS_QUALITY_GUARDRAILS.md` | Source filters + numbered deterministic-rule changelog (§1–§21) |
 | `RSS_INGESTION.md` | Sources (code default vs **live** override state), URL hints, probe history, the ingestion pass, run persistence |
 | `CLUSTERING.md` | Clustering contract — code comments name it as the authority |
 | `FEED_FRESHNESS.md`, `SCHEDULER.md`, `NOTIFICATIONS.md`, `RESULTS.md` | 36h window (+ the retention hazard), worker/lease, Telegram pilot, results |

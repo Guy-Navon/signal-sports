@@ -770,7 +770,8 @@ _EARLY_ROUND_TENNIS_KW = (
 _DEATH_ACCIDENT_KW = ("נהרג", "נפטר", "תאונה קטלנית")
 
 _SCHEDULE_KW = (
-    'לו"ז', "לוח משחקים", "שידורים", "שידור", "לקראת", "תאריכים",
+    # Proposal only: event_evidence keeps a "שידור" only when it announces a broadcast (#406).
+    'לו"ז', "לוח משחקים", "שידורים", "שידור", "ישודר", "תשודר", "לקראת", "תאריכים",
     "schedule", "preview", "upcoming", "fixture", "fixtures",
 )
 

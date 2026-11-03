@@ -27,14 +27,14 @@ One-off run evidence goes in the PR or issue, not in `docs/qa/`.
 | Doc | Layer |
 |---|---|
 | `CURRENT_PROJECT_STATE.md` | Top-level truth + cold-start orientation: §0 status at a glance, §3 architecture, §4 sources, §5 backend (tables, API, runtime flags), §6 frontend, §7 profiles/relevance (incl. LIVE profile contents), §8 classification, §9 quality measurement, §10 limitations, §11 next steps (open milestones 10–12), §13 handoff + doc map, §14 milestone history. Almost every behavior change touches it |
-| `RELEVANCE_CONTRACT.md` | Umbrella: pipeline map, **architecture invariants** (moved here from the retired v2 roadmap), decision semantics, push discipline, the N05 quality gate |
+| `RELEVANCE_CONTRACT.md` | Umbrella: pipeline map, **architecture invariants** (moved here from the retired v2 roadmap), decision semantics, push discipline, the N05 and census quality gates |
 | `TAXONOMY.md` | Registry rules + coverage audit table |
 | `ARTICLE_FACTS.md` | Facts stage: evidence weights, triangle, trace shape |
 | `RELEVANCE_VISIBILITY_CONTRACT.md` | Four-tier matching, reach allowlists, feed ceiling, competition parents |
 | `PREFERENCE_MODEL_V2.md` | ProfileV2, scorer layers, shadow checkpoint record, census calibration (#237) |
 | `INTERESTS.md`, `CALIBRATION_V2.md`, `FEEDBACK_LEARNING.md` | Explicit interests; calibration dataset/inference/apply; learning pipeline + safety invariants |
 | `LLM_CLASSIFICATION.md` | Providers, gating (+ the binding #217 caveats), merge guardrails (4b), run metrics (#31) |
-| `RSS_QUALITY_GUARDRAILS.md` | Source filters + numbered deterministic-rule changelog (§1–§18) |
+| `RSS_QUALITY_GUARDRAILS.md` | Source filters + numbered deterministic-rule changelog (§1–§21) |
 | `RSS_INGESTION.md` | Sources (code default vs **live** override state), URL hints, probe history, the ingestion pass, run persistence |
 | `CLUSTERING.md` | Clustering contract — code comments name it as the authority |
 | `FEED_FRESHNESS.md`, `SCHEDULER.md`, `NOTIFICATIONS.md`, `RESULTS.md` | 36h window (+ the retention hazard), worker/lease, Telegram pilot, results |
@@ -42,7 +42,7 @@ One-off run evidence goes in the PR or issue, not in `docs/qa/`.
 | `FRONTEND_DESIGN_SYSTEM.md` | Orbit tokens, product-vs-console split, RTL rules |
 | `MOBILE_REMOTE_ACCESS.md` | Tailscale Serve ops guide (#16) |
 | `qa/N05_FEED_GROUND_TRUTH.md`, `qa/N05_FEED_QUALITY_IMPLEMENTATION.md` | Method + current ratcheted baseline of the ACTIVE gate (`n05_*.json` is read by the gate) |
-| `qa/CENSUS_2026-10.md` | Census #2 (the fresh-cohort baseline) + the re-rate protocol |
+| `qa/CENSUS_2026-10.md` | Census #2 (the fresh-cohort baseline) + the re-rate protocol; its `census2_*.json` feed the census gate (`census_gate_baseline.json`, #254) |
 | `docs/fixtures/profile_parity.json` | Canonical legacy-profile snapshot — changes only with both seeds |
 
 **Kept, but not implementation references:**

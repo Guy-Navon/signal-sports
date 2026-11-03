@@ -26,6 +26,18 @@ def _float_env(name: str, default: float) -> float:
         return default
 
 
+def _non_negative_float_env(name: str, default: float) -> float:
+    """Like _float_env, but 0 is a real value (for the rate-limit wait budget,
+    0 = never wait). Negative or invalid values use the default."""
+    raw = os.environ.get(name, str(default))
+    try:
+        value = float(raw)
+        return value if value >= 0 else default
+    except ValueError:
+        logger.warning("Invalid %s=%r; using %s", name, raw, default)
+        return default
+
+
 def _openai_compat_from_env() -> LLMClassificationProvider:
     """CLASSIFICATION_PROVIDER=openai_compat (#261).
 
@@ -40,10 +52,19 @@ def _openai_compat_from_env() -> LLMClassificationProvider:
                                               (OpenAI reasoning models need the latter)
       CLASSIFICATION_SEND_TEMPERATURE         true (default: temperature 0) | false (omit it;
                                               OpenAI reasoning models accept only the default)
+      CLASSIFICATION_RATE_LIMIT_MAX_WAIT_SECONDS
+                                              0 (default) = a 429 fails the article and every
+                                              call during the pause (the pre-#409 behavior).
+                                              > 0 = sleep through a pause up to this long, and
+                                              retry a 429 once (#409)
+      CLASSIFICATION_RATE_LIMIT_WAIT_BUDGET_SECONDS
+                                              total waiting per ingestion run, default 300;
+                                              0 = never wait
     Anything missing or invalid falls back to disabled, with a warning that
     names the variable and never its value.
     """
     from app.classification.providers import (
+        DEFAULT_RATE_LIMIT_WAIT_BUDGET_SECONDS,
         RESPONSE_FORMATS,
         TOKEN_LIMIT_PARAMS,
         OpenAICompatibleProvider,
@@ -85,6 +106,7 @@ def _openai_compat_from_env() -> LLMClassificationProvider:
         "0", "false", "no", "off",
     }
 
+    max_wait = _float_env("CLASSIFICATION_RATE_LIMIT_MAX_WAIT_SECONDS", 0.0)
     provider = OpenAICompatibleProvider(
         base_url=base_url,
         api_key=api_key,
@@ -95,10 +117,16 @@ def _openai_compat_from_env() -> LLMClassificationProvider:
         reasoning_effort=effort,
         token_limit_param=token_param,
         send_temperature=send_temperature,
+        rate_limit_max_wait_seconds=max_wait,
+        rate_limit_wait_budget_seconds=_non_negative_float_env(
+            "CLASSIFICATION_RATE_LIMIT_WAIT_BUDGET_SECONDS", DEFAULT_RATE_LIMIT_WAIT_BUDGET_SECONDS,
+        ),
     )
     logger.info(
-        "LLM classification provider: openai_compat (model=%s, format=%s, reasoning=%s)",
+        "LLM classification provider: openai_compat (model=%s, format=%s, reasoning=%s, "
+        "rate-limit wait=%s)",
         model, response_format, effort or "omitted",
+        f"up to {max_wait:.0f}s" if max_wait > 0 else "off",
     )
     return provider
 

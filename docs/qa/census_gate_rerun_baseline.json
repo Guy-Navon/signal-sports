@@ -3,8 +3,8 @@
   "kind": "census",
   "facts": "rerun",
   "meta": {
-    "generated_at": "2026-11-01T15:09:16.449815+00:00",
-    "git_sha": "d82e161d411b9565de3c877933b1b7d453fecc3f",
+    "generated_at": "2026-11-03T16:15:40.394440+00:00",
+    "git_sha": "80e3fd3e349cbb8fd985c32b382eb0c90c2c10aa",
     "engine": "v2",
     "corpus_articles": 3868,
     "scope": "Relevance rules over the whole ingested corpus, freshness window not applied, raw profiles without learned augmentation.",
@@ -1676,20 +1676,20 @@
         "feed_plus": 138,
         "feed_plus_shown": 123,
         "feed_plus_recall": 0.8913,
-        "push_fired": 3,
-        "push_agreed": 2,
-        "push_precision": 0.6667,
+        "push_fired": 4,
+        "push_agreed": 3,
+        "push_precision": 0.75,
         "push_wanted": 7,
-        "push_recalled": 2,
-        "push_recall": 0.2857,
+        "push_recalled": 3,
+        "push_recall": 0.4286,
         "gap_histogram": {
-          "0": 669,
+          "0": 670,
           "1": 108,
-          "2": 26,
+          "2": 25,
           "3": 1,
           "4": 0
         },
-        "two_notch": 27,
+        "two_notch": 26,
         "two_notch_ids": [
           "rss_187eed31d4c961bcaed1",
           "rss_1a1558bed55670ebf049",
@@ -1705,7 +1705,6 @@
           "rss_50a76764e862cc1dd6b6",
           "rss_57ebbb1973908d092749",
           "rss_5e60824dfa7b20e8e9b6",
-          "rss_60dbc2f4aa7316584e2d",
           "rss_6712b22b59a655baca55",
           "rss_68fa0c75722c43c5cc65",
           "rss_7585bbb01e76afb7cb63",
@@ -2026,7 +2025,7 @@
         "rss_6038005660b1e449d6fe": "hidden",
         "rss_60c4688e5da8719fdad8": "feed",
         "rss_60ca7c18764893decfb8": "hidden",
-        "rss_60dbc2f4aa7316584e2d": "feed",
+        "rss_60dbc2f4aa7316584e2d": "push",
         "rss_6143dcb853975b179bee": "hidden",
         "rss_618d7d1cd8beff74f364": "hidden",
         "rss_6214b4713825a67a25ea": "hidden",
@@ -2529,8 +2528,8 @@
     }
   },
   "previous": {
-    "generated_at": "2026-11-01T06:40:56.549384+00:00",
-    "git_sha": "1d67328ab7083d3e7e6fafb8e59407b395139379",
+    "generated_at": "2026-11-01T15:09:16.449815+00:00",
+    "git_sha": "d82e161d411b9565de3c877933b1b7d453fecc3f",
     "facts": "rerun",
     "inputs": {
       "censuses": [
@@ -2589,34 +2588,42 @@
         {
           "check_id": "guy.push_precision",
           "baseline": 0.6667,
-          "current": 0.6667,
+          "current": 0.75,
           "passed": true,
           "accepted": false
         },
         {
           "check_id": "guy.push_recall",
           "baseline": 0.2857,
-          "current": 0.2857,
+          "current": 0.4286,
           "passed": true,
           "accepted": false
         },
         {
           "check_id": "guy.push_volume",
           "baseline": 3,
-          "current": 3,
+          "current": 4,
           "passed": true,
           "accepted": false
         },
         {
           "check_id": "guy.two_notch",
           "baseline": 27,
-          "current": 27,
+          "current": 26,
           "passed": true,
           "accepted": false
         }
       ],
       "accept_reason": null,
-      "rated_rows_changed": [],
+      "rated_rows_changed": [
+        {
+          "profile": "guy",
+          "article_id": "rss_60dbc2f4aa7316584e2d",
+          "before": "feed",
+          "after": "push",
+          "rating": "push"
+        }
+      ],
       "unrated_flips": {},
       "forced_reason": null,
       "ratings": {
@@ -2632,20 +2639,20 @@
             "feed_plus": 138,
             "feed_plus_shown": 123,
             "feed_plus_recall": 0.8913,
-            "push_fired": 3,
-            "push_agreed": 2,
-            "push_precision": 0.6667,
+            "push_fired": 4,
+            "push_agreed": 3,
+            "push_precision": 0.75,
             "push_wanted": 7,
-            "push_recalled": 2,
-            "push_recall": 0.2857,
+            "push_recalled": 3,
+            "push_recall": 0.4286,
             "gap_histogram": {
-              "0": 669,
+              "0": 670,
               "1": 108,
-              "2": 26,
+              "2": 25,
               "3": 1,
               "4": 0
             },
-            "two_notch": 27
+            "two_notch": 26
           },
           "metrics_new_ratings": {
             "rated": 804,
@@ -2655,20 +2662,48 @@
             "feed_plus": 138,
             "feed_plus_shown": 123,
             "feed_plus_recall": 0.8913,
-            "push_fired": 3,
-            "push_agreed": 2,
-            "push_precision": 0.6667,
+            "push_fired": 4,
+            "push_agreed": 3,
+            "push_precision": 0.75,
             "push_wanted": 7,
-            "push_recalled": 2,
-            "push_recall": 0.2857,
+            "push_recalled": 3,
+            "push_recall": 0.4286,
             "gap_histogram": {
-              "0": 669,
+              "0": 670,
               "1": 108,
-              "2": 26,
+              "2": 25,
               "3": 1,
               "4": 0
             },
-            "two_notch": 27
+            "two_notch": 26
+          }
+        }
+      },
+      "directional_drift": {
+        "guy": {
+          "upgrades": {
+            "toward": [
+              "rss_60dbc2f4aa7316584e2d"
+            ],
+            "away": [],
+            "across": []
+          },
+          "downgrades": {
+            "toward": [],
+            "away": [],
+            "across": []
+          },
+          "counts": {
+            "upgrades": {
+              "toward": 1,
+              "away": 0,
+              "across": 0
+            },
+            "downgrades": {
+              "toward": 0,
+              "away": 0,
+              "across": 0
+            }
           }
         }
       }

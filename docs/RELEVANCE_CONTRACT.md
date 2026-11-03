@@ -373,15 +373,16 @@ merged ratings and of the article id set, so a re-rated or regrown census is an 
 comparison, not a score.
 
 Baselines, generated on 2026-11-01 against a frozen copy of the live corpus (3,868 RSS
-articles) by this PR's gate code at `d82e161` (clean tree, recorded in `meta.git_sha`). Its
-engine, classifier and relevance code are identical to main at `a0c3477`; the PR changes only
-the gate. A `-dirty` suffix on `meta.git_sha` means uncommitted `backend/` changes at
-generation time:
+articles). The stored baseline was built by this PR's gate code at `d82e161` (clean tree,
+recorded in `meta.git_sha`), whose engine equals main at `a0c3477`. The rerun baseline was then
+brought forward at `80e3fd3`, which is main at `294799b` (#398 and #416 merged) plus the gate,
+after the reviewed #398 delta below. A `-dirty` suffix on `meta.git_sha` means uncommitted
+`backend/` changes at generation time:
 
 | | shown precision | feed+ recall | push precision | push recall | ≥2-notch | Deni (804 ids) |
 |---|---:|---:|---:|---:|---:|---|
 | stored | 95.9% (141/147) | 73.9% (102/138) | 1/3 | 1/7 | 48 | 792 hidden |
-| rerun | 94.0% (173/184) | 89.1% (123/138) | 2/3 | 2/7 | 27 | 790 hidden |
+| rerun | 94.0% (173/184) | 89.1% (123/138) | 3/4 | 3/7 | 26 | 790 hidden |
 
 Regenerating either (`gate --census [--facts rerun] --update-baseline`) follows the rule
 above: delta against the previous baseline first, reviewed, then cited in the commit. The
@@ -390,11 +391,14 @@ it behind main. It is brought forward only after that change's reviewed delta, n
 formality. The stored baseline moves only with a profile change, a relevance change, or a
 reviewed correction script, under the same rule.
 
-The delta to review before the rerun baseline absorbs #398, measured against the current
-baselines: push precision 2/3 → 3/4, push recall 2/7 → 3/7, push volume 3 → 4 (allowed,
-precision improved), ≥2-notch 27 → 26, and nothing else moved (stored facts and N05 stay flat).
-The only rated row that changed is the Cyprus move, `rss_60dbc2f4aa7316584e2d`: feed → push,
-rated push.
+**#398 absorbed into the rerun baseline (2026-11-03).** The owner approved the delta first.
+Against the previous rerun baseline: push precision 2/3 → 3/4, push recall 2/7 → 3/7, push
+volume 3 → 4 (allowed, precision improved), ≥2-notch 27 → 26, and nothing else moved. The only
+rated row that changed is the Cyprus move, `rss_60dbc2f4aa7316584e2d`: feed → push, rated push.
+Two unrated Cyprus stories (`rss_d14fdd50bec657067583`, `rss_bd91b96ba6a172068267`, feed →
+high_feed) are not census rows, so they appear only in a corpus-wide rerun diff. That diff
+confirmed exactly these 3 flips plus one fact-only change. The stored-facts gate and N05 did not
+move.
 
 **`push_precision` is redundant on a census.** Every row is rated, so its numerator (rows
 both pushed and rated push) is the same count as push recall's. Push precision can fall only

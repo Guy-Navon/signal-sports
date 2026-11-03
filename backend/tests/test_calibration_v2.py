@@ -21,7 +21,7 @@ def _rate(**by_id) -> dict:
 
 class TestDatasetCoverage:
     def test_dataset_size_and_version(self):
-        assert len(CALIBRATION_ITEMS) == 73
+        assert len(CALIBRATION_ITEMS) == 77  # +4 comp:bcl (#407)
         assert CALIBRATION_DATASET_VERSION == 3
 
     def test_every_competition_scope_has_two_baseline_items(self):

@@ -1034,8 +1034,9 @@ it did before. The corpus has no such row.
 - The four stored test/admin profiles: 8 decisions change, all on the two rows that move from
   football to basketball. The football followers lose them, the basketball followers gain them
   at `low_feed`. None involves push.
-- `comp:bcl` is listed but not selectable. Whether Guy follows it is an owner decision. The
-  #407 PR measured it: 10 Guy rows hidden → visible, push unchanged.
+- `comp:bcl` is selectable in onboarding (owner decision 2026-11-02). Guy's profile is left as
+  is. The #407 PR measured what following it would change: 10 Guy rows hidden → visible,
+  push unchanged.
 
 Tests: `tests/test_champions_league_407.py`.
 

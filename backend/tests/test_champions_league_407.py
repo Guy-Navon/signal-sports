@@ -111,16 +111,28 @@ class TestRegistry:
         assert comp.parent is None
         assert validate_registry() == []
 
-    def test_bcl_is_listed_after_eurocup_but_not_yet_selectable(self):
-        # Selectable needs calibration items for every user's onboarding: an owner
-        # decision parked on the #407 PR. Listed (visible, "not yet") like comp:ucl.
+    def test_bcl_is_selectable_and_listed_after_eurocup(self):
+        # Owner decision 2026-11-02 (R13): followable in onboarding.
         from app.api.routes_taxonomy import build_catalog
         from app.taxonomy.policy import competition_selectable
 
-        assert not competition_selectable("comp:bcl")
+        assert competition_selectable("comp:bcl")
+        assert not competition_selectable("comp:ucl")
         basketball = next(s for s in build_catalog().sports if s.id == "basketball")
+        bcl = next(c for c in basketball.competitions if c.id == "comp:bcl")
+        assert bcl.selectable
         ids = [c.id for c in basketball.competitions]
         assert ids.index("comp:bcl") == ids.index("comp:eurocup") + 1
+
+    def test_a_user_can_follow_bcl_through_interests(self):
+        from app.services.interests_service import (
+            InterestFollow, InterestsPutRequest, InterestsValidationError, _validate,
+        )
+        _validate(InterestsPutRequest(follows=[
+            InterestFollow(scope="competition", target_id="comp:bcl")]))
+        with pytest.raises(InterestsValidationError):
+            _validate(InterestsPutRequest(follows=[
+                InterestFollow(scope="competition", target_id="comp:ucl")]))
 
 
 # ── 2. The shared name ───────────────────────────────────────────────────────
@@ -380,3 +392,31 @@ class TestDetectLeagueAsksTheSharedName:
         text = "מכבי חיפה בליגת האלופות"
         assert shared_champions_league_sport(text) == "football"
         assert _detect_league(text, "basketball") != "Basketball Champions League"
+
+
+# ── 6. Onboarding: comp:bcl is calibratable (owner decision R13) ─────────────
+
+class TestCalibration:
+    def test_bcl_has_calibration_items_like_eurocup(self):
+        from app.calibration_v2 import CALIBRATION_ITEMS
+        items = [i for i in CALIBRATION_ITEMS if i.competition_id == "comp:bcl"]
+        assert len(items) >= 4
+        assert all(i.sport == "basketball" and not i.entity_ids for i in items)
+        assert len({i.event_type for i in items}) >= 3
+        assert len({i.importance for i in items}) >= 2
+
+    def test_following_bcl_selects_its_items(self):
+        from app.calibration_v2.selection import select_items
+        from app.models.profile_v2 import ProfileV2, ScopeAffinity
+        v2 = ProfileV2(scope_affinities=[ScopeAffinity(
+            scope="competition", target_id="comp:bcl", level=1, source="explicit")])
+        picked = [i for i in select_items(v2, "u-bcl") if i.competition_id == "comp:bcl"]
+        assert len(picked) >= 2
+
+    def test_rating_bcl_items_infers_a_bcl_scope(self):
+        from app.calibration_v2 import CALIBRATION_ITEMS, infer_calibration_profile
+        ratings = {i.id: "interesting" for i in CALIBRATION_ITEMS
+                   if i.competition_id == "comp:bcl"}
+        inferred = infer_calibration_profile(ratings)
+        targets = {a.target_id for a in inferred.scope_affinities if a.scope == "competition"}
+        assert "comp:bcl" in targets

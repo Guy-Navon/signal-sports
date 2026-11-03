@@ -31,10 +31,8 @@ NON_SELECTABLE_COMPETITIONS: frozenset[str] = frozenset({
     "comp:la_liga",
     "comp:bundesliga",
     "comp:ucl",
-    # #407: the classifier proves it, but a selectable competition needs >= 4
-    # calibration items (tests/test_calibration_coverage.py), and adding them changes
-    # every user's onboarding — an owner decision, parked on the #407 PR.
-    "comp:bcl",
+    # comp:bcl (#407) IS selectable: the classifier proves it by name, and it has
+    # calibration items (owner decision 2026-11-02).
 })
 
 

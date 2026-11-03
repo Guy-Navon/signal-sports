@@ -244,7 +244,7 @@ Notifications are planned per **story** (cluster lineage), at most once
 
 **How profiles are populated** (the CLAUDE.md "three ways"): explicit interest selection over
 the taxonomy catalog ([INTERESTS.md](INTERESTS.md)), interest-aware calibration
-([CALIBRATION_V2.md](CALIBRATION_V2.md), dataset v3, 73 items), and feedback learning
+([CALIBRATION_V2.md](CALIBRATION_V2.md), dataset v3, 77 items), and feedback learning
 ([FEEDBACK_LEARNING.md](FEEDBACK_LEARNING.md)). Learning activates at ≥3 net consistent events,
 caps at ±1 with a 90-day half-life, never creates an exclude, and is derived at read time. Free-text
 preference input was deliberately not built. **Census calibration** (#237) is a fourth, offline
@@ -274,8 +274,8 @@ deterministic rule changelog, §1–§22).
 - **Event types:** the specific types need positive evidence; `news` is abstention, with a
   recorded reason. Newer types: `relocation` (#191), `club_governance` (#229).
 - **Taxonomy** ([TAXONOMY.md](TAXONOMY.md)): 117 entities (79 teams, 31 players, 2 coaches,
-  5 executives) and 22 competitions, 15 of them selectable. The FIBA Basketball Champions
-  League (`comp:bcl`, #407) is registered but not yet selectable. Its bare name
+  5 executives) and 22 competitions, 16 of them selectable. The FIBA Basketball Champions
+  League (`comp:bcl`, #407) is selectable in onboarding (owner decision 2026-11-02). Its bare name
   `ליגת האלופות` is shared with UEFA's and is read by the sport the text proves (see
   RSS_QUALITY_GUARDRAILS.md §22). Bare club-family names (`מכבי`,
   `הפועל`) never resolve. Coaches and executives imply their team, and so do the #259

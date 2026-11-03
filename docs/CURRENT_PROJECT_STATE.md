@@ -150,7 +150,7 @@ untracked `backend/.env`):
 | `FEED_FRESHNESS_ENABLED` / `FEED_MAX_AGE_HOURS` | false / 36 | true / 36 |
 | `TELEGRAM_NOTIFICATIONS_ENABLED` | false | **false since 2026-09-13** (was true from 2026-07-18) |
 | `RESULTS_ENABLED` / `RESULTS_SYNC_ENABLED` | true / false | true / true |
-| `RETENTION_CLEANUP_ENABLED` | false | false (keep off until `protect_rated_articles.py --apply` has run on the corpus, #255; see §10) |
+| `RETENTION_CLEANUP_ENABLED` | false | false (keep off at least until `protect_rated_articles.py --apply` has run on the live corpus, #255; see §10) |
 | `TRANSLATION_PROVIDER` | disabled | disabled |
 | `ALLOW_DEV_RESET` / `ALLOW_CORPUS_DB_RESET` / `ALLOW_INSECURE_AUTH_BYPASS` | false | false |
 | `PREFERENCE_ENGINE` | (unset = v2) | unset; `legacy` is the rollback |
@@ -349,13 +349,20 @@ deterministic rule changelog, §1–§21).
 - **ONE was enabled on 2026-11-01** (#258). **Sport5 still carries a code-default "pilot" label**
   although it runs every cycle by override; removing the label is a separate follow-up (#395).
   Evidence: [RSS_INGESTION.md](RSS_INGESTION.md) §1.
-- **Retention cleanup stays disabled.** Since #255 it never deletes an article listed in
-  `protected_articles` (N05 and census rated or sampled ids). On the live corpus that table stays
-  empty until the owner runs `scripts/protect_rated_articles.py --apply` after a backup. Until
-  then, enabling retention at 30 days would delete all 256 N05-rated articles and, by about
-  mid-November, all of census #2. On a 2026-10-18 corpus copy the script protected 1,060 ids, and
-  a dry run then reported `protected_rated` 773 with no rated id deletable. See
-  [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8.
+- **Retention cleanup stays disabled; rated articles are guarded only after the live backfill**
+  (#255). Retention never deletes an article listed in `protected_articles`, and it **fails
+  closed**: while that table is empty a real run deletes nothing, logs a WARNING and records
+  `skipped_reason` in the cycle's cleanup summary. `scripts/protect_rated_articles.py` fills the
+  table from the rating and sample files at the top of `docs/qa`, matched by file name, and from
+  three listed correction logs (n05 former-affiliation, n190, n191). A test fails if a file in the
+  ratings-store or sample format anywhere under `docs/qa` is not covered, or if a correction log is
+  not listed. **On the live corpus the table is still empty** until the owner runs the backfill
+  (backup, dry run, `--apply --i-know-this-is-the-live-corpus`, dry run again; the worker may keep
+  running).
+  - *On the 2026-11-02 live backup copy:* an empty-table real cleanup deleted 0. After the backfill
+    (1,256 rows), a real cleanup deleted 1,103 and kept every protected id (`protected_rated`
+    1,041), with no rated or correction-log id deleted.
+  - Runbook and numbers: [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8.
 - Single machine and single SQLite file. On the PC, backups are still manual (`scripts/backup_db.py`,
   WAL-safe and verified). The hosted nightly off-host backup exists in the repository
   ([DEPLOYMENT.md](DEPLOYMENT.md) §7) but runs nowhere until a host exists.
@@ -450,7 +457,7 @@ milestone 11's gate.
 2. **Milestone 11, Census #3 & a fresh regression gate:**
    - #241 census #3
    - #254 census-based gate (feed+ recall, push recall, noise band): built on census #2 alone; add census #3 when #241 lands
-   - #255 protect rated rows from retention (code landed; owner runs the one-off `--apply`)
+   - #255 protect rated rows from retention (code landed: every `docs/qa` rating, sample and listed correction-log file is covered, and retention fails closed while the table is empty; owner runs the backfill, runbook in [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8)
    - #242 venue-move vocabulary for `club_governance`, landed in PR #398 (RSS_QUALITY_GUARDRAILS
      §20); its two high_feed side effects await owner rating, and #401 (the pre-existing #229
      subtitle → push path) awaits an owner decision

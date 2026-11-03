@@ -40,8 +40,13 @@ changed on a blind re-rate, 26 toward the engine):
 ``--snapshot`` (from scripts/corpus_rerun_diff.py) measures gaps against the CURRENT engine
 instead of the decision recorded at build time. merge-review edits only changed lines.
 
-Read-only against the corpus: no write transaction, no /api/dev/*, no
-ALLOW_CORPUS_DB_RESET, no network.
+Read-only against the corpus, with one exception: ``build`` adds the census ids
+to ``protected_articles`` so retention never deletes them (#255). Before that it
+runs ``init_db()``, which creates missing tables and adds missing nullable columns
+(the same soft migration the API and worker run at startup). No other write,
+no /api/dev/*, no ALLOW_CORPUS_DB_RESET, no network. A census built on a copy
+protects them on the copy only; scripts/protect_rated_articles.py --apply then
+protects them on the live corpus from the docs/qa files.
 """
 
 from __future__ import annotations

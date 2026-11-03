@@ -7,8 +7,9 @@ test below reads the real docs/qa so the next new rating file fails CI instead.
 
 Scope of that guard: it recognises the two formats the rating tooling writes
 (a ratings store and a sample, see `_names_rated_or_sampled_articles`), anywhere
-under docs/qa. Files in other formats (correction logs, score and analysis
-output with "rows" or lists) are not rating files and are not checked.
+under docs/qa. The third recognised format, applied correction logs
+({"rows": [{"id": ...}]}), is an explicit list (owner decision 2026-11-02),
+guarded by its own tests below. Score and analysis output are not checked.
 """
 
 import json
@@ -103,6 +104,9 @@ def qa_dir(tmp_path):
     _sample(tmp_path / "week_x.json", ["d", "e"])           # bare sample beside its ratings
     (tmp_path / "week_x_dev_analysis.json").write_text(      # analysis output: not ground truth
         json.dumps({"rows": [{"id": f"{_PREFIX}z"}]}), encoding="utf-8")
+    (tmp_path / "n191_event_corrections.json").write_text(   # a listed correction log
+        json.dumps({"applied": True, "rows": [{"id": f"{_PREFIX}a"}, {"id": f"{_PREFIX}f"}]}),
+        encoding="utf-8")
     return tmp_path
 
 
@@ -131,7 +135,7 @@ def session(_application, monkeypatch):
     init_db()
     with SessionLocal() as s:
         _clean(s)
-        for suffix in "abcdez":
+        for suffix in "abcdefz":
             _add_article(s, suffix, days_ago=40)        # all older than the window
         _add_article(s, "unrated", days_ago=40)
         s.commit()
@@ -154,17 +158,18 @@ def test_apply_records_the_first_document_that_rated_each_id(session, qa_dir):
         f"{_PREFIX}c": "census2_sample",       # sampled, not (yet) rated
         f"{_PREFIX}d": "week_x_ratings",
         f"{_PREFIX}e": "week_x",
+        f"{_PREFIX}f": "n191_event_corrections",   # corrected by hand, never rated
     }
 
 
 def test_dry_run_writes_nothing_and_apply_is_idempotent(session, qa_dir, capsys):
     assert tool.main(["--qa-dir", str(qa_dir)]) == 0
-    assert "would add 5 protection rows" in capsys.readouterr().out
+    assert "would add 6 protection rows" in capsys.readouterr().out
     session.expire_all()
     assert _reasons(session) == {}
 
     assert tool.main(["--qa-dir", str(qa_dir), "--apply"]) == 0
-    assert "added 5 protection rows" in capsys.readouterr().out
+    assert "added 6 protection rows" in capsys.readouterr().out
     assert tool.main(["--qa-dir", str(qa_dir), "--apply"]) == 0
     assert "added 0 protection rows" in capsys.readouterr().out
 
@@ -172,20 +177,20 @@ def test_dry_run_writes_nothing_and_apply_is_idempotent(session, qa_dir, capsys)
 def test_report_shows_retention_would_keep_every_rated_id(session, qa_dir, capsys):
     tool.main(["--qa-dir", str(qa_dir)])
     before = capsys.readouterr().out
-    assert "5 rated or sampled ids in the corpus are NOT protected" in before
+    assert "6 rated, sampled or corrected ids in the corpus are NOT protected" in before
 
     tool.main(["--qa-dir", str(qa_dir), "--apply"])
     after = capsys.readouterr().out
-    assert "0 rated or sampled ids in the corpus are NOT protected" in after
+    assert "0 rated, sampled or corrected ids in the corpus are NOT protected" in after
     from app.ingestion.retention import cleanup_articles
     summary = cleanup_articles(session, dry_run=True)
-    assert summary["protected_rated"] >= 5                          # a..e, all 40 days old
+    assert summary["protected_rated"] >= 6                          # a..f, all 40 days old
     assert f"protected_rated={summary['protected_rated']}" in after
     protected = set(_reasons(session))
     assert f"{_PREFIX}z" not in protected and f"{_PREFIX}unrated" not in protected
     session.expire_all()
     assert session.execute(text(                                    # a dry run deletes nothing
-        f"SELECT COUNT(*) FROM articles WHERE id LIKE '{_PREFIX}%'")).scalar_one() == 7
+        f"SELECT COUNT(*) FROM articles WHERE id LIKE '{_PREFIX}%'")).scalar_one() == 8
 
 
 def test_apply_on_the_live_corpus_needs_the_backup_acknowledgement(session, qa_dir, monkeypatch, capsys):
@@ -197,7 +202,7 @@ def test_apply_on_the_live_corpus_needs_the_backup_acknowledgement(session, qa_d
 
     assert tool.main(["--qa-dir", str(qa_dir), "--apply", "--i-know-this-is-the-live-corpus"]) == 0
     session.expire_all()
-    assert len(_reasons(session)) == 5
+    assert len(_reasons(session)) == 6
 
 
 def test_an_unreadable_covered_document_stops_the_apply_before_any_write(session, qa_dir, capsys):
@@ -205,5 +210,39 @@ def test_an_unreadable_covered_document_stops_the_apply_before_any_write(session
                                                encoding="utf-8")
     assert tool.main(["--qa-dir", str(qa_dir), "--apply"]) == 2
     assert "broken_sample.json" in capsys.readouterr().out
+    session.expire_all()
+    assert _reasons(session) == {}
+
+
+# ── correction logs: the third recognised format, an explicit list ────────────
+
+def test_every_listed_correction_log_exists_and_names_articles():
+    for name in tool.CORRECTION_LOGS:
+        doc = json.loads((REPO_QA / name).read_text(encoding="utf-8"))
+        assert tool.correction_log_ids(doc), name
+
+
+def test_every_correction_log_in_docs_qa_is_listed():
+    # A new n<issue>_*_corrections.json or *_log.json must be listed (with its reason)
+    # or deliberately left out here, so it is never forgotten silently.
+    found = {p.name for p in REPO_QA.rglob("*.json")
+             if p.name.endswith(("_corrections.json", "_log.json"))}
+    assert found == set(tool.CORRECTION_LOGS)
+
+
+@pytest.mark.parametrize("doc, ids", [
+    ({"applied": True, "rows": [{"id": "rss_x", "input": {"id": "rss_x"}}, {"id": "rss_y"}]},
+     {"rss_x", "rss_y"}),
+    ({"applied": True, "rows": []}, set()),
+    ({"ratings": {"guy": {"rss_x": "feed"}}}, set()),
+])
+def test_correction_log_ids_reads_rows(doc, ids):
+    assert tool.correction_log_ids(doc) == ids
+
+
+def test_an_empty_listed_correction_log_stops_the_apply(session, qa_dir, capsys):
+    (qa_dir / "n191_event_corrections.json").write_text(json.dumps({"rows": []}), encoding="utf-8")
+    assert tool.main(["--qa-dir", str(qa_dir), "--apply"]) == 2
+    assert "n191_event_corrections.json" in capsys.readouterr().out
     session.expire_all()
     assert _reasons(session) == {}

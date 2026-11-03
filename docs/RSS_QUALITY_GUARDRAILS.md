@@ -964,6 +964,86 @@ is text-resolved, so `cross_sport_entity_requires_explicit_sport` does not apply
 guard is not weakened. Tests: `tests/test_basketball_people_259.py`. Measurements:
 [qa/BASKETBALL_PEOPLE_259.md](qa/BASKETBALL_PEOPLE_259.md).
 
+## 20. A Home-Venue Move Is Club Governance (#242, 2026-11-01)
+
+**The defect.** `עם פתח להמון אוהדים: סוכם המעבר של מכבי תל אביב לקפריסין` (owner: push) was
+`news` → feed. The §16 venue vocabulary (`המגרש הביתי`, `משחקי הבית`) misses a move written
+as a move, and the hosting verb.
+
+**Fix.** Three anchored phrases join `_CLUB_GOVERNANCE`:
+
+- `המעבר של <club family>` (מכבי, הפועל, בית"ר, עירוני). Bare `המעבר של` is a person's
+  transfer in 5 of its 6 corpus rows (`המעבר של קאדין קרינגטון להפועל`, `חסמו את המעבר של
+  סתיו טוריאל`), so it counts only with a club as the subject. The family name is a
+  grammatical anchor here. It resolves no entity and is no sport evidence (invariant 5).
+  `בני` is left out: `המעבר של בני המשפחה` is a family's move.
+- `לארח את משחקי` (to host X's games).
+- `לארח באולם/בהיכל` (to host in an arena).
+
+A normal home game is written `תארח` (future tense: `תארח באולם היובל`, `תארח הערב את
+פריז`) and is not matched. A player returning to an arena (`קולסון שב להיכל מנורה`) is not
+matched either. Prefixed forms (`והמעבר של מכבי`, `ולארח באולם`) are missed too, which
+fails safe.
+
+**A subtitle-only #242 phrase never makes a push.** The push gate reads its concrete step
+in the title, while the event may be proven by the subtitle alone. While Maccabi hosts in
+Limassol, the #242 hosting phrases are routine background in subtitles. Without a guard, a
+title like `אודקה החליט: סורקין יפתח בחמישייה של מכבי ת"א` over such a subtitle would push.
+The phrases live in their own tuple (`_HOME_VENUE_MOVE`). `governance_step_context()` lets a
+title step count only when the title carries governance evidence or the subtitle carries a
+**#229** phrase. Such rows stay `club_governance` (high_feed for Guy) but do not push. The
+#229 vocabulary keeps its pre-existing subtitle → push path. Narrowing that path would cost
+the N05-rated Recanati push, so it is an owner decision: **#401**.
+
+Governance is proposed before the transfer cycle (`classifier.py`), so a constructed mixed
+headline such as `חתם: המעבר של מכבי ת"א לטאקר הושלם` becomes `club_governance` rather than
+`signing`. There is no corpus case.
+
+**Measured on the 2026-11-01 corpus (3,884 rows, titles + subtitles):**
+
+| phrase | rows | home-venue | transfer / other |
+|---|---:|---:|---:|
+| `המעבר של` (bare, rejected) | 6 | 1 | 5 |
+| `המעבר של <club family>` | 1 | 1 | 0 |
+| `לארח את משחקי` | 3 | 3 | 0 |
+| `לארח באולם/בהיכל` | 2 | 2 | 0 |
+| bare `לארח ב` (rejected) | 5 | 3 | 2 (Argentina's national team, a Final Four piece) |
+
+**Deterministic rerun (3,877 rows, against main):** 4 rows become `club_governance`.
+Guy has 3 flips: the issue headline goes feed → **push** (owner: push; `סוכם` is the
+concrete step the #229 gate requires), and two unrated Maccabi Cyprus stories go
+feed → high_feed. One Hapoel row changes event only (still feed). Deni has no flips. Guy's
+push count goes 22 → 23, visible stays 898. The seed profiles and the persisted profiles give
+the same result. Census #2: push precision 2/3 → 3/4, push recall 2/7 → 3/7, exact
+669 → 670. Stored rows are unchanged; there was no backfill.
+
+**Temporary compromise, pending owner rating.** The two feed → high_feed rows are side
+effects, and high_feed is **not** confirmed right for either of them:
+
+- `rss_d14fdd50bec657067583` `דיווח: מכבי ת"א תארח את הדרבי במסגרת היורוליג בקפריסין`,
+  a report of the venue change.
+- `rss_bd91b96ba6a172068267` `"יש משהו מטריד מאוד בהחלטה לגבי מכבי תל אביב"`, a Cyprus
+  Mail opinion column about the decision.
+
+A report and an opinion about it are different content. The owner accepted both
+(2026-11-01) as a temporary compromise because they are the only side effects for Guy and
+Deni. On the frozen copy, two dormant self-serve profiles (`usr_01KX6MTS…`, `usr_01KX9XH6…`)
+also see the Hapoel row (`rss_9766f80130aabc0b9856`) move low_feed → feed. No other profile
+and no other row changes. Opinion
+columns are deliberately not blocked from `club_governance`. Revisit both once they are
+rated (census #3).
+
+**The entity concern in #242 does not apply to this row.** Its URL
+(`/sport/israeli-basketball/`) is explicit basketball evidence (weight 100). The gate does
+not call the LLM, and when the LLM is forced, Maccabi Tel Aviv Basketball survives the facts
+stage. The Cyprus rows that do lose the entity under the LLM are walla.co.il rows with no URL
+hint and no basketball word (`בקפריסין מבטיחים`, `המתקפה בקפריסין`). This change does not
+cover them. **Non-goal (owner, 2026-11-01):** no arena or venue name is added as basketball
+evidence to rescue a few headlines. Such a cue must first be shown to hold on other examples.
+Revisit after census #3 is rated.
+
+Tests: `tests/test_club_governance_229.py::TestHomeVenueMove242`.
+
 ---
 
 ## 21. On Air Is Not a Broadcast Slot (#406, 2026-11-02)
@@ -1040,8 +1120,8 @@ Tests: `tests/test_broadcast_schedule_406.py`.
 
 ## Where open classification work is tracked
 
-This file is a changelog of shipped rules. Open gaps live in GitHub issues (for example #242,
-the venue-move vocabulary for `club_governance`) and in the "known limitations" section of
+This file is a changelog of shipped rules. Open gaps live in GitHub issues and in the
+"known limitations" section of
 [CURRENT_PROJECT_STATE.md](CURRENT_PROJECT_STATE.md). The structural recall limits are
 person-level coverage (3 NBA players, plus 28 Maccabi / Hapoel Tel Aviv players and Hapoel's
 coach since #259) and the cross-sport club deadlock (#194). Story clustering, which an earlier "next steps" list here called fuzzy dedup, has shipped:

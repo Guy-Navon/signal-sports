@@ -111,3 +111,131 @@ class TestMaccabiGovernance:
             and o.event_type == "club_governance"
             for o in overrides
         )
+
+
+# ── #242: a home-venue move written as a move ───────────────────────────────
+# Measured on the 2026-11-01 corpus (3,884 rows, titles + subtitles). `המעבר של` alone
+# is a person's transfer in 5 of its 6 corpus rows, so it only counts with a club as
+# its subject (1 row, the issue headline, 0 transfers). `לארח את משחקי` (3 rows) and
+# `לארח באולם / בהיכל` (2 rows) are all home-venue stories. A normal home game is
+# `תארח` (future tense), which is not matched.
+
+class TestHomeVenueMove242:
+    @pytest.mark.parametrize("text", [
+        "עם פתח להמון אוהדים: סוכם המעבר של מכבי תל אביב לקפריסין",
+        "בצל ההחלטה לאפשר לקבוצה לארח את משחקי היורוליג שלה בלימסול",
+        'ההחלטה של הצהובים לארח באולם "ספירוס קיפריאנו" בלימסול היא סופית',
+    ], ids=["club_moves", "host_the_games", "host_in_arena"])
+    def test_venue_move_validates(self, text):
+        assert validate_event_evidence("club_governance", text, sport="basketball").valid
+
+    # Adversarial neighbours: the corpus's `המעבר של` transfers, and ordinary home games.
+    @pytest.mark.parametrize("text", [
+        "המעבר של קאדין קרינגטון להפועל תל אביב השתבש - ולא רק הוא אשם",
+        "האדומים חסמו את המעבר של סתיו טוריאל ללצ'ה",
+        "בספרד טענו שבעלי קסטיון בלם את המעבר של הכוכב שלו",
+        "המעבר של ים מדר למכבי",
+        "החבורה של יהוא אורלנד תארח באולם היובל, מול קבוצה חדשה כמעט לגמרי",
+        "מכבי תל אביב תארח הערב (חמישי) את פריז",
+        "רגע לפני הסופרקאפ, בונזי קולסון שב להיכל מנורה",
+        "המעבר של בני המשפחה לספרד הכריע את ההחלטה",
+    ], ids=["transfer_to_club", "blocked_transfer", "star_transfer", "issue_example",
+            "home_game_arena", "home_game", "player_returns_to_arena", "family_moves"])
+    def test_transfers_and_home_games_do_not_validate(self, text):
+        assert not validate_event_evidence("club_governance", text, sport="basketball").valid
+
+    def test_agreed_move_to_cyprus_pushes(self):
+        # rss_60dbc2f4aa7316584e2d, owner: push (census #2 and the #237 blind review).
+        # Before: news -> feed. `סוכם` is the concrete step the #229 push gate needs.
+        a = _ingest(
+            "israel_hayom_sport",
+            "https://www.israelhayom.co.il/sport/israeli-basketball/article/21573920",
+            "עם פתח להמון אוהדים: סוכם המעבר של מכבי תל אביב לקפריסין",
+            "המשטרה הקפריסאית אישרה נוכחות של עד 5,000 אוהדים במשחקי היורוליג • אוהדי "
+            "הקבוצות האורחות יקבלו מכסה מצומצמת של 100–150 כרטיסים בלבד • המשחק הראשון "
+            "צפוי להיות מול ריאל מדריד ב־22 באוקטובר",
+        )
+        assert a.event_type == "club_governance"
+        assert a.entity_ids == ["team:maccabi_tlv_bb"]
+        attention = a.classification_trace["attention"]
+        assert attention["development"] == "concrete_step"
+        assert "team:maccabi_tlv_bb" in attention["subject_entity_ids"]
+        assert _decision(a) == "push"
+        assert _decision(a, "casual_deni_fan") == "hidden"
+
+    def test_hosting_report_without_a_step_is_high_feed(self):
+        # rss_d14fdd50bec657067583. The step ("היא סופית") is only in the subtitle, and
+        # the push gate reads the title, so this is high_feed, not push.
+        a = _ingest(
+            "ynet_sport", "https://www.ynet.co.il/sport/israelibasketball/article/bjzxipgpmg",
+            'דיווח: מכבי ת"א תארח את הדרבי במסגרת היורוליג בקפריסין',
+            'על פי 24SPORT ההחלטה של הצהובים לארח באולם "ספירוס קיפריאנו" בלימסול היא '
+            "סופית - והפרמיירה הצפויה תהיה נגד האדומים ב-12 בנובמבר",
+        )
+        assert a.event_type == "club_governance"
+        assert _decision(a) == "high_feed"
+
+    def test_player_transfer_headline_is_not_governance(self):
+        # rss_55ddc97554c3df1f8c4d: `המעבר של` + a player is a transfer story.
+        a = _ingest(
+            "walla_sport", "https://sports.walla.co.il/item/3874000",
+            "המעבר של קאדין קרינגטון להפועל תל אביב השתבש - ולא רק הוא אשם", "",
+        )
+        assert a.event_type != "club_governance"
+
+    def test_maccabi_entity_survives_when_the_llm_is_called(self, monkeypatch):
+        # The #242 note (2026-11-01) feared the facts stage drops the Maccabi entity
+        # here (`cross_sport_entity_requires_explicit_sport`). In production the gate
+        # does not call the LLM on this row (league in the subtitle), and even when it
+        # is forced to, the israelhayom `/israeli-basketball/` URL is explicit basketball
+        # evidence, so the LLM's Maccabi Tel Aviv Basketball is kept.
+        from app.classification import gating
+        from app.classification.llm_result import LLMClassificationResult
+
+        class _Provider:
+            can_classify = True
+            last_failure_was_connect_error = False
+            provider_id = "recorded-242"
+            called = False
+
+            def classify_title(self, title, language, subtitle=None):
+                self.called = True
+                return LLMClassificationResult(
+                    sport="basketball", league="EuroLeague",
+                    entities=["Maccabi Tel Aviv Basketball"], event_type="club_governance",
+                    importance="high", confidence=0.95, reason="recorded",
+                )
+
+        provider = _Provider()
+        monkeypatch.setattr(ingestion_service, "_LLM_PROVIDER", provider)
+        monkeypatch.setattr(gating, "_GATING_ENABLED", False)
+        a = _ingest(
+            "israel_hayom_sport",
+            "https://www.israelhayom.co.il/sport/israeli-basketball/article/21573920",
+            "עם פתח להמון אוהדים: סוכם המעבר של מכבי תל אביב לקפריסין",
+            "המשטרה הקפריסאית אישרה נוכחות של עד 5,000 אוהדים במשחקי היורוליג",
+        )
+        assert provider.called
+        assert a.entity_ids == ["team:maccabi_tlv_bb"]
+        rules = [c.get("rule") for c in a.classification_trace["conflicts"]]
+        assert "cross_sport_entity_requires_explicit_sport" not in rules
+        assert a.event_type == "club_governance"
+        assert _decision(a) == "push"
+
+    # Review of #398: the push gate reads its concrete step in the TITLE, but the event can
+    # come from the subtitle. While Maccabi hosts in Limassol, the #242 hosting phrases are
+    # routine background in subtitles, so a subtitle-only #242 match must not make an
+    # unrelated title decision ("החליט", "אישרה") a governance push.
+    @pytest.mark.parametrize("title,subtitle", [
+        ('אודקה החליט: סורקין יפתח בחמישייה של מכבי ת"א מול ריאל',
+         "הצהובים, שבחרו לארח את משחקי היורוליג בלימסול, ייפגשו ביום חמישי עם ריאל מדריד"),
+        ('מכבי ת"א אישרה: הכרטיסים לאוהדים יימכרו רק באפליקציה',
+         'לאחר שהקבוצה סיכמה לארח באולם "ספירוס קיפריאנו", הכרטיסים יימכרו בהגבלה'),
+        ('מכבי ת"א החליטה: לא תהיה הסעה מאורגנת לאוהדים',
+         "ההחלטה לארח את משחקי היורוליג בקפריסין מעוררת ביקורת"),
+    ], ids=["lineup_decision", "ticket_decision", "transport_decision"])
+    def test_subtitle_only_venue_phrase_does_not_push(self, title, subtitle):
+        a = _ingest("ynet_sport", "https://www.ynet.co.il/sport/israelibasketball/article/r398",
+                    title, subtitle)
+        assert a.classification_trace["attention"]["development"] != "concrete_step"
+        assert _decision(a) in ("feed", "high_feed")

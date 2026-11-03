@@ -92,8 +92,7 @@ Location: `backend/app/taxonomy/`
   interests validation (#77) uses, defined once. Non-selectable today:
   EPL / La Liga / Bundesliga / UCL (zero member clubs + `ALLOWED_LEAGUES`
   gap — "abstention beats guessing": never offer a scope the classifier
-  cannot prove), and the Basketball Champions League (#407: provable, but it has no
-  calibration items yet). Tennis Grand Slams are selectable competition-only.
+  cannot prove). Tennis Grand Slams are selectable competition-only.
   Removing an id from `NON_SELECTABLE_COMPETITIONS` is the single switch
   once taxonomy/classifier coverage lands.
 
@@ -402,10 +401,10 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
   League and hidden (owner: feed). In the frozen 2026-11-01 corpus (held-out rows excluded)
   72 rows say `ליגת האלופות` / `champions league`: 65 are football (UEFA, plus one Asian
   Champions League Two row) and 7 are the FIBA Basketball Champions League. No handball or
-  volleyball row. Registered `comp:bcl` (basketball, `international_league`). It is listed
-  in the catalog after EuroCup but **not selectable yet**: a selectable competition needs at
-  least 4 calibration items, which changes every user's onboarding. That is parked for the
-  owner, together with whether Guy follows it.
+  volleyball row. Registered `comp:bcl` (basketball, `international_league`), listed after
+  EuroCup and **selectable** (owner decision 2026-11-02). It has 4 calibration items
+  (`calibration_v2/dataset.py`, the EuroCup shape). Guy's profile does not follow it; that
+  stays the owner's choice.
   - **Aliases.** Qualified forms only: `ליגת האלופות של פיב"א` (and `פיב״א` / `פיבא`),
     `ליגת האלופות בכדורסל`, `basketball champions league`, `fiba champions league`, and
     `BCL` as a whole Latin word only (2 corpus rows, both basketball; `abcl` does not match).
@@ -422,6 +421,13 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
     also add nothing the IBL membership does not already reach for team-anchored events.
     BCL coverage names the competition, so explicit evidence carries it. The entrant list
     is unverified beyond the corpus.
+  - **Stored rows.** The 11 corpus rows the change reclassifies keep their old facts until
+    the owner runs `backend/scripts/apply_407_champions_league.py` (id-listed, dry run by
+    default; `--apply` plus `--i-know-this-is-the-live-corpus` on the live DB, after a
+    backup). It rewrites only sport, league, competitions, entities and the trace. It refuses
+    rows with LLM-assisted facts and rows whose event or importance would change. Dry run on
+    the 2026-11-02 live backup: 11 to correct, 0 refused. Guy and Deni get no decision
+    change, and none of the rows is inside the 36-hour feed window.
   - Not added: `צ'מפיונס` (6 corpus rows, all football, 3 already `comp:ucl` through the
     bare name elsewhere in the text). It is a football-only colloquialism and outside this issue.
 - **Bare family names** (`בהפועל`) stay unresolvable. That abstention is a

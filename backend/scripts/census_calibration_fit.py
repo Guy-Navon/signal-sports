@@ -12,6 +12,10 @@ is proposed (docs/PREFERENCE_MODEL_V2.md, docs/qa/CENSUS_2026-10.md).
     python scripts/census_calibration_fit.py --candidate changes.json --show
     python scripts/census_calibration_fit.py --db data/snapshots/<snapshot>.db   # a dev snapshot
 
+Census #3 has a SEALED held-out half (#241, docs/qa/CENSUS_3_2026-11.md): its ratings
+are excluded here, even when passed via --review, unless --final-heldout-eval is given
+for the one final evaluation.
+
 A candidate file is a JSON list of changes:
     {"kind": "event", "scope_ref": "team:maccabi_tlv_bb", "event_type": "candidate", "delta": -1}
     {"kind": "never_show", "scope": "...", "target_id": "...", "event_type": "..."}
@@ -135,6 +139,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--review", type=Path, help="re-rated rows that override --ratings")
     parser.add_argument("--candidate", type=Path, help="JSON list of proposed profile changes")
     parser.add_argument("--show", action="store_true", help="list each flipped row (with --candidate)")
+    parser.add_argument("--final-heldout-eval", action="store_true",
+                        help="include a sealed held-out half's ratings (the one final evaluation only)")
     args = parser.parse_args(argv)
     logging.disable(logging.CRITICAL)
 
@@ -143,17 +149,39 @@ def main(argv: list[str] | None = None) -> int:
     if not args.db.is_file():
         print(f"no such database: {args.db}")
         return 1
-    ratings = json.loads(args.ratings.read_text(encoding="utf-8"))["ratings"]["guy"]
+    sample = json.loads(args.sample.read_text(encoding="utf-8"))
+    items = sample["profiles"]["guy"]["items"]
+    # A census with a sealed held-out half (#241, census #3): calibration never sees those
+    # labels. Only the one final evaluation reads them, and says so with the flag.
+    from app.qa.census_rating import SealedRatingsError, exclude_sealed, refuse_sealed, sealed_ids
+
+    sealed = sealed_ids(sample, args.sample)
+    try:
+        ratings = refuse_sealed(json.loads(args.ratings.read_text(encoding="utf-8")), args.ratings,
+                                final_heldout_eval=args.final_heldout_eval)["ratings"]["guy"]
+        rev = (refuse_sealed(json.loads(args.review.read_text(encoding="utf-8")), args.review,
+                             final_heldout_eval=args.final_heldout_eval)["ratings"]["guy"] if args.review else {})
+    except SealedRatingsError as exc:
+        print(exc)
+        return 2
+    if not args.final_heldout_eval:
+        held_rated = (set(ratings) | set(rev)) & sealed
+        ratings, _ = exclude_sealed(ratings, sealed)
+        rev, _ = exclude_sealed(rev, sealed)
+        if held_rated:
+            print(f"sealed held-out half: {len(held_rated)} ratings excluded (--final-heldout-eval reads them)")
     if args.review:
-        rev = json.loads(args.review.read_text(encoding="utf-8"))["ratings"]["guy"]
-        changed = {k: (ratings[k], v) for k, v in rev.items() if ratings.get(k) != v}
+        changed = {k: (ratings.get(k), v) for k, v in rev.items() if ratings.get(k) != v}
         print(f"review: {len(rev)} re-rated, {len(changed)} changed")
         ratings = {**ratings, **rev}
-    items = json.loads(args.sample.read_text(encoding="utf-8"))["profiles"]["guy"]["items"]
 
     articles = load_articles(args.db, items)
     ids = sorted(articles)
-    fit, hold = split(ids)
+    if sealed:  # the pre-registered half, not a fresh split of whichever rows loaded
+        hold = set(ids) & sealed
+        fit = set(ids) - hold
+    else:
+        fit, hold = split(ids)
     base_profile = next(p for p in SEED_PROFILES if p.user_id == "guy")
 
     base = score_all(articles, base_profile)

@@ -115,7 +115,10 @@ def cmd_compare(args) -> None:
     new = json.loads(Path(args.new).read_text(encoding="utf-8"))
     ratings = {}
     if args.ratings:
-        ratings = json.loads(Path(args.ratings).read_text(encoding="utf-8"))["ratings"]["guy"]
+        from app.qa.census_rating import refuse_sealed  # census #3 held-out half (#241)
+
+        payload = json.loads(Path(args.ratings).read_text(encoding="utf-8"))
+        ratings = refuse_sealed(payload, args.ratings, final_heldout_eval=args.final_heldout_eval)["ratings"]["guy"]
     d = diff_snapshots(old, new)
     print(f"rows compared: {d['common']}  changed: {len(d['changed'])}  decision flips: {len(d['flips'])}")
     for f in FACT_FIELDS:
@@ -149,6 +152,8 @@ def main() -> None:
     p_cmp.add_argument("old")
     p_cmp.add_argument("new")
     p_cmp.add_argument("--ratings", help="census ratings JSON for owner-agreement metrics")
+    p_cmp.add_argument("--final-heldout-eval", action="store_true",
+                       help="allow a sealed held-out ratings file (census #3 final evaluation only)")
     p_cmp.set_defaults(func=cmd_compare)
     args = parser.parse_args()
     args.func(args)

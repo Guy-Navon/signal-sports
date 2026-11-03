@@ -43,6 +43,7 @@ One-off run evidence goes in the PR or issue, not in `docs/qa/`.
 | `MOBILE_REMOTE_ACCESS.md` | Tailscale Serve ops guide (#16) |
 | `qa/N05_FEED_GROUND_TRUTH.md`, `qa/N05_FEED_QUALITY_IMPLEMENTATION.md` | Method + current ratcheted baseline of the ACTIVE gate (`n05_*.json` is read by the gate) |
 | `qa/CENSUS_2026-10.md` | Census #2 (the fresh-cohort baseline) + the re-rate protocol; its `census2_*.json` feed the census gate (`census_gate_baseline.json`, #254) |
+| `qa/CENSUS_3_2026-11.md` | Census #3 (#241): sample, method, fit-half development results; the held-out half is sealed (never feed it to a gate) |
 | `docs/fixtures/profile_parity.json` | Canonical legacy-profile snapshot — changes only with both seeds |
 
 **Kept, but not implementation references:**

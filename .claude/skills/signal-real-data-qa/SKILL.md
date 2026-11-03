@@ -47,7 +47,8 @@ even when the gate passes. A change
 that hides wanted rows fails `feed_plus_recall`; one that surfaces noise fails
 `shown_precision`, even though it *lowers* the ≥2-notch count. Census #3 (#241) joins by passing
 `--ratings/--sample` pairs (and `--review` files, whose ratings win) with
-`--census --update-baseline`; details in `docs/RELEVANCE_CONTRACT.md` §Census gate. N05 stays as a
+`--census --update-baseline`; details in `docs/RELEVANCE_CONTRACT.md` §Census gate. Only its **fit** half
+(`census3_ratings.json`) may join: `census3_heldout_ratings.json` is sealed and never goes into a gate. N05 stays as a
 second gate until the census gate has gated two real changes.
 
 **Stored facts cannot see a classifier change.** N05 and `gate --census` score the facts

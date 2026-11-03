@@ -296,6 +296,13 @@ deterministic rule changelog, §1–§20).
   `primary_competition` and 34 had no entity. Hapoel TLV basketball narrative stories (13 false
   hides) are a relevance question, not a classification one. #257 answers it for Guy with a
   profile entry (§7), which takes effect once `apply_257_hapoel_profile.py` has run.
+- **LLM failure with no sport** (#409, owner decision R11, 2026-11). An article whose LLM call
+  failed and whose rules found no sport stays **hidden**: no evidence matches a follow, and
+  every "show anyway" variant measured on rated rows was 6–20% wanted. Each run counts these
+  rows (`rules_fallback_unknown_sport`, split by failure reason in the run metrics, the
+  per-source Timing log line and the Sources page's LLM-dependency rows), so an outage's cost
+  is visible. The census #3 cohort would have shown 122: 102 during the Ollama timeouts
+  (10-11 → 10-15) and 20 on Groq, 18 of them in the 11-01 catch-up after the worker outage (counted by publish date; runs do not store article ids).
 
 ---
 

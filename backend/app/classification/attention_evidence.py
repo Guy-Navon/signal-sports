@@ -6,6 +6,7 @@ negotiations, rejected destinations and retrospective interviews.
 """
 import re
 
+from app.classification.event_evidence import governance_step_context
 from app.taxonomy.entities import ENTITIES
 
 
@@ -55,7 +56,9 @@ def attention_evidence(title: str, subtitle: str, event_type: str, entity_ids: l
     elif event_type == "club_governance":
         # #229: push only on a concrete step taken (filed, agreed, decided, approved,
         # sold, bought) — not on statements, reactions or previews of a decision.
-        if re.search(_CONCRETE_STEP, title):
+        # #242: and not when the only governance evidence is a home-venue phrase in the
+        # subtitle (background), whatever the title decided.
+        if re.search(_CONCRETE_STEP, title) and governance_step_context(title, subtitle):
             development = "concrete_step"
         # The story's subject may be named through a person linked to the club
         # ("דיץ הגיש בקשה … במכבי"): the club alias itself is often only the bare

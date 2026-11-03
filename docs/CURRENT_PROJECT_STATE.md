@@ -144,6 +144,7 @@ untracked `backend/.env`):
 |---|---|---|
 | `CLASSIFICATION_PROVIDER` / `_MODEL` / `_TIMEOUT_SECONDS` | disabled / – / 15 | `ollama` / `qwen2.5:3b-instruct` / 30 |
 | `CLASSIFICATION_LLM_GATING` | enabled | enabled |
+| `CLASSIFICATION_RATE_LIMIT_MAX_WAIT_SECONDS` / `_WAIT_BUDGET_SECONDS` (openai_compat, #409) | 0 (off) / 300 | 0 (off): enabling is the owner's decision |
 | `CLUSTERING_ENABLED` | true | true |
 | `SCHEDULER_ENABLED` (+ `SCHEDULER_INTERVAL_SECONDS`) | false (300) | true (300) |
 | `FEED_FRESHNESS_ENABLED` / `FEED_MAX_AGE_HOURS` | false / 36 | true / 36 |
@@ -261,7 +262,7 @@ them, and drift tests on both sides enforce it.
 Pipeline order and contracts: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) (map),
 [ARTICLE_FACTS.md](ARTICLE_FACTS.md) (facts stage), [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md)
 (gate, merge, metrics), and [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) (the
-deterministic rule changelog, §1–§18).
+deterministic rule changelog, §1–§20).
 
 - **Rules first, always.** The title is primary, and the subtitle only fills gaps. *Title-local*
   event types (`title_win`, `grand_slam_winner`, `major_trade`, `schedule`, …) never come from
@@ -360,8 +361,10 @@ deterministic rule changelog, §1–§18).
 - Recall: about one wanted story in three was hidden at census #2 (§8). Milestone 9 raised it on
   reruns (cups 93→100/140, schedule 103→107/140), and census #3 will measure it on real
   ingestion.
-- Push recall is low (2/8 on the rerun), and the misses are mostly institutional Maccabi news.
-  #242 (venue move) is waiting for more examples.
+- Push recall is low, and the misses are mostly institutional Maccabi news: 2/8 on the #229
+  rerun. The current `census2_ratings.json` holds 7 owner pushes, so the same rerun reads
+  2/7 there. The #242 venue-move vocabulary (PR #398) raises it to 3/7 with the Cyprus move
+  (owner: push; RSS_QUALITY_GUARDRAILS §20).
 
 **Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #197 results-sync attempt record and lease (the feedback half is done), #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #199 bundle weight and unfiltered feed query, #200 signup/login abuse
 protection (a **gate before widening access**, not needed while single-user behind Tailscale).
@@ -441,8 +444,10 @@ milestone 11's gate.
 2. **Milestone 11, Census #3 & a fresh regression gate:**
    - #241 census #3
    - #254 census-based gate (feed+ recall, push recall, noise band)
-   - #255 protect rated rows from retention (code landed and covers every `docs/qa` rating file; owner runs the backfill, runbook in [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8)
-   - #242 venue-move vocabulary, if census #3 brings enough examples
+   - #255 protect rated rows from retention (code landed: every `docs/qa` rating, sample and listed correction-log file is covered, and retention fails closed while the table is empty; owner runs the backfill, runbook in [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8)
+   - #242 venue-move vocabulary for `club_governance`, landed in PR #398 (RSS_QUALITY_GUARDRAILS
+     §20); its two high_feed side effects await owner rating, and #401 (the pre-existing #229
+     subtitle → push path) awaits an owner decision
 3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
    - done: #256 (measurement), #259 (Maccabi/Hapoel Tel Aviv people registered)
    - open: #345 (the corroborated basketball exception landed; wanted stories with no non-LLM

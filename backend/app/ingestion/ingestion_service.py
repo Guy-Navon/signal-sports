@@ -456,6 +456,9 @@ def _run_source(
     _llm_usage: dict[str, int] = {}
     # Opt-in rate-limit waits (#409): calls that slept, and the total time asleep.
     rate_limit_waits = 0
+    # LLM failed AND the final sport is unknown (#409, owner decision R11): such a row
+    # stays hidden; counting it shows what the fallback costs during an outage.
+    unknown_sport_fallbacks: dict[str, int] = {}
     rate_limit_wait_ms = 0.0
     # Gating accumulators — eligible articles skipped/called by the gate.
     llm_skipped = 0
@@ -537,6 +540,10 @@ def _run_source(
                     _llm_failure_latencies.setdefault(failure_reason, []).append(
                         failure_latency if failure_latency is not None else llm_ms
                     )
+                    if article.sport == "unknown":
+                        unknown_sport_fallbacks[failure_reason] = (
+                            unknown_sport_fallbacks.get(failure_reason, 0) + 1
+                        )
                 elif cb == "rules_fallback_low_confidence":
                     llm_attempts += 1
                     llm_fallback_low_confidence += 1
@@ -622,6 +629,7 @@ def _run_source(
         "Fallbacks: connect_error=%d timeout=%d http_error=%d "
         "bad_response_shape=%d unparseable_json=%d low_conf=%d | "
         "Rate-limit waits: %d (%.0fms) | "
+        "Unknown-sport fallbacks: %d %s | "
         "Gating: skipped=%d skip_reasons=%s call_reasons=%s | "
         "Slowest: [%s]",
         cfg.source_id,
@@ -639,6 +647,8 @@ def _run_source(
         llm_fallback_low_confidence,
         rate_limit_waits,
         rate_limit_wait_ms,
+        sum(unknown_sport_fallbacks.values()),
+        unknown_sport_fallbacks or "{}",
         llm_skipped,
         llm_skip_reasons or "{}",
         llm_call_reasons or "{}",
@@ -668,6 +678,7 @@ def _run_source(
         llm_usage=_llm_usage or None,
         rate_limit_waits=rate_limit_waits,
         rate_limit_wait_ms=rate_limit_wait_ms,
+        unknown_sport_fallbacks=unknown_sport_fallbacks,
     )
 
     # skipped_filtered is intentionally NOT stored in the run log — the DB schema

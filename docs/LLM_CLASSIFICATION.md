@@ -728,7 +728,7 @@ llm_call_reasons: dict[str, int]       # reason → count for gated-call decisio
 
 **Log line (INFO level, emitted at end of each source run):**
 ```
-Timing [israel_hayom_sport]: fetch=420ms total=18.3s | LLM: attempts=12 successes=10 avg=710ms p95=1420ms | Fallbacks: connect_error=0 timeout=0 http_error=0 bad_response_shape=0 unparseable_json=1 low_conf=1 | Rate-limit waits: 0 (0ms) | Gating: skipped=9 skip_reasons={'clear_league_in_title': 5, 'measured_generic_news_sufficient': 4} call_reasons={'sport_unknown': 7} | Slowest: ["מכבי..."(1820ms), "דיווח..."(1550ms)]
+Timing [israel_hayom_sport]: fetch=420ms total=18.3s | LLM: attempts=12 successes=10 avg=710ms p95=1420ms | Fallbacks: connect_error=0 timeout=0 http_error=0 bad_response_shape=0 unparseable_json=1 low_conf=1 | Rate-limit waits: 0 (0ms) | Unknown-sport fallbacks: 0 {} | Gating: skipped=9 skip_reasons={'clear_league_in_title': 5, 'measured_generic_news_sufficient': 4} call_reasons={'sport_unknown': 7} | Slowest: ["מכבי..."(1820ms), "דיווח..."(1550ms)]
 ```
 
 A DEBUG-level line is also emitted for each individual gated-skip, showing the article title, skip reason, and the deterministic sport/league/event_type/confidence values that triggered it. The top 5 slowest articles (by LLM latency) are INFO logger-only — not included in the API response.
@@ -754,7 +754,7 @@ rates (deterministic_accept_rate, llm_call_rate, gate_skip_rate,
 fallback_rate, low_confidence_fallback_rate, abstention_rate, ambiguity_rate,
 conflict_rate, weighted_evidence_override_rate, event_correction_rate), plus
 latency (llm_avg_ms/llm_p95_ms/total_ms plus failure latency by reason), throughput (articles_per_minute)
-reported token usage (`llm_tokens`, #261: prompt/completion/reasoning sums, `None` when no call reported usage), rate-limit waits (`rate_limit_waits`, `rate_limit_wait_ms`, #409: calls that slept through a provider pause and the total time asleep; 0 while the wait is off; absent on older rows), and cost estimates (`LLM_COST_PER_CALL_ESTIMATE` env × attempts; per-run and
+reported token usage (`llm_tokens`, #261: prompt/completion/reasoning sums, `None` when no call reported usage), rate-limit waits (`rate_limit_waits`, `rate_limit_wait_ms`, #409: calls that slept through a provider pause and the total time asleep; 0 while the wait is off; absent on older rows), LLM-failure fallbacks that end `sport=unknown` (`rules_fallback_unknown_sport` and `rules_fallback_unknown_sport_by_reason`, #409 owner decision R11: those rows stay hidden, the counter shows what an outage costs; low-confidence fallbacks are not counted; absent on older rows), and cost estimates (`LLM_COST_PER_CALL_ESTIMATE` env × attempts; per-run and
 per-1000-articles). Rates are `None` when the denominator is zero — "not
 measurable this run" is distinct from "measured zero". The disabled-provider
 path records `llm_call_rate=0.0` with everything else still measured.

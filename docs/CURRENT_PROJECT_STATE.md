@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-11-01** (milestone 12 merged and applied live, ONE enabled; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
+**Last updated: 2026-11-01** (milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
 for any agent or human picking the project up with no conversation history. Present-tense
 statements were checked against the code and the owner's local runtime on that date. History
 is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
@@ -18,7 +18,7 @@ issue numbers in §14 lead to their evidence.
 | Live sources | Walla, Israel Hayom, Ynet, **Sport5** (a code-default "pilot", enabled by runtime override). **ONE** (enabled by runtime override on 2026-11-01 after the #258 probe; first cycle inserted 50 articles, [RSS_INGESTION.md](RSS_INGESTION.md) §1) |
 | Corpus | 2,715 RSS articles published 2026-07-10 → today. 340 were published after the milestone-9 worker restart (2026-10-10 14:23 UTC) |
 | Feed quality (fresh cohort) | Census #2 (804 articles, owner-rated): shown precision 92–95% after the owner's blind re-review. **Feed+ recall 66%** when rated, before milestone 9: about one wanted story in three was hidden. Push recall 1/8, and 2/8 on the rerun after #229 |
-| Regression gate | N05 frozen-corpus gate (282 ratings): Guy 98.3% shown / 18.0% false hide / push 7/7. Deni 91.7% / 0.8% / 1/1 |
+| Regression gates | Two, run both. **Census gate** (#254, census #2, 804 ratings, baselines 2026-11-01 on main's engine at `a0c3477`). On stored facts, Guy has shown precision 95.9%, feed+ recall 73.9%, push 1/3 precise and 1/7 recalled, 48 gaps of ≥2 notches. On a rules-only rerun (`--facts rerun`, for classifier changes) he has 94.0%, 89.1%, push 3/4 and 3/7, 26 gaps (brought forward after #398's reviewed delta). Deni drift 0. **N05** frozen-corpus gate (282 ratings): Guy 98.3% shown / 18.0% false hide / push 7/7. Deni 91.7% / 0.8% / 1/1 |
 | **Real usage** | **8 feedback events ever, all in July. No login session since 2026-09-16. 14 Telegram pushes, the last on 2026-07-24.** The learning loop has never run on real usage |
 | Next | §11: milestone 13 first. The repository preparation is done and CI-validated ([DEPLOYMENT.md](DEPLOYMENT.md)); what remains needs the owner: the decisions in [HOSTING_PLAN.md](HOSTING_PLAN.md) §18 (LLM path and key, GitHub plan and budget, topology A or B, backup target and offline key), then the hosted-LLM evaluation (#262), the host (#268) and the cutover (#269). Nothing is chosen, bought or deployed. Then milestone 10, with #241 in parallel |
 
@@ -262,11 +262,12 @@ them, and drift tests on both sides enforce it.
 Pipeline order and contracts: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) (map),
 [ARTICLE_FACTS.md](ARTICLE_FACTS.md) (facts stage), [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md)
 (gate, merge, metrics), and [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) (the
-deterministic rule changelog, §1–§20).
+deterministic rule changelog, §1–§21).
 
 - **Rules first, always.** The title is primary, and the subtitle only fills gaps. *Title-local*
   event types (`title_win`, `grand_slam_winner`, `major_trade`, `schedule`, …) never come from
-  the subtitle alone (#223, #224).
+  the subtitle alone (#223, #224). A broadcast word makes a `schedule` only when it announces a
+  broadcast, not when something happened on air (#406).
 - **The LLM is gated.** It is force-called on `sport_unknown`, `ambiguous_club` or low
   confidence, and skipped when the rules are already strong or the article is measured-sufficient
   generic `news` (#217). The call rate is about 28% of eligible articles. Proposals pass the merge
@@ -296,6 +297,13 @@ deterministic rule changelog, §1–§20).
   `primary_competition` and 34 had no entity. Hapoel TLV basketball narrative stories (13 false
   hides) are a relevance question, not a classification one. #257 answers it for Guy with a
   profile entry (§7), which takes effect once `apply_257_hapoel_profile.py` has run.
+- **LLM failure with no sport** (#409, owner decision R11, 2026-11). An article whose LLM call
+  failed and whose rules found no sport stays **hidden**: no evidence matches a follow, and
+  every "show anyway" variant measured on rated rows was 6–20% wanted. Each run counts these
+  rows (`rules_fallback_unknown_sport`, split by failure reason in the run metrics, the
+  per-source Timing log line and the Sources page's LLM-dependency rows), so an outage's cost
+  is visible. The census #3 cohort would have shown 122: 102 during the Ollama timeouts
+  (10-11 → 10-15) and 20 on Groq, 18 of them in the 11-01 catch-up after the worker outage (counted by publish date; runs do not store article ids).
 
 ---
 
@@ -303,7 +311,8 @@ deterministic rule changelog, §1–§20).
 
 | Instrument | What it is | How |
 |---|---|---|
-| **N05 gate** (the only regression gate) | 282 owner ratings on the frozen July corpus, with directional checks: shown precision, false hide, push precision and volume, Deni no-drift | `cd backend; .venv/Scripts/python.exe scripts/feed_ground_truth.py gate`. Local only, since it needs the corpus. The pure rules run in CI. [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) §Quality gate, [qa/N05_FEED_GROUND_TRUTH.md](qa/N05_FEED_GROUND_TRUTH.md) |
+| **Census gate** (#254) | Every census #2 row (804 owner ratings, review folded in), scored live. Directional checks: shown precision (slack 1/n), feed+ recall, push precision (slack 1/n), push recall, push volume, count of ≥2-notch disagreements (one-notch gaps are rating noise), Deni no-drift over the same ids. Two facts sources, each with its own baseline: `stored` for relevance and profile changes, and `--facts rerun` (rules-only, in memory) for classifier and taxonomy changes, which stored facts cannot show before a backfill | `cd backend; .venv/Scripts/python.exe scripts/feed_ground_truth.py gate --census [--facts rerun]`. Local only; the pure rules (`app/qa/census_gate.py`) run in CI. Baseline `docs/qa/census_gate_baseline.json`. Census #3 is added by passing a second `--ratings/--sample` pair and regenerating. **A baseline is regenerated only after the change's delta against the previous baseline has been reviewed and is cited in the commit; `--update-baseline` prints that delta (decisions and ratings) and refuses to write on a failing gate, on re-rated rows, or without a previous baseline, unless forced with a reason.** Same-direction one-notch drift does not fail the gate (#402); it is reported (upgrades and downgrades, toward or away from the owner rating) on every run. [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) §Quality gate |
+| **N05 gate** (second gate until the census gate has gated two real changes) | 282 owner ratings on the frozen July corpus, with directional checks: shown precision, false hide, push precision and volume, Deni no-drift | `cd backend; .venv/Scripts/python.exe scripts/feed_ground_truth.py gate`. Local only, since it needs the corpus. The pure rules run in CI. [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) §Quality gate, [qa/N05_FEED_GROUND_TRUTH.md](qa/N05_FEED_GROUND_TRUTH.md) |
 | **Census #2** | 804 fresh articles (published since 2026-08-01), every one owner-rated, plus a blind re-review of 58 large gaps | [qa/CENSUS_2026-10.md](qa/CENSUS_2026-10.md), `docs/qa/census2_*.json` |
 | Rating tool | `scripts/rate_census.py build / serve / review / merge-review`: a local single-keypress page, blind, resumable | usage in the script docstring |
 | Rerun diff | `scripts/corpus_rerun_diff.py snapshot / compare`: an in-memory, rules-only rerun of the whole corpus, scored against census ratings; no DB writes | before/after any classification or taxonomy change |
@@ -447,7 +456,7 @@ milestone 11's gate.
    - **#253 owner-run 14-day acceptance**, which no PR may close; its window starts after #269
 2. **Milestone 11, Census #3 & a fresh regression gate:**
    - #241 census #3
-   - #254 census-based gate (feed+ recall, push recall, noise band)
+   - #254 census-based gate (feed+ recall, push recall, noise band): built on census #2 alone; add census #3 when #241 lands
    - #255 protect rated rows from retention (code landed: every `docs/qa` rating, sample and listed correction-log file is covered, and retention fails closed while the table is empty; owner runs the backfill, runbook in [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8)
    - #242 venue-move vocabulary for `club_governance`, landed in PR #398 (RSS_QUALITY_GUARDRAILS
      §20); its two high_feed side effects await owner rating, and #401 (the pre-existing #229
@@ -505,7 +514,9 @@ powershell -File scripts\preview.ps1 -Worktree ..\preview-353 -Stop
 ```powershell
 cd backend;  .venv\Scripts\python.exe -m pytest tests -q            # hermetic: temp DB, LLM off, Telegram creds cleared
 cd frontend; npm run lint; npm run typecheck; npm run test; npm run build
-cd backend;  .venv\Scripts\python.exe scripts/feed_ground_truth.py gate   # local only: before any relevance/classification change
+cd backend;  .venv\Scripts\python.exe scripts/feed_ground_truth.py gate            # N05 gate, local only: before any relevance/classification change
+cd backend;  .venv\Scripts\python.exe scripts/feed_ground_truth.py gate --census   # census gate (#254) on stored facts, local only
+cd backend;  .venv\Scripts\python.exe scripts/feed_ground_truth.py gate --census --facts rerun   # census gate on a rules-only rerun: classifier/taxonomy changes
 ```
 
 Use the collectors for test counts (`pytest --collect-only -q`); counts copied into docs go stale.

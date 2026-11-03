@@ -151,6 +151,12 @@ function LlmDependencyTrend({ runs }) {
                   ממוצע <MonoValue className="text-text-secondary">{formatMs(m.llm_avg_ms)}</MonoValue>
                 </span>
               )}
+              {m.rules_fallback_unknown_sport > 0 && (
+                <span className="text-text-dim" title="LLM נכשל והספורט נשאר לא ידוע: הכתבה מוסתרת (#409)">
+                  נפילות LLM ללא ספורט{" "}
+                  <MonoValue className="text-signal-push">{m.rules_fallback_unknown_sport}</MonoValue>
+                </span>
+              )}
               {m.estimated_cost_per_run > 0 && (
                 <span className="text-text-dim">
                   עלות <MonoValue className="text-text-secondary">${m.estimated_cost_per_run}</MonoValue>

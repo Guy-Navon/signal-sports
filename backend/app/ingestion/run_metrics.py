@@ -114,6 +114,7 @@ def compute_run_metrics(
     llm_usage: Optional[dict] = None,
     rate_limit_waits: int = 0,
     rate_limit_wait_ms: float = 0.0,
+    unknown_sport_fallbacks: Optional[dict[str, int]] = None,
 ) -> dict:
     """Derive the per-run dependency/quality metrics dict.
 
@@ -199,6 +200,12 @@ def compute_run_metrics(
         # schema v2; older rows lack them.
         "rate_limit_waits": rate_limit_waits,
         "rate_limit_wait_ms": round(rate_limit_wait_ms, 1),
+        # #409 follow-up (owner decision R11): LLM-failure fallbacks whose final
+        # sport is unknown. Those rows stay hidden (no evidence matches a follow);
+        # this shows what an outage costs. Split by typed failure reason. Low-
+        # confidence fallbacks are not counted. Additive keys, schema v2.
+        "rules_fallback_unknown_sport": sum((unknown_sport_fallbacks or {}).values()),
+        "rules_fallback_unknown_sport_by_reason": dict(unknown_sport_fallbacks or {}),
         "estimated_cost_per_1000_articles": (
             round((cost_per_run / new_articles) * 1000, 4) if new_articles > 0 else None
         ),

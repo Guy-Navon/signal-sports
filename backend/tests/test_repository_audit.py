@@ -143,6 +143,11 @@ def test_rss_prefix_is_literal_not_sql_wildcard(tmp_path, operation):
             if operation == "read":
                 assert [a.id for a in get_rss_articles(session)] == ["rss_real"]
             elif operation == "retention":
+                # Retention fails closed on an empty protected_articles (#255): arm it
+                # with a row that protects nothing.
+                from app.repositories import protected_article_repository
+                protected_article_repository.protect(session, ["rss_sentinel"], reason="test")
+                session.commit()
                 assert cleanup_articles(session)["deleted"] == 1
             else:
                 _reset_rss_data(session)

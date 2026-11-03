@@ -341,15 +341,19 @@ deterministic rule changelog, §1–§20).
   although it runs every cycle by override; removing the label is a separate follow-up (#395).
   Evidence: [RSS_INGESTION.md](RSS_INGESTION.md) §1.
 - **Retention cleanup stays disabled; rated articles are guarded only after the live backfill**
-  (#255). Retention never deletes an article listed in `protected_articles`.
-  `scripts/protect_rated_articles.py` fills that table from the rating and sample files at the top
-  of `docs/qa`, matched by file name. A test fails if a file in the ratings-store or sample format
-  anywhere under `docs/qa` is not covered. **On the live corpus the table is still empty** until
-  the owner runs the backfill (backup, dry run, `--apply --i-know-this-is-the-live-corpus`, dry
-  run again; the worker may keep running). Until then, enabling retention at 30 days would delete every N05-rated article and
-  717 of census #2's 804. On the 2026-11-01 frozen copy the backfill added 1,211 rows. The
-  retention dry run then reported `protected_rated` 996 and 1,147 deletable, with no rated or
-  sampled id among them. Runbook and numbers: [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8.
+  (#255). Retention never deletes an article listed in `protected_articles`, and it **fails
+  closed**: while that table is empty a real run deletes nothing, logs a WARNING and records
+  `skipped_reason` in the cycle's cleanup summary. `scripts/protect_rated_articles.py` fills the
+  table from the rating and sample files at the top of `docs/qa`, matched by file name, and from
+  three listed correction logs (n05 former-affiliation, n190, n191). A test fails if a file in the
+  ratings-store or sample format anywhere under `docs/qa` is not covered, or if a correction log is
+  not listed. **On the live corpus the table is still empty** until the owner runs the backfill
+  (backup, dry run, `--apply --i-know-this-is-the-live-corpus`, dry run again; the worker may keep
+  running).
+  - *On the 2026-11-02 live backup copy:* an empty-table real cleanup deleted 0. After the backfill
+    (1,256 rows), a real cleanup deleted 1,103 and kept every protected id (`protected_rated`
+    1,041), with no rated or correction-log id deleted.
+  - Runbook and numbers: [FEED_FRESHNESS.md](FEED_FRESHNESS.md) §8.
 - Single machine and single SQLite file. On the PC, backups are still manual (`scripts/backup_db.py`,
   WAL-safe and verified). The hosted nightly off-host backup exists in the repository
   ([DEPLOYMENT.md](DEPLOYMENT.md) §7) but runs nowhere until a host exists.

@@ -454,6 +454,9 @@ def _run_source(
     _llm_failure_latencies: dict[str, list[float]] = {}
     # Reported token usage (#261), summed over the calls that report it.
     _llm_usage: dict[str, int] = {}
+    # Opt-in rate-limit waits (#409): calls that slept, and the total time asleep.
+    rate_limit_waits = 0
+    rate_limit_wait_ms = 0.0
     # Gating accumulators — eligible articles skipped/called by the gate.
     llm_skipped = 0
     llm_skip_reasons: dict[str, int] = {}
@@ -497,6 +500,12 @@ def _run_source(
 
             # Accumulate LLM timing and counters.
             if llm_ms is not None:
+                # Time asleep on a rate limit (#409, opt-in) is not provider latency.
+                wait_ms = getattr(_LLM_PROVIDER, "last_rate_limit_wait_ms", 0.0) or 0.0
+                if wait_ms > 0:
+                    rate_limit_waits += 1
+                    rate_limit_wait_ms += wait_ms
+                    llm_ms = max(0.0, llm_ms - wait_ms)
                 _llm_latencies.append(llm_ms)
                 _llm_title_samples.append((item.title[:50], llm_ms))
                 _accumulate_usage(_llm_usage, getattr(_LLM_PROVIDER, "last_usage", None))
@@ -612,6 +621,7 @@ def _run_source(
         "LLM: attempts=%d successes=%d avg=%s p95=%s | "
         "Fallbacks: connect_error=%d timeout=%d http_error=%d "
         "bad_response_shape=%d unparseable_json=%d low_conf=%d | "
+        "Rate-limit waits: %d (%.0fms) | "
         "Gating: skipped=%d skip_reasons=%s call_reasons=%s | "
         "Slowest: [%s]",
         cfg.source_id,
@@ -627,6 +637,8 @@ def _run_source(
         llm_fallback_bad_response_shape,
         llm_fallback_unparseable_json,
         llm_fallback_low_confidence,
+        rate_limit_waits,
+        rate_limit_wait_ms,
         llm_skipped,
         llm_skip_reasons or "{}",
         llm_call_reasons or "{}",
@@ -654,6 +666,8 @@ def _run_source(
         llm_p95_ms=llm_p95_ms,
         total_ms=total_ms,
         llm_usage=_llm_usage or None,
+        rate_limit_waits=rate_limit_waits,
+        rate_limit_wait_ms=rate_limit_wait_ms,
     )
 
     # skipped_filtered is intentionally NOT stored in the run log — the DB schema
@@ -730,6 +744,11 @@ def run_ingestion(
     Returns:
         One SourceIngestResult per source that was attempted.
     """
+    # The opt-in rate-limit wait (#409) has a budget per run; restore it.
+    reset_wait_budget = getattr(_LLM_PROVIDER, "reset_rate_limit_wait_budget", None)
+    if reset_wait_budget is not None:
+        reset_wait_budget()
+
     if source_id:
         cfg = get_source_config(source_id)
         if cfg is None:

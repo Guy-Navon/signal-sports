@@ -187,8 +187,9 @@ traces stay in Debug/ops.
 ## Quality gate — run this before landing a relevance change (issue #189)
 
 The suite proves the engine does what it was told. It does not prove that what
-it was told is any good. That question is answered against 282 hand-rated real
-corpus items ([qa/N05_FEED_GROUND_TRUTH.md](qa/N05_FEED_GROUND_TRUTH.md)):
+it was told is any good. Two gates answer that question: the N05 gate below, over 282
+hand-rated real corpus items ([qa/N05_FEED_GROUND_TRUTH.md](qa/N05_FEED_GROUND_TRUTH.md)),
+and the [census gate](#census-gate-254) over every article of an owner-rated census. Run both:
 
 ```
 cd backend
@@ -220,12 +221,40 @@ measurement (98% / 19.4% / 41%). Regenerating it is a deliberate act
 (`gate --update-baseline`) and needs its own justification in the commit, because it redefines
 what every later change is measured against.
 
-**This is still the only regression gate.** Census #2 (804 fresh articles,
-[qa/CENSUS_2026-10.md](qa/CENSUS_2026-10.md)) measures the live engine on newer ingestion and
-is used for before/after reruns. Promoting a census to the gate is an open decision (#241).
-Census ratings carry a test-retest noise band of about one notch: in census #2's blind
-re-rate, 28 of 58 large disagreements changed and 26 of those moved toward the engine. Re-rate
-large disagreements before treating them as engine errors.
+**Baselines are change detectors, not proof the result is correct (owner rule, 2026-11-01).**
+A baseline is never regenerated to absorb a change before that change's delta against the
+**previous** baseline has been recorded and reviewed. Otherwise a regression is laundered
+into the new reference. So, for every gate:
+
+1. Run the gate on the change against the current baseline and record its per-check delta
+   (before → after for every check) and every rated row whose decision moved, with the
+   owner's rating.
+2. Have that delta reviewed: on the PR, or by Guy for anything that moves push or a canary.
+3. Only then run `--update-baseline`. The commit that rewrites a baseline must cite the delta:
+   before → after per check, and which rated rows changed.
+
+The census gate enforces this. `gate --census [--facts rerun] --update-baseline` first runs
+the gate against the previous baseline, on the census that baseline was built on. That census
+is rebuilt from the ratings the baseline stores, so it is independent of the files on disk.
+The update prints two deltas:
+
+- **decisions**: before → after per check, and every rated row whose decision moved;
+- **ratings**: rows re-rated (old → new), added and removed, and the metrics of the current
+  decisions under the previous ratings and under the new ones. A re-label moves every metric
+  while no decision moves, so a decision-only delta would hide it.
+
+It **refuses to write** when the gate fails, the comparison is invalid, any already-rated row
+was re-rated or removed (a new `--review` file, or a ratings file edited in place), or there
+is no previous baseline (a first baseline, or a new `--baseline` path). New rows, such as
+census #3 joining, are allowed. A failing check that was reviewed and argued passes with
+`--accept <check_id> --reason`, and the update message says so. Everything else needs
+`--force-update --reason`, citing the review. The deltas, the accepts and any forced reason
+are stored in the new baseline's `previous` block. N05's `--update-baseline` does not enforce
+the rule (its code is out of scope here), so for N05 it is followed by hand.
+
+**N05 is one of two gates.** The census gate below runs alongside it. N05 stays until the
+census gate has gated at least two real changes; then the keep-or-retire decision on N05 is
+recorded here (#254).
 
 A change that genuinely needs to regress a check says so explicitly:
 
@@ -259,3 +288,123 @@ less than a single football rater disagreement.
 Report the per-sport line whenever you claim a recall change, or you may be
 reporting sampling noise. It is **not gated**: a per-sport threshold would need
 its own evidence and its own baseline.
+
+### Census gate (#254)
+
+```
+cd backend
+.venv/Scripts/python.exe scripts/feed_ground_truth.py gate --census                # stored facts
+.venv/Scripts/python.exe scripts/feed_ground_truth.py gate --census --facts rerun  # rules-only rerun
+```
+
+**Pick the facts source by the kind of change, and run both when unsure.** Each source has
+its own baseline, and the gate refuses to compare across them:
+
+| `--facts` | decisions come from | use it for | baseline |
+|---|---|---|---|
+| `stored` (default) | the facts persisted in the corpus, as ingested (LLM-assisted where the LLM ran) | relevance, profile and scoring changes: what the product serves for these rows | `census_gate_baseline.json` |
+| `rerun` | a rules-only reclassification of the census rows in memory (LLM and translation off, no writes), the same path as `corpus_rerun_diff.py` | **classifier and taxonomy changes**. Stored rows change only through a backfill, so the stored gate cannot see them | `census_gate_rerun_baseline.json` |
+
+The two sources disagree a lot. 131 of census #2's 804 rows have a different stored
+sport, event or competition than a rerun of main gives: rows keep the facts of the pipeline
+that ingested them, and blanket backfills are forbidden. The profile makes no difference
+(persisted and seed Guy give identical metrics). The first real change through the gate
+was #398, a classifier vocabulary change. It moved nothing on stored facts (N05 also stayed
+flat). On the rerun it took push precision 2/3 → 3/4 and push recall 2/7 → 3/7, and passed.
+
+Same contract as N05: local-only, exit 0 / 1, `--accept <check_id> --reason`, a stale accept
+fails. The pure rules are `app/qa/census_gate.py`, covered in CI by
+`backend/tests/test_census_gate.py`. It scores the live engine over every census article
+(census #2: 804 articles published since 2026-08-01, all rated by the owner, weight 1.0;
+[qa/CENSUS_2026-10.md](qa/CENSUS_2026-10.md)). Because every row is rated, it reads **recall
+directly** instead of `false_hide`, which the 74% hide base rate dilutes:
+
+| Check | Rule | Slack |
+|---|---|---|
+| `guy.shown_precision` | of the rows shown, how many were rated low or better | one shown row (`1/n`) |
+| `guy.feed_plus_recall` | of the rows rated feed or better, how many are shown | **none** |
+| `guy.push_precision` | of the pushes, how many were rated push | one push (`1/n`) |
+| `guy.push_recall` | of the rows rated push, how many are pushed | **none** |
+| `guy.push_volume` | may not rise | **none**, unless push precision improved |
+| `guy.two_notch` | count of disagreements of **≥2 notches** may not rise | **none** |
+| `casual_deni_fan.no_drift` | the canary's decisions over the census ids may not move (it needs no ratings) | **none** |
+
+**The noise band.** Census ratings repeat only about half the time on borderline rows: in
+census #2's blind re-rate, 28 of 58 large disagreements changed, 26 toward the engine, mostly
+by one notch. So the disagreement check ignores one-notch gaps: a change that opens only
+one-notch gaps cannot fail it, while a new two-notch gap does. Exact agreement is not gated.
+Re-rate large disagreements before treating them as engine errors.
+
+**Known gap: same-direction one-notch drift (#402).** Ignoring one-notch gaps row by row also
+means no check sees a *systematic* one-notch move away from the owner's ratings. Replayed on
+the stored baseline, demoting all 69 owner-`feed` rows shown at `feed`/`high_feed` to
+`low_feed` passes every check, and so does hiding up to 21 of the 39 shown owner-`low` rows.
+#402 proposes a blocking directional check (slack or sign test; threshold not chosen yet).
+Until then the gate **reports** directional drift without gating (owner decision 2026-11-02).
+Every rated row whose decision moved against the baseline is listed as an upgrade or a
+downgrade, and as toward the owner's rating, away from it, or across it (jumping over the
+rating), with counts and ids. It is printed after the verdict, written to `--out`, and stored
+in every baseline-update delta. Replayed, the 69-row demotion shows as 58 downgrades away and
+11 across, while every check still passes. Read it on every gate run.
+
+**Why both directions are needed.** Replayed on census #2, "surface everything" (every hidden
+row to `low_feed`) takes feed+ recall to 100% and *lowers* the ≥2-notch count from 48 to 17;
+only shown precision (95.9% → 25.9%) catches it. "Hide more" (`low_feed` and `feed` to hidden)
+takes shown precision to 100%; feed+ recall (73.9% → 12.3%) and the ≥2-notch count catch it.
+Both replays are CI tests on both committed baselines.
+
+**Inputs.** By default the gate reads the files its baseline records. Census #2 alone today:
+`census2_ratings.json` + `census2_sample.json`, plus `census2_review_ratings.json` (the blind
+review). A review rating wins over a census rating. Census #2's review is already folded into
+`census2_ratings.json`, so it changes 0 rows; it is listed so the baseline records it. To add
+census #3 (#241), pass each pair in order and regenerate deliberately. The update is checked
+against the previous baseline on census #2 alone, and the new rows join only after that:
+
+```
+gate --census --update-baseline \
+  --ratings ../docs/qa/census2_ratings.json --sample ../docs/qa/census2_sample.json \
+  --ratings ../docs/qa/census3_ratings.json --sample ../docs/qa/census3_sample.json \
+  --review ../docs/qa/census2_review_ratings.json
+```
+
+Censuses are deduplicated by article id. Two censuses that rate the same article differently
+are an error unless a review file settles it. The baseline stores a content hash of the
+merged ratings and of the article id set, so a re-rated or regrown census is an invalid
+comparison, not a score.
+
+Baselines, generated on 2026-11-01 against a frozen copy of the live corpus (3,868 RSS
+articles). The stored baseline was built by this PR's gate code at `d82e161` (clean tree,
+recorded in `meta.git_sha`), whose engine equals main at `a0c3477`. The rerun baseline was then
+brought forward at `80e3fd3`, which is main at `294799b` (#398 and #416 merged) plus the gate,
+after the reviewed #398 delta below. A `-dirty` suffix on `meta.git_sha` means uncommitted
+`backend/` changes at generation time:
+
+| | shown precision | feed+ recall | push precision | push recall | ≥2-notch | Deni (804 ids) |
+|---|---:|---:|---:|---:|---:|---|
+| stored | 95.9% (141/147) | 73.9% (102/138) | 1/3 | 1/7 | 48 | 792 hidden |
+| rerun | 94.0% (173/184) | 89.1% (123/138) | 3/4 | 3/7 | 26 | 790 hidden |
+
+Regenerating either (`gate --census [--facts rerun] --update-baseline`) follows the rule
+above: delta against the previous baseline first, reviewed, then cited in the commit. The
+rerun baseline measures the classifier code, so a merged classifier or taxonomy change leaves
+it behind main. It is brought forward only after that change's reviewed delta, never as a
+formality. The stored baseline moves only with a profile change, a relevance change, or a
+reviewed correction script, under the same rule.
+
+**#398 absorbed into the rerun baseline (2026-11-03).** The owner approved the delta first.
+Against the previous rerun baseline: push precision 2/3 → 3/4, push recall 2/7 → 3/7, push
+volume 3 → 4 (allowed, precision improved), ≥2-notch 27 → 26, and nothing else moved. The only
+rated row that changed is the Cyprus move, `rss_60dbc2f4aa7316584e2d`: feed → push, rated push.
+Two unrated Cyprus stories (`rss_d14fdd50bec657067583`, `rss_bd91b96ba6a172068267`, feed →
+high_feed) are not census rows, so they appear only in a corpus-wide rerun diff. That diff
+confirmed exactly these 3 flips plus one fact-only change. The stored-facts gate and N05 did not
+move.
+
+**`push_precision` is redundant on a census.** Every row is rated, so its numerator (rows
+both pushed and rated push) is the same count as push recall's. Push precision can fall only
+if push recall falls (zero slack) or push volume rises without a precision gain (zero slack),
+so its one-push slack cannot let a regression through on its own. It is kept for continuity
+with N05, where the push stratum is a census but the rest is sampled.
+
+**The rerun is rules-only.** Production also calls the LLM on gated rows, so the rerun
+approximates what new ingestion would produce. Say so when quoting its numbers.

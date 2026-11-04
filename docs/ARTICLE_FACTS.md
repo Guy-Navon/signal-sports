@@ -15,7 +15,8 @@ abstention. Relocation stores title-participant `event.subject_entity_ids`;
 a possessive player mention is insufficient. Profile-independent
 `attention.development` and `attention.subject_entity_ids` describe current
 agreement/completion, imminent renewal, injury, routine uncertainty or retrospective
-reporting. They are facts, not a relevance score. Existing evidence/certainty
+reporting. On an injury, a team named only as the opponent ("מול/נגד <team>") is not a
+subject (#410). They are facts, not a relevance score. Existing evidence/certainty
 thresholds, sport, entity resolution and explicit competition rules are unchanged.
 [Implementation evidence](qa/N05_FEED_QUALITY_IMPLEMENTATION.md).
 

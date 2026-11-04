@@ -8,6 +8,7 @@ import re
 
 from app.classification.event_evidence import governance_step_context
 from app.taxonomy.entities import ENTITIES
+from app.taxonomy.resolver import resolve_entities
 
 
 _CONCRETE_STEP = (
@@ -21,7 +22,7 @@ _CONCRETE_STEP = (
 _OPPONENT_MARKER = r"(?:(?<![א-ת])[וכ]?(?:מול|נגד)|\b(?:against|versus|vs\.?))\s+"
 
 
-def _named_only_as_opponent(entity, title: str, entity_ids: list) -> bool:
+def _named_only_as_opponent(entity, title: str) -> bool:
     """True when every title mention of ``entity`` sits directly after an opponent marker.
 
     The longer aliases are matched first so "אבדיה" inside "מול דני אבדיה" goes with its
@@ -33,11 +34,11 @@ def _named_only_as_opponent(entity, title: str, entity_ids: list) -> bool:
     outside_slots = re.sub(rf"{_OPPONENT_MARKER}(?:{names})", " ", title)
     if any(a in outside_slots for a in aliases):
         return False
+    # Through the resolver, not entity_ids: the classifier swaps implies_team players for
+    # their club, and its word bounds keep "מדר" out of "מדריד".
     return not any(
-        player.kind == "player" and player.team_id == entity.id
-        and player.id in entity_ids
-        and any(a.lower() in title for a in player.aliases)
-        for player in ENTITIES.values()
+        named.kind == "player" and named.team_id == entity.id
+        for named in resolve_entities(outside_slots).resolved
     )
 
 
@@ -92,7 +93,7 @@ def attention_evidence(title: str, subtitle: str, event_type: str, entity_ids: l
             development = "current_injury"
         # #410: an injury story about the opponent of a followed team is not its injury.
         subjects = [eid for eid in subjects
-                    if not _named_only_as_opponent(ENTITIES[eid], title, entity_ids)]
+                    if not _named_only_as_opponent(ENTITIES[eid], title)]
     else:
         # This policy narrows the noisy transfer/injury rules only. Other
         # event types still face their own semantic and override contracts.

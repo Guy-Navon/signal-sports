@@ -118,3 +118,24 @@ def test_a_named_player_of_another_team_does_not_rescue_the_opponent():
     evidence = attention_evidence(
         "מיציץ' ייעדר מול מכבי תל אביב", "", "injury", [MACCABI, "player:vasilije_micic"])
     assert MACCABI not in evidence["subject_entity_ids"]
+
+
+@pytest.mark.parametrize("title", [
+    'הפועל ת"א נגד מכבי ת"א: לונדברג ייעדר',
+    "ברצלונה מול מכבי תל אביב: ים מדר נפצע",
+    'לקראת המשחק נגד מכבי ת"א: רומן סורקין נפצע',
+    "Barcelona vs Maccabi Tel Aviv: Roman Sorkin injured",
+])
+def test_own_player_keeps_the_team_a_subject_through_the_ingestion_path(title):
+    """The classifier swaps implies_team players for their club, so entity_ids has no player."""
+    item = RawSourceItem(source_id="sport5_sport", url="https://example.test/own", title=title,
+                         published_at=None, summary="")
+    article, _ms, _gate = ingestion_service._normalise(
+        item, get_source_config("sport5_sport"), llm_available=False)
+    trace = article.classification_trace["attention"]
+    assert MACCABI in trace["subject_entity_ids"]
+
+
+def test_a_players_alias_inside_another_word_does_not_rescue_the_opponent():
+    evidence = attention_evidence("ריאל מדריד ייעדר מול מכבי תל אביב", "", "injury", [MACCABI])
+    assert MACCABI not in evidence["subject_entity_ids"]

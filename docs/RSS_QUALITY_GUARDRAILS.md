@@ -1206,7 +1206,7 @@ For `event_type == "injury"` only, an entity whose every title mention sits dire
 `מול` / `נגד` (also `ומול`, `כנגד`) or `against` / `versus` / `vs` is no longer a subject
 (`attention_evidence._named_only_as_opponent`). The entity stays on the article, so visibility and
 affinity are unchanged and the story keeps its tier. One exception protects a real injury: a team
-whose own player is on the article and named in the title stays a subject (`הפועל נגד מכבי:
+whose own player is named in the title (word-bounded, outside the slot) stays a subject (`הפועל נגד מכבי:
 לונדברג ייעדר`). Subtitles were never subject evidence and still are not.
 
 Measured on the 2026-11-02 corpus copy, 4,272 rows, held-out rows excluded: of the 2 injury pushes,

@@ -198,7 +198,7 @@ must be re-audited when seasons roll over.
 
 | Competition | Repository | Real-world assessment | Uncertainty |
 |---|---|---|---|
-| NBA | 30/30 teams | Complete (franchise set is stable) | Low |
+| NBA | 30/30 teams | Complete (franchise set is stable). `closed=True` (#404): its clubs play no other competition | Low |
 | EuroLeague | 20/20 clubs (2025-26) | Complete for 2025-26 | Annual: promotion/licence changes each season |
 | Israeli Basketball League | 18 clubs | Near-complete; promoted/relegated edge clubs may be missing. `team:hapoel_haemek` added 2026-09-16 (see below) | Annual roster churn; verify at season start |
 | Israeli basketball cups | `comp:winner_cup`, `comp:il_super_cup` (parent `comp:ibl`) | Added 2026-10-10 (#230). No memberships: every IBL club plays them, and following the IBL follows them | Super Cup aliases are qualified forms only (see below) |
@@ -346,6 +346,16 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
     article's competition fact stays the cup. It is not exported to the frozen JS engine.
     Child competitions are **not selectable and not listed** in the interest catalog
     (`policy.competition_selectable`, `build_catalog`): they are followed through the parent.
+- **Closed leagues — 2026-11-02 (#404).** New optional `Competition` field `closed`
+  (default `False`): the league's clubs play in no other competition, so a story about a
+  member club belongs to it even when the text never names it. Set only for `comp:nba`
+  (the NBA Cup, preseason and Summer League are NBA-run). Like `parent`, it is
+  **relevance-time only** (`RELEVANCE_VISIBILITY_CONTRACT.md` tier 5) and not exported
+  to the frozen JS engine. It is a fact about the real league, never a reading of the
+  registry: a club with one registered membership is not enough (Hapoel Holon is IBL-only
+  here and plays the Basketball Champions League; Partizan carries only the EuroLeague
+  because the ABA League is untracked). `integrity.py` rejects a team that is a member of
+  a closed competition and of any other one, and a closed competition with a parent.
 - **Club executives — added 2026-10-10 (#229, taxonomy half).** Census #2 found that 6
   of the owner's 8 pushes are Maccabi institutional stories, and two had no entity at
   all (`דיץ הגיש בקשה לסעד זמני: ההתפתחות במכבי`: an investor plus the bare family

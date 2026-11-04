@@ -116,12 +116,13 @@ def test_a_different_person_at_the_same_club_still_notifies(session):
     assert len(plan_cycle_notifications(session)["created"]) == 1
 
 
-def test_the_same_persons_injury_still_notifies(session):
+def test_an_injury_does_not_notify(session):
+    # Owner decision 2026-11-04 (#423): injuries are not a push for now.
     _add(session, "rss_t371_deal", "איפה לונדברג סיכם על חוזה חדש במכבי תל אביב", 30)
     plan_cycle_notifications(session)
     _add(session, "rss_t371_inj", "לונדברג נפצע באימון של מכבי", 3, event_type="injury",
          development="current_injury")
-    assert len(plan_cycle_notifications(session)["created"]) == 1
+    assert plan_cycle_notifications(session)["created"] == []
 
 
 def test_the_suppression_window_expires_72h_after_publication(session):

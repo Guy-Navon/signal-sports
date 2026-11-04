@@ -78,3 +78,8 @@ def test_hebrew_prefixed_forms_keep_working():
     assert "team:chicago_bulls" in _ids("הפסד בשיקגו, לאבדיה 20 נקודות")
     assert "team:denver_nuggets" in _ids("הפסד בדנבר")
     assert "team:milwaukee_bucks" in _ids("נגד מילווקי ב-NBA")
+
+
+@pytest.mark.parametrize("text", ["יאניס חוזר לבאקס", "המשבר בבאקס נמשך", "הבאקס ניצחו"])
+def test_prefixed_bucks_forms_still_resolve(text):
+    assert "team:milwaukee_bucks" in [e.id for e in resolve_entities(text).resolved]

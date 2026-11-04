@@ -485,8 +485,8 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
           domestic="comp:nba"),
     _team("team:milwaukee_bucks", "basketball", "מילווקי באקס", "Milwaukee Bucks",
           "Milwaukee Bucks",
-          # Bare "באקס" removed (#415): it is ב+אקס ("באקס ה-NBA" = "in an ex-NBA...").
-          ("הבאקס", "מילווקי", "מילווקי באקס", "milwaukee bucks", "milwaukee"),
+          # Bare "באקס" removed (#415): it is ב+אקס ("באקס ה-NBA"); the prefixed forms stay.
+          ("הבאקס", "לבאקס", "בבאקס", "מילווקי", "מילווקי באקס", "milwaukee bucks", "milwaukee"),
           domestic="comp:nba", context_aliases=("מילווקי", "milwaukee")),  # Brewers (#415)
     _team("team:minnesota_timberwolves", "basketball", "מינסוטה טימברוולבס",
           "Minnesota Timberwolves",

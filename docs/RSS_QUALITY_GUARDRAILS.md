@@ -1223,6 +1223,8 @@ rule because Deni is named without a marker, and a Maccabi player named without 
 
 Tests: `tests/test_opponent_injury_410.py`.
 
+**Owner rule (#423): the current team decides.** An injury to a team's player pushes for a user who follows that team or a player on it. A title that names a team's current player (registry `team_id`, word-bounded, outside an opponent slot) makes that team a subject on injury stories. In the V2 scorer, a followed player (level at least +1) matches a current injury whose subject is his current team, for visibility and for his `always_push:injury` rule, and nothing else about that team. A player missing from the registry cannot trigger this: `roster_review.py` owns coverage.
+
 ---
 
 ## 24. A Company's Deal Is Not a Player Signing (#413, 2026-11-04)

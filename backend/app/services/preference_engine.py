@@ -104,6 +104,22 @@ def _entity_on_article(article: Article, taxonomy_id: str) -> bool:
     return ent.legacy_name in (article.entities or [])
 
 
+def _is_followed_players_team_injury(article: Article, player_id: str) -> bool:
+    """A current injury story whose subject is the current team of ``player_id`` (#423).
+
+    A user who follows a player follows his team's injuries; nothing else about that team.
+    Rests on the persisted attention evidence, so the opponent rule (#410) already applies.
+    """
+    player = entity_by_id(player_id)
+    if player is None or player.kind != "player" or not player.team_id:
+        return False
+    if article.event_type != "injury":
+        return False
+    attention = (article.classification_trace or {}).get("attention") or {}
+    return (attention.get("development") == "current_injury"
+            and player.team_id in attention.get("subject_entity_ids", []))
+
+
 def _match_scope(
     article: Article, affinity: ScopeAffinity, closed_league: bool = False
 ) -> Optional[_ScopeMatch]:
@@ -126,6 +142,8 @@ def _match_scope(
     if _entity_on_article(article, affinity.target_id):
         ent = entity_by_id(affinity.target_id)
         return _ScopeMatch(affinity, None, ent.legacy_name if ent else affinity.target_id)
+    if affinity.level >= 1 and _is_followed_players_team_injury(article, affinity.target_id):
+        return _ScopeMatch(affinity, None, f"{affinity.target_id} (current team's injury)")
     return None
 
 
@@ -179,6 +197,8 @@ def _override_matches(article: Article, rule: OverrideRule) -> bool:
         return comp is not None and match_competition_names(
             article, [comp.display_en], closed_league=rule.kind != "always_push",
         ) is not None
+    if rule.kind == "always_push" and _is_followed_players_team_injury(article, rule.target_id):
+        return True
     return _entity_on_article(article, rule.target_id)
 
 
@@ -418,6 +438,7 @@ def _score_v2(
                     } or (
                         rule.scope in {"team", "player"}
                         and rule.target_id not in attention.get("subject_entity_ids", [])
+                        and not _is_followed_players_team_injury(article, rule.target_id)
                     ):
                         _contribute("push_severity", rule.target_id, "withheld",
                                     attention.get("development", "missing_evidence"))

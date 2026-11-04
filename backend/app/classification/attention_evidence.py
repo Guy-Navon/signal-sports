@@ -42,6 +42,17 @@ def _named_only_as_opponent(entity, title: str) -> bool:
     )
 
 
+def _with_own_players(subjects: list, entity_ids: list, title: str) -> list:
+    """Add a team as a subject when its current player is named in the title (#423): the
+    classifier reports "לונדברג נפצע" as Maccabi, with no club word in the title."""
+    out = list(subjects)
+    for named in resolve_entities(title).resolved:
+        if (named.kind == "player" and named.team_id in entity_ids and named.team_id not in out
+                and not _named_only_as_opponent(named, title)):
+            out.append(named.team_id)
+    return out
+
+
 def _with_linked_people(subjects: list, entity_ids: list, title: str) -> list:
     """Add a team as a subject when a coach/executive linked to it is named in the title."""
     out = list(subjects)
@@ -94,6 +105,7 @@ def attention_evidence(title: str, subtitle: str, event_type: str, entity_ids: l
         # #410: an injury story about the opponent of a followed team is not its injury.
         subjects = [eid for eid in subjects
                     if not _named_only_as_opponent(ENTITIES[eid], title)]
+        subjects = _with_own_players(subjects, entity_ids, title)
     else:
         # This policy narrows the noisy transfer/injury rules only. Other
         # event types still face their own semantic and override contracts.

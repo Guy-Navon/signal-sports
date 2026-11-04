@@ -1196,7 +1196,36 @@ Tests: `tests/test_champions_league_407.py`.
 
 ---
 
-## 23. A Company's Deal Is Not a Player Signing (#413, 2026-11-04)
+## 23. An Injury "Against" a Team Is Not That Team's Injury (#410, 2026-11-04)
+
+`השחקן שייעדר מול מכבי תל אביב` is a Red Star player missing the game against Maccabi, yet Guy's
+`always_push:injury` pushed it (owner: feed). The push rule requires its target in
+`attention.subject_entity_ids`, and any title mention made an entity a subject.
+
+For `event_type == "injury"` only, an entity whose every title mention sits directly after
+`מול` / `נגד` (also `ומול`, `כנגד`) or `against` / `versus` / `vs` is no longer a subject
+(`attention_evidence._named_only_as_opponent`). The entity stays on the article, so visibility and
+affinity are unchanged and the story keeps its tier. One exception protects a real injury: a team
+whose own player is named in the title (word-bounded, outside the slot) stays a subject (`הפועל נגד מכבי:
+לונדברג ייעדר`). Subtitles were never subject evidence and still are not.
+
+Measured on the 2026-11-02 corpus copy, 4,272 rows, held-out rows excluded: of the 2 injury pushes,
+the reported row is the only one with this shape. Across all injury rows 7 lost an opponent subject,
+and the reported row is the only decision that moved (Guy push → high_feed; the owner's rating is
+feed). The Deni rule has no such row, so `casual_deni_fan` is unchanged.
+
+Stored rows keep their attention evidence until it is refreshed
+(`scripts/apply_192_feed_evidence.py` selects exactly the reported row on that copy).
+
+Known limits, not changed here: `מכה לאבדיה וחבריו: ג'ה מוראנט ייעדר` still pushes through the Deni
+rule because Deni is named without a marker, and a Maccabi player named without the club (`דניאל
+תייס ייעדר`) is not a Maccabi subject, so that rule stays silent.
+
+Tests: `tests/test_opponent_injury_410.py`.
+
+---
+
+## 24. A Company's Deal Is Not a Player Signing (#413, 2026-11-04)
 
 `signing` evidence now has one more blocker: a corporate noun (ענקית, חברה/חברת, רשת, ערוץ, תאגיד,
 נטפליקס, אמזון, ספונסר, חסות, הימורים, סטרימינג) in the same clause shortly before

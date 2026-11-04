@@ -8,6 +8,7 @@ import re
 
 from app.classification.event_evidence import governance_step_context
 from app.taxonomy.entities import ENTITIES
+from app.taxonomy.resolver import resolve_entities
 
 
 _CONCRETE_STEP = (
@@ -16,6 +17,29 @@ _CONCRETE_STEP = (
     r"נרכש|נרכשה|רכש|רכשה|רכשו|השלים|השלימה|השלימו)(?![א-ת])"
     r"|\b(?:filed|agreed|approved|sold|bought|completed)\b"
 )
+
+# "מול/נגד <team>" names the team as the opponent of the story's subject (#410).
+_OPPONENT_MARKER = r"(?:(?<![א-ת])[וכ]?(?:מול|נגד)|\b(?:against|versus|vs\.?))\s+"
+
+
+def _named_only_as_opponent(entity, title: str) -> bool:
+    """True when every title mention of ``entity`` sits directly after an opponent marker.
+
+    The longer aliases are matched first so "אבדיה" inside "מול דני אבדיה" goes with its
+    slot. A team whose own player is also named keeps its subject role: "הפועל נגד מכבי:
+    לונדברג ייעדר" is still Maccabi's injury.
+    """
+    aliases = sorted((a.lower() for a in entity.aliases), key=len, reverse=True)
+    names = "|".join(re.escape(a) for a in aliases)
+    outside_slots = re.sub(rf"{_OPPONENT_MARKER}(?:{names})", " ", title)
+    if any(a in outside_slots for a in aliases):
+        return False
+    # Through the resolver, not entity_ids: the classifier swaps implies_team players for
+    # their club, and its word bounds keep "מדר" out of "מדריד".
+    return not any(
+        named.kind == "player" and named.team_id == entity.id
+        for named in resolve_entities(outside_slots).resolved
+    )
 
 
 def _with_linked_people(subjects: list, entity_ids: list, title: str) -> list:
@@ -67,6 +91,9 @@ def attention_evidence(title: str, subtitle: str, event_type: str, entity_ids: l
     elif event_type == "injury":
         if any(word in title for word in ("נפצע", "קרע", "ייעדר", "injured", "out for")):
             development = "current_injury"
+        # #410: an injury story about the opponent of a followed team is not its injury.
+        subjects = [eid for eid in subjects
+                    if not _named_only_as_opponent(ENTITIES[eid], title)]
     else:
         # This policy narrows the noisy transfer/injury rules only. Other
         # event types still face their own semantic and override contracts.

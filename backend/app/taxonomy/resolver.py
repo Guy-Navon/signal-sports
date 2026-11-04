@@ -93,8 +93,22 @@ _HEB_CONJ = set("וש")
 _GERESH = set("'׳`")
 
 
+_LATIN_WORD_CHARS = set("abcdefghijklmnopqrstuvwxyz0123456789")
+
+
+def _is_standalone_latin_word(text: str, span: tuple[int, int]) -> bool:
+    """Latin alias on word edges: "deni" is not inside "denied"/"Denis" (#415). A Hebrew
+    letter, apostrophe or hyphen next to it is fine ("ל-Deni", "Deni's")."""
+    start, end = span
+    return (start == 0 or text[start - 1] not in _LATIN_WORD_CHARS) and (
+        end >= len(text) or text[end] not in _LATIN_WORD_CHARS
+    )
+
+
 def _is_standalone_word(text: str, span: tuple[int, int]) -> bool:
     start, end = span
+    if text[start:end].isascii():
+        return _is_standalone_latin_word(text, span)
     if end < len(text) and (text[end] in _HEB_LETTERS or text[end] in _GERESH):
         return False
     i = start
@@ -104,6 +118,15 @@ def _is_standalone_word(text: str, span: tuple[int, int]) -> bool:
         i -= 1
     return i == 0 or text[i - 1] not in _HEB_LETTERS
 
+
+# #415: bare city/nickname aliases that need basketball evidence (``context_aliases``).
+_CONTEXT_ALIASES: frozenset[str] = frozenset(
+    normalize_alias_text(a) for e in ENTITIES.values() for a in e.context_aliases
+)
+_BASKETBALL_CUES: tuple[str, ...] = (
+    "nba", "אן.בי.איי", "כדורסל", "basketball", "יורוליג", "euroleague", "יורוקאפ",
+    "eurocup", "גארד", "פורוורד", "סנטר",
+)
 
 # Aliases sorted longest-first so longer matches claim their span before any
 # shorter alias contained within them.
@@ -188,6 +211,28 @@ def _filter_candidates(
 
 
 def resolve_entities(text: str, sport_context: Optional[str] = None) -> EntityResolution:
+    """Resolve entities; bare city/nickname aliases (``context_aliases``, #415) only count
+    with basketball evidence: the caller's sport context, a basketball word in the text,
+    or another basketball entity the text names."""
+    lowered = normalize_alias_text(text)
+    first = _resolve(text, sport_context, allow_context_aliases=False)
+    if not _context_alias_present(lowered):
+        return first
+    evidence = (
+        sport_context == "basketball"
+        or any(cue in lowered for cue in _BASKETBALL_CUES)
+        or any(e.sport == "basketball" for e in first.resolved)
+    )
+    return _resolve(text, sport_context, allow_context_aliases=True) if evidence else first
+
+
+def _context_alias_present(lowered: str) -> bool:
+    return any(a in lowered for a in _CONTEXT_ALIASES)
+
+
+def _resolve(
+    text: str, sport_context: Optional[str], allow_context_aliases: bool
+) -> EntityResolution:
     """Resolve canonical entities mentioned in ``text``.
 
     Args:
@@ -201,6 +246,8 @@ def resolve_entities(text: str, sport_context: Optional[str] = None) -> EntityRe
     emitted_ids: set[str] = set()
 
     for alias in _ALIASES_BY_LENGTH:
+        if alias in _CONTEXT_ALIASES and not allow_context_aliases:
+            continue
         occurrences = _find_occurrences(lowered, alias)
         if alias in _WORD_BOUNDED:
             occurrences = [sp for sp in occurrences if _is_standalone_word(lowered, sp)]

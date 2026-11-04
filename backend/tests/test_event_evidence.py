@@ -462,3 +462,37 @@ class TestMajorTradeIsTitleLocal:
         )
         assert article.event_type == "major_trade"
         assert article.event_certainty == "confirmed"
+
+
+# ── #413: a company/broadcaster deal is not a player signing ─────────────────
+
+class TestCompanyDealIsNotSigning:
+    def test_broadcaster_deal_subtitle_is_not_signing(self):
+        r = classify(
+            "מהפכה בשידורי הגביע העולמי: נטפליקס רכשה את זכויות השידור למונדיאל 2030",
+            source_id="ynet_sport", language="he",
+            subtitle="ענקית הסטרימינג חתמה על הסכם היסטורי ורכשה את זכויות השידור לטורניר הענק",
+        )
+        assert r.event_type != "signing"
+
+    def test_sponsor_company_deal_is_not_signing(self):
+        r = classify(
+            "חסות חדשה ליורוליג", source_id="sport5_sport", language="he",
+            subtitle="חברת הימורים חתמה על הסכם חסות עם הליגה",
+        )
+        assert r.event_type != "signing"
+
+    def test_prefixed_corporate_noun_is_not_signing(self):
+        r = classify("חסות חדשה ליורוליג", source_id="sport5_sport", language="he",
+                     subtitle="החברה חתמה על הסכם חסות עם הליגה")
+        assert r.event_type != "signing"
+
+    @pytest.mark.parametrize("subtitle", [
+        "הגארד חתם על הסכם לשנתיים במכבי תל אביב",
+        "הסנטר האמריקאי חתם על הסכם עד 2028 בהפועל תל אביב",
+        "המאמן חתם על הסכם חדש",
+    ])
+    def test_person_signing_a_deal_stays_signing(self, subtitle):
+        r = classify("מכבי תל אביב מודיעה", source_id="sport5_sport", language="he",
+                     subtitle=subtitle)
+        assert r.event_type == "signing"

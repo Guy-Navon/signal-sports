@@ -1225,6 +1225,14 @@ Tests: `tests/test_opponent_injury_410.py`.
 
 ---
 
+## 24. A Company's Deal Is Not a Player Signing (#413, 2026-11-04)
+
+`signing` evidence now has one more blocker: a corporate noun (ענקית, חברה/חברת, רשת, ערוץ, תאגיד,
+נטפליקס, אמזון, ספונסר, חסות, הימורים, סטרימינג) in the same clause shortly before
+"חתמה/חתמו על (ה)הסכם". Corpus measurement (4281 rows): that verb+הסכם shape occurs once, the ynet
+Netflix World Cup rights story; every person's "חתם על חוזה" is untouched. The guard is deliberately
+narrow: a club-as-subject sponsorship deal and other signing wording are not covered.
+
 ## Where open classification work is tracked
 
 This file is a changelog of shipped rules. Open gaps live in GitHub issues and in the

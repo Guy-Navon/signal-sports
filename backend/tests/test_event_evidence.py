@@ -482,6 +482,11 @@ class TestCompanyDealIsNotSigning:
         )
         assert r.event_type != "signing"
 
+    def test_prefixed_corporate_noun_is_not_signing(self):
+        r = classify("חסות חדשה ליורוליג", source_id="sport5_sport", language="he",
+                     subtitle="החברה חתמה על הסכם חסות עם הליגה")
+        assert r.event_type != "signing"
+
     @pytest.mark.parametrize("subtitle", [
         "הגארד חתם על הסכם לשנתיים במכבי תל אביב",
         "הסנטר האמריקאי חתם על הסכם עד 2028 בהפועל תל אביב",

@@ -202,6 +202,7 @@ must be re-audited when seasons roll over.
 | EuroLeague | 20/20 clubs (2025-26) | Complete for 2025-26 | Annual: promotion/licence changes each season |
 | Israeli Basketball League | 18 clubs | Near-complete; promoted/relegated edge clubs may be missing. `team:hapoel_haemek` added 2026-09-16 (see below) | Annual roster churn; verify at season start |
 | Israeli basketball cups | `comp:winner_cup`, `comp:il_super_cup` (parent `comp:ibl`) | Added 2026-10-10 (#230). No memberships: every IBL club plays them, and following the IBL follows them | Super Cup aliases are qualified forms only (see below) |
+| Basketball Champions League | `comp:bcl`, **no memberships** | Added 2026-11-02 (#407). Corpus: Hapoel Holon and Bnei Herzliya play it in 2026-27; memberships deliberately not registered (see below) | Entrant list is season data; bare name shared with UEFA |
 | EuroCup | 1 club (Hapoel Jerusalem) | Deliberately sparse — EuroCup lineup is volatile; register on coverage evidence | High |
 | Spanish ACB | 4 clubs (Real Madrid, Barcelona, Baskonia, Valencia) | Partial by design — EuroLeague clubs only; no non-EL ACB club has appeared in ingested coverage | Medium |
 | Turkish BSL | 2 clubs (Fenerbahce, Anadolu Efes) | Partial by design — zero non-EL BSL mentions in the real DB | Medium |
@@ -395,6 +396,40 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
     like a coach, with the [roster maintenance](#roster-maintenance-club-people-implies_team-377)
     routine. Do not backfill old articles with it: it would attach today's club to a past
     transfer story.
+- **Basketball Champions League — added 2026-11-02 (#407).** Census #3 (fit half) found
+  `סאנוגו כיכב, הפועל חולון ניצחה לראשונה בליגת האלופות` stored football / UEFA Champions
+  League and hidden (owner: feed). In the frozen 2026-11-01 corpus (held-out rows excluded)
+  72 rows say `ליגת האלופות` / `champions league`: 65 are football (UEFA, plus one Asian
+  Champions League Two row) and 7 are the FIBA Basketball Champions League. No handball or
+  volleyball row. Registered `comp:bcl` (basketball, `international_league`), listed after
+  EuroCup and **selectable** (owner decision 2026-11-02). It has 4 calibration items
+  (`calibration_v2/dataset.py`, the EuroCup shape). Guy's profile does not follow it; that
+  stays the owner's choice.
+  - **Aliases.** Qualified forms only: `ליגת האלופות של פיב"א` (and `פיב״א` / `פיבא`),
+    `ליגת האלופות בכדורסל`, `basketball champions league`, `fiba champions league`, and
+    `BCL` as a whole Latin word only (2 corpus rows, both basketball; `abcl` does not match).
+  - **The bare name is shared, like a cross-sport twin club.** `ליגת האלופות` /
+    `champions league` belong to neither competition's keyword list. The facts stage maps
+    them to `comp:bcl` when the text proves basketball and to `comp:ucl` otherwise
+    (`sport_guards.shared_champions_league_sport`; rule in
+    [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) §22). `comp:ucl` therefore has no
+    keyword of its own.
+  - **No memberships, deliberately.** The corpus shows Hapoel Holon and Bnei Herzliya in
+    the 2026-27 BCL, but a `comp:bcl` membership would turn a Holon–Herzliya IBL game's
+    singleton participant intersection `{comp:ibl}` into `{comp:ibl, comp:bcl}`, and
+    participant inference abstains on that (RELEVANCE_VISIBILITY_CONTRACT tier 3). It would
+    also add nothing the IBL membership does not already reach for team-anchored events.
+    BCL coverage names the competition, so explicit evidence carries it. The entrant list
+    is unverified beyond the corpus.
+  - **Stored rows.** The 11 corpus rows the change reclassifies keep their old facts until
+    the owner runs `backend/scripts/apply_407_champions_league.py` (id-listed, dry run by
+    default; `--apply` plus `--i-know-this-is-the-live-corpus` on the live DB, after a
+    backup). It rewrites only sport, league, competitions, entities and the trace. It refuses
+    rows with LLM-assisted facts and rows whose event or importance would change. Dry run on
+    the 2026-11-02 live backup: 11 to correct, 0 refused. Guy and Deni get no decision
+    change, and none of the rows is inside the 36-hour feed window.
+  - Not added: `צ'מפיונס` (6 corpus rows, all football, 3 already `comp:ucl` through the
+    bare name elsewhere in the text). It is a football-only colloquialism and outside this issue.
 - **Bare family names** (`בהפועל`) stay unresolvable. That abstention is a
   designed success mode, not a remaining gap.
 

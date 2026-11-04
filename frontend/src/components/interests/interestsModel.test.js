@@ -219,3 +219,43 @@ describe("documentToState", () => {
     expect(state.eventPreferences).toEqual({ injuries: "more" });
   });
 });
+
+// #407: two competitions share the name "ליגת האלופות". Only the basketball one is
+// selectable, and the picker shows it under its qualified Hebrew name.
+describe("shared Champions League name", () => {
+  const clCatalog = {
+    taxonomy_version: 1,
+    sports: [
+      { id: "basketball", display_he: "כדורסל", display_en: "Basketball", selectable: true,
+        competitions: [
+          { id: "comp:eurocup", kind: "international_league", display_he: "יורוקאפ",
+            display_en: "EuroCup", selectable: true },
+          { id: "comp:bcl", kind: "international_league", display_he: "ליגת האלופות בכדורסל",
+            display_en: "Basketball Champions League", selectable: true },
+        ] },
+      { id: "football", display_he: "כדורגל", display_en: "Football", selectable: true,
+        competitions: [
+          { id: "comp:ucl", kind: "international_league", display_he: "ליגת האלופות",
+            display_en: "UEFA Champions League", selectable: false },
+        ] },
+    ],
+    teams: [],
+    people: [],
+  };
+
+  it("search finds only the selectable basketball competition", () => {
+    const results = searchCatalog(clCatalog, "ליגת האלופות");
+    expect(results.map((r) => [r.scope, r.item.id, r.sport])).toEqual([
+      ["competition", "comp:bcl", "basketball"],
+    ]);
+  });
+
+  it("finds it by its English name too", () => {
+    expect(searchCatalog(clCatalog, "champions").map((r) => r.item.id)).toEqual(["comp:bcl"]);
+  });
+
+  it("is listed with the basketball competitions after EuroCup", () => {
+    expect(competitionsForSport(clCatalog, "basketball").map((c) => c.id))
+      .toEqual(["comp:eurocup", "comp:bcl"]);
+  });
+});

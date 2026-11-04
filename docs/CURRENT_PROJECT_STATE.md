@@ -245,7 +245,7 @@ Notifications are planned per **story** (cluster lineage), at most once
 
 **How profiles are populated** (the CLAUDE.md "three ways"): explicit interest selection over
 the taxonomy catalog ([INTERESTS.md](INTERESTS.md)), interest-aware calibration
-([CALIBRATION_V2.md](CALIBRATION_V2.md), dataset v3, 73 items), and feedback learning
+([CALIBRATION_V2.md](CALIBRATION_V2.md), dataset v3, 77 items), and feedback learning
 ([FEEDBACK_LEARNING.md](FEEDBACK_LEARNING.md)). Learning activates at ≥3 net consistent events,
 caps at ±1 with a 90-day half-life, never creates an exclude, and is derived at read time. Free-text
 preference input was deliberately not built. **Census calibration** (#237) is a fourth, offline
@@ -262,7 +262,7 @@ them, and drift tests on both sides enforce it.
 Pipeline order and contracts: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) (map),
 [ARTICLE_FACTS.md](ARTICLE_FACTS.md) (facts stage), [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md)
 (gate, merge, metrics), and [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) (the
-deterministic rule changelog, §1–§21).
+deterministic rule changelog, §1–§22).
 
 - **Rules first, always.** The title is primary, and the subtitle only fills gaps. *Title-local*
   event types (`title_win`, `grand_slam_winner`, `major_trade`, `schedule`, …) never come from
@@ -276,7 +276,10 @@ deterministic rule changelog, §1–§21).
 - **Event types:** the specific types need positive evidence; `news` is abstention, with a
   recorded reason. Newer types: `relocation` (#191), `club_governance` (#229).
 - **Taxonomy** ([TAXONOMY.md](TAXONOMY.md)): 117 entities (79 teams, 31 players, 2 coaches,
-  5 executives) and 21 competitions, 15 of them selectable. Bare club-family names (`מכבי`,
+  5 executives) and 22 competitions, 16 of them selectable. The FIBA Basketball Champions
+  League (`comp:bcl`, #407) is selectable in onboarding (owner decision 2026-11-02). Its bare name
+  `ליגת האלופות` is shared with UEFA's and is read by the sport the text proves (see
+  RSS_QUALITY_GUARDRAILS.md §22). Bare club-family names (`מכבי`,
   `הפועל`) never resolve. Coaches and executives imply their team, and so do the #259
   Maccabi/Hapoel Tel Aviv roster people (`implies_team`). That roster is season data, kept
   current by the TAXONOMY.md roster-maintenance routine (#377).
@@ -461,6 +464,9 @@ milestone 11's gate.
    - #242 venue-move vocabulary for `club_governance`, landed in PR #398 (RSS_QUALITY_GUARDRAILS
      §20); its two high_feed side effects await owner rating, and #401 (the pre-existing #229
      subtitle → push path) awaits an owner decision
+   - #407 (census #3 finding): a Basketball Champions League game was read as the UEFA
+     Champions League. The facts fix is in review (PR #417); `comp:bcl` is selectable in onboarding.
+     Guy's profile does not follow it (owner, 2026-11-02)
 3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
    - done: #256 (measurement), #259 (Maccabi/Hapoel Tel Aviv people registered)
    - open: #345 (the corroborated basketball exception landed; wanted stories with no non-LLM

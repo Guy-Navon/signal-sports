@@ -89,4 +89,16 @@ def validate_registry() -> list[str]:
         elif parent.parent is not None:
             errors.append(f"{comp.id}: parent {parent.id} has a parent of its own")
 
+    # A closed competition (#404): its clubs play nowhere else, so a member club
+    # registered in a second competition contradicts the flag.
+    for comp in COMPETITIONS.values():
+        if not comp.closed:
+            continue
+        if comp.parent is not None:
+            errors.append(f"{comp.id}: a closed competition cannot have a parent")
+        for entity in ENTITIES.values():
+            comps = {c for c, _season in entity.memberships}
+            if entity.kind == "team" and comp.id in comps and comps != {comp.id}:
+                errors.append(f"{entity.id}: member of closed {comp.id} and of {sorted(comps - {comp.id})}")
+
     return errors

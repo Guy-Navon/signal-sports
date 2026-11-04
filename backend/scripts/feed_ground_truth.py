@@ -8,6 +8,12 @@ Usage (from backend/):
     .venv\\Scripts\\python.exe scripts/feed_ground_truth.py baseline --out ../docs/qa/n05_baseline.json
     .venv\\Scripts\\python.exe scripts/feed_ground_truth.py sample   --out ../docs/qa/n05_sample.json
     .venv\\Scripts\\python.exe scripts/feed_ground_truth.py score    --ratings ../docs/qa/n05_ratings.json
+    .venv\\Scripts\\python.exe scripts/feed_ground_truth.py gate              # N05 regression gate (#189)
+    .venv\\Scripts\\python.exe scripts/feed_ground_truth.py gate --census     # census gate, stored facts (#254)
+    .venv\\Scripts\\python.exe scripts/feed_ground_truth.py gate --census --facts rerun   # census gate, rules-only rerun
+
+``gate`` is described in docs/RELEVANCE_CONTRACT.md §Quality gate; the census
+checks live in app/qa/census_gate.py.
 
 Three commands:
 
@@ -63,8 +69,8 @@ try:  # Match app.main: production flags must be in effect while measuring.
 except ImportError:  # pragma: no cover - dotenv is a hard dependency in practice
     pass
 
-from app.db.database import SessionLocal  # noqa: E402
-from app.qa import feed_quality_gate  # noqa: E402
+from app.db.database import DATABASE_URL, SessionLocal  # noqa: E402
+from app.qa import census_gate, feed_quality_gate  # noqa: E402
 from app.repositories import article_repository, profile_repository  # noqa: E402
 from app.services.feed_service import active_engine, build_feed  # noqa: E402
 
@@ -92,10 +98,18 @@ SEED = 20260905
 
 
 def _git_sha() -> str:
+    """HEAD, suffixed ``-dirty`` when tracked files under backend/ differ from it: a
+    measurement taken on uncommitted code is not reproducible from the SHA alone.
+    Only backend/ counts: the rating files are fingerprinted separately, and a
+    baseline JSON being rewritten is not a code change."""
     try:
-        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        changed = subprocess.check_output(
+            ["git", "status", "--porcelain", "--untracked-files=no", "--", str(_BACKEND)], text=True
+        ).strip()
     except Exception:
         return "unknown"
+    return f"{sha}-dirty" if changed else sha
 
 
 def _title(article) -> str:
@@ -511,7 +525,23 @@ def _print_score(report: dict) -> None:
 
 # ── gate ──────────────────────────────────────────────────────────────────────
 
-DEFAULT_BASELINE = _BACKEND.parent / "docs" / "qa" / "n05_gate_baseline.json"
+_REPO = _BACKEND.parent
+_QA = _REPO / "docs" / "qa"
+DEFAULT_BASELINE = _QA / "n05_gate_baseline.json"
+DEFAULT_N05_RATINGS = _QA / "n05_ratings.json"
+DEFAULT_N05_SAMPLE = _QA / "n05_sample.json"
+
+# The census gate (#254) starts on census #2 alone. Census #3 (#241) is added by
+# passing a second --ratings/--sample pair and regenerating the baseline. Census
+# #2's blind review is listed so the baseline records it: its 58 values are
+# already folded into census2_ratings.json, so applying it changes 0 rows.
+DEFAULT_CENSUS_BASELINES = {
+    "stored": _QA / "census_gate_baseline.json",
+    "rerun": _QA / "census_gate_rerun_baseline.json",
+}
+DEFAULT_CENSUS_RATINGS = (_QA / "census2_ratings.json",)
+DEFAULT_CENSUS_SAMPLES = (_QA / "census2_sample.json",)
+DEFAULT_CENSUS_REVIEWS = (_QA / "census2_review_ratings.json",)
 
 
 def cmd_gate(args) -> None:
@@ -528,18 +558,29 @@ def cmd_gate(args) -> None:
             "--accept requires --reason. An accepted regression must carry an "
             "argument, otherwise it is just a silently relaxed threshold."
         )
-    baseline_path = Path(args.baseline)
+    if args.force_update and not (args.census and args.update_baseline and args.reason):
+        raise SystemExit("--force-update needs --census --update-baseline and a --reason citing the reviewed delta.")
+    if args.census:
+        _cmd_census_gate(args, accepted)
+        return
+    if args.review or args.facts != "stored":
+        raise SystemExit("--review and --facts apply to the census gate only (add --census).")
+    if len(args.ratings or []) > 1 or len(args.sample or []) > 1:
+        raise SystemExit("The N05 gate takes one --ratings and one --sample.")
+    ratings_path = (args.ratings or [str(DEFAULT_N05_RATINGS)])[0]
+    sample_path = (args.sample or [str(DEFAULT_N05_SAMPLE)])[0]
+    baseline_path = Path(args.baseline or DEFAULT_BASELINE)
     if not args.update_baseline and not baseline_path.exists():
         raise SystemExit(
             f"No baseline at {baseline_path}. Create one deliberately with:\n"
             f"  scripts/feed_ground_truth.py gate --update-baseline"
         )
 
-    report, decisions = _score_ratings(args.ratings, args.sample, live=True)
+    report, decisions = _score_ratings(ratings_path, sample_path, live=True)
 
     if args.update_baseline:
         baseline = feed_quality_gate.build_baseline(report, decisions)
-        _write(args.baseline, baseline)
+        _write(baseline_path, baseline)
         print(
             "\nBaseline REWRITTEN. This is a deliberate act: every future change is "
             "now measured against these numbers.\n"
@@ -562,6 +603,239 @@ def cmd_gate(args) -> None:
     if args.out:
         _write(args.out, {"meta": report["meta"], "verdict": verdict.as_dict()})
 
+    if not verdict.passed:
+        sys.exit(1)
+
+
+# ── census gate (#254) ────────────────────────────────────────────────────────
+
+
+def _repo_rel(path) -> str:
+    """Repo-relative POSIX path for the baseline record; absolute if outside."""
+    resolved = Path(path).resolve()
+    try:
+        return resolved.relative_to(_REPO.resolve()).as_posix()
+    except ValueError:
+        return resolved.as_posix()
+
+
+def _read_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _census_input_paths(args, baseline: dict | None) -> tuple[list, list, list]:
+    """Explicit flags win; else the files the baseline was built from; else census #2.
+
+    Returned as absolute paths: flags are relative to the working directory, the
+    baseline's records are relative to the repository root.
+    """
+    if args.ratings or args.sample or args.review:
+        ratings, samples = list(args.ratings or []), list(args.sample or [])
+        if len(ratings) != len(samples) or not ratings:
+            raise SystemExit(
+                "The census gate pairs each --ratings with a --sample, in order "
+                f"(got {len(ratings)} ratings, {len(samples)} samples)."
+            )
+        return (
+            [Path(p).resolve() for p in ratings],
+            [Path(p).resolve() for p in samples],
+            [Path(p).resolve() for p in args.review or []],
+        )
+    if baseline is not None:
+        return _recorded_paths(baseline)
+    return list(DEFAULT_CENSUS_RATINGS), list(DEFAULT_CENSUS_SAMPLES), list(DEFAULT_CENSUS_REVIEWS)
+
+
+def _recorded_paths(baseline: dict) -> tuple[list, list, list]:
+    """The census files a baseline was built from (repo-relative in the record)."""
+    inputs = baseline["inputs"]
+    return (
+        [_REPO / c["ratings"] for c in inputs["censuses"]],
+        [_REPO / c["sample"] for c in inputs["censuses"]],
+        [_REPO / r["path"] for r in inputs["reviews"]],
+    )
+
+
+def _load_census(ratings: list, samples: list, reviews: list):
+    sources = [
+        census_gate.CensusSource(_repo_rel(r), _repo_rel(s), _read_json(r), _read_json(s))
+        for r, s in zip(ratings, samples)
+    ]
+    review_sources = [census_gate.ReviewSource(_repo_rel(p), _read_json(p)) for p in reviews]
+    try:
+        return census_gate.merge_census(sources, review_sources)
+    except feed_quality_gate.GateInputError as exc:
+        raise SystemExit(f"Cannot build the census: {exc}")
+
+
+def _rerun_articles(articles) -> list:
+    """Rules-only reclassification of ``articles`` in memory: no LLM, no translation,
+    no DB writes. Mirrors ``scripts/corpus_rerun_diff.py snapshot`` so the numbers are
+    comparable with a rerun diff. An article whose source has no config is dropped,
+    which the census metrics then report as a row without a decision.
+
+    The LLM provider singleton is built from the environment when
+    ``ingestion_service`` is first imported, and backend/.env may enable one, so the
+    environment variable alone is not a guarantee: ``llm_available=False`` makes the
+    LLM branch unreachable regardless (tests/test_census_gate_rerun.py)."""
+    import logging
+    import os
+
+    os.environ["CLASSIFICATION_PROVIDER"] = "disabled"
+    os.environ["TRANSLATION_PROVIDER"] = "disabled"
+    from app.ingestion import ingestion_service
+    from app.ingestion.adapters.base import RawSourceItem
+    from app.ingestion.config import get_source_config
+
+    out = []
+    previous_disable = logging.root.manager.disable
+    logging.disable(logging.CRITICAL)  # per-row classifier logging, for this loop only
+    try:
+        for stored in articles:
+            cfg = get_source_config(stored.source)
+            if cfg is None:
+                continue
+            fresh, _, _ = ingestion_service._normalise(
+                RawSourceItem(source_id=stored.source, url=stored.url, title=stored.title,
+                              published_at=None, summary=stored.subtitle or ""),
+                cfg,
+                llm_available=False,
+            )
+            out.append(fresh.model_copy(update={"id": stored.id, "published_at": stored.published_at}))
+    finally:
+        logging.disable(previous_disable)
+    return out
+
+
+def _census_decisions(article_ids, profiles, facts: str) -> tuple[dict, int]:
+    """Current decisions, per profile, over the census article ids only.
+
+    ``stored`` scores the persisted facts (what the corpus serves). ``rerun`` scores
+    a rules-only reclassification of the same rows, which is the only way a
+    classifier or taxonomy change shows up before a backfill. Both use the
+    persisted profiles from the DB."""
+    wanted = set(article_ids)
+    with SessionLocal() as session:
+        if facts == "stored":
+            feeds, corpus_size = _score_all(session)
+        else:
+            corpus = article_repository.get_rss_articles(session)
+            corpus_size = len(corpus)
+            rerun = _rerun_articles([a for a in corpus if a.id in wanted])
+            feeds = {}
+            for user_id in PROFILE_IDS:
+                profile = profile_repository.get_by_id(session, user_id)
+                if profile is None:
+                    raise SystemExit(f"Profile '{user_id}' is missing from the corpus DB.")
+                feeds[user_id] = build_feed(rerun, profile, include_hidden=True)
+    decisions = {
+        user_id: {s.article.id: s.decision for s in feed if s.article.id in wanted}
+        for user_id, feed in feeds.items()
+        if user_id in profiles
+    }
+    return decisions, corpus_size
+
+
+def _print_census_metrics(baseline: dict) -> None:
+    for user_id, block in baseline["profiles"].items():
+        m = block.get("metrics")
+        print(f"\n-- {user_id} --  {len(block['decisions'])} census decisions")
+        if not m:
+            print("  canary: decisions frozen for the drift check (no ratings)")
+            continue
+        print(f"  rated {m['rated']}")
+        print(f"  shown precision  {m['shown_precision']}  ({m['worth_showing']}/{m['shown']})")
+        print(f"  feed+ recall     {m['feed_plus_recall']}  ({m['feed_plus_shown']}/{m['feed_plus']})")
+        print(f"  push precision   {m['push_precision']}  ({m['push_agreed']}/{m['push_fired']})")
+        print(f"  push recall      {m['push_recall']}  ({m['push_recalled']}/{m['push_wanted']})")
+        print(f"  >=2-notch gaps   {m['two_notch']}   gap histogram {m['gap_histogram']}")
+
+
+def _cmd_census_gate(args, accepted: list) -> None:
+    """The census gate: same contract as the N05 gate, census checks (#254)."""
+    baseline_path = Path(args.baseline or DEFAULT_CENSUS_BASELINES[args.facts])
+    baseline = None
+    if baseline_path.exists():
+        baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+    elif not args.update_baseline:
+        raise SystemExit(
+            f"No census baseline at {baseline_path}. Create one deliberately with:\n"
+            f"  scripts/feed_ground_truth.py gate --census --facts {args.facts} --update-baseline"
+        )
+
+    merged = _load_census(*_census_input_paths(args, baseline))
+    # An update is first checked against the PREVIOUS baseline on the census that
+    # baseline recorded, which may differ from the new inputs (census #3 joining).
+    # The previous census is rebuilt from the baseline's own stored ratings, so a
+    # ratings file edited in place, or a new review, shows up as re-rated rows.
+    # Baselines written before ratings were stored fall back to their recorded files.
+    previous_merged = merged
+    if args.update_baseline and baseline is not None:
+        try:
+            try:
+                previous_merged = census_gate.previous_census(baseline)
+            except feed_quality_gate.GateInputError:
+                previous_merged = _load_census(*_recorded_paths(baseline))
+        except (SystemExit, OSError) as exc:
+            raise SystemExit(
+                f"Cannot reload the census the previous baseline recorded ({exc}). Without it "
+                "there is no delta to review, so the baseline is not rewritten."
+            )
+    drift_profiles = set(census_gate.DEFAULT_DRIFT_PROFILES)
+    if baseline is not None:
+        drift_profiles |= set(baseline["policy"]["drift_must_be_zero"])
+    decisions, corpus_size = _census_decisions(
+        set(merged.article_ids) | set(previous_merged.article_ids),
+        set(merged.ratings) | set(previous_merged.ratings) | drift_profiles,
+        args.facts,
+    )
+    # The file name only: which corpus copy was read, without a local path.
+    meta = _run_meta(corpus_size) | {"database": Path(DATABASE_URL.split("///", 1)[-1]).name}
+    print(f"census gate on {args.facts} facts, baseline {baseline_path.name}")
+
+    if args.update_baseline:
+        # A baseline is a change detector, not proof the result is correct: the delta
+        # against the previous one is shown, and a failing gate refuses the rewrite.
+        update = census_gate.check_baseline_update(
+            baseline, previous_merged, decisions, facts=args.facts, merged=merged,
+            accepted=accepted, accept_reason=args.reason,
+            force=args.force_update, force_reason=args.reason if args.force_update else None,
+        )
+        print(census_gate.format_delta(update.delta))
+        print(f"\n{update.message}")
+        if not update.allowed:
+            sys.exit(1)
+        try:
+            fresh = census_gate.build_baseline(
+                merged, decisions, meta=meta, facts=args.facts,
+                previous=baseline, delta=update.delta,
+            )
+        except feed_quality_gate.GateInputError as exc:
+            raise SystemExit(f"Cannot build the baseline: {exc}")
+        _write(baseline_path, fresh)
+        print(
+            "\nCensus baseline REWRITTEN; the delta above is stored in its `previous` block. "
+            "The commit must cite it: before -> after per check, and the rated rows that changed."
+        )
+        _print_census_metrics(fresh)
+        return
+
+    try:
+        verdict = census_gate.evaluate(
+            baseline, merged, decisions, accepted=accepted, accept_reason=args.reason,
+            facts=args.facts,
+        )
+    except feed_quality_gate.GateInputError as exc:
+        raise SystemExit(f"Cannot compare: {exc}")
+
+    drift = census_gate.directional_drift(baseline, merged, decisions)
+    print(census_gate.format_verdict(verdict))
+    print("\n" + census_gate.format_drift(drift))
+    if args.out:
+        _write(args.out, {
+            "meta": meta, "inputs": merged.inputs, "verdict": verdict.as_dict(),
+            "directional_drift": drift,
+        })
     if not verdict.passed:
         sys.exit(1)
 
@@ -617,9 +891,33 @@ def main() -> None:
         "gate",
         help="regression gate: score live against the committed baseline (exit 1 on regression)",
     )
-    p_gate.add_argument("--ratings", default=str(_BACKEND.parent / "docs" / "qa" / "n05_ratings.json"))
-    p_gate.add_argument("--sample", default=str(_BACKEND.parent / "docs" / "qa" / "n05_sample.json"))
-    p_gate.add_argument("--baseline", default=str(DEFAULT_BASELINE))
+    p_gate.add_argument(
+        "--census", action="store_true",
+        help="run the census gate (#254) instead of the N05 gate",
+    )
+    p_gate.add_argument(
+        "--facts", choices=census_gate.FACTS_SOURCES, default="stored",
+        help="--census only: score the STORED facts (relevance/profile changes) or a "
+             "rules-only RERUN of the census rows (classifier/taxonomy changes); "
+             "each has its own baseline",
+    )
+    p_gate.add_argument(
+        "--ratings", action="append",
+        help="ratings JSON (N05 default: n05_ratings.json). With --census: repeatable, "
+             "paired in order with --sample; default = the inputs the baseline records",
+    )
+    p_gate.add_argument(
+        "--sample", action="append",
+        help="sample JSON (N05 default: n05_sample.json). With --census: repeatable",
+    )
+    p_gate.add_argument(
+        "--review", action="append",
+        help="--census only: a blind re-review ratings file whose ratings win (repeatable)",
+    )
+    p_gate.add_argument(
+        "--baseline",
+        help="baseline JSON (default n05_gate_baseline.json; census_gate_baseline.json with --census)",
+    )
     p_gate.add_argument("--out", help="write the verdict as JSON")
     p_gate.add_argument(
         "--accept", action="append", metavar="CHECK_ID",
@@ -630,7 +928,14 @@ def main() -> None:
     )
     p_gate.add_argument(
         "--update-baseline", action="store_true",
-        help="REWRITE the baseline from this run instead of checking against it",
+        help="REWRITE the baseline from this run instead of checking against it. With "
+             "--census: prints the delta against the previous baseline first and refuses "
+             "to write when the gate fails (argue a regression with --accept, or --force-update)",
+    )
+    p_gate.add_argument(
+        "--force-update", action="store_true",
+        help="--census --update-baseline only: write despite a failing or incomparable gate. "
+             "Requires --reason citing the reviewed delta; the reason is stored in the baseline",
     )
     p_gate.set_defaults(func=cmd_gate)
 

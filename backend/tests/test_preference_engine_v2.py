@@ -489,9 +489,15 @@ class TestValidation:
 
 class TestSeedProfileFixtures:
     def test_guy_maccabi_push_rules_fire(self, guy):
-        for event in ("signing", "negotiation", "injury", "title_win"):
+        for event in ("signing", "negotiation", "title_win"):
             article = _article(entity_ids=["team:maccabi_tlv_bb"], event_type=event)
             assert score_article_v2(article, guy).decision == "push", event
+
+    def test_injuries_do_not_push_for_any_seed_profile(self):
+        # Owner decision 2026-11-04 (#423): injuries are not a push for now.
+        for profile in SEED_PROFILES:
+            assert not [r for r in profile.profile_v2.overrides
+                        if r.kind == "always_push" and r.event_type == "injury"], profile.user_id
 
     def test_guy_broad_visibility(self, guy):
         nba = _article(entity_ids=["team:la_lakers", "team:boston_celtics"],

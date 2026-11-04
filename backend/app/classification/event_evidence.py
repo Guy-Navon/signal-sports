@@ -149,6 +149,17 @@ _SIGNING_COMPLETE = (
     phrase("חוזה חדש"), phrase("signed"), phrase("signing"), word("signs"), word("sign"),
 )
 
+# A company, broadcaster or sponsor "signing a deal" is not a person's signing (#413). Only the
+# unambiguous shape counts: a corporate noun in the same clause, shortly before "חתמה/חתמו על
+# (ה)הסכם". A person's "חתם על הסכם" (and every "חוזה" wording) is untouched. Corpus (4281 rows):
+# the pattern "חתם/חתמה/חתמו על הסכם" occurs once, the ynet Netflix story.
+_CORPORATE_DEAL = (
+    regex(
+        r"(?<![א-ת])(?:ענקית|חברת|חברה|רשת|ערוץ|תאגיד|נטפליקס|אמזון|ספונסר|חסות|"
+        r"הימורים|סטרימינג)(?![א-ת])[^.|:;!?]{0,30}(?<![א-ת])חתמ(?:ה|ו)\s+על\s+ה?הסכם"
+    ),
+)
+
 _RELEASE_COMPLETE = (
     phrase("שוחרר"), phrase("שוחררה"), phrase("שוחררו"),
     phrase("שחררה את"), phrase("שחרר את"),
@@ -677,7 +688,7 @@ EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
     ),
     "signing": EventEvidenceRule(
         required_any=(_SIGNING_COMPLETE,),
-        blockers=_NEGOTIATION + _CANDIDATE + _RELEASE_COMPLETE,
+        blockers=_NEGOTIATION + _CANDIDATE + _RELEASE_COMPLETE + _CORPORATE_DEAL,
         confirmed_any=(
             phrase("חתם"), phrase("חתמה"), phrase("חתמו"),
             phrase("signed"), phrase("הצטרף"), phrase("הצטרפה"),

@@ -338,7 +338,7 @@ own site. It captures the adapters' error lines instead of returning a bare "0 i
 `ok`, `degraded` (items, but a content check failed), `empty`, `error`; exit 0 only when every
 probed source is `ok`. **It never opens the database** (a test proves the module does not even
 import it), never changes source enablement and never calls an LLM. It reports the static
-config's enablement only; the PC's DB overrides (Sport5 on, ONE off) are not read. Compare one
+config's enablement only; the PC's DB overrides (Sport5 on; ONE on since 2026-11-01) are not read. Compare one
 run with the PC worker's fetches for the same hour.
 
 ## 10. Deploy and rollback

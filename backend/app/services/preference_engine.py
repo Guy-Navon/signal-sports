@@ -1,7 +1,7 @@
 """
 Preference Model V2 — layered affinity scorer (issue #32).
 
-Scoring pipeline (monotonic by construction):
+Scoring pipeline (monotonic by construction, with one documented exception in step 2):
 
 1. Hard constraints — disabled/muted sources, legacy muted_topics,
    mute / never_show overrides. Absolute; nothing below can resurrect.
@@ -11,10 +11,15 @@ Scoring pipeline (monotonic by construction):
    machinery, same match_kind vocabulary), team/player scopes through the
    entity_ids-first identity contract, sport scopes through article.sport.
    Base points come from the affinity level; the *max* points across matched
-   scopes wins (so adding an affinity can never lower a decision), with
-   specificity (team/player > competition > sport) breaking ties for the
+   scopes wins (so adding an affinity never lowers a decision, except below),
+   with specificity (team/player > competition > sport) breaking ties for the
    trace. An `exclude` (-2) affinity hides the article unless a strictly
-   more specific matched affinity is non-exclude.
+   more specific matched affinity is non-exclude. When no competition, team
+   or player scope matched (a sport match does not count), competition scopes
+   are retried with closed-league reach (#404: an NBA-club story that never
+   names the NBA), as a membership match that can never push. The exception:
+   adding a medium/low (0/-1) team or player affinity for that club blocks
+   the rescue, so the story can drop from feed to low_feed/hidden.
 3. Entity boost — +1 when base came from a broader scope (competition/sport)
    and a followed (level ≥ +1) team/player is present on the article.
 4. Event affinity delta — the scoped entry for (base scope, event_type) if
@@ -99,7 +104,9 @@ def _entity_on_article(article: Article, taxonomy_id: str) -> bool:
     return ent.legacy_name in (article.entities or [])
 
 
-def _match_scope(article: Article, affinity: ScopeAffinity) -> Optional[_ScopeMatch]:
+def _match_scope(
+    article: Article, affinity: ScopeAffinity, closed_league: bool = False
+) -> Optional[_ScopeMatch]:
     if affinity.scope == "sport":
         if article.sport == affinity.target_id:
             return _ScopeMatch(affinity, None, f"sport: {affinity.target_id}")
@@ -109,7 +116,7 @@ def _match_scope(article: Article, affinity: ScopeAffinity) -> Optional[_ScopeMa
         comp = COMPETITIONS.get(affinity.target_id)
         if comp is None:
             return None
-        hit = match_competition_names(article, [comp.display_en])
+        hit = match_competition_names(article, [comp.display_en], closed_league=closed_league)
         if hit is None:
             return None
         match_kind, _name, provenance = hit
@@ -168,7 +175,10 @@ def _override_matches(article: Article, rule: OverrideRule) -> bool:
         return article.sport == rule.target_id
     if rule.scope == "competition":
         comp = COMPETITIONS.get(rule.target_id)
-        return comp is not None and match_competition_names(article, [comp.display_en]) is not None
+        # Closed-league reach (#404) may hide (mute/never_show) but never push.
+        return comp is not None and match_competition_names(
+            article, [comp.display_en], closed_league=rule.kind != "always_push",
+        ) is not None
     return _entity_on_article(article, rule.target_id)
 
 
@@ -177,8 +187,15 @@ def score_article_v2(
     profile: UserProfile,
     disabled_source_ids: Optional[Set[str]] = None,
 ) -> DecisionResult:
-    if disabled_source_ids is None:
-        disabled_source_ids = set()
+    return _score_v2(article, profile, disabled_source_ids or set(), rescue=True)
+
+
+def _score_v2(
+    article: Article,
+    profile: UserProfile,
+    disabled_source_ids: Set[str],
+    rescue: bool,
+) -> DecisionResult:
 
     contributions: List[dict] = []
     reasoning: List[str] = [f"פרופיל (v2): {profile.display_name}"]
@@ -243,6 +260,21 @@ def score_article_v2(
         m = _match_scope(article, affinity)
         if m is not None:
             matches.append(m)
+
+    # Closed-league rescue (#404): an NBA club story with no competition named reaches a
+    # followed NBA as a membership match (feed ceiling) when no competition, team or
+    # player scope matched. A sport match does not block it: it says nothing about the
+    # NBA, and calibration writes one for every profile. A matched team/player (even a
+    # medium or low follow) or competition does block it, so it never adds an NBA base
+    # plus an entity boost to a story the user already sees.
+    rescued = False
+    if rescue and all(m.affinity.scope == "sport" for m in matches):
+        for affinity in v2.effective_scope_affinities():
+            if affinity.scope == "competition":
+                m = _match_scope(article, affinity, closed_league=True)
+                if m is not None:
+                    matches.append(m)
+                    rescued = True
 
     if not matches:
         reasoning.append(f"ספורט: {article.sport}, ליגה: {article.league or '—'}")
@@ -365,7 +397,15 @@ def score_article_v2(
         decision = "feed"
 
     # ── 7/8. always_push overrides (the ONLY path to push) ──────────────────
-    if decision != "hidden":
+    # Inferred reach never creates a push (#404): when the rescue matched, a push is kept
+    # only if the story pushes without it, and then that scoring is the answer.
+    if rescued and decision != "hidden":
+        unrescued = _score_v2(article, profile, disabled_source_ids, rescue=False)
+        if unrescued.decision == "push":
+            return unrescued
+        if any(r.kind == "always_push" and _override_matches(article, r) for r in v2.overrides):
+            _contribute("override", None, "withheld", "always_push:closed_league_rescue")
+    elif decision != "hidden":
         for rule in v2.overrides:
             if rule.kind == "always_push" and _override_matches(article, rule):
                 attention = (article.classification_trace or {}).get("attention")

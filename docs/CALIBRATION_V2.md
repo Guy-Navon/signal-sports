@@ -13,12 +13,12 @@ tuned from owner census ratings with a fit/held-out split, not through this data
 
 With explicit interest selection (#77, `docs/INTERESTS.md`), calibration's
 role narrowed to **nuance within declared interests** plus limited
-discovery. `CALIBRATION_DATASET_VERSION = 3`, **73 items** (65 baseline +
-8 entity-contrast). The contract is a measurable coverage specification —
+discovery. `CALIBRATION_DATASET_VERSION = 3`, **77 items** (69 baseline +
+8 entity-contrast). The 4 `comp:bcl` items (#407, 2026-11-02) were added without a version bump. They are additive: no item id changed, so stored v3 responses stay valid. Inference on every stored response set is unchanged. Item selection changes only where a high-importance BCL item enters the discovery-probe pool: for Guy and one stored test user, one probe swaps (`cal3_bsl_title` → `cal3_bcl_playoff`). The contract is a measurable coverage specification —
 NOT an item count — enforced by `tests/test_calibration_coverage.py`,
 generated over the selectable-scope list (`taxonomy/policy.py`):
 
-- every selectable competition (all 15): ≥4 entity-less items spanning ≥3
+- every selectable competition (all 16): ≥4 entity-less items spanning ≥3
   event types and ≥2 importance levels;
 - entity contrast is no longer Maccabi/Deni-centric — 6 contrast entities:
   Maccabi TLV bb, Hapoel TLV bb (`hapoel_vs_ibl`), Lakers

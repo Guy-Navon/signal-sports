@@ -8,6 +8,10 @@
       "display_en": "Australian Open",
       "sport": "tennis"
     },
+    "comp:bcl": {
+      "display_en": "Basketball Champions League",
+      "sport": "basketball"
+    },
     "comp:bsl": {
       "display_en": "Turkish BSL",
       "sport": "basketball"

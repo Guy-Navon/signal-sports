@@ -229,6 +229,9 @@ def main() -> int:
     def _stop(signum, frame):                  # pragma: no cover - signal path
         logger.info("shutdown signal received — stopping after the current step")
         stop.set()
+        # Stop sleeping through LLM rate-limit pauses (#409) so the current step ends soon.
+        from app.classification.providers import interrupt_rate_limit_waits
+        interrupt_rate_limit_waits()
 
     signal.signal(signal.SIGINT, _stop)
     if hasattr(signal, "SIGTERM"):

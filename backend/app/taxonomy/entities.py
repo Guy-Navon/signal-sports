@@ -51,6 +51,11 @@ class TaxonomyEntity:
     # classifier emits the TEAM, not the person, and the person is not followable on their
     # own (they ride on their club). For roster players whose own follow is not offered.
     implies_team: bool = False
+    # #415: aliases that are a bare city or nickname ("קינגס", "שיקגו", "מילווקי") and
+    # collide with people, places and other sports. They resolve only with basketball
+    # evidence (see the resolver): an explicit basketball sport context, an NBA/basketball
+    # word in the text, or another basketball entity named beside them.
+    context_aliases: tuple[str, ...] = ()
 
 
 def _team(
@@ -65,6 +70,8 @@ def _team(
     extra_memberships: tuple[str, ...] = (),
     guarded: bool = False,
     full_name_disambiguates: bool = False,
+    context_aliases: tuple[str, ...] = (),
+    word_bounded_aliases: tuple[str, ...] = (),
 ) -> TaxonomyEntity:
     memberships = tuple(
         (comp, None) for comp in ((domestic,) if domestic else ()) + extra_memberships
@@ -75,6 +82,7 @@ def _team(
         aliases=aliases, family=family,
         full_name_disambiguates=full_name_disambiguates,
         domestic_competition=domestic, memberships=memberships, guarded=guarded,
+        context_aliases=context_aliases, word_bounded_aliases=word_bounded_aliases,
     )
 
 
@@ -417,7 +425,7 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
     _team("team:sacramento_kings", "basketball", "סקרמנטו קינגס", "Sacramento Kings",
           "Sacramento Kings",
           ("קינגס", "סקרמנטו", "סקרמנטו קינגס", "sacramento kings", "sacramento"),
-          domestic="comp:nba"),
+          domestic="comp:nba", context_aliases=("קינגס",)),  # "קינגס קאנגווה" (#415)
     _team("team:atlanta_hawks", "basketball", "אטלנטה הוקס", "Atlanta Hawks",
           "Atlanta Hawks",
           ("הוקס", "אטלנטה", "אטלנטה הוקס", "atlanta hawks", "atlanta"),
@@ -425,11 +433,11 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
     _team("team:charlotte_hornets", "basketball", "שארלוט הורנטס", "Charlotte Hornets",
           "Charlotte Hornets",
           ("הורנטס", "שארלוט", "שארלוט הורנטס", "charlotte hornets", "hornets"),
-          domestic="comp:nba"),
+          domestic="comp:nba", context_aliases=("שארלוט",)),  # Princess/Charlotte FC (#415)
     _team("team:chicago_bulls", "basketball", "שיקגו בולס", "Chicago Bulls",
           "Chicago Bulls",
           ("בולס", "שיקגו", "שיקגו בולס", "chicago bulls", "bulls"),
-          domestic="comp:nba"),
+          domestic="comp:nba", context_aliases=("שיקגו",)),  # Chicago marathon (#415)
     _team("team:dallas_mavericks", "basketball", "דאלאס מאבריקס", "Dallas Mavericks",
           "Dallas Mavericks",
           ("מאבריקס", "מאברס", "דאלאס", "דאלאס מאבריקס", "dallas mavericks",
@@ -438,7 +446,8 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
     _team("team:denver_nuggets", "basketball", "דנבר נאגטס", "Denver Nuggets",
           "Denver Nuggets",
           ("נאגטס", "דנבר", "דנבר נאגטס", "denver nuggets", "nuggets", "denver"),
-          domestic="comp:nba"),
+          # "דנבר" inside "גולדנברג" (#415)
+          domestic="comp:nba", word_bounded_aliases=("דנבר",)),
     _team("team:detroit_pistons", "basketball", "דטרויט פיסטונס", "Detroit Pistons",
           "Detroit Pistons",
           ("פיסטונס", "דטרויט", "דטרויט פיסטונס", "detroit pistons", "pistons",
@@ -476,8 +485,9 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
           domestic="comp:nba"),
     _team("team:milwaukee_bucks", "basketball", "מילווקי באקס", "Milwaukee Bucks",
           "Milwaukee Bucks",
-          ("באקס", "מילווקי", "מילווקי באקס", "milwaukee bucks", "milwaukee"),
-          domestic="comp:nba"),
+          # Bare "באקס" removed (#415): it is ב+אקס ("באקס ה-NBA"); the prefixed forms stay.
+          ("הבאקס", "לבאקס", "בבאקס", "מילווקי", "מילווקי באקס", "milwaukee bucks", "milwaukee"),
+          domestic="comp:nba", context_aliases=("מילווקי", "milwaukee")),  # Brewers (#415)
     _team("team:minnesota_timberwolves", "basketball", "מינסוטה טימברוולבס",
           "Minnesota Timberwolves",
           "Minnesota Timberwolves",
@@ -531,6 +541,8 @@ _ALL_ENTITIES: tuple[TaxonomyEntity, ...] = (
         id="player:deni_avdija", kind="player", sport="basketball",
         display_he="דני אבדיה", display_en="Deni Avdija", legacy_name="Deni Avdija",
         aliases=("דני אבדיה", "אבדיה", "deni avdija", "avdija", "deni"),
+        # "deni" is a whole word only: it sits inside "denied", "Denis", "denim" (#415).
+        word_bounded_aliases=("deni",),
         memberships=(("comp:nba", None),), team_id="team:portland_blazers",
     ),
     TaxonomyEntity(

@@ -112,6 +112,9 @@ def compute_run_metrics(
     llm_p95_ms: Optional[float],
     total_ms: float,
     llm_usage: Optional[dict] = None,
+    rate_limit_waits: int = 0,
+    rate_limit_wait_ms: float = 0.0,
+    unknown_sport_fallbacks: Optional[dict[str, int]] = None,
 ) -> dict:
     """Derive the per-run dependency/quality metrics dict.
 
@@ -191,6 +194,18 @@ def compute_run_metrics(
         # calls_with_usage. None when no provider call reported usage
         # (Ollama, Gemini, disabled), not zero. Additive key, schema v2.
         "llm_tokens": dict(llm_usage) if llm_usage else None,
+        # Opt-in rate-limit wait (#409): calls that slept through a provider
+        # pause instead of falling back, and the total time asleep (excluded
+        # from llm_avg_ms / llm_p95_ms). 0 while the wait is off. Additive keys,
+        # schema v2; older rows lack them.
+        "rate_limit_waits": rate_limit_waits,
+        "rate_limit_wait_ms": round(rate_limit_wait_ms, 1),
+        # #409 follow-up (owner decision R11): LLM-failure fallbacks whose final
+        # sport is unknown. Those rows stay hidden (no evidence matches a follow);
+        # this shows what an outage costs. Split by typed failure reason. Low-
+        # confidence fallbacks are not counted. Additive keys, schema v2.
+        "rules_fallback_unknown_sport": sum((unknown_sport_fallbacks or {}).values()),
+        "rules_fallback_unknown_sport_by_reason": dict(unknown_sport_fallbacks or {}),
         "estimated_cost_per_1000_articles": (
             round((cost_per_run / new_articles) * 1000, 4) if new_articles > 0 else None
         ),

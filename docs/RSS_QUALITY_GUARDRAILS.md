@@ -964,12 +964,281 @@ is text-resolved, so `cross_sport_entity_requires_explicit_sport` does not apply
 guard is not weakened. Tests: `tests/test_basketball_people_259.py`. Measurements:
 [qa/BASKETBALL_PEOPLE_259.md](qa/BASKETBALL_PEOPLE_259.md).
 
+## 20. A Home-Venue Move Is Club Governance (#242, 2026-11-01)
+
+**The defect.** `עם פתח להמון אוהדים: סוכם המעבר של מכבי תל אביב לקפריסין` (owner: push) was
+`news` → feed. The §16 venue vocabulary (`המגרש הביתי`, `משחקי הבית`) misses a move written
+as a move, and the hosting verb.
+
+**Fix.** Three anchored phrases join `_CLUB_GOVERNANCE`:
+
+- `המעבר של <club family>` (מכבי, הפועל, בית"ר, עירוני). Bare `המעבר של` is a person's
+  transfer in 5 of its 6 corpus rows (`המעבר של קאדין קרינגטון להפועל`, `חסמו את המעבר של
+  סתיו טוריאל`), so it counts only with a club as the subject. The family name is a
+  grammatical anchor here. It resolves no entity and is no sport evidence (invariant 5).
+  `בני` is left out: `המעבר של בני המשפחה` is a family's move.
+- `לארח את משחקי` (to host X's games).
+- `לארח באולם/בהיכל` (to host in an arena).
+
+A normal home game is written `תארח` (future tense: `תארח באולם היובל`, `תארח הערב את
+פריז`) and is not matched. A player returning to an arena (`קולסון שב להיכל מנורה`) is not
+matched either. Prefixed forms (`והמעבר של מכבי`, `ולארח באולם`) are missed too, which
+fails safe.
+
+**A subtitle-only #242 phrase never makes a push.** The push gate reads its concrete step
+in the title, while the event may be proven by the subtitle alone. While Maccabi hosts in
+Limassol, the #242 hosting phrases are routine background in subtitles. Without a guard, a
+title like `אודקה החליט: סורקין יפתח בחמישייה של מכבי ת"א` over such a subtitle would push.
+The phrases live in their own tuple (`_HOME_VENUE_MOVE`). `governance_step_context()` lets a
+title step count only when the title carries governance evidence or the subtitle carries a
+**#229** phrase. Such rows stay `club_governance` (high_feed for Guy) but do not push. The
+#229 vocabulary keeps its pre-existing subtitle → push path. Narrowing that path would cost
+the N05-rated Recanati push, so it is an owner decision: **#401**.
+
+Governance is proposed before the transfer cycle (`classifier.py`), so a constructed mixed
+headline such as `חתם: המעבר של מכבי ת"א לטאקר הושלם` becomes `club_governance` rather than
+`signing`. There is no corpus case.
+
+**Measured on the 2026-11-01 corpus (3,884 rows, titles + subtitles):**
+
+| phrase | rows | home-venue | transfer / other |
+|---|---:|---:|---:|
+| `המעבר של` (bare, rejected) | 6 | 1 | 5 |
+| `המעבר של <club family>` | 1 | 1 | 0 |
+| `לארח את משחקי` | 3 | 3 | 0 |
+| `לארח באולם/בהיכל` | 2 | 2 | 0 |
+| bare `לארח ב` (rejected) | 5 | 3 | 2 (Argentina's national team, a Final Four piece) |
+
+**Deterministic rerun (3,877 rows, against main):** 4 rows become `club_governance`.
+Guy has 3 flips: the issue headline goes feed → **push** (owner: push; `סוכם` is the
+concrete step the #229 gate requires), and two unrated Maccabi Cyprus stories go
+feed → high_feed. One Hapoel row changes event only (still feed). Deni has no flips. Guy's
+push count goes 22 → 23, visible stays 898. The seed profiles and the persisted profiles give
+the same result. Census #2: push precision 2/3 → 3/4, push recall 2/7 → 3/7, exact
+669 → 670. Stored rows are unchanged; there was no backfill.
+
+**Temporary compromise, pending owner rating.** The two feed → high_feed rows are side
+effects, and high_feed is **not** confirmed right for either of them:
+
+- `rss_d14fdd50bec657067583` `דיווח: מכבי ת"א תארח את הדרבי במסגרת היורוליג בקפריסין`,
+  a report of the venue change.
+- `rss_bd91b96ba6a172068267` `"יש משהו מטריד מאוד בהחלטה לגבי מכבי תל אביב"`, a Cyprus
+  Mail opinion column about the decision.
+
+A report and an opinion about it are different content. The owner accepted both
+(2026-11-01) as a temporary compromise because they are the only side effects for Guy and
+Deni. On the frozen copy, two dormant self-serve profiles (`usr_01KX6MTS…`, `usr_01KX9XH6…`)
+also see the Hapoel row (`rss_9766f80130aabc0b9856`) move low_feed → feed. No other profile
+and no other row changes. Opinion
+columns are deliberately not blocked from `club_governance`. Revisit both once they are
+rated (census #3).
+
+**The entity concern in #242 does not apply to this row.** Its URL
+(`/sport/israeli-basketball/`) is explicit basketball evidence (weight 100). The gate does
+not call the LLM, and when the LLM is forced, Maccabi Tel Aviv Basketball survives the facts
+stage. The Cyprus rows that do lose the entity under the LLM are walla.co.il rows with no URL
+hint and no basketball word (`בקפריסין מבטיחים`, `המתקפה בקפריסין`). This change does not
+cover them. **Non-goal (owner, 2026-11-01):** no arena or venue name is added as basketball
+evidence to rescue a few headlines. Such a cue must first be shown to hold on other examples.
+Revisit after census #3 is rated.
+
+Tests: `tests/test_club_governance_229.py::TestHomeVenueMove242`.
+
 ---
+
+## 21. On Air Is Not a Broadcast Slot (#406, 2026-11-02)
+
+**The defect.** `schedule` hides broadcast and fixture filler, and the bare word `שידור`
+(broadcast) was schedule evidence. A story about something that happened on air became a
+schedule: census #3 (fit half) `סוף עידן ב-NBA: ארני ג'ונסון פורש, בארקלי פרץ בבכי בשידור חי`,
+rated feed, was hidden from Guy.
+
+**Measured shapes (2026-11-01 frozen corpus, deterministic rerun).** 16 rows outside the
+census #3 held-out half were `schedule` with `שידור` in the title:
+
+| shape | rows | example | should be |
+|---|---:|---|---|
+| happened on air | 4 | `בארקלי פרץ בבכי בשידור חי`, `התפוצץ בשידור` | not schedule |
+| broadcasting-industry news | 3 | `נטפליקס רכשה את זכויות השידור`, `שידורי אתלטיקת הנשים בדרך לשינוי` | not schedule |
+| call to watch | 5 | `צפו בשידור: מכבי אשדוד - עירוני נס ציונה` (rated hide) | schedule |
+| broadcast label heading the title | 4 | `ב-11:00: שידור חי מהגרלת…`, `שידור חי: מסע"ת…` | schedule |
+
+`ישודר` (will be broadcast) and a broadcast listing had no title in the corpus; the listing
+form is kept from an existing regression test (`שידורי יורוקאפ השבוע`). Lineups with a
+time and a channel (`19:30, ספורט2: …`) are not `schedule` today and were left alone: this
+fix only narrows.
+
+**Fix.** `event_evidence._BROADCAST_ANNOUNCEMENT` replaces `שידור` / `שידורים`. A broadcast
+word is evidence only in five forms:
+
+- a call to watch: `צפו ב(ה)שידור`, `צפו: שידור חי מ…` (a standalone `צפו`; `שצפו` is past);
+- a label heading the title: `שידור חי` / `שידור ישיר`, optionally prefixed `ב`, quoted, or
+  followed by a channel (`ב-ONE`), then `:` `|` `-` `–` or a `מ…` source. Only a time word
+  (`הערב` / `הלילה` / `היום` / `מחר`) and/or a clock time (`11:00`, `ב-11:00`, `ב–11:00`,
+  `בשעה 20:00`) may come before it, never an arbitrary word: `אימה בשידור חי: …` happened on
+  air;
+- a future broadcast: `ישודר` / `ישודרו` / `תשודר` (word-bounded: `ישודרג` / `משודרג` mean
+  "upgraded"; `ישודר?` is a question) or `יועבר(ו) בשידור`. A negated one (`לא ישודר` /
+  `לא תשודר` / `לא יועבר`) blocks `schedule`: it is news about the broadcast;
+- a listing: `לוח (ה)שידורים`;
+- a broadcast plural with a time word within three words: `שידורי יורוקאפ השבוע`,
+  `בשידורי הערב: …`, `מה בשידורים הערב`. Only `ב`/`ה` may prefix it: `מהשידורים הערב` is
+  "from the broadcasts".
+
+The classifier still proposes on any `שידור`, and validation decides, so the LLM path
+(Guardrail 4b) is narrowed the same way. `schedule` stays title-local (§17).
+
+Known limits, each `schedule` on main as well: a bare past-tense `צפו` (`מיליונים צפו בשידור
+החי של הגמר`) reads like the imperative; `שידור חי מ…` can be a metaphor (`שידור חי
+מהגיהנום`); and a plural with a time word can be industry news (`שידורי ה-NBA היום עוברים
+לפלטפורמה חדשה`).
+
+**Measured (deterministic rerun, 3,877 rows, against main).** 8 rows outside the held-out
+half change facts and 1 decision flips for the seed profiles: the reported row, Guy hidden →
+low_feed (rated feed). The Deni seed profile has no flip. Push is unchanged (Guy 22/22, Deni
+4/4). Census #2 and N05 agreement are unchanged; census #3 fit: shown precision 37/40 →
+38/41, feed+ recall 14/19 → 15/19, exact 105 → 105. For the two seed profiles, no row rated
+hide and no unrated row becomes visible.
+
+The stored (dormant/test) accounts score the same rows differently, with no push on any:
+the Netflix rights row goes low_feed → feed (the admin account), hidden → feed and hidden →
+low_feed (two test accounts); the Barkley row hidden → low_feed (one test account); three
+football rows that left `schedule` go low_feed → hidden for the admin account.
+
+Two rows fall through to an event their subtitle proposes once `schedule` no longer masks
+it, both hidden for both seed profiles: the Netflix rights deal becomes `signing` (the
+subtitle says `חתמה על הסכם`), and a pundit quote becomes `match_result` (`בניצחון הפועל` in
+the subtitle). Neither is a correct event. This is the general subtitle fall-through
+weakness, tracked as #413 (a basketball rights deal written the same way would be a wrong
+high_feed signing for Guy).
+
+Stored rows keep their old facts until a backfill; none was run.
+
+Tests: `tests/test_broadcast_schedule_406.py`.
+
+---
+
+## 22. A Shared Competition Name Takes the Sport the Text Proves (#407, 2026-11-02)
+
+`ליגת האלופות` / `champions league` was **committed football vocabulary** (`sport_guards.py`,
+#113), a football context keyword and the `comp:ucl` keyword. It is also the name of the FIBA
+Basketball Champions League, where Hapoel Holon and Bnei Herzliya play. So `סאנוגו כיכב, הפועל
+חולון ניצחה לראשונה בליגת האלופות` was stored football / UEFA, Hapoel Holon was dropped as a
+cross-sport entity, and the story was hidden (census #3 fit half, owner: feed). In the frozen
+2026-11-01 corpus (held-out rows excluded) 7 of the 72 rows naming it were basketball.
+
+The bare name now fails the committed-vocabulary bar (a term that "cannot plausibly appear in the
+other sport's coverage"), and is resolved by one function,
+`sport_guards.shared_champions_league_sport(text)`:
+
+- **basketball** when the text proves it. Either a qualified FIBA name
+  (`ליגת האלופות של פיב"א`, `basketball champions league`) or the word `כדורסל` / `basketball`,
+  with no committed football vocabulary. Or a named basketball cue (`basketball_named_cue`): a
+  basketball entity the resolver finds with no sport context and that the text names by a
+  multi-word alias, or a basketball scoreline, with no entity of another sport named.
+- **football** otherwise. That is the corpus prior (65 of 72), and the safe side: a wrong
+  basketball reading would put a UEFA story into a basketball follower's interests.
+
+Two narrowings, from the PR #417 review:
+
+- **Committed basketball words are not enough.** Football copy says `כבש מריבאונד` (scored from
+  a rebound). If `ריבאונד` counted, `גול מריבאונד של מכבי תל אביב בליגת האלופות` would become
+  basketball / `comp:bcl` / Maccabi basketball. Worse, merge Guardrail 1b would then override an
+  LLM that correctly said football. Only the qualified names and the sport's own name count;
+  everything else goes through the cue, which has the contradiction check.
+- **A one-word person alias is not a cue here.** The #345 cue accepts a person by any alias.
+  For the shared name a person needs a multi-word alias too (`multiword_people=True`), because
+  `deni` matches inside `denied` (#415). Without this, `Arsenal denied a late penalty in
+  Champions League defeat` would read basketball and keep Deni Avdija as an entity, so it would
+  reach high_feed for Guy and the Deni fan. The #345 corroboration itself is unchanged.
+
+The cue is the #345 corroboration cue, moved from `facts.py` to `sport_guards.py` so the
+classifier and the facts stage share it. A one-word team alias still proves nothing (`ספרס` is
+Tottenham in football copy). A cross-sport twin (`הפועל ירושלים`) or a guarded European club
+(`ריאל מדריד`) is not a cue.
+
+Where the result is used:
+
+- `committed_sport()` counts the name for that sport. So the title check in `_detect_sport` and
+  merge Guardrail 1b keep football protection for UEFA stories.
+- `_has_basketball_context` / `_has_football_context` count it for that sport (the resolver
+  context and the ambiguous-club branches).
+- The facts stage maps it to `comp:bcl` or `comp:ucl`, and counts it as a title/subtitle keyword
+  of that sport.
+- `_detect_league` returns `Basketball Champions League` for a basketball article when the
+  shared name reads basketball in title + subtitle, or for a qualified name. It checks this
+  before the IBL club list.
+- The title-win masking list (`event_evidence._champion_term_competition_names`) includes the
+  shared name. A competition name is never title-win evidence: `ברצלונה הוכתרה בליגת
+  האלופות` must not become title_win because of the word `האלופות`.
+- `BCL` is matched only as a whole Latin word (`ב-BCL`, not `abcl`), in sport detection, the
+  league and the competition scan.
+
+The trace records the reading as `competitions.shared_name_sport`.
+
+The decision reads the text only, never the sport the pipeline already chose, so it cannot
+launder a sport guess into evidence. Known limitation: a basketball-section URL hint is not
+consulted. A basketball-section article with the bare name and no text cue reads football, as
+it did before. The corpus has no such row.
+
+**Real-corpus effect** (rules-only rerun, 3,877 rows):
+- 11 rows change facts, all BCL basketball stories (2 football → basketball, 11 gain
+  `comp:bcl`). No football row changes.
+- Guy and the Deni fan: 0 decision changes. No followed scope reaches a BCL game yet.
+- The four stored test/admin profiles: 8 decisions change, all on the two rows that move from
+  football to basketball. The football followers lose them, the basketball followers gain them
+  at `low_feed`. None involves push.
+- `comp:bcl` is selectable in onboarding (owner decision 2026-11-02). Guy's profile is left as
+  is. The #407 PR measured what following it would change: 10 Guy rows hidden → visible,
+  push unchanged.
+
+Tests: `tests/test_champions_league_407.py`.
+
+---
+
+## 23. An Injury "Against" a Team Is Not That Team's Injury (#410, 2026-11-04)
+
+`השחקן שייעדר מול מכבי תל אביב` is a Red Star player missing the game against Maccabi, yet Guy's
+`always_push:injury` pushed it (owner: feed). The push rule requires its target in
+`attention.subject_entity_ids`, and any title mention made an entity a subject.
+
+For `event_type == "injury"` only, an entity whose every title mention sits directly after
+`מול` / `נגד` (also `ומול`, `כנגד`) or `against` / `versus` / `vs` is no longer a subject
+(`attention_evidence._named_only_as_opponent`). The entity stays on the article, so visibility and
+affinity are unchanged and the story keeps its tier. One exception protects a real injury: a team
+whose own player is named in the title (word-bounded, outside the slot) stays a subject (`הפועל נגד מכבי:
+לונדברג ייעדר`). Subtitles were never subject evidence and still are not.
+
+Measured on the 2026-11-02 corpus copy, 4,272 rows, held-out rows excluded: of the 2 injury pushes,
+the reported row is the only one with this shape. Across all injury rows 7 lost an opponent subject,
+and the reported row is the only decision that moved (Guy push → high_feed; the owner's rating is
+feed). The Deni rule has no such row, so `casual_deni_fan` is unchanged.
+
+Stored rows keep their attention evidence until it is refreshed
+(`scripts/apply_192_feed_evidence.py` selects exactly the reported row on that copy).
+
+Known limits, not changed here: `מכה לאבדיה וחבריו: ג'ה מוראנט ייעדר` still pushes through the Deni
+rule because Deni is named without a marker, and a Maccabi player named without the club (`דניאל
+תייס ייעדר`) is not a Maccabi subject, so that rule stays silent.
+
+Tests: `tests/test_opponent_injury_410.py`.
+
+**Owner decision 2026-11-04 (#423): injuries are not a push for now.** No profile carries `always_push:injury`. The subject logic above stays for the day that changes.
+
+---
+
+## 24. A Company's Deal Is Not a Player Signing (#413, 2026-11-04)
+
+`signing` evidence now has one more blocker: a corporate noun (ענקית, חברה/חברת, רשת, ערוץ, תאגיד,
+נטפליקס, אמזון, ספונסר, חסות, הימורים, סטרימינג) in the same clause shortly before
+"חתמה/חתמו על (ה)הסכם". Corpus measurement (4281 rows): that verb+הסכם shape occurs once, the ynet
+Netflix World Cup rights story; every person's "חתם על חוזה" is untouched. The guard is deliberately
+narrow: a club-as-subject sponsorship deal and other signing wording are not covered.
 
 ## Where open classification work is tracked
 
-This file is a changelog of shipped rules. Open gaps live in GitHub issues (for example #242,
-the venue-move vocabulary for `club_governance`) and in the "known limitations" section of
+This file is a changelog of shipped rules. Open gaps live in GitHub issues and in the
+"known limitations" section of
 [CURRENT_PROJECT_STATE.md](CURRENT_PROJECT_STATE.md). The structural recall limits are
 person-level coverage (3 NBA players, plus 28 Maccabi / Hapoel Tel Aviv players and Hapoel's
 coach since #259) and the cross-sport club deadlock (#194). Story clustering, which an earlier "next steps" list here called fuzzy dedup, has shipped:

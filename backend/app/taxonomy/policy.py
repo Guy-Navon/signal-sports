@@ -31,6 +31,8 @@ NON_SELECTABLE_COMPETITIONS: frozenset[str] = frozenset({
     "comp:la_liga",
     "comp:bundesliga",
     "comp:ucl",
+    # comp:bcl (#407) IS selectable: the classifier proves it by name, and it has
+    # calibration items (owner decision 2026-11-02).
 })
 
 

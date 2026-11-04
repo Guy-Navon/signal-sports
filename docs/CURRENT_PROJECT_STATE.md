@@ -221,8 +221,8 @@ applies a live change with a reviewed `backend/scripts/apply_*.py` script, after
 - **`guy`** (the owner): Maccabi TLV basketball +2. EuroLeague, EuroCup, NBA and IBL +1. ACB,
   BSL, Greek, LBA and LNB −1. Football and tennis −1 at sport level. Deni Avdija and Oded Kattash
   +1. 63 explicit event affinities. 12 `always_push` overrides: Maccabi signing, major signing,
-  negotiation, injury, title win and `club_governance`; NBA star trade and title win; EuroLeague
-  and EuroCup title win; Deni major trade and injury. 3 `never_show` overrides (Maccabi
+  negotiation, title win and `club_governance`; NBA star trade and title win; EuroLeague
+  and EuroCup title win; Deni major trade. No injury push (owner decision 2026-11-04, #423). 3 `never_show` overrides (Maccabi
   pre-match, schedule, generic preview). Recent live mutations: #229 (governance push, which
   fires on a concrete step only) and #237 (`team:maccabi_tlv_bb × candidate −1`,
   `comp:euroleague × news +1`, fitted on census #2 and confirmed on its held-out half).
@@ -234,8 +234,8 @@ applies a live change with a reviewed `backend/scripts/apply_*.py` script, after
   venv (`.venv\Scripts\python.exe -m pip install --require-hashes -r requirements.lock` from
   `backend/`), restart. On the old engine, the medium follow would lift 14 Hapoel transfer stories
   to `high_feed`.
-- **`casual_deni_fan`** (demo): Deni Avdija +2 and nothing else. Pushes on a Deni major trade,
-  injury or `relocation`. Relocation is an owner-authorised, entity-scoped rule (#191): the same
+- **`casual_deni_fan`** (demo): Deni Avdija +2 and nothing else. Pushes on a Deni major trade
+  or `relocation`. Relocation is an owner-authorised, entity-scoped rule (#191): the same
   relocation article is `feed` for Guy. This profile must not drift unintentionally; the gate
   enforces that.
 

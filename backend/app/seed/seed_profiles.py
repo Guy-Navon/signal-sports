@@ -382,8 +382,6 @@ GUY_PROFILE_V2 = ProfileV2(
         OverrideRule(kind="always_push", scope="team", target_id="team:maccabi_tlv_bb",
                      event_type="negotiation"),
         OverrideRule(kind="always_push", scope="team", target_id="team:maccabi_tlv_bb",
-                     event_type="injury"),
-        OverrideRule(kind="always_push", scope="team", target_id="team:maccabi_tlv_bb",
                      event_type="title_win"),
         # #229 (owner decision 2026-10-10): club governance reaches high_feed through the
         # Maccabi follow; push only on a concrete step (attention "concrete_step").
@@ -399,8 +397,6 @@ GUY_PROFILE_V2 = ProfileV2(
                      event_type="title_win"),
         OverrideRule(kind="always_push", scope="player", target_id="player:deni_avdija",
                      event_type="major_trade"),
-        OverrideRule(kind="always_push", scope="player", target_id="player:deni_avdija",
-                     event_type="injury"),
         # Maccabi noise events stay hidden even at a very-high base.
         OverrideRule(kind="never_show", scope="team", target_id="team:maccabi_tlv_bb",
                      event_type="pre_match"),
@@ -429,8 +425,6 @@ DENI_FAN_PROFILE_V2 = ProfileV2(
                      event_type="relocation"),
         OverrideRule(kind="always_push", scope="player", target_id="player:deni_avdija",
                      event_type="major_trade"),
-        OverrideRule(kind="always_push", scope="player", target_id="player:deni_avdija",
-                     event_type="injury"),
         OverrideRule(kind="never_show", scope="player", target_id="player:deni_avdija",
                      event_type="generic_preview"),
         OverrideRule(kind="never_show", scope="player", target_id="player:deni_avdija",

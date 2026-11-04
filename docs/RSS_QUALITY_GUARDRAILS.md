@@ -1223,6 +1223,8 @@ rule because Deni is named without a marker, and a Maccabi player named without 
 
 Tests: `tests/test_opponent_injury_410.py`.
 
+**Owner decision 2026-11-04 (#423): injuries are not a push for now.** No profile carries `always_push:injury`. The subject logic above stays for the day that changes.
+
 ---
 
 ## 24. A Company's Deal Is Not a Player Signing (#413, 2026-11-04)

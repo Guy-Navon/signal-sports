@@ -14,6 +14,7 @@ from app.ingestion import ingestion_service
 from app.ingestion.adapters.base import RawSourceItem
 from app.ingestion.config import get_source_config
 from app.models.article import Article
+from app.models.profile_v2 import OverrideRule
 from app.seed.seed_profiles import SEED_PROFILES
 from app.services.preference_engine import score_article_v2
 
@@ -28,7 +29,15 @@ _EXAMPLE_SUBTITLE = (
 
 
 def _profile(user_id):
-    return next(p for p in SEED_PROFILES if p.user_id == user_id)
+    """The seed profile plus the injury push rules the seed dropped (#423), so the subject
+    logic stays tested in case the owner turns injury pushes back on."""
+    profile = next(p for p in SEED_PROFILES if p.user_id == user_id).model_copy(deep=True)
+    targets = [("player", DENI)] + ([("team", MACCABI)] if user_id == "guy" else [])
+    profile.profile_v2.overrides.extend(
+        OverrideRule(kind="always_push", scope=scope, target_id=target, event_type="injury")
+        for scope, target in targets
+    )
+    return profile
 
 
 def _scored(title, entity_ids, user_id="guy", subtitle=""):

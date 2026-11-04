@@ -148,14 +148,23 @@ def cmd_wilson(args) -> int:
 def cmd_census(args) -> int:
     from corpus_rerun_diff import ENGINE_NOTCH, OWNER_NOTCH, census_metrics
 
+    from app.qa.census_rating import SealedRatingsError, refuse_sealed  # path set by corpus_rerun_diff
+
     field = SNAPSHOT_FIELD[args.profile]
-    ratings = _load_json(args.ratings)["ratings"].get(args.profile)
+    try:  # a sealed held-out file (census #3, #241) is read only for the final evaluation
+        payload = refuse_sealed(_load_json(args.ratings), args.ratings, final_heldout_eval=args.final_heldout_eval)
+        review_payload = (refuse_sealed(_load_json(args.review), args.review,
+                                        final_heldout_eval=args.final_heldout_eval) if args.review else None)
+    except SealedRatingsError as exc:
+        print(exc)
+        return 2
+    ratings = payload["ratings"].get(args.profile)
     if not ratings:
         print(f"no ratings for profile {args.profile!r} in {args.ratings}")
         return 1
     total_rated = len(ratings)
     if args.review:
-        ratings = {**ratings, **_load_json(args.review)["ratings"].get(args.profile, {})}
+        ratings = {**ratings, **review_payload["ratings"].get(args.profile, {})}
     ids = _load_ids(args.ids)
     if ids is not None:
         ratings = {k: v for k, v in ratings.items() if k in ids}
@@ -290,6 +299,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--before", help="corpus_rerun_diff snapshot of the baseline")
     p.add_argument("--ratings", required=True)
     p.add_argument("--review", help="re-rated rows that override --ratings (census #2 owner review)")
+    p.add_argument("--final-heldout-eval", action="store_true",
+                   help="allow a sealed held-out ratings file (census #3 final evaluation only)")
     p.add_argument("--profile", choices=sorted(SNAPSHOT_FIELD), default="guy")
     p.add_argument("--ids", help="restrict to these article ids (JSON list or one per line)")
     p.add_argument("--split", choices=["fit", "heldout"],

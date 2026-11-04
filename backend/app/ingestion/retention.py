@@ -20,6 +20,11 @@ PROTECTIONS, in deletion order of authority:
   4. GROUND TRUTH (#255) — an article in ``protected_articles`` (human-rated
      or sampled for N05 / census rating) is never deleted: the regression gate
      and census rescoring replay exactly those ids.
+     FAIL CLOSED (owner decision 2026-11-02): while ``protected_articles`` is
+     EMPTY the backfill (scripts/protect_rated_articles.py) has not run, so the
+     rated corpus is unguarded. A real run then deletes nothing, logs a WARNING
+     and records ``skipped_reason`` in the summary; a dry run still reports what
+     it would delete and says a real run would be skipped.
   5. NOTIFICATION LINEAGE needs no protection: ``notification_story_members``
      has no FK to articles BY DESIGN — it is the notification system's memory
      and must survive exactly this deletion.
@@ -92,7 +97,8 @@ def cleanup_articles(session: Session, dry_run: bool = False) -> dict:
 
     # Protection 4: human-rated ground truth.
     from app.repositories.protected_article_repository import protected_ids
-    protected_rated = candidates & protected_ids(session)
+    all_protected = protected_ids(session)
+    protected_rated = candidates & all_protected
 
     deletable = candidates - protected_cluster - protected_feedback - protected_rated
 
@@ -106,7 +112,19 @@ def cleanup_articles(session: Session, dry_run: bool = False) -> dict:
         "protected_rated": len(protected_rated),
         "deleted": len(deletable),
         "clusters_removed": 0,
+        "skipped_reason": None,
     }
+    if not all_protected:
+        if dry_run:
+            summary["skipped_reason"] = ("protected_articles empty: a real run would be skipped "
+                                         "and delete nothing")
+            return summary
+        summary["skipped_reason"] = "protected_articles empty"
+        summary["deleted"] = 0
+        logger.warning("retention cleanup SKIPPED: protected_articles is empty, so human-rated "
+                       "articles are unguarded; run scripts/protect_rated_articles.py --apply "
+                       "first (%d articles would otherwise have been deleted)", len(deletable))
+        return summary
     if dry_run or not deletable:
         return summary
 

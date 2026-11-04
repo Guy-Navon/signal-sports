@@ -728,7 +728,7 @@ Per month, excl. tax.
 | Live profiles, including reviewed `apply_*` changes and UI edits | `profiles` | Partly: the `apply_*` scripts are in git and can be re-run in order; UI edits can't |
 | Accounts | `users` | By hand, but with new ids, which breaks the relations |
 | Notification state: outbox, story members, watermarks | `notification_*` | **No.** An *older* copy can re-send or suppress pushes if Telegram is on |
-| Source overrides (Sport5 on, ONE off) | `source_overrides` | By hand (`RSS_INGESTION.md`) |
+| Source overrides (Sport5 on, ONE on since 2026-11-01) | `source_overrides` | By hand (`RSS_INGESTION.md`) |
 | Clusters | `story_clusters`, `cluster_edges` | Only through a backfill, which the project treats as risky |
 | Run history | `ingestion_runs`, `scheduler_cycles` | **No.** The acceptance metrics need it |
 | Results | `game_results`, `results_sync_state` | Mostly re-fetchable from the provider |

@@ -27,7 +27,7 @@ single complaints. Results feed `signal-pr-open` / `signal-pr-merge` evidence, n
   open their `--db` with `mode=ro`.
 - **Never** run ingestion, backfill, retention or dispatch against the live corpus; set
   `TELEGRAM_NOTIFICATIONS_ENABLED`; click feedback buttons; regenerate a baseline
-  (`feed_ground_truth.py gate --update-baseline` redefines every future measurement — Guy's
+  (`feed_ground_truth.py gate [--census] --update-baseline` redefines every future measurement, and only follows a reviewed delta against the previous baseline — Guy's
   decision); or edit labels to agree with the engine.
 - **Live LLM calls spend money and quota.** Go through `scripts/llm_bakeoff.py`: dry run by default,
   call ceilings, cached responses, read-only corpus. Use `--live` only with Guy's agreement.
@@ -84,7 +84,8 @@ which also uses the LLM. Say so whenever you quote their numbers.
    exact-notch agreement changed. Report the discordant counts (got worse / got better), not only
    the p-value. Slices and metrics with n below `--min-n` (default 10) are printed as "not
    estimated".
-5. **Gate:** `scripts/feed_ground_truth.py gate` (exit 0 = clean) — owned by `signal-real-data-qa`.
+5. **Gates:** `scripts/feed_ground_truth.py gate` and `gate --census` (exit 0 = clean) — owned by
+   `signal-real-data-qa`.
 6. **Interpret honestly:** few discordant rows plus overlapping intervals means **no demonstrated
    change** — don't call it an improvement. Always pair precision with recall: `casual_deni_fan`
    scores ~98% exact while hiding almost everything, and a past "recall fix" cut false hides from
@@ -99,6 +100,9 @@ which also uses the LLM. Say so whenever you quote their numbers.
 - **Census #2:** find biases on `--split fit`, confirm on `--split heldout` (this reproduces
   `census_calibration_fit.py`'s seeded #237 split exactly). Every reuse of the held-out half erodes
   it; for a major tuning effort, ask Guy for a fresh rated sample (census #3 is milestone 11).
+- **Census #3 has a sealed held-out half** (`docs/qa/CENSUS_3_2026-11.md` §3): develop on
+  `census3_ratings.json` (fit) only. `census3_heldout_ratings.json` is read once, for the final
+  evaluation, with `--final-heldout-eval`; never feed it to a gate or a tuning loop.
 - **Data a fix was built from is never an accuracy estimate:** golden cases, n190/n191 corrections,
   clustering fixtures, rows quoted in the issue.
 - **Small groups don't carry a calibration** (n < 5 per group per the census protocol); a large

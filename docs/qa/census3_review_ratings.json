@@ -1,0 +1,25 @@
+{
+ "generated": "2026-11-01T21:53:05.985149+00:00",
+ "seed": 20261101,
+ "ratings": {
+  "guy": {
+   "rss_ba27a1aebdb3e9f91a23": "feed",
+   "rss_a39bcb626dde7284a7e8": "feed",
+   "rss_fd09dded9f014f7025c7": "feed",
+   "rss_c38b4b12fcce6413e6d0": "hide",
+   "rss_69c1da70a9bc7d7396bd": "feed",
+   "rss_f0e921466ed4fb1e64d4": "hide",
+   "rss_94ceb686a39673aa9c82": "low",
+   "rss_8a66d42cfe4aa569e936": "low",
+   "rss_d181f1d6194464826a08": "push",
+   "rss_ef3e17f63f3aa42e1374": "low",
+   "rss_441e0ed38f88848c59c5": "low",
+   "rss_7cab6b854db6a4678833": "hide",
+   "rss_a1b2aecbc61ab761b097": "hide",
+   "rss_c6f8b4499cf73325e25d": "low",
+   "rss_91a80ecd2760996c9ae9": "low",
+   "rss_696f7b5c19de87567fb0": "low",
+   "rss_912dce7a909f03a572d3": "feed"
+  }
+ }
+}

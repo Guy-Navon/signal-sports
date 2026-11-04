@@ -149,6 +149,17 @@ _SIGNING_COMPLETE = (
     phrase("חוזה חדש"), phrase("signed"), phrase("signing"), word("signs"), word("sign"),
 )
 
+# A company, broadcaster or sponsor "signing a deal" is not a person's signing (#413). Only the
+# unambiguous shape counts: a corporate noun in the same clause, shortly before "חתמה/חתמו על
+# (ה)הסכם". A person's "חתם על הסכם" (and every "חוזה" wording) is untouched. Corpus (4281 rows):
+# the pattern "חתם/חתמה/חתמו על הסכם" occurs once, the ynet Netflix story.
+_CORPORATE_DEAL = (
+    regex(
+        r"(?<![א-ת])[הו]?(?:ענקית|חברת|חברה|רשת|ערוץ|תאגיד|נטפליקס|אמזון|ספונסר|חסות|"
+        r"הימורים|סטרימינג)(?![א-ת])[^.|:;!?]{0,30}(?<![א-ת])חתמ(?:ה|ו)\s+על\s+ה?הסכם"
+    ),
+)
+
 _RELEASE_COMPLETE = (
     phrase("שוחרר"), phrase("שוחררה"), phrase("שוחררו"),
     phrase("שחררה את"), phrase("שחרר את"),
@@ -166,7 +177,19 @@ _RELEASE_COMPLETE = (
     phrase("released"), phrase("waived"), phrase("cut by"), phrase("roster cuts"),
 )
 
-_CLUB_GOVERNANCE = (
+# A home-venue move written as a move (#242). "המעבר של" alone is a person's transfer in
+# 5 of its 6 corpus rows ("המעבר של קאדין קרינגטון להפועל"), so it counts only with a club
+# family name as its subject. Hosting is the infinitive "לארח" with a venue object; a
+# normal home game is "תארח" and is not matched. Kept apart from the #229 vocabulary
+# because these phrases are routine BACKGROUND in subtitles while a club plays abroad
+# ("הצהובים, שבחרו לארח את משחקי היורוליג בלימסול, ..."): see governance_step_context().
+_HOME_VENUE_MOVE = (
+    regex(r'(?<![א-ת])המעבר של (?:מכבי|הפועל|בית["״]ר|עירוני)(?![א-ת])'),
+    phrase("לארח את משחקי"),
+    regex(r"(?<![א-ת])לארח ב(?:אולם|היכל)"),
+)
+
+_CLUB_GOVERNANCE_229 = (
     # ownership / control
     # "אחוז(ים) מהבעלות", not bare "מהבעלות": "חלק מהבעלות על המונדיאל" is FIFA.
     phrase("אחוז מהבעלות"), phrase("אחוזים מהבעלות"), phrase("בעלי המניות"), phrase("בעל המניות"), phrase("מניות המועדון"),
@@ -180,6 +203,21 @@ _CLUB_GOVERNANCE = (
     phrase('מנכ"ל היורוליג'), phrase('יו"ר היורוליג'), phrase("נציגי היורוליג"),
     phrase("ownership"), phrase("controlling stake"), phrase("arbitration"),
 )
+
+_CLUB_GOVERNANCE = _CLUB_GOVERNANCE_229 + _HOME_VENUE_MOVE
+
+
+def governance_step_context(title: str, subtitle: str) -> bool:
+    """May a concrete step in the TITLE count as a club-governance step? (#242 review)
+
+    The push gate reads its step verb in the title, while the event may be proven by the
+    subtitle alone. A #242 home-venue phrase that appears only in the subtitle is
+    background, so it never makes an unrelated title decision ("אודקה החליט: סורקין
+    יפתח") a governance step. The #229 vocabulary keeps its subtitle path unchanged
+    (follow-up issue: an owner decision, because narrowing it costs the Recanati push).
+    """
+    title, subtitle = (title or "").lower(), (subtitle or "").lower()
+    return _has_any(title, _CLUB_GOVERNANCE) or _has_any(subtitle, _CLUB_GOVERNANCE_229)
 
 _RELEASE_BLOCKERS = (
     phrase("לא שוחרר"), phrase("לא שוחררה"), phrase("לא שוחררו"),
@@ -314,9 +352,12 @@ def _champion_term_competition_names() -> tuple[str, ...]:
     """All known competition-name phrases containing a champion noun."""
     try:  # deferred import — competition keywords live with the facts stage
         from app.classification.facts import _COMPETITION_KEYWORDS
+        from app.classification.sport_guards import SHARED_CHAMPIONS_LEAGUE_NAMES
+        # The shared Champions League name (#407) is in no competition's keyword list:
+        # it maps to comp:ucl or comp:bcl per article. It is a competition name all the same.
         registered = tuple(
             kw
-            for kws in _COMPETITION_KEYWORDS.values()
+            for kws in (*_COMPETITION_KEYWORDS.values(), SHARED_CHAMPIONS_LEAGUE_NAMES)
             for kw in kws
             if any(noun in kw for noun in _CHAMPION_NOUNS_HE + _CHAMPION_NOUNS_EN)
         )
@@ -572,6 +613,43 @@ TITLE_LOCAL_EVENT_TYPES: frozenset[str] = frozenset(
     {"title_win", "grand_slam_winner", "major_trade", "schedule"}
 )
 
+# Broadcast vocabulary that ANNOUNCES a broadcast (#406). The bare word "שידור" is not one:
+# on the 2026-11-01 corpus 7 of 16 "שידור" schedule titles were something that happened on air
+# ("בארקלי פרץ בבכי בשידור חי", "התפוצץ בשידור") or broadcasting-industry news ("זכויות
+# השידור", "שידורי אתלטיקת הנשים בדרך לשינוי"). The real announcements take five forms:
+# a call to watch, a broadcast label heading the title, a future-tense broadcast, a listing,
+# and a broadcast plural with a time word.
+#
+# The label may follow a time word and/or a clock time ("הערב בשידור חי:", "ב–11:00: שידור
+# חי מ…", "בשעה 20:00:") and be quoted or followed by : | - – or a "מ…" source. It may NOT
+# follow an arbitrary word: "אימה בשידור חי: אוהדים תקפו עיתונאים" happened on air.
+# Known limits, all schedule on main too: a bare past-tense "צפו" ("מיליונים צפו בשידור החי
+# של הגמר") reads like the imperative, and "שידור חי מ…" can be a metaphor ("מהגיהנום").
+_ON_AIR_TIME_WORD = r"(?:הערב|הלילה|היום|מחר)"
+_CLOCK_TIME = r"(?:(?:ב[-–]?|בשעה\s+)?\d{1,2}:\d{2})"
+_BROADCAST_ANNOUNCEMENT = (
+    # "שצפו" (who watched) is past tense; only a standalone "צפו" is a call to watch.
+    regex(r"(?<![א-ת])צפו\s*:?\s*ב?(?:ה)?שידור"),
+    regex(
+        r"^\s*(?:" + _ON_AIR_TIME_WORD + r"\s+)?(?:" + _CLOCK_TIME + r"\s*[:,]?\s*)?"
+        r"[\"״“”']?ב?שידור\s+(?:חי|ישיר)[\"״“”']?"
+        r"(?:\s+ב[-–]?[^\s:|]+(?:\s+\d+)?)?"          # an optional channel: "ב-ONE", "בספורט 5"
+        r"\s*(?::|\||-|–|—|מ)"
+    ),
+    # Word-bounded ("ישודרג" = will be upgraded); "ישודר?" asks whether it will air.
+    regex(r"(?<![א-ת])[וש]?(?:ישודר|ישודרו|תשודר)(?![א-ת?])"),
+    regex(r"(?<![א-ת])[וש]?(?:יועבר|יועברו|תועבר)\s+בשידור"),
+    regex(r"לוח\s+(?:ה)?שידורים"),
+    # "שידורי יורוקאפ השבוע", "בשידורי הערב:": a broadcast plural followed, within three
+    # words, by a time word is a listing. "שידורי אתלטיקת הנשים בדרך לשינוי" names no time;
+    # "מהשידורים הערב" (from the broadcasts) is not a listing, so only ב/ה may prefix it.
+    regex(r"(?<![א-ת])ב?(?:ה)?שידורי(?:ם)?\s+(?:[^\s:]+\s+){0,3}?"
+          r"(?:השבוע|הערב|היום|הלילה|מחר|ב?ל?סוף השבוע|המחזור)(?![א-ת])"),
+)
+
+# A negated broadcast ("המשחק לא ישודר בטלוויזיה") is news about the broadcast, not a slot.
+_BROADCAST_NEGATION = (phrase("לא ישודר"), phrase("לא תשודר"), phrase("לא יועבר"))
+
 
 EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
     # Existing editorial types already have preference affinities and are explicitly
@@ -610,7 +688,7 @@ EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
     ),
     "signing": EventEvidenceRule(
         required_any=(_SIGNING_COMPLETE,),
-        blockers=_NEGOTIATION + _CANDIDATE + _RELEASE_COMPLETE,
+        blockers=_NEGOTIATION + _CANDIDATE + _RELEASE_COMPLETE + _CORPORATE_DEAL,
         confirmed_any=(
             phrase("חתם"), phrase("חתמה"), phrase("חתמו"),
             phrase("signed"), phrase("הצטרף"), phrase("הצטרפה"),
@@ -685,13 +763,14 @@ EVENT_EVIDENCE_RULES: dict[str, EventEvidenceRule] = {
     ),
     "schedule": EventEvidenceRule(
         required_any=((
-            phrase('לו"ז'), phrase("לוח משחקים"), phrase("שידורים"), phrase("שידור"),
-            phrase("לקראת"), phrase("תאריכים"), phrase("schedule"), phrase("preview"),
-            phrase("upcoming"), phrase("fixture"), phrase("fixtures"),
-        ),),
+            phrase('לו"ז'), phrase("לוח משחקים"), phrase("לקראת"), phrase("תאריכים"),
+            phrase("schedule"), phrase("preview"), phrase("upcoming"), phrase("fixture"),
+            phrase("fixtures"),
+        ) + _BROADCAST_ANNOUNCEMENT,),
         # A live stream of a press conference is not a fixture (#224): "צפו בשידור הישיר:
         # מסיבת העיתונאים של מכבי והפועל" was schedule only because "שידור" (broadcast).
-        blockers=(phrase("מסיבת העיתונאים"), phrase("מסיבת עיתונאים"), phrase("press conference")),
+        blockers=(phrase("מסיבת העיתונאים"), phrase("מסיבת עיתונאים"), phrase("press conference"))
+        + _BROADCAST_NEGATION,
         confirmed_any=(phrase('לו"ז'), phrase("לוח משחקים"), phrase("schedule"), phrase("fixtures")),
     ),
     "match_result": EventEvidenceRule(

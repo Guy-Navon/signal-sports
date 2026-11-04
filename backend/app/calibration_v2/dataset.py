@@ -216,6 +216,34 @@ CALIBRATION_ITEMS: tuple[CalibrationItem, ...] = (
         sport="basketball", competition_id="comp:eurocup",
         event_type="playoff_result", importance="high",
     ),
+    # ── Basketball Champions League (comp:bcl, #407) ─────────────────────────
+    # Added 2026-11-02 when the owner made comp:bcl selectable. Same shape as the
+    # EuroCup set; synthetic, entity-less, named by the competition's qualified Hebrew name.
+    # Additive: dataset version unchanged, so no stored v3 response is invalidated.
+    CalibrationItem(
+        id="cal3_bcl_title",
+        title="אלופת ליגת האלופות בכדורסל הוכתרה בפיינל פור",
+        sport="basketball", competition_id="comp:bcl",
+        event_type="title_win", importance="high",
+    ),
+    CalibrationItem(
+        id="cal3_bcl_routine",
+        title="מחזור בליגת האלופות בכדורסל: תוצאות הערב מכל המגרשים",
+        sport="basketball", competition_id="comp:bcl",
+        event_type="match_result", importance="low",
+    ),
+    CalibrationItem(
+        id="cal3_bcl_signing",
+        title="קבוצה מליגת האלופות בכדורסל מחתימה סנטר אמריקאי",
+        sport="basketball", competition_id="comp:bcl",
+        event_type="signing", importance="medium",
+    ),
+    CalibrationItem(
+        id="cal3_bcl_playoff",
+        title="הפתעה בשמינית הגמר של ליגת האלופות בכדורסל: המועמדת הודחה",
+        sport="basketball", competition_id="comp:bcl",
+        event_type="playoff_result", importance="high",
+    ),
     # ── Spanish ACB (comp:acb) ───────────────────────────────────────────────
     CalibrationItem(
         id="cal2_acb_title",
@@ -528,4 +556,4 @@ CALIBRATION_ITEMS: tuple[CalibrationItem, ...] = (
     ),
 )
 
-assert len(CALIBRATION_ITEMS) == 73
+assert len(CALIBRATION_ITEMS) == 77  # 73 + 4 comp:bcl (#407)

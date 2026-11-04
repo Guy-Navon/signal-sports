@@ -309,11 +309,17 @@ class Row:
     rating: str                  # owner's tier (hidden..push)
 
 
-def load_ratings(ratings_path: Path, review_path: Optional[Path], profile: str) -> dict[str, str]:
-    raw = json.loads(ratings_path.read_text(encoding="utf-8"))
+def load_ratings(ratings_path: Path, review_path: Optional[Path], profile: str,
+                 final_heldout_eval: bool = False) -> dict[str, str]:
+    # A sealed held-out ratings file (census #3, #241) is read only for the final evaluation.
+    from app.qa.census_rating import refuse_sealed
+
+    raw = refuse_sealed(json.loads(ratings_path.read_text(encoding="utf-8")), ratings_path,
+                        final_heldout_eval=final_heldout_eval)
     ratings = dict((raw.get("ratings", raw)).get(profile, {}))
     if review_path:
-        rev = json.loads(review_path.read_text(encoding="utf-8"))
+        rev = refuse_sealed(json.loads(review_path.read_text(encoding="utf-8")), review_path,
+                            final_heldout_eval=final_heldout_eval)
         ratings.update((rev.get("ratings", rev)).get(profile, {}))
     return {k: RATING_TO_TIER[v] for k, v in ratings.items() if v in RATING_TO_TIER}
 
@@ -511,6 +517,7 @@ def run_bakeoff(
     profile_id: str = "guy",
     provider_factory: Optional[Callable[[Candidate], object]] = None,
     sleep: Callable[[float], None] = time.sleep,
+    final_heldout_eval: bool = False,
 ) -> dict:
     if not 0 < max_calls <= MAX_CALLS_PER_CANDIDATE:
         raise ValueError(f"max_calls must be 1..{MAX_CALLS_PER_CANDIDATE}")
@@ -518,7 +525,7 @@ def run_bakeoff(
         raise ValueError(f"more than {MAX_CALLS_PER_RUN} calls in one run")
     from app.repositories import article_repository, profile_repository
 
-    ratings = load_ratings(ratings_path, review_path, profile_id)
+    ratings = load_ratings(ratings_path, review_path, profile_id, final_heldout_eval)
     engine, session = open_readonly(db_path)
     try:
         profile = profile_repository.get_by_id(session, profile_id)
@@ -687,6 +694,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--sample", type=Path, default=REPO / "docs" / "qa" / "census2_sample.json")
     parser.add_argument("--ratings", type=Path, default=REPO / "docs" / "qa" / "census2_ratings.json")
     parser.add_argument("--review", type=Path, help="re-rated rows overriding --ratings")
+    parser.add_argument("--final-heldout-eval", action="store_true",
+                        help="allow a sealed held-out ratings file (census #3 final evaluation only)")
     parser.add_argument("--cache-dir", type=Path, default=BACKEND / "data" / "bakeoff")
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--out", type=Path, help="also write the full JSON report here")
@@ -718,6 +727,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         candidates=[CANDIDATES[n] for n in args.candidate], stage=args.stage,
         max_calls=args.max_calls or STAGE_DEFAULT_CALLS[args.stage], live=args.live,
         cache_dir=None if args.no_cache else args.cache_dir,
+        final_heldout_eval=args.final_heldout_eval,
     )
     print(_summary(report))
     if args.out:

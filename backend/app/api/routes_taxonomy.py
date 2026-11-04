@@ -35,7 +35,7 @@ _SPORT_DISPLAY = {
 # relevant competitions first. Anything unlisted sorts after, by id.
 _CURATED_COMPETITION_ORDER = {
     "basketball": ("comp:ibl", "comp:euroleague", "comp:nba", "comp:eurocup",
-                   "comp:acb", "comp:bsl", "comp:greek_basket", "comp:lba",
+                   "comp:bcl", "comp:acb", "comp:bsl", "comp:greek_basket", "comp:lba",
                    "comp:lnb"),
     "football": ("comp:ligat_haal", "comp:leumit_fc", "comp:ucl", "comp:epl",
                  "comp:la_liga", "comp:bundesliga"),

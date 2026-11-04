@@ -443,3 +443,22 @@ subtitle-only, so the corpus correction was scoped to **title evidence** as a
 conservative proxy for subject-hood. Mention-vs-subject is the proper fix and
 belongs to #193 — this change increases its blast radius and is a reason to
 prioritise it.
+
+- **NBA alias mismatches — #415.** A rules-only rerun of the 2026-11-01 corpus copy
+  (4,281 rows) found NBA city and nickname aliases firing on unrelated words. Fixes:
+  - **`deni` is a whole word.** The Latin alias sat inside "denied", "Denis", "Denise",
+    "denim" and could tag Deni Avdija on unrelated English text. `word_bounded_aliases` now
+    also works for Latin aliases (no ASCII letter or digit on either side; a Hebrew letter,
+    `-` or `'s` beside it is fine). The corpus has 2 `deni` hits, both real (0 lost).
+  - **`context_aliases`** (new `TaxonomyEntity` field): a bare city or nickname resolves only
+    with basketball evidence: the caller's `basketball` sport context, an NBA/basketball word
+    in the text, or another basketball entity named beside it. Applied to `קינגס` (Kings
+    Kangwa, a footballer), `שארלוט` (Princess Charlotte, Charlotte FC), `שיקגו` (Chicago
+    marathon, baseball) and `מילווקי` (Brewers). `סקרמנטו` was measured correct on every
+    corpus hit and is not guarded.
+  - **`דנבר` is word-bounded** (it sat inside `גולדנברג`).
+  - **Bare `באקס` removed** (`הבאקס`, `מילווקי באקס` stay). It is also ב+אקס ("באקס ה-NBA").
+    Both corpus hits were wrong. Note `classifier.py` still lists bare `באקס` as a sport
+    keyword.
+  - Not changed: `ניקס`/Knicks (the Yavne case is not in this corpus copy), and `שיקגו קאבס`
+    still resolves the Cavaliers via `קאבס` (Cubs), and that counts as basketball evidence for the Bulls.

@@ -45,6 +45,11 @@ def session(_application, monkeypatch):
         s.execute(text("DELETE FROM feedback_events WHERE article_id LIKE 'rss_t149%'"))
         s.execute(text("DELETE FROM protected_articles WHERE article_id LIKE 'rss_t149%'"))
         s.commit()
+        # Retention fails closed on an empty protected_articles (#255); one row with
+        # no article behind it arms it for these tests and protects nothing.
+        from app.repositories import protected_article_repository
+        protected_article_repository.protect(s, ["rss_t149_sentinel"], reason="test")
+        s.commit()
         yield s
         s.rollback()
         s.execute(text("DELETE FROM articles WHERE id LIKE 'rss_t149%'"))
@@ -210,6 +215,46 @@ class TestProtections:
         session.commit()
 
 
+class TestFailClosed:
+    """Owner decision 2026-11-02 (#255): with nothing in protected_articles the
+    rated corpus is unguarded (a backfill never ran), so a real run deletes nothing."""
+
+    def test_real_run_is_skipped_when_no_article_is_protected(self, session, caplog):
+        session.execute(text("DELETE FROM protected_articles"))
+        _add(session, "rss_t149_old", days_ago=40)
+        session.commit()
+
+        with caplog.at_level("WARNING", logger="app.ingestion.retention"):
+            summary = cleanup_articles(session)
+
+        assert _exists(session, "rss_t149_old")
+        assert summary["deleted"] == 0
+        assert summary["skipped_reason"] == "protected_articles empty"
+        assert any(r.levelname == "WARNING" and "protected_articles" in r.getMessage()
+                   for r in caplog.records)
+
+    def test_dry_run_still_reports_what_would_go_and_that_a_real_run_would_skip(self, session):
+        session.execute(text("DELETE FROM protected_articles"))
+        _add(session, "rss_t149_old", days_ago=40)
+        session.commit()
+
+        summary = cleanup_articles(session, dry_run=True)
+
+        assert summary["deleted"] == 1
+        assert "real run" in summary["skipped_reason"]
+        assert _exists(session, "rss_t149_old")
+
+    def test_a_protected_table_lets_cleanup_run(self, session):
+        _add(session, "rss_t149_old", days_ago=40)
+        session.commit()
+
+        summary = cleanup_articles(session)
+
+        assert summary["skipped_reason"] is None
+        assert summary["deleted"] == 1
+        assert not _exists(session, "rss_t149_old")
+
+
 class TestOrchestrationIntegration:
     def test_cleanup_failure_degrades_cycle_not_ingestion(self, session, monkeypatch):
         import types
@@ -246,3 +291,24 @@ class TestOrchestrationIntegration:
             "SELECT cleanup_summary FROM scheduler_cycles WHERE id=:c"
         ), {"c": out.cycle_id}).fetchone()
         assert json.loads(row[0]) == {"skipped": "disabled"}
+    def test_enabled_cleanup_with_an_empty_protected_table_deletes_nothing(self, session, monkeypatch):
+        import json
+        import types
+        from unittest.mock import patch
+
+        from app.ingestion.orchestration import orchestrate_cycle
+        monkeypatch.setenv("RETENTION_CLEANUP_ENABLED", "true")
+        session.execute(text("DELETE FROM protected_articles"))
+        _add(session, "rss_t149_old", days_ago=40)
+        session.commit()
+        fake = [types.SimpleNamespace(
+            source_id="walla_sport", fetched=0, inserted=0, skipped_duplicate=0,
+            skipped_filtered=0, failed=0, errors=[])]
+        with patch("app.ingestion.ingestion_service.run_ingestion", return_value=fake):
+            out = orchestrate_cycle("manual")
+        session.expire_all()
+        assert _exists(session, "rss_t149_old")
+        row = session.execute(text(
+            "SELECT cleanup_summary FROM scheduler_cycles WHERE id=:c"), {"c": out.cycle_id}).fetchone()
+        stored = json.loads(row[0])
+        assert stored["skipped_reason"] == "protected_articles empty" and stored["deleted"] == 0

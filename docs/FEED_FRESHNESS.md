@@ -128,14 +128,62 @@ visible signal only: no alert is sent anywhere.
 
 - **Physical retention stays disabled** (M8-6 #176). It is not needed to fix visibility. When it
   was decided, the whole corpus sat inside the 30-day window. **Still disabled as of
-  2026-10-18.** A read-only count on 2026-10-12 at the 30-day window found 1,455 deletable
-  articles, including **all 256 N05-rated articles** (the gate's whole frozen corpus) and 29 of
-  census #2's 804. #255 added a fourth, ground-truth protection: `retention.py` never deletes an
-  id in `protected_articles`, and reports them as `protected_rated`. `rate_census.py build`
-  protects each new census. `scripts/protect_rated_articles.py --apply` backfills the N05 and
-  census documents in `docs/qa`. **That backfill has not run on the live corpus yet**, so
-  retention must stay off until it has. Enabling retention afterwards is still an owner decision.
-  The other activation preconditions are in `retention.py` and `.env.example`.
+  2026-11-03.** Enabling it is an owner decision; the other activation preconditions are in
+  `retention.py` and `.env.example`.
+- **Human-rated articles are guarded once the backfill has run on a database** (#255).
+  `retention.py` never deletes an id in `protected_articles` and reports those as
+  `protected_rated`, dry run included. On the live corpus that table is still empty (below).
+  - *Fail closed* (owner decision 2026-11-02): while `protected_articles` is empty, a real
+    retention run deletes nothing. It logs a WARNING and records
+    `skipped_reason: "protected_articles empty"` in the cleanup summary (stored in
+    `scheduler_cycles.cleanup_summary`). A dry run still reports what it would delete, with
+    `skipped_reason` saying a real run would be skipped. The cycle status is unchanged.
+  - *Who fills the table:* `rate_census.py build` protects each new census on the database it
+    builds against. `scripts/protect_rated_articles.py` backfills the top level of `docs/qa`.
+    - Rating and sample files are read by name, not from a list: every `*_ratings.json`, every
+      `*_sample.json`, and a `<name>.json` sample saved beside its `<name>_ratings.json`. Today
+      that is N05, censuses #1 and #2 with the #2 re-rate, the week sample, focused #345 and
+      people #259, and a future `census3_*` needs no code change.
+    - Applied correction logs are a third format and an explicit list (`CORRECTION_LOGS`, owner
+      decision 2026-11-02): `n05_former_affiliation_log.json`, `n190_entity_corrections.json` and
+      `n191_event_corrections.json`. Their rows are the evidence of reviewed fact corrections.
+    - `test_protect_rated_articles_255.py` fails if a file anywhere under `docs/qa` in the
+      ratings-store or sample format is not covered, or if a `*_corrections.json` / `*_log.json`
+      is not listed. Score and analysis output are not checked.
+    - The script refuses to run if a covered file names no article id, unless it is a ratings
+      store still waiting for its first rating.
+  - *Reasons:* each row's `reason` names the first document that rated the id. Ratings documents
+    are read first (in natural order: `census_`, `census2_`, `census10_`), then samples, then
+    correction logs. A correction log is the reason only for ids nobody rated or sampled.
+  - *Verified on the 2026-11-02 live backup copy* (4,288 articles, 30-day window, cutoff
+    2026-10-04):
+    - With the table empty, a real cleanup was skipped: WARNING logged, 0 deleted (the dry run
+      reported 2,143 that would otherwise have gone).
+    - The backfill then added 1,256 rows: ratings and samples 1,211, correction logs 45 (15 each;
+      their other ids were already rated). 1,204 of the ids are in the corpus; 52 week-sample
+      items came from an archive and were never ingested.
+    - A real cleanup on that copy then reported 2,144 candidates, `protected_rated` 1,041,
+      `protected_feedback` 1, 1,103 deleted and 17 empty clusters removed. **Zero protected,
+      rated or correction-log ids were deleted.** `integrity_check` ok, no FK violations.
+    - The issue's ≥ 285 was the 2026-10-12 count. The cutoff has moved about three weeks since,
+      so 717 of census #2's 804 have aged out (29 then).
+  - **The live backfill is still the owner's step.** Retention stays off until the owner decides
+    otherwise; with the table empty it would now skip itself anyway. Runbook, from `backend\`,
+    with the worker running or stopped: the worker never writes `protected_articles`, the insert
+    is one short transaction that waits on WAL's busy timeout, and `backup_db.py` copies through
+    the SQLite backup API.
+    ```
+    .venv\Scripts\python.exe scripts\backup_db.py
+    .venv\Scripts\python.exe scripts\protect_rated_articles.py
+    .venv\Scripts\python.exe scripts\protect_rated_articles.py --apply --i-know-this-is-the-live-corpus
+    .venv\Scripts\python.exe scripts\protect_rated_articles.py
+    ```
+    The first run is a dry run; its retention line ends with the empty-table skip reason.
+    `--apply` refuses the live corpus without the acknowledgement flag (it cannot check that a
+    backup exists). The last run is a dry run again: it must report `would add 0` and
+    `0 rated, sampled or corrected ids in the corpus are NOT protected`, and it ends with
+    retention's own dry-run summary (`protected_rated`, `deletable`, no skip reason; nothing is
+    deleted). Re-run the apply whenever a new rating file lands in `docs/qa`; it is idempotent.
 - No per-league / per-source / per-user freshness windows; one product-wide rule.
 - No clustering redesign; freshness composes with §9 collapse purely by input filtering.
 - The `rss_adapter` `published_parsed` handling was left untouched: changing

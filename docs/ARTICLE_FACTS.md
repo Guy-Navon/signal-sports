@@ -179,6 +179,14 @@ source-category) evidence; only explicit evidence may override an incoming sport
 Basketball-only sources (Eurohoops/Sportando) carry source-category authority so a
 stray keyword cannot override or abstain them.
 
+No new evidence source was added for #407. The shared name `ליגת האלופות` /
+`champions league` keeps the keyword and competition-keyword slots above, but for the
+sport the text proves (`sport_guards.shared_champions_league_sport`: basketball for a
+qualified FIBA name or the word basketball with no committed football vocabulary, or when a
+basketball entity is named by a multi-word alias or a basketball scoreline appears and no
+other-sport entity is named; football otherwise). It maps to `comp:bcl` or
+`comp:ucl` accordingly ([RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) §22).
+
 Bare club-family names (`מכבי`, `הפועל`, …) are **not** sport evidence — the last
 entity→basketball bias path was removed (`"מכבי"`/`"maccabi"` dropped from the
 basketball sport-keyword set). A bare `מכבי` with a football subtitle signal
@@ -194,7 +202,10 @@ Every conflict is recorded even when auto-resolved, as
   "taxonomy_version": 1,
   "sport": { "final": "...", "evidence": [ {sport, source, weight, detail}, … ] },
   "competitions": { "primary": "comp:…|null", "article": [...],
-                    "explicit_hits": [...], "dropped": [...] },
+                    "explicit_hits": [...], "dropped": [...],
+                    // #407: how the shared name "ליגת האלופות" was read (basketball →
+                    // comp:bcl, football → comp:ucl); null when the text does not say it
+                    "shared_name_sport": "basketball|football|null" },
   "entities": { "resolved_ids": [...], "alias_to_id": [...],
                 "dropped": [...], "rejected_llm_mentions": [...] },
   "llm": { "gate_should_call": bool|null, "gate_reason": "...",

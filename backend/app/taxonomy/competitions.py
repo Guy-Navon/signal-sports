@@ -49,6 +49,10 @@ _ALL_COMPETITIONS: tuple[Competition, ...] = (
                 "Israeli Basketball Super Cup", parent="comp:ibl"),
     Competition("comp:euroleague", "basketball", "international_league", "יורוליג", "EuroLeague"),
     Competition("comp:eurocup", "basketball", "international_league", "יורוקאפ", "EuroCup"),
+    # FIBA Basketball Champions League (#407). Its bare name "ליגת האלופות" is shared with
+    # the UEFA Champions League: see sport_guards.shared_champions_league_sport.
+    Competition("comp:bcl", "basketball", "international_league", "ליגת האלופות בכדורסל",
+                "Basketball Champions League"),
     # Closed (#404): NBA clubs play only the NBA (the NBA Cup, preseason and Summer League
     # are NBA-run), so an NBA-club story is NBA coverage even when "NBA" is not printed.
     Competition("comp:nba", "basketball", "league", "NBA", "NBA", closed=True),

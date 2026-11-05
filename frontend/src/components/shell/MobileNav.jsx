@@ -49,7 +49,7 @@ export default function MobileNav({ area, isBackendMode }) {
   }
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 surface-glass border-t border-border z-50">
+    <nav className="md:hidden fixed bottom-0 inset-x-0 pb-[env(safe-area-inset-bottom)] surface-glass border-t border-border z-50">
       <div className="flex">
         {items.map(({ path, label, icon: Icon }) => {
           const active = location.pathname === path;

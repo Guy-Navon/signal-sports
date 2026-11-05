@@ -19,12 +19,12 @@ export default function ProfileSwitcher() {
   return (
     <DropdownMenu dir="rtl">
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg px-3 py-1.5 text-sm transition-colors">
+        <button className="flex items-center gap-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg px-3 py-1.5 text-sm transition-colors min-w-0 max-w-[45vw] sm:max-w-none max-md:min-h-11">
           <div className="w-5 h-5 rounded-full bg-signal-high/15 border border-signal-high/30 flex items-center justify-center flex-shrink-0">
             <User size={11} className="text-signal-high" />
           </div>
-          <span className="text-foreground">{activeProfile?.displayName}</span>
-          <ChevronDown size={13} className="text-text-secondary" />
+          <span className="text-foreground truncate">{activeProfile?.displayName}</span>
+          <ChevronDown size={13} className="text-text-secondary flex-shrink-0" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[190px] bg-surface-2 border-border">

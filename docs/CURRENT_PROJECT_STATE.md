@@ -387,8 +387,8 @@ deterministic rule changelog, §1–§22).
 **Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #199 bundle weight and unfiltered feed query, #200 signup/login abuse
 protection (a **gate before widening access**, not needed while single-user behind Tailscale).
 
-**Mobile** (#16 epic): Tailscale access works when the stack is up. The feed's touch targets are done (#19).
-#20 navigation and safe-area (item 1 done) and #22 PWA-lite install are in milestone 10. The ops pages work
+**Mobile** (#16 epic): Tailscale access works when the stack is up. The feed's touch targets (#19) and the
+navigation shell and safe area (#20) are done. #22 PWA-lite install is implemented and waits for the owner's device check. The ops pages work
 at phone widths (#21).
 
 ---
@@ -456,7 +456,7 @@ milestone 11's gate.
    - #250 record real usage
    - #251 re-enable Telegram after a read-only preflight
    - #252 pilot report
-   - phone UX: #20, #22
+   - phone UX: #22
    - **#253 owner-run 14-day acceptance**, which no PR may close; its window starts after #269
 2. **Milestone 11, Census #3 & a fresh regression gate:**
    - #241 census #3

@@ -131,7 +131,15 @@ reports created vs updated.
 
 `results_sync_state` (one row) records `last_attempt_at` / `last_success_at` /
 `last_status` / `last_summary` — it both throttles the scheduler stage and
-powers ops observability.
+powers ops observability. `last_attempt_at` is written **before** the provider is
+called. An unexpected provider exception becomes status `error` with
+`errors = {"provider": "<class name>"}` (the traceback goes to the log).
+
+`results_sync_lease` (one row, new table via `create_all`) makes sync single-flight
+across processes, with the scheduler lease's conditional-UPDATE pattern on a separate
+row. A sync that finds it held returns `{"skipped": "in_progress"}` without calling the
+provider. It has no heartbeat: a crashed holder blocks syncs until the lease is an hour
+old, then the next sync takes over.
 
 ## 5. Sync & scheduling
 
@@ -140,7 +148,8 @@ powers ops observability.
   `RESULTS_SYNC_ENABLED` and throttled by `RESULTS_SYNC_MIN_INTERVAL_SECONDS`
   (skips if the last attempt is newer), failure-degrading the cycle like the
   notification/retention stages (never blocks ingestion, its own session); and
-  (b) via the manual admin `POST /api/results/sync` (bypasses the throttle).
+  (b) via the manual admin `POST /api/results/sync` (bypasses the throttle, not the
+  lease or a provider block).
 
 ## 6. API
 

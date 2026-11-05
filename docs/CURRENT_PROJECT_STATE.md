@@ -123,7 +123,7 @@ side effect.
 `sources`, `source_overrides`, `ingestion_runs` (incl. the `metrics` JSON), `scheduler_cycles`,
 `scheduler_lease`, `worker_status`, `story_clusters`, `cluster_edges`, `notification_events`,
 `notification_story_members`, `notification_watermarks`, `game_results`,
-`results_sync_state`. Startup creates missing tables, applies additive column migrations
+`results_sync_state`, `results_sync_lease`. Startup creates missing tables, applies additive column migrations
 (fail-loud), seeds empty tables, and creates credential-less demo `users` rows.
 
 **API surface** (the exact inventory is OpenAPI `/docs`; an authz test derives it from the routes):
@@ -375,8 +375,7 @@ deterministic rule changelog, §1–§22).
 
 **Product**
 - **No real usage yet** (§0). Feedback learning, the third personalization path, has no real
-  data. Feedback saves now say whether they were stored and offer a retry on failure (#197,
-  frontend half); the results-sync attempt record and lease are still open.
+  data. Feedback saves now say whether they were stored and offer a retry on failure (#197).
 - Recall: about one wanted story in three was hidden at census #2 (§8). Milestone 9 raised it on
   reruns (cups 93→100/140, schedule 103→107/140), and census #3 will measure it on real
   ingestion.
@@ -385,7 +384,7 @@ deterministic rule changelog, §1–§22).
   2/7 there. The #242 venue-move vocabulary (PR #398) raises it to 3/7 with the Cyprus move
   (owner: push; RSS_QUALITY_GUARDRAILS §20).
 
-**Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #197 results-sync attempt record and lease (the feedback half is done), #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #199 bundle weight and unfiltered feed query, #200 signup/login abuse
+**Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #199 bundle weight and unfiltered feed query, #200 signup/login abuse
 protection (a **gate before widening access**, not needed while single-user behind Tailscale).
 
 **Mobile** (#16 epic): Tailscale access works when the stack is up. #19 feed touch targets, #20
@@ -457,7 +456,6 @@ milestone 11's gate.
    - #250 record real usage
    - #251 re-enable Telegram after a read-only preflight
    - #252 pilot report
-   - #197 honest feedback saves
    - phone UX: #19, #20, #22
    - **#253 owner-run 14-day acceptance**, which no PR may close; its window starts after #269
 2. **Milestone 11, Census #3 & a fresh regression gate:**

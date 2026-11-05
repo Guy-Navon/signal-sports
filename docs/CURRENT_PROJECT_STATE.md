@@ -13,7 +13,7 @@ issue numbers in §14 lead to their evidence.
 
 | Area | State (2026-10-12) |
 |---|---|
-| Milestones | 1–9 **closed**. **13 is the top priority: Off the owner's machine (hosted model, backend, frontend).** Then 10–12: Live Pilot, Census #3 & gate, Israeli-basketball recall (see §11). Outside them: #198–#200 (audit debt), #16 #21 #23 (mobile) |
+| Milestones | 1–9 **closed**. **13 is the top priority: Off the owner's machine (hosted model, backend, frontend).** Then 10–12: Live Pilot, Census #3 & gate, Israeli-basketball recall (see §11). Outside them: #198–#200 (audit debt) |
 | Runtime (owner's Windows PC) | Scheduler worker **running** (`scripts\worker.ps1 -Status`). **The API and Vite were not running on 2026-10-12, so the app was unreachable from the phone.** LLM: `openai/gpt-oss-20b` on Groq since 2026-10-25, an interim choice ([qa/LLM_BAKEOFF_2026-10-25.md](qa/LLM_BAKEOFF_2026-10-25.md), Decision); before that, Ollama `qwen2.5:3b-instruct`. Clustering on, 36h freshness on, results sync on. **Telegram push OFF since 2026-09-13** |
 | Live sources | Walla, Israel Hayom, Ynet, **Sport5** (a code-default "pilot", enabled by runtime override). **ONE** (enabled by runtime override on 2026-11-01 after the #258 probe; first cycle inserted 50 articles, [RSS_INGESTION.md](RSS_INGESTION.md) §1) |
 | Corpus | 2,715 RSS articles published 2026-07-10 → today. 340 were published after the milestone-9 worker restart (2026-10-10 14:23 UTC) |
@@ -387,9 +387,9 @@ deterministic rule changelog, §1–§22).
 **Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #199 bundle weight and unfiltered feed query, #200 signup/login abuse
 protection (a **gate before widening access**, not needed while single-user behind Tailscale).
 
-**Mobile** (#16 epic): Tailscale access works when the stack is up. #19 feed touch targets, #20
-navigation and safe-area (item 1 done) and #22 PWA-lite install are in milestone 10. #21 (ops
-pages) and #23 (a local startup script, optional now that the stack moves to a host) are not.
+**Mobile** (#16 epic): Tailscale access works when the stack is up. The feed's touch targets are done (#19).
+#20 navigation and safe-area (item 1 done) and #22 PWA-lite install are in milestone 10. The ops pages work
+at phone widths (#21).
 
 ---
 
@@ -456,7 +456,7 @@ milestone 11's gate.
    - #250 record real usage
    - #251 re-enable Telegram after a read-only preflight
    - #252 pilot report
-   - phone UX: #19, #20, #22
+   - phone UX: #20, #22
    - **#253 owner-run 14-day acceptance**, which no PR may close; its window starts after #269
 2. **Milestone 11, Census #3 & a fresh regression gate:**
    - #241 census #3
@@ -479,7 +479,7 @@ milestone 11's gate.
      backlog issues #380 #381 #382
 
 Deliberately not in these milestones: platform hardening (#198–#200), which matters
-before wider access or a split deployment, and #21 (mobile ops pages).
+before wider access or a split deployment.
 
 ---
 

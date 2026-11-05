@@ -619,6 +619,21 @@ class ResultsSyncStateRow(Base):
     last_summary = Column(JSON, nullable=True)
 
 
+class ResultsSyncLeaseRow(Base):
+    """Single-flight guard for results sync (#197), id always 1.
+
+    Same single-node contract as ``SchedulerLeaseRow``: a conditional UPDATE is
+    atomic across processes sharing this SQLite file, nothing more. It is
+    separate from the scheduler lease because a manual sync must not block an
+    ingestion cycle, or the reverse.
+    """
+    __tablename__ = "results_sync_lease"
+
+    id = Column(Integer, primary_key=True)            # always 1
+    holder = Column(String, nullable=True)            # NULL == free
+    acquired_at = Column(String, nullable=True)       # ISO UTC, whole seconds
+
+
 class ClusterEdgeRow(Base):
     """ACCEPTED match evidence only (issue #101, docs/CLUSTERING.md §4).
 

@@ -1600,6 +1600,13 @@ a.orbit-report:hover {
     min-height: 44px;
   }
 
+  .orbit-core__reason button,
+  .orbit-cluster__reason button,
+  .orbit-cluster__feedback button,
+  .orbit-queue__more {
+    min-height: 44px;
+  }
+
   .orbit-primary-action {
     min-height: 44px;
     padding-inline: 15px;

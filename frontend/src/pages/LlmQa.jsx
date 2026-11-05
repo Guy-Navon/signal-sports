@@ -220,13 +220,13 @@ function ResetSection({
             <p className="text-xs text-signal-hidden font-medium">
               פעולה בלתי הפיכה. הקלד <span className="font-mono bg-signal-hidden/15 px-1 rounded">RESET</span> לאישור:
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <input
                 type="text"
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
                 placeholder="הקלד RESET"
-                className="flex-1 bg-surface-2 border border-signal-hidden/40 rounded-lg px-3 py-1.5 text-xs font-mono text-signal-hidden placeholder-text-dim focus:outline-none focus:border-signal-hidden/60"
+                className="flex-1 min-w-[160px] bg-surface-2 border border-signal-hidden/40 rounded-lg px-3 py-1.5 text-xs font-mono text-signal-hidden placeholder-text-dim focus:outline-none focus:border-signal-hidden/60"
                 dir="ltr"
               />
               <button

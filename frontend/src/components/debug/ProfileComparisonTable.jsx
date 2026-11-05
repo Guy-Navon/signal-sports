@@ -48,8 +48,7 @@ function ComparisonRow({ item, profiles }) {
 
       {expanded && (
         <div
-          className="border-t border-border/60 p-3 grid gap-3"
-          style={{ gridTemplateColumns: `repeat(${profileIds.length}, 1fr)` }}
+          className="border-t border-border/60 p-3 grid gap-3 md:grid-flow-col md:auto-cols-fr"
         >
           {profileIds.map((pid) => {
             const score = item.profileScores[pid];

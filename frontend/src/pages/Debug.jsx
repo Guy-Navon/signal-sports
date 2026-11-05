@@ -113,7 +113,7 @@ export default function Debug() {
 
       {activeTab === "debug" && (
         <>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
             {STAT_TILES.map(({ key, label, tone }) => (
               <StatCard key={key} value={decisionCounts[key]} label={label} tone={tone} className="px-2 py-2 text-center" />
             ))}

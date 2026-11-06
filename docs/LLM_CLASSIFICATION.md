@@ -5,6 +5,16 @@
 is the code default and a first-class path. Changelog entries are newest first, and the
 sections below them describe the current mechanism.
 
+**2026-11-06 - A rejected championship event takes its importance with it (#403).** The two
+LLM-path `title_win` issue rows were not LLM title claims: the LLM said `news` or `finals_result`,
+and Guardrails 4 and 4b adopted the rules' `title_win`. So the fix is in the shared evidence contract
+([RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) §25), which covers an LLM `title_win` too.
+New in Guardrail 4b: when an LLM event in the very-high class is rejected, a `very_high` importance
+falls back to the rules' importance, so a story reporting no title does not keep the +1. Rows the
+LLM marked `news` that used to pass through a rejected subtitle `title_win` now keep the LLM's
+importance like any other LLM `news` row, instead of the recomputed one (4 corpus rows, no decision
+changed). The prompt is unchanged, and the effect on live LLM output has not been measured.
+
 **2026-10-30 - LLM cross-sport club entities need non-LLM corroboration (#345).** An
 LLM-proposed club whose name does not prove its sport (`מכבי ת"א`) is still dropped by the
 facts stage without explicit sport evidence. It now survives, for basketball only, when a
@@ -345,7 +355,7 @@ The cost is bounded: the article stays **visible** (just not elevated or pushed)
 
 > ⚠️ The current corpus shows a *perfect* `confirmed`/`probable` separation on `title_win`. That is **evidence, not a law**. Do not build on it as a universal assumption.
 
-Three further `title_win` class rules landed with #125, each from a real feed false positive:
+The subject-and-forecast rules (#403) are in [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) §25. Three further `title_win` class rules landed with #125, each from a real feed false positive:
 - **A lift needs a trophy.** "הניף" alone means *lifted*; the crowd lifting the *players* at an opening training session is not a title win. Lift verb now requires a trophy object.
 - **An infinitive/wish is never a completed event.** The past-tense "הניף" is a substring of the infinitive "להניף" (*to* lift), so "מגיע לו להניף את גביע העולם" (he *deserves to* lift the World Cup) validated as an actual win. Aspiration blockers added.
 - **A cancelled thing did not happen.** Negation blockers (מבוטלת/בוטלה/נכשלה) added.
@@ -355,7 +365,7 @@ Three further `title_win` class rules landed with #125, each from a real feed fa
 If LLM `importance` rank is lower than rules `importance` rank → keep rules importance. Prevents LLM from downgrading a finals result or title win.
 
 **Guardrail 6 — League-sport compatibility (fires before entity pruning):**
-If the final league is a basketball-only league (EuroLeague, EuroCup, NBA, Spanish ACB, Turkish BSL, Greek Basket League, Italian LBA, French LNB, Israeli Basketball League) but sport ≠ "basketball" → force `sport=basketball`. If league is "Israeli Premier League" but sport ≠ "football" → force `sport=football`. This fires inside `merge_with_guardrails()` before entity pruning so `prune_sport_incompatible_entities()` uses the corrected sport.
+If the final league is a basketball-only league (EuroLeague, EuroCup, NBA, WNBA, Spanish ACB, Turkish BSL, Greek Basket League, Italian LBA, French LNB, Israeli Basketball League) but sport ≠ "basketball" → force `sport=basketball`. If league is "Israeli Premier League" but sport ≠ "football" → force `sport=football`. This fires inside `merge_with_guardrails()` before entity pruning so `prune_sport_incompatible_entities()` uses the corrected sport.
 
 **Guardrail 7 — Source URL category hint:**
 If `source_sport_hint` (pre-computed from the article URL by `source_hints.py`) disagrees with the LLM sport → override the LLM sport with the hint. Israel Hayom URL categories (`/sport/israeli-basketball/`, `/sport/world-basketball/`) are treated as near-authoritative. `source_sport_hint=None` (all other sources) leaves the LLM sport unchanged.

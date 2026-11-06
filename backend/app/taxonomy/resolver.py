@@ -165,6 +165,16 @@ _PREFIX_WINDOW = max(len(p) for p in _FORMER_PREFIXES)
 _SUFFIX_WINDOW = max(len(s) for s in _FORMER_SUFFIXES)
 
 
+def _names_wnba_not_nba(lowered: str) -> bool:
+    """The text is about the WNBA (#403). "גולדן סטייט ואלקיריז אלופת ה-WNBA" is not the Warriors:
+    WNBA clubs share their cities with NBA clubs, and a bare city alias resolved the NBA one."""
+    return "wnba" in lowered and "nba" not in lowered.replace("wnba", " ")
+
+
+def _is_nba_club(entity: TaxonomyEntity) -> bool:
+    return entity.kind == "team" and any(comp == "comp:nba" for comp, _ in entity.memberships)
+
+
 def _is_former_affiliation(text: str, span: tuple[int, int]) -> bool:
     """True when this alias occurrence names a former club, not the subject."""
     start, end = span
@@ -241,6 +251,7 @@ def _resolve(
             caller (context keywords, basketball-only source, source URL hint).
     """
     lowered = normalize_alias_text(text)
+    wnba_story = _names_wnba_not_nba(lowered)
     result = EntityResolution()
     taken_spans: list[tuple[int, int]] = []
     emitted_ids: set[str] = set()
@@ -266,6 +277,8 @@ def _resolve(
         free = subject
 
         candidates = _filter_candidates(_ALIAS_INDEX[alias], sport_context, alias)
+        if wnba_story:
+            candidates = tuple(c for c in candidates if not _is_nba_club(c))
 
         if len(candidates) == 1:
             entity = candidates[0]

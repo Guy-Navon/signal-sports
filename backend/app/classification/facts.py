@@ -71,6 +71,8 @@ _COMPETITION_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "comp:euroleague": ("euroleague", "יורוליג", "היורוליג"),
     "comp:nba": ("nba", "אן.בי.איי", "אן בי איי"),
+    # Longest match first, so "wnba" claims its span and "nba" cannot match inside it (#403).
+    "comp:wnba": ("wnba",),
     "comp:ibl": (
         "ליגת ווינר", "ווינר סל", "ליגת העל בכדורסל", "ליגת העל סל",
         "winner league", "ligat winner", "israeli basketball league",

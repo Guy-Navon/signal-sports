@@ -28,6 +28,7 @@ from app.classification.sport_guards import (
 from app.classification.event_evidence import (
     PREVAILED_OVER_PATTERN,
     EventEvidence,
+    reads_as_champion_epithet,
     validate_event_evidence,
 )
 from app.taxonomy import (
@@ -418,6 +419,9 @@ def _detect_league(
         # e.g. "Euroleague names teams for expanded EuroCup field" → EuroCup, not EuroLeague.
         if _has(text, *_EUROCUP_KW) or "eurocup" in url_lower or "/eurocup/" in url_lower:
             return "EuroCup"
+        # "wnba" contains "nba" (#403). A story naming both leagues stays NBA.
+        if "wnba" in text and not _has(text.replace("wnba", " "), *_NBA_DIRECT_KW):
+            return "WNBA"
         if _has(text, *_NBA_DIRECT_KW) or _has(text, *_NBA_TEAM_KW):
             return "NBA"
         if _has(text, *_EUROLEAGUE_KW):
@@ -869,6 +873,8 @@ def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
         evidence = validate_event_evidence(proposal, text, source="rules", sport=sport)
         if evidence.valid:
             return evidence
+        if proposal == "title_win" and reads_as_champion_epithet(text):
+            break
 
     return validate_event_evidence("news", text, source="rules", sport=sport)
 
@@ -877,7 +883,7 @@ def detect_article_event(title: str, subtitle: str, sport: str) -> EventEvidence
     """Title-first event routing, shared by ingestion and targeted corrections."""
     title, subtitle = title.lower(), subtitle.lower()
     evidence = _detect_event_evidence(title, sport)
-    if evidence.event_type != "news" or not subtitle:
+    if evidence.event_type != "news" or not subtitle or reads_as_champion_epithet(title):
         return evidence
     # Relocation may assert the coordinated franchise in the title and its
     # physical home move in the subtitle. Neither half alone proves the event.

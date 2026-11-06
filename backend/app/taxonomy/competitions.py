@@ -19,6 +19,10 @@ real league, not because the registry happens to list one membership per club: H
 is registered only in the IBL and plays the Basketball Champions League, and Partizan is
 registered only in the EuroLeague because its domestic league is untracked.
 
+``push_via_parent`` (default True) says whether the parent's ``always_push`` rules reach this
+competition. A cup is the parent's own tournament, so they do. The WNBA is followed through the
+NBA but is a different league, so an NBA push rule stops at it (#403).
+
 Competition IDs are stable strings (``comp:*``). ``display_en`` values match the
 league strings the classifier and relevance engine already use, so PR 1 needs no
 schema or profile changes.
@@ -37,6 +41,7 @@ class Competition:
     display_en: str           # equals the legacy `article.league` string
     parent: Optional[str] = None  # following the parent follows this one (#230)
     closed: bool = False          # member clubs play no other competition (#404)
+    push_via_parent: bool = True  # the parent's always_push rules reach this one (#403)
 
 
 _ALL_COMPETITIONS: tuple[Competition, ...] = (
@@ -56,6 +61,11 @@ _ALL_COMPETITIONS: tuple[Competition, ...] = (
     # Closed (#404): NBA clubs play only the NBA (the NBA Cup, preseason and Summer League
     # are NBA-run), so an NBA-club story is NBA coverage even when "NBA" is not printed.
     Competition("comp:nba", "basketball", "league", "NBA", "NBA", closed=True),
+    # #403: "wnba" used to read as comp:nba through the substring "nba", so a WNBA title pushed
+    # as an NBA title. Owner rating of that row: high, so an NBA follower still sees WNBA stories
+    # (parent) and the NBA's push rules do not apply. No clubs registered: no membership reach.
+    Competition("comp:wnba", "basketball", "league", "WNBA", "WNBA",
+                parent="comp:nba", push_via_parent=False),
     Competition("comp:acb", "basketball", "league", "הליגה הספרדית בכדורסל", "Spanish ACB"),
     Competition("comp:bsl", "basketball", "league", "הליגה הטורקית בכדורסל", "Turkish BSL"),
     Competition("comp:greek_basket", "basketball", "league", "הליגה היוונית בכדורסל", "Greek Basket League"),

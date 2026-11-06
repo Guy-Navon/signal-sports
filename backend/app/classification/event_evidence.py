@@ -302,13 +302,38 @@ _TITLE_WIN_NEGATION = (
     phrase("מבוטלת"), phrase("מבוטל"), phrase("בוטלה"), phrase("בוטל"),
     phrase("נכשלה"), phrase("נכשל"),
     phrase("לא זכה"), phrase("לא זכתה"), phrase("לא יזכה"), phrase("לא תזכה"),
+    phrase("לא תניף"), phrase("לא יניף"), phrase("גם אם לא"),  # #403: "היא אלופה - גם אם לא תניף"
     phrase("cancelled"), phrase("canceled"), phrase("called off"),
     phrase("failed to win"),
+)
+
+# PREDICTION / SURVEY frames (#403). A forecast is not a result: "ה-GM של ה-NBA נחרצים: ... סן
+# אנטוניו אלופה" is a preseason survey, and the bare assertion after the colon reads exactly like
+# a real title. These run over the subtitle too, so each is narrow: "צופים" is mostly a crowd
+# ("מול 11 אלף צופים:"), and "ההימור של המאמן השתלם: בוסטון אלופה" is a real title.
+_TITLE_WIN_PREDICTION = (
+    regex(r"(?<![א-ת])נחרצים\s*:"),
+    regex(r"(?<![א-ת])(?<!אלף )(?<!\d )צופ(?:ים|ה|ות)\s*(?::|כי(?![א-ת]))"),
+    hword("סקר"), hword("תחזית"), hword("תחזיות"), hword("מנבאים"), hword("מנבא"),
+    phrase("ההימור שלנו"), phrase("ההימור שלי"),
+    phrase("מהמרים על"), phrase("מהמר על"), phrase("מהמרת על"),
+    word("predicts"), word("predicted"), word("prediction"), word("predictions"),
+    word("survey"), word("poll"),
+)
+
+# COUNTERFACTUAL (#403): "עם שוער יציב, בית"ר הייתה זוכה באליפות" won nothing. "את הזוכה" is the
+# winner as an OBJECT of a story about who will win ("הגמר יכריע את הזוכה בתואר").
+_TITLE_WIN_UNREALIZED = (
+    regex(r"(?<![א-ת])(?:הייתה|היתה|היה)\s+זוכה(?![א-ת])"),
+    regex(r"(?<![א-ת])היו\s+זוכים(?![א-ת])"),
+    phrase("את הזוכה"),
+    phrase("would have won"),
 )
 
 _TITLE_WIN_BLOCKERS = (
     _DEATH_ACCIDENT + _CANDIDATE + _MEDAL_PLACEMENT
     + _TITLE_WIN_ASPIRATION + _TITLE_WIN_NEGATION
+    + _TITLE_WIN_PREDICTION + _TITLE_WIN_UNREALIZED
     + (
         phrase("wants the title"), phrase("want the title"),
         phrase("dreams of a title"), phrase("dreaming of a title"),
@@ -331,6 +356,10 @@ _CHAMPION_EPITHET_PRECEDERS_HE = frozenset({
     # classified a CANCELLED transfer as a title win on exactly this construction.
     "נשיא", "מאמן", "מאמנת", "בעלי", "בעל", "מנכ\"ל", "מנהל", "סוכן",
     "כוכב", "כוכבת", "שחקן", "שחקנית", "קפטן", "אוהדי", "אוהד",
+    # #403. A future or past copula is a forecast or a memory ("בוסטון תהיה אלופה"), not a title
+    # won now; "לשעבר" in front is a former champion.
+    "לשעבר",
+    "תהיה", "יהיה", "יהיו", "הייתה", "היתה", "היה", "היו",
 })
 _CHAMPION_EPITHET_PRECEDERS_EN = frozenset({
     "the", "of", "against", "vs", "with", "former", "defending", "reigning",
@@ -385,6 +414,26 @@ def _preceding_word(text: str, idx: int) -> str:
     return left.split()[-1]
 
 
+# ── Champion noun as the subject's epithet (#403) ────────────────────────────
+# A predicate assertion has a SUBJECT in front of the noun: "ספרד אלופה", "כפיר נוב אלוף אירופה",
+# "קימי אנטונלי - אלוף העולם". With nothing in front of it, the noun IS the subject, an epithet
+# for someone the story is about: "אלוף העולם פנה לטראמפ", "אלוף הפורמולה 1 מתלונן", "בגיל 50:
+# אלוף העולם לשעבר עבר מהפך". The exception is the inverted assertion, where the noun phrase closes
+# its own clause: "אלופה! מכבי ניצחה", "אלופת ישראל: מכבי תל אביב".
+_CLAUSE_BREAK = ":;.!?|\n"
+_INVERTED_ASSERTION_TAIL = re.compile(r"^(?:\s*\S+){0,2}?\s*(?::|!|\s[-–—]\s)")
+_FORMER_AFTER_NOUN = re.compile(r"^(?:\s+[^\s,:;.!?|]+){0,3}?\s+לשעבר(?![א-ת])")
+_FORMER_BEFORE_NOUN_EN = re.compile(r"\b(?:former|ex)\b(?:\s+\S+){0,2}\s*$")
+
+
+def _is_subjectless_epithet(text: str, start: int, end: int) -> bool:
+    """The champion noun at ``start:end`` opens its clause and does not close it."""
+    clause_start = max(text.rfind(ch, 0, start) for ch in _CLAUSE_BREAK) + 1
+    if text[clause_start:start].strip(" \t\"'״”“׳-–—,"):
+        return False
+    return _INVERTED_ASSERTION_TAIL.match(text[end:]) is None
+
+
 def _has_champion_noun(text: str) -> bool:
     """A champion noun appears at all (any inflection), competition names masked out.
 
@@ -397,15 +446,9 @@ def _has_champion_noun(text: str) -> bool:
     return any(re.search(r"\b" + noun + r"\b", masked) for noun in _CHAMPION_NOUNS_EN)
 
 
-def _has_champion_assertion(text: str) -> bool:
-    """True when a champion noun is used as a bare predicate assertion.
-
-    Valid:   "ניו יורק אלופת ה-NBA"  (X [is] champion of Y — a title win)
-    Invalid: "האלופה חזרה מהאימון"    (definite article → reigning-champion epithet)
-             "מתקרב לאלופת איטליה"    (prepositional prefix → epithet)
-             "מנסים להכתים את אלופת העולם" (object marker → epithet)
-    """
-    masked = _mask_competition_names(text)
+def _bare_champion_nouns(masked: str):
+    """Spans of champion nouns that could be predicates by their form alone: a whole bare word,
+    with no reference marker (a prefix letter, an object marker, a role noun) in front of it."""
     for noun in _CHAMPION_NOUNS_HE:
         start = 0
         while True:
@@ -422,12 +465,31 @@ def _has_champion_assertion(text: str) -> bool:
                 continue
             if _preceding_word(masked, idx) in _CHAMPION_EPITHET_PRECEDERS_HE:
                 continue
-            return True
+            yield idx, end
     for noun in _CHAMPION_NOUNS_EN:
         for m in re.finditer(r"\b" + noun + r"\b", masked):
             if _preceding_word(masked, m.start()) in _CHAMPION_EPITHET_PRECEDERS_EN:
                 continue
-            return True
+            yield m.start(), m.end()
+
+
+def _has_champion_assertion(text: str) -> bool:
+    """True when a champion noun is used as a bare predicate assertion.
+
+    Valid:   "ניו יורק אלופת ה-NBA"  (X [is] champion of Y — a title win)
+    Invalid: "האלופה חזרה מהאימון"    (definite article → reigning-champion epithet)
+             "מתקרב לאלופת איטליה"    (prepositional prefix → epithet)
+             "מנסים להכתים את אלופת העולם" (object marker → epithet)
+             "אלוף העולם פנה לטראמפ"  (no subject in front → the noun IS the subject, #403)
+             "אלוף העולם לשעבר עבר מהפך" (a former champion, #403)
+    """
+    masked = _mask_competition_names(text)
+    for start, end in _bare_champion_nouns(masked):
+        if _FORMER_AFTER_NOUN.match(masked[end:]) or _FORMER_BEFORE_NOUN_EN.search(masked[:start]):
+            continue
+        if _is_subjectless_epithet(masked, start, end):
+            continue
+        return True
     return False
 
 
@@ -483,14 +545,21 @@ def _has_grand_slam_win_evidence(text: str) -> bool:
     return _has_champion_assertion(text)
 
 
+# A clause that ASKS is not a report (#403): "זו אלופת העולם שאתם רוצים לראות?", "מי תהיה האלופה?".
+_QUESTION_CLAUSE = re.compile(r"[^:;.!?|\n]*\?")
+
+
 def _has_title_win_evidence(text: str) -> bool:
     """The full title_win evidence contract: CROWNING or LIFT+TROPHY or ASSERTION or compound.
 
     Every branch requires the subject to have ACTUALLY WON. A trophy noun alone is not
-    evidence, and neither is a lift (#125).
+    evidence, and neither is a lift (#125), a forecast, a counterfactual, an epithet for the
+    story's subject or a question (#403). An individual award ("זכה בתואר המצטיין") still counts:
+    whether it should is an open owner question on #403.
     """
     if _has_any(text, _TITLE_WIN_BLOCKERS):
         return False
+    text = _QUESTION_CLAUSE.sub(" ", text)
     # Crowned AS A CHAMPION — any inflection, absolute or construct.
     if _has_any(text, _TITLE_WIN_CROWNING_VERB) and _has_champion_noun(text):
         return True
@@ -502,6 +571,18 @@ def _has_title_win_evidence(text: str) -> bool:
         return True
     masked = _mask_competition_names(text)
     return _has_any(masked, _TITLE_WIN_VERB) and _has_any(masked, _TITLE_WIN_OBJECT)
+
+
+def reads_as_champion_epithet(text: str) -> bool:
+    """A champion noun stands bare in ``text``, and ``text`` still reports no title (#403).
+
+    Such a story is about someone who IS or WAS a champion, so it ends at `news`: its win words
+    ("ניצחונו הראשון כאלוף העולם") describe the champion, not a game to report as `match_result`.
+    """
+    return (
+        next(_bare_champion_nouns(_mask_competition_names(text)), None) is not None
+        and not _has_title_win_evidence(text)
+    )
 
 
 # finals_result requires BOTH a finals context AND a result signal (issue #60):
@@ -788,6 +869,12 @@ _EVENT_SPORT_COMPATIBILITY: dict[str, frozenset[str]] = {
     "grand_slam_winner": frozenset({"tennis"}),
     "early_round_result": frozenset({"tennis"}),
 }
+
+def join_evidence_text(title: str, subtitle: str | None) -> str:
+    """Title and subtitle as ONE text to validate, with a clause break between them, so a clause
+    of one can never run into the other (a question in the subtitle masked the title: #403)."""
+    return f"{title} | {subtitle}" if subtitle else title
+
 
 def validate_event_evidence(
     event_type: str,

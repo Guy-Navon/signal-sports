@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.classification.facts import build_article_facts
-from app.classification.event_evidence import validate_event_evidence
+from app.classification.event_evidence import join_evidence_text, validate_event_evidence
 from app.classification.merge import merge_with_guardrails, normalize_league_sport_compatibility
 from app.classification.service import get_llm_provider
 from app.classification.source_hints import extract_source_sport_hint
@@ -152,7 +152,9 @@ def classify_backfill(
     for article in candidates:
         classify_title = article.title
         source_sport_hint = extract_source_sport_hint(article.source, article.url)
-        evidence_text = f"{classify_title.lower()} {article.subtitle.lower() if article.subtitle else ''}"
+        evidence_text = join_evidence_text(
+            classify_title.lower(), article.subtitle.lower() if article.subtitle else None
+        )
 
         rules_result = classify(
             classify_title,

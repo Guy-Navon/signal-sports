@@ -1235,6 +1235,55 @@ Tests: `tests/test_opponent_injury_410.py`.
 Netflix World Cup rights story; every person's "חתם על חוזה" is untouched. The guard is deliberately
 narrow: a club-as-subject sponsorship deal and other signing wording are not covered.
 
+## 25. A Title Needs a Subject Who Won It (#403, 2026-11-06)
+
+`title_win` fired on stories that report no title, up to push. `event_evidence.py` is the one choke
+point, used by the rules, by LLM proposals in Guardrail 4b, and by the post-facts check, so the
+contract changed there:
+
+- **A champion noun needs a subject in front of it.** "ספרד אלופה" and "קימי אנטונלי - אלוף העולם"
+  assert. In "אלוף העולם פנה לטראמפ" the noun IS the subject, an epithet. The exception is an
+  inverted assertion, where the noun phrase closes its own clause ("אלופה! ...", "אלופת ישראל: ...").
+- **Former champions:** "לשעבר" within three words after the noun (no comma between), or "former"
+  before it.
+- **Forecasts and counterfactuals:** a survey or prediction frame ("נחרצים:", "צופים:" unless it is a
+  crowd, "סקר", "תחזית", "ההימור שלנו"), a future or past copula before the noun ("תהיה אלופה"),
+  "הייתה זוכה", and "את הזוכה" (the winner as an object).
+- **Questions:** a question clause is masked.
+- **An epithet ends at `news`.** `reads_as_champion_epithet` stops the proposal loop and the subtitle
+  pass. Without it a rejected `title_win` falls through to `match_result` on a win word, including
+  a doping ban and a lineup story that were `news` before, which is the #418 shape.
+
+`join_evidence_text` puts a clause break between title and subtitle. Otherwise a question in the
+subtitle masked the title's own assertion. The new blockers join `_TITLE_WIN_BLOCKERS`, which
+`finals_result` and `grand_slam_winner` share, and the subject and former rules apply to the slam's
+champion noun; neither moved a corpus row of those events.
+
+**The WNBA is its own competition.** `comp:wnba` claims the span before `nba` can match inside it,
+`league` becomes `WNBA`, and a text naming the WNBA and not the NBA no longer resolves an NBA club
+through a shared city ("גולדן סטייט ואלקיריז" is not the Warriors). See
+[TAXONOMY.md](TAXONOMY.md) and tier 1b in
+[RELEVANCE_VISIBILITY_CONTRACT.md](RELEVANCE_VISIBILITY_CONTRACT.md).
+
+**Corpus effect** (in-memory replay of a read-only copy, 4,920 rows outside the sealed census #3
+half, both seed profiles): `title_win` rows 37 → 26 rules-only and 36 → 25 replaying the stored LLM
+proposals, none gained. Guy's pushes 22 → 17 on both paths, none gained: three WNBA titles and a WNBA
+MVP now stop at `high_feed`, and the GM survey stops at `low_feed`. `casual_deni_fan`: no decision
+changed. A true-title count is the analyst's reading, not an owner rating: the 11 removed rows
+report no title, and no row reading as a real title was lost.
+
+**Deliberately not done:**
+- A second-tier cup stays `title_win` ("בני יהודה זכתה בגביע הטוטו לאומית"): it is a title. The owner
+  rated it hide, which is a preference matter. It does not push.
+- An individual award stays `title_win` ("זכתה בתואר ה-MVP"), as an existing test pins. An NBA MVP
+  story would therefore still push through the NBA rule. Open owner question on #403.
+- A title won long ago, written as a plain win ("זכו יחד באליפות עם מכבי תל אביב - והפכו ליריבים
+  מרים"), still reads as `title_win`. Nothing in the headline's form separates it from a fresh win.
+- A subject in front of an appositive epithet ("ספרד אלופת העולם תפגוש את...") still asserts.
+- The LLM prompt is unchanged: no live call was made to measure a prompt change, and the evidence
+  check holds whatever the LLM proposes.
+- Stored rows keep their facts until a backfill.
+
 ## Where open classification work is tracked
 
 This file is a changelog of shipped rules. Open gaps live in GitHub issues and in the

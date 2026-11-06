@@ -24,6 +24,7 @@ from app.classification.facts import build_article_facts
 from app.classification.event_evidence import (
     TITLE_LOCAL_EVENT_TYPES,
     EventEvidence,
+    join_evidence_text,
     validate_event_evidence,
 )
 from app.classification.gating import LLMGateDecision, should_call_llm_for_article
@@ -102,7 +103,7 @@ def _apply_post_facts_event_validation(
     live corpus proved the certainty cap alone was not enough to stop it. The same holds
     for a trade in a subtitle (#223): it is background to the headline's story.
     """
-    evidence_text = f"{title_lower} {subtitle_lower}".strip()
+    evidence_text = join_evidence_text(title_lower, subtitle_lower).strip()
     proposed_event = final_result.event_type
     source = "llm" if final_result.event_certainty == "weak" else "rules"
     event_evidence = validate_event_evidence(

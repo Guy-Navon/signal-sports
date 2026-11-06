@@ -87,6 +87,10 @@
     "comp:winner_cup": {
       "display_en": "Winner Cup",
       "sport": "basketball"
+    },
+    "comp:wnba": {
+      "display_en": "WNBA",
+      "sport": "basketball"
     }
   },
   "entities": {

@@ -29,7 +29,7 @@ export const userProfiles = {
           major_signing: "push",       // official signing confirmed
           negotiation: "push",         // confirmed serious negotiation (not rumor)
           injury: "push",              // player injury
-          title_win: "push",           // championship win
+          title_win: "high_feed",      // a title is never a push (owner decision 2026-11-06)
           // high_feed: strong interest but not confirmed
           candidate: "high_feed",      // interest/monitoring — NOT push
           rumor: "high_feed",          // rumor level — NOT push
@@ -76,7 +76,7 @@ export const userProfiles = {
           // push — only the most significant events
           star_trade: "push",              // blockbuster NBA star trade
           major_trade: "high_feed",        // major trade (non-Deni) — high_feed, not push
-          title_win: "push",               // NBA champion
+          title_win: "high_feed",          // NBA champion
           // high_feed
           finals_result: "high_feed",
           playoff_result: "high_feed",
@@ -125,7 +125,7 @@ export const userProfiles = {
           regular_season_result: "feed",
           playoff_result: "high_feed",
           final_four: "high_feed",
-          title_win: "push",
+          title_win: "high_feed",
           interview: "feed",
           analysis: "feed",
           opinion: "feed",
@@ -155,7 +155,7 @@ export const userProfiles = {
           regular_season_result: "feed",
           match_summary: "feed",
           playoff_result: "high_feed",
-          title_win: "high_feed",          // non-Maccabi title = high_feed, not push
+          title_win: "high_feed",
           interview: "feed",
           analysis: "feed",
           opinion: "feed",

@@ -160,11 +160,11 @@ def test_wnba_title_stops_at_high_feed_for_an_nba_follower():
     "ג'יילן ברונסון ה-MVP של סדרת הגמר: ניקס אלופות ה-NBA",
     "אוקלהומה סיטי ת'אנדר זכתה באליפות ה-NBA",
 ])
-def test_real_nba_title_still_pushes_for_an_nba_follower(title):
+def test_real_nba_title_reaches_high_feed_for_an_nba_follower(title):
     article = _ingest(title)
     assert article.event_type == "title_win"
     assert article.primary_competition == "comp:nba"
-    assert _decision(article) == "push"
+    assert _decision(article) == "high_feed"
 
 
 def test_wnba_individual_award_does_not_push_through_the_nba():
@@ -288,11 +288,11 @@ def test_neighbors_of_a_guard_keep_a_real_title(title, subtitle):
     assert validate_event_evidence("title_win", text).valid
 
 
-def test_maccabi_title_still_pushes():
+def test_maccabi_title_reaches_high_feed():
     article = _ingest('ים מדר זכה בתואר ראשון עם מכבי ת"א: "מאושר על ההחלטה שקיבלתי"',
                       source_id="ynet_sport")
     assert article.event_type == "title_win"
-    assert _decision(article) == "push"
+    assert _decision(article) == "high_feed"
 
 
 def test_grand_slam_champion_noun_still_wins_and_a_former_one_does_not():
@@ -380,7 +380,7 @@ def _is_nba_club(entity_id: str) -> bool:
 
 
 # A title followed by a question about what comes next, or a noun-first title.
-NBA_TITLES_THAT_PUSH = [
+NBA_TITLES = [
     ("הניקס אלופת ה-NBA, האם זו תחילתה של שושלת?", ""),
     ("הניקס זכו באליפות ה-NBA - ומה עם ברונסון?", ""),
     ("Celtics win the NBA title, what's next?", ""),
@@ -412,7 +412,7 @@ NBA_TITLES_THAT_PUSH = [
     ("בוסטון אלופת אן בי איי, כוכבת ה-WNBA חגגה", ""),
 ]
 
-EUROLEAGUE_TITLES_THAT_PUSH = [
+EUROLEAGUE_TITLES = [
     ("מכבי תל אביב אלופת היורוליג, ומה עכשיו?", ""),
     ("מכבי תל אביב אלופת היורוליג - מי יעצור אותה?", ""),
     ("אלופת היורוליג היא מכבי תל אביב", ""),
@@ -427,20 +427,20 @@ EUROLEAGUE_TITLES_THAT_PUSH = [
 ]
 
 
-@pytest.mark.parametrize("title,subtitle", NBA_TITLES_THAT_PUSH + EUROLEAGUE_TITLES_THAT_PUSH)
-def test_real_title_in_an_ordinary_shape_keeps_title_win_and_push(title, subtitle):
+@pytest.mark.parametrize("title,subtitle", NBA_TITLES + EUROLEAGUE_TITLES)
+def test_real_title_in_an_ordinary_shape_keeps_title_win_at_high_feed(title, subtitle):
     article = _ingest(title, subtitle)
     assert article.event_type == "title_win"
     assert article.importance == "very_high"
-    assert _decision(article) == "push"
+    assert _decision(article) == "high_feed"
 
 
-@pytest.mark.parametrize("title,subtitle", NBA_TITLES_THAT_PUSH + EUROLEAGUE_TITLES_THAT_PUSH)
+@pytest.mark.parametrize("title,subtitle", NBA_TITLES + EUROLEAGUE_TITLES)
 def test_llm_title_win_on_a_real_title_shape_is_kept(title, subtitle, monkeypatch):
     _stub_llm(monkeypatch)
     article = _ingest(title, subtitle)
     assert article.event_type == "title_win"
-    assert _decision(article) == "push"
+    assert _decision(article) == "high_feed"
 
 
 @pytest.mark.parametrize("title", [
@@ -671,18 +671,18 @@ ROUND_2_TITLES = TITLES_NEXT_TO_A_FORECAST_WORD + NOUN_FIRST_TITLES + TAIL_QUEST
 
 
 @pytest.mark.parametrize("title,subtitle", ROUND_2_TITLES)
-def test_round_2_title_keeps_title_win_and_push(title, subtitle):
+def test_round_2_title_keeps_title_win_at_high_feed(title, subtitle):
     article = _ingest(title, subtitle)
     assert article.event_type == "title_win"
-    assert _decision(article) == "push"
+    assert _decision(article) == "high_feed"
 
 
 @pytest.mark.parametrize("title,subtitle", ROUND_2_TITLES)
-def test_round_2_title_keeps_an_llm_title_win_and_push(title, subtitle, monkeypatch):
+def test_round_2_title_keeps_an_llm_title_win_at_high_feed(title, subtitle, monkeypatch):
     _stub_llm(monkeypatch)
     article = _ingest(title, subtitle)
     assert article.event_type == "title_win"
-    assert _decision(article) == "push"
+    assert _decision(article) == "high_feed"
 
 
 def test_absolute_noun_with_an_unlisted_tail_keeps_the_title():

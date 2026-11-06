@@ -1338,8 +1338,10 @@ The WNBA decision:
 **Deliberately not done:**
 - A second-tier cup stays `title_win` ("בני יהודה זכתה בגביע הטוטו לאומית"): it is a title. The owner
   rated it hide, which is a preference matter. It does not push.
-- An individual award stays `title_win` ("זכתה בתואר ה-MVP"), as an existing test pins. An NBA MVP
-  story would therefore still push through the NBA rule. Open owner question on #403.
+- An individual award stays `title_win` ("זכתה בתואר ה-MVP"), as an existing test pins. It no longer
+  matters for push: **owner decision 2026-11-06, a title is never a push and reaches `high_feed` at
+  most.** No profile carries `always_push:title_win`. Text in this section about a title pushing
+  describes the behavior when #403 merged.
 - A title won long ago, written as a plain win ("זכו יחד באליפות עם מכבי תל אביב - והפכו ליריבים
   מרים"), still reads as `title_win`. Nothing in the headline's form separates it from a fresh win.
 - A subject in front of an appositive epithet ("ספרד אלופת העולם תפגוש את...") still asserts.

@@ -99,7 +99,7 @@ are unchanged.
    - a post-ArticleFacts row whose event is in `CLOSED_LEAGUE_REACH_EVENTS` =
      `COMPETITION_ANCHORED_EVENTS` minus `title_win` (a real NBA title names the NBA;
      unnamed ones were homonyms in the corpus, the Milwaukee Brewers' baseball title
-     resolved `team:milwaukee_bucks`, and Guy has an NBA `title_win` push) and
+     resolved `team:milwaukee_bucks`) and
      `friendly_match`;
    - the union of the memberships of the entities that have any is exactly one
      competition and that competition is `closed` (an NBA club next to Maccabi abstains).

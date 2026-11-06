@@ -218,7 +218,7 @@ class TestV2Rescue:
         assert score_article_v2(_article(), profile).decision == "hidden"
 
     def test_title_win_is_not_rescued(self, guy):
-        # Guy has always_push comp:nba × title_win; an unnamed "title" must not reach it.
+        # An unnamed "title" must not reach the NBA (a title rule would otherwise rescue homonyms).
         art = _article(event_type="title_win", importance="very_high",
                        entity_ids=["team:milwaukee_bucks"])
         assert score_article_v2(art, guy).decision == "hidden"

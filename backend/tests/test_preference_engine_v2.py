@@ -489,7 +489,7 @@ class TestValidation:
 
 class TestSeedProfileFixtures:
     def test_guy_maccabi_push_rules_fire(self, guy):
-        for event in ("signing", "negotiation", "title_win"):
+        for event in ("signing", "negotiation"):
             article = _article(entity_ids=["team:maccabi_tlv_bb"], event_type=event)
             assert score_article_v2(article, guy).decision == "push", event
 

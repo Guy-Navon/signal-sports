@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-11-01** (milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
+**Last updated: 2026-11-06** (#365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
 for any agent or human picking the project up with no conversation history. Present-tense
 statements were checked against the code and the owner's local runtime on that date. History
 is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
@@ -109,6 +109,12 @@ visible members). Details: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md).
 | `sport5_sport` | html_scrape | **on (runtime override)** | The code default says "pilot, disabled", but it has run every cycle since July (30 days to 2026-10-29: 0 errors, about 3 new articles a day; 214 of its 216 articles basketball). It stays enabled; removing the code-default "pilot" label is a separate follow-up (#395) |
 | `one_sport` | html_scrape (public JSON) | **on (runtime override, 2026-11-01, owner decision #258)** | Disabled from before 2026-07-10 (reason never recorded) until 2026-11-01; its first cycle inserted 50 articles. The #258 probe (2026-10-30, `scripts/one_sport_probe.py`) found the adapter working: 48 Hebrew items, about 68 a day, 27% from the basketball lists, none already stored. Owner decision: enable |
 | `eurohoops`, `sportando` | RSS, English | off | Post-MVP, together with translation ([TITLE_TRANSLATION.md](TITLE_TRANSLATION.md)) |
+
+A failed RSS fetch is recorded as a failure (#365): the source's run is `error` with `failed = 1`
+and a short reason, the cycle degrades (`failed` if no source got anything), and a healthy empty feed
+stays a success. Stored runs from before this change cannot be told apart from quiet days. Sport5
+and ONE still log and swallow their fetch errors, so their "0 errors" above says nothing about
+outages. The running worker has this only after a restart on a checkout that contains it.
 
 Full contract, URL hints and probe history: [RSS_INGESTION.md](RSS_INGESTION.md). The product is
 Hebrew-only. Re-enabling English sources or translation is post-MVP and must not happen as a

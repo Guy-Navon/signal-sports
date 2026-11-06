@@ -13,6 +13,14 @@ class RawSourceItem:
     summary: Optional[str] = None
 
 
+class SourceFetchError(Exception):
+    """The source could not be read, as opposed to a source with nothing new.
+
+    The message goes into the persisted run record, so it is a short reason (an
+    error class or ``http_<status>``), never exception text: that can carry a URL.
+    """
+
+
 class SourceAdapter:
     source_id: str
 

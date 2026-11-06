@@ -140,7 +140,9 @@ as the admin `/api/scheduler/health` (`orchestration.last_successful_cycle`,
 לא מתעדכן") or claims to run but has not succeeded for more than 30 minutes, six intervals
 ("הפיד לא התעדכן מעל חצי שעה — הייבוא נתקע"). The thresholds and copy live in
 `frontend/src/components/feed/feedFreshnessModel.js`. Local (mock) mode shows nothing. This is a
-visible signal only: no alert is sent anywhere.
+visible signal only: no alert is sent anywhere. Since #365, a cycle in which every source failed to
+fetch and nothing arrived is `failed`, not a success, so this line stops advancing during such an
+outage instead of reading "updated just now" over a feed that received nothing.
 
 ## 8. What was deliberately NOT done
 

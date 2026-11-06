@@ -8,9 +8,10 @@ import types
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
+import pytest
 
 from app.ingestion.adapters.rss_adapter import RSSSourceAdapter
-from app.ingestion.adapters.base import RawSourceItem
+from app.ingestion.adapters.base import RawSourceItem, SourceFetchError
 from app.ingestion.dedup import article_id_from_url, url_already_exists
 from app.ingestion.ingestion_service import _normalise
 from app.ingestion.config import RSSSourceConfig
@@ -93,10 +94,11 @@ class TestRSSAdapterFetch:
             items = self._adapter().fetch()
         assert items == []
 
-    def test_network_error_returns_empty(self):
-        with patch("feedparser.parse", side_effect=Exception("timeout")):
-            items = self._adapter().fetch()
-        assert items == []
+    def test_network_error_raises(self):
+        # #365: an empty list would read as a quiet day. Cases: test_rss_fetch_failures_365.py.
+        with patch("feedparser.parse", side_effect=Exception("timeout")), \
+                pytest.raises(SourceFetchError):
+            self._adapter().fetch()
 
     def test_published_at_parsed_from_struct_time(self):
         import time

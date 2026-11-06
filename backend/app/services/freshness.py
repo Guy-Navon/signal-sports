@@ -21,6 +21,10 @@ Clock semantics (docs/FEED_FRESHNESS.md):
     :data:`FUTURE_TOLERANCE_MINUTES` ahead (M8-4), so nothing can ride the
     top of the feed indefinitely.
 
+Query cost (#199): the consumer path also loads its rows through
+:func:`published_at_query_floor`, a deliberately loose SQL bound that keeps
+this module the only place that knows the window.
+
 Visibility policy, not deletion: expired articles stay in the database under
 the separate ~30-day physical-retention contract (retention.py, M7-3) and
 remain visible in the Debug feed, which deliberately shows everything.
@@ -88,3 +92,20 @@ def fresh_only(articles: Iterable, now: Optional[datetime] = None) -> List:
         return list(articles)
     cutoff = freshness_cutoff(now)
     return [a for a in articles if _as_utc(a.published_at) >= cutoff]
+
+
+def published_at_query_floor(now: Optional[datetime] = None) -> Optional[str]:
+    """A safe lower bound for a SQL text comparison on ``published_at`` (#199),
+    or None when freshness is off and every row must load.
+
+    NOT a freshness rule: it only spares loading rows far outside the window.
+    :func:`fresh_only` stays the one exact predicate and still runs on whatever
+    this lets through, so the bound may keep too much but must never drop a
+    fresh row. ``published_at`` is ISO text, so SQL compares the text's local
+    time, not the instant. A UTC offset moves that text by less than 24 hours,
+    hence one full day of margin, and the bound stops at the date so the time
+    format (``T`` or space, fractions, ``Z``) cannot affect the comparison.
+    """
+    if not freshness_enabled():
+        return None
+    return (freshness_cutoff(now) - timedelta(days=1)).date().isoformat()

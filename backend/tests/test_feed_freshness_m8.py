@@ -431,3 +431,158 @@ class TestTimestampQuality:
         ))
         got = get_by_id(session, "rss_m8_meta")
         assert got.published_at_meta == {"provenance": "ingest_fallback"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# #199 — the SQL prefilter is a cost saving, never a second freshness rule
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _stored(session, _id, published_at: str):
+    """An article row with an exact stored ``published_at`` string."""
+    _IDS.append(_id)
+    session.add(ArticleRow(
+        id=_id, source="sport5_sport", source_display_name="sport5_sport",
+        url=f"https://example.test/{_id}", title="דיווח: מכבי ת״א במו״מ עם גארד יורוליג",
+        language="he", published_at=published_at, sport="basketball",
+        league="EuroLeague", entities=["Maccabi Tel Aviv Basketball"],
+        event_type="negotiation", event_certainty="confirmed", importance="high",
+        confidence=0.92, tags=[], entity_ids=[],
+    ))
+
+
+def _candidate_ids(session):
+    from app.services.feed_service import load_feed_candidates
+    return {a.id for a in load_feed_candidates(session)}
+
+
+def _hydrated_ids_during(call):
+    """Which article rows were actually turned into models during ``call``."""
+    from app.repositories import article_repository
+    seen = []
+    real = article_repository._row_to_article
+
+    def spy(row):
+        seen.append(row.id)
+        return real(row)
+
+    with patch.object(article_repository, "_row_to_article", spy):
+        call()
+    return set(seen)
+
+
+def _strings_for_instant(instant: datetime) -> dict:
+    """Every ISO spelling of one instant that the reader accepts. Stored text
+    compares lexically in SQL, so the local part is what could fool a bound."""
+    u = instant.astimezone(timezone.utc)
+    west = timezone(-timedelta(hours=23, minutes=59))
+    east = timezone(timedelta(hours=14))
+    return {
+        "utc": u.isoformat(),
+        "utc_micro": u.replace(microsecond=123456).isoformat(),
+        "utc_no_micro": u.replace(microsecond=0).isoformat(),
+        "naive": u.replace(tzinfo=None).isoformat(),
+        "space_separator": u.replace(tzinfo=None).isoformat(sep=" "),
+        "zulu": u.replace(tzinfo=None, microsecond=0).isoformat() + "Z",
+        "far_west_offset": u.astimezone(west).isoformat(),
+        "far_east_offset": u.astimezone(east).isoformat(),
+    }
+
+
+class TestFeedCandidatePrefilter:
+    @pytest.mark.parametrize("age", [
+        timedelta(hours=1),
+        timedelta(hours=35, minutes=59),
+        timedelta(hours=-1),            # future-dated is fresh
+    ])
+    def test_never_drops_a_row_the_predicate_keeps(self, session, age):
+        spellings = _strings_for_instant(_now() - age)
+        for name, value in spellings.items():
+            _stored(session, f"rss_199_{name}", value)
+        session.commit()
+        with patch.dict(os.environ, FRESH_ON):
+            from app.repositories import article_repository
+            kept = {a.id for a in fresh_only(article_repository.get_rss_articles(session))}
+            assert kept == {f"rss_199_{name}" for name in spellings}
+            assert kept <= _candidate_ids(session)
+
+    def test_row_exactly_at_the_cutoff_stays_a_candidate(self, session):
+        with patch.dict(os.environ, FRESH_ON):
+            spellings = _strings_for_instant(freshness_cutoff())
+            for name, value in spellings.items():
+                _stored(session, f"rss_199_cut_{name}", value)
+            session.commit()
+            assert {f"rss_199_cut_{name}" for name in spellings} <= _candidate_ids(session)
+
+    def test_follows_the_configured_window(self, session):
+        _stored(session, "rss_199_90h", (_now() - timedelta(hours=90)).isoformat())
+        session.commit()
+        with patch.dict(os.environ, {**FRESH_ON, "FEED_MAX_AGE_HOURS": "100"}):
+            assert "rss_199_90h" in _candidate_ids(session)
+        with patch.dict(os.environ, {**FRESH_ON, "FEED_MAX_AGE_HOURS": "36"}):
+            assert "rss_199_90h" not in _candidate_ids(session)
+
+    def test_flag_off_loads_everything(self, session):
+        _stored(session, "rss_199_old", (_now() - timedelta(days=20)).isoformat())
+        session.commit()
+        with patch.dict(os.environ, {"FEED_FRESHNESS_ENABLED": "false"}):
+            assert "rss_199_old" in _candidate_ids(session)
+
+    def test_non_rss_rows_stay_out(self, session):
+        _stored(session, "seed_199", _now().isoformat())
+        session.commit()
+        with patch.dict(os.environ, FRESH_ON):
+            assert "seed_199" not in _candidate_ids(session)
+
+    def test_prefiltered_feed_equals_the_full_path_with_mixed_age_clusters(
+            self, session, clustering_on):
+        """Clustering sees the same input either way: exact card, member and
+        order equality, per profile, on components straddling the window."""
+        from app.repositories import article_repository, profile_repository
+        from app.services.feed_service import build_feed, load_feed_candidates
+
+        _add_article(session, "rss_199_rep_expired", hours_ago=40, cluster_id="cl_199a")
+        _add_article(session, "rss_199_member_fresh", hours_ago=2, cluster_id="cl_199a")
+        _cluster(session, "cl_199a", rep="rss_199_rep_expired",
+                 members=["rss_199_rep_expired", "rss_199_member_fresh"])
+        _add_article(session, "rss_199_week_old", hours_ago=200, cluster_id="cl_199b")
+        _add_article(session, "rss_199_day_old", hours_ago=60, cluster_id="cl_199b")
+        _cluster(session, "cl_199b", rep="rss_199_week_old",
+                 members=["rss_199_week_old", "rss_199_day_old"])
+        _add_article(session, "rss_199_plain", hours_ago=5,
+                     title="דני אבדיה קלע 30 נקודות בניצחון פורטלנד",
+                     event_type="match_result", entities=("Deni Avdija",), league="NBA")
+        session.commit()
+
+        with patch.dict(os.environ, FRESH_ON):
+            for profile_id in ("guy", "casual_deni_fan"):
+                profile = profile_repository.get_by_id(session, profile_id)
+                full = build_feed(article_repository.get_rss_articles(session), profile,
+                                  include_hidden=False, session=session)
+                prefiltered = build_feed(load_feed_candidates(session), profile,
+                                         include_hidden=False, session=session)
+                assert [s.model_dump() for s in prefiltered] == [s.model_dump() for s in full]
+            guy = profile_repository.get_by_id(session, "guy")
+            shown = build_feed(load_feed_candidates(session), guy,
+                               include_hidden=False, session=session)
+        # The scenario really exercised a straddling card, not an empty feed.
+        assert any(s.cluster and s.cluster.cluster_id == "cl_199a" for s in shown)
+
+    def test_consumer_feed_and_planner_do_not_load_long_expired_rows(self, session, admin_client):
+        from app.notifications.planner import enumerate_push_stories
+        _add_article(session, "rss_199_fresh", hours_ago=2)
+        _add_article(session, "rss_199_long_gone", hours_ago=24 * 10)
+        session.commit()
+        with patch.dict(os.environ, FRESH_ON):
+            feed_loaded = _hydrated_ids_during(lambda: admin_client.get("/api/feed/guy"))
+            planner_loaded = _hydrated_ids_during(lambda: enumerate_push_stories(session, "guy"))
+        assert "rss_199_fresh" in feed_loaded and "rss_199_long_gone" not in feed_loaded
+        assert "rss_199_fresh" in planner_loaded and "rss_199_long_gone" not in planner_loaded
+
+    def test_debug_still_returns_hidden_and_out_of_window_rows(self, session, admin_client):
+        _add_article(session, "rss_199_long_gone", hours_ago=24 * 10)
+        session.commit()
+        with patch.dict(os.environ, FRESH_ON):
+            debug = admin_client.get("/api/debug/feed/casual_deni_fan").json()
+        by_id = {s["article"]["id"]: s["decision"] for s in debug}
+        # Long past the window AND hidden for this profile (no Deni in it).
+        assert by_id["rss_199_long_gone"] == "hidden"

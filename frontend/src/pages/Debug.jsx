@@ -1,13 +1,15 @@
-import React, { useState, useMemo } from "react";
+import React, { lazy, useState, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
 import { Bug, Search, GitCompare, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DebugArticleCard from "@/components/debug/DebugArticleCard";
-import ProfileComparisonTable from "@/components/debug/ProfileComparisonTable";
 import ShadowComparisonPanel from "@/components/debug/ShadowComparisonPanel";
 import PageHeader from "@/components/shared/PageHeader";
 import StatCard from "@/components/shared/StatCard";
 import EmptyState from "@/components/shared/EmptyState";
+import LazyBoundary from "@/components/shell/LazyBoundary";
+
+const DemoProfileComparison = lazy(() => import("@/components/debug/DemoProfileComparison"));
 
 const DECISION_FILTERS = [
   { id: "all", label: "הכל" },
@@ -27,7 +29,7 @@ const STAT_TILES = [
 ];
 
 export default function Debug() {
-  const { debugItems, activeProfile, activeProfileId, comparisonItems, profiles, isBackendMode } = useApp();
+  const { debugItems, activeProfile, activeProfileId, isBackendMode } = useApp();
   const [filterDecision, setFilterDecision] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("debug");
@@ -100,16 +102,23 @@ export default function Debug() {
         <ShadowComparisonPanel userId={activeProfileId} isBackendMode={isBackendMode} />
       )}
 
-      {activeTab === "compare" && (
+      {activeTab === "compare" && (isBackendMode ? (
+        // The comparison scores mock articles: demo only (owner decision, #199).
+        <div className="bg-signal-ai/5 border border-signal-ai/25 rounded-[10px] p-3">
+          <p className="text-xs text-signal-ai/90">השוואת פרופילים זמינה רק במצב הדגמה.</p>
+        </div>
+      ) : (
         <div className="space-y-3">
           <div className="bg-signal-ai/5 border border-signal-ai/25 rounded-[10px] p-3">
             <p className="text-xs text-signal-ai/90">
               השוואה בין כל הפרופילים לכל כתבה. שורות <span className="font-medium">מודגשות</span> = פרופילים מחליטים שונה.
             </p>
           </div>
-          <ProfileComparisonTable items={comparisonItems} profiles={profiles} />
+          <LazyBoundary>
+            <DemoProfileComparison />
+          </LazyBoundary>
         </div>
-      )}
+      ))}
 
       {activeTab === "debug" && (
         <>

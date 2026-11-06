@@ -3,8 +3,9 @@ from typing import List, Optional, Set
 from app.models.article import Article
 from app.models.profile import UserProfile
 from app.models.scoring import ScoredArticle
+from app.repositories import article_repository
 from app.services.consumer_reason import consumer_reason
-from app.services.freshness import fresh_only
+from app.services.freshness import fresh_only, published_at_query_floor
 from app.services.preference_engine import score_article_v2
 from app.services.relevance_engine import score_article, DECISION_RANK
 
@@ -16,6 +17,15 @@ def active_engine() -> str:
     instant rollback path via PREFERENCE_ENGINE=legacy)."""
     value = os.environ.get("PREFERENCE_ENGINE", "v2").strip().lower()
     return value if value in ("legacy", "v2") else "v2"
+
+
+def load_feed_candidates(session) -> List[Article]:
+    """The rows a CONSUMER feed build needs (#199): the feed route and the
+    Telegram planner, both with ``include_hidden=False``. Skips loading rows far
+    outside the window; ``build_feed`` still applies the exact cutoff. Paths that
+    must see everything (Debug, shadow, ops, QA) keep ``get_rss_articles``."""
+    return article_repository.get_rss_articles(
+        session, published_at_floor=published_at_query_floor())
 
 
 def build_feed(

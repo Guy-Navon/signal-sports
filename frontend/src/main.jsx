@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -7,15 +7,12 @@ import { AuthProvider } from '@/context/AuthContext';
 import AppShell from '@/components/shell/AppShell';
 import RequireSession from '@/components/shell/RequireSession';
 import RequireOpsRole from '@/components/shell/RequireOpsRole';
+import LazyBoundary from '@/components/shell/LazyBoundary';
 import Feed from '@/pages/Feed';
 import Preferences from '@/pages/Preferences';
-import Calibration from '@/pages/Calibration';
 import InterestSelection from '@/pages/InterestSelection';
-import Sources from '@/pages/Sources';
 import Results from '@/pages/Results';
 import Account from '@/pages/Account';
-import Debug from '@/pages/Debug';
-import LlmQa from '@/pages/LlmQa';
 import Login from '@/pages/Login';
 import Onboarding from '@/pages/Onboarding';
 import Signup from '@/pages/Signup';
@@ -25,6 +22,13 @@ import ResetPassword from '@/pages/ResetPassword';
 import PageNotFound from '@/lib/PageNotFound';
 import { queryClientInstance } from '@/lib/query-client';
 import './index.css';
+
+// Screens most sessions never open load on demand (#199). The ops console is
+// admin-only under a consumer session; calibration is an occasional tool.
+const Calibration = lazy(() => import('@/pages/Calibration'));
+const Sources = lazy(() => import('@/pages/Sources'));
+const Debug = lazy(() => import('@/pages/Debug'));
+const LlmQa = lazy(() => import('@/pages/LlmQa'));
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -53,7 +57,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                   <Route index element={<Feed />} />
                   <Route path="preferences" element={<Preferences />} />
                   <Route path="interests" element={<InterestSelection />} />
-                  <Route path="calibration" element={<Calibration />} />
+                  <Route path="calibration" element={<LazyBoundary><Calibration /></LazyBoundary>} />
                   <Route path="results" element={<Results />} />
                   <Route path="account" element={<Account />} />
                 </Route>
@@ -61,9 +65,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                     local/bypass keep today's open console. */}
                 <Route element={<RequireOpsRole />}>
                   <Route element={<AppShell area="ops" />}>
-                    <Route path="sources" element={<Sources />} />
-                    <Route path="debug" element={<Debug />} />
-                    <Route path="llm-qa" element={<LlmQa />} />
+                    <Route path="sources" element={<LazyBoundary><Sources /></LazyBoundary>} />
+                    <Route path="debug" element={<LazyBoundary><Debug /></LazyBoundary>} />
+                    <Route path="llm-qa" element={<LazyBoundary><LlmQa /></LazyBoundary>} />
                   </Route>
                 </Route>
               </Route>

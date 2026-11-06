@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from functools import lru_cache
+
+from app.taxonomy.resolver import is_team_name
 
 
 EVENT_CERTAINTIES = {"confirmed", "probable", "weak"}
@@ -302,38 +305,13 @@ _TITLE_WIN_NEGATION = (
     phrase("מבוטלת"), phrase("מבוטל"), phrase("בוטלה"), phrase("בוטל"),
     phrase("נכשלה"), phrase("נכשל"),
     phrase("לא זכה"), phrase("לא זכתה"), phrase("לא יזכה"), phrase("לא תזכה"),
-    phrase("לא תניף"), phrase("לא יניף"), phrase("גם אם לא"),  # #403: "היא אלופה - גם אם לא תניף"
     phrase("cancelled"), phrase("canceled"), phrase("called off"),
     phrase("failed to win"),
-)
-
-# PREDICTION / SURVEY frames (#403). A forecast is not a result: "ה-GM של ה-NBA נחרצים: ... סן
-# אנטוניו אלופה" is a preseason survey, and the bare assertion after the colon reads exactly like
-# a real title. These run over the subtitle too, so each is narrow: "צופים" is mostly a crowd
-# ("מול 11 אלף צופים:"), and "ההימור של המאמן השתלם: בוסטון אלופה" is a real title.
-_TITLE_WIN_PREDICTION = (
-    regex(r"(?<![א-ת])נחרצים\s*:"),
-    regex(r"(?<![א-ת])(?<!אלף )(?<!\d )צופ(?:ים|ה|ות)\s*(?::|כי(?![א-ת]))"),
-    hword("סקר"), hword("תחזית"), hword("תחזיות"), hword("מנבאים"), hword("מנבא"),
-    phrase("ההימור שלנו"), phrase("ההימור שלי"),
-    phrase("מהמרים על"), phrase("מהמר על"), phrase("מהמרת על"),
-    word("predicts"), word("predicted"), word("prediction"), word("predictions"),
-    word("survey"), word("poll"),
-)
-
-# COUNTERFACTUAL (#403): "עם שוער יציב, בית"ר הייתה זוכה באליפות" won nothing. "את הזוכה" is the
-# winner as an OBJECT of a story about who will win ("הגמר יכריע את הזוכה בתואר").
-_TITLE_WIN_UNREALIZED = (
-    regex(r"(?<![א-ת])(?:הייתה|היתה|היה)\s+זוכה(?![א-ת])"),
-    regex(r"(?<![א-ת])היו\s+זוכים(?![א-ת])"),
-    phrase("את הזוכה"),
-    phrase("would have won"),
 )
 
 _TITLE_WIN_BLOCKERS = (
     _DEATH_ACCIDENT + _CANDIDATE + _MEDAL_PLACEMENT
     + _TITLE_WIN_ASPIRATION + _TITLE_WIN_NEGATION
-    + _TITLE_WIN_PREDICTION + _TITLE_WIN_UNREALIZED
     + (
         phrase("wants the title"), phrase("want the title"),
         phrase("dreams of a title"), phrase("dreaming of a title"),
@@ -359,7 +337,7 @@ _CHAMPION_EPITHET_PRECEDERS_HE = frozenset({
     # #403. A future or past copula is a forecast or a memory ("בוסטון תהיה אלופה"), not a title
     # won now; "לשעבר" in front is a former champion.
     "לשעבר",
-    "תהיה", "יהיה", "יהיו", "הייתה", "היתה", "היה", "היו",
+    "להיות", "אהיה", "נהיה", "תהיה", "יהיה", "יהיו", "הייתה", "היתה", "היה", "היו",
 })
 _CHAMPION_EPITHET_PRECEDERS_EN = frozenset({
     "the", "of", "against", "vs", "with", "former", "defending", "reigning",
@@ -411,27 +389,79 @@ def _preceding_word(text: str, idx: int) -> str:
     left = text[:idx].rstrip()
     if not left:
         return ""
-    return left.split()[-1]
+    return left.split()[-1].lstrip(_QUOTE)  # '"נהיה אלופת ...' is the word "נהיה"
 
 
-# ── Champion noun as the subject's epithet (#403) ────────────────────────────
+# ── Champion noun with no subject in front (#403) ────────────────────────────
 # A predicate assertion has a SUBJECT in front of the noun: "ספרד אלופה", "כפיר נוב אלוף אירופה",
 # "קימי אנטונלי - אלוף העולם". With nothing in front of it, the noun IS the subject, an epithet
-# for someone the story is about: "אלוף העולם פנה לטראמפ", "אלוף הפורמולה 1 מתלונן", "בגיל 50:
-# אלוף העולם לשעבר עבר מהפך". The exception is the inverted assertion, where the noun phrase closes
-# its own clause: "אלופה! מכבי ניצחה", "אלופת ישראל: מכבי תל אביב".
-_CLAUSE_BREAK = ":;.!?|\n"
-_INVERTED_ASSERTION_TAIL = re.compile(r"^(?:\s*\S+){0,2}?\s*(?::|!|\s[-–—]\s)")
-_FORMER_AFTER_NOUN = re.compile(r"^(?:\s+[^\s,:;.!?|]+){0,3}?\s+לשעבר(?![א-ת])")
+# for someone the story is about: "אלוף העולם פנה לטראמפ", "אלופת ה-NBA מתלוננת: ...".
+# The rule: such a noun asserts only when its NOUN PHRASE ends the clause, or a copula or a named
+# club follows it: "אלופה! ...", "אלופת ליגת ווינר סל: מכבי", "אלופת היורוליג היא מכבי",
+# "אלופת היורוליג מכבי תל אביב". The noun phrase is the noun, what it is champion OF (one word or
+# competition name, so any other word is a predicate) and a "how often" qualifier. No word counts.
+# A quote is speech, so the noun is its speaker: 'אלופת ישראל: "הפסדנו"'.
+_CLAUSE_BREAK = re.compile(r"[:;!?|\n]|(?<![.\s]\S)\.(?=\s|$)")  # the dots of "ת.א." end nothing
+_WORD = r"[^\s:;.!?|,]+"
+_CONSTRUCT_NOUNS = frozenset({"אלוף", "אלופת", "אלופות"})  # "אלופה" takes no complement
+_COMPLEMENT = re.compile(rf"\s+(?:(?:ליגת|ליגה|הליגה|גביע)\s+)?{_WORD}(?:\s+\d+(?![^\s:;.!?|,]))?")
+_QUALIFIERS = re.compile(
+    rf"(?:\s+(?:(?:בפעם|לפעם|לעונה|בעונה|לשנה|בשנה)\s+{_WORD}(?:\s+ב{_WORD})?"
+    r"|בכדורסל|בכדורגל|בטניס|לנוער|לנשים|לגברים|\d{4}))*"
+)
+_QUOTE = "\"'״”“׳"
+_PHRASE_CLOSED = re.compile(r"\s*[:!]|\s[-–—]\s|\s+(?:היא|הוא|הם|הן)(?![א-ת])")
+_SPEECH_FOLLOWS = re.compile(rf"(?:\s*:|\s[-–—])\s*[{_QUOTE}]")
+_SPEECH_BEFORE = re.compile(rf"[{_QUOTE}]\s*:\s*$")
+_FORMER = re.compile(r"\s+לשעבר(?![א-ת])")
 _FORMER_BEFORE_NOUN_EN = re.compile(r"\b(?:former|ex)\b(?:\s+\S+){0,2}\s*$")
 
 
-def _is_subjectless_epithet(text: str, start: int, end: int) -> bool:
-    """The champion noun at ``start:end`` opens its clause and does not close it."""
-    clause_start = max(text.rfind(ch, 0, start) for ch in _CLAUSE_BREAK) + 1
-    if text[clause_start:start].strip(" \t\"'״”“׳-–—,"):
+def _clause_start(text: str, pos: int) -> int:
+    start = 0
+    for match in _CLAUSE_BREAK.finditer(text, 0, pos):
+        start = match.end()
+    return start
+
+
+@lru_cache(maxsize=1)
+def _competition_name_pattern() -> re.Pattern:
+    # Deferred like _champion_term_competition_names: the keywords live with the facts stage.
+    from app.classification.facts import _COMPETITION_KEYWORDS
+    from app.classification.sport_guards import SHARED_CHAMPIONS_LEAGUE_NAMES
+
+    names = {
+        kw for kws in (*_COMPETITION_KEYWORDS.values(), SHARED_CHAMPIONS_LEAGUE_NAMES) for kw in kws
+    }
+    return re.compile("|".join(re.escape(n) for n in sorted(names, key=len, reverse=True)))
+
+
+def _after_noun_phrase(text: str, start: int, end: int) -> str:
+    """What follows the noun phrase of the champion noun at ``start:end`` (see above)."""
+    rest = _competition_name_pattern().sub("§", text[end:])  # a name is one word, however long
+    if text[start:end] in _CONSTRUCT_NOUNS and not _FORMER.match(rest):
+        rest = rest[m.end():] if (m := _COMPLEMENT.match(rest)) else rest
+    return rest[_QUALIFIERS.match(rest).end():]
+
+
+def _noun_phrase_asserts(text: str, start: int, end: int) -> bool:
+    """The noun at ``start:end`` opens its clause: is it an inverted assertion (see above)?"""
+    rest = _after_noun_phrase(text, start, end)
+    if _SPEECH_FOLLOWS.match(rest):
         return False
-    return _INVERTED_ASSERTION_TAIL.match(text[end:]) is None
+    if rest.strip() == "" or rest.lstrip()[0] in "|\n;.?":
+        return not _SPEECH_BEFORE.search(text[:start])
+    if _PHRASE_CLOSED.match(rest):
+        return True
+    clause_end = _CLAUSE_BREAK.search(rest)
+    return is_team_name(rest[:clause_end.start()] if clause_end else rest)
+
+
+def _is_subjectless_epithet(text: str, start: int, end: int) -> bool:
+    """The champion noun at ``start:end`` opens its clause and is not an inverted assertion."""
+    if text[_clause_start(text, start):start].strip(" \t\"'״”“׳-–—,"):
+        return False
+    return not _noun_phrase_asserts(text, start, end)
 
 
 def _has_champion_noun(text: str) -> bool:
@@ -485,12 +515,48 @@ def _has_champion_assertion(text: str) -> bool:
     """
     masked = _mask_competition_names(text)
     for start, end in _bare_champion_nouns(masked):
-        if _FORMER_AFTER_NOUN.match(masked[end:]) or _FORMER_BEFORE_NOUN_EN.search(masked[:start]):
+        if _FORMER.match(_after_noun_phrase(masked, start, end)):
+            continue
+        if _FORMER_BEFORE_NOUN_EN.search(masked[:start]):
             continue
         if _is_subjectless_epithet(masked, start, end):
             continue
         return True
     return False
+
+
+# ── Words that report no win (#403) ──────────────────────────────────────────
+# Each acts on the clause it is in, so a subtitle's "הסקר טעה" or a later "התחזית התגשמה" leaves the
+# headline's title standing. A FORECAST also governs what it introduces: it cancels its clause and
+# everything after it ("המומחים צופים: בוסטון אלופה"), never what comes before it. "צופים" is mostly
+# a crowd ("מול אלפי צופים:"), so it counts only with a pundit in front or "כי" after it.
+# "ההימור של המאמן השתלם: בוסטון אלופה" is a real title.
+_FORECAST = re.compile(
+    r"(?<![א-ת])נחרצים\s*:"
+    r"|(?<![א-ת])(?:הפרשנים|המומחים|האנליסטים|הפרשן|המומחה|האנליסט)\s+צופ(?:ים|ה)\s*:"
+    r"|(?<![א-ת])צופ(?:ים|ה|ות)\s+כי(?![א-ת])"
+    r"|(?<![א-ת])[וש]?[בלמכה]?(?:סקר|תחזית|תחזיות)(?![א-ת])"
+    r"|(?<![א-ת])(?:מנבאים|מנבא|מהמרים על|מהמר על|מהמרת על|ההימור שלנו|ההימור שלי)(?![א-ת])"
+    r"|\b(?:predicts|predicted|predictions?|survey|poll)\b"
+)
+# Beating the forecast is no forecast: "בניגוד לכל התחזיות: מכבי אלופה".
+_DEFIED_FORECAST = re.compile(r"(?:בניגוד|נגד|למרות)\s+ל?(?:כל\s+)?ה?(?:תחזי|סקר)\S*")
+# A counterfactual, the winner as an object, a lift that will not happen.
+_NO_WIN_CLAUSE = re.compile(
+    r"[^:;!?|\n]*(?:"
+    r"(?<![א-ת])(?:(?:הייתה|היתה|היה)\s+זוכה|היו\s+זוכים)(?![א-ת])"
+    r"|את הזוכה|לא תניף|לא יניף|\bwould have won\b"
+    r")[^:;!?|\n]*"
+)
+
+
+def _reported_part(text: str) -> str:
+    """``text`` without the clauses that report no win."""
+    text = _DEFIED_FORECAST.sub(" ", text)
+    forecast = _FORECAST.search(text)
+    if forecast:
+        text = text[:_clause_start(text, forecast.start())]
+    return _NO_WIN_CLAUSE.sub(" ", text)
 
 
 # ── Grand Slam win evidence (#133) ────────────────────────────────────────────
@@ -538,6 +604,7 @@ def _has_grand_slam_win_evidence(text: str) -> bool:
     """Slam context plus an actual assertion that someone WON it."""
     if _has_any(text, _GRAND_SLAM_BLOCKERS):
         return False
+    text = _reported_part(text)
     if not _has_any(text, _GRAND_SLAM_CONTEXT):
         return False
     if _has_any(text, _GRAND_SLAM_WIN_VERB):
@@ -546,7 +613,12 @@ def _has_grand_slam_win_evidence(text: str) -> bool:
 
 
 # A clause that ASKS is not a report (#403): "זו אלופת העולם שאתם רוצים לראות?", "מי תהיה האלופה?".
-_QUESTION_CLAUSE = re.compile(r"[^:;.!?|\n]*\?")
+# The asking clause starts after a comma or a spaced dash ("מכבי אלופת היורוליג, ומה עכשיו?" asserts
+# first and asks next), unless "האם" or "מי" opens the sentence ("מי אלופת העולם, ספרד או צרפת?").
+_QUESTION_CLAUSE = re.compile(
+    r"(?<![א-ת])(?:האם|מי)\s[^:;.!?|\n]*\?"
+    r"|(?:(?!\s[-–—]\s)[^:;.!?|\n,])*\?"
+)
 
 
 def _has_title_win_evidence(text: str) -> bool:
@@ -559,7 +631,7 @@ def _has_title_win_evidence(text: str) -> bool:
     """
     if _has_any(text, _TITLE_WIN_BLOCKERS):
         return False
-    text = _QUESTION_CLAUSE.sub(" ", text)
+    text = _QUESTION_CLAUSE.sub(" ", _reported_part(text))
     # Crowned AS A CHAMPION — any inflection, absolute or construct.
     if _has_any(text, _TITLE_WIN_CROWNING_VERB) and _has_champion_noun(text):
         return True

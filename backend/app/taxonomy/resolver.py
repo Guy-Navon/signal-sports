@@ -21,10 +21,11 @@ Matching contract:
   is reported in ``family_mentions`` and never resolves to a team.
 """
 
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
-from app.taxonomy.entities import ENTITIES, FAMILY_NAMES, TaxonomyEntity
+from app.taxonomy.entities import ENTITIES, FAMILY_NAMES, TaxonomyEntity, entity_by_legacy_name
 
 
 @dataclass
@@ -165,14 +166,67 @@ _PREFIX_WINDOW = max(len(p) for p in _FORMER_PREFIXES)
 _SUFFIX_WINDOW = max(len(s) for s in _FORMER_SUFFIXES)
 
 
-def _names_wnba_not_nba(lowered: str) -> bool:
-    """The text is about the WNBA (#403). "גולדן סטייט ואלקיריז אלופת ה-WNBA" is not the Warriors:
-    WNBA clubs share their cities with NBA clubs, and a bare city alias resolved the NBA one."""
-    return "wnba" in lowered and "nba" not in lowered.replace("wnba", " ")
+def is_team_name(text: str) -> bool:
+    """``text`` is exactly a registered team name, nothing more."""
+    return any(e.kind == "team" for e in _ALIAS_INDEX.get(normalize_alias_text(text).strip(), ()))
+
+
+# ── WNBA or NBA (#403) ───────────────────────────────────────────────────────
+# WNBA clubs share their cities with NBA clubs: "גולדן סטייט ואלקיריז" is not the Warriors. A bare
+# city says nothing, so only the league's own name and an NBA club's nickname or full name count.
+# The rule: the first of those in the title decides the story, and the subtitle decides only when
+# the title names none. Facts and the classifier ask this once, for title and subtitle together.
+_NBA_NAME = re.compile(r"(?<![a-z])nba(?![a-z])|אן בי איי|אן\.בי\.איי")
+_WNBA_NAME = re.compile(r"(?<![a-z])wnba(?![a-z])")
 
 
 def _is_nba_club(entity: TaxonomyEntity) -> bool:
     return entity.kind == "team" and any(comp == "comp:nba" for comp, _ in entity.memberships)
+
+
+def _is_city_of(alias: str, entity: TaxonomyEntity) -> bool:
+    """A leading part of the club's full name: "גולדן סטייט" of "גולדן סטייט ווריורס"."""
+    return any(
+        name and normalize_alias_text(name).startswith(alias + " ")
+        for name in (entity.display_he, entity.display_en)
+    )
+
+
+_NBA_CLUB_NAMES: tuple[str, ...] = tuple(
+    alias for alias, entities in _ALIAS_INDEX.items()
+    if any(_is_nba_club(e) and not _is_city_of(alias, e) for e in entities)
+)
+
+
+def _first_position(pattern: re.Pattern, lowered: str) -> Optional[int]:
+    match = pattern.search(lowered)
+    return match.start() if match else None
+
+
+def _first_nba_position(lowered: str) -> Optional[int]:
+    positions = [
+        sp[0] for alias in _NBA_CLUB_NAMES for sp in _find_occurrences(lowered, alias)
+        if _is_standalone_word(lowered, sp)  # "ניקס" is not inside "פיניקס"
+    ]
+    literal = _first_position(_NBA_NAME, lowered)
+    return min(positions + ([literal] if literal is not None else []), default=None)
+
+
+def is_wnba_story(title: str, subtitle: str = "") -> bool:
+    for part in (title, subtitle):
+        lowered = normalize_alias_text(part or "")
+        wnba, nba = _first_position(_WNBA_NAME, lowered), _first_nba_position(lowered)
+        if wnba is not None or nba is not None:
+            return wnba is not None and (nba is None or wnba < nba)
+    return False
+
+
+def without_nba_clubs(legacy_names: list[str]) -> list[str]:
+    """Legacy entity names with the NBA clubs removed, for a WNBA story."""
+    return [
+        name for name in legacy_names
+        if not ((entity := entity_by_legacy_name(name)) and _is_nba_club(entity))
+    ]
 
 
 def _is_former_affiliation(text: str, span: tuple[int, int]) -> bool:
@@ -251,7 +305,6 @@ def _resolve(
             caller (context keywords, basketball-only source, source URL hint).
     """
     lowered = normalize_alias_text(text)
-    wnba_story = _names_wnba_not_nba(lowered)
     result = EntityResolution()
     taken_spans: list[tuple[int, int]] = []
     emitted_ids: set[str] = set()
@@ -277,8 +330,6 @@ def _resolve(
         free = subject
 
         candidates = _filter_candidates(_ALIAS_INDEX[alias], sport_context, alias)
-        if wnba_story:
-            candidates = tuple(c for c in candidates if not _is_nba_club(c))
 
         if len(candidates) == 1:
             entity = candidates[0]

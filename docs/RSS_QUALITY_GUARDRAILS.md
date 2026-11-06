@@ -1242,35 +1242,74 @@ point, used by the rules, by LLM proposals in Guardrail 4b, and by the post-fact
 contract changed there:
 
 - **A champion noun needs a subject in front of it.** "ספרד אלופה" and "קימי אנטונלי - אלוף העולם"
-  assert. In "אלוף העולם פנה לטראמפ" the noun IS the subject, an epithet. The exception is an
-  inverted assertion, where the noun phrase closes its own clause ("אלופה! ...", "אלופת ישראל: ...").
-- **Former champions:** "לשעבר" within three words after the noun (no comma between), or "former"
-  before it.
-- **Forecasts and counterfactuals:** a survey or prediction frame ("נחרצים:", "צופים:" unless it is a
-  crowd, "סקר", "תחזית", "ההימור שלנו"), a future or past copula before the noun ("תהיה אלופה"),
-  "הייתה זוכה", and "את הזוכה" (the winner as an object).
-- **Questions:** a question clause is masked.
-- **An epithet ends at `news`.** `reads_as_champion_epithet` stops the proposal loop and the subtitle
-  pass. Without it a rejected `title_win` falls through to `match_result` on a win word, including
-  a doping ban and a lineup story that were `news` before, which is the #418 shape.
+  assert. In "אלוף העולם פנה לטראמפ" the noun IS the subject, an epithet.
+- **The exception: the noun phrase ends the clause.** With nothing in front of it, the noun asserts
+  only when its noun phrase is followed by a colon, "!", a spaced dash or the end of the clause, by a
+  copula ("אלופת היורוליג היא מכבי"), or by a registered club and nothing else ("אלופת היורוליג מכבי
+  תל אביב"). The noun phrase is the noun, what it is champion of (one word or one competition name,
+  however long, an optional number, or "גביע"/"ליגת" plus a word), and a qualifier ("בפעם השלישית",
+  "לעונה השנייה ברציפות", "בכדורסל", a year). "אלופה" takes no complement. So any other word after
+  the noun is a predicate, and "אלופת ה-NBA מתלוננת: ..." and "אלוף הפורמולה 1 מתלונן: ..." reject for
+  the same reason. No word counts.
+- **A quote is speech:** 'אלופת ישראל: "הפסדנו"' and '"לא מאמינה": אלופת אירופה' name a speaker.
+- **Former champions:** "לשעבר" right after the noun phrase, or "former" before it. A "לשעבר" elsewhere
+  belongs to someone else ("הניקס אלופת ה-NBA עם שחקן מכבי לשעבר").
+- **Future and past copulas** before the noun ("תהיה", "נהיה", "להיות", "אהיה", "הייתה").
+- **Questions:** the asking clause is masked. It starts after a comma or a spaced dash, so "מכבי אלופת
+  היורוליג, ומה עכשיו?" keeps its title, unless "האם" or "מי" opens it ("מי אלופת העולם, ספרד או צרפת?").
+- **Forecasts cancel their clause and everything after it, never what comes before it.**
+  ("נחרצים:", "הפרשנים צופים:", "צופים כי", "סקר", "תחזית", "ההימור שלנו"). So "המומחים צופים: בוסטון
+  אלופה" reports nothing, and "הניקס אלופת ה-NBA: התחזית התגשמה", a subtitle's "הסקר טעה", and a crowd
+  ("מול אלפי צופים:") cancel nothing. "בניגוד לכל התחזיות:" is no forecast.
+- **A counterfactual, the winner as an object and a lift that will not happen cancel their own clause
+  only** ("הייתה זוכה", "את הזוכה", "לא תניף"). Forecast and counterfactual rules also bind
+  `grand_slam_winner`. `finals_result` is unchanged.
+- **A subtitle win word about a champion is no game.** A `match_result` read from the subtitle is
+  withheld when the title or the subtitle reads as a champion epithet (`reads_as_champion_epithet`).
+  Otherwise it falls through on a win word, including a doping ban and a lineup story, which is the #418
+  shape. Every other event stands: "אלופת ה-NBA ניצחה בפלייאוף" is `playoff_result`, a signing or
+  injury in the subtitle of "אלופת ישראל התחזקה" keeps its event.
 
-`join_evidence_text` puts a clause break between title and subtitle. Otherwise a question in the
-subtitle masked the title's own assertion. The new blockers join `_TITLE_WIN_BLOCKERS`, which
-`finals_result` and `grand_slam_winner` share, and the subject and former rules apply to the slam's
-champion noun; neither moved a corpus row of those events.
+`join_evidence_text` puts a clause break between title and subtitle, so neither runs into the other.
 
-**The WNBA is its own competition.** `comp:wnba` claims the span before `nba` can match inside it,
-`league` becomes `WNBA`, and a text naming the WNBA and not the NBA no longer resolves an NBA club
-through a shared city ("גולדן סטייט ואלקיריז" is not the Warriors). See
+**The WNBA is its own competition, decided once per story.** `is_wnba_story` (`resolver.py`): the first
+of the league's own name or an NBA club's nickname or full name in the title decides, and the subtitle
+decides only when the title names none. A bare city says nothing ("גולדן סטייט ואלקיריז" is not the
+Warriors). In a WNBA story `league` is `WNBA`, primary is `comp:wnba`, and the facts stage drops every
+NBA club, whoever proposed it. This also removes the false `team:atlanta_hawks` the first version of
+this fix put on three title rows from "על אטלנטה" in the subtitle. Literal NBA or a nickname first keeps
+the NBA story: "ניו יורק ניקס אלופה" with "כוכבת ה-WNBA ברכה" stays an NBA title with its club. See
 [TAXONOMY.md](TAXONOMY.md) and tier 1b in
 [RELEVANCE_VISIBILITY_CONTRACT.md](RELEVANCE_VISIBILITY_CONTRACT.md).
 
-**Corpus effect** (in-memory replay of a read-only copy, 4,920 rows outside the sealed census #3
+**Corpus effect** (in-memory replay of a read-only copy, 4,946 rows outside the sealed census #3
 half, both seed profiles): `title_win` rows 37 → 26 rules-only and 36 → 25 replaying the stored LLM
 proposals, none gained. Guy's pushes 22 → 17 on both paths, none gained: three WNBA titles and a WNBA
 MVP now stop at `high_feed`, and the GM survey stops at `low_feed`. `casual_deni_fan`: no decision
-changed. A true-title count is the analyst's reading, not an owner rating: the 11 removed rows
-report no title, and no row reading as a real title was lost.
+changed. Eleven WNBA rows move to `comp:wnba`, and six of them lose NBA clubs they never had. A
+true-title count is the analyst's reading, not an owner rating: the 11 removed rows report no title,
+and no row reading as a real title was lost.
+
+**The corpus cannot clear the main risk.** Of the rows left at `title_win`, none has the NBA, the
+EuroLeague, the IBL or the Winner Cup as primary competition, and one is a current Maccabi title. The
+ordinary headline shapes of a real title week are therefore pinned by tests from the requirement, in
+`tests/test_title_win_no_title_403.py`, rules and stubbed LLM.
+
+**Known limits, in the rule's own form:**
+- One word after an unqualified "אלוף" before a colon has no formal marker: "אלוף מתלונן: השופטים נגדנו"
+  still asserts. An unregistered two-word complement rejects: "אלופה ועוד איך: מכבי".
+- The survey class is not closed. Only the listed frames count, so "ה-GM של ה-NBA בוחרים: סן אנטוניו
+  אלופה" and "בארה"ב צופים: הניקס אלופת ה-NBA" still push. The form does not separate these from
+  "ההימור של המאמן השתלם: בוסטון אלופה". A fix needs a signal the headline lacks, such as date against
+  season.
+- A forecast word in an earlier clause cancels a real title: "התחזית התבדתה: מכבי אלופת היורוליג".
+- A conditional still asserts: "אם הניקס אלופת ה-NBA, ברונסון יישאר".
+- Both leagues in one title, WNBA first: "כוכבת ה-WNBA בירכה: ניו יורק ניקס אלופת ה-NBA" reads as a WNBA
+  story and stops at `high_feed`.
+- A title naming an NBA club and not the NBA does not push, with or without a WNBA mention ("ניו יורק
+  ניקס אלופה"), by the #404 exclusion.
+- The WNBA decision lives in classification. `resolve_entities` callers outside it (clustering anchors,
+  attention evidence) still resolve the shared city, as before this change.
 
 **Deliberately not done:**
 - A second-tier cup stays `title_win` ("בני יהודה זכתה בגביע הטוטו לאומית"): it is a title. The owner

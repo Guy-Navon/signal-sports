@@ -10,10 +10,14 @@ LLM-path `title_win` issue rows were not LLM title claims: the LLM said `news` o
 and Guardrails 4 and 4b adopted the rules' `title_win`. So the fix is in the shared evidence contract
 ([RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) §25), which covers an LLM `title_win` too.
 New in Guardrail 4b: when an LLM event in the very-high class is rejected, a `very_high` importance
-falls back to the rules' importance, so a story reporting no title does not keep the +1. Rows the
-LLM marked `news` that used to pass through a rejected subtitle `title_win` now keep the LLM's
-importance like any other LLM `news` row, instead of the recomputed one (4 corpus rows, no decision
-changed). The prompt is unchanged, and the effect on live LLM output has not been measured.
+falls back to the rules' importance. This closes the backfill route only: `POST /api/classify/backfill`
+does not recompute importance on a valid event, so a rejected `title_win` kept its `very_high`, a
++1 in scoring. Ingestion already lowered it in `_apply_post_facts_event_validation`, so no ingested
+row was affected. Rows the LLM marked `news` that used to pass through a rejected subtitle
+`title_win` now keep the LLM's importance like any other LLM `news` row, instead of the recomputed
+one (5 corpus rows move up, no decision changed). The facts stage also holds the WNBA decision
+against the LLM: on a WNBA story an LLM "NBA" league or NBA club does not persist. The prompt is
+unchanged, and the effect on live LLM output has not been measured.
 
 **2026-10-30 - LLM cross-sport club entities need non-LLM corroboration (#345).** An
 LLM-proposed club whose name does not prove its sport (`מכבי ת"א`) is still dropped by the

@@ -50,10 +50,11 @@ are unchanged.
 1. **Explicit** — `{primary_competition, *article_competitions}` (ids, from
    ArticleFacts) → `display_en` → intersect with `topic.leagues`. Works for
    *any* event type; always the highest-authority match.
-   - **1b. Parent competition** (#230, 2026-10-10; push opt-out #403, 2026-11-06: a child with
-     `push_via_parent=False`, today only `comp:wnba`, does not lift to its parent for an
-     `always_push` rule, in the V2 scorer. Visibility and affinities still lift. The legacy
-     engine has no such opt-out.) When no explicit id matches
+   - **1b. Parent competition** (#230, 2026-10-10; push opt-out #403, 2026-11-06: when the
+     PRIMARY competition has `push_via_parent=False`, today only `comp:wnba`, an `always_push`
+     rule on its parent does not match on ANY tier, even when the text also names the parent. Merely
+     mentioned, it does not lift to the parent for a push. V2 scorer only: visibility and
+     affinities still lift, and the legacy engine has no opt-out.) When no explicit id matches
      directly, an explicit competition whose `parent` is wanted matches the parent:
      a Winner Cup article matches a `comp:ibl` follow, provenance
      `via_parent_competition: comp:winner_cup`. It is still `explicit`, so it is never

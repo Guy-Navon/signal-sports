@@ -28,8 +28,10 @@ from app.taxonomy.entities import (
 from app.taxonomy.resolver import (
     EntityResolution,
     is_cross_sport_ambiguous,
+    is_wnba_story,
     resolve_entities,
     resolve_mention,
+    without_nba_clubs,
 )
 from app.taxonomy.integrity import validate_registry
 from app.taxonomy.policy import (

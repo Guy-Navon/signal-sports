@@ -37,8 +37,10 @@ from app.taxonomy import (
     entities_by_sport,
     entity_by_id,
     entity_by_legacy_name,
+    is_wnba_story,
     legacy_sport,
     resolve_entities,
+    without_nba_clubs,
 )
 
 
@@ -419,9 +421,6 @@ def _detect_league(
         # e.g. "Euroleague names teams for expanded EuroCup field" → EuroCup, not EuroLeague.
         if _has(text, *_EUROCUP_KW) or "eurocup" in url_lower or "/eurocup/" in url_lower:
             return "EuroCup"
-        # "wnba" contains "nba" (#403). A story naming both leagues stays NBA.
-        if "wnba" in text and not _has(text.replace("wnba", " "), *_NBA_DIRECT_KW):
-            return "WNBA"
         if _has(text, *_NBA_DIRECT_KW) or _has(text, *_NBA_TEAM_KW):
             return "NBA"
         if _has(text, *_EUROLEAGUE_KW):
@@ -873,8 +872,6 @@ def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
         evidence = validate_event_evidence(proposal, text, source="rules", sport=sport)
         if evidence.valid:
             return evidence
-        if proposal == "title_win" and reads_as_champion_epithet(text):
-            break
 
     return validate_event_evidence("news", text, source="rules", sport=sport)
 
@@ -883,12 +880,18 @@ def detect_article_event(title: str, subtitle: str, sport: str) -> EventEvidence
     """Title-first event routing, shared by ingestion and targeted corrections."""
     title, subtitle = title.lower(), subtitle.lower()
     evidence = _detect_event_evidence(title, sport)
-    if evidence.event_type != "news" or not subtitle or reads_as_champion_epithet(title):
+    if evidence.event_type != "news" or not subtitle:
         return evidence
     # Relocation may assert the coordinated franchise in the title and its
     # physical home move in the subtitle. Neither half alone proves the event.
     relocation = validate_event_evidence("relocation", title + " " + subtitle, sport=sport)
     evidence = relocation if relocation.valid else _detect_event_evidence(subtitle, sport)
+    # A win word in the subtitle of a story about a champion describes that champion ("ניצחונו
+    # הראשון כאלוף העולם"): it reports no game (#403, the #418 shape). Other events stand.
+    if evidence.event_type == "match_result" and (
+        reads_as_champion_epithet(title) or reads_as_champion_epithet(subtitle)
+    ):
+        return validate_event_evidence("news", title, source="rules", sport=sport)
     if evidence.certainty == "confirmed" and evidence.event_type != "news":
         return EventEvidence(evidence.event_type, True, "probable")
     return evidence
@@ -1103,7 +1106,12 @@ def classify(
             )
             entities = _filter_entities_for_sport(sub_entities, sport)
 
-    league = _detect_league(text, sport, url=url, shared_context=f"{text} {sub_text}")
+    if sport == "basketball" and is_wnba_story(text, sub_text):
+        # "wnba" contains "nba", and the title's bare city would read as the NBA club (#403).
+        entities = without_nba_clubs(entities)
+        league = "WNBA"
+    else:
+        league = _detect_league(text, sport, url=url, shared_context=f"{text} {sub_text}")
 
     # League gap from subtitle: when title produced no league, try subtitle.
     if league is None and sub_text:

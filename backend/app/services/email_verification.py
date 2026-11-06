@@ -50,10 +50,15 @@ SIGNUPS_PER_EMAIL_LIMIT = 3
 SIGNUPS_PER_EMAIL_WINDOW_SECONDS = 3600
 GLOBAL_SEND_LIMIT = 30
 GLOBAL_SEND_WINDOW_SECONDS = 600
+SIGNUP_ATTEMPT_LIMIT = 100
+SIGNUP_ATTEMPT_WINDOW_SECONDS = 300
 # Login on an address with only pending rows verifies against at most this
 # many (newest first), bounding the argon2 work an unknown caller can trigger.
 PENDING_LOGIN_CHECK_LIMIT = 3
 
+# Every signup attempt, however it ends. Signup answers differently for an
+# existing account, so this caps how fast addresses can be probed.
+_signup_attempt_limiter = FixedWindowLimiter(SIGNUP_ATTEMPT_LIMIT, SIGNUP_ATTEMPT_WINDOW_SECONDS)
 _signup_email_limiter = FixedWindowLimiter(SIGNUPS_PER_EMAIL_LIMIT, SIGNUPS_PER_EMAIL_WINDOW_SECONDS)
 _global_send_limiter = FixedWindowLimiter(GLOBAL_SEND_LIMIT, GLOBAL_SEND_WINDOW_SECONDS)
 # Password attempts at confirmation, per pending registration. Separate from
@@ -86,6 +91,7 @@ class SendOutcome:
 
 
 def reset_rate_limiters() -> None:
+    _signup_attempt_limiter.reset()
     _signup_email_limiter.reset()
     _global_send_limiter.reset()
     _confirm_limiter.reset()
@@ -223,10 +229,12 @@ def start_registration(
     DuplicateEmailError when an account already owns the address."""
     send_with = _require_mailer()
     normalized = normalize_email(email)
-    if get_user_by_email(session, normalized) is not None:
-        raise auth_service.DuplicateEmailError("email already exists")
+    if not _signup_attempt_limiter.check("global"):
+        raise auth_service.RateLimitExceeded("too many signup attempts")
     if not _signup_email_limiter.check(normalized):
         raise auth_service.RateLimitExceeded("too many signups for this address")
+    if get_user_by_email(session, normalized) is not None:
+        raise auth_service.DuplicateEmailError("email already exists")
     _check_global_send_budget()
     prune_abandoned(session)
 

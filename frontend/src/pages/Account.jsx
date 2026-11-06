@@ -68,7 +68,9 @@ export default function Account() {
         tone: "error",
         text: err?.message?.includes("(403)")
           ? "הסיסמה הנוכחית שגויה"
-          : "משהו השתבש — נסו שוב",
+          : err?.message?.includes("(429)")
+            ? "יותר מדי ניסיונות — נסו שוב בעוד כמה דקות"
+            : "משהו השתבש — נסו שוב",
       });
     } finally {
       setPwBusy(false);
@@ -87,6 +89,8 @@ export default function Account() {
         setDeleteNotice("לא ניתן למחוק את חשבון האדמין האחרון במערכת");
       } else if (err?.message?.includes("(403)")) {
         setDeleteNotice("הסיסמה שגויה — החשבון לא נמחק");
+      } else if (err?.message?.includes("(429)")) {
+        setDeleteNotice("יותר מדי ניסיונות — החשבון לא נמחק. נסו שוב בעוד כמה דקות");
       } else {
         setDeleteNotice("משהו השתבש — החשבון לא נמחק");
       }

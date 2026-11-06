@@ -389,6 +389,43 @@ def test_signups_per_address_are_rate_limited(client):
     assert _signup(client, "spam@example.com").status_code == 429
 
 
+def _taken(email="taken@example.com"):
+    with SessionLocal() as session:
+        auth_service.create_user_with_profile(session, email=email, password=PASSWORD)
+
+
+def test_signups_for_an_existing_account_are_rate_limited_too(client):
+    """409 and 202 differ, so the check must not be a free existence oracle."""
+    _taken()
+    for _ in range(email_verification.SIGNUPS_PER_EMAIL_LIMIT):
+        assert _signup(client, "taken@example.com").status_code == 409
+    assert _signup(client, "taken@example.com").status_code == 429
+    assert mailer.MEMORY_OUTBOX == []
+
+
+def test_signup_attempts_are_capped_across_addresses(client, monkeypatch):
+    """Probing one address each stays under the per-address limit; the total
+    cap ends it, and an existing address then answers like any other."""
+    _taken()
+    monkeypatch.setattr(
+        email_verification, "_signup_attempt_limiter",
+        auth_service.FixedWindowLimiter(2, 300))
+    assert _signup(client, "one@example.com").status_code == 202
+    assert _signup(client, "two@example.com").status_code == 202
+    assert _signup(client, "taken@example.com").status_code == 429
+    assert _signup(client, "three@example.com").status_code == 429
+    assert _counts() == (1, 2)
+
+
+def test_a_refused_signup_for_an_existing_account_spends_no_send_budget(client, monkeypatch):
+    _taken()
+    monkeypatch.setattr(
+        email_verification, "_global_send_limiter",
+        auth_service.FixedWindowLimiter(1, 600))
+    assert _signup(client, "taken@example.com").status_code == 409
+    assert _signup(client, "new@example.com").status_code == 202
+
+
 # ── Schema: the new users columns reach a legacy database ────────────────────
 
 def test_verification_columns_reach_a_legacy_users_table(tmp_path):

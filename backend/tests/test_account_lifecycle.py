@@ -92,6 +92,61 @@ class TestPasswordChange:
         third.close()
 
 
+class TestPasswordReentryBudget:
+    """Re-entering the password runs argon2 and can be guessed from a stolen
+    session, so it shares login's per-account budget."""
+
+    @pytest.fixture
+    def budget_of_two(self, monkeypatch):
+        monkeypatch.setattr(
+            auth_service, "_account_login_limiter",
+            auth_service.FixedWindowLimiter(2, auth_service.LOGIN_WINDOW_SECONDS))
+
+    @staticmethod
+    def _no_hashing_allowed(monkeypatch):
+        def unexpected(*args):
+            pytest.fail("A throttled request must not run password verification")
+
+        monkeypatch.setattr(auth_service, "verify_password", unexpected)
+
+    def test_password_change_is_throttled_even_with_the_right_password(
+        self, user_client, budget_of_two, monkeypatch
+    ):
+        for _ in range(2):
+            assert user_client.post(
+                "/api/me/password",
+                json={"current_password": "guess", "new_password": "long enough pw"},
+            ).status_code == 403
+        self._no_hashing_allowed(monkeypatch)
+        assert user_client.post(
+            "/api/me/password",
+            json={"current_password": _TEST_IDENTITY_PASSWORD, "new_password": "long enough pw"},
+        ).status_code == 429
+        monkeypatch.undo()
+        with SessionLocal() as session:
+            row = session.get(UserRow, user_client.identity_user_id)
+            assert auth_service.verify_password(row.password_hash, _TEST_IDENTITY_PASSWORD)
+
+    def test_account_deletion_is_throttled_even_with_the_right_password(
+        self, user_client, budget_of_two, monkeypatch
+    ):
+        for _ in range(2):
+            assert user_client.request(
+                "DELETE", "/api/me/account", json={"current_password": "guess"}
+            ).status_code == 403
+        self._no_hashing_allowed(monkeypatch)
+        assert user_client.request(
+            "DELETE", "/api/me/account", json={"current_password": _TEST_IDENTITY_PASSWORD}
+        ).status_code == 429
+        assert user_client.get("/api/me/profile").status_code == 200  # intact
+
+    def test_the_right_password_still_works_within_the_budget(self, user_client, budget_of_two):
+        assert user_client.post(
+            "/api/me/password",
+            json={"current_password": _TEST_IDENTITY_PASSWORD, "new_password": "long enough pw"},
+        ).status_code == 200
+
+
 class TestAccountDeletion:
     def test_anonymous_rejected(self, client):
         assert client.request(

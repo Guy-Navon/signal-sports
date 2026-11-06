@@ -118,8 +118,7 @@ function AppStateProvider({ children, localDemo }) {
   // ── Local state (used in both modes) ────────────────────────────────────────
   const [activeProfileId, setActiveProfileId] = useState("guy");
   const feedbackUserId = feedbackUsesSession ? consumerUserId : activeProfileId;
-  // Backend mode starts empty and holds only local edits, which the compare tab
-  // lays over the seed profiles when it loads them.
+  // Demo profiles are a local-mode concept; backend mode has none to start from.
   const [profiles, setProfiles] = useState(() => localDemo?.userProfiles ?? {});
   const [sandboxProfile, setSandboxProfile] = useState(null);
   const [sources, setSources] = useState(feedSources);

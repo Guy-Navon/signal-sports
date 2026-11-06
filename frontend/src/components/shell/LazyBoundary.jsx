@@ -6,12 +6,13 @@ function reloadPage() {
 }
 
 // Without this, a chunk that cannot load (a deploy replaced the hashed file while
-// the tab stayed open, or the network dropped) would blank the whole app.
-class ChunkErrorBoundary extends React.Component {
-  state = { failed: false };
+// the tab stayed open, or the network dropped) would blank the whole app. It also
+// catches render errors from the screen inside, so the copy names no single cause.
+class ScreenErrorBoundary extends React.Component {
+  state = { error: null };
 
-  static getDerivedStateFromError() {
-    return { failed: true };
+  static getDerivedStateFromError(error) {
+    return { error };
   }
 
   componentDidCatch(error) {
@@ -19,12 +20,13 @@ class ChunkErrorBoundary extends React.Component {
   }
 
   render() {
-    if (this.state.failed) {
+    const { error } = this.state;
+    if (error) {
       return (
         <ErrorState
           variant="page"
-          title="לא הצלחנו לטעון את המסך"
-          hint="ייתכן שהאפליקציה עודכנה. טעינה מחדש בדרך כלל פותרת את זה."
+          title="לא הצלחנו להציג את המסך"
+          message={error.message || String(error)}
           onRetry={reloadPage}
           retryLabel="טען מחדש"
         />
@@ -37,7 +39,7 @@ class ChunkErrorBoundary extends React.Component {
 // The boundary around anything loaded with React.lazy (#199).
 export default function LazyBoundary({ children }) {
   return (
-    <ChunkErrorBoundary>
+    <ScreenErrorBoundary>
       <Suspense
         fallback={
           <p role="status" className="py-16 text-center text-sm text-text-dim">
@@ -47,6 +49,6 @@ export default function LazyBoundary({ children }) {
       >
         {children}
       </Suspense>
-    </ChunkErrorBoundary>
+    </ScreenErrorBoundary>
   );
 }

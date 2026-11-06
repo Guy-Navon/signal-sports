@@ -1,7 +1,5 @@
-// Local (mock) mode's data and computations, in their own chunk (#199): a build
-// talking to the real backend never loads this module on a normal session. Only
-// local mode imports it at startup; backend mode only when an admin opens the
-// Debug page's profile comparison tab.
+// Local (mock) mode's data and computations, in their own chunk (#199): only local
+// mode imports this module, so a session talking to the real backend never loads it.
 import { userProfiles } from "@/data/userProfiles";
 import { mockArticles, mockClusters } from "@/data/mockArticles";
 import { mockResults } from "@/data/mockResults";
@@ -49,8 +47,8 @@ export function computeLocalResults(profile) {
   };
 }
 
-// The demo cross-profile comparison: mock articles scored by the local engine,
-// in either data mode (Debug's compare tab).
+// The demo cross-profile comparison: mock articles scored by the local engine
+// (Debug's compare tab).
 export function computeProfileComparison(profilesById, disabledSourceIds) {
   const profiles = Object.values(profilesById);
   const options = { disabledSourceIds };

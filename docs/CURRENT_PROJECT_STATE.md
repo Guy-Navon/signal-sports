@@ -195,13 +195,15 @@ server is authoritative for every decision. The Debug page shows every article, 
 hidden ones, with its facts trace, contribution trace, cluster evidence and engine badge.
 
 **Loading (#199).** `/sources`, `/debug`, `/llm-qa` and `/calibration` are lazy routes, and the
-mock data and JS engine sit in their own chunk that a backend session does not fetch. The one
-exception is Debug's profile comparison tab, which still shows the mock articles in both modes
-and now loads and computes them only while it is open. The backend-mode entry chunk went from
-830 KB to 670 KB (240 to 207 KB gzipped). **The Vite 500 KB warning still fires:** what remains
-is mostly packages the shell and the feed use on first paint (framer-motion, react-dom,
-tailwind-merge, TanStack Query). An admin's first load also still fetches the whole debug feed
-(about 15 MB on the 2026-11 corpus); a regular user's does not.
+mock data and JS engine sit in their own chunk that a backend session does not fetch. Debug's
+profile comparison tab scores mock articles, so it exists only in local mode; in backend mode
+it shows one line saying that (owner decision, 2026-11-06). The backend-mode entry chunk went
+from 830 KB to 670 KB (240 to 207 KB gzipped). **The Vite 500 KB warning still fires:** no single
+package accounts for the excess. Roughly, app code is 157 KB, react-dom 131 KB, framer-motion
+112 KB, TanStack Query 36 KB, the Radix dialog 28 KB and tailwind-merge 28 KB. Without
+framer-motion it would still be about 558 KB, so getting under the limit needs framer-motion
+reduced plus other splitting, such as the auth pages. An admin's first load also still fetches
+the whole debug feed; a regular user's does not.
 
 ---
 
@@ -393,7 +395,7 @@ deterministic rule changelog, §1–§22).
   2/7 there. The #242 venue-move vocabulary (PR #398) raises it to 3/7 with the Cyprus move
   (owner: push; RSS_QUALITY_GUARDRAILS §20).
 
-**Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #199 (code split and feed query prefilter landed; open only for the owner's choice on Debug's mock-data compare tab in backend mode), #200 signup/login abuse
+**Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #200 signup/login abuse
 protection (a **gate before widening access**, not needed while single-user behind Tailscale).
 
 **Mobile** (#16 epic): Tailscale access works when the stack is up. The feed's touch targets (#19) and the

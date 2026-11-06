@@ -30,6 +30,16 @@ it("a chunk that fails to load shows an error with a reload, and blanks nothing 
     renderer = create(<div><span>המעטפת</span><LazyBoundary><Broken /></LazyBoundary></div>);
   });
   expect(textOf()).toContain("המעטפת");
-  expect(textOf()).toContain("לא הצלחנו לטעון את המסך");
+  expect(textOf()).toContain("לא הצלחנו להציג את המסך");
+  expect(textOf()).toContain("Failed to fetch dynamically imported module");
   expect(textOf()).toContain("טען מחדש");
+});
+
+it("a render crash shows its own message, not a claim about an app update", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const Crashing = () => { throw new TypeError("sources.filter is not a function"); };
+  await act(async () => { renderer = create(<LazyBoundary><Crashing /></LazyBoundary>); });
+  expect(textOf()).toContain("sources.filter is not a function");
+  expect(textOf()).toContain("לא הצלחנו להציג את המסך");
+  expect(textOf()).not.toContain("עודכנה");
 });

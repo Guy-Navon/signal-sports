@@ -8,6 +8,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import StatCard from "@/components/shared/StatCard";
 import EmptyState from "@/components/shared/EmptyState";
 import LazyBoundary from "@/components/shell/LazyBoundary";
+import { COMPARE_DEMO_ONLY_MESSAGE, showsDemoComparison } from "@/components/debug/compareTabModel";
 
 const DemoProfileComparison = lazy(() => import("@/components/debug/DemoProfileComparison"));
 
@@ -102,7 +103,13 @@ export default function Debug() {
         <ShadowComparisonPanel userId={activeProfileId} isBackendMode={isBackendMode} />
       )}
 
-      {activeTab === "compare" && (
+      {activeTab === "compare" && !showsDemoComparison(isBackendMode) && (
+        <div className="bg-signal-ai/5 border border-signal-ai/25 rounded-[10px] p-3">
+          <p className="text-xs text-signal-ai/90">{COMPARE_DEMO_ONLY_MESSAGE}</p>
+        </div>
+      )}
+
+      {activeTab === "compare" && showsDemoComparison(isBackendMode) && (
         <div className="space-y-3">
           <div className="bg-signal-ai/5 border border-signal-ai/25 rounded-[10px] p-3">
             <p className="text-xs text-signal-ai/90">

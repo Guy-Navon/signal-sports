@@ -25,9 +25,10 @@ same-origin proxy and the Tailscale Serve chain depend on that port
 
 - `local` (default): mock data in `src/data/`, scored in the browser by the **frozen** legacy
   JS engine (`src/engine/relevanceEngine.js`). No backend, no login. It is a demo mode, and it
-  gets no new intelligence: the backend is authoritative for every real decision. All of it
-  loads through `src/context/localDemo.js`, a separate chunk that a backend session never
-  fetches unless an admin opens Debug's profile comparison tab.
+  gets no new intelligence: the backend is authoritative for every real decision. The mock
+  articles, results, demo profiles and engine load through `src/context/localDemo.js`, a
+  separate chunk that a backend session never fetches. Debug's profile comparison tab exists
+  only here; in backend mode it shows one line saying so.
 - `backend`: the real product. Requests go to same-origin relative paths (`/api/...`,
   `/health`), which the Vite dev proxy forwards to `http://127.0.0.1:8000`. Accounts, sessions,
   onboarding, the personalized feed, results, feedback and the admin-only ops console all need

@@ -1,17 +1,13 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from "react";
-import { userProfiles } from "@/data/userProfiles";
-import { mockArticles, mockClusters } from "@/data/mockArticles";
 import { feedSources } from "@/data/feedSources";
-import { scoreAllArticles, scoreCluster, scoreArticle, DECISION_RANK } from "@/engine/relevanceEngine";
+import ErrorState from "@/components/shared/ErrorState";
 import {
   getProfiles, getFeed, getDebugFeed, submitFeedback, neverShow,
   getMeFeed, getMeProfile, submitMeFeedback, meNeverShow,
   getMeResults, getResults,
 } from "@/api/client";
-import { mockResults } from "@/data/mockResults";
 import { recordArticleOpened } from "@/api/usage";
-import { normalizeResultsResponse, normalizeResultFromApi } from "@/components/results/resultsModel";
-import { deriveFollows, filterRelevant, hasAnyFollows } from "@/components/results/resultsRelevance";
+import { normalizeResultsResponse } from "@/components/results/resultsModel";
 import { useAuth } from "@/context/AuthContext";
 import {
   isConsumerSession as computeConsumerSession,
@@ -41,14 +37,57 @@ const BACKEND_VALID_ACTIONS = new Set([
   "always_notify",
 ]);
 
-export function AppProvider({ children }) {
-  const auth = useAuth();
-  // Personal data and outstanding requests belong to one session identity.
-  // Remount on login/logout/account switch so previous-user state cannot leak.
-  return <AppStateProvider key={`${auth.authEnforced}:${auth.user?.id ?? "anonymous"}`}>{children}</AppStateProvider>;
+const NO_LOCAL_FEED = { scoredArticles: [], feedItems: [], debugItems: [] };
+const NO_RESULTS = { hasPreferences: false, games: [] };
+
+function reloadPage() {
+  window.location.reload();
 }
 
-function AppStateProvider({ children }) {
+// Local mode's mock data and engine live in their own chunk (#199), so a backend
+// build's first load carries none of it. Nothing renders in local mode until it
+// arrives: every screen there assumes the seed profiles exist.
+function useLocalDemo() {
+  const [state, setState] = useState({ demo: null, failed: false });
+  useEffect(() => {
+    if (DATA_MODE === "backend") return;
+    let cancelled = false;
+    import("@/context/localDemo").then(
+      (demo) => { if (!cancelled) setState({ demo, failed: false }); },
+      (err) => {
+        console.error("local demo failed to load", err);
+        if (!cancelled) setState({ demo: null, failed: true });
+      },
+    );
+    return () => { cancelled = true; };
+  }, []);
+  return state;
+}
+
+export function AppProvider({ children }) {
+  const auth = useAuth();
+  const { demo, failed } = useLocalDemo();
+  if (failed) {
+    return (
+      <ErrorState
+        variant="page"
+        title="לא הצלחנו לטעון את מצב ההדגמה"
+        onRetry={reloadPage}
+        retryLabel="טען מחדש"
+      />
+    );
+  }
+  if (DATA_MODE !== "backend" && !demo) return null;
+  // Personal data and outstanding requests belong to one session identity.
+  // Remount on login/logout/account switch so previous-user state cannot leak.
+  return (
+    <AppStateProvider key={`${auth.authEnforced}:${auth.user?.id ?? "anonymous"}`} localDemo={demo}>
+      {children}
+    </AppStateProvider>
+  );
+}
+
+function AppStateProvider({ children, localDemo }) {
   const isBackendMode = DATA_MODE === "backend";
 
   // Consumer/QA split (User Platform PR 5, #53). Under real enforcement with
@@ -79,7 +118,9 @@ function AppStateProvider({ children }) {
   // ── Local state (used in both modes) ────────────────────────────────────────
   const [activeProfileId, setActiveProfileId] = useState("guy");
   const feedbackUserId = feedbackUsesSession ? consumerUserId : activeProfileId;
-  const [profiles, setProfiles] = useState(userProfiles);
+  // Backend mode starts empty and holds only local edits, which the compare tab
+  // lays over the seed profiles when it loads them.
+  const [profiles, setProfiles] = useState(() => localDemo?.userProfiles ?? {});
   const [sandboxProfile, setSandboxProfile] = useState(null);
   const [sources, setSources] = useState(feedSources);
   const [feedback, setFeedback] = useState([]);
@@ -210,90 +251,20 @@ function AppStateProvider({ children }) {
     return new Set(sources.filter(s => !s.enabled).map(s => s.id));
   }, [sources]);
 
-  const scoredArticles = useMemo(() => {
-    if (isBackendMode) return [];
-    return scoreAllArticles(mockArticles, allProfiles[activeProfileId], { disabledSourceIds });
-  }, [isBackendMode, activeProfileId, allProfiles, disabledSourceIds]);
-
-  const scoredClusters = useMemo(() => {
-    if (isBackendMode) return [];
-    return mockClusters.map(cluster =>
-      scoreCluster(cluster, mockArticles, allProfiles[activeProfileId], { disabledSourceIds })
-    );
-  }, [isBackendMode, activeProfileId, allProfiles, disabledSourceIds]);
-
-  const clusteredArticleIds = useMemo(() => {
-    return new Set(mockClusters.flatMap(c => c.articleIds));
-  }, []);
-
-  const localFeedItems = useMemo(() => {
-    const clusterItems = scoredClusters.map(c => ({ ...c, type: "cluster" }));
-    const standaloneItems = scoredArticles
-      .filter(a => !clusteredArticleIds.has(a.id))
-      .map(a => ({ ...a, type: "article" }));
-    return [...clusterItems, ...standaloneItems].sort((a, b) => {
-      const rankDiff = DECISION_RANK[b.score?.decision || "hidden"] - DECISION_RANK[a.score?.decision || "hidden"];
-      if (rankDiff !== 0) return rankDiff;
-      const aDate = new Date(a.publishedAt || a.firstSeenAt);
-      const bDate = new Date(b.publishedAt || b.firstSeenAt);
-      return bDate.getTime() - aDate.getTime();
-    });
-  }, [scoredClusters, scoredArticles, clusteredArticleIds]);
-
-  const localDebugItems = useMemo(() => {
-    const clusterItems = scoredClusters.map(c => ({
-      ...c, type: "cluster", displayTitle: c.clusterTitle
-    }));
-    const standaloneItems = scoredArticles
-      .filter(a => !clusteredArticleIds.has(a.id))
-      .map(a => ({ ...a, type: "article", displayTitle: a.title }));
-    return [...clusterItems, ...standaloneItems].sort((a, b) => {
-      return DECISION_RANK[b.score?.decision || "hidden"] - DECISION_RANK[a.score?.decision || "hidden"];
-    });
-  }, [scoredClusters, scoredArticles, clusteredArticleIds]);
-
-  // Comparison always uses local engine (cross-profile comparison is local-only)
-  const comparisonItems = useMemo(() => {
-    const profilesForComparison = Object.values(allProfiles);
-    const options = { disabledSourceIds };
-    const standaloneArticles = mockArticles.filter(a => !clusteredArticleIds.has(a.id));
-    const clusterItems = mockClusters.map(cluster => {
-      const profileScores = {};
-      profilesForComparison.forEach(p => {
-        profileScores[p.userId] = scoreCluster(cluster, mockArticles, p, options).score;
-      });
-      return { ...cluster, type: "cluster", profileScores };
-    });
-    const articleItems = standaloneArticles.map(article => {
-      const profileScores = {};
-      profilesForComparison.forEach(p => {
-        profileScores[p.userId] = scoreArticle(article, p, options);
-      });
-      return { ...article, type: "article", profileScores };
-    });
-    return [...clusterItems, ...articleItems].sort((a, b) => {
-      const aMax = Math.max(...Object.values(a.profileScores).map(s => DECISION_RANK[s.decision] || 0));
-      const bMax = Math.max(...Object.values(b.profileScores).map(s => DECISION_RANK[s.decision] || 0));
-      return bMax - aMax;
-    });
-  }, [allProfiles, clusteredArticleIds, disabledSourceIds]);
+  const localFeed = useMemo(() => {
+    if (!localDemo) return NO_LOCAL_FEED;
+    return localDemo.computeLocalFeed(allProfiles[activeProfileId], disabledSourceIds);
+  }, [localDemo, activeProfileId, allProfiles, disabledSourceIds]);
 
   // ── Local-mode results (offline demo) — same normalize→relevance path ───────
   const localResults = useMemo(() => {
-    if (isBackendMode) return { hasPreferences: false, games: [] };
-    const profile = allProfiles[activeProfileId];
-    if (!profile) return { hasPreferences: false, games: [] };
-    const follows = deriveFollows(profile);
-    const normalized = mockResults.map(normalizeResultFromApi);
-    return {
-      hasPreferences: hasAnyFollows(follows),
-      games: filterRelevant(normalized, follows),
-    };
-  }, [isBackendMode, allProfiles, activeProfileId]);
+    if (!localDemo) return NO_RESULTS;
+    return localDemo.computeLocalResults(allProfiles[activeProfileId]);
+  }, [localDemo, allProfiles, activeProfileId]);
 
   // ── Resolved values (switch between modes) ───────────────────────────────────
-  const feedItems = isBackendMode ? backendFeedItems : localFeedItems;
-  const debugItems = isBackendMode ? backendDebugItems : localDebugItems;
+  const feedItems = isBackendMode ? backendFeedItems : localFeed.feedItems;
+  const debugItems = isBackendMode ? backendDebugItems : localFeed.debugItems;
   const resultsData = isBackendMode ? backendResults : localResults;
 
   const backendProfilesMap = useMemo(() => {
@@ -465,7 +436,6 @@ function AppStateProvider({ children }) {
     // Feed
     feedItems,
     debugItems,
-    comparisonItems,
 
     // Results (issue #178)
     resultsGames: resultsData.games,
@@ -473,12 +443,11 @@ function AppStateProvider({ children }) {
     resultsLoading,
     resultsError,
     refreshResults,
-    scoredArticles,
-    scoredClusters,
-    clusteredArticleIds,
+    scoredArticles: localFeed.scoredArticles,
 
     // Sources
     sources,
+    disabledSourceIds,
     toggleSource,
 
     // Feedback

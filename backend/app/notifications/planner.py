@@ -98,19 +98,15 @@ def enumerate_push_stories(session: Session,
     Returns (snapshots, ignored_non_push_count), or None if the profile does
     not exist. Read-only: builds the production feed, mutates nothing.
     """
-    from app.repositories import (
-        article_repository,
-        feedback_repository,
-        profile_repository,
-    )
-    from app.services.feed_service import build_feed
+    from app.repositories import feedback_repository, profile_repository
+    from app.services.feed_service import build_feed, load_feed_candidates
     from app.services.learning_service import dismissed_article_ids, with_learned
 
     profile = profile_repository.get_by_id(session, profile_id)
     if profile is None:
         return None
 
-    articles = article_repository.get_rss_articles(session)
+    articles = load_feed_candidates(session)
     events = feedback_repository.get_active_by_user(session, profile_id)
     dismissed = dismissed_article_ids(events)
     articles = [a for a in articles if a.id not in dismissed]

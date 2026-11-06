@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_session
 from app.models.scoring import ScoredArticle
 from app.repositories import article_repository, feedback_repository, profile_repository
-from app.services.feed_service import active_engine, build_feed
+from app.services.feed_service import active_engine, build_feed, load_feed_candidates
 from app.services.learning_service import dismissed_article_ids, with_learned
 from app.services.shadow_service import ShadowReport, build_shadow_report
 
@@ -18,7 +18,7 @@ def get_feed(user_id: str, session: Session = Depends(get_session)):
     profile = profile_repository.get_by_id(session, user_id)
     if not profile:
         raise HTTPException(status_code=404, detail=f"Profile '{user_id}' not found")
-    articles = article_repository.get_rss_articles(session)
+    articles = load_feed_candidates(session)
     # Feedback learning (issue #34): score with derived learned entries and
     # drop articles the user explicitly dismissed (feed only — debug shows all).
     events = feedback_repository.get_active_by_user(session, user_id)

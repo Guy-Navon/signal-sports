@@ -63,6 +63,24 @@ consumer path (`include_hidden=False`) only. Consequences, all test-locked
 - feed, notification and API layers cannot drift apart, because none of them reimplements
   the cutoff.
 
+**The query floor (#199) is a cost saving, not a second rule.** The consumer feed route and
+the planner load their rows through `feed_service.load_feed_candidates`, which passes
+`freshness.published_at_query_floor()` to `get_rss_articles`. `fresh_only` still decides, on
+whatever comes back, exactly as above. The floor only has to keep every fresh row:
+
+- `published_at` is ISO text and SQL compares the text, so the floor is a bare date
+  (`cutoff − 1 day`). A UTC offset moves the stored local time by less than 24 hours, and a
+  date bound does not depend on the time format.
+- It is `None`, so nothing is filtered, while `FEED_FRESHNESS_ENABLED` is off. It follows
+  `FEED_MAX_AGE_HOURS`.
+- With the 36-hour window it loads 60 to 84 hours of rows. The looser the bound, the more rows
+  `fresh_only` discards, and nothing else changes. Every row in the corpus is `+00:00` today,
+  but the margin does not rely on that.
+- Debug, shadow, `GET /api/articles`, the ops routes and the QA scripts call `get_rss_articles`
+  with no floor and see the whole corpus. To replay a feed build without the window (as
+  `scripts/feed_milestone_quality.py` does), set `FEED_FRESHNESS_ENABLED=false`: patching
+  `fresh_only` alone no longer brings the old rows back.
+
 Both permanent profiles (Guy, Casual Deni Fan) — and every future profile — share the policy.
 
 ## 4. Configuration

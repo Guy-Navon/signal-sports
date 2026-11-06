@@ -92,10 +92,17 @@ def get_by_id(session: Session, article_id: str) -> Optional[Article]:
     return _row_to_article(row) if row else None
 
 
-def get_rss_articles(session: Session) -> List[Article]:
-    """Return all articles ingested via RSS (id prefix 'rss_')."""
-    rows = session.query(ArticleRow).filter(ArticleRow.id.startswith("rss_", autoescape=True)).all()
-    return [_row_to_article(r) for r in rows]
+def get_rss_articles(session: Session, *, published_at_floor: Optional[str] = None) -> List[Article]:
+    """Return all articles ingested via RSS (id prefix 'rss_').
+
+    ``published_at_floor``, when given, keeps rows whose stored ``published_at``
+    text sorts at or above it. It is a text comparison, not a time one: see
+    ``freshness.published_at_query_floor``, the only intended source of a floor.
+    """
+    query = session.query(ArticleRow).filter(ArticleRow.id.startswith("rss_", autoescape=True))
+    if published_at_floor is not None:
+        query = query.filter(ArticleRow.published_at >= published_at_floor)
+    return [_row_to_article(r) for r in query.all()]
 
 
 def count(session: Session) -> int:

@@ -8,6 +8,7 @@ or dispatches a notification. No scoring or clustering contracts are changed.
 import argparse
 from dataclasses import asdict
 import json
+import os
 from pathlib import Path
 import sys
 from unittest.mock import patch
@@ -24,7 +25,7 @@ def measure():
         feeds, total = _score_all(session)
         report["corpus_size"] = total
         for uid, feed in feeds.items():
-            with patch("app.services.feed_service.fresh_only", side_effect=lambda articles: list(articles)):
+            with patch.dict(os.environ, {"FEED_FRESHNESS_ENABLED": "false"}):
                 enumerated = enumerate_push_stories(session, uid)
             snapshots, _ = enumerated
             visible = [s for s in feed if s.decision != "hidden"]

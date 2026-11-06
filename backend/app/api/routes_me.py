@@ -419,6 +419,8 @@ def me_change_password(
             new_password=payload.new_password,
             keep_raw_token=raw_token or "",
         )
+    except auth_service.RateLimitExceeded:
+        raise HTTPException(status_code=429, detail="Too many attempts")
     except auth_service.InvalidPasswordError:
         raise HTTPException(status_code=403, detail="Current password is incorrect")
     return {"ok": True, "revoked_other_sessions": revoked}
@@ -457,6 +459,8 @@ def me_delete_account(
         raise HTTPException(
             status_code=409, detail="The last remaining admin cannot self-delete"
         )
+    except auth_service.RateLimitExceeded:
+        raise HTTPException(status_code=429, detail="Too many attempts")
     except auth_service.InvalidPasswordError:
         raise HTTPException(status_code=403, detail="Current password is incorrect")
     except auth_service.InvalidReauthGrantError:
@@ -508,9 +512,10 @@ def me_delete_account_google_start(
 # ── Connect / disconnect Google (#330) ───────────────────────────────────────
 
 def _verify_password_limited(user: UserRow, password: str) -> None:
-    """Password re-entry for the Google endpoints, sharing login's per-account
-    budget so they can't serve as a guessing oracle."""
-    if not auth_service._account_login_limiter.check(user.email or user.id):
+    """Password re-entry for the Google endpoints."""
+    try:
+        auth_service.check_account_password_budget(user)
+    except auth_service.RateLimitExceeded:
         raise HTTPException(status_code=429, detail="Too many attempts")
     if not user.password_hash or not auth_service.verify_password(user.password_hash, password):
         raise HTTPException(status_code=403, detail="Current password is incorrect")

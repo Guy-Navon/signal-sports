@@ -7,6 +7,8 @@ hard cap holds even while every key is still fresh. The per-key limit keeps
 working for keys inside their window.
 """
 
+import pytest
+
 from app.services.auth_service import FixedWindowLimiter
 
 
@@ -63,9 +65,29 @@ def test_the_default_limiters_are_bounded():
     for limiter in (
         auth_service._account_login_limiter,
         auth_service._global_login_limiter,
+        email_verification._signup_attempt_limiter,
         email_verification._signup_email_limiter,
         email_verification._global_send_limiter,
         email_verification._confirm_limiter,
         google_oauth._start_limiter,
     ):
         assert 0 < limiter.max_keys <= FixedWindowLimiter.DEFAULT_MAX_KEYS
+
+
+@pytest.mark.parametrize("path", [
+    "/api/auth/login",
+    "/api/auth/signup",
+    "/api/auth/verification/resend",
+])
+def test_an_oversized_address_never_becomes_a_limiter_key(client, path):
+    """A count cap alone does not bound memory: the keys come from the request,
+    so 10,000 of them could each be as large as the request body."""
+    from app.services import auth_service, email_verification
+
+    auth_service.reset_rate_limiters()
+    email_verification.reset_rate_limiters()
+    email = "a" * 400 + "@example.com"
+    response = client.post(path, json={"email": email, "password": "long enough password"})
+    assert response.status_code == 422
+    assert auth_service._account_login_limiter.size() == 0
+    assert email_verification._signup_email_limiter.size() == 0

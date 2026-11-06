@@ -402,7 +402,10 @@ deterministic rule changelog, §1–§22).
   (owner: push; RSS_QUALITY_GUARDRAILS §20).
 
 **Platform / debt** (audit [audits/2026-09-05.md](audits/2026-09-05.md)): #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #200 signup/login abuse
-protection (a **gate before widening access**, not needed while single-user behind Tailscale).
+protection (a **gate before widening access**, not needed while single-user behind Tailscale). Signup and
+login limits, password reset and email verification exist; limits are still per process and reset on restart,
+there is no per-source limit, and signup still answers 409 for an existing account
+([USER_PLATFORM.md](USER_PLATFORM.md), Security model).
 
 **Mobile** (#16 epic): Tailscale access works when the stack is up. The feed's touch targets (#19) and the
 navigation shell and safe area (#20) are done. #22 PWA-lite install is implemented and waits for the owner's device check. The ops pages work

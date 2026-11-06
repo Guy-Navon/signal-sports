@@ -30,7 +30,8 @@ def _valid_email(value: str) -> str:
 
 
 class SignupRequest(BaseModel):
-    email: str
+    # The address becomes a rate-limiter key, so its size is bounded here.
+    email: str = Field(max_length=320)
     password: str = Field(min_length=8)
     display_name: str | None = Field(default=None, max_length=120)
 
@@ -41,7 +42,8 @@ class SignupRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: str
+    # The address becomes a rate-limiter key, so its size is bounded here.
+    email: str = Field(max_length=320)
     password: str
 
     @field_validator("email")

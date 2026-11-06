@@ -166,6 +166,14 @@ def verify_password(password_hash: str, password: str) -> bool:
         return False
 
 
+def check_account_password_budget(user: UserRow) -> None:
+    """Spend one of the account's login attempts before checking its password
+    outside login, so no such path can serve as a guessing oracle or run
+    argon2 without limit."""
+    if not _account_login_limiter.check(user.email or user.id):
+        raise RateLimitExceeded("too many password attempts")
+
+
 def verify_dummy_password(password: str) -> None:
     try:
         _password_hasher.verify(_dummy_hash, password)
@@ -411,6 +419,7 @@ def change_password(
 ) -> int:
     """Verify the current password, set the new one, and revoke all OTHER
     sessions (the active session survives). Returns the revoke count (#55)."""
+    check_account_password_budget(user)
     if not user.password_hash or not verify_password(user.password_hash, current_password):
         raise InvalidPasswordError("current password is incorrect")
     user.password_hash = hash_password(new_password)
@@ -470,8 +479,9 @@ def _delete_cascade(session: Session, uid: str) -> None:
 
 def delete_account(session: Session, user: UserRow, *, current_password: str) -> None:
     """Delete an account that has a password, confirmed by that password.
-    Check order is unchanged from #55: demo, password, last admin."""
+    Check order: demo, password budget, password, last admin."""
     _refuse_demo(user)
+    check_account_password_budget(user)
     if not user.password_hash or not verify_password(user.password_hash, current_password):
         raise InvalidPasswordError("current password is incorrect")
     _refuse_last_admin(session, user)

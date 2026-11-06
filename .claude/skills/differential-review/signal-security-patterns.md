@@ -84,8 +84,10 @@ against the current code: the codebase moves faster than this file.
 
 Everything a source returns is untrusted: RSS XML, Sport5 HTML, ONE JSON, titles, subtitles, URLs
 and dates.
-- Adapters must never raise and must return `[]` on any fetch/parse failure, with timeouts
-  (`_FETCH_TIMEOUT_SECONDS`). A crash or hang is a denial of service against the whole cycle.
+- On a failed fetch the RSS adapter raises `SourceFetchError` with a short reason and no exception
+  text (#365), and `_run_source` catches it per source; Sport5 and ONE still log and return `[]`.
+  Every fetch needs a timeout (`_FETCH_TIMEOUT_SECONDS`), and anything an adapter raises must stay
+  inside that per-source catch. A crash or hang is a denial of service against the whole cycle.
 - Text reaches the UI as text: React escapes by default, so look for any `dangerouslySetInnerHTML`
   (there is currently no use in `frontend/src`),
   `href` values built from source data (block `javascript:`), and Telegram messages (sent as plain

@@ -73,11 +73,12 @@ class RSSSourceAdapter(SourceAdapter):
     def _raise_if_failed(self, feed) -> None:
         """Tell a dead source from a quiet one (#365).
 
-        Success: any feed with entries, even a malformed one (`bozo`), and a
-        well-formed feed with none. `status` is absent when feedparser never got an
-        HTTP answer (a connection error, which arrives as `bozo`); it stays 3xx on a
-        followed redirect, and this adapter sends no conditional requests, so only
-        4xx and 5xx mean failure.
+        Success: any feed with entries, even a malformed one (`bozo`), and a valid
+        feed with none, which feedparser marks with a `version`. `status` is absent
+        when feedparser never got an HTTP answer (a connection error, which arrives
+        as `bozo`). After a followed redirect feedparser overwrites it with the 3xx,
+        so a dead target shows no error status: only the missing `version` gives it
+        away. A 304 carries no feed, but it means "nothing new", not "dead".
         """
         status = getattr(feed, "status", None)
         if isinstance(status, int) and status >= 400:
@@ -90,6 +91,11 @@ class RSSSourceAdapter(SourceAdapter):
             logger.error("RSS fetch failed for %s (%s): %s",
                          self.source_id, self.feed_url, cause or "unknown parse error")
             raise SourceFetchError(type(cause).__name__ if cause else "unparseable_feed")
+
+        if not feed.entries and not getattr(feed, "version", None) and status != 304:
+            logger.error("RSS fetch failed for %s (%s): no feed in the response (HTTP %s)",
+                         self.source_id, self.feed_url, status)
+            raise SourceFetchError("not_a_feed")
 
     @staticmethod
     def _parse_date(entry) -> Optional[datetime]:

@@ -23,7 +23,8 @@ skills name the file to extend.
 - Expectations are literal and hand-derived. Use real Hebrew headlines from fixtures, plus an
   **adversarial neighbor** that must *not* change (the house style for classifier and clustering
   fixes).
-- It covers the realistic failure: an adapter returning `[]` on a network or parse failure,
+- It covers the realistic failure: a failed fetch (the RSS adapter raises `SourceFetchError`; Sport5
+  and ONE still log and return `[]`),
   malformed entries, missing timestamps, duplicate URLs, a second run over the same items
   (idempotency), a crash between claim and send, a provider timeout.
 - It is deterministic: control time through explicit `now=` parameters or by monkeypatching the

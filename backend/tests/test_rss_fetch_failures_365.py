@@ -36,13 +36,17 @@ URL_PREFIX = "https://example.test/sport/fixture-365-"
 class _Response:
     """The parts of a urllib response that feedparser reads."""
 
-    def __init__(self, status: int, body: bytes, content_type: str | None = "application/rss+xml"):
+    def __init__(self, status: int, body: bytes, content_type: str | None = "application/rss+xml",
+                 location: str | None = None):
         self.status = status
         self.code = status
+        self.msg = "fake"
         self.url = "https://example.test/feed"
         self.headers = Message()
         if content_type:
             self.headers["content-type"] = content_type
+        if location:
+            self.headers["location"] = location
         self._body = body
 
     def read(self) -> bytes:
@@ -50,6 +54,12 @@ class _Response:
 
     def close(self) -> None:
         pass
+
+    def info(self) -> Message:
+        return self.headers
+
+    def geturl(self) -> str:
+        return self.url
 
 
 def _http(outcome_for):
@@ -64,6 +74,27 @@ def _http(outcome_for):
         return outcome
 
     return patch("urllib.request.OpenerDirector.open", side_effect=open_)
+
+
+def _http_with_redirects(routes: dict):
+    """Fake one layer lower, so urllib and feedparser's own handlers really run.
+
+    `_http` replaces the opener, so it never sees feedparser overwrite `status` with
+    the 3xx after following a redirect. This is the shape a dead target hides behind.
+    """
+
+    def https_open(request):
+        return routes[request.full_url]
+
+    return patch("urllib.request.HTTPSHandler.https_open", side_effect=https_open)
+
+
+FEED = "https://example.test/feed"
+MOVED = "https://example.test/moved"
+
+
+def _redirect_to(target: _Response, status: int = 302) -> dict:
+    return {FEED: _Response(status, b"", None, location=MOVED), MOVED: target}
 
 
 def _rss(*titles_and_urls: tuple[str, str]) -> bytes:
@@ -111,6 +142,9 @@ class TestFetchFailuresRaise:
             pytest.param(HTML_403, "http_403", id="403-html-page"),
             pytest.param(_Response(404, b"", None), "http_404", id="404-empty-body-not-bozo"),
             pytest.param(_Response(503, b"<html><p>unavailable", "text/html"), "http_503", id="503"),
+            pytest.param(_Response(403, _rss(("t", "https://example.test/x"))), "http_403", id="403-with-entries"),
+            pytest.param(_Response(503, _rss(("t", "https://example.test/x"))), "http_503", id="503-with-entries"),
+            pytest.param(_Response(302, b"", None), "not_a_feed", id="redirect-status-empty-body"),
             pytest.param(
                 _Response(200, b"<!doctype html><html><body><p>captive portal<br></body></html>", "text/html"),
                 "SAXParseException",
@@ -145,6 +179,68 @@ class TestFetchFailuresRaise:
         with _http(REFUSED), pytest.raises(SourceFetchError):
             _adapter().fetch()
         assert socket.getdefaulttimeout() == before
+
+
+NON_FEED_XML = b'<?xml version="1.0"?><error><message>gone</message></error>'
+
+
+class TestNoFeedInTheResponse:
+    """Not `bozo`, no entries and no feed version: a valid empty feed has a version."""
+
+    @pytest.mark.parametrize(
+        "routes",
+        [
+            pytest.param(_redirect_to(_Response(404, b"", None)), id="302-to-404-empty"),
+            pytest.param(_redirect_to(_Response(503, b"", None)), id="302-to-503-empty"),
+            pytest.param(_redirect_to(_Response(404, NON_FEED_XML, "application/xml")), id="302-to-404-xml"),
+            pytest.param(_redirect_to(_Response(410, b"", None), status=301), id="301-to-410-empty"),
+            pytest.param({FEED: _Response(302, b"", None)}, id="302-without-location"),
+            pytest.param({FEED: _Response(200, b"")}, id="200-empty-body"),
+            pytest.param({FEED: _Response(200, NON_FEED_XML, "application/xml")}, id="200-non-feed-xml"),
+            pytest.param({FEED: _Response(204, b"", None)}, id="204"),
+        ],
+    )
+    def test_raises(self, routes):
+        with _http_with_redirects(routes), pytest.raises(SourceFetchError) as raised:
+            _adapter().fetch()
+        assert str(raised.value) == "not_a_feed"
+
+
+class TestValidEmptyFeeds:
+    @pytest.mark.parametrize(
+        "body",
+        [
+            pytest.param(_rss(), id="rss-2.0"),
+            pytest.param(b"<rss><channel><title>t</title></channel></rss>", id="rss-no-version-attribute"),
+            pytest.param(b'<rss version="0.91"><channel><title>t</title></channel></rss>', id="rss-0.91"),
+            pytest.param(
+                b'<feed xmlns="http://www.w3.org/2005/Atom"><title>t</title></feed>',
+                id="atom-1.0",
+            ),
+            pytest.param(
+                b'<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" '
+                b'xmlns="http://purl.org/rss/1.0/"><channel><title>t</title></channel></rdf:RDF>',
+                id="rdf",
+            ),
+        ],
+    )
+    def test_stays_an_empty_success(self, body):
+        with _http_with_redirects({FEED: _Response(200, body)}):
+            assert _adapter().fetch() == []
+
+    def test_behind_a_redirect_stays_an_empty_success(self):
+        with _http_with_redirects(_redirect_to(_Response(200, _rss()))):
+            assert _adapter().fetch() == []
+
+    def test_real_304_response_stays_an_empty_success(self):
+        with _http_with_redirects({FEED: _Response(304, b"", None)}):
+            assert _adapter().fetch() == []
+
+    def test_feed_with_entries_behind_a_redirect_still_ingests(self):
+        target = _Response(200, _rss(("title", "https://example.test/article")))
+        with _http_with_redirects(_redirect_to(target)):
+            items = _adapter().fetch()
+        assert [i.url for i in items] == ["https://example.test/article"]
 
 
 class TestNonFailuresStayQuiet:
@@ -287,6 +383,21 @@ class TestDeadSourceIsVisible:
         assert card["consecutive_failures"] >= 1
         assert card["last_failed_count"] == 1
         assert card["last_error_message"] == message
+
+    def test_dead_target_behind_a_redirect_is_a_failure(self, admin_client, clean_runs):
+        walla = FEED_URLS["walla_sport"]
+        routes = {
+            walla: _Response(302, b"", None, location=MOVED),
+            MOVED: _Response(404, b"", None),
+        }
+        with _http_with_redirects(routes):
+            response = admin_client.post("/api/ingest/run?source_id=walla_sport")
+
+        message = "Fetch error for walla_sport: not_a_feed"
+        assert response.json()["sources"][0]["errors"] == [message]
+        run = _latest_run("walla_sport")
+        assert (run.status, run.failed_count, run.error_message) == ("error", 1, message)
+        assert _latest_cycle()[1] == "failed"
 
     def test_exception_text_with_a_url_secret_is_not_persisted(self, admin_client, clean_runs):
         leak = OSError(f"could not reach https://user:{SECRET}@feeds.example.test/rss?key={SECRET}")

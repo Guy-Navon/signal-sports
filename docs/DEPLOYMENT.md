@@ -372,7 +372,11 @@ through one sudoers line, `deploy/host/sudoers.signal-deploy`):
 4. **Pin** the digests in `deploy/.env` (the previous file is kept as `.env.previous`).
 5. **Recreate** api + web, then the worker (it finishes its cycle: 300 s stop grace).
 6. **Verify**: health through nginx; the worker's health; and, when the worker runs, **one
-   completed cycle after the deploy** (`--no-wait-cycle` skips it).
+   completed cycle after the deploy** (`--no-wait-cycle` skips it). That cycle must not end `failed`,
+   and since #365 a cycle in which no source fetched or inserted anything and an RSS fetch failed
+   does end `failed`. So a total source outage or blocked egress during a deploy fails verification,
+   whatever the release's quality. One cycle decides, with no retry. Use `--no-wait-cycle` to deploy
+   past a known source outage.
 7. **On failure**: classes 1 and 2 roll back automatically to the previous digests and say so.
    **Class 3** (data semantics, HOSTING_PLAN §12.5) is never rolled back automatically, because
    old code may misread new data: restore the pre-deploy backup or roll forward. Class 3 is not

@@ -269,17 +269,21 @@ The Sources page (ops console, backend mode) drives all of these.
 (`ingestion_service.py`), so one source's outage never stops another source.
 
 - **RSS raises `SourceFetchError`** (#365) when `feedparser.parse` raises (for example a read
-  timeout), when HTTP `status >= 400`, or when the result is `bozo` with no entries (a connection
-  error, an HTML page, XML too broken to yield an entry). The message is a short reason only
-  (`http_403`, `URLError`, `SAXParseException`), because it is persisted and exception text can
-  carry a URL; the full detail goes to the log.
+  timeout), when HTTP `status >= 400` (even if the body has entries), when the result is `bozo`
+  with no entries (a connection error, an HTML page, XML too broken to yield an entry), or when it
+  has no entries and no feed `version` (`not_a_feed`: an empty body, non-feed XML). The last rule is
+  what catches a dead target behind a redirect, because after following one feedparser overwrites
+  `status` with the 3xx, so `302 -> 404` shows `status = 302`. The message is a short reason only
+  (`http_403`, `URLError`, `SAXParseException`, `not_a_feed`), because it is persisted and exception
+  text can carry a URL; the full detail goes to the log.
 - **RSS stays a success** for a `bozo` feed that has entries (many real feeds are slightly
-  malformed), a well-formed feed with no entries, a followed redirect (feedparser keeps the 3xx as
-  `status`), and a result with no `status`. The adapter sends no conditional requests, and a 304
-  would still count as empty, not failed.
-- **Known limits of the RSS rule:** a 200 whose body is empty, or well-formed non-feed XML served
-  with an XML content type, is not `bozo`, so it reads as an empty feed. A valid empty feed served
-  with a non-XML content type is `bozo`, so it reads as a failure.
+  malformed), a valid feed with no entries (RSS, Atom and RDF all carry a `version`), a feed behind
+  a followed redirect, and a result with no `status`. The adapter sends no conditional requests, and
+  a 304 would still count as empty, not failed.
+- **Known limits of the RSS rule:** behind a redirect the error status stays hidden, so a target
+  that answers an error status with a valid feed body reads as that feed: entries ingest, and a
+  valid empty feed reads as empty. A valid empty feed served with a non-XML content type is `bozo`,
+  so it reads as a failure.
 - **Sport5 and ONE still log and skip** a failed page or endpoint and return what the others gave,
   `[]` in the worst case. A total Sport5 or ONE outage therefore still records `fetched 0, failed 0`.
 

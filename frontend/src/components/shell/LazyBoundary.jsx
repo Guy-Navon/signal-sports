@@ -1,8 +1,24 @@
 import React, { Suspense } from "react";
 import ErrorState from "@/components/shared/ErrorState";
+import { useEngineTraceVisible } from "@/context/AppContext";
 
 function reloadPage() {
   window.location.reload();
+}
+
+// Readers get plain Hebrew; ops keeps the raw detail, the same split as
+// connectionErrorStrip. Everyone's error still reaches the console below.
+function ScreenError({ error }) {
+  const showDetail = useEngineTraceVisible();
+  return (
+    <ErrorState
+      variant="page"
+      title="לא הצלחנו להציג את המסך"
+      message={showDetail ? error.message || String(error) : null}
+      onRetry={reloadPage}
+      retryLabel="טען מחדש"
+    />
+  );
 }
 
 // Without this, a chunk that cannot load (a deploy replaced the hashed file while
@@ -21,18 +37,7 @@ class ScreenErrorBoundary extends React.Component {
 
   render() {
     const { error } = this.state;
-    if (error) {
-      return (
-        <ErrorState
-          variant="page"
-          title="לא הצלחנו להציג את המסך"
-          message={error.message || String(error)}
-          onRetry={reloadPage}
-          retryLabel="טען מחדש"
-        />
-      );
-    }
-    return this.props.children;
+    return error ? <ScreenError error={error} /> : this.props.children;
   }
 }
 

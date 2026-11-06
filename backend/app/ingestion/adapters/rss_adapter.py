@@ -6,7 +6,7 @@ from typing import Optional
 
 import feedparser
 
-from app.ingestion.adapters.base import RawSourceItem, SourceAdapter
+from app.ingestion.adapters.base import RawSourceItem, SourceAdapter, SourceFetchError
 from app.ingestion.subtitle import extract_subtitle
 
 logger = logging.getLogger(__name__)
@@ -40,16 +40,11 @@ class RSSSourceAdapter(SourceAdapter):
             feed = feedparser.parse(self.feed_url)
         except Exception as exc:
             logger.error("RSS fetch failed for %s (%s): %s", self.source_id, self.feed_url, exc)
-            return []
+            raise SourceFetchError(type(exc).__name__) from exc
         finally:
             socket.setdefaulttimeout(previous_timeout)
 
-        if getattr(feed, "bozo", False) and not feed.entries:
-            logger.warning(
-                "RSS parse warning for %s: %s",
-                self.source_id,
-                getattr(feed, "bozo_exception", "unknown parse error"),
-            )
+        self._raise_if_failed(feed)
 
         items: list[RawSourceItem] = []
         for entry in feed.entries:
@@ -74,6 +69,33 @@ class RSSSourceAdapter(SourceAdapter):
         return items
 
     # ── helpers ───────────────────────────────────────────────────────────────
+
+    def _raise_if_failed(self, feed) -> None:
+        """Tell a dead source from a quiet one (#365).
+
+        Success: any feed with entries, even a malformed one (`bozo`), and a valid
+        feed with none, which feedparser marks with a `version`. `status` is absent
+        when feedparser never got an HTTP answer (a connection error, which arrives
+        as `bozo`). After a followed redirect feedparser overwrites it with the 3xx,
+        so a dead target shows no error status: only the missing `version` gives it
+        away. A 304 carries no feed, but it means "nothing new", not "dead".
+        """
+        status = getattr(feed, "status", None)
+        if isinstance(status, int) and status >= 400:
+            logger.error("RSS fetch failed for %s (%s): HTTP %s",
+                         self.source_id, self.feed_url, status)
+            raise SourceFetchError(f"http_{status}")
+
+        if getattr(feed, "bozo", False) and not feed.entries:
+            cause = getattr(feed, "bozo_exception", None)
+            logger.error("RSS fetch failed for %s (%s): %s",
+                         self.source_id, self.feed_url, cause or "unknown parse error")
+            raise SourceFetchError(type(cause).__name__ if cause else "unparseable_feed")
+
+        if not feed.entries and not getattr(feed, "version", None) and status != 304:
+            logger.error("RSS fetch failed for %s (%s): no feed in the response (HTTP %s)",
+                         self.source_id, self.feed_url, status)
+            raise SourceFetchError("not_a_feed")
 
     @staticmethod
     def _parse_date(entry) -> Optional[datetime]:

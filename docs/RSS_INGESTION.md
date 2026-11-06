@@ -2,7 +2,7 @@
 
 **Status: living contract** for the configured news sources, the adapters that read
 them, and what one ingestion pass does to an item before it becomes an article.
-Last updated: 2026-11-01 (#258: ONE enabled by the owner after the 2026-10-30 probe; earlier: 2026-10-12 truth sweep, which absorbed the former `HEBREW_RSS_SOURCE.md`).
+Last updated: 2026-11-06 (#365: a failed RSS fetch is recorded as a failure, §3 and §4; earlier: 2026-11-01 #258, ONE enabled by the owner after the 2026-10-30 probe; 2026-10-12 truth sweep, which absorbed the former `HEBREW_RSS_SOURCE.md`).
 
 Related contracts: scheduling, the worker and the single-flight lease are in
 [SCHEDULER.md](SCHEDULER.md). Source-level URL and language filters and the deterministic
@@ -150,7 +150,7 @@ Every trigger (worker tick, startup catch-up, `POST /api/ingest/run`,
 `run_ingestion()` → `_run_source()` (`app/ingestion/ingestion_service.py`) runs these steps:
 
 ```
-adapter.fetch()                       adapters/factory.py → rss | sport5 | one; never raises
+adapter.fetch()                       adapters/factory.py → rss | sport5 | one; a raise fails this source only (§4)
   → _should_filter()                  blocked_url_patterns → allowed_url_patterns → allowed_languages
   → URL dedup                         article id = rss_<sha1(url)[:20]>; existing URL → skipped_duplicate
   → _normalise()                      new items only:
@@ -221,6 +221,24 @@ schema v2, issue #31; see [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md)). Per c
 `scheduler_cycles` holds the trigger, status, per-source summary, notification and cleanup
 summaries, and a config snapshot.
 
+### A failed fetch vs a quiet source (#365)
+
+When `adapter.fetch()` raises, that source's run has `status = error`, `fetched_count = 0`,
+`failed_count = 1` and `error_message = "Fetch error for <source>: <reason>"`. `failed` otherwise
+counts items, so `failed = 1` with `fetched = 0` means the fetch itself. The source's other stages
+see no items, and the next source runs as usual. There is no fetch checkpoint: a failed fetch
+writes no articles, and URL dedup makes the next good fetch pick up whatever the feed still lists.
+
+The cycle ends `succeeded_with_warnings`, or `failed` when no source fetched or inserted anything.
+A `failed` cycle counts in `consecutive_failures` and `ingestion_degraded`, and does not move
+`last_successful_cycle`, so the feed's "updated N minutes ago" line
+([FEED_FRESHNESS.md](FEED_FRESHNESS.md)) stops advancing and warns after 30 minutes. Source health
+shows `freshness = error` with the message, and `/api/scheduler/health` lists the source in
+`last_source_failures`.
+
+A source with `status = ok` and `fetched_count = 0` was reachable and listed nothing, for the RSS
+adapter. The scrape adapters do not make this distinction yet (§4).
+
 ### Operating endpoints (admin-gated)
 
 | Method | Endpoint | Purpose |
@@ -241,13 +259,33 @@ The Sources page (ops console, backend mode) drives all of these.
 
 | Module | Role |
 |---|---|
-| `adapters/base.py` | `RawSourceItem(source_id, url, title, published_at, summary)` and the `SourceAdapter.fetch()` interface |
+| `adapters/base.py` | `RawSourceItem(source_id, url, title, published_at, summary)`, the `SourceAdapter.fetch()` interface and `SourceFetchError` |
 | `adapters/factory.py` | `build_adapter(cfg)` maps `source_type` (and, for `html_scrape`, the source id) to an adapter. Everything after `fetch()` is identical for every source type |
 | `adapters/rss_adapter.py` | feedparser. Skips entries without a link or title; uses `published_parsed`/`updated_parsed` |
 | `adapters/sport5_adapter.py` | httpx + BeautifulSoup (`html.parser`). The fixture-only tests use `tests/fixtures/sport5_category.html` |
 | `adapters/one_adapter.py` | the ONE public JSON lists. Malformed items are tolerated one by one |
 
-Every adapter logs failures and returns `[]`, so a source outage never fails the cycle.
+**Failures differ by adapter.** Whatever an adapter raises is caught per source in `_run_source()`
+(`ingestion_service.py`), so one source's outage never stops another source.
+
+- **RSS raises `SourceFetchError`** (#365) when `feedparser.parse` raises (for example a read
+  timeout), when HTTP `status >= 400` (even if the body has entries), when the result is `bozo`
+  with no entries (a connection error, an HTML page, XML too broken to yield an entry), or when it
+  has no entries and no feed `version` (`not_a_feed`: an empty body, non-feed XML). The last rule is
+  what catches a dead target behind a redirect, because after following one feedparser overwrites
+  `status` with the 3xx, so `302 -> 404` shows `status = 302`. The message is a short reason only
+  (`http_403`, `URLError`, `SAXParseException`, `not_a_feed`), because it is persisted and exception
+  text can carry a URL; the full detail goes to the log.
+- **RSS stays a success** for a `bozo` feed that has entries (many real feeds are slightly
+  malformed), a valid feed with no entries (RSS, Atom and RDF all carry a `version`), a feed behind
+  a followed redirect, and a result with no `status`. The adapter sends no conditional requests, and
+  a 304 would still count as empty, not failed.
+- **Known limits of the RSS rule:** behind a redirect the error status stays hidden, so a target
+  that answers an error status with a valid feed body reads as that feed: entries ingest, and a
+  valid empty feed reads as empty. A valid empty feed served with a non-XML content type is `bozo`,
+  so it reads as a failure.
+- **Sport5 and ONE still log and skip** a failed page or endpoint and return what the others gave,
+  `[]` in the worst case. A total Sport5 or ONE outage therefore still records `fetched 0, failed 0`.
 
 ## 5. Adding or changing a source
 

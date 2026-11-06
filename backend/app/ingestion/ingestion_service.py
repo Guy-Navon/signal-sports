@@ -478,6 +478,8 @@ def _run_source(
         msg = f"Fetch error for {cfg.source_id}: {exc}"
         logger.error(msg)
         errors.append(msg)
+        # One failure, the fetch itself: `fetched 0, failed 0` reads as a quiet day (#365).
+        failed += 1
 
     llm_circuit_open = False  # reset per run; fires on Ollama ConnectError only
 

@@ -28,7 +28,7 @@ worker tick / POST /api/ingest/run / scheduler run-now / startup catch-up
   → orchestrate_cycle()                      app/ingestion/orchestration.py
       acquire scheduler_lease (one conditional UPDATE; stale-heartbeat takeover → old cycle 'abandoned')
       → run_ingestion(): per enabled source  app/ingestion/ingestion_service.py
-          adapter.fetch()  (never raises; [] on failure; 10 s timeouts)  adapters/*.py
+          adapter.fetch()  (RSS raises SourceFetchError; Sport5/ONE log and return []; 10 s timeouts)  adapters/*.py
           → per item: URL/language filter → URL dedup → _normalise (rules → LLM gate → merge → facts)
             → article_repository.insert (commits per article)
           → anchor enrichment stage → clustering stage (one commit; rollback on failure)  clustering/ingest_stage.py
@@ -94,7 +94,8 @@ For each concern: the invariant that holds today, where it lives, and what to lo
   `feed_dedup_cases.json`) edited to make a change pass. Measure with `signal-quality-eval`.
 
 ### Partial failures, unavailable sources, malformed input, timeouts
-- **Holds today:** adapters return `[]` and log on any fetch/parse error; each item is wrapped in
+- **Holds today:** the RSS adapter raises on a failed fetch, which `_run_source` records as one
+  `failed` plus an error (#365); Sport5 and ONE still return `[]` and log; each item is wrapped in
   try/except and counted in `failed`; sources are isolated from each other; anchor and clustering
   stages fail safe (rollback, articles survive unclustered); post-ingestion stages degrade the
   cycle. A cycle is `failed` only when nothing was fetched or inserted and errors exist.

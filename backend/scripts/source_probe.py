@@ -101,7 +101,7 @@ def diagnose_endpoint(url: str, timeout: float = 10.0) -> EndpointCheck:
 
 
 class _Capture(logging.Handler):
-    """Collects the adapters' error log lines: they log failures and return []."""
+    """Collects the adapters' error log lines: Sport5 and ONE log failures and return []."""
 
     def __init__(self) -> None:
         super().__init__(level=logging.WARNING)

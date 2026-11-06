@@ -23,6 +23,7 @@ Matching contract:
 
 import re
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Optional
 
 from app.taxonomy.entities import ENTITIES, FAMILY_NAMES, TaxonomyEntity, entity_by_legacy_name
@@ -174,8 +175,8 @@ def is_team_name(text: str) -> bool:
 # ── WNBA or NBA (#403) ───────────────────────────────────────────────────────
 # WNBA clubs share their cities with NBA clubs: "גולדן סטייט ואלקיריז" is not the Warriors. A bare
 # city says nothing, so only the league's own name and an NBA club's nickname or full name count.
-# The rule: the first of those in the title decides the story, and the subtitle decides only when
-# the title names none. Facts and the classifier ask this once, for title and subtitle together.
+# The rule: the first competition or NBA club named in the title decides the story, and the subtitle
+# decides only when the title names none. Facts and the classifier ask this once, for both together.
 _NBA_NAME = re.compile(r"(?<![a-z])nba(?![a-z])|אן בי איי|אן\.בי\.איי")
 _WNBA_NAME = re.compile(r"(?<![a-z])wnba(?![a-z])")
 
@@ -198,26 +199,31 @@ _NBA_CLUB_NAMES: tuple[str, ...] = tuple(
 )
 
 
-def _first_position(pattern: re.Pattern, lowered: str) -> Optional[int]:
-    match = pattern.search(lowered)
-    return match.start() if match else None
+@lru_cache(maxsize=1)
+def _other_competition_name() -> re.Pattern:
+    # Deferred like event_evidence's name pattern: the keywords live with the facts stage.
+    from app.classification.facts import _COMP_KEYWORD_PAIRS
+
+    return re.compile("|".join(
+        re.escape(name) for comp, name in _COMP_KEYWORD_PAIRS if comp not in ("comp:nba", "comp:wnba")
+    ))
 
 
-def _first_nba_position(lowered: str) -> Optional[int]:
+def _first_other_league_position(lowered: str) -> Optional[int]:
     positions = [
         sp[0] for alias in _NBA_CLUB_NAMES for sp in _find_occurrences(lowered, alias)
         if _is_standalone_word(lowered, sp)  # "ניקס" is not inside "פיניקס"
     ]
-    literal = _first_position(_NBA_NAME, lowered)
-    return min(positions + ([literal] if literal is not None else []), default=None)
+    names = (_NBA_NAME.search(lowered), _other_competition_name().search(lowered))
+    return min(positions + [match.start() for match in names if match], default=None)
 
 
 def is_wnba_story(title: str, subtitle: str = "") -> bool:
     for part in (title, subtitle):
         lowered = normalize_alias_text(part or "")
-        wnba, nba = _first_position(_WNBA_NAME, lowered), _first_nba_position(lowered)
-        if wnba is not None or nba is not None:
-            return wnba is not None and (nba is None or wnba < nba)
+        wnba, other = _WNBA_NAME.search(lowered), _first_other_league_position(lowered)
+        if wnba or other is not None:
+            return bool(wnba) and (other is None or wnba.start() < other)
     return False
 
 

@@ -34,6 +34,7 @@ from app.services.preference_engine import score_article_v2
 from app.services.relevance_engine import match_competition_names
 from app.taxonomy.competitions import COMPETITIONS
 from app.taxonomy.entities import ENTITIES
+from app.taxonomy.resolver import is_wnba_story
 
 PROFILES = {p.user_id: p for p in SEED_PROFILES}
 
@@ -504,7 +505,6 @@ def test_a_word_in_the_subtitle_does_not_cancel_a_finals_result():
     "אלופת היורוליג מכבי תל אביב חתמה על שחקן חדש",
     # The noun is a speaker.
     'אלופת ישראל: "הפסדנו בגדול"',
-    '"לא מאמינה שזה קרה": אלופת אירופה',
 ])
 def test_champion_noun_as_the_subject_of_something_else_is_no_title(title):
     assert not validate_event_evidence("title_win", title.lower()).valid
@@ -622,3 +622,177 @@ def test_a_wnba_mention_keeps_the_nba_clubs_of_an_nba_story():
     article = _ingest("הניקס וגולדן סטייט השלימו טרייד ענק, כוכבת ה-WNBA הגיבה")
     assert {"team:ny_knicks", "team:golden_state_warriors"} <= set(article.entity_ids)
     assert article.importance == "high"
+
+
+# ── Review round 2: a forecast is a frame that opens the claim ────────────────
+# A forecast word that frames nothing leaves the title standing, wherever it stands: upsets are when
+# a headline mentions the forecast.
+
+TITLES_NEXT_TO_A_FORECAST_WORD = [
+    ("מכבי תל אביב אלופת היורוליג, התחזיות התבדו", ""),
+    ("מכבי תל אביב אלופת היורוליג - התחזיות התבדו", ""),
+    ("התחזית התבדתה: מכבי תל אביב אלופת היורוליג", ""),
+    ("התחזית של הפרשנים התבדתה: מכבי תל אביב אלופת היורוליג", ""),
+    ("הסקר צדק: מכבי תל אביב אלופת היורוליג", ""),
+    ("מעבר לכל התחזיות: מכבי תל אביב אלופת היורוליג", ""),
+    ("אף תחזית לא חזתה את זה: הניקס אלופת ה-NBA", ""),
+    ("הניקס אלופת ה-NBA, התחזית התגשמה", ""),
+    ("Olympiacos crowned EuroLeague champions, defying predictions", ""),
+    ("Against all predictions, Fenerbahce win the EuroLeague title", ""),
+    ("Celtics win the NBA title as predicted", ""),
+    # A frame after the title, or in the subtitle, frames something else.
+    ("מכבי תל אביב אלופת היורוליג, הפרשנים צופים כי השושלת רק מתחילה", ""),
+    ("הניקס אלופת ה-NBA", "סקר: ברונסון ה-MVP של העונה"),
+]
+
+# ── Review round 2: the words of a noun-first title ───────────────────────────
+# A descriptor belongs to the noun phrase, and a registered club after the colon names the winner
+# whatever stands in front of it.
+
+NOUN_FIRST_TITLES = [
+    ("אלופת היורוליג החדשה: מכבי תל אביב", ""),
+    ("אלופת היורוליג הטרייה: מכבי תל אביב", ""),
+    ("אלופת ה-NBA החדשה: בוסטון", ""),
+    ("אלופת ה-NBA 2025/26: בוסטון", ""),
+    ("אלופת ה-NBA לעונת 2025/26: בוסטון", ""),
+    ("אלופת ה-NBA החדשה: בוסטון סלטיקס", ""),
+    # Nothing lists these words: the club after the colon decides.
+    ("אלופת היורוליג הגדולה: מכבי תל אביב", ""),
+    ("אלופת ה-NBA המפתיעה: בוסטון סלטיקס", ""),
+]
+
+TAIL_QUESTIONS = [
+    ("מכבי תל אביב אלופת היורוליג ומה עכשיו?", ""),
+    ("מכבי תל אביב אלופת היורוליג ואיך זה קרה?", ""),
+    ("הניקס אלופת ה-NBA ומה עם ברונסון?", ""),
+]
+
+ROUND_2_TITLES = TITLES_NEXT_TO_A_FORECAST_WORD + NOUN_FIRST_TITLES + TAIL_QUESTIONS
+
+
+@pytest.mark.parametrize("title,subtitle", ROUND_2_TITLES)
+def test_round_2_title_keeps_title_win_and_push(title, subtitle):
+    article = _ingest(title, subtitle)
+    assert article.event_type == "title_win"
+    assert _decision(article) == "push"
+
+
+@pytest.mark.parametrize("title,subtitle", ROUND_2_TITLES)
+def test_round_2_title_keeps_an_llm_title_win_and_push(title, subtitle, monkeypatch):
+    _stub_llm(monkeypatch)
+    article = _ingest(title, subtitle)
+    assert article.event_type == "title_win"
+    assert _decision(article) == "push"
+
+
+def test_absolute_noun_with_an_unlisted_tail_keeps_the_title():
+    """The event only: a bare "מכבי תל אביב" with no sport stays ambiguous, as on main (#345)."""
+    assert _ingest("אלופה ועוד איך: מכבי תל אביב").event_type == "title_win"
+
+
+@pytest.mark.parametrize("title", [
+    "אלופת ליגת ווינר סל החדשה: מכבי תל אביב",
+    "אלופת גביע ווינר הטרייה: הפועל ירושלים",
+    "הפועל ירושלים אלופת גביע ווינר, התחזיות התבדו",
+    "הפועל ירושלים אלופת ליגת ווינר ומה עכשיו?",
+])
+def test_winner_title_keeps_its_evidence(title):
+    assert validate_event_evidence("title_win", title.lower()).valid
+
+
+@pytest.mark.parametrize("title", [
+    "אלוף ווימבלדון החדש: קרלוס אלקראס",
+    "אלופת רולאן גארוס החדשה: איגה שוויונטק",
+    "אלופת ווימבלדון בת 21: לינדה נוסקובה",
+    "אלוף ווימבלדון בן 21: קרלוס אלקראס",
+    "קרלוס אלקראס אלוף ווימבלדון, התחזיות התבדו",
+    "התחזית התבדתה: קרלוס אלקראס אלוף ווימבלדון",
+])
+def test_slam_title_keeps_its_event_and_stays_visible(title):
+    article = _ingest(title)
+    assert article.event_type == "grand_slam_winner"
+    assert _decision(article) != "hidden"
+
+
+@pytest.mark.parametrize("title", [
+    "סקר: בוסטון אלופת ה-NBA",
+    "הסקר: מכבי תל אביב אלופת היורוליג",
+    "בסקר: מכבי תל אביב אלופת היורוליג",
+    "התחזית: בוסטון אלופת ה-NBA",
+    "התחזיות של ה-GM: בוסטון אלופת ה-NBA",
+    "סקר המנהלים: סן אנטוניו אלופה",
+    "לקראת העונה: סקר: בוסטון אלופת ה-NBA",
+    "Survey: Celtics NBA champions",
+    "Poll: Celtics NBA champions",
+    "Analyst predicts Celtics NBA champions",
+    "הפרשן צופה: מכבי תל אביב אלופת היורוליג",
+    "הפרשנים צופים כי מכבי תל אביב אלופת היורוליג",
+    "הפרשנים מנבאים: מכבי תל אביב אלופת היורוליג",
+])
+def test_a_forecast_frame_that_opens_the_claim_still_cancels_it(title):
+    assert not validate_event_evidence("title_win", title.lower()).valid
+
+
+@pytest.mark.parametrize("title,subtitle", [
+    # A descriptor is no licence for a predicate.
+    ("אלופת היורוליג החדשה נחתה בישראל", ""),
+    ("אלוף ווימבלדון החדש מתלונן: השופטים נגדנו", ""),
+    ("אלופה בת 21 נפצעה באימון", ""),
+    ('אלופת ה-NBA החדשה: "לא האמנו"', ""),
+    # A club counts only right after a colon, and only as the whole clause.
+    ("אלופת ה-NBA נחתה בישראל", ""),
+    ("אלופת ה-NBA מתלוננת", "בוסטון סלטיקס"),
+    ("אלופת ה-NBA מתלוננת! בוסטון סלטיקס", ""),
+    ("אלופת ה-NBA מתלוננת: בוסטון סלטיקס נגד השופטים", ""),
+    ("אלופת ה-NBA מתלוננת! השופטים: בוסטון סלטיקס", ""),
+])
+def test_a_champion_noun_with_a_predicate_stays_no_title(title, subtitle):
+    text = join_evidence_text(title.lower(), subtitle.lower())
+    assert not validate_event_evidence("title_win", text).valid
+
+
+@pytest.mark.parametrize("text", [
+    "אלופת היורוליג | מכבי תל אביב ניצחה בגמר",
+    "אלופת היורוליג. מכבי תל אביב ניצחה בגמר",
+    "אלופת היורוליג; מכבי תל אביב ניצחה בגמר",
+])
+def test_a_noun_phrase_closed_by_a_clause_break_asserts(text):
+    assert validate_event_evidence("title_win", text).valid
+
+
+# ── Review round 2: the first competition named decides, not only WNBA or NBA ─
+
+@pytest.mark.parametrize("title,subtitle,competition,league", [
+    ("מכבי תל אביב ניצחה את אולימפיאקוס ביורוליג", "כוכבת ה-WNBA ישבה ביציע",
+     "comp:euroleague", "EuroLeague"),
+    ("מכבי תל אביב אלופת היורוליג", "גם כוכבת ה-WNBA בירכה", "comp:euroleague", "EuroLeague"),
+    ("פנאתינייקוס אלופת היורוליג", "כוכבת ה-WNBA בירכה", "comp:euroleague", "EuroLeague"),
+    ("הפועל חולון זכתה בגביע ווינר", "כוכבת ה-WNBA בירכה",
+     "comp:winner_cup", "Israeli Basketball League"),
+    ("הפועל ירושלים ניצחה בליגת ווינר סל", "כוכבת ה-WNBA ישבה ביציע",
+     "comp:ibl", "Israeli Basketball League"),
+])
+def test_a_wnba_mention_in_the_subtitle_does_not_take_a_competition_the_title_names(
+    title, subtitle, competition, league,
+):
+    article = _ingest(title, subtitle)
+    assert competition in [article.primary_competition, *article.article_competitions]
+    assert article.primary_competition != "comp:wnba"
+    assert article.league == league
+
+
+@pytest.mark.parametrize("title,subtitle,expected", [
+    ("כוכבת ה-WNBA תשחק ביורוליג", "", True),
+    ("גולדן סטייט ואלקיריז אלופה", "השלימה זכייה בתואר ה-WNBA", True),
+    ("הקריירה ביורוליג של כוכבת ה-WNBA", "", False),
+    ("מכבי תל אביב ניצחה בליגת ווינר", "כוכבת ה-WNBA ישבה ביציע", False),
+    ("מכבי תל אביב בליגת האלופות", "כוכבת ה-WNBA ישבה ביציע", False),
+])
+def test_the_first_competition_named_decides_a_wnba_story(title, subtitle, expected):
+    assert is_wnba_story(title, subtitle) is expected
+
+
+# ── A question after the title ────────────────────────────────────────────────
+
+def test_a_question_opened_by_its_word_masks_only_itself():
+    assert not validate_event_evidence("title_win", "ספרד ומה עם אלופת העולם?").valid

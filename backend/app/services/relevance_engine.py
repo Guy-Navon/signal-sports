@@ -489,14 +489,16 @@ def closed_league_competition(article: Article) -> Optional[str]:
 
 
 def match_competition_names(
-    article: Article, wanted_names, closed_league: bool = False
+    article: Article, wanted_names, closed_league: bool = False, for_push: bool = False
 ) -> Optional[tuple[str, str, str]]:
     """Four-tier competition-aware matching (issues #29 + #40) against an
     iterable of competition display names, plus the opt-in closed-league tier
     (#404, `closed_league=True`): the weakest evidence, reported as a
     `membership` match so the feed ceiling applies. Only the Preference V2
     scorer opts in, as a fallback (see preference_engine); the legacy engine
-    does not.
+    does not. `for_push` says the match would create a push (#403): a story whose
+    primary competition has `push_via_parent=False` does not match its parent on
+    any tier, and such a competition merely mentioned does not lift to its parent.
 
     THE single visibility primitive for competition scopes — used by the
     legacy topic engine and by the Preference V2 scorer (#32), so preference
@@ -509,6 +511,9 @@ def match_competition_names(
     "via_participant_inference: comp:nba").
     """
     wanted = list(wanted_names)
+    primary = COMPETITIONS.get(article.primary_competition)
+    if for_push and primary and not primary.push_via_parent and primary.parent:
+        wanted = [name for name in wanted if name != COMPETITIONS[primary.parent].display_en]
     if not wanted:
         return None
 
@@ -523,6 +528,8 @@ def match_competition_names(
     for comp_id in [article.primary_competition, *(article.article_competitions or [])]:
         comp = COMPETITIONS.get(comp_id) if comp_id else None
         parent = COMPETITIONS.get(comp.parent) if comp and comp.parent else None
+        if for_push and comp and not comp.push_via_parent:
+            continue
         if parent and parent.display_en in wanted:
             return ("explicit", parent.display_en, f"via_parent_competition: {comp_id}")
 

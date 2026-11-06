@@ -21,10 +21,12 @@ Matching contract:
   is reported in ``family_mentions`` and never resolves to a team.
 """
 
+import re
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Optional
 
-from app.taxonomy.entities import ENTITIES, FAMILY_NAMES, TaxonomyEntity
+from app.taxonomy.entities import ENTITIES, FAMILY_NAMES, TaxonomyEntity, entity_by_legacy_name
 
 
 @dataclass
@@ -163,6 +165,74 @@ _FORMER_PREFIXES: tuple[str, ...] = ("אקס ", "ex-", "ex ", "former ")
 _FORMER_SUFFIXES: tuple[str, ...] = (" לשעבר", " לעבר")
 _PREFIX_WINDOW = max(len(p) for p in _FORMER_PREFIXES)
 _SUFFIX_WINDOW = max(len(s) for s in _FORMER_SUFFIXES)
+
+
+def is_team_name(text: str) -> bool:
+    """``text`` is exactly a registered team name, nothing more."""
+    return any(e.kind == "team" for e in _ALIAS_INDEX.get(normalize_alias_text(text).strip(), ()))
+
+
+# ── WNBA or NBA (#403) ───────────────────────────────────────────────────────
+# WNBA clubs share their cities with NBA clubs: "גולדן סטייט ואלקיריז" is not the Warriors. A bare
+# city says nothing, so only the league's own name and an NBA club's nickname or full name count.
+# The rule: the first competition or NBA club named in the title decides the story, and the subtitle
+# decides only when the title names none. Facts and the classifier ask this once, for both together.
+_NBA_NAME = re.compile(r"(?<![a-z])nba(?![a-z])|אן בי איי|אן\.בי\.איי")
+_WNBA_NAME = re.compile(r"(?<![a-z])wnba(?![a-z])")
+
+
+def _is_nba_club(entity: TaxonomyEntity) -> bool:
+    return entity.kind == "team" and any(comp == "comp:nba" for comp, _ in entity.memberships)
+
+
+def _is_city_of(alias: str, entity: TaxonomyEntity) -> bool:
+    """A leading part of the club's full name: "גולדן סטייט" of "גולדן סטייט ווריורס"."""
+    return any(
+        name and normalize_alias_text(name).startswith(alias + " ")
+        for name in (entity.display_he, entity.display_en)
+    )
+
+
+_NBA_CLUB_NAMES: tuple[str, ...] = tuple(
+    alias for alias, entities in _ALIAS_INDEX.items()
+    if any(_is_nba_club(e) and not _is_city_of(alias, e) for e in entities)
+)
+
+
+@lru_cache(maxsize=1)
+def _other_competition_name() -> re.Pattern:
+    # Deferred like event_evidence's name pattern: the keywords live with the facts stage.
+    from app.classification.facts import _COMP_KEYWORD_PAIRS
+
+    return re.compile("|".join(
+        re.escape(name) for comp, name in _COMP_KEYWORD_PAIRS if comp not in ("comp:nba", "comp:wnba")
+    ))
+
+
+def _first_other_league_position(lowered: str) -> Optional[int]:
+    positions = [
+        sp[0] for alias in _NBA_CLUB_NAMES for sp in _find_occurrences(lowered, alias)
+        if _is_standalone_word(lowered, sp)  # "ניקס" is not inside "פיניקס"
+    ]
+    names = (_NBA_NAME.search(lowered), _other_competition_name().search(lowered))
+    return min(positions + [match.start() for match in names if match], default=None)
+
+
+def is_wnba_story(title: str, subtitle: str = "") -> bool:
+    for part in (title, subtitle):
+        lowered = normalize_alias_text(part or "")
+        wnba, other = _WNBA_NAME.search(lowered), _first_other_league_position(lowered)
+        if wnba or other is not None:
+            return bool(wnba) and (other is None or wnba.start() < other)
+    return False
+
+
+def without_nba_clubs(legacy_names: list[str]) -> list[str]:
+    """Legacy entity names with the NBA clubs removed, for a WNBA story."""
+    return [
+        name for name in legacy_names
+        if not ((entity := entity_by_legacy_name(name)) and _is_nba_club(entity))
+    ]
 
 
 def _is_former_affiliation(text: str, span: tuple[int, int]) -> bool:

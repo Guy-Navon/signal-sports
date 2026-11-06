@@ -175,9 +175,11 @@ def _override_matches(article: Article, rule: OverrideRule) -> bool:
         return article.sport == rule.target_id
     if rule.scope == "competition":
         comp = COMPETITIONS.get(rule.target_id)
-        # Closed-league reach (#404) may hide (mute/never_show) but never push.
+        # Closed-league reach (#404) may hide (mute/never_show) but never push; a child
+        # competition opts out of its parent's push rules with push_via_parent (#403).
         return comp is not None and match_competition_names(
             article, [comp.display_en], closed_league=rule.kind != "always_push",
+            for_push=rule.kind == "always_push",
         ) is not None
     return _entity_on_article(article, rule.target_id)
 

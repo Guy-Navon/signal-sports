@@ -28,6 +28,7 @@ from app.classification.sport_guards import (
 from app.classification.event_evidence import (
     PREVAILED_OVER_PATTERN,
     EventEvidence,
+    reads_as_champion_epithet,
     validate_event_evidence,
 )
 from app.taxonomy import (
@@ -36,8 +37,10 @@ from app.taxonomy import (
     entities_by_sport,
     entity_by_id,
     entity_by_legacy_name,
+    is_wnba_story,
     legacy_sport,
     resolve_entities,
+    without_nba_clubs,
 )
 
 
@@ -883,6 +886,12 @@ def detect_article_event(title: str, subtitle: str, sport: str) -> EventEvidence
     # physical home move in the subtitle. Neither half alone proves the event.
     relocation = validate_event_evidence("relocation", title + " " + subtitle, sport=sport)
     evidence = relocation if relocation.valid else _detect_event_evidence(subtitle, sport)
+    # A win word in the subtitle of a story about a champion describes that champion ("ניצחונו
+    # הראשון כאלוף העולם"): it reports no game (#403, the #418 shape). Other events stand.
+    if evidence.event_type == "match_result" and (
+        reads_as_champion_epithet(title) or reads_as_champion_epithet(subtitle)
+    ):
+        return validate_event_evidence("news", title, source="rules", sport=sport)
     if evidence.certainty == "confirmed" and evidence.event_type != "news":
         return EventEvidence(evidence.event_type, True, "probable")
     return evidence
@@ -1097,7 +1106,12 @@ def classify(
             )
             entities = _filter_entities_for_sport(sub_entities, sport)
 
-    league = _detect_league(text, sport, url=url, shared_context=f"{text} {sub_text}")
+    if sport == "basketball" and is_wnba_story(text, sub_text):
+        # "wnba" contains "nba", and the title's bare city would read as the NBA club (#403).
+        entities = without_nba_clubs(entities)
+        league = "WNBA"
+    else:
+        league = _detect_league(text, sport, url=url, shared_context=f"{text} {sub_text}")
 
     # League gap from subtitle: when title produced no league, try subtitle.
     if league is None and sub_text:

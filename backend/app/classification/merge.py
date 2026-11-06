@@ -10,9 +10,14 @@ import logging
 from typing import Optional
 
 from app.classification.entity_normalizer import normalize_llm_entities, prune_sport_incompatible_entities
-from app.classification.event_evidence import validate_event_evidence
+from app.classification.event_evidence import join_evidence_text, validate_event_evidence
 from app.classification.llm_result import LLMClassificationResult
-from app.ingestion.classifier import ClassificationResult, _assign_confidence, _collect_tags
+from app.ingestion.classifier import (
+    _VERY_HIGH_EVENTS,
+    ClassificationResult,
+    _assign_confidence,
+    _collect_tags,
+)
 from app.classification.sport_guards import committed_sport, is_unsupported_sport
 
 logger = logging.getLogger(__name__)
@@ -23,7 +28,7 @@ _IMPORTANCE_RANK = {"very_high": 4, "high": 3, "medium": 2, "low": 1}
 
 # Basketball leagues: if final league is one of these, sport MUST be basketball.
 _BASKETBALL_LEAGUES = frozenset({
-    "EuroLeague", "EuroCup", "Basketball Champions League", "NBA",
+    "EuroLeague", "EuroCup", "Basketball Champions League", "NBA", "WNBA",
     "Spanish ACB", "Turkish BSL", "Greek Basket League",
     "Italian LBA", "French LNB", "Israeli Basketball League",
 })
@@ -156,14 +161,19 @@ def merge_with_guardrails(
         guardrail_fired = True
 
     # Guardrail 4b generalized: every specific event type needs semantic evidence.
-    evidence = validate_event_evidence(event_type, evidence_text, source="llm", sport=sport)
+    event_text = join_evidence_text(title_lower, subtitle_lower)
+    evidence = validate_event_evidence(event_type, event_text, source="llm", sport=sport)
     if event_type != "news" and not evidence.valid:
         fallback = rules.event_type if rules.event_type != event_type else "news"
         fallback_evidence = validate_event_evidence(
-            fallback, evidence_text, source="rules", sport=sport
+            fallback, event_text, source="rules", sport=sport
         )
         event_type = fallback if fallback_evidence.valid else "news"
         event_certainty = fallback_evidence.certainty if fallback_evidence.valid else "confirmed"
+        # very_high belongs to a championship event (#60). When the LLM's championship event falls,
+        # its importance falls with it, or a story that reports no title keeps the lift (#403).
+        if importance == "very_high" and llm.event_type in _VERY_HIGH_EVENTS:
+            importance = rules.importance
         guardrail_fired = True
         logger.warning(
             "Guardrail 4b: LLM event_type %s rejected — missing semantic evidence; fallback=%s",

@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-11-06** (#365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
+**Last updated: 2026-11-06** (`title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
 for any agent or human picking the project up with no conversation history. Present-tense
 statements were checked against the code and the owner's local runtime on that date. History
 is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
@@ -282,12 +282,14 @@ them, and drift tests on both sides enforce it.
 Pipeline order and contracts: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md) (map),
 [ARTICLE_FACTS.md](ARTICLE_FACTS.md) (facts stage), [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md)
 (gate, merge, metrics), and [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) (the
-deterministic rule changelog, §1–§22).
+deterministic rule changelog, §1–§25).
 
 - **Rules first, always.** The title is primary, and the subtitle only fills gaps. *Title-local*
   event types (`title_win`, `grand_slam_winner`, `major_trade`, `schedule`, …) never come from
   the subtitle alone (#223, #224). A broadcast word makes a `schedule` only when it announces a
-  broadcast, not when something happened on air (#406).
+  broadcast, not when something happened on air (#406). `title_win` needs a title won by the
+  subject: a champion epithet, a former champion, a forecast, a counterfactual or a question is
+  not one (#403). Code only: stored rows keep their facts until a backfill.
 - **The LLM is gated.** It is force-called on `sport_unknown`, `ambiguous_club` or low
   confidence, and skipped when the rules are already strong or the article is measured-sufficient
   generic `news` (#217). The call rate is about 28% of eligible articles. Proposals pass the merge

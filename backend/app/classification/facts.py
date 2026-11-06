@@ -50,9 +50,11 @@ from app.taxonomy import (
     TAXONOMY_VERSION,
     entity_by_legacy_name,
     is_cross_sport_ambiguous,
+    is_wnba_story,
     legacy_sport,
     resolve_entities,
     resolve_mention,
+    without_nba_clubs,
 )
 
 
@@ -71,8 +73,10 @@ _COMPETITION_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "comp:euroleague": ("euroleague", "יורוליג", "היורוליג"),
     "comp:nba": ("nba", "אן.בי.איי", "אן בי איי"),
+    # Longest match first, so "wnba" claims its span and "nba" cannot match inside it (#403).
+    "comp:wnba": ("wnba",),
     "comp:ibl": (
-        "ליגת ווינר", "ווינר סל", "ליגת העל בכדורסל", "ליגת העל סל",
+        "ליגת ווינר סל", "ליגת ווינר", "ווינר סל", "ליגת העל בכדורסל", "ליגת העל סל",
         "winner league", "ligat winner", "israeli basketball league",
         "super league basketball",
     ),
@@ -476,6 +480,20 @@ def build_article_facts(
             dropped_entities.append({"entity": e, "entity_sport": e_sport, "article_sport": sport})
         else:
             kept_entities.append(e)
+
+    # A WNBA story (#403), whoever proposed otherwise: the rules saw one text at a time, and the
+    # LLM may say "NBA" or name the NBA club sharing the city.
+    if sport == "basketball" and is_wnba_story(title_l, sub_l):
+        league = "WNBA"
+        without_clubs = without_nba_clubs(kept_entities)
+        if without_clubs != kept_entities:
+            conflicts.append({
+                "field": "entity",
+                "candidates": [e for e in kept_entities if e not in without_clubs],
+                "winner": None,
+                "rule": "nba_club_dropped_wnba_story",
+            })
+        kept_entities = without_clubs
 
     # ── Cross-sport identity invariant (issue #61) ────────────────────────────
     # A DERIVED entity (LLM-proposed or enrichment-injected — i.e., NOT

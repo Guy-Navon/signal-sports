@@ -201,6 +201,7 @@ must be re-audited when seasons roll over.
 | NBA | 30/30 teams | Complete (franchise set is stable). `closed=True` (#404): its clubs play no other competition | Low |
 | EuroLeague | 20/20 clubs (2025-26) | Complete for 2025-26 | Annual: promotion/licence changes each season |
 | Israeli Basketball League | 18 clubs | Near-complete; promoted/relegated edge clubs may be missing. `team:hapoel_haemek` added 2026-09-16 (see below) | Annual roster churn; verify at season start |
+| WNBA | `comp:wnba` (parent `comp:nba`, `push_via_parent=False`), **no memberships** | Added 2026-11-06 (#403): "wnba" used to read as `comp:nba` through the substring. No clubs registered: WNBA clubs share city names with NBA clubs. In a story `is_wnba_story` calls WNBA (`resolver.py`; the first competition or NBA club nickname named in the title decides, then the subtitle), the facts stage drops NBA clubs | Hebrew transliterations are not aliases: the corpus writes the Latin name |
 | Israeli basketball cups | `comp:winner_cup`, `comp:il_super_cup` (parent `comp:ibl`) | Added 2026-10-10 (#230). No memberships: every IBL club plays them, and following the IBL follows them | Super Cup aliases are qualified forms only (see below) |
 | Basketball Champions League | `comp:bcl`, **no memberships** | Added 2026-11-02 (#407). Corpus: Hapoel Holon and Bnei Herzliya play it in 2026-27; memberships deliberately not registered (see below) | Entrant list is season data; bare name shared with UEFA |
 | EuroCup | 1 club (Hapoel Jerusalem) | Deliberately sparse — EuroCup lineup is volatile; register on coverage evidence | High |
@@ -356,6 +357,11 @@ from 110 to 114 rated items — all four newly-shown items were ones he wanted.
   here and plays the Basketball Champions League; Partizan carries only the EuroLeague
   because the ABA League is untracked). `integrity.py` rejects a team that is a member of
   a closed competition and of any other one, and a closed competition with a parent.
+- **`push_via_parent` — added 2026-11-06 (#403).** Optional `Competition` field, default `True`:
+  whether the parent's `always_push` rules reach a child competition. A cup is the parent's own
+  tournament, so it stays `True`. `comp:wnba` sets `False`: the owner rated a WNBA title high, not
+  push, so an NBA follower still sees the WNBA through the parent and the NBA's push rules stop
+  there. Relevance-time only, like `parent`.
 - **Club executives — added 2026-10-10 (#229, taxonomy half).** Census #2 found that 6
   of the owner's 8 pushes are Maccabi institutional stories, and two had no entity at
   all (`דיץ הגיש בקשה לסעד זמני: ההתפתחות במכבי`: an investor plus the bare family

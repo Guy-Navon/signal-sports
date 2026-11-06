@@ -151,11 +151,10 @@ describe("Push discipline", () => {
     expect(result.decision).not.toBe("push");
   });
 
-  it("Maccabi title win is push — only because of explicit push event rule", () => {
-    // article_014: Maccabi wins State Cup — title_win rule = push
-    // This tests that push IS reachable when explicitly declared
+  it("Maccabi title win tops out at high_feed — a title is never a push", () => {
+    // article_014: Maccabi wins State Cup. Owner decision 2026-11-06.
     const result = scoreArticle(getArticle("article_014"), guy);
-    expect(result.decision).toBe("push");
+    expect(result.decision).toBe("high_feed");
   });
 });
 

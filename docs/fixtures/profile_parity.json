@@ -32,7 +32,7 @@
         "rumor": "high_feed",
         "schedule": "hidden",
         "signing": "push",
-        "title_win": "push"
+        "title_win": "high_feed"
       },
       "entity_event_rules": null
     },
@@ -64,7 +64,7 @@
         "schedule": "hidden",
         "signing": "feed",
         "star_trade": "push",
-        "title_win": "push"
+        "title_win": "high_feed"
       },
       "entity_event_rules": {
         "Deni Avdija": {
@@ -103,7 +103,7 @@
         "regular_season_result": "feed",
         "schedule": "low_feed",
         "signing": "high_feed",
-        "title_win": "push"
+        "title_win": "high_feed"
       },
       "entity_event_rules": null
     },

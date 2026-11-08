@@ -163,6 +163,9 @@ export default function Calibration() {
 
   const handleRate = (id, rating) => {
     setApplied(false);
+    // A preview describes the ratings it was computed from; once they change
+    // it is stale and must not be read as current (#447).
+    setPreview(null);
     setRatings((prev) => {
       const next = { ...prev };
       if (rating === null) delete next[id];

@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.orm_models import GameResultRow
+from app.results import status as status_vocab
 from app.results.models import NormalizedGame
 
 
@@ -50,6 +51,15 @@ def upsert(session: Session, game: NormalizedGame, *, now: Optional[str] = None)
         )
         _apply(row, game, now)
         session.add(row)
+    elif row.status == status_vocab.FINAL and game.status == status_vocab.UNKNOWN:
+        # A payload with no usable status must not un-finish a game or wipe its
+        # score (#448). Everything else (time, names, a real correction such as
+        # postponed or a changed score) still applies.
+        _apply(row, game.model_copy(update={
+            "status": row.status,
+            "home_score": game.home_score if game.home_score is not None else row.home_score,
+            "away_score": game.away_score if game.away_score is not None else row.away_score,
+        }), now)
     else:
         _apply(row, game, now)
     return row, created

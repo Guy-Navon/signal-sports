@@ -127,7 +127,9 @@ shows games within `RESULTS_WINDOW_DAYS` (default 400 — a recent-history windo
 `(provider, external_id)`; the primary key is `game_` + sha1(provider|external_id).
 `game_result_repository.upsert` therefore **updates** an existing game (score /
 status / time drift between cycles) and never inserts a duplicate. `upsert_many`
-reports created vs updated.
+reports created vs updated. One guard (#448): a stored `final` game is never downgraded to
+`unknown`, and its score is kept when that payload has none; real corrections (e.g.
+`postponed`, a changed score) still apply.
 
 `results_sync_state` (one row) records `last_attempt_at` / `last_success_at` /
 `last_status` / `last_summary` — it both throttles the scheduler stage and

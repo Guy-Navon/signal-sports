@@ -219,6 +219,44 @@ class TestIdentityAndUpsert:
             assert row.home_score == 111 and row.away_score == 100
             assert len([r for r in repo.list_games(s) if r.external_id == "drift-1"]) == 1
 
+    @staticmethod
+    def _final_game(external_id):
+        return NormalizedGame(
+            provider="fake", external_id=external_id, competition_id="comp:nba",
+            sport="basketball", status=st.FINAL, start_time="2026-04-01T00:00:00+00:00",
+            home_team_name="Portland Trail Blazers", away_team_name="Los Angeles Lakers",
+            home_score=85, away_score=80,
+        )
+
+    def test_final_game_survives_an_empty_status_payload(self, seeded):
+        """#448: a glitchy payload (no status, no score) must not turn a
+        finished game into ``unknown`` and wipe its score."""
+        final = self._final_game("regress-1")
+        glitch = final.model_copy(update={
+            "status": st.UNKNOWN, "home_score": None, "away_score": None})
+        with SessionLocal() as s:
+            repo.upsert(s, final)
+            s.commit()
+            repo.upsert(s, glitch)
+            s.commit()
+            row = repo.get_by_id(s, final.id)
+            assert row.status == st.FINAL
+            assert (row.home_score, row.away_score) == (85, 80)
+
+    def test_final_game_can_still_be_corrected(self, seeded):
+        """A real correction (here: postponed after all) still applies."""
+        final = self._final_game("regress-2")
+        corrected = final.model_copy(update={
+            "status": st.POSTPONED, "home_score": None, "away_score": None})
+        with SessionLocal() as s:
+            repo.upsert(s, final)
+            s.commit()
+            repo.upsert(s, corrected)
+            s.commit()
+            row = repo.get_by_id(s, final.id)
+            assert row.status == st.POSTPONED
+            assert row.home_score is None and row.away_score is None
+
     def test_repeated_sync_does_not_duplicate(self, seeded):
         with SessionLocal() as s:
             _clear_games(s)

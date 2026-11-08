@@ -451,9 +451,18 @@ def orchestrate_cycle(trigger: str, source_id: Optional[str] = None) -> CycleRes
                 from app.db.orm_models import SchedulerCycleRow
                 row = session.get(SchedulerCycleRow, cycle_id)
                 if row is not None:
-                    row.status = status
+                    if row.status == STATUS_ABANDONED:
+                        # A stale-heartbeat takeover already ended this cycle
+                        # (#444). Keep the overlap on record; note the late
+                        # outcome instead of overwriting it.
+                        row.error_summary = (
+                            f"{row.error_summary or 'abandoned'}; holder finished "
+                            f"late with {status}"
+                            + (f": {error_summary}" if error_summary else ""))[:500]
+                    else:
+                        row.status = status
+                        row.error_summary = error_summary
                     row.finished_at = _iso(finished_at)
-                    row.error_summary = error_summary
                     row.source_results = _summarize(results)
                     row.notification_summary = notification_summary
                     row.cleanup_summary = cleanup_summary

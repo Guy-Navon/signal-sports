@@ -133,7 +133,7 @@ timestamp) and committed **before** the network attempt.
 | Connect error before transmission, 429, 5xx | `failed_retryable` | Exponential backoff (`TELEGRAM_RETRY_BACKOFF_SECONDS` × 2^attempts), capped at `TELEGRAM_MAX_ATTEMPTS`, then `failed_final` |
 | 400/401/403/404 (bad request/token/blocked/chat) | `failed_final` | Terminal; sanitized error class recorded |
 | Timeout after transmission may have begun; interrupted mid-request; any unprovable case | `unknown` | **Never automatically resent.** Surfaced for manual review. The lineage already exists, so no replacement event can be created either |
-| Crash after claim, before result | stays `claimed` | Diagnosable via `claimed_at`; deliberately NOT auto-reset to pending — the send may have gone out |
+| Crash after claim, before result | stays `claimed` | Diagnosable via `claimed_at`; deliberately NOT auto-reset to pending — the send may have gone out. A claim older than the scheduler allowance (interval + max run) counts as `stale_claimed` in notifications health, with `oldest_claimed_age_seconds`, and marks `notifications_degraded` (#445). Claimed rows neither end nor extend `consecutive_delivery_failures` |
 
 Message contract (pilot): **plain text** — canonical headline, source name,
 original-article link. Plain text deliberately: Markdown/HTML escaping is a

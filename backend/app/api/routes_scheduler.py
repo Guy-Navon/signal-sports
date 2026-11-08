@@ -97,7 +97,12 @@ def _cycle_brief(row) -> Optional[dict]:
             "finished_at": row[3]}
 
 
-def _notification_block(session: Session) -> dict:
+def _allowance(cfg: dict, worker_interval) -> int:
+    """interval + max run: how long a healthy worker may take between signs of life."""
+    return (worker_interval or cfg["interval_seconds"]) + cfg["max_run_seconds"]
+
+
+def _notification_block(session: Session, allowance: int) -> dict:
     """The M7-8 summary — embedded in scheduler health but a separate axis."""
     import os
 
@@ -117,10 +122,24 @@ def _notification_block(session: Session) -> dict:
     )).fetchall()
     consecutive_failures = 0
     for (status,) in recent:
+        if status == "claimed":
+            continue        # outcome unknown: neither ends nor extends the streak (#445)
         if status in ("failed_retryable", "failed_final", "unknown"):
             consecutive_failures += 1
         else:
             break
+
+    # A claim is never reset automatically (a resend could duplicate), so a
+    # claim older than the allowance is a crashed send awaiting manual review,
+    # not one in flight (#445).
+    oldest_claimed = session.execute(text(
+        "SELECT MIN(claimed_at) FROM notification_events WHERE status = 'claimed'"
+    )).fetchone()[0]
+    stale_cutoff = (datetime.now(tz=timezone.utc) - timedelta(seconds=allowance)).isoformat()
+    stale_claimed = session.execute(text(
+        "SELECT COUNT(*) FROM notification_events WHERE status = 'claimed' "
+        "AND (claimed_at IS NULL OR claimed_at < :cutoff)"
+    ), {"cutoff": stale_cutoff}).fetchone()[0]
 
     return {
         "enabled": os.getenv("TELEGRAM_NOTIFICATIONS_ENABLED", "false").lower() == "true",
@@ -133,6 +152,8 @@ def _notification_block(session: Session) -> dict:
         "failed_retryable": counts.get("failed_retryable", 0),
         "unknown": counts.get("unknown", 0),
         "claimed_in_flight": counts.get("claimed", 0),
+        "stale_claimed": stale_claimed,
+        "oldest_claimed_age_seconds": _age_seconds(oldest_claimed),
         "suppressed_watermark": counts.get("suppressed_watermark", 0),
         "last_confirmed_delivery_at": last_sent,
         "consecutive_delivery_failures": consecutive_failures,
@@ -181,7 +202,7 @@ def scheduler_health(session: Session = Depends(get_session)):
     #       gone cold — the worker died or wedged;
     #   (b) config intent says scheduling should be on, yet no live worker
     #       exists — an operator enabled it but never launched the worker.
-    allowance = (worker_interval or cfg["interval_seconds"]) + cfg["max_run_seconds"]
+    allowance = _allowance(cfg, worker_interval)
     stale = False
     stale_reason = None
     if worker_state in ("starting", "idle"):
@@ -214,7 +235,7 @@ def scheduler_health(session: Session = Depends(get_session)):
             failures = [s for s in (parsed or [])
                         if s.get("failed") or s.get("errors")]
 
-    notifications = _notification_block(session)
+    notifications = _notification_block(session, allowance)
 
     return SchedulerHealthResponse(
         scheduler_enabled=cfg["enabled"],
@@ -241,6 +262,7 @@ def scheduler_health(session: Session = Depends(get_session)):
                 notifications["consecutive_delivery_failures"] > 0
                 or notifications["unknown"] > 0
                 or (notifications["oldest_pending_age_seconds"] or 0) > allowance
+                or notifications["stale_claimed"] > 0
             )
         ),
     )
@@ -285,7 +307,8 @@ def scheduler_cycles(
 
 @router.get("/notifications/health", dependencies=[Depends(require_admin)])
 def notifications_health(session: Session = Depends(get_session)):
-    return _notification_block(session)
+    live = worker_liveness(session)
+    return _notification_block(session, _allowance(_scheduler_config(), live["interval_seconds"]))
 
 
 class NotificationEventRecord(BaseModel):

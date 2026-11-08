@@ -175,6 +175,38 @@ class TestOrchestration:
         assert dead[0] == STATUS_ABANDONED
         assert "stale" in dead[1]
 
+    def test_late_finish_after_takeover_keeps_abandoned(self, session):
+        """#444: a holder whose cycle was taken over (stale heartbeat) must not
+        overwrite ``abandoned`` when it finally finishes — the overlap stays on
+        record, and the late outcome is noted for diagnosis."""
+        from app.db.database import SessionLocal
+        from app.ingestion.orchestration import _mark_abandoned
+
+        def taken_over_mid_run(sess, source_id=None):
+            # Another process takes the lease over and abandons this cycle.
+            with SessionLocal() as other:
+                own = other.execute(text(
+                    "SELECT id FROM scheduler_cycles WHERE status = 'running'"
+                )).fetchone()[0]
+                other.execute(text(
+                    "UPDATE scheduler_lease SET active_cycle_id = 'cycle_taker' WHERE id = 1"))
+                other.commit()
+                _mark_abandoned(other, own)
+            return [_result()]
+
+        with patch(RUN_INGESTION, side_effect=taken_over_mid_run):
+            orchestrate_cycle(TRIGGER_SCHEDULED)
+
+        row = session.execute(text(
+            "SELECT status, error_summary, finished_at FROM scheduler_cycles "
+            "WHERE id != 'cycle_taker'"
+        )).fetchone()
+        assert row[0] == STATUS_ABANDONED
+        assert "finished late" in row[1] and STATUS_SUCCEEDED in row[1]
+        assert row[2] is not None
+        # The taker's lease is untouched by the late holder.
+        assert current_lease(session)["cycle_id"] == "cycle_taker"
+
     def test_concurrent_triggers_exactly_one_runs(self, session):
         """Two triggers race: exactly one mutates, the other records a skip."""
         release_gate = threading.Event()

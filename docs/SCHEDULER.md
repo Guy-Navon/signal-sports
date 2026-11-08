@@ -112,6 +112,7 @@ no third competing concept.
 | Run longer than the interval | Next tick coalesces (`skipped_active_run`); no queueing. |
 | Manual trigger during a scheduled run | 409 + a recorded skipped cycle. |
 | Worker/API crash mid-run | `running` row remains; heartbeat goes stale; the next acquirer takes over and marks it `abandoned`. |
+| Holder alive but heartbeat stale (taken over, then finishes) | The row stays `abandoned` (#444); the late outcome is appended to `error_summary` ("holder finished late with …") and `finished_at` is set, so the overlap stays on record. |
 | Machine sleep / offline period | On worker start: ONE `startup_catchup` cycle iff the last success is stale. Missed ticks are never replayed — URL dedup makes the next fetch idempotent. |
 | One source fails | Isolated (existing contract): the cycle continues, ends `succeeded_with_warnings`. That includes a failed RSS fetch (#365); Sport5 and ONE still swallow theirs ([RSS_INGESTION.md](RSS_INGESTION.md) §4). |
 | Every source fails to fetch | The cycle ends `failed` (no source fetched or inserted anything, and errors exist). Later stages still ran. It counts in `consecutive_failures` and does not move `last_successful_cycle`. |

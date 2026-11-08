@@ -84,11 +84,14 @@ class CalibrationApplyResponse(BaseModel):
     profile_v2: ProfileV2
 
 
-def _validate_ratings(ratings: Dict[str, str]) -> None:
+def _validate_ratings(ratings: Dict[str, Optional[str]], *, allow_clear: bool = False) -> None:
+    """``allow_clear``: a ``None`` rating means "delete this response" (#446)."""
     valid_ids = {i.id for i in CALIBRATION_ITEMS}
     for item_id, key in ratings.items():
         if item_id not in valid_ids:
             raise HTTPException(status_code=422, detail=f"unknown item id: {item_id}")
+        if key is None and allow_clear:
+            continue
         if key not in RATING_VALUES:
             raise HTTPException(status_code=422, detail=f"unknown rating: {key}")
 

@@ -73,9 +73,10 @@ class MeCalibrationApplyRequest(BaseModel):
 
 
 class MeCalibrationResponsesRequest(BaseModel):
-    """Partial per-item rating upsert (onboarding resumability, issue #52)."""
+    """Partial per-item rating upsert (onboarding resumability, issue #52).
+    A ``null`` rating clears that item's saved response (#446)."""
     model_config = {"extra": "forbid"}
-    ratings: Dict[str, str] = Field(default_factory=dict)
+    ratings: Dict[str, Optional[str]] = Field(default_factory=dict)
 
 
 class MeNeverShowRequest(BaseModel):
@@ -359,11 +360,19 @@ def me_save_calibration_responses(
     ``save_responses`` is an upsert keyed on (user, item) — partial saves are
     safe, mid-calibration abandonment loses nothing, and cross-device resume
     works because the rated state is server-side. Applying inference remains a
-    separate explicit step (``/me/calibration/apply``)."""
-    from app.services.calibration_service import get_responses, save_responses
+    separate explicit step (``/me/calibration/apply``). A ``null`` rating
+    deletes that item's response, so a cleared rating stays cleared (#446)."""
+    from app.services.calibration_service import (
+        delete_responses,
+        get_responses,
+        save_responses,
+    )
 
-    _validate_ratings(payload.ratings)
-    save_responses(session, user.id, payload.ratings)
+    _validate_ratings(payload.ratings, allow_clear=True)
+    cleared = [item_id for item_id, key in payload.ratings.items() if key is None]
+    save_responses(session, user.id,
+                   {item_id: key for item_id, key in payload.ratings.items() if key is not None})
+    delete_responses(session, user.id, cleared)
     return {"saved": len(payload.ratings), "answered": len(get_responses(session, user.id))}
 
 

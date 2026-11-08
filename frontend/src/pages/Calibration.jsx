@@ -170,9 +170,11 @@ export default function Calibration() {
       return next;
     });
     // Server-side per-item persistence (#52): abandoning mid-calibration
-    // loses nothing; resume works cross-device. Fire-and-forget — a lost
-    // save is re-sent implicitly on the next rate or on apply.
-    if (consumerSession && rating !== null) {
+    // loses nothing; resume works cross-device. A cleared rating is sent as
+    // null, which deletes the saved response (#446). Fire-and-forget — a lost
+    // rating is re-sent on apply (which saves every rating); a lost clear is
+    // not, so that item can come back rated on the next visit.
+    if (consumerSession) {
       saveMeCalibrationResponses({ [id]: rating }).catch(() => {});
     }
   };

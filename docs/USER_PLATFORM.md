@@ -431,7 +431,7 @@ all states derived** — no state enum to drift.
 |---|---|---|---|
 | UNAUTHENTICATED | no valid session | login/signup (product-styled, outside AppShell); product routes redirect here | login → session; signup → pending → emailed link + password → session |
 | NEEDS_ONBOARDING | session + timestamp NULL + 0 calibration responses | welcome screen → CTA into Calibration V2; skip available | rate an item → CALIBRATING; skip → ACTIVE |
-| CALIBRATING | session + timestamp NULL + ≥1 response | Calibration V2 resumed at first unanswered item (per-item upsert = free persistence) | `POST /api/me/calibration/apply` applies inference **and stamps the timestamp** → ACTIVE; or skip via `POST /api/me/onboarding/complete` |
+| CALIBRATING | session + timestamp NULL + ≥1 response | Calibration V2 resumed at first unanswered item (per-item upsert = free persistence; a cleared rating is sent as `null` and deletes the saved response, #446) | `POST /api/me/calibration/apply` applies inference **and stamps the timestamp** → ACTIVE; or skip via `POST /api/me/onboarding/complete` |
 | ACTIVE | timestamp set | normal feed; if skipped/empty ProfileV2 → empty-feed state + persistent "calibrate your feed" banner; calibration re-enterable forever | — |
 
 - ProfileV2 row created **at signup** with an empty-but-valid payload. Empty affinities ⇒

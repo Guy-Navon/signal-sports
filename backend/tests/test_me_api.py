@@ -281,6 +281,34 @@ class TestOnboardingCalibrationPersistence:
         assert block["completed"] is False
         assert block["calibration"]["answered"] == 3
 
+    def test_null_rating_deletes_the_saved_response(self, client):
+        """#446: clearing a rating mid-calibration must not resurrect on resume."""
+        token = _signup(client, "onb-unrate@example.com")
+        items, rating = self._items(client)
+        client.post(
+            "/api/me/calibration/responses",
+            json={"ratings": {items[0]["id"]: rating, items[1]["id"]: rating}},
+            cookies=_cookie(token),
+        )
+        cleared = client.post(
+            "/api/me/calibration/responses",
+            json={"ratings": {items[0]["id"]: None}},
+            cookies=_cookie(token),
+        )
+        assert cleared.status_code == 200
+        assert cleared.json()["answered"] == 1
+        saved = client.get("/api/me/calibration/responses", cookies=_cookie(token)).json()
+        assert saved["ratings"] == {items[1]["id"]: rating}
+
+    def test_null_rating_for_unknown_item_rejected(self, client):
+        token = _signup(client, "onb-unrate-unknown@example.com")
+        response = client.post(
+            "/api/me/calibration/responses",
+            json={"ratings": {"no-such-item": None}},
+            cookies=_cookie(token),
+        )
+        assert response.status_code == 422
+
     def test_invalid_rating_rejected(self, client):
         token = _signup(client, "onb-invalid@example.com")
         items, _ = self._items(client)

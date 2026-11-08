@@ -52,6 +52,16 @@ def save_responses(session: Session, user_id: str, ratings: dict[str, str]) -> N
     session.commit()
 
 
+def delete_responses(session: Session, user_id: str, item_ids: list[str]) -> None:
+    """Remove the user's responses for these items (a cleared rating, #446)."""
+    if item_ids:
+        (session.query(CalibrationResponseRow)
+         .filter(CalibrationResponseRow.user_id == user_id)
+         .filter(CalibrationResponseRow.item_id.in_(item_ids))
+         .delete(synchronize_session=False))
+    session.commit()
+
+
 def get_responses(session: Session, user_id: str) -> dict[str, str]:
     rows = (
         session.query(CalibrationResponseRow)

@@ -204,6 +204,54 @@ class TestCycleHistoryAndEvents:
         assert body["unknown"] == 1
         assert body["oldest_pending_age_seconds"] > 1000
 
+    @staticmethod
+    def _claim_at(session, eid, minutes_ago):
+        session.execute(text(
+            "UPDATE notification_events SET claimed_at = :t WHERE id = :i"),
+            {"t": (_now() - timedelta(minutes=minutes_ago)).isoformat(), "i": eid})
+        session.commit()
+
+    def test_stuck_claim_is_stale_and_degrades_notifications(
+            self, admin_client, session, monkeypatch):
+        """#445: a claim older than the scheduler allowance is a crashed send
+        awaiting manual review, not an in-flight one."""
+        monkeypatch.setenv("SCHEDULER_ENABLED", "true")
+        monkeypatch.setenv("TELEGRAM_NOTIFICATIONS_ENABLED", "true")
+        _seed_worker(session, "idle", seconds_ago=5)
+        _seed_cycle(session, "cycle_ok", "succeeded", minutes_ago=1)
+        _seed_event(session, "notif_c1", "claimed", minutes_ago=120)
+        self._claim_at(session, "notif_c1", minutes_ago=120)
+
+        block = admin_client.get("/api/notifications/health").json()
+        assert block["stale_claimed"] == 1
+        assert block["oldest_claimed_age_seconds"] > 7000
+
+        body = admin_client.get("/api/scheduler/health").json()
+        assert body["notifications_degraded"] is True
+        assert body["ingestion_degraded"] is False
+
+    def test_fresh_claim_is_in_flight_not_stale(self, admin_client, session, monkeypatch):
+        monkeypatch.setenv("SCHEDULER_ENABLED", "true")
+        monkeypatch.setenv("TELEGRAM_NOTIFICATIONS_ENABLED", "true")
+        _seed_worker(session, "idle", seconds_ago=5)
+        _seed_cycle(session, "cycle_ok", "succeeded", minutes_ago=1)
+        _seed_event(session, "notif_c1", "claimed", minutes_ago=0)
+        self._claim_at(session, "notif_c1", minutes_ago=0)
+
+        body = admin_client.get("/api/scheduler/health").json()
+        assert body["notifications"]["stale_claimed"] == 0
+        assert body["notifications"]["claimed_in_flight"] == 1
+        assert body["notifications_degraded"] is False
+
+    def test_claim_does_not_end_a_failure_streak(self, admin_client, session, monkeypatch):
+        """#445: a claimed row's outcome is unknown — it must not hide the
+        failures behind it."""
+        monkeypatch.setenv("TELEGRAM_NOTIFICATIONS_ENABLED", "true")
+        _seed_event(session, "notif_f1", "failed_retryable", minutes_ago=10)
+        _seed_event(session, "notif_c1", "claimed", minutes_ago=1)
+        block = admin_client.get("/api/notifications/health").json()
+        assert block["consecutive_delivery_failures"] == 1
+
     def test_legacy_status_endpoint_reads_durable_state(self, admin_client, session,
                                                         monkeypatch):
         monkeypatch.setenv("SCHEDULER_ENABLED", "true")

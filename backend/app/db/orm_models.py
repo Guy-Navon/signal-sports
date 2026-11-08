@@ -470,8 +470,11 @@ class WorkerStatusRow(Base):
     """The scheduler worker's alive signal (M7-2, #148) — one row, id always 1.
 
     Distinct from the run lease: the lease says "a cycle is mutating the
-    corpus"; this says "the worker PROCESS exists", refreshed on idle ticks
-    too, so health (M7-4) can tell a dead worker from a quiet one.
+    corpus"; this says "the worker PROCESS exists". ``worker_loop`` writes
+    ``starting`` once, ``idle`` after each scheduled cycle finishes, and
+    ``stopped`` on exit. There is no beat while it sleeps or runs a cycle (the
+    in-cycle state is the lease), so liveness allows interval + max run before
+    calling the worker dead (``worker_liveness``).
     """
     __tablename__ = "worker_status"
 
@@ -615,7 +618,9 @@ class ResultsSyncStateRow(Base):
     id = Column(Integer, primary_key=True)            # always 1
     last_attempt_at = Column(String, nullable=True)
     last_success_at = Column(String, nullable=True)
-    last_status = Column(String, nullable=True)       # ok | error | partial
+    last_status = Column(String, nullable=True)       # ok | error | partial | rate_limited
+    # The sync summary. While rate-limited it also carries ``rate_limited_until``
+    # (ISO UTC), which sync_results reads to skip until that time.
     last_summary = Column(JSON, nullable=True)
 
 

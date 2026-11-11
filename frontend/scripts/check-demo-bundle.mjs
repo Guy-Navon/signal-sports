@@ -35,6 +35,8 @@ const FORBIDDEN = [
   // apiFetch sends the session cookie.
   ["API client base path", /\/api\//],
   ["API client sends cookies", /credentials\s*:\s*["'`]include["'`]/],
+  // Any write request, including a direct fetch outside the API client.
+  ["write request (method POST/PUT/PATCH/DELETE)", /method\s*:\s*["'`](?:POST|PUT|PATCH|DELETE)["'`]/],
   // react-router-dom: an enum string literal and its render error message.
   ["react-router (useNavigate hook id)", /["'`]useNavigate["'`]/],
   ["react-router (error message)", /React Router caught the following error/],

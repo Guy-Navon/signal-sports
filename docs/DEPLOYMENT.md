@@ -686,7 +686,12 @@ task are owner steps; the PR deployed nothing.**
 **What it shows.** The Orbit feed and its reader explanations (`reason_he`), with clusters and
 links to the original articles. Nothing else: no results, preferences, interests, calibration,
 onboarding, feedback, account or ops screens, and no engine trace. The bundle has no router,
-`AuthProvider`, `AppProvider` or API client, so no code path in it can write anything.
+`AuthProvider`, `AppProvider` or API client, so no code path in it can write anything. CI locks
+this: the frontend job runs `npm run build:demo` and then `npm run check:demo-bundle`
+(`frontend/scripts/check-demo-bundle.mjs`), which fails when `dist-demo` contains the API client's
+`/api/` paths, react-router, the route table, the auth or app provider, or a string unique to the
+preferences, results, calibration, login or ops pages. Each marker is also confirmed present in the
+main bundle, so a renamed string fails the check instead of silently weakening it.
 
 | Piece | What it does |
 |---|---|
@@ -697,6 +702,12 @@ onboarding, feedback, account or ops screens, and no engine trace. The bundle ha
 | `scripts/demo-schedule.ps1` | Registers (or `-Unregister`, `-Status`) the hourly task `SignalSportsDemoPublish` for the current user: hidden window, runs only while that user is logged on, no stored password, no overlapping runs |
 
 **Owner steps after merge** (from the main checkout, after `git pull`):
+
+Prerequisites, once, as the same Windows user the scheduled task runs as (the task uses that
+user's PATH and Firebase login): the Firebase CLI installed with `npm install -g firebase-tools`,
+`firebase login` done, and the `signal-sports-demo` Firebase project existing. The CLI install and
+the login are already done on the owner's PC; without them the run logs `firebase CLI not found` or
+fails on auth.
 
 ```powershell
 cd frontend; npm ci; cd ..
@@ -709,6 +720,10 @@ powershell -File scripts\demo-schedule.ps1 -Status
 (`last_successful_cycle_at`, else the export time) and turns into a warning after 3 hours. The demo
 is only as fresh as the worker: when the worker stops, the 36h window empties guy's feed, the
 export exits 3, and the site keeps the last real snapshot with a stale banner.
+
+**Release retention.** Each hourly deploy creates a Hosting release (about 8,700 a year). Consider
+setting a release-retention limit in the Firebase console (Hosting, release storage settings) so
+old releases are pruned.
 
 **Headers.** Firebase's local hosting emulator does not apply the `firebase.json` headers, so
 check the CSP and cache headers on the deployed site (`curl -sD - -o NUL <url>`) after the first

@@ -13,7 +13,8 @@
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",
-    "capture:orbit": "node scripts/capture-orbit-production.mjs"
+    "capture:orbit": "node scripts/capture-orbit-production.mjs",
+    "check:demo-bundle": "node scripts/check-demo-bundle.mjs"
   },
   "dependencies": {
     "@fontsource-variable/heebo": "^5.2.8",

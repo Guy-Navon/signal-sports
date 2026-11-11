@@ -55,3 +55,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run test -- --maxWorkers=2
       - run: npm run build
+      # The public demo (#458) must stay feed-only with no write path: build its
+      # entry and fail if the API client, router, auth, app provider or another
+      # page leaked into dist-demo (markers are calibrated against dist above).
+      - run: npm run build:demo
+      - run: npm run check:demo-bundle

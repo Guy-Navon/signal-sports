@@ -34,18 +34,27 @@ $dataDir  = Join-Path $dist "demo-data"
 $logDir   = Join-Path $backend "data"
 $log      = Join-Path $logDir "demo-publish.log"
 
-if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Force $logDir | Out-Null }
-# Keep one previous log once this one passes 1 MB.
-if ((Test-Path $log) -and ((Get-Item $log).Length -gt 1MB)) {
-    Move-Item $log "$log.1" -Force
-}
-
 function Write-Log([string]$message) {
     $line = "{0} {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $message
     Add-Content -Path $log -Value $line -Encoding utf8
     # Write-Host, not Write-Output: Invoke-Logged returns an exit code, and
     # pipeline output inside it would be returned along with that code.
     Write-Host $line
+}
+
+# Any unexpected terminating error (Start-Process failing, a locked file, ...)
+# still leaves a log line before the non-zero exit. If the log itself cannot be
+# written, the message goes to the console so the task history has it.
+trap {
+    $failure = "FAILED: unexpected error: $($_.Exception.Message) (line $($_.InvocationInfo.ScriptLineNumber))"
+    try { Write-Log $failure } catch { Write-Host $failure }
+    exit 1
+}
+
+if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Force $logDir | Out-Null }
+# Keep one previous log once this one passes 1 MB.
+if ((Test-Path $log) -and ((Get-Item $log).Length -gt 1MB)) {
+    Move-Item $log "$log.1" -Force
 }
 
 # Run a native command, append its stdout/stderr to the log, return its exit code.

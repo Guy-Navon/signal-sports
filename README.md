@@ -172,14 +172,106 @@ success, not an error.
 
 ### Classification: rules first, LLM second, guardrails always
 
-| Stage | What it does |
+Classification answers one question, *what is this article about?*, once per article and for no
+particular user. It never looks at a profile, and a relevance change never needs re-classification.
+The whole process runs per article inside `_normalise` in `app/ingestion/ingestion_service.py`.
+The principle at every stage: **when the evidence is not there, abstain** (`sport=unknown`, no
+entity, `event_type=news`). A wrong fact reaches the feed as truth; a missing one only costs recall.
+
+```mermaid
+flowchart TD
+    I["Title · subtitle · URL · source"] --> R["1. Rules classifier<br/>(always runs)"]
+    R --> GT{"2. LLM gate<br/>are the rules unsure?"}
+    GT -->|"no (~72%)"| N["5. Normalize<br/>league ↔ sport · club enrichment"]
+    GT -->|"yes (~28%)"| LLM["3. LLM proposal<br/>strict JSON, closed enums"]
+    LLM -->|"failed / confidence < 0.65"| N
+    LLM --> M["4. Merge guardrails<br/>rules evidence vetoes the LLM"]
+    M --> N
+    N --> F["6. ArticleFacts<br/>sport / entity / competition triangle"]
+    F --> E["7. Final event check<br/>semantic evidence, title first"]
+    E --> S[("Article row<br/>facts + classified_by + trace")]
+```
+
+**Input.** The Hebrew title is the primary signal. The subtitle (the RSS summary) only fills gaps
+and never overrides the title. The URL is used for league hints (`/eurocup/`), and for Israel Hayom
+its section path (`/sport/israeli-basketball/`) gives a near-authoritative *source sport hint*
+(`classification/source_hints.py`).
+
+**1. Rules classifier** (`ingestion/classifier.py::classify`). Deterministic, free and testable,
+and it runs on every article, also as the fallback and the guardrail source for the LLM:
+
+- **Sport**: the source hint, then sport keywords; then a named club person ("a player of X"
+  proves the sport); then entities that all agree on one sport.
+- **Entities**: aliases from the taxonomy. A cross-sport club name with no sport evidence
+  (`מכבי תל אביב`, `הפועל ירושלים`) resolves to *no* entity and gets the `ambiguous_club` tag.
+  Bare `מכבי` or `הפועל` never resolve.
+- **Subtitle gap-filling**: only when the title left the sport unknown or found no entity. A
+  person named only in the subtitle proves the sport but does not make the article about their club.
+- **League**: an explicit competition keyword, a few entity rules (Deni Avdija → NBA; a WNBA story
+  is never NBA), then a membership-derived league that is kept for display only.
+- **Event type** (`classification/event_evidence.py`): keyword evidence with a certainty
+  (`confirmed`, `probable`, `weak`). Then importance, confidence and tags are derived from the result.
+
+**2. LLM gate** (`classification/gating.py`). Only for the five Hebrew broad sources, only when a
+provider is configured, and only while the per-run circuit breaker is closed. It *forces* a call for
+`ambiguous_club`, unknown sport, or rules confidence below 0.55. It *skips* when a clear league
+keyword matches a resolved league, when a source hint agrees and there is already context, when
+the result is strong (league plus confidence ≥ 0.80, or entity plus a specific event plus
+confidence ≥ 0.75), and for generic `news` (a probe showed the LLM changed 0 of 16 of those).
+Every decision records its reason. About 28% of eligible articles reach the LLM.
+
+**3. LLM proposal** (`classification/prompt.py`, `providers.py`). Title and subtitle go in; a
+strict JSON object comes out, with closed enums for sport, league and event type, at temperature 0.
+The prompt says to answer `unknown` rather than guess, and never to judge whether a user should see
+the article. Providers are pluggable: `openai_compat` (currently `gpt-oss-20b` on Groq, an interim
+choice after a [bake-off](docs/qa/LLM_BAKEOFF_2026-10-25.md)), Ollama, Gemini, or `disabled`. A
+failure (timeout, HTTP error, unparseable JSON) keeps the rules result as
+`rules_fallback_after_llm_failure`, and a confidence below 0.65 keeps it as
+`rules_fallback_low_confidence`. Failures are typed and counted per run.
+
+**4. Merge guardrails** (`classification/merge.py`). The LLM *proposes*; it wins by default
+except where deterministic evidence says otherwise:
+
+| Guardrail | Rule |
 |---|---|
-| Rules (`ingestion/classifier.py`) | Title first, subtitle only fills gaps. Entity aliases from the taxonomy, URL hints, keyword event detection. "Title-local" events (title win, major trade, schedule) must be in the title |
-| LLM gate | Calls the LLM only when the rules are unsure (unknown sport, ambiguous club, low confidence). About 28% of eligible articles |
-| LLM provider | Pluggable: `openai_compat` (currently `gpt-oss-20b` on Groq, an interim choice after a [bake-off](docs/qa/LLM_BAKEOFF_2026-10-25.md)), Ollama, or `disabled` |
-| Merge guardrails | The LLM *proposes*; the merge rejects proposals that contradict rule evidence. A cross-sport club (`מכבי תל אביב`) is kept only when the sport has explicit evidence |
-| Semantic event evidence | Specific event types need positive evidence in the text; `news` means abstention, with a recorded reason |
-| ArticleFacts | The validated, typed, user-independent output that relevance consumes |
+| 0 | Unsupported sport (MMA, UFC, boxing) → `unknown`, whatever the LLM said |
+| 1 · 1b | A football Maccabi club, or unambiguous single-sport vocabulary, beats a contradicting LLM sport |
+| 2 · 3 | The LLM said `unknown` sport or no league, and the rules found one → the rules value |
+| 4 | The rules found a specific event and the LLM said `news` → the rules event |
+| 4b | Every LLM event type needs semantic evidence in the text, or it falls back to the rules event or `news` (and a rejected championship loses its `very_high`) |
+| 5 | Importance is never lowered below the rules' importance |
+| 6 | A league forces its sport (EuroLeague → basketball) |
+| 7 | The source URL hint fills the sport, but never overrides committed contradicting vocabulary |
+
+Entities are then the rules' entities pruned to the final sport, plus LLM entities that normalize
+to a known canonical name. The row is marked `llm` or `llm+rules_guardrail`.
+
+**5. Normalize.** One league/sport compatibility pass for both paths, so no row can store an
+impossible pair. When the final sport is basketball, an Israeli club the title names in full (the
+`ambiguous_club` case) is added as an entity.
+
+**6. ArticleFacts** (`classification/facts.py::build_article_facts`). The authority on what is
+stored. It scans explicit competition evidence in the title and subtitle (never the URL: short
+tokens like `nba` false-match slugs), resolves the sport by an evidence-weight order in which
+explicit evidence can override a weaker incoming sport, and drops entities of the wrong sport. A
+cross-sport club that came from the LLM or from enrichment, not from the text, survives only with
+explicit sport evidence (or, for basketball, a deterministic cue the LLM did not produce): an LLM
+sport guess must not be laundered into a trusted fact. It derives `primary_competition` (explicit
+evidence only), canonical `entity_ids`, and records every conflict in the trace.
+
+**7. Final event check** (`_apply_post_facts_event_validation`). The event is re-validated against
+the final sport. Evidence found only in the subtitle caps certainty at `probable`. Title-local
+events (`title_win`, `grand_slam_winner`, `major_trade`, `schedule`) with no evidence in the title
+become `news`, because a championship word in a subtitle is almost always an epithet for someone
+else. A championship that is not confirmed loses `very_high`. A `news` row stores *why* it abstained.
+
+**Output.** The `Article` row holds the facts (sport, league, competitions, entity ids, event type
+and certainty, importance), `classified_by` (`rules`, `llm`, `llm+rules_guardrail` or a
+`rules_fallback_*` value), the LLM's provider, confidence and one-line reason, the taxonomy version,
+and a full `classification_trace` of every stage, which the debug panel shows. Stored facts change
+afterwards only through reviewed, backed-up correction scripts, after an in-memory rerun diff of the
+whole corpus. Full contracts: [ARTICLE_FACTS](docs/ARTICLE_FACTS.md),
+[LLM_CLASSIFICATION](docs/LLM_CLASSIFICATION.md), [RSS_QUALITY_GUARDRAILS](docs/RSS_QUALITY_GUARDRAILS.md).
 
 Of the 5,297 stored articles, 63% were classified by rules alone and 18% with the LLM involved.
 Another 18% fell back to rules after an LLM failure, most of them during a local-model timeout

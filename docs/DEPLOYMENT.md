@@ -674,3 +674,42 @@ addressed here):
 Everything above is repository preparation. Still open: the owner's decisions and accounts
 (HOSTING_PLAN §18), the first image publication, the host itself (#268), the hosted LLM
 evaluation and switch (#262), the cutover (#269) and the 7-day observation (HOSTING_PLAN §15).
+
+## 17. Public read-only demo (#458)
+
+A static copy of the live feed of profile `guy` on Firebase Hosting (project
+`signal-sports-demo`, `https://signal-sports-demo.web.app`). It is separate from the hosted stack
+above: nothing on the PC is exposed, there is no API, signup or login, and the private beta (#200)
+is unaffected. **Status: built and tested in the repository. The first deploy and the scheduled
+task are owner steps; the PR deployed nothing.**
+
+**What it shows.** The Orbit feed and its reader explanations (`reason_he`), with clusters and
+links to the original articles. Nothing else: no results, preferences, interests, calibration,
+onboarding, feedback, account or ops screens, and no engine trace. The bundle has no router,
+`AuthProvider`, `AppProvider` or API client, so no code path in it can write anything.
+
+| Piece | What it does |
+|---|---|
+| `backend/scripts/export_demo_snapshot.py` (logic in `app/ops/demo_snapshot.py`) | Loads `backend/.env` like the API (`override=False`), opens the SQLite file read-only (`mode=ro`, `query_only`, one read transaction), builds guy's feed through `routes_feed.get_feed` (the handler `/api/me/feed` uses) without recording usage, keeps an allowlist of rendered fields, and writes `feed.json` + `meta.json` atomically. Exit 0 written; 1 failed; 3 empty feed (nothing written, so the site keeps its last real snapshot) |
+| `frontend/demo.html`, `frontend/src/demo/`, `frontend/vite.demo.config.js` | The demo entry. `npm run build:demo` → `frontend/dist-demo/`; `npm run preview:demo` serves it on 127.0.0.1:4174 (open `/demo.html`) |
+| `firebase.json`, `.firebaserc` | Hosting from `frontend/dist-demo`, every path rewritten to `/demo.html`, `no-cache` on `demo-data/**` and HTML, immutable `assets/**`, a CSP limited to the site's own origin |
+| `scripts/demo-publish.ps1` | From the main checkout: build when `dist-demo` is missing or `-Build` is given, export into `dist-demo/demo-data/`, then `firebase deploy --only hosting --project signal-sports-demo --non-interactive`. An export failure or an empty feed skips the deploy. Logs to `backend/data/demo-publish.log`. `-NoDeploy` and `-Db <path>` exist for checks |
+| `scripts/demo-schedule.ps1` | Registers (or `-Unregister`, `-Status`) the hourly task `SignalSportsDemoPublish` for the current user: hidden window, runs only while that user is logged on, no stored password, no overlapping runs |
+
+**Owner steps after merge** (from the main checkout, after `git pull`):
+
+```powershell
+cd frontend; npm ci; cd ..
+powershell -File scripts\demo-publish.ps1 -Build     # first deploy; check the log and the site
+powershell -File scripts\demo-schedule.ps1           # hourly from then on
+powershell -File scripts\demo-schedule.ps1 -Status
+```
+
+**Freshness.** The banner shows when the pipeline last completed a cycle
+(`last_successful_cycle_at`, else the export time) and turns into a warning after 3 hours. The demo
+is only as fresh as the worker: when the worker stops, the 36h window empties guy's feed, the
+export exits 3, and the site keeps the last real snapshot with a stale banner.
+
+**Headers.** Firebase's local hosting emulator does not apply the `firebase.json` headers, so
+check the CSP and cache headers on the deployed site (`curl -sD - -o NUL <url>`) after the first
+deploy.

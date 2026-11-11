@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ThumbsUp, ThumbsDown, Check, AlertCircle, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useApp } from "@/context/AppContext";
+import { useApp } from "@/context/appContextCore";
 import { feedbackSaveView, runFeedbackSave } from "@/components/feed/feedbackSaveModel";
 import { menuDismissAction } from "@/components/feed/menuDismissModel";
 

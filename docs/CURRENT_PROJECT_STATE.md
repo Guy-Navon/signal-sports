@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-11-06** (`title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
+**Last updated: 2026-11-11** (public read-only demo of guy's feed, #458: built, not yet deployed; 2026-11-06: `title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
 for any agent or human picking the project up with no conversation history. Present-tense
 statements were checked against the code and the owner's local runtime on that date. History
 is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
@@ -82,6 +82,12 @@ then retention (currently disabled), and releases the lease. Details:
 only) → per-article Preference V2 scoring (visibility tiers → affinity layers → learned
 adjustments → overrides) → user-specific cluster collapse (card decision = the maximum over
 visible members). Details: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md).
+
+**Public demo (#458).** `backend/scripts/export_demo_snapshot.py` builds guy's consumer feed
+through the same handler as `/api/me/feed`, from a read-only connection, into static JSON;
+`scripts/demo-publish.ps1` deploys it with a feed-only frontend bundle to Firebase Hosting, hourly
+through a Windows scheduled task. Not deployed or scheduled yet (owner steps).
+[DEPLOYMENT.md](DEPLOYMENT.md) §17.
 
 | Layer | Where |
 |---|---|
@@ -193,6 +199,12 @@ and shipped-state screenshots are in `docs/frontend-concepts/orbit/`.
 | `/` | Feed (Orbit) | product |
 | `/preferences`, `/interests`, `/calibration`, `/results`, `/account` | product pages | product |
 | `/sources`, `/debug`, `/llm-qa` | ops console (ingestion, scheduler, notifications, debug traces, LLM QA) | admin only |
+
+**Public demo entry (#458).** A second Vite entry (`frontend/demo.html` → `src/demo/`, built by
+`npm run build:demo` into `frontend/dist-demo/`) renders only the Orbit feed from two static JSON
+files, with `OrbitFeedView readOnly` (no feedback controls, no engine trace). It mounts no router
+and no auth or app provider; the hooks feed components need live in `src/context/appContextCore.js`
+so the provider and API client stay out of that bundle. [DEPLOYMENT.md](DEPLOYMENT.md) §17.
 
 **Data modes** (`VITE_DATA_MODE`): `local` is the default and needs no backend. It renders mock
 data through the **frozen** legacy JS engine (`src/engine/relevanceEngine.js`), which gets no new

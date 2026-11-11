@@ -8,6 +8,7 @@ import FeedFreshness from "@/components/feed/FeedFreshness";
 import ErrorState from "@/components/shared/ErrorState";
 import { FEED_LOAD_ERROR, feedBodyState } from "@/components/feed/feedLoadModel";
 import OrbitFeedView from "@/components/feed/orbit/OrbitFeedView";
+import OrbitLoadingState from "@/components/feed/orbit/OrbitLoadingState";
 import { prepareFeedItems } from "@/components/feed/orbit/orbitStoryModel";
 import {
   filterFeedItems,
@@ -15,38 +16,6 @@ import {
   toggleFilterSet,
 } from "@/components/feed/feedFilters";
 import "@/components/feed/orbit/orbit.css";
-
-function OrbitLoadingState() {
-  return (
-    <div className="orbit-loading" aria-busy="true" aria-label="טוען את המסלול האישי">
-      <div className="orbit-loading__heading">
-        <i />
-        <i />
-      </div>
-      <div className="orbit-loading__filters" />
-      <div className="orbit-loading__layout">
-        <div className="orbit-loading__field">
-          <span className="orbit-loading__ring" />
-          <div className="orbit-loading__core">
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
-        </div>
-        <div className="orbit-loading__queue">
-          {[0, 1, 2, 3].map((index) => (
-            <div key={index}>
-              <i />
-              <i />
-              <i />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function Feed() {
   const {

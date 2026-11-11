@@ -23,6 +23,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# Public demo build (#458) and the Firebase CLI's deploy cache.
+dist-demo
+.firebase/
 *.local
 
 # Editor directories and files

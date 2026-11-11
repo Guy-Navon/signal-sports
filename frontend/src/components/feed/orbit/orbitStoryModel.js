@@ -13,6 +13,16 @@ export function orbitStoryTitle(item) {
     : item.translatedTitle || item.title || "";
 }
 
+/**
+ * What a feed surface may show. A read-only surface (the public demo, #458) is
+ * a reader surface: no feedback controls, which write preferences, and no
+ * engine trace, only the reader's Hebrew reason.
+ * @param {{ readOnly?: boolean, traceAllowed?: boolean }} p
+ */
+export function orbitSurface({ readOnly = false, traceAllowed = false } = {}) {
+  return { showFeedback: !readOnly, showTrace: Boolean(traceAllowed) && !readOnly };
+}
+
 export function orbitFeedbackArticleId(item, reports = []) {
   if (!item) return null;
   if (item.type !== "cluster") return item.id;

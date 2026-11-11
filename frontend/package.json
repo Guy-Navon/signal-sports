@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:demo": "vite build --config vite.demo.config.js",
+    "preview:demo": "vite preview --config vite.demo.config.js",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",
-    "capture:orbit": "node scripts/capture-orbit-production.mjs"
+    "capture:orbit": "node scripts/capture-orbit-production.mjs",
+    "check:demo-bundle": "node scripts/check-demo-bundle.mjs"
   },
   "dependencies": {
     "@fontsource-variable/heebo": "^5.2.8",

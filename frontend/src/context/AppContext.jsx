@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { AppContext } from "./appContextCore";
 import { feedSources } from "@/data/feedSources";
 import ErrorState from "@/components/shared/ErrorState";
 import {
@@ -24,8 +25,6 @@ import {
 } from "@/api/normalizers";
 
 const DATA_MODE = import.meta.env.VITE_DATA_MODE || "local";
-
-const AppContext = createContext(null);
 
 // Backend feedback actions supported by the API
 const BACKEND_VALID_ACTIONS = new Set([
@@ -460,21 +459,5 @@ function AppStateProvider({ children, localDemo }) {
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
-// Safe outside the provider (capture harness, isolated renders): opens are then not recorded.
-const NOOP = () => {};
-export function useArticleOpened() {
-  return useContext(AppContext)?.noteArticleOpened ?? NOOP;
-}
-
-// Whether the engine trace may be shown (ops: admin, local, bypass). Safe outside the
-// provider (capture harness, isolated renders), where the trace shows as before.
-export function useEngineTraceVisible() {
-  const ctx = useContext(AppContext);
-  return ctx ? Boolean(ctx.qaSurfaceAllowed) : true;
-}
-
-export function useApp() {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error("useApp must be used within AppProvider");
-  return ctx;
-}
+// The hooks live with the context object, so provider-free bundles can use them (#458).
+export { useApp, useArticleOpened, useEngineTraceVisible } from "./appContextCore";

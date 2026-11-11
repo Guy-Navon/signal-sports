@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import EmptyState from "@/components/shared/EmptyState";
 import FeedbackControls from "@/components/feed/FeedbackControls";
-import { useArticleOpened } from "@/context/AppContext";
+import { useArticleOpened } from "@/context/appContextCore";
 import SourceMeta from "@/components/feed/SourceMeta";
 import { buildKicker } from "@/components/feed/storyLabels";
 import { getDecisionConfig } from "@/components/feed/decisionConfig";
@@ -42,6 +42,7 @@ import {
   orbitStoryTimestamp,
   orbitStoryTitle,
   orbitSourceCount,
+  orbitSurface,
   resolveOrbitFocus,
 } from "./orbitStoryModel";
 
@@ -163,7 +164,7 @@ function QueueSignal({ decision }) {
   );
 }
 
-function OrbitQueueStory({ item, index, onFocus, localScoredArticles, reduce }) {
+function OrbitQueueStory({ item, index, onFocus, localScoredArticles, reduce, readOnly }) {
   const isCluster = item.type === "cluster";
   const reports = orbitStoryReports(item, localScoredArticles);
   const hasClusterField = orbitHasMultiSourceField(item, reports);
@@ -173,6 +174,7 @@ function OrbitQueueStory({ item, index, onFocus, localScoredArticles, reduce }) 
   const publishedAt = orbitStoryTimestamp(item, reports);
   const kicker = buildKicker(item);
   const feedbackId = orbitFeedbackArticleId(item, reports);
+  const { showFeedback } = orbitSurface({ readOnly });
   const noteArticleOpened = useArticleOpened();
   const config = getDecisionConfig(item.score?.decision);
   const { queueDensity, queueRail, queueMuted } = config.orbit;
@@ -223,7 +225,9 @@ function OrbitQueueStory({ item, index, onFocus, localScoredArticles, reduce }) 
           </span>
         )}
         <span className="orbit-queue-story__action-buttons">
-          {feedbackId && <FeedbackControls key={feedbackId} articleId={feedbackId} />}
+          {showFeedback && feedbackId && (
+            <FeedbackControls key={feedbackId} articleId={feedbackId} />
+          )}
           {!hasClusterField && articleUrl && (
             <a
               href={articleUrl}
@@ -251,6 +255,8 @@ export default function OrbitFeedView({
   activeFilters,
   onToggleFilter,
   onResetFilters,
+  // The public demo (#458): no feedback controls, no engine trace.
+  readOnly = false,
 }) {
   const reduce = useReducedMotion();
   const [selectedFocusId, setSelectedFocusId] = useState(null);
@@ -389,6 +395,7 @@ export default function OrbitFeedView({
             onClose={closeCluster}
             focusTarget={focusTarget}
             onFocusApplied={handleFocusApplied}
+            readOnly={readOnly}
           />
 
           <aside className="orbit-queue" aria-label="המשך המסלול">
@@ -415,6 +422,7 @@ export default function OrbitFeedView({
                       onFocus={() => focusStory(item)}
                       localScoredArticles={localScoredArticles}
                       reduce={reduce}
+                      readOnly={readOnly}
                     />
                   ))}
                 </div>

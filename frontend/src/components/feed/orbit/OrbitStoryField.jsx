@@ -18,15 +18,15 @@ import { formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import DeskVoice from "@/components/feed/DeskVoice";
-import { useEngineTraceVisible } from "@/context/AppContext";
+import { useArticleOpened, useEngineTraceVisible } from "@/context/appContextCore";
 import FeedbackControls from "@/components/feed/FeedbackControls";
-import { useArticleOpened } from "@/context/AppContext";
 import { buildKicker } from "@/components/feed/storyLabels";
 import { FOCUS_TARGETS } from "./orbitFocusModel";
 import {
   orbitFeedbackArticleId,
   orbitHasMultiSourceField,
   orbitSourceCount,
+  orbitSurface,
   orbitStoryId,
   orbitStoryReports,
   orbitStorySourceLine,
@@ -187,11 +187,15 @@ function CompactCore({
   reduce,
   focusTarget,
   onFocusApplied,
+  readOnly,
 }) {
   const coreRef = useRef(null);
   const primaryActionRef = useRef(null);
   useSelfFocus(focusTarget, FOCUS_TARGETS.core, coreRef, onFocusApplied);
-  const showTrace = useEngineTraceVisible();
+  const { showTrace, showFeedback } = orbitSurface({
+    readOnly,
+    traceAllowed: useEngineTraceVisible(),
+  });
   useSelfFocus(focusTarget, FOCUS_TARGETS.primaryAction, primaryActionRef, onFocusApplied);
   const isCluster = item.type === "cluster";
   const hasClusterField = orbitHasMultiSourceField(item, reports);
@@ -282,7 +286,7 @@ function CompactCore({
             <ArrowUpLeft size={16} aria-hidden />
           </a>
         ) : null}
-        {feedbackId && (
+        {showFeedback && feedbackId && (
           <FeedbackControls
             key={feedbackId}
             articleId={feedbackId}
@@ -371,6 +375,7 @@ function ExpandedCluster({
   reduce,
   focusTarget,
   onFocusApplied,
+  readOnly,
 }) {
   const closeActionRef = useRef(null);
   useSelfFocus(focusTarget, FOCUS_TARGETS.closeAction, closeActionRef, onFocusApplied);
@@ -379,7 +384,10 @@ function ExpandedCluster({
   const newestId = chronological.at(-1)?.articleId;
   const title = orbitStoryTitle(item);
   const feedbackId = orbitFeedbackArticleId(item, reports);
-  const showTrace = useEngineTraceVisible();
+  const { showTrace, showFeedback } = orbitSurface({
+    readOnly,
+    traceAllowed: useEngineTraceVisible(),
+  });
 
   return (
     <motion.div
@@ -439,7 +447,7 @@ function ExpandedCluster({
             variant="line"
             className="orbit-cluster__reason"
           />
-          {feedbackId && (
+          {showFeedback && feedbackId && (
             <FeedbackControls
               key={feedbackId}
               articleId={feedbackId}
@@ -489,6 +497,7 @@ const OrbitStoryField = forwardRef(function OrbitStoryField(
    *   onClose?: () => void,
    *   focusTarget?: string | null,
    *   onFocusApplied?: (target: string) => void,
+   *   readOnly?: boolean,
    * }}
    */
   {
@@ -500,6 +509,7 @@ const OrbitStoryField = forwardRef(function OrbitStoryField(
     onClose,
     focusTarget,
     onFocusApplied,
+    readOnly = false,
   },
   ref
 ) {
@@ -571,6 +581,7 @@ const OrbitStoryField = forwardRef(function OrbitStoryField(
             reduce={reduce}
             focusTarget={focusTarget}
             onFocusApplied={onFocusApplied}
+            readOnly={readOnly}
           />
         ) : (
           <motion.div
@@ -598,6 +609,7 @@ const OrbitStoryField = forwardRef(function OrbitStoryField(
               reduce={reduce}
               focusTarget={focusTarget}
               onFocusApplied={onFocusApplied}
+              readOnly={readOnly}
             />
 
             {!isSolo && (

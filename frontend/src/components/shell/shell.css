@@ -1,0 +1,321 @@
+/* Consumer product shell (#463, Part B §B5–B6). Values come from the approved
+   mock (docs/design/2026-11-13-feed-direction/). Every colour is an --sg-*
+   token from signal-ui.css, so the chrome follows the ground set on its
+   `.signal-ui` scope. Ops (AppShell area="ops") never renders these classes.
+   Logical properties only (FRONTEND_DESIGN_SYSTEM §A2). */
+
+.sg-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Page gutter and content column, shared by the chrome and by rebuilt pages:
+   wrap a full-width band in .sg-gutter and its content in .sg-container. */
+.sg-gutter {
+  padding-inline: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+}
+
+.sg-container {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+}
+
+/* §A6: visible focus in currentColor, 2px, offset 2px, on every ground. */
+.sg-chrome :focus-visible,
+.sg-dock :focus-visible,
+.sg-body--signal :focus-visible,
+.sg-skip:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 0;
+}
+
+.sg-skip {
+  position: absolute;
+  z-index: 60;
+  inset-inline-start: 8px;
+  inset-block-start: 8px;
+  padding: 8px 14px;
+  background: var(--sg-card);
+  color: var(--sg-ink);
+  border: 1px solid var(--sg-line);
+  font-weight: 700;
+  font-size: 15px;
+  transform: translateY(-200%);
+}
+
+.sg-skip:focus {
+  transform: none;
+}
+
+/* The page body takes the remaining height. The Orbit scope sets its own
+   min-height: 100vh for a whole-screen shell; inside this shell that would
+   push the dock's last screen of content down, so it is reset here. */
+.sg-body {
+  flex: 1 0 auto;
+  min-inline-size: 0;
+  outline: none;
+}
+
+.sg-body.orbit-product {
+  min-height: 0;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+
+.sg-topbar {
+  background: var(--sg-top);
+  color: var(--sg-top-fg);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.sg-topbar__inner {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-block-size: 40px;
+}
+
+.sg-topbar__brand {
+  display: none;
+  align-items: center;
+  color: inherit;
+  font-size: 26px;
+  text-decoration: none;
+}
+
+/* On the navy bar the stroke takes the bar's text colour: the accent blue
+   would sit at under 2:1 against --sg-top. */
+.sg-topbar__brand .sg-wordmark__stroke {
+  background: currentColor;
+}
+
+.sg-topbar__nav {
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
+  gap: 22px;
+}
+
+.sg-topbar__link {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.8;
+  border-block: 2px solid transparent;
+  transition: opacity 0.15s var(--sg-ease);
+}
+
+.sg-topbar__link:hover {
+  opacity: 1;
+}
+
+.sg-topbar__link[aria-current="page"] {
+  opacity: 1;
+  border-block-end-color: currentColor;
+}
+
+.sg-topbar__end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+  font-weight: 400;
+  min-inline-size: 0;
+}
+
+.sg-topbar__viewas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-inline-size: 0;
+}
+
+.sg-topbar__note {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+/* Account trigger, console entry and the view-as switcher on the navy bar. */
+.sg-topbar__control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-block-size: 32px;
+  min-inline-size: 32px;
+  padding-inline: 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  transition: background-color 0.15s var(--sg-ease);
+}
+
+.sg-topbar__control:hover,
+.sg-topbar__control[data-state="open"] {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.sg-topbar__control--outlined {
+  border-color: rgb(255 255 255 / 0.35);
+  max-inline-size: 45vw;
+}
+
+/* ── Masthead ────────────────────────────────────────────────────────────── */
+
+.sg-masthead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-block: 30px 20px;
+  text-align: center;
+}
+
+.sg-masthead__brand {
+  color: var(--sg-ink);
+  font-size: 44px;
+  text-decoration: none;
+}
+
+/* Page content rendered through <MastheadSlot>; full width so a row inside
+   it (the league pills) can scroll on its own, collapsed when empty. */
+.sg-masthead__slot {
+  align-self: stretch;
+  min-inline-size: 0;
+}
+
+.sg-masthead__slot:empty {
+  display: none;
+}
+
+/* ── Phone dock ──────────────────────────────────────────────────────────── */
+
+.sg-dock {
+  position: fixed;
+  z-index: 50;
+  inset-inline: 0;
+  inset-block-end: 0;
+  padding-block-end: env(safe-area-inset-bottom, 0px);
+  border-block-start: 1px solid var(--sg-line);
+  background: var(--sg-card);
+  transition:
+    opacity 180ms var(--sg-ease),
+    transform 220ms var(--sg-ease);
+}
+
+.sg-dock__list {
+  display: flex;
+  padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+}
+
+.sg-dock__link {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-inline-size: 0;
+  min-block-size: 56px;
+  color: var(--sg-dim);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.sg-dock__link[aria-current="page"] {
+  color: var(--sg-acc);
+}
+
+.sg-dock__link[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  inset-block-start: -1px;
+  inset-inline: 26%;
+  block-size: 3px;
+  background: var(--sg-acc);
+}
+
+.sg-dock__link:focus-visible {
+  outline-offset: -4px;
+}
+
+/* ── Breakpoints ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 899px) {
+  .sg-masthead__brand {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 767px) {
+  .sg-topbar__nav,
+  .sg-topbar__wide,
+  .sg-topbar__wide-flex {
+    display: none;
+  }
+
+  .sg-topbar__inner {
+    min-block-size: 52px;
+    padding-block: 4px;
+  }
+
+  /* Touch targets on a phone. */
+  .sg-topbar__control {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+
+  .sg-topbar__brand {
+    display: inline-flex;
+  }
+
+  /* Phone: the wordmark lives in the bar, so the masthead shows only page
+     content from <MastheadSlot>, and disappears when there is none. This keeps
+     the chrome one row tall above the page, as the Orbit header was, so the
+     page's first actions stay clear of the dock at 320x640. */
+  .sg-masthead__brand {
+    display: none;
+  }
+
+  .sg-masthead {
+    padding-block: 14px 4px;
+  }
+
+  .sg-masthead:has(> .sg-masthead__slot:empty) {
+    display: none;
+  }
+
+  .sg-body--signal {
+    padding-block-end: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* An expanded Orbit cluster is an immersive reading state: the dock retreats
+     so source cards are not covered (same rule the Orbit dock had). Goes away
+     with the Orbit feed in #464. */
+  .sg-shell:has(.orbit-field--expanded) .sg-dock {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(calc(100% + 24px));
+  }
+}
+
+@media (min-width: 768px) {
+  .sg-dock {
+    display: none;
+  }
+}

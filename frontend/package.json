@@ -8,6 +8,9 @@
     "build": "vite build",
     "build:demo": "vite build --config vite.demo.config.js",
     "preview:demo": "vite preview --config vite.demo.config.js",
+    "lab": "vite --config vite.lab.config.js",
+    "build:lab": "vite build --config vite.lab.config.js",
+    "preview:lab": "vite preview --config vite.lab.config.js",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
@@ -17,8 +20,10 @@
     "check:demo-bundle": "node scripts/check-demo-bundle.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/assistant": "^5.3.0",
     "@fontsource-variable/heebo": "^5.2.8",
     "@fontsource/frank-ruhl-libre": "^5.2.8",
+    "@fontsource/karantina": "^5.3.0",
     "@radix-ui/react-alert-dialog": "^1.1.24",
     "@radix-ui/react-dropdown-menu": "^2.1.6",
     "@radix-ui/react-label": "^2.1.17",

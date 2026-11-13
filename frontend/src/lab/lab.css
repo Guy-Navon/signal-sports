@@ -1,0 +1,80 @@
+/* Layout of the dev-only design lab (#462). Specimen chrome only; every colour
+   comes from the --sg- tokens of the ground it sits in. */
+.lab-page {
+  display: grid;
+  gap: 0;
+}
+
+.lab-ground {
+  padding-block: 28px 36px;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px));
+}
+
+.lab-ground__head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding-block-end: 16px;
+  border-block-end: 1px solid var(--sg-line);
+}
+
+.lab-wordmark { font-size: 44px; }
+
+.lab-h {
+  margin-block: 24px 10px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.lab-dim { color: var(--sg-dim); }
+
+.lab-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.lab-swatches li {
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+}
+
+.lab-swatch {
+  block-size: 40px;
+  border: 1px solid var(--sg-line);
+}
+
+.lab-slab {
+  background: var(--sg-slab);
+  color: var(--sg-slab-fg);
+  padding: 20px 24px;
+  margin-block-end: 14px;
+}
+
+.lab-lead { font-size: clamp(54px, 10.2vw, 120px); }
+
+.lab-note {
+  margin-block-start: 10px;
+  font-size: 14px;
+  color: var(--sg-slab-dim);
+}
+
+.lab-type { margin-block: 6px; }
+
+.lab-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+}
+
+.lab-marks li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--sg-tint);
+  color: var(--sg-acc);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 10px;
+}

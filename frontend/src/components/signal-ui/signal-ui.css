@@ -1,0 +1,165 @@
+/* Signal UI (#462): tokens, type and marks of the consumer look Guy approved on
+   2026-11-13 (milestone 15). Source of truth for the values: the approved mock,
+   `.t-light` / `.t-soft` / `.t-dark`.
+
+   Scoped, like orbit.css: nothing here touches `:root`, so Ops (/debug,
+   /sources, /llm-qa) and the Orbit screens keep their tokens. A screen opts in
+   by importing this file and setting `.signal-ui` on its root, plus
+   `data-ground="soft"` or `data-ground="dark"` on the same element; white is
+   the default ground. Token names carry an `--sg-` prefix so they can never
+   shadow the shadcn/base names (`--card`, `--border`, ...) of components
+   rendered inside the scope.
+
+   Fonts load the way index.css loads Heebo and Frank Ruhl Libre: self-hosted
+   @fontsource faces, each subset gated by unicode-range. Declaring a face only
+   costs a download when text actually uses it. */
+@import "@fontsource-variable/assistant";
+/* Karantina is the lead headline face only; 700 is the only weight used. */
+@import "@fontsource/karantina/700.css";
+
+.signal-ui {
+  /* grounds: white (default) */
+  --sg-bg: #ffffff;
+  --sg-band: #f3f5f9;
+  --sg-card: #ffffff;
+  --sg-ink: #1c2230;
+  --sg-dim: #667085;
+  --sg-line: #e2e6ee;
+  --sg-acc: #2446e8;
+  --sg-tint: #edf1ff;
+  --sg-top: #142a66;
+  --sg-top-fg: #ffffff;
+  --sg-slab: #2446e8;
+  --sg-slab-fg: #ffffff;
+  --sg-slab-dim: #d5dcff;
+  --sg-hot: #ff2f6d;
+  --sg-hot-fg: #ffffff;
+  --sg-off: #cfd6e4;
+  --sg-t1: #e3ecff;
+  --sg-t2: #ffe9dc;
+  --sg-t3: #dff5ea;
+  --sg-t4: #efe6ff;
+
+  /* type. Fallbacks: Heebo is already loaded by the app, then system Hebrew. */
+  --sg-font-text: "Assistant Variable", "Assistant", "Heebo Variable", "Heebo", "Noto Sans Hebrew", Arial, sans-serif;
+  --sg-font-lead: "Karantina", var(--sg-font-text);
+
+  /* motion */
+  --sg-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --sg-skew: -18deg;
+
+  color-scheme: light;
+  background: var(--sg-bg);
+  color: var(--sg-ink);
+  font-family: var(--sg-font-text);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.signal-ui[data-ground="soft"] {
+  --sg-bg: #e8ecf2;
+  --sg-band: #dde2ea;
+  --sg-card: #f3f5f9;
+  --sg-ink: #1c2230;
+  --sg-dim: #566072;
+  --sg-line: #c9d0dc;
+  --sg-acc: #2446e8;
+  --sg-tint: #d8e0f8;
+  --sg-top: #142a66;
+  --sg-top-fg: #ffffff;
+  --sg-slab: #2446e8;
+  --sg-slab-fg: #ffffff;
+  --sg-slab-dim: #d5dcff;
+  --sg-hot: #e0245e;
+  --sg-hot-fg: #ffffff;
+  --sg-off: #b4bdcd;
+  --sg-t1: #cfdcfa;
+  --sg-t2: #f6d9c8;
+  --sg-t3: #c9e9d8;
+  --sg-t4: #ddd2f5;
+}
+
+.signal-ui[data-ground="dark"] {
+  --sg-bg: #1a2030;
+  --sg-band: #141927;
+  --sg-card: #212839;
+  --sg-ink: #eef1f7;
+  --sg-dim: #a3adc0;
+  --sg-line: #353e55;
+  --sg-acc: #3cffd0;
+  --sg-tint: #25304a;
+  --sg-top: #0f1422;
+  --sg-top-fg: #eef1f7;
+  --sg-slab: #3cffd0;
+  --sg-slab-fg: #07130f;
+  --sg-slab-dim: #0d4a3b;
+  --sg-hot: #ff2f6d;
+  --sg-hot-fg: #ffffff;
+  --sg-off: #465069;
+  --sg-t1: #27365c;
+  --sg-t2: #4a3528;
+  --sg-t3: #1f4034;
+  --sg-t4: #3a2f57;
+  color-scheme: dark;
+}
+
+/* Lead headline: the only Karantina surface. */
+.signal-ui .sg-lead-title {
+  font-family: var(--sg-font-lead);
+  font-weight: 700;
+  line-height: 0.88;
+}
+
+/* Wordmark lockup: the slanted accent stroke, then "סיגנל". Sized in em so the
+   lockup scales with the font size it is given. */
+.signal-ui .sg-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.14em;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.signal-ui .sg-wordmark__stroke {
+  display: block;
+  inline-size: 0.32em;
+  block-size: 0.86em;
+  background: var(--sg-acc);
+  transform: skewX(var(--sg-skew));
+}
+
+/* Signal strength mark: three slanted strokes, ascending. Filled strokes take
+   the accent; push fills all three in the alert colour. */
+.signal-ui .sg-strength {
+  display: inline-flex;
+  flex: none;
+  align-items: flex-end;
+  gap: 3px;
+  padding-inline: 3px;
+}
+
+.signal-ui .sg-strength__stroke {
+  display: block;
+  inline-size: 4px;
+  background: var(--sg-off);
+  transform: skewX(var(--sg-skew));
+  transform-origin: bottom;
+  animation: sg-rise 0.5s var(--sg-ease) both;
+}
+
+.signal-ui .sg-strength__stroke:nth-child(1) { block-size: 7px; }
+.signal-ui .sg-strength__stroke:nth-child(2) { block-size: 11px; animation-delay: 0.06s; }
+.signal-ui .sg-strength__stroke:nth-child(3) { block-size: 15px; animation-delay: 0.12s; }
+
+.signal-ui .sg-strength__stroke[data-filled] { background: var(--sg-acc); }
+.signal-ui .sg-strength[data-alert] .sg-strength__stroke { background: var(--sg-hot); }
+
+@keyframes sg-rise {
+  from { transform: skewX(var(--sg-skew)) scaleY(0); }
+  to { transform: skewX(var(--sg-skew)) scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-ui .sg-strength__stroke { animation: none; }
+}

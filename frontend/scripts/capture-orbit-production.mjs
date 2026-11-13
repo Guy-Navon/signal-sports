@@ -205,7 +205,7 @@ async function assertOwnedInstance(client, child) {
       return {
         apiCalls: apiCalls.slice(0, 5),
         apiCallCount: apiCalls.length,
-        renderedFeed: Boolean(document.querySelector(".sg-feed .sg-summary")),
+        renderedFeed: Boolean(document.querySelector(".sg-summary")),
         summary: document.querySelector(".sg-summary")?.textContent.replace(/\\s+/g, " ").trim() ?? null,
       };
     })()`
@@ -397,7 +397,7 @@ async function loadApp(client) {
     `(async () => {
       const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const timeoutAt = performance.now() + 12000;
-      const ready = () => document.querySelector(".sg-feed .sg-summary") &&
+      const ready = () => document.querySelector(".sg-summary") &&
         document.querySelector(".sg-feed [data-decision]");
       while (!ready() && performance.now() < timeoutAt) {
         await sleep(40);

@@ -465,6 +465,12 @@ brief") carries them. No large cards, no images (B13).
 
 **As built in #464** (choices the mock left open):
 
+- **Placement in the shell.** `/` is in `SIGNAL_SURFACE_PATHS`. Inside the shell the summary
+  line, the pills and the freshness line render through `<MastheadSlot>`; with no slot (the
+  lab, the demo until #469) `SignalFeedView` renders them at its top. The view opens its own
+  `.signal-ui` scope; nested in a parent scope without `data-ground` it inherits the parent's
+  ground.
+
 - **Cluster members.** In the stream the badge is a disclosure button (`aria-expanded`) that
   lists each visible member once (source, time, report title), each linking to its report. In
   the lead and the important row each named source links to its own report.

@@ -1,7 +1,8 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import React, { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SignalStrength from "@/components/signal-ui/SignalStrength";
+import MastheadSlot, { MastheadSlotContext } from "@/components/shell/MastheadSlot";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import { useArticleOpened, useEngineTraceVisible } from "@/context/appContextCore";
 import { getDecisionConfig } from "@/components/feed/decisionConfig";
@@ -540,20 +541,33 @@ export default function SignalFeedView({
   // A new filter selection is a new list: it starts again from its first page.
   const listKey = [...activeFilters].sort().join("|");
   const rowProps = { localScoredArticles, now, readOnly };
+  const mastheadSlot = useContext(MastheadSlotContext);
+  const head = (
+    <>
+      {status && <div className="sg-status">{status}</div>}
+      <SummaryLine items={items} />
+      <LeaguePills
+        items={items}
+        activeFilters={activeFilters}
+        onToggle={onToggleFilter}
+        onReset={onResetFilters}
+      />
+    </>
+  );
 
   return (
     <div className="signal-ui sg-feed" data-ground={ground}>
-      <header className="sg-feed__head sg-in">
-        <h1 className="sr-only">הפיד שלך</h1>
-        {status && <div className="sg-status">{status}</div>}
-        <SummaryLine items={items} />
-        <LeaguePills
-          items={items}
-          activeFilters={activeFilters}
-          onToggle={onToggleFilter}
-          onReset={onResetFilters}
-        />
-      </header>
+      <h1 className="sr-only">הפיד שלך</h1>
+      {/* Inside the consumer shell (#463) the summary line and pills sit under
+          the wordmark, through its masthead slot; on their own (the lab, the
+          demo until #469) they open the view. */}
+      {mastheadSlot ? (
+        <MastheadSlot>
+          <div className="sg-feed__head sg-feed__head--slot">{head}</div>
+        </MastheadSlot>
+      ) : (
+        <header className="sg-feed__head sg-in">{head}</header>
+      )}
 
       {filtered.length === 0 ? (
         <div className="sg-in sg-filter-empty" role="status">

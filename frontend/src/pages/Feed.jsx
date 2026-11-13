@@ -14,10 +14,6 @@ import {
 import { prepareFeedItems } from "@/components/feed/orbit/orbitStoryModel";
 import { getVisibleItems, toggleFilterSet } from "@/components/feed/feedFilters";
 
-// The current product shell already pads the page (px-4 / md:px-5), so the feed
-// does not add a gutter of its own inside it. #463 replaces the shell.
-const SHELL_PADDED = { "--sg-feed-page-gutter": "0px" };
-
 export default function Feed() {
   const {
     feedItems,
@@ -54,9 +50,7 @@ export default function Feed() {
 
   if (bodyState === "loading") {
     return (
-      <div style={SHELL_PADDED}>
-        <SignalFeedLoading />
-      </div>
+      <SignalFeedLoading />
     );
   }
 
@@ -66,7 +60,6 @@ export default function Feed() {
   return (
     <motion.div
       key={activeProfileId || "none"}
-      style={SHELL_PADDED}
       initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: reduce ? 0.12 : 0.34, ease: [0.22, 1, 0.36, 1] }}

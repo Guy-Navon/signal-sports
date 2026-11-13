@@ -20,12 +20,8 @@
 }
 
 .sg-feed {
-  /* The page gutter. A container that already pads its content sets
-     --sg-feed-page-gutter: 0px on an ancestor. */
-  --sg-feed-gutter: var(
-    --sg-feed-page-gutter,
-    max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px))
-  );
+  /* The page gutter, as the shell's .sg-gutter. */
+  --sg-feed-gutter: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
   /* Where a growing underline starts: the inline start of the text. */
   --sg-start-x: 0%;
   overflow-wrap: anywhere;
@@ -40,13 +36,15 @@
   box-sizing: content-box;
 }
 
-.sg-feed .sg-num { font-variant-numeric: tabular-nums; }
+.sg-feed .sg-num,
+.sg-feed__head .sg-num { font-variant-numeric: tabular-nums; }
 
 .sg-feed h1, .sg-feed h2, .sg-feed h3 { text-wrap: balance; }
 
 .sg-feed a { color: inherit; text-decoration: none; }
 
-.sg-feed :focus-visible {
+.sg-feed :focus-visible,
+.sg-feed__head :focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
 }
@@ -61,13 +59,19 @@
   padding-block: 20px 30px;
 }
 
-/* The status slot (FeedFreshness, the demo banner): quiet, in the feed's ink. */
-.sg-feed .sg-status { align-self: stretch; text-align: center; }
-.sg-feed .sg-status > * { justify-content: center; margin: 0; color: var(--sg-dim); }
-.sg-feed .sg-status span { color: inherit; }
-.sg-feed .sg-status svg { color: var(--sg-dim); }
-.sg-feed .sg-status .font-medium { color: var(--sg-ink); font-weight: 700; }
-.sg-feed .sg-status:empty { display: none; }
+/* Rendered through the shell's masthead slot (#463): the masthead already
+   gives the column, gutter and spacing above. */
+.sg-feed__head--slot { padding-block: 0 10px; }
+
+/* The status slot (FeedFreshness, the demo banner): quiet, in the feed's ink.
+   In the slot it sits outside .sg-feed, hence both ancestors; two classes
+   outrank FeedFreshness's own utility classes. */
+:is(.sg-feed, .sg-feed__head) .sg-status { align-self: stretch; text-align: center; }
+:is(.sg-feed, .sg-feed__head) .sg-status > * { justify-content: center; margin: 0; color: var(--sg-dim); }
+:is(.sg-feed, .sg-feed__head) .sg-status span { color: inherit; }
+:is(.sg-feed, .sg-feed__head) .sg-status svg { color: var(--sg-dim); }
+:is(.sg-feed, .sg-feed__head) .sg-status .font-medium { color: var(--sg-ink); font-weight: 700; }
+:is(.sg-feed, .sg-feed__head) .sg-status:empty { display: none; }
 
 .sg-summary {
   font-size: 14px;

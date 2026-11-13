@@ -31,11 +31,11 @@ Vercel infrastructure here — **never introduce them** while applying a rule.
 | `bundle-barrel-imports` | Relevant mainly to `lucide-react` and Radix. Vite tree-shakes ESM, so measure before churning imports. |
 | `rerender-*`, the remaining client `rendering-*`, `js-*`, `client-*` (except SWR), `advanced-event-handler-refs` (ref pattern), `advanced-init-once` | **Applicable.** |
 
-**Repo rules take precedence** (docs/FRONTEND_DESIGN_SYSTEM.md §8–§13):
+**Repo rules take precedence** (docs/FRONTEND_DESIGN_SYSTEM.md Part A):
 - Components render; pure models decide. Performance work must not move decisions back into
   components.
-- Backend-authoritative cluster values are read, never re-derived (§9).
-- Focus is ref-based; no DOM queries for focus or identity (§8).
+- Backend-authoritative cluster values are read, never re-derived (§A4).
+- Focus is ref-based; no DOM queries for focus or identity (§A6).
 - Bounded work: the queue is capped per page. Keep work proportional to feed size capped instead of
   adding a virtualization library.
 - No new dependency for an optimization without a measured problem (`signal-pr-open` §4).

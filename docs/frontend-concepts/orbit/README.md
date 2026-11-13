@@ -5,7 +5,10 @@ application (`VITE_DATA_MODE=backend`) against the real corpus — 198 stories i
 Guy's feed, RTL Hebrew — with `document.fonts.ready` awaited before every
 measurement and screenshot.
 
-The design contract is [`docs/FRONTEND_DESIGN_SYSTEM.md`](../../FRONTEND_DESIGN_SYSTEM.md).
+Orbit's look was superseded on 2026-11-13 by the direction in
+[`docs/FRONTEND_DESIGN_SYSTEM.md`](../../FRONTEND_DESIGN_SYSTEM.md) Part B (milestone 15). It
+still ships on main until that milestone lands. Its maintenance notes are in that doc's
+Appendix C, and this record is removed with the Orbit code (#473).
 Orbit was selected over two other concepts, Pulse and Vector, in a July 2026 exploration. That
 write-up and its comparison screenshots were retired on 2026-10-12 and are in git history
 (`docs/SPORTS_INTELLIGENCE_OS_CONCEPTS.md`, `docs/frontend-concepts/sports-intelligence-os/`).
@@ -56,7 +59,7 @@ Filter latency measured **in-page** by the hermetic harness (no CDP round-trip):
 
 ## Accepted residuals
 
-Documented rather than hidden; see `FRONTEND_DESIGN_SYSTEM.md` §11 for detail.
+Documented rather than hidden; see `FRONTEND_DESIGN_SYSTEM.md` Appendix C for detail.
 
 - At 320×640 the signal chip may need a small scroll. The **primary action is
   enforced clear** of the fixed dock and the harness fails if it is not.

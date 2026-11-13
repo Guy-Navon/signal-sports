@@ -20,8 +20,9 @@ commit as [guidelines.md](guidelines.md), so reviews are reproducible and remote
 the instructions. Don't WebFetch it. To update, re-vendor deliberately and record the new commit in
 UPSTREAM.md.
 
-**Precedence.** `docs/FRONTEND_DESIGN_SYSTEM.md` (Orbit) wins over the generic guidelines: RTL §7,
-focus §8, verification §10, accepted 320 px limitations §11, engineering rules §13. Known adjustments:
+**Precedence.** `docs/FRONTEND_DESIGN_SYSTEM.md` wins over the generic guidelines: RTL §A2,
+focus and reduced motion §A6, verification §A7, engineering rules §A8, the approved visual
+language Part B, and Orbit's accepted 320 px limitations in Appendix C. Known adjustments:
 - *Not applicable:* "Hydration Safety" (no SSR); "Title Case" and English copy rules (Hebrew UI, and
   copy is a product decision); "detect language via Accept-Language" (Hebrew-only MVP);
   virtualization libraries (the queue is capped instead); URL-state libraries such as nuqs (don't
@@ -29,7 +30,7 @@ focus §8, verification §10, accepted 320 px limitations §11, engineering rule
 - *Don't "fix" Hebrew punctuation:* a straight `"` inside Hebrew abbreviations and names
   (בית"ר, ת"א, יו"ר) is gershayim usage, and headline text comes from sources, not from our copy.
 - Physical-direction styling (`ml-/mr-/pl-/pr-/left-/right-`, `margin-left`, `text-left`) **is** a
-  finding in this repo (§7).
+  finding in this repo (§A2).
 
 **Signal checklist — cover these in addition to the guidelines:**
 1. **RTL and mixed direction:** logical properties only; LTR runs (source names, English entities,

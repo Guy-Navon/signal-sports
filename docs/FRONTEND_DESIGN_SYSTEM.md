@@ -259,6 +259,12 @@ removes them.
 One look, three grounds. Every colour is a token. The values below are the mock's
 `.t-light`, `.t-soft` and `.t-dark`.
 
+In code (#462, `frontend/src/components/signal-ui/signal-ui.css`) the same tokens carry an
+`--sg-` prefix (`--sg-bg`, `--sg-acc`, ...) so they cannot shadow the base component tokens.
+They are scoped to `.signal-ui`; white is the default and `data-ground="soft"` or
+`data-ground="dark"` on the same element switches ground. `npm run lab` (in `frontend/`)
+opens a specimen page of the tokens, type and marks in all three grounds.
+
 | token | role | white (default) | soft | dark |
 |---|---|---|---|---|
 | `--bg` | page ground | `#ffffff` | `#e8ecf2` | `#1a2030` |

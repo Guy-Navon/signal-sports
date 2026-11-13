@@ -68,6 +68,16 @@
   gap: 12px 28px;
 }
 
+.lab-feed-note { padding: 24px 16px; font-size: 15px; }
+
+/* Lab fixture banner inside the feed's status slot: plainly not product UI. */
+.lab-feed-fixture {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px dashed currentColor;
+  font-size: 13px;
+}
+
 .lab-marks li {
   display: flex;
   align-items: center;

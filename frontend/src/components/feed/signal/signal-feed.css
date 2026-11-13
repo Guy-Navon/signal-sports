@@ -1,0 +1,605 @@
+/* The new consumer feed (#464). Values from docs/FRONTEND_DESIGN_SYSTEM.md Part B
+   and the approved mock (docs/design/2026-11-13-feed-direction/). Every colour is
+   a --sg- token from signal-ui.css; logical properties only (A2).
+
+   Alert colour: --sg-hot is 3.57:1 on white, too low for small text (B2, the
+   token itself is #468). It is used here only for non-text marks (the push
+   strokes, the dot in the lead label), never as small text or as the ground of
+   small text. */
+
+/* The feed opens its own .signal-ui scope so it renders on its own. Inside a
+   parent scope (the shell, #463) a nested scope without its own ground follows
+   the parent's ground instead of resetting to white. */
+.signal-ui .signal-ui.sg-feed:not([data-ground]) {
+  --sg-bg: inherit; --sg-band: inherit; --sg-card: inherit; --sg-ink: inherit;
+  --sg-dim: inherit; --sg-line: inherit; --sg-acc: inherit; --sg-tint: inherit;
+  --sg-top: inherit; --sg-top-fg: inherit; --sg-slab: inherit; --sg-slab-fg: inherit;
+  --sg-slab-dim: inherit; --sg-hot: inherit; --sg-hot-fg: inherit; --sg-off: inherit;
+  --sg-t1: inherit; --sg-t2: inherit; --sg-t3: inherit; --sg-t4: inherit;
+  color-scheme: inherit;
+}
+
+.sg-feed {
+  /* The page gutter. A container that already pads its content sets
+     --sg-feed-page-gutter: 0px on an ancestor. */
+  --sg-feed-gutter: var(
+    --sg-feed-page-gutter,
+    max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px))
+  );
+  /* Where a growing underline starts: the inline start of the text. */
+  --sg-start-x: 0%;
+  overflow-wrap: anywhere;
+}
+
+.sg-feed:dir(rtl) { --sg-start-x: 100%; }
+
+.sg-feed .sg-in {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+  padding-inline: var(--sg-feed-gutter);
+  box-sizing: content-box;
+}
+
+.sg-feed .sg-num { font-variant-numeric: tabular-nums; }
+
+.sg-feed h1, .sg-feed h2, .sg-feed h3 { text-wrap: balance; }
+
+.sg-feed a { color: inherit; text-decoration: none; }
+
+.sg-feed :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* ── head: summary line + league pills (B6) ─────────────────────────────── */
+
+.sg-feed__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding-block: 20px 30px;
+}
+
+/* The status slot (FeedFreshness, the demo banner): quiet, in the feed's ink. */
+.sg-feed .sg-status { align-self: stretch; text-align: center; }
+.sg-feed .sg-status > * { justify-content: center; margin: 0; color: var(--sg-dim); }
+.sg-feed .sg-status span { color: inherit; }
+.sg-feed .sg-status svg { color: var(--sg-dim); }
+.sg-feed .sg-status .font-medium { color: var(--sg-ink); font-weight: 700; }
+.sg-feed .sg-status:empty { display: none; }
+
+.sg-summary {
+  font-size: 14px;
+  color: var(--sg-dim);
+  text-align: center;
+}
+
+.sg-summary b { color: var(--sg-ink); font-weight: 700; }
+
+.sg-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-inline-size: 100%;
+}
+
+.sg-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  min-block-size: 36px;
+  padding: 6px 16px;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  background: var(--sg-t1);
+  color: var(--sg-ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.sg-pill b { font-weight: 700; }
+.sg-pill[data-tint="2"] { background: var(--sg-t2); }
+.sg-pill[data-tint="3"] { background: var(--sg-t3); }
+.sg-pill[data-tint="4"] { background: var(--sg-t4); }
+.sg-pill--all { background: transparent; border-color: var(--sg-line); }
+.sg-pill:hover { border-color: var(--sg-acc); }
+
+/* Selected: the accent ground with its own text colour (the slab pair, 6.7:1
+   or better in every ground) plus a slanted stroke, so colour is not the only
+   cue. aria-pressed carries it to assistive technology. */
+.sg-pill__mark {
+  display: none;
+  inline-size: 4px;
+  block-size: 14px;
+  background: currentColor;
+  transform: skewX(var(--sg-skew));
+}
+
+.sg-pill[aria-pressed="true"] {
+  background: var(--sg-slab);
+  border-color: var(--sg-slab);
+  color: var(--sg-slab-fg);
+}
+
+.sg-pill[aria-pressed="true"] .sg-pill__mark { display: block; }
+
+/* ── lead block: only with a push (B7) ──────────────────────────────────── */
+
+.sg-lead {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-block-end: 40px;
+  padding: 26px 34px;
+  background: var(--sg-slab);
+  color: var(--sg-slab-fg);
+}
+
+.sg-lead > * { position: relative; }
+
+.sg-lead__deco {
+  position: absolute;
+  inset-block: -20px;
+  inset-inline-end: -30px;
+  display: flex;
+  gap: 26px;
+  pointer-events: none;
+}
+
+.sg-lead__deco i {
+  display: block;
+  inline-size: 74px;
+  background: var(--sg-slab-dim);
+  opacity: 0.16;
+  transform: skewX(var(--sg-skew));
+  transform-origin: bottom;
+  animation: sg-rise 0.7s var(--sg-ease) both;
+}
+
+.sg-lead__deco i:nth-child(1) { margin-block-start: 58%; }
+.sg-lead__deco i:nth-child(2) { margin-block-start: 30%; animation-delay: 0.08s; }
+.sg-lead__deco i:nth-child(3) { animation-delay: 0.16s; }
+
+/* The push label: slab-fg ground with slab text (6.7:1 white, 14.8:1 dark);
+   the alert colour is only the dot, a non-text mark (3.57:1 on white). */
+.sg-lead__label {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 9px;
+  background: var(--sg-slab-fg);
+  color: var(--sg-slab);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sg-lead__dot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--sg-hot);
+  flex: none;
+  animation: sg-pulse 1.8s infinite;
+}
+
+.sg-lead__title {
+  font-size: clamp(54px, 10.2vw, 150px);
+  animation: sg-up 0.6s var(--sg-ease) both;
+}
+
+.sg-lead__row {
+  display: grid;
+  grid-template-columns: 1.3fr 1.3fr auto;
+  gap: 8px 36px;
+  align-items: start;
+  padding-block-start: 14px;
+  border-block-start: 3px solid var(--sg-slab-fg);
+}
+
+.sg-lead__dek { font-size: 19px; line-height: 1.4; font-weight: 600; }
+.sg-lead .sg-lead__why { font-size: 16px; color: inherit; }
+.sg-lead .sg-lead__why b { color: inherit; font-weight: 800; }
+
+.sg-lead__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.sg-lead__go {
+  border: 1.5px solid var(--sg-slab-fg);
+  border-radius: 999px;
+  padding: 4px 16px;
+  font-weight: 700;
+}
+
+.sg-lead__go:hover { background: var(--sg-slab-fg); color: var(--sg-slab); }
+
+/* ── important row (B8) ─────────────────────────────────────────────────── */
+
+.sg-important {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding-block-end: 44px;
+}
+
+.sg-important__item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-inline-size: 0;
+  padding-inline: 20px;
+  border-inline-start: 1px solid var(--sg-line);
+}
+
+.sg-important__item:first-child { border-inline-start: 0; padding-inline-start: 0; }
+
+.sg-tag {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 8px;
+  background: var(--sg-tint);
+  color: var(--sg-acc);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sg-important__title { font-size: 21px; font-weight: 500; line-height: 1.3; }
+.sg-meta { font-size: 14px; color: var(--sg-dim); }
+
+/* ── band, stream and "in brief" (B5, B10) ──────────────────────────────── */
+
+.sg-band {
+  margin-block-start: 0;
+  padding-block: 36px 60px;
+  background: var(--sg-band);
+}
+
+/* One column today; #465 adds <aside class="sg-side"> and the grid gains the
+   330px side column with no change here. */
+.sg-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+@media (min-width: 901px) {
+  .sg-cols:has(> .sg-side) { grid-template-columns: minmax(0, 1fr) 330px; }
+}
+
+.sg-main { display: flex; flex-direction: column; gap: 36px; min-inline-size: 0; }
+
+.sg-sech {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-block-end: 12px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.sg-sech span { font-size: 14px; font-weight: 400; color: var(--sg-dim); }
+.sg-sech .sg-sech__count { margin-inline-start: auto; font-weight: 700; color: var(--sg-ink); }
+
+.sg-stream {
+  background: var(--sg-card);
+  border: 1px solid var(--sg-line);
+}
+
+/* Three lines: meta (with the actions at its inline end), headline, why. On a
+   phone the actions move below the why line instead of hiding (#464). */
+.sg-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "by acts"
+    "title title"
+    "why why"
+    "members members";
+  align-items: center;
+  gap: 5px 12px;
+  padding: 18px 26px;
+  border-block-end: 1px solid var(--sg-line);
+  transition: background-color 0.15s;
+}
+
+.sg-row:last-child { border-block-end: 0; }
+
+/* Hover: tint ground and a 4px accent edge on the inline start. */
+.sg-row::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 4px;
+  background: var(--sg-acc);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.sg-row:hover { background: var(--sg-tint); }
+.sg-row:hover::before { opacity: 1; }
+
+.sg-row__by {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 13.5px;
+  color: var(--sg-dim);
+}
+
+.sg-row__src { min-inline-size: 0; }
+.sg-row__by { grid-area: by; min-inline-size: 0; }
+.sg-feed .sg-row__acts { grid-area: acts; }
+.sg-row__why { grid-area: why; }
+.sg-row .sg-members { grid-area: members; }
+
+.sg-row__title { grid-area: title; font-size: 21px; font-weight: 600; line-height: 1.3; }
+
+.sg-why { font-size: 14.5px; color: var(--sg-dim); }
+.sg-why b { color: var(--sg-ink); font-weight: 700; }
+
+/* Headline underline grows from the inline start (2px accent). */
+.sg-headline-link {
+  background: linear-gradient(var(--sg-acc), var(--sg-acc)) no-repeat;
+  background-position: var(--sg-start-x) 100%;
+  background-size: 0 2px;
+  transition: background-size 0.25s var(--sg-ease);
+}
+
+.sg-headline-link:hover,
+.sg-headline-link:focus-visible { background-size: 100% 2px; }
+
+.sg-lead .sg-headline-link { background-image: linear-gradient(var(--sg-slab-fg), var(--sg-slab-fg)); }
+
+/* Cluster badge: ink ground, card text; a button that reveals the members. */
+.sg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-end: 6px;
+  padding: 1px 7px;
+  border: 0;
+  background: var(--sg-ink);
+  color: var(--sg-card);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.6;
+  vertical-align: 1px;
+  cursor: pointer;
+}
+
+.sg-badge__chev { transition: transform 0.15s; }
+.sg-badge[aria-expanded="true"] .sg-badge__chev { transform: rotate(180deg); }
+.sg-badge:focus-visible { outline-color: var(--sg-ink); }
+
+.sg-source-link { text-decoration: underline; text-decoration-color: var(--sg-line); text-underline-offset: 3px; }
+.sg-source-link:hover { text-decoration-color: currentColor; }
+.sg-lead .sg-source-link { text-decoration-color: currentColor; }
+
+.sg-members {
+  display: flex;
+  flex-direction: column;
+  margin-block-start: 4px;
+  border-inline-start: 2px solid var(--sg-line);
+}
+
+.sg-members__item {
+  display: block;
+  padding-block: 5px;
+  padding-inline: 12px 0;
+  font-size: 14px;
+  color: var(--sg-dim);
+}
+
+.sg-members__item b { color: var(--sg-ink); font-weight: 700; }
+.sg-members__title { display: block; color: var(--sg-ink); }
+a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-decoration-color: var(--sg-acc); }
+
+.sg-more {
+  display: block;
+  margin-inline: auto;
+  margin-block-start: 18px;
+  padding: 8px 18px;
+  border: 1px solid var(--sg-line);
+  border-radius: 999px;
+  background: var(--sg-card);
+  color: var(--sg-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sg-more:hover { border-color: var(--sg-acc); color: var(--sg-acc); }
+
+/* "In brief": the low_feed stories, a box in the side column's style (B11). */
+.sg-brief {
+  padding: 18px 22px 8px;
+  background: var(--sg-card);
+  border: 1px solid var(--sg-line);
+  border-block-start: 3px solid var(--sg-acc);
+}
+
+.sg-brief__heading { margin-block-end: 6px; font-size: 16px; font-weight: 800; }
+
+.sg-brief__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-block: 11px;
+  border-block-start: 1px solid var(--sg-line);
+}
+
+.sg-brief__title { font-size: 15.5px; font-weight: 600; line-height: 1.35; }
+
+.sg-brief__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 4px;
+  font-size: 12.5px;
+  color: var(--sg-dim);
+}
+
+.sg-brief .sg-more { margin-block: 10px; }
+
+.sg-filter-empty {
+  padding-block: 24px 60px;
+  text-align: center;
+  color: var(--sg-dim);
+}
+
+/* ── feedback actions (FeedbackControls, restyled in place) ─────────────────
+   Always visible, at every width: the mock hid them under 900px, which was not
+   approved (#464). The selectors outrank the component's utility classes. */
+
+.sg-feed .sg-acts {
+  margin-inline-start: auto;
+  display: inline-flex;
+}
+
+.sg-feed .sg-acts > div { gap: 2px; }
+
+.sg-feed .sg-acts button {
+  min-block-size: 28px;
+  padding: 2px 6px;
+  border-radius: 0;
+  background: none;
+  color: var(--sg-acc);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.sg-feed .sg-acts button:hover { background: var(--sg-tint); color: var(--sg-acc); }
+.sg-feed .sg-acts span[aria-hidden] { color: var(--sg-dim); }
+.sg-feed .sg-acts [role="status"],
+.sg-feed .sg-acts [role="alert"] { color: var(--sg-dim); font-size: 13px; }
+.sg-feed .sg-acts svg { color: var(--sg-acc); }
+
+.sg-feed .sg-acts [role="menu"] {
+  background: var(--sg-card);
+  border: 1px solid var(--sg-line);
+  border-radius: 0;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+
+.sg-feed .sg-acts [role="menu"] button {
+  color: var(--sg-ink);
+  font-weight: 500;
+  text-align: start;
+}
+
+.sg-feed .sg-acts--quiet { margin-inline-start: 0; }
+.sg-feed .sg-acts--quiet button { color: var(--sg-dim); font-weight: 600; padding-inline: 0 8px; }
+.sg-feed .sg-acts--quiet button:hover { color: var(--sg-acc); background: none; }
+.sg-brief__meta .sg-acts--quiet { margin-inline-start: auto; }
+
+.sg-feed .sg-acts--slab { margin-inline-start: 0; }
+.sg-feed .sg-acts--slab button,
+.sg-feed .sg-acts--slab span[aria-hidden],
+.sg-feed .sg-acts--slab [role="status"],
+.sg-feed .sg-acts--slab [role="alert"],
+.sg-feed .sg-acts--slab svg { color: var(--sg-slab-fg); }
+.sg-feed .sg-acts--slab button:hover { background: none; text-decoration: underline; color: var(--sg-slab-fg); }
+.sg-feed .sg-acts--slab [role="menu"] button { color: var(--sg-ink); }
+
+/* ── loading / empty / error (feedBodyState) ─────────────────────────────── */
+
+.sg-state {
+  padding-block: 48px 72px;
+  text-align: center;
+}
+
+.sg-state h2 { font-size: 22px; font-weight: 800; }
+.sg-state p { max-inline-size: 34em; margin-inline: auto; margin-block-start: 8px; color: var(--sg-dim); }
+.sg-state .sg-more { margin-block-start: 20px; }
+.sg-state a.sg-more { display: inline-block; }
+
+.sg-skeleton { display: flex; flex-direction: column; gap: 14px; padding-block: 20px 60px; }
+/* Static on purpose: nothing loops for decoration (B12). */
+.sg-skeleton i {
+  display: block;
+  block-size: 18px;
+  background: var(--sg-band);
+}
+.sg-skeleton i:nth-child(1) { inline-size: 40%; margin-inline: auto; }
+.sg-skeleton i:nth-child(2) { inline-size: 60%; margin-inline: auto; block-size: 30px; }
+.sg-skeleton i:nth-child(n + 3) { block-size: 74px; }
+
+/* ── motion: what the mock has, nothing more (B12; more is #467) ──────────── */
+
+@keyframes sg-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sg-pulse {
+  0% { box-shadow: 0 0 0 0 var(--sg-hot); }
+  70% { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sg-feed *,
+  .sg-feed *::before { animation: none !important; transition: none !important; }
+}
+
+/* ── narrow (the mock's 900px breakpoint; phone layout unverified per #475) ── */
+
+@media (max-width: 900px) {
+  .sg-feed__head { align-items: stretch; padding-block: 16px 22px; }
+  .sg-pills {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    /* room for the focus outline inside the scroller */
+    padding: 3px;
+    margin: -3px;
+  }
+  .sg-pills::-webkit-scrollbar { display: none; }
+
+  .sg-lead { padding: 20px; }
+  .sg-lead__row { grid-template-columns: minmax(0, 1fr); }
+  .sg-lead__row > span:empty { display: none; }
+  .sg-lead__deco i { inline-size: 40px; }
+
+  .sg-important { grid-template-columns: minmax(0, 1fr); padding-block-end: 28px; }
+  .sg-important__item,
+  .sg-important__item:first-child {
+    padding-inline: 0;
+    padding-block: 16px;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--sg-line);
+  }
+
+  .sg-band { padding-block: 24px 40px; }
+  .sg-row {
+    padding: 16px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "by" "title" "why" "acts" "members";
+  }
+  .sg-feed .sg-row__acts { justify-self: end; margin-block-start: -2px; }
+  .sg-row__title { font-size: 19px; }
+  .sg-feed .sg-acts button { min-block-size: 32px; }
+}

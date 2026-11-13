@@ -4,6 +4,7 @@ import SignalWordmark from "@/components/signal-ui/SignalWordmark";
 import { getDecisionConfig } from "@/components/feed/decisionConfig";
 import "@/components/signal-ui/signal-ui.css";
 import "./lab.css";
+import FeedLab from "./FeedLab";
 
 const GROUNDS = [
   { id: "light", name: "לבן (ברירת מחדל)" },
@@ -84,6 +85,8 @@ function Ground({ id, name }) {
 }
 
 export default function LabApp() {
+  // lab.html?page=feed opens the feed lab (#464); the default is the specimen (#462).
+  if (new URLSearchParams(window.location.search).get("page") === "feed") return <FeedLab />;
   return (
     <main className="lab-page">
       {GROUNDS.map((ground) => (

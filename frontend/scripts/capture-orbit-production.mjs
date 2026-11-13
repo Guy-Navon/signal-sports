@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * Local production-view review harness for Orbit Field.
+ * Local production-view review harness for the consumer feed.
  *
  * Starts the real Vite application in local-data mode, renders exact desktop
- * and mobile viewports in Chrome through CDP, expands a real local cluster,
- * audits RTL/overflow/runtime errors, and writes temporary review PNGs.
+ * and mobile viewports in Chrome through CDP, and asserts what the browser
+ * paints: placement by level (lead only with a push, important row, stream,
+ * "in brief"), the bounded stream page, league-pill filter latency and focus,
+ * the cluster disclosure, typography, RTL/overflow, dock occlusion and runtime
+ * errors. Writes temporary review PNGs.
+ *
+ * Adapted from the Orbit harness for the new feed in #464 with the same
+ * invariants; #473 renames it (capture:orbit is kept until then).
  */
 
 import { spawn } from "node:child_process";
@@ -199,13 +205,13 @@ async function assertOwnedInstance(client, child) {
       return {
         apiCalls: apiCalls.slice(0, 5),
         apiCallCount: apiCalls.length,
-        renderedOrbit: Boolean(document.querySelector(".orbit-feed-layout")),
-        queueTotal: document.querySelector(".orbit-queue__heading strong")?.innerText.trim() ?? null,
+        renderedFeed: Boolean(document.querySelector(".sg-feed .sg-summary")),
+        summary: document.querySelector(".sg-summary")?.textContent.replace(/\\s+/g, " ").trim() ?? null,
       };
     })()`
   );
-  if (!evidence.renderedOrbit) {
-    throw new Error(`The served page is not the Orbit feed: ${JSON.stringify(evidence)}`);
+  if (!evidence.renderedFeed) {
+    throw new Error(`The served page is not the consumer feed: ${JSON.stringify(evidence)}`);
   }
   if (evidence.apiCallCount > 0) {
     throw new Error(
@@ -339,154 +345,6 @@ async function evaluate(client, expression) {
   return response.result?.value;
 }
 
-async function loadApp(client) {
-  await client.send("Page.navigate", { url: origin });
-  return await evaluate(
-    client,
-    `(async () => {
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      const timeoutAt = performance.now() + 12000;
-      while (!document.querySelector(".orbit-feed-layout") && performance.now() < timeoutAt) {
-        await sleep(40);
-      }
-      if (!document.querySelector(".orbit-feed-layout")) throw new Error("Orbit feed did not render");
-      await document.fonts?.ready;
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-      await sleep(350);
-      const root = document.documentElement;
-      const body = document.body;
-      const core = document.querySelector(".orbit-core");
-      const coreRect = core?.getBoundingClientRect();
-      return {
-        width: innerWidth,
-        height: innerHeight,
-        clientWidth: root.clientWidth,
-        visualWidth: visualViewport?.width,
-        screenWidth: screen.width,
-        devicePixelRatio,
-        scrollX,
-        direction: root.dir,
-        language: root.lang,
-        scrollWidth: Math.max(root.scrollWidth, body.scrollWidth),
-        overflowing: Array.from(document.querySelectorAll("body *"))
-          .map((element) => {
-            const rect = element.getBoundingClientRect();
-            return {
-              tag: element.tagName,
-              className: typeof element.className === "string" ? element.className.slice(0, 90) : "",
-              left: Math.round(rect.left),
-              right: Math.round(rect.right),
-              width: Math.round(rect.width),
-            };
-          })
-          .filter((element) => element.left < -1 || element.right > root.clientWidth + 1)
-          .slice(0, 18),
-        internallyWide: Array.from(document.querySelectorAll("body *"))
-          .map((element) => ({
-            tag: element.tagName,
-            className: typeof element.className === "string" ? element.className.slice(0, 90) : "",
-            clientWidth: element.clientWidth,
-            scrollWidth: element.scrollWidth,
-          }))
-          .filter((element) => element.scrollWidth > element.clientWidth + 1)
-          .sort((a, b) => (b.scrollWidth - b.clientWidth) - (a.scrollWidth - a.clientWidth))
-          .slice(0, 18),
-        title: document.querySelector(".orbit-feed-heading h1")?.textContent.trim(),
-        queueCount: document.querySelectorAll(".orbit-queue-story").length,
-        coreBounds: coreRect
-          ? { left: coreRect.left, right: coreRect.right, width: coreRect.width }
-          : null,
-        coreActionBounds: Array.from(
-          document.querySelectorAll(".orbit-core__actions button, .orbit-core__actions > a")
-        ).map((element) => {
-          const rect = element.getBoundingClientRect();
-          return {
-            left: rect.left,
-            right: rect.right,
-            width: rect.width,
-            label: element.getAttribute("aria-label") || element.textContent.trim(),
-          };
-        }),
-      };
-    })()`
-  );
-}
-
-async function focusFirstCluster(client) {
-  return await evaluate(
-    client,
-    `(async () => {
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      const row = Array.from(document.querySelectorAll(".orbit-queue-story"))
-        .find((story) => story.querySelector(".orbit-queue-story__cluster"));
-      if (!row) throw new Error("No cluster row is available");
-      row.querySelector(".orbit-queue-story__main").click();
-      let action = null;
-      const timeoutAt = performance.now() + 2500;
-      while (!action && performance.now() < timeoutAt) {
-        action = document.querySelector(".orbit-core .orbit-primary-action");
-        if (!(action instanceof HTMLButtonElement)) action = null;
-        if (!action) await sleep(50);
-      }
-      if (!(action instanceof HTMLButtonElement)) throw new Error("Cluster action is unavailable");
-      await sleep(100);
-      return {
-        focused: true,
-        compactSources: document.querySelectorAll(".orbit-satellite").length,
-        focusMovedToCore: document.activeElement?.classList.contains("orbit-core") ?? false,
-      };
-    })()`
-  );
-}
-
-async function expandFocusedCluster(client) {
-  return await evaluate(
-    client,
-    `(async () => {
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      const action = document.querySelector(".orbit-core .orbit-primary-action");
-      if (!(action instanceof HTMLButtonElement)) throw new Error("Cluster action is unavailable");
-      action.click();
-      await sleep(450);
-      return {
-        expanded: Boolean(document.querySelector(".orbit-cluster")),
-        sourceCount: document.querySelectorAll(".orbit-report").length,
-        focusMovedToClose:
-          document.activeElement?.classList.contains("orbit-close-action") ?? false,
-      };
-    })()`
-  );
-}
-
-async function closeExpandedCluster(client) {
-  return await evaluate(
-    client,
-    `(async () => {
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      const close = document.querySelector(".orbit-close-action");
-      if (!(close instanceof HTMLButtonElement)) throw new Error("Cluster close is unavailable");
-      close.click();
-      // Poll for BOTH outcomes. Sampling focus once, at the moment the cluster
-      // happens to unmount, raced the exit animation: under normal motion the
-      // collapse completes at a different time than the focus hand-off, so a
-      // single sample could catch either side of it.
-      const timeoutAt = performance.now() + 2500;
-      let collapsed = false;
-      let focusRestored = false;
-      // Poll for BOTH outcomes: sampling focus once, at whatever moment the
-      // cluster happens to unmount, raced the exit animation.
-      while (performance.now() < timeoutAt) {
-        collapsed = !document.querySelector(".orbit-cluster");
-        focusRestored =
-          document.activeElement?.classList.contains("orbit-primary-action") ?? false;
-        if (collapsed && focusRestored) break;
-        await sleep(40);
-      }
-      return { collapsed, focusRestored };
-    })()`
-  );
-}
-
 async function capture(client, filename) {
   const result = await client.send("Page.captureScreenshot", {
     format: "png",
@@ -532,297 +390,494 @@ function assertLayout(label, metrics, expectedWidth) {
   }
 }
 
+async function loadApp(client) {
+  await client.send("Page.navigate", { url: origin });
+  return await evaluate(
+    client,
+    `(async () => {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const timeoutAt = performance.now() + 12000;
+      const ready = () => document.querySelector(".sg-feed .sg-summary") &&
+        document.querySelector(".sg-feed [data-decision]");
+      while (!ready() && performance.now() < timeoutAt) {
+        await sleep(40);
+      }
+      if (!ready()) throw new Error("The feed did not render");
+      await document.fonts?.ready;
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      await sleep(350);
+      const root = document.documentElement;
+      const body = document.body;
+      const describe = (element) =>
+        typeof element.className === "string" ? element.className.slice(0, 90) : "";
+      return {
+        width: innerWidth,
+        height: innerHeight,
+        clientWidth: root.clientWidth,
+        visualWidth: visualViewport?.width,
+        screenWidth: screen.width,
+        devicePixelRatio,
+        scrollX,
+        direction: root.dir,
+        language: root.lang,
+        scrollWidth: Math.max(root.scrollWidth, body.scrollWidth),
+        overflowing: Array.from(document.querySelectorAll("body *"))
+          .map((element) => {
+            const rect = element.getBoundingClientRect();
+            return {
+              tag: element.tagName,
+              className: describe(element),
+              left: Math.round(rect.left),
+              right: Math.round(rect.right),
+              width: Math.round(rect.width),
+            };
+          })
+          // Rows that may overflow scroll inside themselves (A2): the pills.
+          .filter((element) => element.left < -1 || element.right > root.clientWidth + 1)
+          .slice(0, 18),
+        internallyWide: Array.from(document.querySelectorAll("body *"))
+          .map((element) => ({
+            tag: element.tagName,
+            className: describe(element),
+            clientWidth: element.clientWidth,
+            scrollWidth: element.scrollWidth,
+          }))
+          .filter((element) => element.scrollWidth > element.clientWidth + 1)
+          .sort((a, b) => (b.scrollWidth - b.clientWidth) - (a.scrollWidth - a.clientWidth))
+          .slice(0, 18),
+        title: document.querySelector(".sg-summary")?.textContent.replace(/\\s+/g, " ").trim(),
+        queueCount: document.querySelectorAll(".sg-row").length,
+        // Feedback must stay reachable on a phone (#464): every row carries its
+        // actions, painted, and inside the row's own bounds.
+        rowActions: Array.from(document.querySelectorAll(".sg-row")).slice(0, 8).map((row) => {
+          const rowRect = row.getBoundingClientRect();
+          const buttons = Array.from(row.querySelectorAll(".sg-acts button"));
+          return {
+            buttons: buttons.length,
+            clipped: buttons.some((button) => {
+              const rect = button.getBoundingClientRect();
+              return rect.width === 0 || rect.height === 0 ||
+                rect.left < rowRect.left - 1 || rect.right > rowRect.right + 1;
+            }),
+            minHeight: Math.min(...buttons.map((button) => Math.round(button.getBoundingClientRect().height))),
+          };
+        }),
+      };
+    })()`
+  );
+}
+
+function assertRowActions(label, metrics) {
+  if (!metrics.rowActions.length) {
+    throw new Error(`${label}: no stream rows rendered, so feedback reachability is unverified.`);
+  }
+  const broken = metrics.rowActions.filter((row) => row.buttons < 2 || row.clipped);
+  if (broken.length) {
+    throw new Error(
+      `${label}: feedback actions missing or clipped in ${broken.length} row(s): ` +
+        JSON.stringify(metrics.rowActions)
+    );
+  }
+}
+
 // ── Rendered-behaviour regressions ────────────────────────────────────────────
 //
-// These assert what the browser actually PAINTS, not what the config declares.
-// Pure config tests cannot cover this: `DECISION_CONFIG[...].orbit` once carried
-// a correct, fully-ordered type scale while every level still rendered at 16px,
-// because the ranking `h3` rules tied on specificity with a base rule declared
-// later in orbit.css and silently lost the cascade. Only computed styles catch
-// that, so it is measured here.
+// These assert what the browser actually PAINTS and PLACES, not what the
+// models declare. The models are unit-tested; only the browser proves that the
+// page in front of the reader follows them.
 
 /** Must match QUEUE_PAGE_SIZE in src/components/feed/orbit/orbitQueueMotion.js. */
 const EXPECTED_QUEUE_PAGE_SIZE = 40;
 
-/** Stale non-matching cards must be gone this fast after a filter click. */
+/** Must match IMPORTANT_ROW_SIZE in src/components/feed/signal/feedLayoutModel.js. */
+const EXPECTED_IMPORTANT_ROW_SIZE = 4;
+
+/** Stale non-matching stories must be gone this fast after a filter click. */
 const FILTER_LATENCY_BUDGET_MS = 100;
 
-const TONE_BY_LEVEL = { push: "push", high_feed: "high", feed: "feed", low_feed: "low" };
+/** Filled strokes of the signal mark per level (DECISION_CONFIG.strength, capped at 3). */
+const EXPECTED_FILLED = { low_feed: 1, feed: 2, high_feed: 3, push: 3 };
+
+/** Every placed story, everywhere on the page. */
+const STORY_SELECTOR = ".sg-feed [data-decision]";
+
+async function revealAllPages(client) {
+  await evaluate(
+    client,
+    `(async () => {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      for (let i = 0; i < 20; i += 1) {
+        const more = document.querySelector(".sg-feed .sg-more:not(.sg-filter-empty .sg-more)");
+        if (!more) break;
+        more.click();
+        await sleep(160);
+      }
+    })()`
+  );
+}
 
 /**
- * Filter latency, measured inside the page so CDP round-trips cannot inflate it.
- * Returns how long a non-matching card survived in the DOM after the click.
+ * Where each level lands, read off the painted page with every page revealed:
+ * lead only for a push, the important row, the stream, "in brief".
  */
-async function auditFilterLatency(client, level) {
-  const tone = TONE_BY_LEVEL[level];
+async function auditPlacement(client) {
+  await revealAllPages(client);
+  return await evaluate(
+    client,
+    `(() => {
+      const numbers = Array.from(document.querySelectorAll(".sg-summary b"))
+        .map((node) => Number.parseInt(node.textContent, 10));
+      const decisions = (selector) =>
+        Array.from(document.querySelectorAll(selector)).map((node) => node.dataset.decision);
+      const marks = Array.from(document.querySelectorAll(".sg-feed [data-decision] .sg-strength"))
+        .map((mark) => {
+          const story = mark.closest("[data-decision]");
+          const strokes = Array.from(mark.querySelectorAll(".sg-strength__stroke"));
+          return {
+            decision: story.dataset.decision,
+            filled: strokes.filter((stroke) => stroke.hasAttribute("data-filled")).length,
+            role: mark.getAttribute("role"),
+            label: mark.getAttribute("aria-label"),
+            filledColor: getComputedStyle(strokes[0]).backgroundColor,
+            emptyColor: getComputedStyle(strokes[2]).backgroundColor,
+          };
+        });
+      return {
+        summary: { stories: numbers[0], important: numbers[1] },
+        all: decisions(${JSON.stringify(STORY_SELECTOR)}),
+        lead: decisions(".sg-lead"),
+        leadTitleIsLink: Boolean(document.querySelector(".sg-lead__title a[href]")),
+        important: decisions(".sg-important__item"),
+        stream: decisions(".sg-row"),
+        brief: decisions(".sg-brief__item"),
+        marks,
+      };
+    })()`
+  );
+}
+
+function assertPlacement(label, placement) {
+  const fail = (message) => {
+    throw new Error(`${label}: ${message}: ${JSON.stringify(placement)}`);
+  };
+  const { summary, all, lead, important, stream, brief, marks } = placement;
+  const count = (list, decision) => list.filter((value) => value === decision).length;
+
+  if (all.length === 0) fail("no stories were placed, so placement is unverified");
+  if (all.some((decision) => !["push", "high_feed", "feed", "low_feed"].includes(decision))) {
+    fail("a story with a non-visible decision reached the page");
+  }
+  // Every visible story placed exactly once, and the summary line counts them.
+  if (summary.stories !== all.length) fail("the summary count differs from the stories placed");
+  if (summary.important !== count(all, "push") + count(all, "high_feed")) {
+    fail("the summary's important count is not push + high_feed");
+  }
+  // Lead only with a push, and then exactly one.
+  const pushes = count(all, "push");
+  if (pushes === 0 && lead.length !== 0) fail("a lead block rendered without a push");
+  if (pushes > 0 && (lead.length !== 1 || lead[0] !== "push")) fail("a push did not lead");
+  if (lead.length && !placement.leadTitleIsLink) fail("the lead headline does not link to the article");
+  // Important row: further pushes first, then high_feed, at most four.
+  if (important.length > EXPECTED_IMPORTANT_ROW_SIZE) fail("the important row holds more than four");
+  if (important.some((decision) => decision !== "push" && decision !== "high_feed")) {
+    fail("the important row holds a story below high_feed");
+  }
+  const firstHigh = important.indexOf("high_feed");
+  if (firstHigh >= 0 && important.slice(firstHigh).includes("push")) {
+    fail("a push sits after a high_feed story in the important row");
+  }
+  // The stream continues the ranked list: what did not fit the important row
+  // (pushes, then high_feed), then feed. Never low_feed, never out of rank.
+  const rank = { push: 3, high_feed: 2, feed: 1 };
+  if (stream.some((decision) => !(decision in rank))) {
+    fail("the stream holds a story that belongs elsewhere");
+  }
+  if (stream.some((decision, index) => index > 0 && rank[decision] > rank[stream[index - 1]])) {
+    fail("the stream is out of rank order");
+  }
+  if (
+    (stream.includes("push") || stream.includes("high_feed")) &&
+    important.length !== EXPECTED_IMPORTANT_ROW_SIZE
+  ) {
+    fail("an important story spilled into the stream while the important row had room");
+  }
+  if (brief.some((decision) => decision !== "low_feed")) fail("'in brief' holds a story above low_feed");
+
+  // The signal mark: filled count per level, an accessible name, push in its own colour.
+  if (!marks.length) fail("no signal marks rendered");
+  for (const mark of marks) {
+    if (mark.filled !== EXPECTED_FILLED[mark.decision]) {
+      fail(`a ${mark.decision} mark fills ${mark.filled} strokes`);
+    }
+    if (mark.role !== "img" || !mark.label) fail("a signal mark has no accessible name");
+  }
+  const colorOf = (decision) => marks.find((mark) => mark.decision === decision)?.filledColor;
+  const pushColor = colorOf("push");
+  const highColor = colorOf("high_feed");
+  if (pushColor && highColor && pushColor === highColor) {
+    fail("push and high_feed marks paint the same colour");
+  }
+  const feedMark = marks.find((mark) => mark.decision === "feed");
+  if (feedMark && feedMark.filledColor === feedMark.emptyColor) {
+    fail("filled and empty strokes paint the same colour");
+  }
+}
+
+/**
+ * League pill filtering, measured inside the page so CDP round-trips cannot
+ * inflate it: how long a non-matching story survived after the click, and
+ * where focus is afterwards.
+ */
+async function auditFilterLatency(client) {
   return await evaluate(
     client,
     `(async () => {
-      const stale = () => Array.from(document.querySelectorAll(".orbit-queue-story"))
-        .filter((story) => !story.classList.contains("orbit-queue-story--${tone}")).length;
-      const chip = document.querySelector(".orbit-filter--${tone}");
-      if (!chip) throw new Error("Filter chip .orbit-filter--${tone} is missing");
-      const before = document.querySelectorAll(".orbit-queue-story").length;
+      const pill = document.querySelector(".sg-pill[data-filter]");
+      if (!pill) throw new Error("No league pill rendered");
+      const id = pill.dataset.filter;
+      const stories = () => Array.from(document.querySelectorAll(${JSON.stringify(STORY_SELECTOR)}));
+      const stale = () => stories().filter((story) => story.dataset.league !== id).length;
+      const before = stories().length;
       const staleBefore = stale();
+      const summaryBefore = document.querySelector(".sg-summary")?.textContent;
+      pill.focus();
       const started = performance.now();
-      chip.click();
+      pill.click();
       let clearedAt = null;
       while (performance.now() - started < 3000) {
         if (stale() === 0) { clearedAt = performance.now() - started; break; }
         await new Promise((resolve) => requestAnimationFrame(resolve));
       }
+      await new Promise((resolve) => setTimeout(resolve, 120));
       return {
-        level: "${level}",
+        filter: id,
         before,
         staleBefore,
-        after: document.querySelectorAll(".orbit-queue-story").length,
+        after: stories().length,
         clearedMs: clearedAt,
-        resultLabel: document.querySelector(".orbit-filters__result")?.innerText.replace(/\\n/g, " ").trim() ?? null,
+        pressed: pill.getAttribute("aria-pressed"),
+        allPressed: document.querySelector(".sg-pill--all")?.getAttribute("aria-pressed"),
+        focusStayedOnPill: document.activeElement === pill,
+        summaryUnchanged: document.querySelector(".sg-summary")?.textContent === summaryBefore,
       };
     })()`
   );
+}
+
+function assertFilterLatency(label, latency) {
+  const fail = (message) => {
+    throw new Error(`${label}: ${message}: ${JSON.stringify(latency)}`);
+  };
+  if (latency.staleBefore === 0) {
+    fail("filter audit is vacuous — no non-matching stories were on screen before filtering");
+  }
+  if (latency.after === 0) fail("the selected league shows nothing, though its pill counted stories");
+  if (latency.clearedMs === null) fail("stale stories never cleared");
+  if (latency.clearedMs > FILTER_LATENCY_BUDGET_MS) {
+    fail(`stale stories survived ${Math.round(latency.clearedMs)}ms, budget is ${FILTER_LATENCY_BUDGET_MS}ms`);
+  }
+  if (latency.pressed !== "true" || latency.allPressed !== "false") {
+    fail("the pills do not report the selection");
+  }
+  if (!latency.focusStayedOnPill) fail("focus left the pill that was pressed");
+  if (!latency.summaryUnchanged) fail("filtering changed the summary line (it counts the whole feed)");
 }
 
 async function resetFilters(client) {
   await evaluate(
     client,
     `(async () => {
-      const all = Array.from(document.querySelectorAll(".orbit-filter"))
-        .find((button) => !button.className.includes("orbit-filter--"));
-      all?.click();
+      document.querySelector(".sg-pill--all")?.click();
       await new Promise((resolve) => requestAnimationFrame(resolve));
     })()`
   );
   await delay(220);
 }
 
-/** Initial page is bounded, and "show more" reveals exactly the next page. */
+/**
+ * The stream renders a bounded page. With more than a page of stream stories,
+ * "show more" reveals exactly the next page and moves focus to the first new
+ * row; with a page or less, every stream story is on screen and no control is.
+ */
 async function auditQueuePaging(client) {
   return await evaluate(
     client,
     `(async () => {
       const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      const count = () => document.querySelectorAll(".orbit-queue-story").length;
-      const more = () => document.querySelector(".orbit-queue__more");
-      const initial = count();
+      const rows = () => Array.from(document.querySelectorAll(".sg-row"));
+      const more = () => document.querySelector(".sg-stream-section .sg-more");
+      const numbers = Array.from(document.querySelectorAll(".sg-summary b"))
+        .map((node) => Number.parseInt(node.textContent, 10));
+      const placedOutsideStream = document.querySelectorAll(
+        ".sg-lead, .sg-important__item, .sg-brief__item").length;
+      const briefMore = document.querySelector(".sg-brief .sg-more");
+      const initial = rows().length;
       const hadMore = Boolean(more());
-      const moreLabel = more()?.innerText.replace(/\\n/g, " ").trim() ?? null;
-      const heading = document.querySelector(".orbit-queue__heading strong")?.innerText.trim() ?? null;
+      const heading = document.querySelector(".sg-sech__count")?.innerText.trim() ?? null;
       let afterOneMore = initial;
-      if (more()) { more().click(); await sleep(320); afterOneMore = count(); }
-      let revealedAll = afterOneMore;
-      for (let i = 0; i < 12 && more(); i += 1) { more().click(); await sleep(220); revealedAll = count(); }
-      return { initial, hadMore, moreLabel, heading, afterOneMore, revealedAll, moreGone: !more() };
-    })()`
-  );
-}
-
-/**
- * Computed signature per decision level, taken from cards the browser painted.
- * Every page is revealed first: low_feed sorts last and is not on page one.
- */
-async function auditDecisionSignatures(client) {
-  return await evaluate(
-    client,
-    `(async () => {
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      for (let i = 0; i < 12; i += 1) {
-        const more = document.querySelector(".orbit-queue__more");
-        if (!more) break;
-        more.click();
-        await sleep(200);
+      let focusMovedToNewRow = null;
+      if (more()) {
+        more().focus();
+        more().click();
+        await sleep(320);
+        afterOneMore = rows().length;
+        const active = document.activeElement;
+        focusMovedToNewRow = Boolean(active?.classList.contains("sg-headline-link") &&
+          rows().indexOf(active.closest(".sg-row")) === initial);
       }
-      const tones = ${JSON.stringify(TONE_BY_LEVEL)};
-      const signatures = {};
-      for (const [level, tone] of Object.entries(tones)) {
-        const card = document.querySelector(".orbit-queue-story--" + tone);
-        if (!card) { signatures[level] = null; continue; }
-        const heading = card.querySelector("h3");
-        const headingStyle = getComputedStyle(heading);
-        const signal = card.querySelector(".orbit-queue-signal");
-        const main = card.querySelector(".orbit-queue-story__main");
-        signatures[level] = {
-          tone,
-          fontSize: Number.parseFloat(headingStyle.fontSize),
-          fontWeight: Number.parseInt(headingStyle.fontWeight, 10),
-          color: headingStyle.color,
-          lineClamp: headingStyle.webkitLineClamp,
-          signalColor: signal ? getComputedStyle(signal).color : null,
-          padding: getComputedStyle(main).padding,
-          hasSubtitle: Boolean(card.querySelector(".orbit-queue-story__main > p")),
-          railColor: getComputedStyle(card, "::before").backgroundColor,
-          railed: card.classList.contains("orbit-queue-story--railed"),
-        };
-      }
-      const railedTones = Array.from(document.querySelectorAll(".orbit-queue-story--railed"))
-        .map((card) => Array.from(card.classList)
-          .find((name) => /^orbit-queue-story--(push|high|feed|low)$/.test(name)));
-      return { signatures, railedTones: Array.from(new Set(railedTones)) };
+      for (let i = 0; i < 12 && more(); i += 1) { more().click(); await sleep(220); }
+      return {
+        initial,
+        hadMore,
+        heading,
+        afterOneMore,
+        focusMovedToNewRow,
+        revealedAll: rows().length,
+        moreGone: !more(),
+        streamTotal: numbers[0] - placedOutsideStream,
+        briefPaged: Boolean(briefMore),
+      };
     })()`
   );
 }
 
 function assertQueuePaging(label, paging) {
-  if (paging.initial > EXPECTED_QUEUE_PAGE_SIZE) {
-    throw new Error(
-      `${label}: initial queue is not bounded — rendered ${paging.initial} cards, ` +
-        `expected at most ${EXPECTED_QUEUE_PAGE_SIZE}: ${JSON.stringify(paging)}`
-    );
+  const fail = (message) => {
+    throw new Error(`${label}: ${message}: ${JSON.stringify(paging)}`);
+  };
+  if (paging.briefPaged) fail("'in brief' is paged although the local corpus is small; recheck the audit");
+  if (paging.initial > EXPECTED_QUEUE_PAGE_SIZE) fail("the stream's first page is not bounded");
+  if (paging.revealedAll !== paging.streamTotal) {
+    fail("after revealing every page the stream does not hold every stream story");
   }
-  if (!paging.hadMore) {
-    throw new Error(
-      `${label}: expected a "show more" control with ${paging.initial} cards rendered. ` +
-        `The local corpus must exceed ${EXPECTED_QUEUE_PAGE_SIZE} visible stories for this ` +
-        `assertion to mean anything: ${JSON.stringify(paging)}`
-    );
+  if (paging.streamTotal <= EXPECTED_QUEUE_PAGE_SIZE) {
+    // One page holds everything: no control, nothing hidden. (The local corpus
+    // places exactly 40 stories in the stream, so the multi-page path, including
+    // focus moving to the first new row, is locked by SignalFeedView.test.jsx and
+    // feedLayoutModel.test.js rather than here; main() reports which path ran.)
+    if (paging.hadMore) fail("'show more' rendered although one page holds the stream");
+    if (paging.initial !== paging.streamTotal) fail("stream stories are missing from the only page");
+    return;
   }
-  if (paging.afterOneMore <= paging.initial) {
-    throw new Error(`${label}: "show more" revealed nothing: ${JSON.stringify(paging)}`);
+  if (paging.initial !== EXPECTED_QUEUE_PAGE_SIZE || !paging.hadMore) {
+    fail("a long stream must open on one full page with 'show more'");
   }
+  if (paging.heading !== `${EXPECTED_QUEUE_PAGE_SIZE}/${paging.streamTotal}`) {
+    fail("the heading does not show visible/total while more remain");
+  }
+  if (paging.afterOneMore <= paging.initial) fail("'show more' revealed nothing");
   if (paging.afterOneMore > paging.initial + EXPECTED_QUEUE_PAGE_SIZE) {
-    throw new Error(
-      `${label}: "show more" revealed more than one page ` +
-        `(${paging.initial} -> ${paging.afterOneMore}): ${JSON.stringify(paging)}`
-    );
+    fail("'show more' revealed more than one page");
   }
-  if (!paging.moreGone) {
-    throw new Error(`${label}: "show more" never exhausted: ${JSON.stringify(paging)}`);
-  }
+  if (!paging.focusMovedToNewRow) fail("focus did not move to the first newly revealed row");
+  if (!paging.moreGone) fail("'show more' never exhausted");
 }
 
-function assertFilterLatency(label, latency) {
-  if (latency.staleBefore === 0) {
-    throw new Error(
-      `${label}: filter audit is vacuous — no non-matching cards were on screen ` +
-        `before filtering: ${JSON.stringify(latency)}`
-    );
-  }
-  if (latency.clearedMs === null) {
-    throw new Error(`${label}: stale cards never cleared: ${JSON.stringify(latency)}`);
-  }
-  if (latency.clearedMs > FILTER_LATENCY_BUDGET_MS) {
-    throw new Error(
-      `${label}: stale cards survived ${Math.round(latency.clearedMs)}ms, budget is ` +
-        `${FILTER_LATENCY_BUDGET_MS}ms: ${JSON.stringify(latency)}`
-    );
-  }
+/**
+ * A multi-source story's members are reachable wherever it is placed. In the
+ * lead and the important row each named source links to its own report; in
+ * the stream the badge is a disclosure that keeps focus, lists every visible
+ * member once with a link, and closes.
+ */
+async function auditClusterDisclosure(client) {
+  return await evaluate(
+    client,
+    `(async () => {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const inline = Array.from(document.querySelectorAll(".sg-sources")).map((list) => {
+        const items = Array.from(list.querySelectorAll("[role=listitem]"));
+        return {
+          claimed: Number.parseInt(list.parentElement.querySelector(".sg-num")?.textContent, 10),
+          members: items.length,
+          linked: items.filter((item) => item.querySelector("a.sg-source-link[href]")).length,
+          names: items.map((item) => item.innerText.replace(/[·\\s]+/g, " ").trim()),
+        };
+      });
+      const badge = document.querySelector(".sg-row .sg-badge");
+      if (!badge) return { inline, disclosure: null };
+      badge.scrollIntoView({ block: "center", behavior: "instant" });
+      badge.focus();
+      const claimed = Number.parseInt(badge.textContent, 10);
+      badge.click();
+      await sleep(250);
+      const list = document.getElementById(badge.getAttribute("aria-controls"));
+      const members = list ? Array.from(list.querySelectorAll("li")) : [];
+      const opened = {
+        expanded: badge.getAttribute("aria-expanded"),
+        claimed,
+        members: members.length,
+        linked: members.filter((li) => li.querySelector("a.sg-members__item[href]")).length,
+        names: members.map((li) => li.querySelector("b")?.innerText.trim()),
+        focusOnBadge: document.activeElement === badge,
+      };
+      badge.click();
+      await sleep(250);
+      const closed = {
+        expanded: badge.getAttribute("aria-expanded"),
+        listGone: !document.getElementById(badge.getAttribute("aria-controls")),
+        focusOnBadge: document.activeElement === badge,
+      };
+      return { inline, disclosure: { opened, closed } };
+    })()`
+  );
 }
 
-function assertDecisionSignatures(label, audit) {
-  const { signatures, railedTones } = audit;
-  const levels = ["push", "high_feed", "feed", "low_feed"];
-
-  for (const level of levels) {
-    if (!signatures[level]) {
-      throw new Error(`${label}: no ${level} card rendered, so its signature is unverified.`);
-    }
+function assertClusterDisclosure(label, audit) {
+  const fail = (message) => {
+    throw new Error(`${label}: ${message}: ${JSON.stringify(audit)}`);
+  };
+  if (!audit.inline.length && !audit.disclosure) {
+    fail("no multi-source story rendered, so cluster reachability is unverified");
   }
-
-  // Type scale must be strictly descending as relevance drops.
-  for (let i = 1; i < levels.length; i += 1) {
-    const louder = signatures[levels[i - 1]];
-    const quieter = signatures[levels[i]];
-    if (!(louder.fontSize > quieter.fontSize)) {
-      throw new Error(
-        `${label}: ${levels[i - 1]} (${louder.fontSize}px) must render larger than ` +
-          `${levels[i]} (${quieter.fontSize}px): ${JSON.stringify(signatures)}`
-      );
-    }
-    if (!(louder.fontWeight >= quieter.fontWeight)) {
-      throw new Error(
-        `${label}: ${levels[i - 1]} must not render lighter than ${levels[i]}: ` +
-          JSON.stringify(signatures)
-      );
-    }
+  for (const cluster of audit.inline) {
+    if (cluster.members < 2) fail("a named cluster lists fewer than two sources");
+    if (cluster.linked !== cluster.members) fail("a named cluster source has no link to its report");
+    if (new Set(cluster.names).size !== cluster.names.length) fail("a source is named twice");
+    // Local mode hydrates clusters, so the count and the names must agree here.
+    if (cluster.claimed !== cluster.members) fail("a cluster's count and its named sources disagree");
   }
-
-  // Every level must paint a distinct signature — this is the regression that
-  // pure config tests missed.
-  const fingerprints = new Map();
-  for (const level of levels) {
-    const s = signatures[level];
-    const fingerprint = [s.fontSize, s.fontWeight, s.color, s.signalColor, s.padding].join("|");
-    if (fingerprints.has(fingerprint)) {
-      throw new Error(
-        `${label}: ${level} renders identically to ${fingerprints.get(fingerprint)}: ${fingerprint}`
-      );
-    }
-    fingerprints.set(fingerprint, level);
-  }
-
-  // feed vs low_feed specifically — they were pixel-identical before B1.
-  const feed = signatures.feed;
-  const low = signatures.low_feed;
-  const separations = [
-    feed.fontSize !== low.fontSize,
-    feed.fontWeight !== low.fontWeight,
-    feed.color !== low.color,
-    feed.signalColor !== low.signalColor,
-    feed.padding !== low.padding,
-  ].filter(Boolean).length;
-  if (separations < 3) {
-    throw new Error(
-      `${label}: feed and low_feed are separated on only ${separations} rendered axes: ` +
-        JSON.stringify({ feed, low })
-    );
-  }
-
-  // The rail belongs to push alone, in markup and in paint.
-  if (railedTones.length !== 1 || railedTones[0] !== "orbit-queue-story--push") {
-    throw new Error(
-      `${label}: the signal rail must appear on push only, saw ${JSON.stringify(railedTones)}`
-    );
-  }
-  if (!signatures.push.railed) {
-    throw new Error(`${label}: push card is missing the rail class.`);
-  }
-  const transparent = /rgba\(0, 0, 0, 0\)|transparent/;
-  if (transparent.test(signatures.push.railColor)) {
-    throw new Error(`${label}: push rail is painted transparent (${signatures.push.railColor}).`);
-  }
-  for (const level of ["high_feed", "feed", "low_feed"]) {
-    if (signatures[level].railed) {
-      throw new Error(`${label}: ${level} must not carry the rail class.`);
-    }
-    if (!transparent.test(signatures[level].railColor)) {
-      throw new Error(
-        `${label}: ${level} paints a rail (${signatures[level].railColor}); push only.`
-      );
-    }
-  }
+  // The local corpus places its clusters in the lead and the important row, so
+  // the stream disclosure is locked by SignalFeedView.test.jsx; main() reports
+  // whether it also ran here.
+  if (!audit.disclosure) return;
+  const { opened, closed } = audit.disclosure;
+  if (opened.expanded !== "true") fail("the cluster badge did not open");
+  if (opened.members < 2) fail("an open cluster lists fewer than two sources");
+  if (opened.linked !== opened.members) fail("a cluster member has no link to its report");
+  if (new Set(opened.names).size !== opened.names.length) fail("a source is listed twice");
+  // Local mode hydrates clusters, so the badge and the list must agree here.
+  if (opened.claimed !== opened.members) fail("the badge count and the member list disagree");
+  if (!opened.focusOnBadge) fail("opening the cluster moved focus off the badge");
+  if (closed.expanded !== "false" || !closed.listGone) fail("the cluster did not close");
+  if (!closed.focusOnBadge) fail("closing the cluster moved focus off the badge");
 }
 
 // ── Typography ────────────────────────────────────────────────────────────────
 //
-// The serif is a PRODUCT-ONLY display face. Source CSS cannot prove that: a
-// token redefinition, a stray `h1` rule or a Tailwind `font-display` utility
-// could silently pull it into Ops or Auth. These assertions read the computed
-// family off elements the browser actually painted, after document.fonts.ready
-// so a pending download can never be mistaken for a fallback.
+// Assistant is the feed's text face; Karantina is the lead headline's face and
+// nothing else (B3). Source CSS cannot prove that, so the computed family is
+// read off painted elements, after document.fonts.ready.
 
+const TEXT_FAMILY = "assistant";
+const LEAD_FAMILY = "karantina";
 const SERIF_FAMILY = "frank ruhl libre";
 const SANS_FAMILY = "heebo";
 
-/** Consumer display surfaces that MUST render serif. */
-const SERIF_SURFACES = {
-  feedHeadingH1: ".orbit-feed-heading h1",
-  compactCoreHeadline: ".orbit-core h2",
+/** Feed text surfaces that MUST render Assistant. */
+const TEXT_SURFACES = {
+  summary: ".sg-summary",
+  pill: ".sg-pill",
+  importantHeadline: ".sg-important__title",
+  streamHeading: ".sg-sech",
+  streamHeadline: ".sg-row__title",
+  streamMeta: ".sg-row__by",
+  whyLine: ".sg-row__why",
+  feedbackAction: ".sg-row .sg-acts button",
+  briefHeadline: ".sg-brief__title",
 };
 
-/** Everything else in the consumer feed MUST stay sans. */
-const SANS_SURFACES = {
-  queueHeadline: ".orbit-queue-story h3",
-  queueLevelLabel: ".orbit-queue-signal",
-  filterChip: ".orbit-filter",
-  coreMetadata: ".orbit-core__meta",
-  deskVoice: ".orbit-core__reason button",
-  primaryAction: ".orbit-primary-action",
-  queueHeading: ".orbit-queue__heading h2",
-};
-
-// The consumer shell chrome (#463) is Signal UI, not Orbit: Assistant, never
-// the Orbit serif.
-const SHELL_FAMILY = "assistant";
+// The consumer shell chrome (#463) is Signal UI too: Assistant, never the
+// Orbit serif.
 const SHELL_SURFACES = {
   navigation: ".sg-topbar__link",
   wordmark: ".sg-wordmark",
@@ -854,7 +909,7 @@ async function readFamilies(client, selectorMap) {
   );
 }
 
-function assertFamilies(label, families, expected) {
+function assertFamilies(label, families, expectedFamily) {
   for (const [name, probe] of Object.entries(families)) {
     // Guard against a vacuous pass: a missing element must fail, not skip.
     if (!probe.present) {
@@ -862,19 +917,40 @@ function assertFamilies(label, families, expected) {
         `${label}: ${name} (${probe.selector}) did not render, so its typography is unverified.`
       );
     }
-    const actual = probe.family.toLowerCase();
-    const matches = expected === "serif"
-      ? actual.includes(SERIF_FAMILY)
-      : expected === "shell"
-        ? actual.includes(SHELL_FAMILY)
-        : actual.includes(SANS_FAMILY);
-    if (!matches) {
+    if (!probe.family.toLowerCase().includes(expectedFamily)) {
       throw new Error(
-        `${label}: ${name} should render ${expected} but computed "${probe.family}" ` +
+        `${label}: ${name} should render ${expectedFamily} but computed "${probe.family}" ` +
           `(${probe.selector}, weight ${probe.weight}, "${probe.text}")`
       );
     }
   }
+}
+
+/** Karantina only on the lead headline; no Orbit serif anywhere on the feed. */
+async function auditFeedFaces(client) {
+  return await evaluate(
+    client,
+    `(async () => {
+      await document.fonts.ready;
+      const family = (element) => getComputedStyle(element).fontFamily.toLowerCase();
+      const all = Array.from(document.querySelectorAll(".sg-feed *"));
+      const describe = (element) => (element.tagName + "." +
+        (typeof element.className === "string" ? element.className : "")).slice(0, 70);
+      const lead = document.querySelector(".sg-lead__title");
+      return {
+        leadPresent: Boolean(lead),
+        leadFamily: lead ? family(lead).split(",")[0].replace(/["']/g, "").trim() : null,
+        karantinaElsewhere: all
+          .filter((element) => !element.closest(".sg-lead__title"))
+          .filter((element) => family(element).startsWith(${JSON.stringify(`"${LEAD_FAMILY}`)}) ||
+            family(element).startsWith(${JSON.stringify(LEAD_FAMILY)}))
+          .map(describe).slice(0, 5),
+        serifOnFeed: Array.from(document.querySelectorAll("main *"))
+          .filter((element) => family(element).includes(${JSON.stringify(SERIF_FAMILY)}))
+          .map(describe).slice(0, 5),
+      };
+    })()`
+  );
 }
 
 /** No serif may reach a non-product route, and the route must really render. */
@@ -911,8 +987,7 @@ async function auditNoSerifLeak(client, route, headingSelector) {
     })()`
   );
 
-  // A redirect would silently measure a different page — the feed's serif H1
-  // reads as a "leak" that is nothing of the sort. Fail on the redirect instead.
+  // A redirect would silently measure a different page. Fail on it instead.
   if (evidence.landedPath !== route) {
     throw new Error(
       `${route}: redirected to ${evidence.landedPath}, so this route proves nothing ` +
@@ -950,28 +1025,20 @@ async function auditNoSerifLeak(client, route, headingSelector) {
 
 async function auditTypography(client, label) {
   await loadApp(client);
-  const consumerSerif = await readFamilies(client, SERIF_SURFACES);
-  assertFamilies(label, consumerSerif, "serif");
-  const consumerSans = await readFamilies(client, SANS_SURFACES);
-  assertFamilies(label, consumerSans, "sans");
+  const text = await readFamilies(client, TEXT_SURFACES);
+  assertFamilies(label, text, TEXT_FAMILY);
   const shellChrome = await readFamilies(client, SHELL_SURFACES);
-  assertFamilies(label, shellChrome, "shell");
-
-  // The expanded cluster's central headline needs the cluster open.
-  await focusFirstCluster(client);
-  await expandFocusedCluster(client);
-  const expanded = await readFamilies(client, {
-    expandedCoreHeadline: ".orbit-cluster__core h3",
-  });
-  assertFamilies(label, expanded, "serif");
-  // The expansion's section heading is not a story headline — it stays sans.
-  const expandedChrome = await readFamilies(client, {
-    expandedSectionHeading: ".orbit-cluster__heading h2",
-    expandedSourceCard: ".orbit-report h3",
-    closeAction: ".orbit-close-action",
-  });
-  assertFamilies(label, expandedChrome, "sans");
-  await closeExpandedCluster(client);
+  assertFamilies(label, shellChrome, TEXT_FAMILY);
+  const faces = await auditFeedFaces(client);
+  if (faces.leadPresent && !faces.leadFamily.toLowerCase().includes(LEAD_FAMILY)) {
+    throw new Error(`${label}: the lead headline computed "${faces.leadFamily}", expected Karantina.`);
+  }
+  if (faces.karantinaElsewhere.length) {
+    throw new Error(`${label}: Karantina reached non-lead elements: ${JSON.stringify(faces.karantinaElsewhere)}`);
+  }
+  if (faces.serifOnFeed.length) {
+    throw new Error(`${label}: the Orbit serif reached the feed: ${JSON.stringify(faces.serifOnFeed)}`);
+  }
 
   // Auth (/login, /signup) is deliberately unreachable here: main.jsx redirects
   // those routes away in local/bypass mode, which is the mode this harness runs
@@ -989,163 +1056,7 @@ async function auditTypography(client, label) {
     leaks.push(await auditNoSerifLeak(client, route, heading));
   }
 
-  return {
-    label,
-    serif: consumerSerif,
-    expandedCore: expanded.expandedCoreHeadline,
-    sans: consumerSans,
-    shellChrome,
-    expandedChrome,
-    leaks,
-  };
-}
-
-// ── Focus transitions ─────────────────────────────────────────────────────────
-//
-// Orbit's focus management is ref-based; the decisions are unit-tested in
-// orbitFocusModel.test.js, but only a browser can prove that focus actually
-// lands on the element React handed us. In particular: while a cluster is
-// expanded, choosing a different queue story must collapse the old expansion
-// AND move focus onto the NEW story's core — the case the old
-// `cores[cores.length - 1]` lookup was guessing at.
-
-async function auditFocusTransitions(client, label) {
-  return await evaluate(
-    client,
-    `(async () => {
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      const settle = async () => { for (let i = 0; i < 40; i += 1) await sleep(25); };
-      const activeInfo = () => {
-        const el = document.activeElement;
-        return {
-          className: typeof el?.className === "string" ? el.className : null,
-          isCore: Boolean(el?.classList?.contains("orbit-core")),
-          isCloseAction: Boolean(el?.classList?.contains("orbit-close-action")),
-          isPrimaryAction: Boolean(el?.classList?.contains("orbit-primary-action")),
-          // Prove it is the CURRENT core, not an exiting AnimatePresence sibling.
-          isAttached: Boolean(el && document.querySelector(".orbit-field")?.contains(el)),
-        };
-      };
-      const coreTitle = () =>
-        document.querySelector(".orbit-field .orbit-core h2, .orbit-cluster__core h3")
-          ?.innerText.trim() ?? null;
-      const isExpanded = () => Boolean(document.querySelector(".orbit-cluster"));
-      const clusterRows = () => Array.from(document.querySelectorAll(".orbit-queue-story"))
-        .filter((row) => row.querySelector(".orbit-queue-story__cluster"));
-
-      const steps = {};
-
-      // 1. Choosing a queue story moves focus into that story's core.
-      const firstCluster = clusterRows()[0];
-      if (!firstCluster) throw new Error("No cluster row available for the focus audit");
-      const firstTitle = firstCluster.querySelector("h3")?.innerText.trim() ?? null;
-      firstCluster.querySelector(".orbit-queue-story__main").click();
-      await settle();
-      steps.afterQueueFocus = {
-        ...activeInfo(),
-        coreTitle: coreTitle(),
-        matchesChosenStory: coreTitle() === firstTitle,
-        expanded: isExpanded(),
-      };
-
-      // 2. Opening the cluster moves focus to the close control.
-      document.querySelector(".orbit-field .orbit-primary-action")?.click();
-      await settle();
-      steps.afterExpand = { ...activeInfo(), expanded: isExpanded() };
-
-      // 3. Switching stories WHILE EXPANDED must collapse and follow the new story.
-      const nextRow = Array.from(document.querySelectorAll(".orbit-queue-story"))[0];
-      const nextTitle = nextRow?.querySelector("h3")?.innerText.trim() ?? null;
-      nextRow?.querySelector(".orbit-queue-story__main").click();
-      await settle();
-      steps.afterSwitchWhileExpanded = {
-        ...activeInfo(),
-        coreTitle: coreTitle(),
-        matchesChosenStory: coreTitle() === nextTitle,
-        expanded: isExpanded(),
-      };
-
-      // 4. Closing restores focus to the control that opened it.
-      const reopen = clusterRows()[0];
-      if (reopen) {
-        reopen.querySelector(".orbit-queue-story__main").click();
-        await settle();
-        document.querySelector(".orbit-field .orbit-primary-action")?.click();
-        await settle();
-        document.querySelector(".orbit-close-action")?.click();
-        await settle();
-        steps.afterCollapse = { ...activeInfo(), expanded: isExpanded() };
-      }
-
-      return steps;
-    })()`
-  );
-}
-
-function assertFocusTransitions(label, steps) {
-  const fail = (message) => {
-    throw new Error(`${label}: ${message}: ${JSON.stringify(steps, null, 2)}`);
-  };
-
-  if (!steps.afterQueueFocus?.isCore) fail("choosing a queue story did not focus its core");
-  if (!steps.afterQueueFocus?.isAttached) fail("focus landed outside the live field");
-  if (!steps.afterQueueFocus?.matchesChosenStory) {
-    fail("focus landed on a core showing a different story");
-  }
-  if (steps.afterQueueFocus?.expanded) fail("choosing a story left the field expanded");
-
-  if (!steps.afterExpand?.isCloseAction) fail("expanding did not focus the close control");
-  if (!steps.afterExpand?.expanded) fail("expanding did not open the cluster");
-
-  // The regression the ref rewrite exists for.
-  if (steps.afterSwitchWhileExpanded?.expanded) {
-    fail("switching stories while expanded left the previous expansion open");
-  }
-  if (!steps.afterSwitchWhileExpanded?.isCore) {
-    fail("switching stories while expanded did not focus the new core");
-  }
-  if (!steps.afterSwitchWhileExpanded?.matchesChosenStory) {
-    fail("switching stories while expanded focused the wrong story's core");
-  }
-
-  if (steps.afterCollapse && !steps.afterCollapse.isPrimaryAction) {
-    fail("closing did not restore focus to the primary action");
-  }
-  if (steps.afterCollapse?.expanded) fail("closing did not collapse the cluster");
-}
-
-/** Mobile: choosing a story must still pull the stacked field into view. */
-async function auditFieldScroll(client, label) {
-  const result = await evaluate(
-    client,
-    `(async () => {
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      document.scrollingElement.scrollTop = 0;
-      await sleep(200);
-      const row = Array.from(document.querySelectorAll(".orbit-queue-story"))[3]
-        ?? Array.from(document.querySelectorAll(".orbit-queue-story"))[0];
-      if (!row) throw new Error("No queue row available for the scroll audit");
-      const before = document.scrollingElement.scrollTop;
-      row.querySelector(".orbit-queue-story__main").click();
-      for (let i = 0; i < 50; i += 1) await sleep(25);
-      const field = document.querySelector(".orbit-field");
-      return {
-        scrollTopBefore: Math.round(before),
-        scrollTopAfter: Math.round(document.scrollingElement.scrollTop),
-        fieldTop: Math.round(field.getBoundingClientRect().top),
-        viewportHeight: window.innerHeight,
-      };
-    })()`
-  );
-  // "block: start" means the field's top should end up near the top of the
-  // viewport, not left far below the fold.
-  if (result.fieldTop > result.viewportHeight * 0.5) {
-    throw new Error(
-      `${label}: the field was not scrolled into view after choosing a story: ` +
-        JSON.stringify(result)
-    );
-  }
-  return result;
+  return { label, text, shellChrome, faces, leaks };
 }
 
 // ── Mobile dock occlusion ─────────────────────────────────────────────────────
@@ -1202,10 +1113,8 @@ const OCCLUSION_PROBE = `(async (selector, describeActive) => {
     };
   };
 
-  // Spring layout animations mean a control can be transiently unreachable while
-  // it slides into place. That is not occlusion. Settle first: wait until the
-  // geometry stops moving (and the control is reachable, if it is going to be)
-  // before judging. A control that never settles reachable IS a failure.
+  // Settle first: wait until the geometry stops moving (and the control is
+  // reachable, if it is going to be) before judging.
   const settle = async () => {
     let previous = null;
     let stableFrames = 0;
@@ -1255,60 +1164,38 @@ async function probeControl(client, selector, { active = false } = {}) {
 }
 
 /**
- * Walk the real interaction sequence at a mobile width and prove that every
- * control the user is steered toward stays reachable: load, queue focus,
- * expand, collapse (which restores focus to the primary action).
+ * Every control a phone reader is steered toward stays reachable beside the
+ * fixed dock: the pills, a row's feedback actions (always shown, #464), the
+ * cluster badge and its member links, the last row's actions and "show more".
  */
 async function auditDockOcclusion(client, label) {
   const states = {};
-
   await loadApp(client);
   states.onLoad = {
-    primaryAction: await probeControl(client, ".orbit-core .orbit-primary-action"),
+    firstPill: await probeControl(client, ".sg-pill"),
+    firstRowMore: await probeControl(client, ".sg-row .sg-acts button"),
+    clusterBadge: await probeControl(client, ".sg-row .sg-badge"),
+    namedSourceLink: await probeControl(client, ".sg-sources a"),
   };
 
-  const focused = await focusFirstCluster(client);
-  states.afterQueueFocus = {
-    focusedCore: await probeControl(client, "", { active: true }),
-    primaryAction: await probeControl(client, ".orbit-core .orbit-primary-action"),
-  };
-
-  const expanded = await expandFocusedCluster(client);
-  states.afterExpand = {
-    closeAction: await probeControl(client, ".orbit-close-action"),
+  await evaluate(
+    client,
+    `(async () => {
+      document.querySelector(".sg-row .sg-badge")?.click();
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    })()`
+  );
+  states.afterClusterOpen = {
+    memberLink: await probeControl(client, ".sg-members a"),
     focusTarget: await probeControl(client, "", { active: true }),
   };
 
-  const closed = await closeExpandedCluster(client);
-  states.afterCollapse = {
-    restoredFocus: await probeControl(client, "", { active: true }),
-    primaryAction: await probeControl(client, ".orbit-core .orbit-primary-action"),
+  states.pageEnd = {
+    lastRowActions: await probeControl(client, ".sg-row:last-child .sg-acts button"),
+    showMore: await probeControl(client, ".sg-stream-section .sg-more"),
+    lastBriefHeadline: await probeControl(client, ".sg-brief__item:last-child .sg-headline-link"),
   };
-
-  // Worst case for the resting clearance: the tallest core this corpus can
-  // produce. Clearance at 320 is only a few px, so it is headline-sensitive and
-  // must be measured rather than assumed.
-  await loadApp(client);
-  const longest = await evaluate(
-    client,
-    `(async () => {
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      const rows = Array.from(document.querySelectorAll(".orbit-queue-story"));
-      if (!rows.length) return null;
-      const target = rows
-        .map((row) => ({ row, length: (row.querySelector("h3")?.innerText ?? "").length }))
-        .sort((a, b) => b.length - a.length)[0];
-      target.row.querySelector(".orbit-queue-story__main").click();
-      await sleep(900);
-      return { headlineLength: target.length };
-    })()`
-  );
-  states.longestHeadline = {
-    meta: longest,
-    primaryAction: await probeControl(client, ".orbit-core .orbit-primary-action"),
-  };
-
-  return { label, focused, expanded, closed, states };
+  return { label, states };
 }
 
 function assertDockOcclusion(audit) {
@@ -1317,9 +1204,7 @@ function assertDockOcclusion(audit) {
   for (const [stateName, controls] of Object.entries(states)) {
     for (const [controlName, probe] of Object.entries(controls)) {
       if (!probe?.present) continue;
-      if (probe.occluded) {
-        failures.push({ state: stateName, control: controlName, probe });
-      }
+      if (probe.occluded) failures.push({ state: stateName, control: controlName, probe });
     }
   }
   if (failures.length) {
@@ -1328,42 +1213,46 @@ function assertDockOcclusion(audit) {
         JSON.stringify(failures, null, 2)
     );
   }
-  // A pass must not be vacuous — the primary action has to have been seen.
-  if (!states.onLoad.primaryAction?.present) {
-    throw new Error(`${label}: no primary action was found to test.`);
+  // A pass must not be vacuous: these controls have to have been seen.
+  for (const [stateName, controlName] of [
+    ["onLoad", "firstPill"],
+    ["onLoad", "firstRowMore"],
+    ["pageEnd", "lastRowActions"],
+  ]) {
+    if (!states[stateName][controlName]?.present) {
+      throw new Error(`${label}: ${stateName}.${controlName} was not found to test.`);
+    }
+  }
+  // At least one way to a cluster's member reports must have been probed.
+  if (!states.onLoad.clusterBadge?.present && !states.onLoad.namedSourceLink?.present) {
+    throw new Error(`${label}: no cluster member control was found to test.`);
   }
   // Nor may it pass because the dock selector no longer matches anything.
-  if (states.onLoad.primaryAction.dockTop === null) {
+  if (states.onLoad.firstRowMore.dockTop === null) {
     throw new Error(`${label}: the phone dock (.sg-dock) was not found, so occlusion is unverified.`);
-  }
-
-  // Reachable-after-scrolling is the bar for occlusion, but the focused story's
-  // main call to action should not be sitting half under the dock at rest: at
-  // 320 it measured 28 of its 44px covered, leaving a ~16px tap target.
-  const onLoad = states.onLoad.primaryAction;
-  if (onLoad.initial?.coveredByDock) {
-    throw new Error(
-      `${label}: the primary action is partially under the dock at rest ` +
-        `(action ${JSON.stringify(onLoad.initial.rect)}, dock top ${onLoad.initial.dockTop}). ` +
-        `It is reachable after scrolling, but the resting tap target is clipped.`
-    );
   }
 }
 
 /** The whole rendered-behaviour suite, run at one motion preference. */
-async function auditOrbitRegressions(client, label) {
+async function auditFeedRegressions(client, label) {
+  await loadApp(client);
+  const placement = await auditPlacement(client);
+  assertPlacement(label, placement);
+
+  await loadApp(client);
   const paging = await auditQueuePaging(client);
   assertQueuePaging(label, paging);
 
   await loadApp(client);
-  const latency = await auditFilterLatency(client, "push");
+  const latency = await auditFilterLatency(client);
   assertFilterLatency(label, latency);
   await resetFilters(client);
 
-  const signatures = await auditDecisionSignatures(client);
-  assertDecisionSignatures(label, signatures);
+  await loadApp(client);
+  const cluster = await auditClusterDisclosure(client);
+  assertClusterDisclosure(label, cluster);
 
-  return { paging, latency, signatures: signatures.signatures };
+  return { placement, paging, latency, cluster };
 }
 
 async function stopProcess(child) {
@@ -1433,73 +1322,39 @@ async function main() {
     // Ownership proof must run before any assertion is trusted.
     const ownership = await assertOwnedInstance(client, vite);
     assertLayout("desktop", desktop, 1440);
-    await capture(client, path.join(outputDirectory, "orbit-production-desktop.png"));
+    assertRowActions("desktop", desktop);
+    await capture(client, path.join(outputDirectory, "feed-desktop.png"));
 
     // Rendered-behaviour regressions, reduced motion (the evidence pass).
-    const reducedMotionRegressions = await auditOrbitRegressions(
-      client,
-      "desktop reduced-motion"
-    );
+    const reducedMotionRegressions = await auditFeedRegressions(client, "desktop reduced-motion");
 
-    const focusedCluster = await focusFirstCluster(client);
-    if (focusedCluster.compactSources < 2 || !focusedCluster.focusMovedToCore) {
-      throw new Error(`Compact cluster audit failed: ${JSON.stringify(focusedCluster)}`);
-    }
-    await capture(client, path.join(outputDirectory, "orbit-production-cluster-focus.png"));
+    await loadApp(client);
+    await auditClusterDisclosure(client);
+    await evaluate(client, `document.querySelector(".sg-row .sg-badge")?.click()`);
+    await delay(250);
+    await capture(client, path.join(outputDirectory, "feed-cluster-open.png"));
 
-    const expanded = await expandFocusedCluster(client);
-    if (!expanded.expanded || expanded.sourceCount < 2 || !expanded.focusMovedToClose) {
-      throw new Error(`Expanded cluster audit failed: ${JSON.stringify(expanded)}`);
-    }
-    await capture(client, path.join(outputDirectory, "orbit-production-cluster.png"));
-    const closedCluster = await closeExpandedCluster(client);
-    if (!closedCluster.collapsed || !closedCluster.focusRestored) {
-      throw new Error(`Cluster close audit failed: ${JSON.stringify(closedCluster)}`);
-    }
-
-    await configureViewport(client, 390, 844, true);
-    const mobile = await loadApp(client);
-    assertLayout("mobile", mobile, 390);
-    await capture(client, path.join(outputDirectory, "orbit-production-mobile.png"));
-
-    await focusFirstCluster(client);
-    const mobileExpanded = await expandFocusedCluster(client);
-    if (
-      !mobileExpanded.expanded ||
-      mobileExpanded.sourceCount < 2 ||
-      !mobileExpanded.focusMovedToClose
-    ) {
-      throw new Error(`Mobile cluster audit failed: ${JSON.stringify(mobileExpanded)}`);
-    }
-    const mobileExpandedLayout = await currentLayout(client);
-    assertLayout("mobile expanded", mobileExpandedLayout, 390);
-    await capture(client, path.join(outputDirectory, "orbit-production-cluster-mobile.png"));
-
-    const narrowViewports = [
-      { width: 375, height: 812 },
-      { width: 320, height: 640 },
-    ];
-    for (const viewport of narrowViewports) {
-      await configureViewport(client, viewport.width, viewport.height, true);
+    const narrowViewports = [];
+    for (const [width, height] of [[390, 844], [375, 812], [320, 640]]) {
+      await configureViewport(client, width, height, true);
       const metrics = await loadApp(client);
-      assertLayout(`${viewport.width}px mobile`, metrics, viewport.width);
-      const clippedCoreAction = metrics.coreActionBounds.find(
-        (action) =>
-          action.left < metrics.coreBounds.left - 1 ||
-          action.right > metrics.coreBounds.right + 1
-      );
-      if (clippedCoreAction) {
-        throw new Error(
-          `${viewport.width}px mobile: core action is clipped: ${JSON.stringify({
-            coreBounds: metrics.coreBounds,
-            action: clippedCoreAction,
-          })}`
-        );
-      }
+      assertLayout(`${width}px mobile`, metrics, width);
+      assertRowActions(`${width}px mobile`, metrics);
+      await capture(client, path.join(outputDirectory, `feed-mobile-${width}.png`));
+      const cluster = await auditClusterDisclosure(client);
+      assertClusterDisclosure(`${width}px mobile`, cluster);
+      const openLayout = await currentLayout(client);
+      assertLayout(`${width}px mobile, cluster open`, openLayout, width);
+      narrowViewports.push({
+        width,
+        scrollWidth: metrics.scrollWidth,
+        rows: metrics.queueCount,
+        actionMinHeight: Math.min(...metrics.rowActions.map((row) => row.minHeight)),
+      });
     }
 
-    // Stable evidence images use reduced motion; this second pass exercises
-    // the spring/shared-layout interaction path that most users receive.
+    // The same suite under normal motion: the CSS entrance and hover motion
+    // run, so this pass would expose anything that only settles with motion off.
     await configureViewport(client, 1440, 1000, false, false);
     const normalMotionLayout = await loadApp(client);
     assertLayout("normal-motion desktop", normalMotionLayout, 1440);
@@ -1510,66 +1365,18 @@ async function main() {
     if (normalMotionPreference) {
       throw new Error("Normal-motion smoke unexpectedly received reduced motion.");
     }
-    const normalMotionFocused = await focusFirstCluster(client);
-    const normalMotionExpanded = await expandFocusedCluster(client);
-    const normalMotionClosed = await closeExpandedCluster(client);
-    if (
-      !normalMotionFocused.focusMovedToCore ||
-      !normalMotionExpanded.expanded ||
-      !normalMotionExpanded.focusMovedToClose ||
-      !normalMotionClosed.collapsed ||
-      !normalMotionClosed.focusRestored
-    ) {
-      throw new Error(
-        `Normal-motion interaction audit failed: ${JSON.stringify({
-          normalMotionFocused,
-          normalMotionExpanded,
-          normalMotionClosed,
-        })}`
-      );
-    }
+    const normalMotionRegressions = await auditFeedRegressions(client, "desktop normal-motion");
 
-    // The same rendered-behaviour suite under real springs. Reduced motion zeroes
-    // the enter stagger, so this pass is the one that would expose a stagger that
-    // grows with list length.
-    await loadApp(client);
-    const normalMotionRegressions = await auditOrbitRegressions(
-      client,
-      "desktop normal-motion"
-    );
-
-    // Product-only display serif, proven from computed styles under both motion
-    // preferences (font loading is motion-independent, but the run is not).
+    // Typography from computed styles under both motion preferences.
     const typographyAudits = [];
     for (const reducedMotion of [true, false]) {
       await configureViewport(client, 1440, 1000, false, reducedMotion);
       typographyAudits.push(
-        await auditTypography(
-          client,
-          `typography ${reducedMotion ? "reduced" : "normal"}-motion`
-        )
+        await auditTypography(client, `typography ${reducedMotion ? "reduced" : "normal"}-motion`)
       );
     }
 
-    // Ref-based focus, proven in the browser under both motion preferences.
-    const focusAudits = [];
-    for (const reducedMotion of [true, false]) {
-      const label = `desktop focus ${reducedMotion ? "reduced" : "normal"}-motion`;
-      await configureViewport(client, 1440, 1000, false, reducedMotion);
-      await loadApp(client);
-      const steps = await auditFocusTransitions(client, label);
-      assertFocusTransitions(label, steps);
-
-      const mobileLabel = `390px field scroll ${reducedMotion ? "reduced" : "normal"}-motion`;
-      await configureViewport(client, 390, 844, true, reducedMotion);
-      await loadApp(client);
-      const scroll = await auditFieldScroll(client, mobileLabel);
-
-      focusAudits.push({ label, steps, mobileScroll: { label: mobileLabel, ...scroll } });
-    }
-
-    // Fixed-dock occlusion across the real interaction sequence, at both narrow
-    // widths and both motion preferences.
+    // Fixed-dock occlusion at both narrow widths and both motion preferences.
     const dockAudits = [];
     for (const reducedMotion of [true, false]) {
       for (const [width, height] of [[390, 844], [320, 640]]) {
@@ -1579,32 +1386,16 @@ async function main() {
         assertDockOcclusion(audit);
         dockAudits.push({
           label,
-          dockTop: audit.states.onLoad.primaryAction?.dockTop ?? null,
-          primaryActionOnLoad: {
-            // `belowTheFold` vs `underDock` is the distinction that matters: the
-            // first is normal page flow, the second would be a real defect.
-            initial: {
-              rect: audit.states.onLoad.primaryAction?.initial?.rect ?? null,
-              belowTheFold: audit.states.onLoad.primaryAction?.initial?.outsideViewport ?? null,
-              underDock: audit.states.onLoad.primaryAction?.initial?.coveredByDock ?? null,
-              reachable: audit.states.onLoad.primaryAction?.initial?.reachable ?? null,
-            },
-            neededScroll: audit.states.onLoad.primaryAction?.neededScroll ?? null,
-            reachableAfterScroll: audit.states.onLoad.primaryAction?.final?.reachable ?? null,
-            rectAfterScroll: audit.states.onLoad.primaryAction?.final?.rect ?? null,
-            occludedByDock: audit.states.onLoad.primaryAction?.occludedByDock ?? null,
-          },
-          restoredFocus: {
-            label: audit.states.afterCollapse.restoredFocus?.label ?? null,
-            neededScroll: audit.states.afterCollapse.restoredFocus?.neededScroll ?? null,
-            reachable: audit.states.afterCollapse.restoredFocus?.final?.reachable ?? null,
-          },
-          longestHeadline: {
-            headlineLength: audit.states.longestHeadline.meta?.headlineLength ?? null,
-            rect: audit.states.longestHeadline.primaryAction?.initial?.rect ?? null,
-            underDock: audit.states.longestHeadline.primaryAction?.initial?.coveredByDock ?? null,
-            reachable: audit.states.longestHeadline.primaryAction?.final?.reachable ?? null,
-          },
+          controls: Object.fromEntries(
+            Object.entries(audit.states).flatMap(([stateName, controls]) =>
+              Object.entries(controls).map(([name, probe]) => [
+                `${stateName}.${name}`,
+                probe?.present
+                  ? { neededScroll: probe.neededScroll, reachable: probe.final?.reachable }
+                  : "absent",
+              ])
+            )
+          ),
         });
       }
     }
@@ -1613,55 +1404,54 @@ async function main() {
       throw new Error(`Browser errors:\n${browserErrors.join("\n")}`);
     }
 
+    const summarise = (regressions) => ({
+      placed: {
+        lead: regressions.placement.lead.length,
+        important: regressions.placement.important.length,
+        stream: regressions.placement.stream.length,
+        brief: regressions.placement.brief.length,
+        summary: regressions.placement.summary,
+      },
+      paging: {
+        ...regressions.paging,
+        multiPageExercised: regressions.paging.hadMore
+          ? true
+          : `no: the local stream holds ${regressions.paging.streamTotal} stories (page is ` +
+            `${EXPECTED_QUEUE_PAGE_SIZE}); locked by SignalFeedView.test.jsx`,
+      },
+      filterClearedMs: Math.round(regressions.latency.clearedMs),
+      filter: regressions.latency.filter,
+      clusters: {
+        namedInline: regressions.cluster.inline.length,
+        streamDisclosure: regressions.cluster.disclosure
+          ? regressions.cluster.disclosure.opened.members
+          : "not exercised: no multi-source story in the local stream; locked by SignalFeedView.test.jsx",
+      },
+    });
+
     console.log(
       JSON.stringify(
         {
           outputDirectory,
           instance: { port, ...ownership },
-          typography: typographyAudits.map((audit) => ({
-            label: audit.label,
-            serif: Object.fromEntries(Object.entries(audit.serif).map(([k, v]) => [k, v.family])),
-            expandedCore: audit.expandedCore?.family ?? null,
-            sansSample: Object.fromEntries(Object.entries(audit.sans).map(([k, v]) => [k, v.family])),
-            leaks: audit.leaks.map((l) => ({ route: l.route, heading: l.headingFamily, serifElements: l.serifElementCount })),
-          })),
-          focusAudits,
-          dockAudits,
-          regressions: {
-            reducedMotion: {
-              queueRendered: reducedMotionRegressions.paging.initial,
-              revealedAll: reducedMotionRegressions.paging.revealedAll,
-              filterClearedMs: Math.round(reducedMotionRegressions.latency.clearedMs),
-              signatures: reducedMotionRegressions.signatures,
-            },
-            normalMotion: {
-              queueRendered: normalMotionRegressions.paging.initial,
-              revealedAll: normalMotionRegressions.paging.revealedAll,
-              filterClearedMs: Math.round(normalMotionRegressions.latency.clearedMs),
-            },
-          },
           desktop: {
             viewport: `${desktop.clientWidth}x${desktop.height}`,
             scrollWidth: desktop.scrollWidth,
-            title: desktop.title,
-            queueCount: desktop.queueCount,
+            summary: desktop.title,
+            rows: desktop.queueCount,
           },
-          mobile: {
-            viewport: `${mobile.clientWidth}x${mobile.height}`,
-            scrollWidth: mobile.scrollWidth,
-            title: mobile.title,
-            queueCount: mobile.queueCount,
-          },
-          expanded,
-          closedCluster,
-          focusedCluster,
-          mobileExpanded,
           narrowViewports,
-          normalMotion: {
-            focused: normalMotionFocused,
-            expanded: normalMotionExpanded,
-            closed: normalMotionClosed,
+          regressions: {
+            reducedMotion: summarise(reducedMotionRegressions),
+            normalMotion: summarise(normalMotionRegressions),
           },
+          typography: typographyAudits.map((audit) => ({
+            label: audit.label,
+            text: Object.fromEntries(Object.entries(audit.text).map(([k, v]) => [k, v.family])),
+            lead: audit.faces.leadPresent ? audit.faces.leadFamily : "no push in the local feed",
+            leaks: audit.leaks.map((l) => ({ route: l.route, heading: l.headingFamily, serifElements: l.serifElementCount })),
+          })),
+          dockAudits,
         },
         null,
         2

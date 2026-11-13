@@ -3,27 +3,26 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { showCalibrateEmptyState } from "@/context/onboardingFlow";
-import EditionEmptyState from "@/components/feed/EditionEmptyState";
 import FeedFreshness from "@/components/feed/FeedFreshness";
-import ErrorState from "@/components/shared/ErrorState";
-import { FEED_LOAD_ERROR, feedBodyState } from "@/components/feed/feedLoadModel";
-import OrbitFeedView from "@/components/feed/orbit/OrbitFeedView";
-import OrbitLoadingState from "@/components/feed/orbit/OrbitLoadingState";
-import { prepareFeedItems } from "@/components/feed/orbit/orbitStoryModel";
+import { feedBodyState } from "@/components/feed/feedLoadModel";
+import SignalFeedView from "@/components/feed/signal/SignalFeedView";
 import {
-  filterFeedItems,
-  getVisibleItems,
-  toggleFilterSet,
-} from "@/components/feed/feedFilters";
-import "@/components/feed/orbit/orbit.css";
+  SignalFeedEmpty,
+  SignalFeedError,
+  SignalFeedLoading,
+} from "@/components/feed/signal/SignalFeedStates";
+import { prepareFeedItems } from "@/components/feed/orbit/orbitStoryModel";
+import { getVisibleItems, toggleFilterSet } from "@/components/feed/feedFilters";
+
+// The current product shell already pads the page (px-4 / md:px-5), so the feed
+// does not add a gutter of its own inside it. #463 replaces the shell.
+const SHELL_PADDED = { "--sg-feed-page-gutter": "0px" };
 
 export default function Feed() {
   const {
     feedItems,
-    debugItems,
     scoredArticles,
     activeProfileId,
-    activeProfile,
     isBackendMode,
     isLoading,
     feedLoadFailed,
@@ -36,22 +35,10 @@ export default function Feed() {
   const visibleItems = useMemo(() => getVisibleItems(feedItems), [feedItems]);
   // Backend clusters are authoritative; local/mock clusters need hydrating.
   // prepareFeedItems owns that split — see orbitStoryModel.
-  const orbitItems = useMemo(
+  const storyItems = useMemo(
     () => prepareFeedItems(visibleItems, { isBackendMode, localScoredArticles: scoredArticles }),
     [isBackendMode, scoredArticles, visibleItems]
   );
-  const filteredItems = useMemo(
-    () => filterFeedItems(orbitItems, activeFilters),
-    [activeFilters, orbitItems]
-  );
-  const decisionCounts = useMemo(() => {
-    const counts = { push: 0, high_feed: 0, feed: 0, low_feed: 0 };
-    for (const item of orbitItems) {
-      const decision = item.score?.decision;
-      if (decision in counts) counts[decision] += 1;
-    }
-    return counts;
-  }, [orbitItems]);
 
   const toggleFilter = (id) => {
     setActiveFilters((current) => toggleFilterSet(current, id));
@@ -67,47 +54,35 @@ export default function Feed() {
 
   if (bodyState === "loading") {
     return (
-      <div className="orbit-feed-view">
-        <OrbitLoadingState />
+      <div style={SHELL_PADDED}>
+        <SignalFeedLoading />
       </div>
     );
   }
 
+  const freshness = <FeedFreshness enabled={isBackendMode} />;
   const emptyStateVariant = showCalibrateEmptyState(auth) ? "calibrate" : "default";
 
   return (
     <motion.div
       key={activeProfileId || "none"}
-      className="orbit-feed-controller"
+      style={SHELL_PADDED}
       initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: reduce ? 0.12 : 0.34, ease: [0.22, 1, 0.36, 1] }}
     >
-      <FeedFreshness enabled={isBackendMode} />
       {bodyState === "error" ? (
-        <div className="orbit-feed-view orbit-feed-empty" role="alert">
-          <ErrorState
-            variant="page"
-            title={FEED_LOAD_ERROR.title}
-            message={FEED_LOAD_ERROR.message}
-            retryLabel={FEED_LOAD_ERROR.retryLabel}
-            onRetry={refreshFeed}
-          />
-        </div>
+        <SignalFeedError onRetry={refreshFeed} status={freshness} />
       ) : bodyState === "empty" ? (
-        <div className="orbit-feed-view orbit-feed-empty">
-          <EditionEmptyState variant={emptyStateVariant} />
-        </div>
+        <SignalFeedEmpty variant={emptyStateVariant} status={freshness} />
       ) : (
-        <OrbitFeedView
-          items={filteredItems}
+        <SignalFeedView
+          items={storyItems}
           localScoredArticles={isBackendMode ? [] : scoredArticles}
-          profileName={activeProfile?.displayName}
-          scanned={debugItems.length}
-          decisionCounts={decisionCounts}
           activeFilters={activeFilters}
           onToggleFilter={toggleFilter}
           onResetFilters={resetFilters}
+          status={freshness}
         />
       )}
     </motion.div>

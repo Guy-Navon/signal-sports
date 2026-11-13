@@ -29,7 +29,7 @@ section); the rest of the directory is unmodified. Provenance in [UPSTREAM.md](U
    (`python -m venv <scratch>\pw`, then `<scratch>\pw\Scripts\pip install playwright` and
    `<scratch>\pw\Scripts\python -m playwright install chromium`) and say that you did. Never add
    Playwright, jsdom or a component-testing stack to `frontend/package.json` or
-   `backend/requirements*` — the repo deliberately has none (docs/FRONTEND_DESIGN_SYSTEM.md §10).
+   `backend/requirements*` — the repo deliberately has none (docs/FRONTEND_DESIGN_SYSTEM.md §A7).
 
 **Signal specifics for any browser check**
 - Default to local-data mode (`npm run dev`). Backend mode needs the API on 127.0.0.1:8000 pointed

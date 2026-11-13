@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-11-11** (public read-only demo of guy's feed, #458: built, not yet deployed; 2026-11-06: `title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
+**Last updated: 2026-11-13** (milestone 15, new consumer UI direction approved and recorded, #461; 2026-11-11: public read-only demo of guy's feed, #458: built, not yet deployed; 2026-11-06: `title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
 for any agent or human picking the project up with no conversation history. Present-tense
 statements were checked against the code and the owner's local runtime on that date. History
 is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
@@ -189,8 +189,15 @@ origin), with a test that fails if they diverge (#196).
 ## 6. Frontend
 
 **Orbit** (shipped 2026-07-31) has one story at the centre with its sources in orbit and a
-ranked queue behind it. The design contract is [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md),
-and shipped-state screenshots are in `docs/frontend-concepts/orbit/`.
+ranked queue behind it. It is still what main and the public demo render. On 2026-11-13 Guy
+rejected its look and approved a new direction (white ground, Axios-style shell, a lead block
+only for a push, compact stream rows, a sticky side column, a results strip). Milestone 15
+(#461–#475) builds it on the integration branch `ui/next`. Merging to main needs his approval
+(#475), and nothing of it is on main yet.
+[FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) holds the engineering rules (Part A),
+the new visual language (Part B) and Orbit maintenance notes (Appendix C). The reference mock
+is in `docs/design/2026-11-13-feed-direction/`, and Orbit screenshots are in
+`docs/frontend-concepts/orbit/`.
 
 | Route | Page | Area |
 |---|---|---|
@@ -513,6 +520,12 @@ milestone 11's gate.
 
 Deliberately not in these milestones: platform hardening (#198–#200), which matters
 before wider access or a split deployment.
+
+**Milestone 15, "A face of its own — new consumer UI" (filed 2026-11-13).** It replaces
+Orbit's look on the consumer screens and the public demo with the direction Guy approved on
+2026-11-13 ([FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) Part B). The Ops console
+does not change. The work lands on `ui/next`. The open owner items are #474 (article images)
+and #475 (phone acceptance, then the merge to main and the demo deploy).
 
 ---
 

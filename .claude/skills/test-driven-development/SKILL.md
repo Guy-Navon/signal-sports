@@ -33,7 +33,7 @@ is unsafe or impractical, say so and explain why the test can still fail.
 `python-testing-patterns` for pytest style. Red/green loop: `cd backend; .venv\Scripts\python -m
 pytest tests/<file> -q` or `cd frontend; npx vitest run <file>`, then the full suites
 (`signal-pr-finish`). The frontend deliberately has no component-testing stack: extract logic into a
-pure module and test that (docs/FRONTEND_DESIGN_SYSTEM.md §10, §13). Don't add jsdom or React
+pure module and test that (docs/FRONTEND_DESIGN_SYSTEM.md §A7, §A8). Don't add jsdom or React
 Testing Library.
 
 **A green suite is not real-data evidence.** For classification/relevance changes,

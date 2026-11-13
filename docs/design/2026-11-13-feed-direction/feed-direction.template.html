@@ -1,0 +1,197 @@
+<title>סיגנל: פיד, סבב שלישי</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@300..800&family=Karantina:wght@400;700&family=Noto+Sans+Hebrew:wght@400..800&display=swap">
+<style>
+/* One look, three grounds. Every colour is a token on .t-light / .t-soft / .t-dark; the switcher bar is neutral. */
+:root{--bar:#0f0f10;--bar-fg:#f4f4f4;--bar-dim:#a6a6a6;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:#0f0f10}
+a{color:inherit;text-decoration:none}
+a:hover{text-decoration:underline}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sw{background:var(--bar);color:var(--bar-fg);font:500 14px/1.3 "Noto Sans Hebrew",Arial,sans-serif;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding-block:10px}
+.sw .tabs{display:flex;gap:6px;flex-wrap:wrap}
+.sw button{background:none;border:1px solid #555;color:var(--bar-fg);padding:6px 12px}
+.sw button[aria-pressed="true"]{background:#fff;color:#0f0f10;border-color:#fff}
+.sw label{display:flex;gap:6px;align-items:center;color:var(--bar-dim)}
+.sw .sp{flex:1}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3,p,ul{margin:0;padding:0}
+h1,h2,h3{text-wrap:balance}
+li{list-style:none}
+
+.t-light{--bg:#ffffff;--band:#f3f5f9;--card:#ffffff;--ink:#1c2230;--dim:#667085;--line:#e2e6ee;--acc:#2446e8;--tint:#edf1ff;--top:#142a66;--top-fg:#ffffff;--slab:#2446e8;--slab-fg:#ffffff;--slab-dim:#d5dcff;--hot:#ff2f6d;--hot-fg:#ffffff;--off:#cfd6e4;--t1:#e3ecff;--t2:#ffe9dc;--t3:#dff5ea;--t4:#efe6ff}
+.t-soft{--bg:#e8ecf2;--band:#dde2ea;--card:#f3f5f9;--ink:#1c2230;--dim:#566072;--line:#c9d0dc;--acc:#2446e8;--tint:#d8e0f8;--top:#142a66;--top-fg:#ffffff;--slab:#2446e8;--slab-fg:#ffffff;--slab-dim:#d5dcff;--hot:#e0245e;--hot-fg:#ffffff;--off:#b4bdcd;--t1:#cfdcfa;--t2:#f6d9c8;--t3:#c9e9d8;--t4:#ddd2f5}
+.t-dark{--bg:#1a2030;--band:#141927;--card:#212839;--ink:#eef1f7;--dim:#a3adc0;--line:#353e55;--acc:#3cffd0;--tint:#25304a;--top:#0f1422;--top-fg:#eef1f7;--slab:#3cffd0;--slab-fg:#07130f;--slab-dim:#0d4a3b;--hot:#ff2f6d;--hot-fg:#ffffff;--off:#465069;--t1:#27365c;--t2:#4a3528;--t3:#1f4034;--t4:#3a2f57}
+
+.S{background:var(--bg);color:var(--ink);font:400 17px/1.5 Assistant,"Noto Sans Hebrew",Arial,sans-serif;min-height:100vh}
+.S .in{max-width:1180px;margin-inline:auto}
+.S .top{background:var(--top);color:var(--top-fg);font-size:13px;font-weight:700;letter-spacing:.02em}
+.S .top .in{display:flex;gap:22px;padding-block:9px}
+.S .top .in span:last-child{margin-inline-start:auto;font-weight:400}
+.S .mast{display:flex;flex-direction:column;align-items:center;gap:10px;padding-block:30px 20px}
+.S .logo{font-weight:800;font-size:44px;line-height:1;letter-spacing:-.02em;display:flex;align-items:center;gap:6px}
+.S .logo i{display:block;width:14px;height:38px;background:var(--acc);transform:skewX(-18deg)}
+.S .stat{font-size:14px;color:var(--dim)}
+.S .stat b{color:var(--ink);font-weight:700}
+.S .pills{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding-bottom:30px}
+.S .pill{border-radius:999px;padding:7px 16px;font-size:15px;display:flex;gap:8px;align-items:center}
+.S .pill b{font-weight:700}
+.S .meta{font-size:14px;color:var(--dim)}
+
+.sig{display:inline-flex;gap:3px;align-items:flex-end;flex:none;padding-inline:3px}
+.sig i{display:block;width:4px;background:var(--off);transform:skewX(-18deg)}
+.sig i:nth-child(1){height:7px}.sig i:nth-child(2){height:11px}.sig i:nth-child(3){height:15px}
+.sig.s1 i:nth-child(-n+1),.sig.s2 i:nth-child(-n+2),.sig.s3 i{background:var(--acc)}
+.sig.s4 i{background:var(--hot)}
+
+/* lead: only when a push exists. The headline is the hero; the reason is a side note. */
+.S .lead{background:var(--slab);color:var(--slab-fg);padding:26px 34px 26px;display:flex;flex-direction:column;gap:18px;margin-bottom:40px;position:relative;overflow:hidden}
+.S .lead>*{position:relative}
+.S .lead .deco{position:absolute;inset-block:-20px;inset-inline-end:-30px;display:flex;gap:26px;align-items:stretch;pointer-events:none}
+.S .lead .deco i{display:block;width:74px;background:var(--slab-dim);opacity:.16;transform:skewX(-18deg);transform-origin:bottom;animation:rise .7s cubic-bezier(.2,.8,.2,1) both}
+.S .lead .deco i:nth-child(1){margin-top:58%}.S .lead .deco i:nth-child(2){margin-top:30%;animation-delay:.08s}.S .lead .deco i:nth-child(3){animation-delay:.16s}
+.S .hotl{background:var(--hot);color:var(--hot-fg);font-size:12px;font-weight:800;padding:2px 8px;align-self:flex-start;display:flex;gap:7px;align-items:center}
+.S .lead h1{font:700 clamp(54px,10.2vw,150px)/.88 Karantina,Assistant,sans-serif;animation:up .6s cubic-bezier(.2,.8,.2,1) both}
+.S .lead .r{display:grid;grid-template-columns:1.3fr 1.3fr auto;gap:8px 36px;align-items:start;border-top:3px solid var(--slab-fg);padding-top:14px}
+.S .lead .dek{font-size:19px;line-height:1.4;font-weight:600}
+.S .lead .y{font-size:16px}
+.S .lead .y b{font-weight:800}
+.S .lead .m{font-size:14px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+/* a little life: load-in, a pulse on fresh stories, a hover cue. All off under reduced motion. */
+@keyframes rise{from{transform:skewX(-18deg) scaleY(0)}to{transform:skewX(-18deg) scaleY(1)}}
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 var(--hot)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--hot);flex:none;animation:pulse 1.8s infinite}
+.S .hotl .dot{background:var(--hot-fg);--hot:#fff}
+.S .new{color:var(--hot);font-weight:800;display:inline-flex;gap:6px;align-items:center}
+.S .sig i{transform-origin:bottom;animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+.S .sig i:nth-child(2){animation-delay:.06s}.S .sig i:nth-child(3){animation-delay:.12s}
+.S .stream article{transition:background .15s,box-shadow .15s}
+.S .stream article:hover{background:var(--tint);box-shadow:inset -4px 0 0 var(--acc)}
+.S .row4 article h2 a,.S .stream h2 a{background:linear-gradient(var(--acc),var(--acc)) no-repeat 100% 100%/0 2px;transition:background-size .25s}
+.S .row4 article h2 a:hover,.S .stream h2 a:hover{background-size:100% 2px;text-decoration:none}
+@media (prefers-reduced-motion:reduce){.S *{animation:none!important;transition:none!important}}
+.S .go{border:1.5px solid var(--slab-fg);border-radius:999px;padding:4px 16px;font-weight:700}
+
+.S .row4{display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:44px}
+.S .row4 article{padding-inline:20px;border-inline-start:1px solid var(--line);display:flex;flex-direction:column;gap:10px;min-width:0}
+.S .row4 article:first-child{border:0;padding-inline-start:0}
+.S .tag{font-size:13px;font-weight:700;color:var(--acc);background:var(--tint);padding:1px 8px;align-self:flex-start;display:flex;gap:6px;align-items:center}
+.S .row4 h2{font-size:21px;font-weight:500;line-height:1.3}
+
+/* scores: real finals from the results board */
+.S .scores{border-block:1px solid var(--line);padding-block:14px;display:flex;gap:18px;align-items:stretch}
+.S .scores .hd{display:flex;flex-direction:column;justify-content:center;gap:2px;flex:none;font-weight:800;font-size:15px}
+.S .scores .hd span{font-weight:700;font-size:13px;color:var(--acc)}
+.S .scores .sc{display:flex;gap:0;overflow-x:auto;min-width:0;flex:1}
+.S .g{flex:none;min-width:176px;padding-inline:16px;border-inline-start:1px solid var(--line);font-size:14px;display:flex;flex-direction:column;gap:2px}
+.S .g small{font-size:11.5px;color:var(--dim);font-weight:700}
+.S .g div{display:flex;justify-content:space-between;gap:12px;color:var(--dim)}
+.S .g div.w{color:var(--ink);font-weight:800}
+
+.S .band{background:var(--band);padding-block:36px 60px;margin-top:40px}
+.S .cols{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:32px;align-items:start}
+.S .sech{font-size:18px;font-weight:800;display:flex;gap:10px;align-items:baseline;margin-bottom:12px}
+.S .sech span{font-size:14px;font-weight:400;color:var(--dim)}
+.S .stream{background:var(--card);border:1px solid var(--line)}
+.S .stream article{padding:18px 26px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:5px}
+.S .stream article:last-child{border:0}
+.S .by{display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--dim)}
+.S .by .acts{margin-inline-start:auto;display:flex;gap:14px;color:var(--acc);font-weight:700}
+.S .stream h2{font-size:21px;font-weight:600;line-height:1.3}
+.S .why{font-size:14.5px;color:var(--dim)}
+.S .why b{color:var(--ink);font-weight:700}
+.S .x3{background:var(--ink);color:var(--card);font-weight:800;font-size:12px;padding:1px 7px;margin-inline-end:6px}
+.S .more{text-align:center;color:var(--dim);font-size:15px;padding-top:20px}
+.S aside{position:sticky;top:14px;display:flex;flex-direction:column;gap:22px}
+.S .box{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--acc);padding:18px 22px 8px}
+.S .box h3{font-size:16px;font-weight:800;margin-bottom:6px}
+.S .box li{padding-block:11px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px;font-size:15.5px;font-weight:600;line-height:1.35}
+.S .box li small{font-size:12.5px;font-weight:400;color:var(--dim);display:flex;gap:6px;align-items:center}
+@media (max-width:900px){
+  .S .top .in span:not(:first-child):not(:last-child){display:none}
+  .S .logo{font-size:36px}.S .pills{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;padding-bottom:22px}
+  .S .pill{flex:none}
+  .S .lead{padding:20px}.S .lead .r{grid-template-columns:1fr}.S .lead .deco i{width:40px}
+  .S .row4{grid-template-columns:1fr}.S .row4 article{border:0;border-top:1px solid var(--line);padding:16px 0}
+  .S .scores{flex-direction:column;gap:10px}.S .scores .hd{flex-direction:row;gap:12px;align-items:baseline;justify-content:flex-start}
+  .S .g:first-child{border:0;padding-inline-start:0}
+  .S .cols{grid-template-columns:1fr}.S aside{position:static}
+  .S .stream article{padding:16px 16px}.S .stream h2{font-size:19px}.S .by .acts{display:none}
+}
+</style>
+
+<div dir="rtl" lang="he">
+  <div class="sw gut">
+    <b>סיגנל · סבב שלישי</b>
+    <div class="tabs" role="group" aria-label="רקע">
+      <button data-t="light">לבן</button>
+      <button data-t="soft">רך</button>
+      <button data-t="dark">כהה</button>
+    </div>
+    <span class="sp"></span>
+    <label><input type="checkbox" id="nopush" checked> הוסף דוגמת push (כדי לראות את בלוק הפתיחה)</label>
+  </div>
+  <div id="app"></div>
+</div>
+
+<script>
+const DATA=/*DATA*/;
+const NOW=new Date(DATA.now), IT=DATA.items;
+const LG={"NBA":"NBA","Israeli Basketball League":"ליגת העל","EuroLeague":"יורוליג","EuroCup":"יורוקאפ"};
+const CP={"comp:nba":"NBA","comp:euroleague":"יורוליג","comp:eurocup":"יורוקאפ","comp:israeli_basketball_league":"ליגת העל"};
+const LV={push:4,high_feed:3,feed:2,low_feed:1}, LVN={4:"דחוף",3:"חשוב",2:"רגיל",1:"בקצרה"};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function ago(p){const m=Math.max(1,Math.round((NOW-new Date(p))/60000));
+  if(m<60) return `לפני ${m} דק׳`; const h=Math.round(m/60); if(h<24) return h===1?"לפני שעה":h===2?"לפני שעתיים":`לפני ${h} שעות`;
+  const d=Math.round(h/24); return d===1?"אתמול":d===2?"שלשום":`לפני ${d} ימים`;}
+const lg=i=>LG[i.lg]||"כדורסל";
+const srcs=i=>i.n>1?`${i.n} מקורות: ${i.m.join(" · ")}`:i.src;
+const link=(i,inner)=>`<a href="${esc(i.u)}" target="_blank" rel="noopener">${inner}</a>`;
+const sig=i=>{const v=LV[i.d]||2;return `<span class="sig s${v}" role="img" aria-label="עוצמה: ${LVN[v]}" title="${LVN[v]}"><i></i><i></i><i></i></span>`};
+function split(withPush){
+  const by=d=>IT.filter(i=>i.d===d);
+  const push=withPush&&DATA.lastPush?[DATA.lastPush,...by("push")]:by("push");
+  return {lead:push[0]||null, high:[...push.slice(1),...by("high_feed")], feed:by("feed"), low:by("low_feed")};
+}
+function view(s){
+  const cnt={}; IT.forEach(i=>{const k=lg(i);cnt[k]=(cnt[k]||0)+1});
+  const tints=["var(--t1)","var(--t2)","var(--t3)","var(--t4)"];
+  const pills=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([k,v],x)=>`<span class="pill" style="background:${tints[x%4]}"><b>${k}</b><span class="num">${v}</span></span>`).join("");
+  const L=s.lead;
+  const fresh=i=>(NOW-new Date(i.p))<3600e3;
+  const when=i=>fresh(i)?`<span class="new"><span class="dot"></span>${ago(i.p)}</span>`:ago(i.p);
+  const lead=L?`<section class="lead"><div class="deco" aria-hidden="true"><i></i><i></i><i></i></div><span class="hotl"><span class="dot"></span>דורש תשומת לב</span><h1>${link(L,esc(L.t))}</h1>
+    <div class="r"><p class="dek">${esc(L.s)}</p><p class="y"><b>למה אצלך: </b>${esc(L.r)}</p>
+    <div class="m"><span>${esc(srcs(L))} · ${ago(L.p)}</span>${link(L,`<span class="go">לכתבה</span>`)}</div></div></section>`:"";
+  const row=s.high.slice(0,4).map(i=>`<article><span class="tag">${sig(i)}${lg(i)}</span><h2>${link(i,esc(i.t))}</h2><span class="meta">${esc(srcs(i))} · ${ago(i.p)}</span></article>`).join("");
+  const games=DATA.games.map(g=>{const hw=g.hs>g.as;return `<div class="g"><small>${CP[g.c]||""} · ${ago(g.t)}</small><div class="${hw?"w":""}"><span>${esc(g.h)}</span><span class="num">${g.hs}</span></div><div class="${hw?"":"w"}"><span>${esc(g.a)}</span><span class="num">${g.as}</span></div></div>`}).join("");
+  const scores=DATA.games.length?`<section class="scores"><div class="hd">תוצאות<span>ללוח המלא</span></div><div class="sc">${games}</div></section>`:"";
+  const rest=[...s.high.slice(4),...s.feed]; const shown=rest.slice(0,14);
+  const stream=shown.map(i=>`<article><div class="by">${sig(i)}<span>${esc(i.src)} · ${ago(i.p)} · ${lg(i)}</span><span class="acts"><span>עוד כאלה</span><span>פחות</span></span></div>
+    <h2>${link(i,esc(i.t))}</h2><p class="why">${i.n>1?`<span class="x3 num">${i.n} מקורות</span>`:""}<b>למה אצלך: </b>${esc(i.r)}</p></article>`).join("");
+  const latest=[...IT].filter(i=>i.d!=="low_feed").sort((a,b)=>new Date(b.p)-new Date(a.p)).slice(0,8)
+    .map(i=>`<li>${link(i,esc(i.t))}<small>${sig(i)}${when(i)} · ${esc(i.src)}</small></li>`).join("");
+  const low=s.low.map(i=>`<li>${link(i,esc(i.t))}<small>${ago(i.p)} · ${esc(i.src)}</small></li>`).join("");
+  const nHigh=s.high.length+(L?1:0), total=IT.length+(L&&L===DATA.lastPush?1:0);
+  return `<div class="top gut"><div class="in"><span>הפיד שלי</span><span>תוצאות</span><span>העדפות</span><span>כיוונון</span><span>החשבון</span></div></div>
+  <div class="gut"><div class="in"><div class="mast"><div class="logo"><i></i>סיגנל</div>
+    <p class="stat num"><b>${total}</b> סיפורים עברו את הסינון שלך · <b>${nHigh}</b> חשובים</p></div>
+    <div class="pills">${pills}</div>${lead}<section class="row4">${row}</section>${scores}</div></div>
+  <div class="band gut"><div class="in"><div class="cols"><div><h3 class="sech">עוד בפיד שלך <span>מדורג לפי מה שחשוב לך</span></h3><div class="stream">${stream}</div>
+    <p class="more">ועוד ${rest.length-shown.length} סיפורים בהמשך הפיד</p></div>
+    <aside><section class="box"><h3>אחרונים</h3><ul>${latest}</ul></section><section class="box"><h3>בקצרה</h3><ul>${low}</ul></section></aside></div></div></div>`;
+}
+const app=document.getElementById("app"), chk=document.getElementById("nopush");
+const TH=["light","soft","dark"];
+const fromHash=()=>{const h=location.hash.slice(1);return TH.includes(h)?h:"light"};
+function draw(t){app.className="S t-"+t;app.innerHTML=view(split(chk.checked));
+  document.querySelectorAll(".sw button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===t));}
+let cur=fromHash(); draw(cur);
+document.querySelector(".sw").addEventListener("click",e=>{const b=e.target.closest("button[data-t]"); if(!b) return; cur=b.dataset.t; try{location.hash=cur}catch(_){ } draw(cur)});
+chk.addEventListener("change",()=>draw(cur));
+addEventListener("hashchange",()=>{const t=fromHash(); if(t!==cur){cur=t;draw(cur)}});
+</script>

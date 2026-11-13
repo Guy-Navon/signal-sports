@@ -13,13 +13,21 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 
-export default function ProfileSwitcher() {
+// variant="topbar": the trigger on the consumer shell's navy top bar (#463).
+// The default trigger is the Ops console's, unchanged.
+const TRIGGER_CLASSES = {
+  default:
+    "flex items-center gap-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg px-3 py-1.5 text-sm transition-colors min-w-0 max-w-[45vw] sm:max-w-none max-md:min-h-11",
+  topbar: "sg-topbar__control sg-topbar__control--outlined min-w-0",
+};
+
+export default function ProfileSwitcher({ variant = "default" }) {
   const { activeProfileId, setActiveProfileId, activeProfile, profileList } = useApp();
 
   return (
     <DropdownMenu dir="rtl">
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg px-3 py-1.5 text-sm transition-colors min-w-0 max-w-[45vw] sm:max-w-none max-md:min-h-11">
+        <button className={TRIGGER_CLASSES[variant] || TRIGGER_CLASSES.default}>
           <div className="w-5 h-5 rounded-full bg-signal-high/15 border border-signal-high/30 flex items-center justify-center flex-shrink-0">
             <User size={11} className="text-signal-high" />
           </div>

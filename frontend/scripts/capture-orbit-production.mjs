@@ -817,8 +817,15 @@ const SANS_SURFACES = {
   coreMetadata: ".orbit-core__meta",
   deskVoice: ".orbit-core__reason button",
   primaryAction: ".orbit-primary-action",
-  navigation: ".orbit-nav-link",
   queueHeading: ".orbit-queue__heading h2",
+};
+
+// The consumer shell chrome (#463) is Signal UI, not Orbit: Assistant, never
+// the Orbit serif.
+const SHELL_FAMILY = "assistant";
+const SHELL_SURFACES = {
+  navigation: ".sg-topbar__link",
+  wordmark: ".sg-wordmark",
 };
 
 async function readFamilies(client, selectorMap) {
@@ -858,7 +865,9 @@ function assertFamilies(label, families, expected) {
     const actual = probe.family.toLowerCase();
     const matches = expected === "serif"
       ? actual.includes(SERIF_FAMILY)
-      : actual.includes(SANS_FAMILY);
+      : expected === "shell"
+        ? actual.includes(SHELL_FAMILY)
+        : actual.includes(SANS_FAMILY);
     if (!matches) {
       throw new Error(
         `${label}: ${name} should render ${expected} but computed "${probe.family}" ` +
@@ -945,6 +954,8 @@ async function auditTypography(client, label) {
   assertFamilies(label, consumerSerif, "serif");
   const consumerSans = await readFamilies(client, SANS_SURFACES);
   assertFamilies(label, consumerSans, "sans");
+  const shellChrome = await readFamilies(client, SHELL_SURFACES);
+  assertFamilies(label, shellChrome, "shell");
 
   // The expanded cluster's central headline needs the cluster open.
   await focusFirstCluster(client);
@@ -983,6 +994,7 @@ async function auditTypography(client, label) {
     serif: consumerSerif,
     expandedCore: expanded.expandedCoreHeadline,
     sans: consumerSans,
+    shellChrome,
     expandedChrome,
     leaks,
   };
@@ -1149,7 +1161,8 @@ async function auditFieldScroll(client, label) {
 const OCCLUSION_PROBE = `(async (selector, describeActive) => {
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-  const dock = document.querySelector(".orbit-mobile-dock");
+  // The consumer shell's phone dock (#463, ProductDock).
+  const dock = document.querySelector(".sg-dock");
   const element = describeActive ? document.activeElement : document.querySelector(selector);
   if (!element || element === document.body) return { selector, present: false };
 
@@ -1318,6 +1331,10 @@ function assertDockOcclusion(audit) {
   // A pass must not be vacuous — the primary action has to have been seen.
   if (!states.onLoad.primaryAction?.present) {
     throw new Error(`${label}: no primary action was found to test.`);
+  }
+  // Nor may it pass because the dock selector no longer matches anything.
+  if (states.onLoad.primaryAction.dockTop === null) {
+    throw new Error(`${label}: the phone dock (.sg-dock) was not found, so occlusion is unverified.`);
   }
 
   // Reachable-after-scrolling is the bar for occlusion, but the focused story's

@@ -39,9 +39,12 @@ deep reference. Read it before adding any consumer UI.
 
 - **Milestone 15 covers** the consumer product, the utility screens and the public demo.
 - **The Ops console does not change.** It keeps its current look and the base `:root` tokens in
-  `src/index.css`. Consumer tokens are scoped to the consumer shell: today the product shell sets
-  `.orbit-product` (`AppShell.jsx`), which re-scopes the colour tokens. The new grounds use a
-  consumer scope of their own (#462). Never redefine a shared token to style one surface.
+  `src/index.css`. Consumer tokens are scoped to the consumer shell. On main the product shell
+  sets `.orbit-product` (`AppShell.jsx`), which re-scopes the colour tokens. On `ui/next` (#463)
+  `ProductShell.jsx` puts `.signal-ui` (#462) on its chrome and chooses the page body's scope per
+  route (`productShellModel.pageSurface`): pages not yet rebuilt keep `.orbit-product` on the
+  body, rebuilt pages are listed in `SIGNAL_SURFACE_PATHS` and get `.signal-ui`. Never redefine
+  a shared token to style one surface.
 - **Changing the look never changes what the user sees.** Exposure rules, engine decisions,
   ranking and filter behaviour are not touched to make a screen look fuller.
 
@@ -362,6 +365,13 @@ phone design (#475). #465 decides where the side column goes on a phone.
 - **Top bar**: `--top` ground, `--top-fg` text, padding-block 9px, items 22px apart. The
   navigation items (feed, results, preferences, calibration) sit at the inline start. The
   account item sits at the inline end, weight 400.
+- **On `ui/next` (#463)**: `components/shell/ProductShell.jsx`, `ProductTopBar.jsx`,
+  `ProductDock.jsx`, `MastheadSlot.jsx`, `shell.css`. The masthead owns the wordmark; a page
+  renders its own content beneath it (summary line, pills) with `<MastheadSlot>`, which portals
+  into the shell's `.signal-ui` scope and collapses when empty. `.sg-gutter` / `.sg-container`
+  give the side gutter and the 1180px column. Under 768px the top bar carries a compact
+  wordmark and the account, navigation moves to a bottom dock (56px targets), and the masthead
+  block shows only slot content. That phone layout is a proposal for #475, not approved design.
 - **Masthead**: centred column, gap 10px, padding 30px above and 20px below. The wordmark
   (B4), then the summary line: **"N סיפורים עברו את הסינון שלך · M חשובים"**. N is the number
   of visible stories, M the number of push + high_feed stories, both from the real feed.
@@ -514,7 +524,8 @@ Screenshots of Orbit as shipped are in
 - **Code**: `components/feed/orbit/` (`OrbitFeedView`, `OrbitStoryField`, `OrbitLoadingState`,
   `orbit.css`, and the models listed in A9) plus `components/shell/` (`Atmosphere`, `Masthead`,
   `MobileNav`, `ProductNav`, `OpsNav`, `OpsGrid`, `SignalMark`). `EditionEmptyState` keeps its
-  legacy name but is the live zero-items state.
+  legacy name but is the live zero-items state. On `ui/next`, `Masthead` and `MobileNav` are
+  Ops-only (#463), and `Atmosphere` is used only by the demo.
 - **Presentation contract**: `DECISION_CONFIG[...].orbit` (`queueScale`, `queueDensity`,
   `queueRail`, `queueMuted`) is locked by `decisionConfig.test.js`. The push-only signal rail
   is asserted in markup and in paint.

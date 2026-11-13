@@ -20,6 +20,8 @@ import {
 } from "@/components/feed/orbit/orbitStoryModel";
 import {
   feedSummary,
+  isFreshStory,
+  latestStories,
   leaguePills,
   showMoreFocusIndex,
   splitFeedSections,
@@ -453,12 +455,12 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
   }, [focusOnMount, onFocused]);
   return (
     <li
-      className="sg-brief__item"
+      className="sg-box__item sg-brief__item"
       data-decision={story.decision}
       data-league={leagueFilterId(item)}
     >
-      <Headline story={story} className="sg-brief__title" linkRef={headlineRef} />
-      <div className="sg-brief__meta">
+      <Headline story={story} className="sg-box__title sg-brief__title" linkRef={headlineRef} />
+      <div className="sg-box__meta sg-brief__meta">
         <span>
           <Time value={story.timestamp} now={now} />
           {story.timestamp && <Dot />}
@@ -470,8 +472,56 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
   );
 }
 
-// "בקצרה": the low_feed stories. They move into the side column with #465;
-// until then they follow the stream so nothing visible today disappears.
+function LatestRow({ item, localScoredArticles, now }) {
+  const story = useStory(item, localScoredArticles);
+  const fresh = isFreshStory(story.timestamp, now);
+  return (
+    <li
+      className="sg-box__item sg-latest__item"
+      data-decision={story.decision}
+      data-league={leagueFilterId(item)}
+      data-fresh={fresh || undefined}
+    >
+      <Headline story={story} className="sg-box__title" />
+      <span className="sg-box__meta">
+        <SignalStrength decision={story.decision} />
+        {/* Under an hour old: a pulsing --hot dot (a non-text mark) and the time
+            in bold ink. Small --hot text on white fails contrast (B2). */}
+        {fresh && <span className="sg-fresh-dot" aria-hidden="true" />}
+        <span className={fresh ? "sg-latest__fresh" : undefined}>
+          <Time value={story.timestamp} now={now} />
+        </span>
+        <Dot />
+        <bdi dir="auto">{story.source}</bdi>
+      </span>
+    </li>
+  );
+}
+
+// "אחרונים": the newest visible non-low stories (latestStories). A view of the
+// filtered list only: the stream keeps its ranked order, and a story may stand
+// in both places, as in the approved mock. No feedback here: every story in it
+// carries its actions where it is placed (lead, important row, stream).
+function LatestSection({ items, localScoredArticles, now }) {
+  if (items.length === 0) return null;
+  return (
+    <section className="sg-box sg-latest" aria-labelledby="sg-latest-heading">
+      <h2 className="sg-box__heading" id="sg-latest-heading">אחרונים</h2>
+      <ul>
+        {items.map((item) => (
+          <LatestRow
+            key={orbitStoryId(item)}
+            item={item}
+            localScoredArticles={localScoredArticles}
+            now={now}
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// "בקצרה": the low_feed stories, in the side column (#465), bounded like the stream.
 function BriefSection({ items, localScoredArticles, now, readOnly }) {
   const list = useStoryList({
     items,
@@ -493,8 +543,8 @@ function BriefSection({ items, localScoredArticles, now, readOnly }) {
     ),
   });
   return (
-    <section className="sg-brief" aria-labelledby="sg-brief-heading">
-      <h2 className="sg-brief__heading" id="sg-brief-heading">בקצרה</h2>
+    <section className="sg-box sg-brief" aria-labelledby="sg-brief-heading">
+      <h2 className="sg-box__heading sg-brief__heading" id="sg-brief-heading">בקצרה</h2>
       <ul>{list.body}</ul>
       {list.more}
     </section>
@@ -534,6 +584,10 @@ export default function SignalFeedView({
   const now = useNow(nowMs);
   const filtered = useMemo(() => filterFeedItems(items, activeFilters), [items, activeFilters]);
   const sections = useMemo(() => splitFeedSections(filtered), [filtered]);
+  const latest = useMemo(
+    () => latestStories(filtered, { localScoredArticles }),
+    [filtered, localScoredArticles]
+  );
   const pillLabels = useMemo(
     () => new Map(leaguePills(items).map((pill) => [pill.id, pill.label])),
     [items]
@@ -598,24 +652,29 @@ export default function SignalFeedView({
                 the band. It renders nothing until then (and never without results). */}
           </div>
 
-          {(sections.stream.length > 0 || sections.brief.length > 0) && (
+          {(sections.stream.length > 0 || sections.brief.length > 0 || latest.length > 0) && (
             <div className="sg-band">
               <div className="sg-in sg-cols">
-                <div className="sg-main">
-                  {sections.stream.length > 0 && (
+                {sections.stream.length > 0 && (
+                  <div className="sg-main">
                     <StreamSection
                       key={`stream-${listKey}`}
                       items={sections.stream}
                       pillLabels={pillLabels}
                       {...rowProps}
                     />
-                  )}
-                  {sections.brief.length > 0 && (
-                    <BriefSection key={`brief-${listKey}`} items={sections.brief} {...rowProps} />
-                  )}
-                </div>
-                {/* #465: <aside className="sg-side"> ("אחרונים" + "בקצרה", sticky on
-                    desktop) goes here. .sg-cols becomes two columns when it exists. */}
+                  </div>
+                )}
+                {/* The side column (B11): sticky beside the stream on desktop; on
+                    a phone it follows the stream (#465). Same filtered set. */}
+                {(latest.length > 0 || sections.brief.length > 0) && (
+                  <aside className="sg-side" aria-label="אחרונים ובקצרה">
+                    <LatestSection items={latest} {...rowProps} />
+                    {sections.brief.length > 0 && (
+                      <BriefSection key={`brief-${listKey}`} items={sections.brief} {...rowProps} />
+                    )}
+                  </aside>
+                )}
               </div>
             </div>
           )}

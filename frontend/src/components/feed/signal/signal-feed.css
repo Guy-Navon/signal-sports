@@ -272,8 +272,8 @@
   background: var(--sg-band);
 }
 
-/* One column today; #465 adds <aside class="sg-side"> and the grid gains the
-   330px side column with no change here. */
+/* Stream + the 330px side column (B5, B11). One column under 900px, where the
+   side column follows the stream (#465). */
 .sg-cols {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -282,8 +282,25 @@
 }
 
 @media (min-width: 901px) {
-  .sg-cols:has(> .sg-side) { grid-template-columns: minmax(0, 1fr) 330px; }
+  .sg-cols:has(> .sg-main):has(> .sg-side) { grid-template-columns: minmax(0, 1fr) 330px; }
+
+  /* Sticky 14px from the top (the top bar scrolls away with the page, so only
+     the safe area is added). A column taller than the screen is capped at the
+     viewport and scrolls inside, so its end is reachable at any scroll
+     position instead of only once the stream has ended. */
+  .sg-side {
+    position: sticky;
+    inset-block-start: calc(14px + env(safe-area-inset-top, 0px));
+    max-block-size: calc(100vh - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    max-block-size: calc(100dvh - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sg-off) transparent;
+  }
 }
+
+.sg-side { display: flex; flex-direction: column; gap: 22px; min-inline-size: 0; }
 
 .sg-main { display: flex; flex-direction: column; gap: 36px; min-inline-size: 0; }
 
@@ -435,17 +452,17 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
 
 .sg-more:hover { border-color: var(--sg-acc); color: var(--sg-acc); }
 
-/* "In brief": the low_feed stories, a box in the side column's style (B11). */
-.sg-brief {
+/* Side column boxes (B11): "אחרונים" and "בקצרה". */
+.sg-box {
   padding: 18px 22px 8px;
   background: var(--sg-card);
   border: 1px solid var(--sg-line);
   border-block-start: 3px solid var(--sg-acc);
 }
 
-.sg-brief__heading { margin-block-end: 6px; font-size: 16px; font-weight: 800; }
+.sg-box__heading { margin-block-end: 6px; font-size: 16px; font-weight: 800; }
 
-.sg-brief__item {
+.sg-box__item {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -453,15 +470,29 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
   border-block-start: 1px solid var(--sg-line);
 }
 
-.sg-brief__title { font-size: 15.5px; font-weight: 600; line-height: 1.35; }
+.sg-box__title { font-size: 15.5px; font-weight: 600; line-height: 1.35; }
 
-.sg-brief__meta {
+.sg-box__meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0 4px;
   font-size: 12.5px;
   color: var(--sg-dim);
+}
+
+.sg-latest .sg-box__meta { gap: 0 6px; }
+.sg-latest__fresh { color: var(--sg-ink); font-weight: 800; }
+
+/* Fresh marker: the dot is --hot (a mark, not text) and pulses; the pulse
+   stops under reduced motion (the rule at the end of the motion section). */
+.sg-fresh-dot {
+  inline-size: 8px;
+  block-size: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--sg-hot);
+  animation: sg-pulse 1.8s infinite;
 }
 
 .sg-brief .sg-more { margin-block: 10px; }

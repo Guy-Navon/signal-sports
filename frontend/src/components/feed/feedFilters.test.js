@@ -5,6 +5,7 @@ import {
   getVisibleItems,
   itemMatchesFilter,
   filterFeedItems,
+  leagueFilterId,
   toggleFilterSet,
 } from "./feedFilters";
 
@@ -73,6 +74,43 @@ describe("feedFilters", () => {
 
     it("returns true for unknown filters (all)", () => {
       expect(itemMatchesFilter(mk(), "all")).toBe(true);
+    });
+  });
+
+  describe("league filters (the league pills, #464)", () => {
+    it("gives each item one league filter id, falling back to its sport, then to none", () => {
+      expect(leagueFilterId(mk({ league: "EuroLeague", sport: "basketball" }))).toBe("league:EuroLeague");
+      expect(leagueFilterId(mk({ league: null, sport: "football" }))).toBe("league:none:football");
+      expect(leagueFilterId(mk({}))).toBe("league:none");
+    });
+
+    it("matches an item only by its own league id", () => {
+      const euro = mk({ league: "EuroLeague", sport: "basketball" });
+      expect(itemMatchesFilter(euro, "league:EuroLeague")).toBe(true);
+      expect(itemMatchesFilter(euro, "league:NBA")).toBe(false);
+      // A league-less basketball story is not swallowed by every basketball league.
+      const loose = mk({ sport: "basketball" });
+      expect(itemMatchesFilter(loose, "league:none:basketball")).toBe(true);
+      expect(itemMatchesFilter(euro, "league:none:basketball")).toBe(false);
+    });
+
+    it("reads a cluster's league from its displayed article, like every other filter", () => {
+      const cluster = mk({ type: "cluster", league: "NBA", sources: ["one", "walla_sport"] });
+      expect(itemMatchesFilter(cluster, "league:NBA")).toBe(true);
+      expect(itemMatchesFilter(cluster, "league:EuroLeague")).toBe(false);
+    });
+
+    it("ORs league ids with the same toggle semantics as the other families", () => {
+      const items = [
+        mk({ id: "e", league: "EuroLeague" }),
+        mk({ id: "n", league: "NBA" }),
+        mk({ id: "i", league: "Israeli Basketball League" }),
+      ];
+      let active = toggleFilterSet(new Set(["all"]), "league:NBA");
+      active = toggleFilterSet(active, "league:EuroLeague");
+      expect(filterFeedItems(items, active).map((i) => i.id)).toEqual(["e", "n"]);
+      active = toggleFilterSet(toggleFilterSet(active, "league:NBA"), "league:EuroLeague");
+      expect([...active]).toEqual(["all"]);
     });
   });
 

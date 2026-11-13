@@ -10,8 +10,10 @@ Last updated: 2026-11-13 (#461). This file has two parts and an appendix:
 - **Appendix C: Orbit as it still ships on main.** Maintenance facts only, removed by #473.
 
 **What is implemented.** Orbit is still the consumer UI on main and in the public demo.
-None of Part B is built yet. It is delivered by milestone 15, "A face of its own — new
-consumer UI" (#461–#475), on the integration branch `ui/next`. Merging `ui/next` to main and
+Part B is delivered by milestone 15, "A face of its own — new consumer UI" (#461–#475), on
+the integration branch `ui/next`. On `ui/next` so far: the tokens, fonts and marks (#462) and
+the feed body (#464: `components/feed/signal/`, used by `pages/Feed.jsx`; the demo still
+renders Orbit until #469). Merging `ui/next` to main and
 deploying the demo need Guy's explicit approval (#475). Each Part B section names the issue
 that delivers it.
 
@@ -176,8 +178,16 @@ transitions under both motion modes, no control occluded by a fixed element (via
 captures Vite output, refuses a 200 from a dead child, and proves in-page that it is the
 local-data instance (local mode issues no `/api/` request). `capture-orbit-production.test.mjs`
 locks the time it "passed" against another app on a fixed port. Every asserted element must
-exist, and an audit with nothing to measure fails. #473 adapts and renames the harness for
-the new look with the same invariants. Until then it asserts Orbit.
+exist, and an audit with nothing to measure fails. Since #464 it asserts the new feed body:
+placement by level (lead only with a push, important row, stream in rank order, "in brief"),
+the summary counts, signal-mark fill and colour, the bounded stream page, league-pill filter
+latency, pressed state and focus, cluster member links, feedback actions present and
+unclipped at 320–390, typography (Assistant, Karantina on the lead only, no serif leak) and
+dock occlusion. The local corpus puts exactly 40 stories in the stream and its clusters in
+the lead and important row, so the multi-page "show more" path and the stream cluster
+disclosure are locked by `SignalFeedView.test.jsx` instead, and the harness output says so.
+#473 renames it (`capture:orbit` stays until then). Orbit itself (still the demo) is no
+longer browser-asserted.
 
 **Demo bundle guard.** `npm run build`, `npm run build:demo`, then `npm run check:demo-bundle`.
 It fails if the demo bundle holds the API client, router, auth, app provider, a non-feed page
@@ -224,6 +234,8 @@ components/feed/
   orbit/orbitStoryModel.js   prepareFeedItems + authority resolvers (A4)
   orbit/orbitQueueMotion.js  page size + stagger cap (A5)
   orbit/orbitFocusModel.js   focus intents and scroll policy (A6)
+  signal/feedLayoutModel.js  lead / important / stream / brief, league pills, summary (#464)
+  signal/signalStoryModel.js per-story sources, link, relative time, title direction (#464)
 api/normalizers.js      API → view model, DECISION_LABELS_HE
 components/results/     results model, grouping and formatting (#466, #471)
 ```
@@ -447,7 +459,30 @@ ground and a 4px `--acc` edge on the inline start. The headline underline grows 
 inline start (2px `--acc`).
 
 The mock hides the feedback actions under 900px. That is not approved: feedback must stay
-reachable on a phone, and #464 decides how. No large cards, no images (B13).
+reachable on a phone. #464: under 900px the actions move below the "why" line, aligned to the
+inline end, with 32px tap targets; every placed story (lead, important row, stream, "in
+brief") carries them. No large cards, no images (B13).
+
+**As built in #464** (choices the mock left open):
+
+- **Placement in the shell.** `/` is in `SIGNAL_SURFACE_PATHS`. Inside the shell the summary
+  line, the pills and the freshness line render through `<MastheadSlot>`; with no slot (the
+  lab, the demo until #469) `SignalFeedView` renders them at its top. The view opens its own
+  `.signal-ui` scope; nested in a parent scope without `data-ground` it inherits the parent's
+  ground.
+
+- **Cluster members.** In the stream the badge is a disclosure button (`aria-expanded`) that
+  lists each visible member once (source, time, report title), each linking to its report. In
+  the lead and the important row each named source links to its own report.
+- **Pill selected state.** `aria-pressed`; the pressed pill takes the `--slab`/`--slab-fg`
+  pair and shows a slanted stroke, so colour is not the only cue. A "הכול" pill with the
+  total comes first. Pills reuse `feedFilters` (`league:<name>` ids, same toggle semantics);
+  the Orbit level and topic chips are not shown in the new feed.
+- **Alert colour.** `--hot` is used only for non-text marks (push strokes, the dot in the lead
+  label). The lead label itself is `--slab` text on a `--slab-fg` chip (6.7:1 white, 14.8:1
+  dark), pending #468.
+- **"In brief"** renders as a box after the stream until #465 moves it into the side column;
+  `.sg-cols` gains the 330px column when an `.sg-side` child exists.
 
 ## B11. Side column (#465)
 
@@ -516,16 +551,18 @@ Guidance from what Guy rejected while choosing:
 
 # Appendix C — Orbit on main until #473
 
-Orbit (shipped 2026-07-31) is still what main and the demo render. These facts matter only for
+Orbit (shipped 2026-07-31) is still what main and the demo render. On `ui/next` the Feed page
+uses the new feed (#464); the demo still uses `OrbitFeedView` until #469. These facts matter only for
 fixing main before the new look replaces it. #473 deletes this appendix together with the code.
 Screenshots of Orbit as shipped are in
 [`frontend-concepts/orbit/`](./frontend-concepts/orbit/README.md).
 
 - **Code**: `components/feed/orbit/` (`OrbitFeedView`, `OrbitStoryField`, `OrbitLoadingState`,
   `orbit.css`, and the models listed in A9) plus `components/shell/` (`Atmosphere`, `Masthead`,
-  `MobileNav`, `ProductNav`, `OpsNav`, `OpsGrid`, `SignalMark`). `EditionEmptyState` keeps its
-  legacy name but is the live zero-items state. On `ui/next`, `Masthead` and `MobileNav` are
-  Ops-only (#463), and `Atmosphere` is used only by the demo.
+  `MobileNav`, `ProductNav`, `OpsNav`, `OpsGrid`, `SignalMark`). On main, `EditionEmptyState`
+  is the live zero-items state; on `ui/next` it was replaced by `signal/SignalFeedStates.jsx`
+  (#464). On `ui/next`, `Masthead` and `MobileNav` are Ops-only (#463), and `Atmosphere` is
+  used only by the demo.
 - **Presentation contract**: `DECISION_CONFIG[...].orbit` (`queueScale`, `queueDensity`,
   `queueRail`, `queueMuted`) is locked by `decisionConfig.test.js`. The push-only signal rail
   is asserted in markup and in paint.

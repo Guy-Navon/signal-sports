@@ -1,7 +1,8 @@
 // Feed filter logic — extracted from Feed.jsx so behavior is locked by tests.
-// Two filter families share one active-filter Set:
-//   levels — decision levels, toggled from the signal spectrum
-//   topics — content filters, toggled from the quiet topic row
+// Filter families share one active-filter Set:
+//   levels  — decision levels, toggled from the Orbit signal spectrum
+//   topics  — content filters, toggled from the Orbit topic row
+//   leagues — "league:<name>", toggled from the league pills of the new feed (#464)
 
 export const LEVEL_FILTER_IDS = ["push", "high_feed", "feed", "low_feed"];
 
@@ -22,8 +23,22 @@ export function getVisibleItems(items) {
   });
 }
 
+const LEAGUE_PREFIX = "league:";
+
+/**
+ * The one league filter an item belongs to (the league pills, #464): its league,
+ * else "no league" within its sport, else plain "no league". A cluster reads the
+ * league of its displayed article, like every other filter here.
+ */
+export function leagueFilterId(item) {
+  if (item.league) return `${LEAGUE_PREFIX}${item.league}`;
+  if (item.sport) return `${LEAGUE_PREFIX}none:${item.sport}`;
+  return `${LEAGUE_PREFIX}none`;
+}
+
 export function itemMatchesFilter(item, filterId) {
   if (LEVEL_FILTER_IDS.includes(filterId)) return item.score?.decision === filterId;
+  if (filterId.startsWith(LEAGUE_PREFIX)) return leagueFilterId(item) === filterId;
   if (filterId === "maccabi") {
     const entities = item.entities || [];
     const tags = item.tags || [];

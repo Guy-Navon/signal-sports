@@ -40,7 +40,15 @@
 .sg-filter-result:not([data-active]) { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 @media (width < 900px) {
-  .sg-filters__row { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 3px; margin: -3px; }
+  /* Chips scroll within the row. A thin, quiet scrollbar shows that they do,
+     as on the results strip (B9): --sg-off thumb, --sg-dim while the pointer
+     or focus is in the row, 6px below the chips (#504). */
+  .sg-filters__row {
+    justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-inline: contain;
+    scrollbar-width: thin; scrollbar-color: var(--sg-off) transparent;
+    padding: 3px; padding-block-end: 9px; margin: -3px;
+  }
+  .sg-filters__row:hover, .sg-filters__row:focus-within { scrollbar-color: var(--sg-dim) transparent; }
   .sg-filters__row > *, .sg-filter-chips li { flex: none; }
   .sg-filter-chips { flex-wrap: nowrap; }
   .sg-filter-panel {

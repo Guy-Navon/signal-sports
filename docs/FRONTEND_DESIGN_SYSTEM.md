@@ -212,6 +212,15 @@ size (B6) and that `--sg-bar-h` and the anchor `scroll-padding` match the bar's 
 results strip's thin scrollbar with its `--sg-off` thumb, spaced off the scores (B9), and the
 hit-tested target of its "ללוח המלא" link (at least 24px on desktop, 44px on a phone); and the side
 column's scrollbar transparent at rest, with a stable gutter and its bottom-edge fade (B11).
+Since #504 every importance option is at least 44px tall at every width (the floor was the
+pills' 36px), and under 900px the chip row's scrollbar must be the quiet one (thin, `--sg-off`
+thumb, at least 4px under the chips). The motion audit's reduced-motion check first lets the
+0.01ms fallback transitions drain: under Vite dev the stylesheets are injected after `<html>` and
+`<body>` are first styled, so the global reduced-motion rule turns the inherited `tab-size`/`color`
+changes into a cascade of 0.01ms transitions, one DOM level per frame, that could still be in the
+header when the feed was ready (the old flake). A production build has none (0 in 15 loads versus
+3–4 in 15 under dev). Only CSS transitions of exactly 0.01ms are waited out, for at most 120 frames;
+anything still running after that, fallback or not, fails as before.
 The harness keeps every existing browser assertion through the #473 rename to `capture:ui`.
 
 **Demo bundle guard.** `npm run build`, `npm run build:demo`, then `npm run check:demo-bundle`.
@@ -339,14 +348,19 @@ label uses the `--slab`/`--slab-fg` pair, and the fresh-time text uses `--ink` a
 ## B3. Type
 
 - **Assistant** for all text: body 400 17px/1.5. Weights used 400, 500, 600, 700, 800.
-  Fallback stack `Assistant, "Noto Sans Hebrew", Arial, sans-serif`.
+  Fallback stack `Assistant, "Assistant Fallback", Heebo, "Noto Sans Hebrew", Arial, sans-serif`;
+  the lead headline `Karantina, "Karantina Fallback"`, then the text stack.
 - **Karantina 700** for exactly one element, the lead headline:
   `clamp(54px, 10.2vw, 150px)`, line-height 0.88. Nowhere else, including empty states and
   page titles.
 - Headlines use `text-wrap: balance`. Counts and scores use `font-variant-numeric:
   tabular-nums`.
 - The mock loads both faces from Google Fonts. The product loads them the way it already loads
-  fonts, with real fallbacks and no layout jump on load (#462). Ops keeps its current fonts.
+  fonts, with real fallbacks and no layout jump on load (#462). Both faces use
+  `font-display: swap`; the `… Fallback` faces (#504) are local Arial scaled with `size-adjust` and
+  `ascent-/descent-override` to each used weight's advance widths and vertical metrics, so the swap
+  keeps line breaks. Measured with fonts held back 1.5s: feed CLS 0.03–0.09 → ≤ 0.0003, preferences
+  at 390 0.021 → 0.005. Where Arial is missing the face is skipped. Ops keeps its current fonts.
 
 | element | size / weight |
 |---|---|
@@ -474,7 +488,9 @@ header ground, a logo-colour stripe, a segmented pill nav, a side rail, a result
     click close it. Opening focuses its close control; closing returns to the filter button.
   - **Phone (<900px):** a native modal bottom sheet with background inertness, a focus trap,
     Escape, a close control, "הצג N סיפורים" and safe-area padding. The footer stays reachable
-    while the options scroll. Active chips scroll within their row, never the page.
+    while the options scroll. Active chips scroll within their row, never the page; the row
+    shows a thin, quiet scrollbar as the results strip does (`--sg-off` thumb, `--sg-dim` while
+    hovered or focused, 6px under the chips, #504) instead of hiding it.
   - **Facets:** הכול / רגיל ומעלה / חשוב ומעלה (push included at every threshold), leagues
     and source display names already used by the feed. Importance AND league AND source;
     several leagues or sources mean any selected value within that facet. **A cluster matches
@@ -696,6 +712,10 @@ new stories.
 - **Grounds** (#468): `AccountMenu` in the consumer header selects white, soft or dark.
   `GroundProvider` persists the choice per device in `localStorage` (`signal.ground`), falls
   back to white if storage is unavailable, and applies no ground to Ops. The demo stays white.
+  Login, signup and the rest of the auth family (`AuthScene`), the 404 and the welcome screen open
+  their own `GroundProvider` and follow the stored ground; with nothing stored they stay white
+  (#504). The account menu and dialogs are portals that read the ground from context and open
+  their own `.signal-ui` scope, so they match the ground (re-verified on all three in #504).
 - **Preferences, interests, calibration** (#470): the same tokens and type. Calibration headline
   cards read like stream rows, so the user rates what they will see. No behaviour change.
 - **Results page** (#471): shares the strip's game row where possible.

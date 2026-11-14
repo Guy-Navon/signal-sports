@@ -3,6 +3,7 @@ import net from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   ensurePortAvailable,
+  isReducedMotionFallback,
   reserveEphemeralPort,
   resolveHarnessPort,
 } from "./capture-ui-production.mjs";
@@ -95,5 +96,23 @@ describe("harness port ownership", () => {
     await listen(server, port);
     opened.push(server);
     expect(server.address().port).toBe(port);
+  });
+});
+
+// #504: the load-time reduced-motion check waits out only the global
+// fallback's 0.01ms CSS transitions (a Vite-dev stylesheet cascade), never a
+// real animation, so what it asserts is unchanged.
+describe("reduced-motion fallback transitions", () => {
+  it("is the global rule's 0.01ms CSS transition", () => {
+    expect(isReducedMotionFallback({ type: "CSSTransition", duration: 0.01 })).toBe(true);
+  });
+
+  it("is never a CSS animation, a script animation or a longer transition", () => {
+    expect(isReducedMotionFallback({ type: "CSSAnimation", duration: 0.01 })).toBe(false);
+    expect(isReducedMotionFallback({ type: "Animation", duration: 0.01 })).toBe(false);
+    expect(isReducedMotionFallback({ type: "CSSTransition", duration: 0.02 })).toBe(false);
+    expect(isReducedMotionFallback({ type: "CSSTransition", duration: 150 })).toBe(false);
+    expect(isReducedMotionFallback({ type: "CSSTransition", duration: 0 })).toBe(false);
+    expect(isReducedMotionFallback({ type: "CSSTransition", duration: "auto" })).toBe(false);
   });
 });

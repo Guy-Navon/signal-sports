@@ -537,6 +537,31 @@ const MOTION_LAYOUT_SHIFT_BUDGET = 0.001;
 /** The only animation allowed to loop (B12). */
 const LOOPING_ANIMATIONS = new Set(["sg-pulse"]);
 
+/**
+ * The global reduced-motion rule in index.css (`transition-duration: 0.01ms
+ * !important` on every element) is what this transition is: a CSS transition
+ * of exactly 0.01ms, never a keyframe or script animation and never a real
+ * duration. Passed into the page as source, so it must stay self-contained.
+ *
+ * Why the motion audit needs it (#504): Vite dev injects stylesheets from
+ * JavaScript, after the browser has already styled <html> and <body> with UA
+ * defaults. Under reduced motion every inherited property that index.css
+ * changes (tab-size, color) then gets a 0.01ms transition, and when it ends
+ * the children see a new inherited value and start their own: the cascade
+ * walks down the tree one level per frame and can still be in flight in the
+ * header when the feed becomes ready. A production build links CSS in <head>
+ * before the first style, so it has no such cascade.
+ *
+ * @param {{ type: string, duration: unknown }} animation
+ */
+export function isReducedMotionFallback({ type, duration }) {
+  return type === "CSSTransition" && typeof duration === "number" &&
+    duration > 0 && Math.abs(duration - 0.01) < 1e-6;
+}
+
+/** Frames allowed for that cascade to drain; deeper than any DOM path here. */
+const FALLBACK_DRAIN_FRAME_LIMIT = 120;
+
 async function revealAllPages(client) {
   await evaluate(
     client,
@@ -1315,7 +1340,10 @@ function assertFilterEmpty(label, empty, back) {
 /**
  * Phone widths: with a threshold chosen, no horizontal page scroll, the
  * segmented control inside the viewport with every label unclipped and every
- * option at least the pills' 36px tall.
+ * option at least 44px tall (the phone target rule, #504; it was the pills'
+ * 36px). Under 900px the chip row scrolls on its own, so its scrollbar must
+ * be visible and quiet, as on the results strip: thin, the --sg-off thumb,
+ * at least 4px under the chips (#504; it was hidden entirely).
  */
 async function auditFilterBarPhone(client) {
   await openFilters(client);
@@ -1337,6 +1365,24 @@ async function auditFilterBarPhone(client) {
           clipped: label.scrollWidth > label.clientWidth + 1,
         })),
         resultDrawn: Boolean(document.querySelector(".sg-filter-result[data-active]")),
+        rowScrollbar: (() => {
+          if (innerWidth >= 900) return null;
+          const row = document.querySelector(".sg-filters__row");
+          if (!row) return { missing: true };
+          const probe = document.createElement("span");
+          probe.style.color = "var(--sg-off)";
+          row.append(probe);
+          const quiet = getComputedStyle(probe).color;
+          probe.remove();
+          const style = getComputedStyle(row);
+          return {
+            overflowX: style.overflowX,
+            width: style.scrollbarWidth,
+            thumb: style.scrollbarColor.split(/\\s(?![^(]*\\))/)[0],
+            quiet,
+            gap: parseFloat(style.paddingBlockEnd),
+          };
+        })(),
       };
     })()`
   );
@@ -1350,7 +1396,14 @@ function assertFilterBarPhone(label, audit) {
   if (!audit.seg || audit.seg.left < 0 || audit.seg.right > audit.clientWidth) fail("the threshold control leaves the viewport");
   if (audit.options.length !== 3) fail("expected three threshold options");
   if (audit.options.some((option) => option.clipped)) fail("a threshold label is clipped");
-  if (audit.options.some((option) => option.height < 36)) fail("a threshold option is under 36px tall");
+  if (audit.options.some((option) => option.height < 44)) fail("a threshold option is under 44px tall");
+  if (audit.rowScrollbar) {
+    const bar = audit.rowScrollbar;
+    if (bar.missing || bar.overflowX !== "auto") fail("the chip row does not scroll on its own");
+    if (bar.width !== "thin" || bar.thumb !== bar.quiet || !(bar.gap >= 4)) {
+      fail("the chip row's scrollbar is hidden or not the quiet --sg-off one");
+    }
+  }
   if (!audit.resultDrawn) fail("no result line with a filter on");
 }
 
@@ -2448,6 +2501,27 @@ async function auditMotion(client) {
       document.body.getBoundingClientRect();
       await new Promise((resolve) => requestAnimationFrame(resolve));
       await new Promise((resolve) => requestAnimationFrame(resolve));
+      // Let the dev-only stylesheet cascade of 0.01ms fallback transitions
+      // drain (#504, isReducedMotionFallback). Nothing else is waited for and
+      // nothing is filtered: every animation still running after the drain,
+      // fallback or not, fails the reduced-motion check below. Under normal
+      // motion there are no 0.01ms transitions, so this exits at once.
+      const isReducedMotionFallback = ${isReducedMotionFallback.toString()};
+      const fallbackRunning = () => document.getAnimations().filter((animation) =>
+        animation.playState === "running" && isReducedMotionFallback({
+          type: animation.constructor.name,
+          duration: animation.effect?.getComputedTiming().duration,
+        }));
+      const drained = [];
+      let drainFrames = 0;
+      for (let running = fallbackRunning(); running.length && drainFrames < ${FALLBACK_DRAIN_FRAME_LIMIT}; running = fallbackRunning()) {
+        for (const animation of running) {
+          const entry = animation.transitionProperty + " " + String(animation.effect?.target?.className ?? "").slice(0, 40);
+          if (!drained.includes(entry)) drained.push(entry);
+        }
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        drainFrames += 1;
+      }
       const shifts = [];
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
@@ -2483,6 +2557,7 @@ async function auditMotion(client) {
         readyDetails: atReady.map((a) => ({ name: named(a), target: a.effect?.target?.className, duration: a.effect?.getComputedTiming().duration })),
         runningSettled: settled.map(named),
         runningSettledFinite: settled.filter(finite).map(named),
+        fallbackDrain: { frames: drainFrames, transitions: drained.slice(0, 12) },
         layoutShift: shifts.reduce((sum, shift) => sum + shift.value, 0),
         shifts: shifts.slice(0, 8),
       };
@@ -2853,6 +2928,8 @@ async function main() {
         runningAtReady: regressions.motion.runningAtReady.length,
         runningSettled: regressions.motion.runningSettled,
         layoutShift: regressions.motion.layoutShift,
+        // Dev-only 0.01ms fallback cascade waited out before the snapshots (#504).
+        fallbackDrain: regressions.motion.fallbackDrain,
       },
       clusters: {
         named: regressions.cluster.named.length,

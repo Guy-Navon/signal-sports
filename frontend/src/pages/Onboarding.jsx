@@ -6,6 +6,7 @@ import { completeMeOnboarding } from "@/api/client";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import SignalWordmark from "@/components/signal-ui/SignalWordmark";
+import { GroundProvider, useGround } from "@/components/signal-ui/useGround";
 import "@/components/signal-ui/signal-ui.css";
 import "@/components/preferences/personalization.css";
 import "./onboarding.css";
@@ -13,8 +14,14 @@ import "./onboarding.css";
 // The welcome screen (User Platform PR 4, #52) — the first thing a brand-new
 // account sees. Product voice: explain signal-over-noise, invite into
 // Calibration V2, keep skipping possible at every step. Rendered outside the
-// AppShell (a standalone Signal UI welcome surface).
+// AppShell (a standalone Signal UI welcome surface) on the reader's chosen
+// ground, white when nothing is stored (#504).
 export default function Onboarding() {
+  return <GroundProvider><Welcome /></GroundProvider>;
+}
+
+function Welcome() {
+  const { ground } = useGround();
   const navigate = useNavigate();
   const auth = useAuth();
   const { activeProfile } = useApp();
@@ -39,7 +46,7 @@ export default function Onboarding() {
   }
 
   return (
-    <main className="signal-ui sg-welcome">
+    <main className="signal-ui sg-welcome" data-ground={ground}>
       <header className="sg-welcome__masthead"><Link to="/" aria-label="סיגנל, לפיד"><SignalWordmark /></Link></header>
       <div className="sg-welcome__body">
         <p className="sg-personalization__eyebrow">ברוכים הבאים לסיגנל</p>

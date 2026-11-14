@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useId, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { searchCatalog, isFollowed } from "@/components/interests/interestsModel";
 
@@ -8,6 +8,7 @@ const SCOPE_LABELS = { sport: "ענף", competition: "ליגה/טורניר", te
 // disclosure state. Picking a result adds ONLY that scope (no implicit
 // parents; suggestions are the picker's job).
 export default function CatalogSearch({ catalog, follows, onPick }) {
+  const inputId = useId();
   const [query, setQuery] = useState("");
   const results = useMemo(
     () => searchCatalog(catalog, query),
@@ -15,18 +16,19 @@ export default function CatalogSearch({ catalog, follows, onPick }) {
   );
 
   return (
-    <div className="relative">
-      <div className="flex items-center gap-2 bg-surface-1 border border-border rounded-[10px] px-3 py-2">
-        <Search size={14} className="text-text-dim flex-shrink-0" />
+    <div className="sg-catalog-search">
+      <label htmlFor={inputId}>חיפוש קבוצה, ליגה או שחקן</label>
+      <div className="sg-catalog-search__input">
+        <Search size={18} aria-hidden="true" />
         <input
+          id={inputId}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="חיפוש קבוצה, ליגה או שחקן — בעברית או באנגלית"
-          className="bg-transparent text-sm text-foreground placeholder:text-text-dim outline-none w-full"
+          placeholder="בעברית או באנגלית"
         />
       </div>
       {results.length > 0 && (
-        <div className="absolute z-20 mt-1 w-full bg-surface-1 border border-border rounded-[10px] shadow-lg max-h-64 overflow-y-auto">
+        <div className="sg-catalog-search__results" aria-label="תוצאות חיפוש">
           {results.map(({ scope, item }) => {
             const followed = isFollowed(follows, scope, item.id);
             return (
@@ -38,17 +40,18 @@ export default function CatalogSearch({ catalog, follows, onPick }) {
                   onPick(scope, item.id);
                   setQuery("");
                 }}
-                className="w-full flex items-center justify-between px-3 py-2 text-sm text-right hover:bg-surface-2 disabled:opacity-50"
+                className="sg-catalog-search__result"
               >
-                <span className="text-foreground">{item.display_he}</span>
-                <span className="text-xs text-text-dim">
+                <bdi dir="auto">{item.display_he}</bdi>
+                <small>
                   {followed ? "במעקב" : SCOPE_LABELS[scope]}
-                </span>
+                </small>
               </button>
             );
           })}
         </div>
       )}
+      {query.trim().length >= 2 && results.length === 0 && <p className="sg-form-note" role="status">לא נמצאו תוצאות. נסו שם אחר בעברית או באנגלית.</p>}
     </div>
   );
 }

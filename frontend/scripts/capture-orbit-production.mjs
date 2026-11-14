@@ -1222,7 +1222,7 @@ async function auditTypography(client, label) {
     ["/preferences", "h1"],      // preferences utility surface
     ["/no-such-route", "h1"],    // 404 — same font-display utility as Auth
   ]) {
-    leaks.push(await auditNoSerifLeak(client, route, heading, route === "/results" ? TEXT_FAMILY : SANS_FAMILY));
+    leaks.push(await auditNoSerifLeak(client, route, heading, ["/results", "/preferences"].includes(route) ? TEXT_FAMILY : SANS_FAMILY));
   }
 
   return { label, text, shellChrome, faces, leaks };

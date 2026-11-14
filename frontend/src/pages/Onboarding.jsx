@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Compass } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Compass, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 import { completeMeOnboarding } from "@/api/client";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
-import AuthScene from "@/pages/AuthScene";
+import SignalWordmark from "@/components/signal-ui/SignalWordmark";
+import "@/components/signal-ui/signal-ui.css";
+import "@/components/preferences/personalization.css";
+import "./onboarding.css";
 
 // The welcome screen (User Platform PR 4, #52) — the first thing a brand-new
 // account sees. Product voice: explain signal-over-noise, invite into
 // Calibration V2, keep skipping possible at every step. Rendered outside the
-// AppShell (full-canvas product moment, AuthScene stage).
+// AppShell (a standalone Signal UI welcome surface).
 export default function Onboarding() {
   const navigate = useNavigate();
   const auth = useAuth();
@@ -36,48 +39,56 @@ export default function Onboarding() {
   }
 
   return (
-    <AuthScene
-      kicker="ברוכים הבאים לסיגנל"
-      title={name ? `נעים להכיר, ${name}` : "נעים להכיר"}
-    >
-      <div className="space-y-4 text-center">
-        <p className="text-sm text-text-secondary leading-relaxed">
+    <main className="signal-ui sg-welcome">
+      <header className="sg-welcome__masthead"><Link to="/" aria-label="סיגנל, לפיד"><SignalWordmark /></Link></header>
+      <div className="sg-welcome__body">
+        <p className="sg-personalization__eyebrow">ברוכים הבאים לסיגנל</p>
+        <h1>{name ? <>נעים להכיר, <bdi dir="auto">{name}</bdi></> : "נעים להכיר"}</h1>
+        <p className="sg-welcome__intro">
           סיגנל הוא לא עוד אתר ספורט: המערכת סורקת את כל המקורות, מבינה מה כל
           כתבה אומרת — ומציגה לך רק את מה ששווה את תשומת הלב שלך.
         </p>
-        <p className="text-sm text-text-secondary leading-relaxed">
+        <p className="sg-form-note">
           מתחילים בלספר לנו אחרי מה אתם עוקבים — ענפים, ליגות, קבוצות ושחקנים.
           אחר כך כמה כותרות קצרות יכיילו את הניואנסים. שתי דקות — והפיד שלך
           יתחיל לדבר בשפה שלך. אפשר לעצור באמצע ולחזור מכל מכשיר.
         </p>
 
+        <ol className="sg-welcome__steps" aria-label="איך מתחילים">
+          <li><span aria-hidden="true">01</span><div><h2>בוחרים מה מעניין</h2><p>ענפים, ליגות, קבוצות ושחקנים.</p></div></li>
+          <li><span aria-hidden="true">02</span><div><h2>מכוונים את העוצמה</h2><p>כמה כותרות קצרות, לפי ההעדפות שלך.</p></div></li>
+          <li><span aria-hidden="true">03</span><div><h2>קוראים את הפיד שלך</h2><p>אפשר לחדד את הבחירות בכל שלב.</p></div></li>
+        </ol>
+
         {error && (
-          <p role="alert" className="text-sm text-signal-hidden">{error}</p>
+          <p role="alert" className="sg-form-error">{error}</p>
         )}
 
-        <div className="pt-2 space-y-3">
-          <Button
-            className="w-full gap-2"
+        <div className="sg-welcome__actions">
+          <button
+            type="button"
+            className="sg-form-button sg-form-button--primary"
             onClick={() => navigate("/interests")}
           >
             <Compass size={15} />
             בחרו מה מעניין אתכם
-          </Button>
+            <ArrowLeft size={16} aria-hidden="true" />
+          </button>
           <button
             type="button"
             onClick={skip}
             disabled={skipping}
-            className="w-full text-sm text-text-secondary hover:text-foreground transition-colors disabled:opacity-50 max-md:min-h-11"
+            className="sg-form-link"
           >
             {skipping ? "רק רגע…" : "דלגו בינתיים — אכייל אחר כך"}
           </button>
         </div>
 
-        <p className="text-xs text-text-dim leading-relaxed pt-2">
+        <p className="sg-form-note">
           בלי לבחור תחומי עניין הפיד יישאר ריק בכוונה — אנחנו לא מציגים רעש
           גנרי. הבחירה והכיול יחכו לך בלחיצה אחת, ותמיד אפשר לחדד מחדש.
         </p>
       </div>
-    </AuthScene>
+    </main>
   );
 }

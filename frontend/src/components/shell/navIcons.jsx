@@ -51,19 +51,19 @@ export const ScoreboardStand = scoreboard("ScoreboardStand", (
   </>
 ));
 
-// C: a split board: a header strip for the teams, the score halves beneath.
-export const ScoreboardSplit = scoreboard("ScoreboardSplit", (
+// C: two flip-score cards side by side, each with its hinge line.
+export const ScoreboardFlip = scoreboard("ScoreboardFlip", (
   <>
-    <rect x="2" y="4" width="20" height="16" rx="2.5" />
-    <path d="M2 9h20M12 9v11" />
-    <path d="M7 12.5v4M17 12.5v4" />
+    <rect x="2" y="5" width="9" height="14" rx="2" />
+    <rect x="13" y="5" width="9" height="14" rx="2" />
+    <path d="M2 12h9M13 12h9" />
   </>
 ));
 
 export const RESULTS_ICON_CANDIDATES = [
   { id: "panel", label: "לוח עם נקודתיים", Icon: ScoreboardPanel },
   { id: "stand", label: "לוח על עמודים", Icon: ScoreboardStand },
-  { id: "split", label: "לוח מפוצל", Icon: ScoreboardSplit },
+  { id: "flip", label: "כרטיסי ניקוד מתהפכים", Icon: ScoreboardFlip },
 ];
 
 export const CONSUMER_NAV_ICONS = {

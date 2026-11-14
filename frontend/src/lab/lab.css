@@ -148,3 +148,165 @@
 .lab-reduce .sg-feed *,
 .lab-reduce .sg-feed *::before,
 .lab-reduce .sg-feed *::after { animation: none !important; transition: none !important; }
+
+/* Navigation lab (#491), lab.html?page=nav. */
+.lab-nav {
+  align-content: start;
+  min-block-size: 100vh;
+  gap: 28px;
+  padding-block: 24px 48px;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+}
+
+.lab-nav__intro h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.lab-nav__intro p {
+  max-inline-size: 70ch;
+  margin-block: 6px 0;
+}
+
+.lab-nav__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 20px;
+}
+
+.lab-nav__card {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--sg-line);
+  background: var(--sg-card);
+}
+
+.lab-nav__card figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lab-nav__default {
+  padding-inline: 8px;
+  background: var(--sg-acc);
+  color: var(--sg-slab-fg);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* A 320px-wide copy of the phone's compact bar. */
+.lab-navbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  inline-size: 320px;
+  max-inline-size: 100%;
+  block-size: 56px;
+  padding-inline: 8px;
+  background: var(--sg-top);
+  color: var(--sg-top-fg);
+}
+
+.lab-navbar__brand {
+  font-size: 19px;
+}
+
+.lab-navbar__tabs {
+  display: flex;
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-inline-size: 0;
+}
+
+.lab-navbar__tab {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--sg-top-dim);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lab-navbar__tab[data-current] {
+  color: var(--sg-top-fg);
+}
+
+.lab-navbar__avatar {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 999px;
+  background: var(--sg-top-hover);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.lab-nav__sizes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 18px;
+}
+
+.lab-nav__size {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: var(--sg-ink);
+}
+
+.lab-nav__size--navy {
+  padding: 8px;
+  background: var(--sg-top);
+  color: var(--sg-top-fg);
+}
+
+.lab-nav__set ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lab-nav__set li {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.lab-nav__logos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.lab-nav__logo {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 18px 24px;
+  border: 1px solid var(--sg-line);
+  font-size: 40px;
+}
+
+.lab-nav__logo small {
+  font-size: 13px;
+}
+
+.lab-nav__logo--navy {
+  background: var(--sg-top);
+  color: var(--sg-top-fg);
+}

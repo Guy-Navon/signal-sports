@@ -22,8 +22,8 @@
    arrives. These local Arial faces are scaled to Assistant's and Karantina's
    advance widths (measured over the feed's own Hebrew headlines, per used
    weight) and given their ascent/descent, so the swap keeps line breaks and
-   line boxes: measured font-load layout shift on the feed went from
-   0.03–0.09 to 0.00x with fonts held back 1.5s. The overrides are divided by
+   line boxes: with fonts held back 1.5s, the feed's font-load layout shift
+   went from 0.03–0.09 to at most 0.0003. The overrides are divided by
    size-adjust because the browser scales them by it. Where Arial is not
    installed the face is skipped and the stack continues as before. */
 @font-face {

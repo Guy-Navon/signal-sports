@@ -7,8 +7,10 @@
  * and mobile viewports in Chrome through CDP, and asserts what the browser
  * paints: placement by level (lead only with a push, important row, stream,
  * "in brief"), the bounded stream page, league-pill filter latency and focus,
- * the cluster disclosure, typography, RTL/overflow, dock occlusion and runtime
- * errors. Writes temporary review PNGs.
+ * the cluster disclosure, typography, RTL/overflow, the consumer header (#491:
+ * masthead, collapsing slim bar, account menu keyboard flow, no layout shift),
+ * occlusion by the fixed slim bar and runtime errors. Writes temporary review
+ * PNGs.
  *
  * Adapted from the Orbit harness for the new feed in #464 with the same
  * invariants; #473 renames it (capture:orbit is kept until then).
@@ -521,7 +523,8 @@ const PLACED_SELECTOR = ".sg-feed [data-decision]:not(.sg-latest__item)";
 const EXPECTED_LATEST_SIZE = 8;
 
 /** The side column's sticky offset (B11): 14px; the harness has no safe area. */
-const EXPECTED_SIDE_TOP = 14;
+// Since #491 the column sticks 14px below the consumer header's slim bar.
+const EXPECTED_SIDE_GAP = 14;
 
 /**
  * Motion (#467). Must match feedMotionModel.js: ENTER_MAX_STEPS (6) steps of
@@ -713,7 +716,16 @@ async function auditSideColumn(client) {
         window.scrollTo({ top: mainTop + mainRect.height / 2 - innerHeight / 2, left: 0, behavior: "instant" });
         await sleep(150);
         const rect = side.getBoundingClientRect();
-        midStream = { scrollY, top: rect.top, bottom: rect.bottom };
+        // The slim bar (#491) is fixed at the top once the masthead has gone;
+        // its layout height, not its (possibly still sliding) painted box.
+        const bar = document.querySelector(".sg-bar");
+        midStream = {
+          scrollY,
+          top: rect.top,
+          bottom: rect.bottom,
+          barShown: Boolean(bar?.hasAttribute("data-shown")),
+          barBottom: bar ? bar.offsetTop + bar.offsetHeight : null,
+        };
         window.scrollTo({ top: 0, left: 0, behavior: "instant" });
         await sleep(80);
       }
@@ -785,8 +797,11 @@ function assertSideColumn(label, audit, { desktop, briefCount }) {
     fail("the side column is not beside the stream at its inline end");
   }
   if (audit.main && audit.main.height > audit.innerHeight && audit.midStream) {
-    if (Math.abs(audit.midStream.top - EXPECTED_SIDE_TOP) > 1) {
-      fail("halfway down the stream the column did not stick 14px from the top");
+    if (!audit.midStream.barShown || audit.midStream.barBottom === null) {
+      fail("halfway down the stream the slim header bar is not shown");
+    }
+    if (Math.abs(audit.midStream.top - audit.midStream.barBottom - EXPECTED_SIDE_GAP) > 1) {
+      fail("halfway down the stream the column did not stick 14px below the slim bar");
     }
     if (audit.midStream.bottom > audit.innerHeight + 1) fail("the stuck column runs past the viewport");
   }
@@ -1048,7 +1063,8 @@ const TEXT_SURFACES = {
 // The consumer shell chrome (#463) is Signal UI too: Assistant, never the
 // Orbit serif.
 const SHELL_SURFACES = {
-  navigation: ".sg-topbar__link",
+  navigation: ".sg-head .sg-tab",
+  compactNavigation: ".sg-bar .sg-tab__label",
   wordmark: ".sg-wordmark",
 };
 
@@ -1227,11 +1243,11 @@ async function auditTypography(client, label) {
   return { label, text, shellChrome, faces, leaks };
 }
 
-// ── Mobile dock occlusion ─────────────────────────────────────────────────────
+// ── Slim-bar occlusion ────────────────────────────────────────────────────────
 //
-// The dock is `position: fixed`, so a horizontal-bounds check cannot see it: a
-// control can sit fully inside the viewport horizontally and still be painted
-// under the dock. `elementFromPoint` is the only honest test — it reports what
+// The consumer header's slim bar (#491, replacing the phone dock) is
+// `position: fixed` at the top, so a horizontal-bounds check cannot see it: a
+// control can sit fully inside the viewport and still be painted under it. `elementFromPoint` is the only honest test — it reports what
 // the user would actually hit.
 //
 // "Below the fold" is NOT occlusion. Anything off-screen is scrolled into view
@@ -1240,8 +1256,8 @@ async function auditTypography(client, label) {
 const OCCLUSION_PROBE = `(async (selector, describeActive) => {
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-  // The consumer shell's phone dock (#463, ProductDock).
-  const dock = document.querySelector(".sg-dock");
+  // The consumer header's slim bar (#491).
+  const dock = document.querySelector(".sg-bar");
   const element = describeActive ? document.activeElement : document.querySelector(selector);
   if (!element || element === document.body) return { selector, present: false };
 
@@ -1333,7 +1349,7 @@ async function probeControl(client, selector, { active = false } = {}) {
 
 /**
  * Every control a phone reader is steered toward stays reachable beside the
- * fixed dock: the pills, a row's feedback actions (always shown, #464), the
+ * fixed slim bar: the pills, a row's feedback actions (always shown, #464), the
  * cluster badge and its member links, the last row's actions and "show more".
  */
 async function auditDockOcclusion(client, label) {
@@ -1363,6 +1379,11 @@ async function auditDockOcclusion(client, label) {
     showMore: await probeControl(client, ".sg-stream-section .sg-more"),
     lastBriefHeadline: await probeControl(client, ".sg-brief__item:last-child .sg-headline-link"),
   };
+  await delay(500);
+  states.pageEnd.barShown = await evaluate(
+    client,
+    `Boolean(document.querySelector(".sg-bar")?.hasAttribute("data-shown"))`
+  );
   return { label, states };
 }
 
@@ -1371,13 +1392,13 @@ function assertDockOcclusion(audit) {
   const failures = [];
   for (const [stateName, controls] of Object.entries(states)) {
     for (const [controlName, probe] of Object.entries(controls)) {
-      if (!probe?.present) continue;
+      if (typeof probe !== "object" || !probe?.present) continue;
       if (probe.occluded) failures.push({ state: stateName, control: controlName, probe });
     }
   }
   if (failures.length) {
     throw new Error(
-      `${label}: ${failures.length} control(s) unreachable beneath the fixed dock: ` +
+      `${label}: ${failures.length} control(s) unreachable beneath the fixed slim bar: ` +
         JSON.stringify(failures, null, 2)
     );
   }
@@ -1395,10 +1416,326 @@ function assertDockOcclusion(audit) {
   if (!states.onLoad.clusterBadge?.present && !states.onLoad.namedSourceLink?.present) {
     throw new Error(`${label}: no cluster member control was found to test.`);
   }
-  // Nor may it pass because the dock selector no longer matches anything.
+  // Nor may it pass because the bar selector no longer matches anything.
   if (states.onLoad.firstRowMore.dockTop === null) {
-    throw new Error(`${label}: the phone dock (.sg-dock) was not found, so occlusion is unverified.`);
+    throw new Error(`${label}: the slim bar (.sg-bar) was not found, so occlusion is unverified.`);
   }
+  // And the end of the page was probed with the bar actually shown over it.
+  if (!states.pageEnd.barShown) {
+    throw new Error(`${label}: the slim bar was not shown at the end of the page, so occlusion is unverified.`);
+  }
+}
+
+// ── Consumer header (#491) ────────────────────────────────────────────────────
+
+const EXPECTED_NAV_LABELS = ["הפיד שלי", "תוצאות", "העדפות", "כיוונון"];
+const BAR_SETTLE_MS = 700;
+const MIN_TARGET = 44;
+
+async function pressKey(client, key, code, keyCode, modifiers = 0) {
+  for (const type of ["keyDown", "keyUp"]) {
+    await client.send("Input.dispatchKeyEvent", {
+      type,
+      key,
+      code,
+      modifiers,
+      windowsVirtualKeyCode: keyCode,
+      nativeVirtualKeyCode: keyCode,
+    });
+  }
+  await delay(120);
+}
+
+/**
+ * The consumer header as painted (#491): the navy masthead in page flow with
+ * every tab reachable and unclipped; the slim bar hidden and inert at the top,
+ * shown and fixed at the top once the masthead tabs have left, with every tab
+ * (icon over label on a phone) reachable, unclipped and at least 44px; the
+ * hysteresis band; zero layout shift while it collapses and expands; and under
+ * reduced motion no transition at all.
+ */
+async function auditHeader(client) {
+  await loadApp(client);
+  return await evaluate(
+    client,
+    `(async () => {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+      const vw = document.documentElement.clientWidth;
+      const head = document.querySelector(".sg-head");
+      const bar = document.querySelector(".sg-bar");
+      if (!head || !bar) return { present: false };
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reachable = (element) => {
+        const rect = element.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) return false;
+        const painted = document.elementFromPoint(x, y);
+        return painted === element || element.contains(painted);
+      };
+      const clipped = (element, container) => {
+        const rect = element.getBoundingClientRect();
+        const box = container.getBoundingClientRect();
+        return rect.width === 0 || rect.height === 0 || rect.left < -0.5 || rect.right > vw + 0.5 ||
+          rect.left < box.left - 0.5 || rect.right > box.right + 0.5 ||
+          rect.top < box.top - 0.5 || rect.bottom > box.bottom + 0.5;
+      };
+      const tabsOf = (root) => Array.from(root.querySelectorAll(".sg-tab")).map((tab) => {
+        const rect = tab.getBoundingClientRect();
+        const label = tab.querySelector(".sg-tab__label");
+        const icon = tab.querySelector(".sg-tab__icon");
+        const labelRect = label?.getBoundingClientRect();
+        return {
+          text: label?.textContent.trim() ?? "",
+          current: tab.getAttribute("aria-current"),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          reachable: reachable(tab),
+          clipped: clipped(tab, root),
+          labelVisible: Boolean(label && labelRect.width > 0 && labelRect.height > 0 &&
+            getComputedStyle(label).visibility === "visible" && label.scrollWidth <= label.clientWidth + 1 &&
+            !clipped(label, tab)),
+          iconVisible: Boolean(icon && getComputedStyle(icon).display !== "none" && icon.getBoundingClientRect().width > 0),
+        };
+      });
+      const account = (root) => {
+        const button = root.querySelector("[aria-label='החשבון']");
+        if (!button) return null;
+        const rect = button.getBoundingClientRect();
+        return { width: Math.round(rect.width), height: Math.round(rect.height), reachable: reachable(button), clipped: clipped(button, root) };
+      };
+      const barState = () => ({
+        shown: bar.hasAttribute("data-shown"),
+        inert: bar.inert === true,
+        visibility: getComputedStyle(bar).visibility,
+      });
+      const waitForBar = async (shown) => {
+        const deadline = performance.now() + 3000;
+        while (performance.now() < deadline && bar.hasAttribute("data-shown") !== shown) await frame();
+        await sleep(${BAR_SETTLE_MS});
+      };
+
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      await sleep(300);
+      const headStyle = getComputedStyle(head);
+      const headNav = head.querySelector("nav");
+      const top = {
+        headPosition: headStyle.position,
+        headBackground: headStyle.backgroundColor,
+        topToken: getComputedStyle(head).getPropertyValue("--sg-top").trim(),
+        logo: Boolean(head.querySelector(".sg-head__brand .sg-wordmark .sg-wordmark__bars")),
+        date: head.querySelector(".sg-head__date")?.textContent.trim() ?? null,
+        dateVisible: getComputedStyle(head.querySelector(".sg-head__date")).display !== "none",
+        tabs: tabsOf(headNav),
+        account: account(head),
+        bar: barState(),
+        dock: Boolean(document.querySelector(".sg-dock")),
+        slotAfterHeader: (() => {
+          const slot = document.querySelector(".sg-masthead__slot");
+          return Boolean(slot && !bar.contains(slot) && !head.contains(slot) &&
+            slot.getBoundingClientRect().top >= head.getBoundingClientRect().bottom - 0.5);
+        })(),
+        summaryInSlot: Boolean(document.querySelector(".sg-masthead__slot .sg-summary")),
+      };
+
+      // Collapse and expand by scrolling, counting layout shifts throughout.
+      const shifts = [];
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) shifts.push(entry.value);
+      });
+      observer.observe({ type: "layout-shift" });
+      const navRect = headNav.getBoundingClientRect();
+      const barHeight = bar.offsetHeight;
+      const tabsBottom = scrollY + navRect.bottom;
+
+      // Partly under the bar line from the top: still expanded.
+      window.scrollTo({ top: tabsBottom - barHeight - navRect.height / 2, left: 0, behavior: "instant" });
+      await sleep(400);
+      const partialFromTop = barState();
+
+      window.scrollTo({ top: tabsBottom + 600, left: 0, behavior: "instant" });
+      let midTransition = null;
+      const toggledAt = performance.now();
+      while (!bar.hasAttribute("data-shown") && performance.now() - toggledAt < 3000) await frame();
+      await sleep(90);
+      midTransition = { opacity: Number(getComputedStyle(bar).opacity), running: bar.getAnimations({ subtree: true }).length };
+      await waitForBar(true);
+      const barStyle = getComputedStyle(bar);
+      const barRect = bar.getBoundingClientRect();
+      const collapsed = {
+        ...barState(),
+        position: barStyle.position,
+        top: Math.round(barRect.top),
+        height: Math.round(barRect.height),
+        background: barStyle.backgroundColor,
+        shadow: barStyle.boxShadow,
+        transition: barStyle.transitionDuration,
+        logo: Boolean(bar.querySelector(".sg-bar__brand .sg-wordmark__bars")),
+        logoReachable: reachable(bar.querySelector(".sg-bar__brand")),
+        tabs: tabsOf(bar.querySelector("nav")),
+        account: account(bar),
+      };
+
+      // Back into the hysteresis band from below: still collapsed.
+      window.scrollTo({ top: tabsBottom - barHeight - navRect.height / 2, left: 0, behavior: "instant" });
+      await sleep(400);
+      const partialFromBelow = barState();
+
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      await waitForBar(false);
+      const expandedAgain = barState();
+      await sleep(200);
+      observer.disconnect();
+      return {
+        present: true,
+        reduced,
+        viewport: vw,
+        top,
+        partialFromTop,
+        collapsed,
+        midTransition,
+        partialFromBelow,
+        expandedAgain,
+        layoutShift: shifts.reduce((sum, value) => sum + value, 0),
+        shifts: shifts.length,
+      };
+    })()`
+  );
+}
+
+function assertHeader(label, audit, { phone }) {
+  const fail = (message) => {
+    throw new Error(`${label}: ${message}: ${JSON.stringify(audit)}`);
+  };
+  if (!audit.present) fail("the consumer header (.sg-head / .sg-bar) is missing");
+  const { top, collapsed } = audit;
+  if (top.dock) fail("the removed bottom dock still renders");
+  if (top.headPosition === "fixed" || top.headPosition === "sticky") fail("the masthead must stay in page flow");
+  if (!top.logo) fail("the masthead logo (bars + word) is missing");
+  if (top.dateVisible === phone) fail(phone ? "the date line shows on a phone" : "the date line is missing");
+  if (!phone && !/^[א-ת]+, \d{1,2} ב[א-ת]+ \d{4}$/.test(top.date ?? "")) fail("the date line is not a Hebrew date");
+  if (!top.slotAfterHeader || !top.summaryInSlot) fail("the summary line is not in the slot directly under the header");
+  const checkTabs = (where, tabs, { compact }) => {
+    if (JSON.stringify(tabs.map((tab) => tab.text)) !== JSON.stringify(EXPECTED_NAV_LABELS)) {
+      fail(`${where}: tabs are not feed, results, preferences, calibration`);
+    }
+    if (tabs.filter((tab) => tab.current === "page").length !== 1 || tabs[0].current !== "page") {
+      fail(`${where}: the feed tab is not the single aria-current page`);
+    }
+    for (const tab of tabs) {
+      if (!tab.reachable) fail(`${where}: tab "${tab.text}" is covered`);
+      if (tab.clipped) fail(`${where}: tab "${tab.text}" is clipped`);
+      if (!tab.labelVisible) fail(`${where}: the label of "${tab.text}" is not fully visible`);
+      if (phone && (tab.height < MIN_TARGET || tab.width < MIN_TARGET)) {
+        fail(`${where}: tab "${tab.text}" is under ${MIN_TARGET}px`);
+      }
+      if (tab.iconVisible !== (compact && phone)) {
+        fail(`${where}: tab "${tab.text}" ${compact && phone ? "lacks" : "shows"} its icon`);
+      }
+    }
+  };
+  checkTabs("masthead", top.tabs, { compact: false });
+  if (!top.account?.reachable || top.account.clipped) fail("masthead: the account control is not reachable");
+  if (phone && (top.account.width < MIN_TARGET || top.account.height < MIN_TARGET)) fail("masthead: account under 44px");
+  if (top.bar.shown || !top.bar.inert || top.bar.visibility !== "hidden") {
+    fail("at the top of the page the slim bar is not hidden and inert");
+  }
+  if (audit.partialFromTop.shown) fail("the bar showed while the masthead tabs were only partly covered");
+  if (!collapsed.shown || collapsed.inert || collapsed.visibility !== "visible") fail("scrolling down did not show the bar");
+  if (collapsed.position !== "fixed" || collapsed.top !== 0) fail("the slim bar is not fixed to the top");
+  if (collapsed.background !== top.headBackground) fail("the slim bar is not the masthead's navy");
+  if (!collapsed.shadow || collapsed.shadow === "none") fail("the slim bar has no shadow");
+  if (!collapsed.logo || !collapsed.logoReachable) fail("the slim bar's logo is missing or covered");
+  checkTabs("slim bar", collapsed.tabs, { compact: true });
+  if (!collapsed.account?.reachable || collapsed.account.clipped) fail("slim bar: the account control is not reachable");
+  if (phone && (collapsed.account.width < MIN_TARGET || collapsed.account.height < MIN_TARGET)) fail("slim bar: account under 44px");
+  if (!audit.partialFromBelow.shown) fail("no hysteresis: the bar hid while the tabs were only partly back");
+  if (audit.expandedAgain.shown || !audit.expandedAgain.inert) fail("scrolling back to the top did not hide the bar");
+  if (audit.layoutShift !== 0) fail(`collapsing and expanding shifted layout by ${audit.layoutShift}`);
+  if (audit.reduced) {
+    if (collapsed.transition.split(",").some((value) => parseFloat(value) > 0.001)) {
+      fail("the slim bar still transitions under reduced motion");
+    }
+    if (audit.midTransition.opacity !== 1 || audit.midTransition.running) fail("the bar animated under reduced motion");
+  } else {
+    const seconds = collapsed.transition.split(",").map((value) => parseFloat(value));
+    if (Math.max(...seconds) < 0.3 || Math.max(...seconds) > 0.5) fail("the bar transition is not the soft 300-500ms");
+    if (!(audit.midTransition.opacity > 0 && audit.midTransition.opacity < 1)) {
+      fail("90ms in, the bar was not mid fade (no soft entrance)");
+    }
+  }
+}
+
+/**
+ * Keyboard flow (#491): Tab order skip link, logo, the four tabs, account;
+ * Enter opens the account menu with focus inside, the ground switch and the
+ * admin section (local mode is an admin view) are there, arrows move focus,
+ * Escape closes it and returns focus to the avatar.
+ */
+async function auditHeaderKeyboard(client) {
+  await loadApp(client);
+  await evaluate(client, `(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    document.activeElement?.blur?.();
+    document.body.focus();
+  })()`);
+  const describeActive = `(() => {
+    const element = document.activeElement;
+    if (!element || element === document.body) return "body";
+    if (element.classList.contains("sg-skip")) return "skip";
+    if (element.classList.contains("sg-head__brand")) return "logo";
+    if (element.classList.contains("sg-tab") && element.closest(".sg-head")) return "tab:" + element.textContent.trim();
+    if (element.getAttribute("aria-label") === "החשבון" && element.closest(".sg-head")) return "account";
+    return (element.tagName + "." + (element.className || "")).slice(0, 60);
+  })()`;
+  const order = [];
+  for (let index = 0; index < 7; index += 1) {
+    await pressKey(client, "Tab", "Tab", 9);
+    order.push(await evaluate(client, describeActive));
+  }
+  await pressKey(client, "Enter", "Enter", 13);
+  await delay(250);
+  const opened = await evaluate(client, `(() => {
+    const menu = document.querySelector("[role='menu']");
+    if (!menu) return { open: false };
+    return {
+      open: true,
+      focusInside: menu.contains(document.activeElement),
+      text: menu.innerText.replace(/\\s+/g, " ").trim(),
+      grounds: Array.from(menu.querySelectorAll("[role='menuitemradio']")).map((item) => item.textContent.trim()),
+      console: Boolean(Array.from(menu.querySelectorAll("a")).find((link) => link.textContent.includes("קונסולה"))),
+      scoped: menu.classList.contains("signal-ui"),
+    };
+  })()`);
+  const before = await evaluate(client, `document.activeElement?.textContent.trim() ?? null`);
+  await pressKey(client, "ArrowDown", "ArrowDown", 40);
+  const after = await evaluate(client, `document.activeElement?.textContent.trim() ?? null`);
+  await pressKey(client, "Escape", "Escape", 27);
+  await delay(250);
+  const closed = await evaluate(client, `(() => ({
+    open: Boolean(document.querySelector("[role='menu']")),
+    focusOnAvatar: document.activeElement?.getAttribute("aria-label") === "החשבון",
+  }))()`);
+  return { order, opened, arrowMoved: before !== after, before, after, closed };
+}
+
+function assertHeaderKeyboard(label, audit) {
+  const fail = (message) => {
+    throw new Error(`${label}: ${message}: ${JSON.stringify(audit)}`);
+  };
+  const expected = ["skip", "logo", ...EXPECTED_NAV_LABELS.map((text) => `tab:${text}`), "account"];
+  if (JSON.stringify(audit.order) !== JSON.stringify(expected)) fail("the header's tab order is wrong");
+  if (!audit.opened.open || !audit.opened.focusInside) fail("Enter did not open the account menu with focus inside");
+  if (!audit.opened.scoped) fail("the account menu is not in the Signal scope");
+  for (const ground of ["לבן", "רך", "כהה"]) {
+    if (!audit.opened.grounds.includes(ground)) fail(`the ground switch lacks "${ground}"`);
+  }
+  if (!audit.opened.console || !audit.opened.text.includes("צפייה בתור") || !audit.opened.text.includes("מצב נתונים")) {
+    fail("the admin section (console, QA view-as, data mode) is missing in local mode");
+  }
+  if (!audit.arrowMoved) fail("ArrowDown did not move focus in the menu");
+  if (audit.closed.open || !audit.closed.focusOnAvatar) fail("Escape did not close the menu back onto the avatar");
 }
 
 /** Results supplied by the real local-mode context, with independent expectations. */
@@ -1719,19 +2056,44 @@ async function main() {
       );
     }
 
-    // Fixed-dock occlusion at both narrow widths and both motion preferences.
+    // The consumer header (#491) at every width and both motion preferences,
+    // and the keyboard flow of its account menu.
+    const headerAudits = [];
+    for (const reducedMotion of [true, false]) {
+      for (const [width, height, phone] of [[1440, 1000, false], [390, 844, true], [375, 812, true], [320, 640, true]]) {
+        await configureViewport(client, width, height, phone, reducedMotion);
+        const label = `${width}px header ${reducedMotion ? "reduced" : "normal"}-motion`;
+        const audit = await auditHeader(client);
+        assertHeader(label, audit, { phone });
+        headerAudits.push({
+          label,
+          collapsedTabs: audit.collapsed.tabs.map((tab) => `${tab.width}x${tab.height}`),
+          midTransitionOpacity: audit.midTransition.opacity,
+          transition: audit.collapsed.transition,
+          layoutShift: audit.layoutShift,
+        });
+        if (reducedMotion && phone) {
+          await capture(client, path.join(outputDirectory, `header-expanded-${width}.png`));
+        }
+      }
+    }
+    await configureViewport(client, 1440, 1000, false, true);
+    const keyboard = await auditHeaderKeyboard(client);
+    assertHeaderKeyboard("desktop header keyboard", keyboard);
+
+    // Slim-bar occlusion at both narrow widths and both motion preferences.
     const dockAudits = [];
     for (const reducedMotion of [true, false]) {
       for (const [width, height] of [[390, 844], [320, 640]]) {
         await configureViewport(client, width, height, true, reducedMotion);
-        const label = `${width}px dock ${reducedMotion ? "reduced" : "normal"}-motion`;
+        const label = `${width}px bar occlusion ${reducedMotion ? "reduced" : "normal"}-motion`;
         const audit = await auditDockOcclusion(client, label);
         assertDockOcclusion(audit);
         dockAudits.push({
           label,
           controls: Object.fromEntries(
             Object.entries(audit.states).flatMap(([stateName, controls]) =>
-              Object.entries(controls).map(([name, probe]) => [
+              Object.entries(controls).filter(([, probe]) => typeof probe === "object").map(([name, probe]) => [
                 `${stateName}.${name}`,
                 probe?.present
                   ? { neededScroll: probe.neededScroll, reachable: probe.final?.reachable }
@@ -1812,7 +2174,9 @@ async function main() {
             lead: audit.faces.leadPresent ? audit.faces.leadFamily : "no push in the local feed",
             leaks: audit.leaks.map((l) => ({ route: l.route, heading: l.headingFamily, serifElements: l.serifElementCount })),
           })),
-          dockAudits,
+          headerAudits,
+          headerKeyboard: { order: keyboard.order, arrowMoved: keyboard.arrowMoved, closed: keyboard.closed },
+          barOcclusionAudits: dockAudits,
         },
         null,
         2

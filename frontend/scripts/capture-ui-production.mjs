@@ -2928,6 +2928,8 @@ async function main() {
         runningAtReady: regressions.motion.runningAtReady.length,
         runningSettled: regressions.motion.runningSettled,
         layoutShift: regressions.motion.layoutShift,
+        // Dev-only 0.01ms fallback cascade waited out before the snapshots (#504).
+        fallbackDrain: regressions.motion.fallbackDrain,
       },
       clusters: {
         named: regressions.cluster.named.length,

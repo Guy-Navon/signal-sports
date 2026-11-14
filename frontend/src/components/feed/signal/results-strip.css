@@ -24,6 +24,7 @@
 }
 
 .signal-ui .sg-results .sg-results__link {
+  position: relative;
   color: var(--sg-acc);
   font-size: 13px;
   font-weight: 700;
@@ -31,6 +32,15 @@
 }
 
 .signal-ui .sg-results__link:hover { text-decoration: underline; }
+
+/* A hit area taller than the 13px line, without moving the layout: 28px on
+   desktop (WCAG 2.5.8), 44px on a phone. */
+.signal-ui .sg-results .sg-results__link::after {
+  content: "";
+  position: absolute;
+  inset-block: -4px;
+  inset-inline: 0;
+}
 
 .signal-ui .sg-results__scroller {
   display: flex;
@@ -97,4 +107,5 @@
     gap: 12px;
   }
   .signal-ui .sg-result:first-child { border: 0; padding-inline-start: 0; }
+  .signal-ui .sg-results .sg-results__link::after { inset-block: -14px; }
 }

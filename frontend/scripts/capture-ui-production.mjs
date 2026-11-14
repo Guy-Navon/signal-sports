@@ -2149,11 +2149,25 @@ async function auditResultsStrip(client, label) {
     const follows = (a, b) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
     const heading = document.getElementById(strip.getAttribute("aria-labelledby"));
     const link = strip.querySelector("a");
+    // The full-board link's hit area (WCAG 2.5.8): how far above and below its
+    // text a pointer still lands on it, as the browser hit-tests it.
+    link.scrollIntoView({ block: "center", behavior: "instant" });
+    const linkRect = link.getBoundingClientRect();
+    const hits = (y) => {
+      const at = document.elementFromPoint(linkRect.left + linkRect.width / 2, y);
+      return at === link || link.contains(at);
+    };
+    let reach = 0;
+    while (reach < 16 && hits(linkRect.top - reach - 1) && hits(linkRect.bottom + reach + 1)) reach += 1;
+    const linkTarget = Math.round(linkRect.height + 2 * reach);
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     scroller.focus();
     return {
       count: cards.length, matches,
       labelled: heading?.textContent === "תוצאות" && Boolean(scroller.getAttribute("aria-label")),
       fullBoard: link?.getAttribute("href") === "/results" && link.textContent === "ללוח המלא",
+      linkTarget,
+      linkTargetOk: linkTarget >= (innerWidth <= 900 ? 44 : 24),
       placed: (!important || follows(important, strip)) && Boolean(band && follows(strip, band)) &&
         Math.abs(band.getBoundingClientRect().top - strip.getBoundingClientRect().bottom - 40) < 1,
       horizontal: getComputedStyle(scroller).overflowX === "auto" &&
@@ -2167,7 +2181,7 @@ async function auditResultsStrip(client, label) {
     };
   })()`);
   const quietScrollbar = audit.scrollbar.width === "thin" && audit.scrollbar.color !== "auto";
-  if (![audit.matches, audit.labelled, audit.fullBoard, audit.placed, audit.horizontal, audit.keyboardReachable, quietScrollbar].every(Boolean)) {
+  if (![audit.matches, audit.labelled, audit.fullBoard, audit.placed, audit.horizontal, audit.keyboardReachable, quietScrollbar, audit.linkTargetOk].every(Boolean)) {
     throw new Error(`${label}: results strip contract failed: ${JSON.stringify(audit)}`);
   }
   await client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "ArrowLeft", code: "ArrowLeft", windowsVirtualKeyCode: 37 });

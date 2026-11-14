@@ -322,6 +322,61 @@ html:has(.sg-bar) {
   display: none;
 }
 
+/* ── Connection-error strip (ConnectionStrip) ────────────────────────────── */
+/* Text in --sg-ink / --sg-dim (small --sg-hot text fails contrast, B2); the
+   alert colour marks the inline-start edge and the icon only. */
+
+.sg-conn {
+  border-block-end: 1px solid var(--sg-line);
+  border-inline-start: 4px solid var(--sg-hot);
+  background: var(--sg-card);
+  color: var(--sg-ink);
+}
+
+.sg-conn__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding-block: 8px;
+}
+
+.sg-conn__icon {
+  flex: none;
+  color: var(--sg-hot);
+}
+
+.sg-conn__text {
+  flex: 1 1 16em;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.sg-conn__msg {
+  color: var(--sg-dim);
+}
+
+.sg-conn__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 32px;
+  padding-inline: 12px;
+  border: 1.5px solid var(--sg-acc);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sg-acc);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sg-conn__retry:hover {
+  background: var(--sg-tint);
+}
+
 /* ── Account menu additions (portal, see ground-portals.css) ─────────────── */
 
 .sg-consumer-menu .sg-menu-label--sub {
@@ -382,7 +437,8 @@ html:has(.sg-bar) {
   }
 
   /* Touch targets on a phone. */
-  .sg-avatar-btn {
+  .sg-avatar-btn,
+  .sg-conn__retry {
     min-block-size: 44px;
     min-inline-size: 44px;
   }

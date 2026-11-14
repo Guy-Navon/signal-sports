@@ -18,7 +18,10 @@ const TICK_MS = 60_000;
 function DemoBanner({ meta, now }) {
   const view = meta ? demoBanner(meta, now) : null;
   return (
-    <div role="status" className="sg-demo-banner">
+    // Not a live region as a whole: its "updated N minutes ago" changes every
+    // minute and would be re-announced each time. Only the staleness warning
+    // is announced, from a status slot that is always present.
+    <div className="sg-demo-banner">
       <strong>הדגמה לקריאה בלבד</strong>
       <span aria-hidden="true">·</span>
       <span>הפיד החי של הפרופיל של {PROFILE_NAME}, מתעדכן כל שעה</span>
@@ -31,12 +34,14 @@ function DemoBanner({ meta, now }) {
           </span>
         </>
       )}
-      {view?.warning && (
-        <span className="sg-demo-banner__warning">
-          <AlertTriangle size={13} aria-hidden="true" />
-          {view.warning}
-        </span>
-      )}
+      <span role="status" className="sg-demo-banner__status">
+        {view?.warning && (
+          <span className="sg-demo-banner__warning">
+            <AlertTriangle size={13} aria-hidden="true" />
+            {view.warning}
+          </span>
+        )}
+      </span>
     </div>
   );
 }

@@ -41,8 +41,20 @@
   gap: 4px;
 }
 
-.sg-demo-banner__warning {
+/* The always-present live slot for the staleness warning: a full-width line
+   when it holds the warning; empty, it leaves the flow (still in the tree, so
+   the warning is announced when it appears). */
+.sg-demo-banner__status {
+  display: flex;
   flex-basis: 100%;
+  justify-content: center;
+}
+
+.sg-demo-banner__status:empty {
+  position: absolute;
+}
+
+.sg-demo-banner__warning {
   font-weight: 700;
 }
 

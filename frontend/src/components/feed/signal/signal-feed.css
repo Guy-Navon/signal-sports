@@ -466,10 +466,11 @@
   color: var(--sg-dim);
 }
 
-.sg-members__by { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; }
+.sg-members__by { display: block; }
 .sg-members__item b { color: var(--sg-ink); font-weight: 700; }
 
 .sg-members__mark {
+  display: inline-block;
   margin-inline-start: 8px;
   padding: 0 6px;
   background: var(--sg-tint);

@@ -5,6 +5,7 @@
 // case=push      LAB FIXTURE: the first high_feed story re-marked as push
 // case=push2     LAB FIXTURE: the first two high_feed stories re-marked as push
 // case=pushlong  LAB FIXTURE: the story with the longest headline re-marked as push
+// case=pushcluster LAB FIXTURE: the multi-source story with the most sources re-marked as push (#501)
 // The fixtures only change a real story's decision, to see the lead block; the
 // product never does this (no push, no lead).
 
@@ -13,6 +14,7 @@ export const LAB_CASES = {
   push: (items) => asPush(items, firstHighFeed(items, 1)),
   push2: (items) => asPush(items, firstHighFeed(items, 2)),
   pushlong: (items) => (items.length ? asPush(items, [longestTitle(items)]) : items),
+  pushcluster: (items) => asPush(items, widestCluster(items)),
 };
 
 export function labCaseName(value) {
@@ -21,6 +23,12 @@ export function labCaseName(value) {
 
 function firstHighFeed(items, count) {
   return items.filter((item) => item.score?.decision === "high_feed").slice(0, count);
+}
+
+function widestCluster(items) {
+  const clusters = items.filter((item) => item.type === "cluster" && (item.sourceCount ?? 0) >= 2);
+  if (!clusters.length) return [];
+  return [clusters.reduce((widest, item) => (item.sourceCount > widest.sourceCount ? item : widest))];
 }
 
 function longestTitle(items) {

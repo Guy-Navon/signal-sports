@@ -1,21 +1,22 @@
 # Signal Sports — Frontend Design System
 
-Last updated: 2026-11-14 (#491 navigation; first written 2026-11-13, #461). This file has two parts and an appendix:
+Last updated: 2026-11-14 (#491 navigation, #473 cleanup; first written 2026-11-13, #461).
+This file has two parts:
 
 - **Part A: engineering and accessibility rules.** These hold for any consumer UI, the one on
-  main today and the new one. Each statement was checked against `frontend/` on 2026-11-13.
+  main today and the new one. The affected rules were rechecked against `frontend/` on
+  `ui/next` on 2026-11-14.
 - **Part B: visual language.** On 2026-11-13 Guy approved a new direction from a coded mock
   built on his real feed. Part B describes that direction in full. **Orbit's colours, type,
   shapes and composition are superseded and are not a starting point** for any new work.
-- **Appendix C: Orbit as it still ships on main.** Maintenance facts only, removed by #473.
-
-**What is implemented.** Orbit is still the consumer UI on main and in the public demo.
-Part B is delivered by milestone 15, "A face of its own — new consumer UI" (#461–#475), on
-the integration branch `ui/next`. On `ui/next` so far: the tokens, fonts and marks (#462) and
-the feed body (#464: `components/feed/signal/`, used by `pages/Feed.jsx`; the demo still
-renders Orbit until #469). Merging `ui/next` to main and
-deploying the demo need Guy's explicit approval (#475). Each Part B section names the issue
-that delivers it.
+**What is implemented on `ui/next`.** All consumer routes, utility screens and the public
+demo use Part B's Signal UI. The feed lives in `components/feed/signal/`; the demo uses the
+same `SignalFeedView` read-only. #473 removes the unused Orbit views, CSS and serif font,
+and moves the shared story, queue and focus models to neutral names under `components/feed/`.
+Ops retains its existing shell, base tokens, Heebo and signal-bars logo. Milestone 15,
+"A face of its own — new consumer UI" (#461–#475), remains on the integration branch
+`ui/next`: merging it to main and deploying the demo need Guy's explicit approval (#475).
+This describes the branch's code, not a deployment claim.
 
 The reference mock is committed in
 [`design/2026-11-13-feed-direction/`](./design/2026-11-13-feed-direction/README.md): the
@@ -41,12 +42,11 @@ deep reference. Read it before adding any consumer UI.
 
 - **Milestone 15 covers** the consumer product, the utility screens and the public demo.
 - **The Ops console does not change.** It keeps its current look and the base `:root` tokens in
-  `src/index.css`. Consumer tokens are scoped to the consumer shell. On main the product shell
-  sets `.orbit-product` (`AppShell.jsx`), which re-scopes the colour tokens. On `ui/next` (#463)
-  `ProductShell.jsx` puts `.signal-ui` (#462) on its chrome and chooses the page body's scope per
-  route (`productShellModel.pageSurface`): pages not yet rebuilt keep `.orbit-product` on the
-  body, rebuilt pages are listed in `SIGNAL_SURFACE_PATHS` and get `.signal-ui`. Never redefine
-  a shared token to style one surface.
+  `src/index.css`. Consumer tokens are scoped to `.signal-ui` on the consumer shell and
+  page body. `productShellModel.pageSurface` always selects Signal UI; every consumer route
+  has migrated, so no migration allowlist remains. The unused compatibility branches in
+  `ProductShell.jsx` / `shell.css` remain for the separate navigation work (#491).
+  Never redefine a shared token to style one surface.
 - **Changing the look never changes what the user sees.** Exposure rules, engine decisions,
   ranking and filter behaviour are not touched to make a screen look fuller.
 
@@ -101,8 +101,8 @@ Cluster values are **backend-authoritative**. `ClusterCard` (`docs/CLUSTERING.md
 that `source_count`, `members`, `displayed_article_id` and `sort_at` are VISIBLE-only and
 test-locked server-side, and `api/normalizers.js` maps each one directly.
 
-`prepareFeedItems(items, { isBackendMode, localScoredArticles })` (today in
-`orbitStoryModel.js`) owns the split:
+`prepareFeedItems(items, { isBackendMode, localScoredArticles })` (in
+`components/feed/storyModel.js`) owns the split:
 
 - **backend**: items pass through untouched, same array, same object identities. Debug renders
   the same payload, so the two views cannot disagree.
@@ -111,24 +111,24 @@ test-locked server-side, and `api/normalizers.js` maps each one directly.
 
 The render path reads authoritative values too:
 
-- `orbitSourceCount(item, reports)` prefers a finite `item.sourceCount` and deduplicates reports
+- `sourceCount(item, reports)` prefers a finite `item.sourceCount` and deduplicates reports
   only as a local fallback. The cluster badge ("N מקורות") reads it.
-- `orbitStoryTimestamp(item, reports)` prefers `item.lastUpdatedAt`, deriving from reports only
+- `storyTimestamp(item, reports)` prefers `item.lastUpdatedAt`, deriving from reports only
   as a local/legacy fallback. Story times and the "Latest" ordering read it.
 - `latestReportTimestamp(reports)` stays separate on purpose: rendering *reads*
   `lastUpdatedAt` while local hydration *calculates* it. Merging them would make hydration echo
   whatever stale value a mock item already carried.
 
 Adversarial tests build clusters where the backend value and the client derivation
-deliberately disagree, so any fallback for a backend item fails. When #464 renames or moves
-these models, the tests move with them unchanged.
+deliberately disagree, so any fallback for a backend item fails. #473 moves these models
+and their tests without changing their behaviour or assertions.
 
 ## A5. Bounded work
 
 Anything proportional to feed size (animation, layout, rendered nodes) is capped.
 
 - **The ranked list renders a bounded page of 40** with a "show more" control
-  (`QUEUE_PAGE_SIZE` in `orbitQueueMotion.js`). The heading shows `visible/total` while more
+  (`QUEUE_PAGE_SIZE` in `queueMotion.js`). The heading shows `visible/total` while more
   remain. This is not cosmetic: the number of animating, laid-out nodes must not track feed
   size.
 - **Enter stagger is capped** at 6 steps (`QUEUE_STAGGER_MAX_STEPS`, step 0.018 s), so settle
@@ -144,13 +144,13 @@ Anything proportional to feed size (animation, layout, rendered nodes) is capped
 
 - **Focus is ref-based.** No `document.querySelector` lookups, no class-name coupling and no
   `requestAnimationFrame` chains for focus or identity.
-- **Decisions are pure functions** (today `orbitFocusModel.js`, node-tested): focus intents per
-  interaction, a scroll policy resolved against the viewport, what happens when a filter
-  removes the focused story.
-- **Each view focuses its own element on mount** (`useSelfFocus` in `OrbitStoryField.jsx`).
-  Focusing across component boundaries is not deterministic: `AnimatePresence` decides when the
-  incoming view mounts, so a parent effect can find a null ref and drop focus to `<body>`.
-  Inside the view the ref is attached by definition. Only scrolling stays imperative.
+- **Decisions are pure functions**: `signal/feedLayoutModel.js` supplies the next-page focus
+  index; `focusModel.js` preserves the tested field focus intents and scroll policy for reuse.
+  The current feed uses button-based cluster disclosures, keeping focus on the same badge when it
+  opens or closes.
+- **The owning view focuses its element.** `SignalFeedView` holds the stream and brief refs
+  and focuses the first newly revealed headline after "show more". Focusing across component
+  boundaries or querying classes for focus is not deterministic.
 - Every interaction that moves or removes content says where focus lands, and the harness
   asserts it under both motion preferences (A7).
 - **Visible focus**: `:focus-visible` outline in `currentColor`, 2 px, offset 2 px (the mock's
@@ -166,17 +166,17 @@ Anything proportional to feed size (animation, layout, rendered nodes) is capped
 **Unit tests.** `npm test` runs Vitest in the `node` environment (`vite.config.js`). There is
 no jsdom, no React Testing Library and no browser test stack, and none is added. Logic worth
 testing is extracted into pure modules (`decisionConfig`, `feedFilters`, `storyLabels`,
-`feedLoadModel`, `deskVoiceModel`, the orbit story/queue/focus models). A few `.test.jsx`
+`feedLoadModel`, `deskVoiceModel`, the shared story/queue/focus models). A few `.test.jsx`
 files render components with `react-test-renderer` in node (for example
-`OrbitFeedView.readOnly.test.jsx`).
+`signal/SignalFeedView.test.jsx`).
 
-**Hermetic browser harness.** `npm run capture:orbit` (`scripts/capture-orbit-production.mjs`)
+**Hermetic browser harness.** `npm run capture:ui` (`scripts/capture-ui-production.mjs`)
 drives the real app through Chrome over CDP and asserts what the browser *paints*: distinct
 decision signatures, stale rows cleared within a 100 ms budget, the 40-row page bound, focus
 transitions under both motion modes, no control occluded by a fixed element (via
 `elementFromPoint`), and computed font families per route. It reserves a free ephemeral port,
 captures Vite output, refuses a 200 from a dead child, and proves in-page that it is the
-local-data instance (local mode issues no `/api/` request). `capture-orbit-production.test.mjs`
+local-data instance (local mode issues no `/api/` request). `capture-ui-production.test.mjs`
 locks the time it "passed" against another app on a fixed port. Every asserted element must
 exist, and an audit with nothing to measure fails. Since #464 it asserts the new feed body:
 placement by level (lead only with a push, important row, stream in rank order, "in brief"),
@@ -200,8 +200,8 @@ phone, every tab and the account at least 44px), the hysteresis band in both dir
 layout shift while it collapses and expands, a soft fade (300–500 ms) under normal motion and
 no transition under reduced motion, the Tab order (skip link, logo, tabs, account) and the
 account menu's keyboard flow (Enter opens with focus inside, arrows move, Escape returns to the
-avatar). #473 renames it (`capture:orbit` stays until then). Orbit itself (still the demo) is no
-longer browser-asserted.
+avatar).
+The harness keeps every existing browser assertion through the #473 rename to `capture:ui`.
 
 **Demo bundle guard.** `npm run build`, `npm run build:demo`, then `npm run check:demo-bundle`.
 It fails if the demo bundle holds the API client, router, auth, app provider, a non-feed page
@@ -235,7 +235,7 @@ check:demo-bundle. `scripts/check.ps1` runs the same set locally except the demo
 
 ## A9. Models the new UI builds on
 
-The feed is rebuilt on the existing pure models, renamed or moved only where needed (#464):
+The feed uses the existing pure models; #473 moves the shared models and their tests to neutral names:
 
 ```
 components/feed/
@@ -245,9 +245,9 @@ components/feed/
   feedLoadModel.js      loading / empty / error states
   deskVoiceModel.js     reader sentence vs engine trace
   feedbackSaveModel.js  feedback action state
-  orbit/orbitStoryModel.js   prepareFeedItems + authority resolvers (A4)
-  orbit/orbitQueueMotion.js  page size + stagger cap (A5)
-  orbit/orbitFocusModel.js   focus intents and scroll policy (A6)
+  storyModel.js        prepareFeedItems + authority resolvers (A4)
+  queueMotion.js       page size + stagger cap (A5)
+  focusModel.js        preserved field focus intents and scroll policy (A6)
   signal/feedLayoutModel.js  lead / important / stream / brief, league pills, summary (#464)
   signal/feedMotionModel.js  entrance delays (capped stagger) and refresh arrivals (#467)
   signal/signalStoryModel.js per-story sources, link, relative time, title direction (#464)
@@ -281,8 +281,8 @@ Decided by Guy on 2026-11-13, from the coded mock on his real feed:
 **Superseded.** Orbit's palette (near-black canvas, mineral signals, aqua/violet/salmon), its
 type (Heebo with Frank Ruhl Libre display), its story field with orbiting satellites, its signal
 rail and its queue type-scale ladder are all retired as direction. Do not port them, blend them
-or treat them as a fallback. Appendix C lists them only so main can be maintained until #473
-removes them.
+or treat them as a fallback. #473 removes the unused consumer implementation; the
+[historical screenshots](frontend-concepts/orbit/README.md) are not an implementation reference.
 
 ## B2. Grounds and tokens
 
@@ -322,8 +322,8 @@ opens a specimen page of the tokens, type and marks in all three grounds.
 Contrast, measured from these values (WCAG ratio): `--dim` on `--card` 4.97 / 5.81 / 6.51;
 `--acc` on `--card` 6.74 / 6.17 / 11.5; `--slab-fg` on `--slab` 6.74 / 6.74 / 14.79. **`--hot`
 falls short as small text**: on `--card` 3.57 / 4.20 / 4.12, and `--hot-fg` on `--hot` 3.57
-(white, dark) and 4.58 (soft). The push label and the fresh-time marker use it at 12–14 px, so
-#468 must fix this (a darker text variant or a larger, bolder size) before acceptance.
+(white, dark) and 4.58 (soft). The implementation keeps `--hot` on non-text marks: the lead
+label uses the `--slab`/`--slab-fg` pair, and the fresh-time text uses `--ink` at weight 800.
 
 ## B3. Type
 
@@ -491,8 +491,8 @@ Between the important row and the band. A 1px `--line` rule above and below, pad
   inline-start rule: a small line "competition · time" (11.5px 700 `--dim`), then one row per
   team, name and score. The winner's row is `--ink` 800, the loser's `--dim`.
 - **Data**: the session user's most recent finals (`/api/me/results`). The mock shows the ten
-  latest finals before the snapshot time. The public demo needs results added to its snapshot
-  without a request the bundle guard forbids. No results means no strip.
+  latest finals before the snapshot time. The public demo reads optional `results.json` from
+  its static snapshot, with no API request. No results means no strip.
 - Team names come from the taxonomy's Hebrew names. Some EuroCup teams have none and render in
   English (#466 lists them for the taxonomy workflow), wrapped per A2.
 
@@ -522,9 +522,9 @@ brief") carries them. No large cards, no images (B13).
 
 **As built in #464** (choices the mock left open):
 
-- **Placement in the shell.** `/` is in `SIGNAL_SURFACE_PATHS`. Inside the shell the summary
-  line, the pills and the freshness line render through `<MastheadSlot>`; with no slot (the
-  lab, the demo until #469) `SignalFeedView` renders them at its top. The view opens its own
+- **Placement in the shell.** All consumer page bodies use Signal UI. Inside the shell the
+  summary line, the pills and the freshness line render through `<MastheadSlot>`; with no slot
+  (the lab and the public demo) `SignalFeedView` renders them at its top. The view opens its own
   `.signal-ui` scope; nested in a parent scope without `data-ground` it inherits the parent's
   ground.
 
@@ -534,10 +534,10 @@ brief") carries them. No large cards, no images (B13).
 - **Pill selected state.** `aria-pressed`; the pressed pill takes the `--slab`/`--slab-fg`
   pair and shows a slanted stroke, so colour is not the only cue. A "הכול" pill with the
   total comes first. Pills reuse `feedFilters` (`league:<name>` ids, same toggle semantics);
-  the Orbit level and topic chips are not shown in the new feed.
+  level and topic filters remain supported by the model; the feed presents league pills.
 - **Alert colour.** `--hot` is used only for non-text marks (push strokes, the dot in the lead
   label). The lead label itself is `--slab` text on a `--slab-fg` chip (6.7:1 white, 14.8:1
-  dark), pending #468.
+  dark).
 - **"In brief"** moved into the side column with #465 (B11).
 
 ## B11. Side column (#465)
@@ -558,7 +558,7 @@ changes the stream's order. It must hold up with 3 and with 40 stories.
 **As built in #465:**
 
 - "Latest" is `latestStories` in `feedLayoutModel.js`: it runs on the filtered list (it follows
-  the league pills), reads time from `orbitStoryTimestamp` (a cluster's backend update time),
+  the league pills), reads time from `storyTimestamp` (a cluster's backend update time),
   leaves out stories with no readable time, and keeps rank order on ties. A story may appear
   both in "Latest" and in the lead, important row or stream, as in the mock. "Latest" carries
   no feedback actions; each story has them where it is placed.
@@ -618,9 +618,9 @@ new stories.
 
 ## B13. Other consumer screens and images
 
-- **Grounds** (#468): a control in the account area or the shell. Every consumer screen must be
-  legible in all three grounds. Whether the choice persists per user or per device is decided
-  in #468.
+- **Grounds** (#468): `AccountMenu` in the consumer header selects white, soft or dark.
+  `GroundProvider` persists the choice per device in `localStorage` (`signal.ground`), falls
+  back to white if storage is unavailable, and applies no ground to Ops. The demo stays white.
 - **Preferences, interests, calibration** (#470): the same tokens and type. Calibration headline
   cards read like stream rows, so the user rates what they will see. No behaviour change.
 - **Results page** (#471): shares the strip's game row where possible.
@@ -641,36 +641,3 @@ Guidance from what Guy rejected while choosing:
 - No pure-black "night" layout.
 - No hero without a push, and no importance invented to fill a slot.
 - No Orbit carry-over (B1).
-
----
-
-# Appendix C — Orbit on main until #473
-
-Orbit (shipped 2026-07-31) is still what main and the demo render. On `ui/next` the Feed page
-uses the new feed (#464); the demo still uses `OrbitFeedView` until #469. These facts matter only for
-fixing main before the new look replaces it. #473 deletes this appendix together with the code.
-Screenshots of Orbit as shipped are in
-[`frontend-concepts/orbit/`](./frontend-concepts/orbit/README.md).
-
-- **Code**: `components/feed/orbit/` (`OrbitFeedView`, `OrbitStoryField`, `OrbitLoadingState`,
-  `orbit.css`, and the models listed in A9) plus `components/shell/` (`Atmosphere`, `Masthead`,
-  `MobileNav`, `ProductNav`, `OpsNav`, `OpsGrid`, `SignalMark`). On main, `EditionEmptyState`
-  is the live zero-items state; on `ui/next` it was replaced by `signal/SignalFeedStates.jsx`
-  (#464). On `ui/next`, `Masthead` and `MobileNav` are Ops-only (#463), and `Atmosphere` is
-  used only by the demo.
-- **Presentation contract**: `DECISION_CONFIG[...].orbit` (`queueScale`, `queueDensity`,
-  `queueRail`, `queueMuted`) is locked by `decisionConfig.test.js`. The push-only signal rail
-  is asserted in markup and in paint.
-- **Type scoping**: `--font-display` stays Heebo in `:root`. Ops, auth, 404 and `PageHeader`
-  depend on it. The Frank Ruhl Libre serif lives only in `--orbit-serif` on
-  `.orbit-feed-view`, used by four rules (`.orbit-feed-heading h1`, `.orbit-core h2`,
-  `.orbit-cluster__core h3`, `.orbit-feed-empty h2`). There is no global `h1`–`h3` rule.
-- **Cascade warning**: `orbit.css` declares some base rules after their modifiers. Three rules
-  repeat their class or restate themselves inside a media query on purpose and are commented
-  as load-bearing: `.orbit-queue-story.orbit-queue-story--<tone> h3`, `.orbit-field--solo`
-  height in `@media (max-width: 1199px)`, `.orbit-field--solo .orbit-core` in
-  `@media (max-width: 767px)`. Do not "simplify" them.
-- **Accepted at 320 px**: the signal chip may need a small scroll (the primary action is
-  enforced clear of the dock by `assertDockOcclusion`); the field caption shows only its first
-  half; auth typography is not reachable in the hermetic harness (`/no-such-route` exercises
-  the same utility); `.orbit-feed-empty h2` is not browser-verified.

@@ -1,6 +1,6 @@
 # Normalize text files in the repository, and force LF in the working tree for
 # code. `core.autocrlf=true` on Windows otherwise materializes CRLF, which
-# breaks Vitest's transform of frontend/scripts/capture-orbit-production.mjs —
+# breaks Vitest's transform of frontend/scripts/capture-ui-production.mjs —
 # the harness collected as "SyntaxError: Invalid or unexpected token" and its 8
 # unit tests silently vanished from the run on a fresh Windows checkout.
 * text=auto

@@ -11,7 +11,7 @@ import {
   SignalFeedError,
   SignalFeedLoading,
 } from "@/components/feed/signal/SignalFeedStates";
-import { prepareFeedItems } from "@/components/feed/orbit/orbitStoryModel";
+import { prepareFeedItems } from "@/components/feed/storyModel";
 import { getVisibleItems, toggleFilterSet } from "@/components/feed/feedFilters";
 
 export default function Feed() {
@@ -31,7 +31,7 @@ export default function Feed() {
 
   const visibleItems = useMemo(() => getVisibleItems(feedItems), [feedItems]);
   // Backend clusters are authoritative; local/mock clusters need hydrating.
-  // prepareFeedItems owns that split — see orbitStoryModel.
+  // prepareFeedItems owns that split — see storyModel.
   const storyItems = useMemo(
     () => prepareFeedItems(visibleItems, { isBackendMode, localScoredArticles: scoredArticles }),
     [isBackendMode, scoredArticles, visibleItems]

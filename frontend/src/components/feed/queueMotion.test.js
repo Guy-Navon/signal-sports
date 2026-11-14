@@ -10,7 +10,7 @@ import {
   queueEnterTransition,
   queuePage,
   queueSettleSeconds,
-} from "./orbitQueueMotion";
+} from "./queueMotion";
 
 describe("queueEnterDelay", () => {
   it("does not delay the first card", () => {

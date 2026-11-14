@@ -22,7 +22,7 @@ UPSTREAM.md.
 
 **Precedence.** `docs/FRONTEND_DESIGN_SYSTEM.md` wins over the generic guidelines: RTL §A2,
 focus and reduced motion §A6, verification §A7, engineering rules §A8, the approved visual
-language Part B, and Orbit's accepted 320 px limitations in Appendix C. Known adjustments:
+language Part B. Historical Orbit screenshots are not an implementation reference. Known adjustments:
 - *Not applicable:* "Hydration Safety" (no SSR); "Title Case" and English copy rules (Hebrew UI, and
   copy is a product decision); "detect language via Accept-Language" (Hebrew-only MVP);
   virtualization libraries (the queue is capped instead); URL-state libraries such as nuqs (don't
@@ -41,20 +41,20 @@ language Part B, and Orbit's accepted 320 px limitations in Appendix C. Known ad
    with many sources don't overflow or collide (`min-w-0`, `line-clamp-*`, `break-words`); check at
    320 px.
 3. **Mobile:** 320×640 and 390×844 single-column layouts; the fixed dock never covers a control
-   (§11); primary touch targets ≥44 px.
+   (§A7); primary touch targets ≥44 px.
 4. **Keyboard and focus:** every action is keyboard-reachable; visible `:focus-visible`; focus lands
-   where §8's table says after open, close and switch; `prefers-reduced-motion` is honored.
+   where §A6 specifies after a disclosure or pagination; `prefers-reduced-motion` is honored.
 5. **States:** loading, empty (no stories, everything filtered out, new user with no interests),
    error (API down, 401/403, partial data) and stale data each render something intentional, never a
    blank or broken card. Consider both backend and `local` data modes.
-6. **Product semantics:** push styling stays reserved for `push` (§3); hidden items never leak into
-   consumer views; the product and ops-console shells stay separate (§2).
+6. **Product semantics:** push styling stays reserved for `push` (§A3); hidden items never leak into
+   consumer views; the product and ops-console shells stay separate (§A1).
 
 **Output and ownership.** Report findings grouped by file in the `file:line - issue` format at the
 end of guidelines.md, each tagged *blocker / improvement / follow-up* so it drops into
 `signal-pr-open` §5 or `signal-pr-merge` §3–4. This skill supplies findings; it is not its own
 approval gate. Code review cannot prove rendering — say which items need a browser
-(`webapp-testing`, `npm run capture:orbit`) or Guy's device.
+(`webapp-testing`, `npm run capture:ui`) or Guy's device.
 
 ---
 

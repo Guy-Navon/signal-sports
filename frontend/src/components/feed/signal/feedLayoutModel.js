@@ -3,7 +3,7 @@
 // Each section keeps the order it was given (the backend's ranking).
 import { leagueFilterId } from "@/components/feed/feedFilters";
 import { LEAGUE_HE, SPORT_HE } from "@/components/feed/storyLabels";
-import { orbitStoryReports, orbitStoryTimestamp } from "@/components/feed/orbit/orbitStoryModel";
+import { storyReports, storyTimestamp } from "@/components/feed/storyModel";
 
 /** The important row holds at most this many stories (B8). */
 export const IMPORTANT_ROW_SIZE = 4;
@@ -88,7 +88,7 @@ const FRESH_MS = 60 * 60_000;
 
 /**
  * The side column's "אחרונים" (B11): the newest visible non-low_feed stories,
- * by the same timestamp the rows show (orbitStoryTimestamp, so a cluster's
+ * by the same timestamp the rows show (storyTimestamp, so a cluster's
  * backend update time wins). A read-only view of the list it is given: it never
  * adds a story, never touches the ranked order, and the same story may also
  * stand in the stream. A story with no readable time is left out here only.
@@ -101,7 +101,7 @@ export function latestStories(items, { localScoredArticles = [], limit = LATEST_
     .filter((item) => LATEST_DECISIONS.has(decisionOf(item)))
     .map((item) => ({
       item,
-      at: Date.parse(orbitStoryTimestamp(item, orbitStoryReports(item, localScoredArticles)) ?? ""),
+      at: Date.parse(storyTimestamp(item, storyReports(item, localScoredArticles)) ?? ""),
     }))
     .filter(({ at }) => Number.isFinite(at))
     .sort((a, b) => b.at - a.at)

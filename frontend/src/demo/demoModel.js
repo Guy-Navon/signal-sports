@@ -4,7 +4,7 @@
 import { normalizeScoredArticleFromApi } from "@/api/normalizers";
 import { getVisibleItems } from "@/components/feed/feedFilters";
 import { formatUpdatedAgo } from "@/components/feed/feedFreshnessModel";
-import { prepareFeedItems } from "@/components/feed/orbit/orbitStoryModel";
+import { prepareFeedItems } from "@/components/feed/storyModel";
 import { normalizeResultsResponse } from "@/components/results/resultsModel";
 
 // The worker runs every few minutes and the export every hour, so anything
@@ -62,7 +62,7 @@ export function demoBanner(meta, nowMs) {
   return { updated: formatUpdatedAgo(ageMinutes), stale, warning: stale ? STALE_WARNING : null };
 }
 
-/** Per-level counts for the Orbit heading and filters (as Feed.jsx computes them). */
+/** Per-level counts for the feed summary and filters (as Feed.jsx computes them). */
 export function demoDecisionCounts(items) {
   const counts = { push: 0, high_feed: 0, feed: 0, low_feed: 0 };
   for (const item of items) {

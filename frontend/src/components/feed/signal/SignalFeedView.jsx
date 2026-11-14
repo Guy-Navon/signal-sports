@@ -9,16 +9,16 @@ import { useArticleOpened, useEngineTraceVisible } from "@/context/appContextCor
 import { getDecisionConfig } from "@/components/feed/decisionConfig";
 import { deskVoiceView } from "@/components/feed/deskVoiceModel";
 import { filterFeedItems, leagueFilterId } from "@/components/feed/feedFilters";
-import { queuePage } from "@/components/feed/orbit/orbitQueueMotion";
+import { queuePage } from "@/components/feed/queueMotion";
 import {
-  orbitFeedbackArticleId,
-  orbitStoryId,
-  orbitStoryReports,
-  orbitStorySourceLine,
-  orbitStoryTimestamp,
-  orbitStoryTitle,
-  orbitSurface,
-} from "@/components/feed/orbit/orbitStoryModel";
+  feedbackArticleId,
+  storyId,
+  storyReports,
+  storySourceLine,
+  storyTimestamp,
+  storyTitle,
+  feedSurface,
+} from "@/components/feed/storyModel";
 import {
   feedSummary,
   isFreshStory,
@@ -111,23 +111,23 @@ function NewMark({ show }) {
 /** Everything a row needs about one story, from the shared story models. */
 function useStory(item, localScoredArticles) {
   return useMemo(() => {
-    const reports = orbitStoryReports(item, localScoredArticles);
+    const reports = storyReports(item, localScoredArticles);
     return {
-      id: orbitStoryId(item),
-      title: unbreakableHebrewPrefixes(orbitStoryTitle(item)),
+      id: storyId(item),
+      title: unbreakableHebrewPrefixes(storyTitle(item)),
       titleDir: titleDirection(item),
       url: storyLink(item, reports),
-      source: orbitStorySourceLine(item, reports),
+      source: storySourceLine(item, reports),
       sources: storySources(item, reports),
-      timestamp: orbitStoryTimestamp(item, reports),
-      feedbackId: orbitFeedbackArticleId(item, reports),
+      timestamp: storyTimestamp(item, reports),
+      feedbackId: feedbackArticleId(item, reports),
       decision: item.score?.decision,
     };
   }, [item, localScoredArticles]);
 }
 
 function useSurface(readOnly) {
-  return orbitSurface({ readOnly, traceAllowed: useEngineTraceVisible() });
+  return feedSurface({ readOnly, traceAllowed: useEngineTraceVisible() });
 }
 
 function StoryLink({ story, className = "", linkRef = undefined, children = null }) {
@@ -186,7 +186,7 @@ function SourceNames({ story }) {
     <>
       <span className="sg-num">{sources.count}</span> מקורות:{" "}
       {/* Each member source opens its own report, so a cluster's sources stay
-          reachable outside the stream too (Orbit exposed them in its field). */}
+          reachable outside the stream too. */}
       <span className="sg-sources" role="list" aria-label="מקורות הסיפור">
         {sources.reports.map((report, index) => (
           <span role="listitem" key={report.articleId ?? report.sourceDisplayName}>
@@ -496,7 +496,7 @@ function StreamSection({ items, localScoredArticles, now, readOnly, pillLabels, 
     ),
     renderRow: (item, focusOnMount, onFocused, staggerIndex) => (
       <StreamRow
-        key={orbitStoryId(item)}
+        key={storyId(item)}
         item={item}
         localScoredArticles={localScoredArticles}
         now={now}
@@ -504,7 +504,7 @@ function StreamSection({ items, localScoredArticles, now, readOnly, pillLabels, 
         league={leagueLabelOf(item, pillLabels)}
         focusOnMount={focusOnMount}
         onFocused={onFocused}
-        arrived={arrivals.has(orbitStoryId(item))}
+        arrived={arrivals.has(storyId(item))}
         style={enterStyle(staggerIndex, enterBase)}
       />
     ),
@@ -598,11 +598,11 @@ function LatestSection({ items, localScoredArticles, now, arrivals, enterBase })
       <ul>
         {items.map((item, index) => (
           <LatestRow
-            key={orbitStoryId(item)}
+            key={storyId(item)}
             item={item}
             localScoredArticles={localScoredArticles}
             now={now}
-            arrived={arrivals.has(orbitStoryId(item))}
+            arrived={arrivals.has(storyId(item))}
             style={enterStyle(index, enterBase)}
           />
         ))}
@@ -622,7 +622,7 @@ function BriefSection({ items, localScoredArticles, now, readOnly, enterBase }) 
     ),
     renderRow: (item, focusOnMount, onFocused, staggerIndex) => (
       <BriefRow
-        key={orbitStoryId(item)}
+        key={storyId(item)}
         item={item}
         localScoredArticles={localScoredArticles}
         now={now}
@@ -740,7 +740,7 @@ export default function SignalFeedView({
             {/* Keyed by story: a new lead plays its entrance again. */}
             {sections.lead && (
               <LeadStory
-                key={orbitStoryId(sections.lead)}
+                key={storyId(sections.lead)}
                 item={sections.lead}
                 enterBase={sequence.lead}
                 {...rowProps}
@@ -751,10 +751,10 @@ export default function SignalFeedView({
               <section className="sg-important" aria-label="חשובים">
                 {sections.important.map((item, index) => (
                   <ImportantStory
-                    key={orbitStoryId(item)}
+                    key={storyId(item)}
                     item={item}
                     league={leagueLabelOf(item, pillLabels)}
-                    arrived={arrivals.has(orbitStoryId(item))}
+                    arrived={arrivals.has(storyId(item))}
                     style={enterStyle(index, sequence.important)}
                     {...rowProps}
                   />

@@ -10,7 +10,7 @@ import {
   SCROLL_POLICY,
   shouldScrollFieldIntoView,
   shouldScrollForIntent,
-} from "./orbitFocusModel";
+} from "./focusModel";
 
 describe("shouldScrollFieldIntoView", () => {
   it("scrolls below the desktop breakpoint, where the field is stacked", () => {

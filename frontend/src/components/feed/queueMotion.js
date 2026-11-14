@@ -45,7 +45,7 @@ export function queueEnterDelay(index, reduce = false) {
 /**
  * Worst-case seconds for a list of `count` cards to finish animating in.
  * Constant for any count past the stagger cap — this is the property the
- * filtering fix depends on, and it is locked by orbitQueueMotion.test.js.
+ * filtering fix depends on, and it is locked by queueMotion.test.js.
  */
 export function queueSettleSeconds(count, reduce = false) {
   if (!Number.isFinite(count) || count <= 0) return 0;

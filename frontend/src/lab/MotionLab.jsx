@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import SignalFeedView from "@/components/feed/signal/SignalFeedView";
 import { latestStories, leaguePills } from "@/components/feed/signal/feedLayoutModel";
 import { latestFinals } from "@/components/feed/signal/resultsStripModel";
-import { orbitStoryId } from "@/components/feed/orbit/orbitStoryModel";
+import { storyId } from "@/components/feed/storyModel";
 import { toggleFilterSet } from "@/components/feed/feedFilters";
 import { normalizeResultsResponse } from "@/components/results/resultsModel";
 import { AppContext } from "@/context/appContextCore";
@@ -33,7 +33,7 @@ const REHOLD_PAUSE_MS = 900;
 function heldBack(items, results, nowMs) {
   const candidates = items.filter((item) => item.score?.decision !== "push");
   const stories = new Set(
-    latestStories(candidates, { localScoredArticles: [] }).slice(0, HELD_STORIES).map(orbitStoryId)
+    latestStories(candidates, { localScoredArticles: [] }).slice(0, HELD_STORIES).map(storyId)
   );
   const newestGame = latestFinals(results, nowMs)[0];
   return { stories, gameId: newestGame?.id ?? null };
@@ -68,7 +68,7 @@ export default function MotionLab() {
   const allItems = useMemo(() => LAB_CASES[caseName](snapshot.items), [caseName, snapshot.items]);
   const hold = useMemo(() => heldBack(allItems, allResults, nowMs), [allItems, allResults, nowMs]);
   const items = useMemo(
-    () => (held ? allItems.filter((item) => !hold.stories.has(orbitStoryId(item))) : allItems),
+    () => (held ? allItems.filter((item) => !hold.stories.has(storyId(item))) : allItems),
     [held, allItems, hold]
   );
   const results = useMemo(

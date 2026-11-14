@@ -32,7 +32,7 @@ decision**, so overlapping skills supply evidence to one owner instead of compet
 | Genuinely new backend component, or explicit scaffolding request | `fastapi-templates` | edits to existing routes |
 | React components, hooks, data fetching, bundle | `vercel-react-best-practices` | Next.js/RSC/SSR — not used here |
 | UI review: RTL, mobile, keyboard, states, long headlines | `web-design-guidelines` | |
-| See the UI in a browser | `webapp-testing` (`npm run capture:orbit` first) | a new committed browser suite |
+| See the UI in a browser | `webapp-testing` (`npm run capture:ui` first) | a new committed browser suite |
 | Acting on review comments (Guy or bots) | `receiving-code-review` | |
 | Handoff note | `signal-handoff` | |
 | Docs after a behavior change | `signal-doc-truth` | |
@@ -46,7 +46,7 @@ output like any reviewer's (`receiving-code-review`); they don't replace the own
 |---|---|---|
 | Fix: Ynet items lose their subtitle (reproducible) | `systematic-debugging` → `test-driven-development` (regression test first) + `signal-source-onboarding` | `fastapi-templates` |
 | Fix a typo in `docs/SCHEDULER.md` | `verification-before-completion` (links checked) | `test-driven-development`, `differential-review` |
-| Tweak Orbit card spacing in CSS | `web-design-guidelines`, `webapp-testing` (`capture:orbit`) | `test-driven-development` (no failing test required) |
+| Tweak consumer stream spacing in CSS | `web-design-guidelines`, `webapp-testing` (`capture:ui`) | `test-driven-development` (no failing test required) |
 | Add `GET /api/results/standings` to the existing results router | `test-driven-development`; `differential-review` (new route needs an authz classification) | `fastapi-templates` (extends an existing router) |
 | "Scaffold a new push-subscriptions service + router" (new capability) | `fastapi-templates` (mapped onto the existing layout), `differential-review`, `test-driven-development` | — |
 | Change `require_admin` or `CSRF_ALLOWED_ORIGINS` | `differential-review` at HIGH depth | — |

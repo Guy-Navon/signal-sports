@@ -4,7 +4,7 @@ import { SIGNAL_STROKES, signalStrength } from "./signalStrengthModel";
 import "./signal-ui.css";
 
 // Signal strength of one story for the new consumer UI (#462). Renders inside a
-// `.signal-ui` scope. Distinct from shell/SignalMark, the current Orbit logo.
+// `.signal-ui` scope. Distinct from shell/SignalMark, the Ops logo.
 export default function SignalStrength({ decision, className = "" }) {
   const { filled, alert, label } = signalStrength(decision);
   return (

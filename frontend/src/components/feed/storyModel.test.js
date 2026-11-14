@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
-  orbitFeedbackArticleId,
-  orbitHasMultiSourceField,
-  orbitQueueItems,
-  orbitUniqueSourceCount,
+  feedbackArticleId,
+  hasMultiSourceField,
+  queueItems,
+  uniqueSourceCount,
   hydrateLocalClusters,
   latestReportTimestamp,
-  orbitSourceCount,
+  sourceCount,
   prepareFeedItems,
-  resolveOrbitFocus,
-  orbitStoryId,
-  orbitStoryReports,
-  orbitStorySourceLine,
-  orbitStoryTimestamp,
+  resolveStoryFocus,
+  storyId,
+  storyReports,
+  storySourceLine,
+  storyTimestamp,
   reportsChronologically,
   reportsWithPrimaryFirst,
   detectNewSource,
-  selectOrbitFocus,
+  selectStoryFocus,
   sourceInitial,
-} from "./orbitStoryModel";
+} from "./storyModel";
 
 const cluster = {
   id: "displayed-article",
@@ -54,21 +54,21 @@ const cluster = {
   ],
 };
 
-describe("Orbit story adapter", () => {
+describe("Story adapter", () => {
   it("uses stable story identity while keeping feedback article-owned", () => {
-    expect(orbitStoryId(cluster)).toBe("story-1");
-    expect(orbitFeedbackArticleId(cluster, orbitStoryReports(cluster))).toBe("a2");
+    expect(storyId(cluster)).toBe("story-1");
+    expect(feedbackArticleId(cluster, storyReports(cluster))).toBe("a2");
   });
 
   it("reads only visible cluster members", () => {
-    const reports = orbitStoryReports(cluster);
+    const reports = storyReports(cluster);
     expect(reports.map((report) => report.articleId)).toEqual(["a1", "a2"]);
     expect(reports.some((report) => report.articleId === "secret")).toBe(false);
   });
 
   it("hydrates legacy local clusters from scored visible articles", () => {
     const localCluster = { ...cluster, members: undefined, articleIds: ["a1", "a2", "a3"] };
-    const reports = orbitStoryReports(localCluster, [
+    const reports = storyReports(localCluster, [
       { id: "a1", source: "one", title: "א", score: { decision: "feed" } },
       { id: "a2", source: "sport5", title: "ב", score: { decision: "push" } },
       { id: "a3", source: "muted", title: "ג", score: { decision: "hidden" } },
@@ -77,7 +77,7 @@ describe("Orbit story adapter", () => {
   });
 
   it("can order reports for the compact field or a chronological expansion", () => {
-    const reports = orbitStoryReports(cluster);
+    const reports = storyReports(cluster);
     expect(reportsWithPrimaryFirst(cluster, reports)[0].articleId).toBe("a2");
     expect(reportsChronologically(reports).map((report) => report.articleId)).toEqual([
       "a1",
@@ -86,7 +86,7 @@ describe("Orbit story adapter", () => {
   });
 
   it("derives the displayed source from the primary report", () => {
-    expect(orbitStorySourceLine(cluster, orbitStoryReports(cluster))).toBe("ONE");
+    expect(storySourceLine(cluster, storyReports(cluster))).toBe("ONE");
   });
 
   it("preserves upstream order when choosing a focus and queue", () => {
@@ -95,8 +95,8 @@ describe("Orbit story adapter", () => {
       { id: "second", type: "article" },
       { id: "third", type: "article" },
     ];
-    expect(selectOrbitFocus(items).id).toBe("first");
-    expect(orbitQueueItems(items, items[1]).map((item) => item.id)).toEqual([
+    expect(selectStoryFocus(items).id).toBe("first");
+    expect(queueItems(items, items[1]).map((item) => item.id)).toEqual([
       "first",
       "third",
     ]);
@@ -107,13 +107,13 @@ describe("Orbit story adapter", () => {
       { id: "first", type: "article" },
       { id: "second", type: "article" },
     ];
-    expect(resolveOrbitFocus(original, null)).toEqual({
+    expect(resolveStoryFocus(original, null)).toEqual({
       item: original[0],
       isPinned: false,
     });
     const reordered = [{ id: "urgent", type: "article" }, ...original];
-    expect(resolveOrbitFocus(reordered, null).item.id).toBe("urgent");
-    expect(resolveOrbitFocus(reordered, "second")).toEqual({
+    expect(resolveStoryFocus(reordered, null).item.id).toBe("urgent");
+    expect(resolveStoryFocus(reordered, "second")).toEqual({
       item: original[1],
       isPinned: true,
     });
@@ -126,11 +126,11 @@ describe("Orbit story adapter", () => {
       sourceDisplayName: "ONE",
       decision: "feed",
     };
-    const reports = [...orbitStoryReports(cluster), duplicate];
-    expect(orbitUniqueSourceCount(reports)).toBe(2);
-    expect(orbitHasMultiSourceField({ ...cluster, sourceCount: 2 }, reports)).toBe(true);
+    const reports = [...storyReports(cluster), duplicate];
+    expect(uniqueSourceCount(reports)).toBe(2);
+    expect(hasMultiSourceField({ ...cluster, sourceCount: 2 }, reports)).toBe(true);
     expect(
-      orbitHasMultiSourceField(
+      hasMultiSourceField(
         { ...cluster, sourceCount: 1 },
         reports.filter((report) => report.source === "one")
       )
@@ -138,7 +138,7 @@ describe("Orbit story adapter", () => {
   });
 
   it("detects a genuinely new source, not another report from an existing source", () => {
-    const before = orbitStoryReports(cluster);
+    const before = storyReports(cluster);
     expect(
       detectNewSource(before, [
         ...before,
@@ -184,7 +184,7 @@ describe("Orbit story adapter", () => {
     expect(prepared.clusterTitle).toBe("כותרת גלויה");
     expect(prepared.sources).toEqual(["sport5"]);
     expect(prepared.lastUpdatedAt).toBe("2026-07-27T09:00:00Z");
-    expect(orbitFeedbackArticleId(prepared, prepared.members)).toBe("visible");
+    expect(feedbackArticleId(prepared, prepared.members)).toBe("visible");
   });
 
   it("creates source initials for Hebrew and Latin identities", () => {
@@ -287,9 +287,9 @@ describe("prepareFeedItems — cluster value authority", () => {
 
     it("reads reports straight from the backend members", () => {
       const [card] = prepareFeedItems(items, { isBackendMode: true });
-      const reports = orbitStoryReports(card, []);
+      const reports = storyReports(card, []);
       expect(reports.map((report) => report.articleId)).toEqual(["b2", "b1"]);
-      expect(orbitUniqueSourceCount(reports)).toBe(card.sourceCount);
+      expect(uniqueSourceCount(reports)).toBe(card.sourceCount);
     });
   });
 
@@ -389,62 +389,62 @@ describe("authoritative cluster values — adversarial", () => {
 
   describe("source count", () => {
     it("returns the backend value, not the deduplicated report count", () => {
-      const reports = orbitStoryReports(countDisagrees, []);
-      expect(orbitUniqueSourceCount(reports)).toBe(2); // what derivation says
-      expect(orbitSourceCount(countDisagrees, reports)).toBe(5); // what we display
+      const reports = storyReports(countDisagrees, []);
+      expect(uniqueSourceCount(reports)).toBe(2); // what derivation says
+      expect(sourceCount(countDisagrees, reports)).toBe(5); // what we display
     });
 
     it("branches the multi-source field on the backend value", () => {
       const single = { ...countDisagrees, sourceCount: 1 };
-      const reports = orbitStoryReports(single, []);
+      const reports = storyReports(single, []);
       // Derivation would see two distinct sources and open the field anyway.
-      expect(orbitUniqueSourceCount(reports)).toBe(2);
-      expect(orbitHasMultiSourceField(single, reports)).toBe(false);
+      expect(uniqueSourceCount(reports)).toBe(2);
+      expect(hasMultiSourceField(single, reports)).toBe(false);
     });
 
     it("falls back to derivation only when the backend value is absent", () => {
       const local = { ...countDisagrees, sourceCount: undefined };
-      const reports = orbitStoryReports(local, []);
-      expect(orbitSourceCount(local, reports)).toBe(2);
+      const reports = storyReports(local, []);
+      expect(sourceCount(local, reports)).toBe(2);
     });
 
     it("treats a non-numeric count as absent", () => {
-      const reports = orbitStoryReports(countDisagrees, []);
+      const reports = storyReports(countDisagrees, []);
       for (const bad of [null, undefined, Number.NaN, "5"]) {
-        expect(orbitSourceCount({ ...countDisagrees, sourceCount: bad }, reports)).toBe(2);
+        expect(sourceCount({ ...countDisagrees, sourceCount: bad }, reports)).toBe(2);
       }
     });
 
     it("honours an authoritative zero rather than silently deriving", () => {
-      const reports = orbitStoryReports(countDisagrees, []);
-      expect(orbitSourceCount({ ...countDisagrees, sourceCount: 0 }, reports)).toBe(0);
+      const reports = storyReports(countDisagrees, []);
+      expect(sourceCount({ ...countDisagrees, sourceCount: 0 }, reports)).toBe(0);
     });
   });
 
   describe("timestamp", () => {
     it("returns the backend sort time, not the newest member", () => {
-      const reports = orbitStoryReports(timeDisagrees, []);
+      const reports = storyReports(timeDisagrees, []);
       expect(latestReportTimestamp(reports)).toBe("2026-07-27T23:00:00Z"); // derivation
-      expect(orbitStoryTimestamp(timeDisagrees, reports)).toBe("2026-07-27T06:00:00Z");
+      expect(storyTimestamp(timeDisagrees, reports)).toBe("2026-07-27T06:00:00Z");
     });
 
     it("falls back to the newest report when lastUpdatedAt is absent", () => {
       const local = { ...timeDisagrees, lastUpdatedAt: undefined };
-      const reports = orbitStoryReports(local, []);
-      expect(orbitStoryTimestamp(local, reports)).toBe("2026-07-27T23:00:00Z");
+      const reports = storyReports(local, []);
+      expect(storyTimestamp(local, reports)).toBe("2026-07-27T23:00:00Z");
     });
 
     it("falls back further when there are no reports at all", () => {
       const bare = { ...timeDisagrees, lastUpdatedAt: undefined, members: [] };
-      expect(orbitStoryTimestamp(bare, [])).toBe("2026-07-27T05:00:00Z");
-      expect(orbitStoryTimestamp({ ...bare, publishedAt: undefined }, [])).toBe(
+      expect(storyTimestamp(bare, [])).toBe("2026-07-27T05:00:00Z");
+      expect(storyTimestamp({ ...bare, publishedAt: undefined }, [])).toBe(
         "2026-07-27T04:00:00Z"
       );
     });
 
     it("leaves plain articles on their own publish time", () => {
       expect(
-        orbitStoryTimestamp({ type: "article", publishedAt: "2026-07-27T01:00:00Z" }, [])
+        storyTimestamp({ type: "article", publishedAt: "2026-07-27T01:00:00Z" }, [])
       ).toBe("2026-07-27T01:00:00Z");
     });
   });
@@ -481,9 +481,9 @@ describe("authoritative cluster values — adversarial", () => {
       const [card] = prepareFeedItems([staleLocal], {
         isBackendMode: false, localScoredArticles: scored,
       });
-      const reports = orbitStoryReports(card, scored);
-      expect(orbitSourceCount(card, reports)).toBe(2);
-      expect(orbitStoryTimestamp(card, reports)).toBe("2026-07-27T09:30:00Z");
+      const reports = storyReports(card, scored);
+      expect(sourceCount(card, reports)).toBe(2);
+      expect(storyTimestamp(card, reports)).toBe("2026-07-27T09:30:00Z");
     });
   });
 
@@ -494,8 +494,8 @@ describe("authoritative cluster values — adversarial", () => {
     expect(result[0]).toBe(countDisagrees);
     expect(result[1]).toBe(timeDisagrees);
     // Reading through the resolvers must not mutate either.
-    orbitSourceCount(result[0], orbitStoryReports(result[0], []));
-    orbitStoryTimestamp(result[1], orbitStoryReports(result[1], []));
+    sourceCount(result[0], storyReports(result[0], []));
+    storyTimestamp(result[1], storyReports(result[1], []));
     expect(result[0].sourceCount).toBe(5);
     expect(result[1].lastUpdatedAt).toBe("2026-07-27T06:00:00Z");
   });

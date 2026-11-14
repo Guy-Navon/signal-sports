@@ -1,5 +1,5 @@
-import { QUEUE_PAGE_SIZE } from "@/components/feed/orbit/orbitQueueMotion";
-import { orbitStoryId } from "@/components/feed/orbit/orbitStoryModel";
+import { QUEUE_PAGE_SIZE } from "@/components/feed/queueMotion";
+import { storyId } from "@/components/feed/storyModel";
 
 // Feed motion (#467, docs/FRONTEND_DESIGN_SYSTEM.md B12). The motion itself is
 // CSS (signal-feed.css); this module decides only what is bounded or
@@ -13,7 +13,7 @@ import { orbitStoryId } from "@/components/feed/orbit/orbitStoryModel";
 /** Milliseconds each stagger step adds. */
 export const ENTER_STEP_MS = 40;
 
-/** Hard cap on stagger steps, the same 6 as the Orbit queue (A5). */
+/** Hard cap on stagger steps, the shared queue budget of 6 (A5). */
 export const ENTER_MAX_STEPS = 6;
 
 /** The entrance itself (sg-enter in signal-feed.css), milliseconds. */
@@ -68,7 +68,7 @@ export function loadSettleMs() {
 export function storyIdSet(items = []) {
   const ids = new Set();
   for (const item of items) {
-    const id = orbitStoryId(item);
+    const id = storyId(item);
     if (id != null) ids.add(id);
   }
   return ids;

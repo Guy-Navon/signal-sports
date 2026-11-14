@@ -1,14 +1,6 @@
-// Focus decisions for the Orbit field, as pure data.
-//
-// These used to be inlined in OrbitFeedView alongside `document.querySelector`
-// lookups and `cores[cores.length - 1]` — the index existed only because
-// AnimatePresence keeps an exiting core mounted, so "the last one in the DOM"
-// happened to be the incoming one. That coupled keyboard behaviour to CSS class
-// names and animation internals, and nothing tested it.
-//
-// The component now holds refs to the real elements, so *which* node to focus is
-// no longer a question. What remains is *when* and *what* — decided here, in
-// functions that run under plain node.
+// Tested story-field focus intents and scroll policies, preserved as pure data.
+// Views own refs to their elements; these functions decide when and what to
+// focus without DOM queries or dependencies on animation internals.
 
 /** Focusable roles the field exposes. */
 export const FOCUS_TARGETS = Object.freeze({

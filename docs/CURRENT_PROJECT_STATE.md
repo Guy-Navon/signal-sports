@@ -1,9 +1,9 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-11-13** (milestone 15, new consumer UI direction approved and recorded, #461; 2026-11-11: public read-only demo of guy's feed, #458: built, not yet deployed; 2026-11-06: `title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
+**Last updated: 2026-11-14** (frontend truth sweep on `ui/next`, Orbit cleanup #473; runtime facts retain their dated verification; 2026-11-13: milestone 15 direction approved, #461; 2026-11-11: public read-only demo of guy's feed, #458: built, not yet deployed; 2026-11-06: `title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
 for any agent or human picking the project up with no conversation history. Present-tense
-statements were checked against the code and the owner's local runtime on that date. History
-is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
+frontend statements describe this `ui/next` checkout; runtime statements retain their dated
+verification below. History is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
 `docs/` on 2026-10-12; `git log --diff-filter=D --name-only -- docs/` lists them, and the
 issue numbers in §14 lead to their evidence.
 
@@ -188,30 +188,37 @@ origin), with a test that fails if they diverge (#196).
 
 ## 6. Frontend
 
-**Orbit** (shipped 2026-07-31) has one story at the centre with its sources in orbit and a
-ranked queue behind it. It is still what main and the public demo render. On 2026-11-13 Guy
-rejected its look and approved a new direction (white ground, Axios-style shell, a lead block
-only for a push, compact stream rows, a sticky side column, a results strip). Milestone 15
-(#461–#475) builds it on the integration branch `ui/next`. Merging to main needs his approval
-(#475), and nothing of it is on main yet.
-[FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) holds the engineering rules (Part A),
-the new visual language (Part B) and Orbit maintenance notes (Appendix C). The reference mock
-is in `docs/design/2026-11-13-feed-direction/`, and Orbit screenshots are in
-`docs/frontend-concepts/orbit/`.
+**Signal UI on `ui/next`.** Every consumer route, utility screen and the public demo use the
+direction approved on 2026-11-13: white/soft/dark grounds, a lead block only for a push,
+compact stream rows, a sticky side column and a results strip. The demo shares the product's
+`SignalFeedView`, read-only. #473 removes unused Orbit views, CSS and Frank Ruhl Libre;
+shared story, queue and focus models and their tests now live under neutral names in
+`components/feed/`. Ops keeps its existing shell, base `:root` tokens, Heebo and logo.
+Milestone 15 (#461–#475) lands on `ui/next`; merging to main and deploying the demo still
+need the owner's approval (#475). This is a branch-code statement, not a deployment claim.
+[FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) holds the engineering rules (Part A)
+and visual contract (Part B). The reference mock is in `docs/design/2026-11-13-feed-direction/`;
+`docs/frontend-concepts/orbit/` is a historical screenshot record only.
 
 | Route | Page | Area |
 |---|---|---|
 | `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | auth (emailed links land on `/verify-email` and `/reset-password`) | public |
 | `/welcome` | onboarding (interests → calibration → feed) | session |
-| `/` | Feed (Orbit) | product |
+| `/` | Feed (Signal UI) | product |
 | `/preferences`, `/interests`, `/calibration`, `/results`, `/account` | product pages | product |
 | `/sources`, `/debug`, `/llm-qa` | ops console (ingestion, scheduler, notifications, debug traces, LLM QA) | admin only |
 
 **Public demo entry (#458).** A second Vite entry (`frontend/demo.html` → `src/demo/`, built by
-`npm run build:demo` into `frontend/dist-demo/`) renders only the Orbit feed from two static JSON
-files, with `OrbitFeedView readOnly` (no feedback controls, no engine trace). It mounts no router
+`npm run build:demo` into `frontend/dist-demo/`) renders the Signal feed from static snapshot
+JSON (feed and metadata, plus optional results), with `SignalFeedView readOnly` (no feedback
+controls, no engine trace). It mounts no router
 and no auth or app provider; the hooks feed components need live in `src/context/appContextCore.js`
 so the provider and API client stay out of that bundle. [DEPLOYMENT.md](DEPLOYMENT.md) §17.
+
+**Browser verification.** `npm run capture:ui` runs the hermetic local-data harness on its own
+free port. `SIGNAL_UI_REVIEW_PORT` optionally selects a free port; `SIGNAL_CHROME_PATH` selects
+Chrome. Placement, typography, RTL, focus, motion, filter latency and dock occlusion assertions
+are retained. `npm run check:demo-bundle` guards the demo's read-only boundary.
 
 **Data modes** (`VITE_DATA_MODE`): `local` is the default and needs no backend. It renders mock
 data through the **frozen** legacy JS engine (`src/engine/relevanceEngine.js`), which gets no new
@@ -655,7 +662,8 @@ review intake, security diff review, UI and React review, browser checks, Python
 | 6 | Feed De-duplication & Clustering Activation | 2026-07-18 | Validated story anchors, intra-source republish, claim compatibility, activation with 0 over-merges | CLUSTERING |
 | 7 | Automated Live Ingestion & Telegram Push Pilot | 2026-07-18 | Dedicated worker, durable lease, notification identity, outbox, Telegram delivery, a 44.8h soak | SCHEDULER, NOTIFICATIONS |
 | — | Feed freshness (36h window) | 2026-07-18 | One shared freshness predicate for feed, cluster canonical choice and push | FEED_FRESHNESS |
-| — | Orbit frontend | 2026-07-31 | The current consumer UI | FRONTEND_DESIGN_SYSTEM |
+| — | Orbit frontend | 2026-07-31 | Historical consumer UI; replaced on `ui/next` by milestone 15 | frontend-concepts/orbit/README |
+| — | Orbit cleanup (#473) | 2026-11-14 | `ui/next`: unused views/CSS/serif removed, shared models and harness renamed; Ops retained | FRONTEND_DESIGN_SYSTEM |
 | — | Personalized results (#178) | 2026-08-23 | Results page from the same follows; TheSportsDB sync | RESULTS |
 | — | Repository audit (#186) | 2026-09-05 | Reliability fixes F01–F13 and R01–R07; open debt filed as #196–#200 | audits/2026-09-05 |
 | 8 | Feed Quality — Recall & Push (N05) | 2026-09-16 | The 282-rating ground truth and gate; former-affiliation fix; Israeli clubs; push 41%→100%; LLM cost −45% (#217); live scoreline (#218); census tool and census #1 | qa/N05_*, LLM_CLASSIFICATION |

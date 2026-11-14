@@ -3,8 +3,9 @@
 The Hebrew-first, RTL product UI and the ops console for Signal Sports. React 18 + Vite 6,
 JavaScript/JSX (type-checked through `jsconfig.json`).
 
-The consumer UI is **Orbit**: one story at the centre, its sources in orbit, everything else
-queued behind it. Design contract: [`../docs/FRONTEND_DESIGN_SYSTEM.md`](../docs/FRONTEND_DESIGN_SYSTEM.md).
+On `ui/next`, every consumer page and the public read-only demo use **Signal UI**: a lead
+block only for a push, compact stream rows, a side column and a results strip. Ops keeps
+its existing console shell, base tokens, Heebo and signal-bars logo. Design contract: [`../docs/FRONTEND_DESIGN_SYSTEM.md`](../docs/FRONTEND_DESIGN_SYSTEM.md).
 Whole-project state: [`../docs/CURRENT_PROJECT_STATE.md`](../docs/CURRENT_PROJECT_STATE.md).
 
 ## Getting started
@@ -45,10 +46,12 @@ npm run dev
 - `npm run dev`: dev server · `npm run build`: production build · `npm run preview`: preview the build
 - `npm run test`: Vitest (node environment: models, API client, context, engine, drift guard)
 - `npm run lint`: ESLint with `--max-warnings=0` · `npm run typecheck`: `tsc` over `jsconfig.json`
-- `npm run capture:orbit`: a hermetic browser harness that asserts what the browser *paints*
-  (type scale, filter latency, focus, dock occlusion, motion preferences)
+- `npm run capture:ui`: a hermetic browser harness that asserts what the browser *paints*
+  (placement by level, typography, filter latency, focus, motion, RTL and fixed-header occlusion).
+  It uses its own free port; set `SIGNAL_UI_REVIEW_PORT` only to request a specific free port.
+- `npm run build:demo`: read-only public demo · `npm run check:demo-bundle`: excludes app/API/write paths
 
-CI runs lint, typecheck, test and build on every PR (`.github/workflows/checks.yml`).
+CI runs lint, typecheck, test, build, build:demo and check:demo-bundle on every PR (`.github/workflows/checks.yml`).
 
 ## Structure
 
@@ -57,14 +60,17 @@ src/
 ├── pages/            Feed, Preferences, InterestSelection, Calibration, Results, Account,
 │                     Login, Signup, Onboarding (/welcome) · ops: Sources, Debug, LlmQa
 ├── components/
-│   ├── feed/         Orbit (orbit/: OrbitFeedView, OrbitStoryField, story/focus/queue models),
+│   ├── feed/         signal/: SignalFeedView, layout/motion/story models, ResultsStrip;
+│   │                 shared storyModel, focusModel, queueMotion and their tests;
 │   │                 DecisionBadge, DeskVoice, FeedbackControls, SourceMeta, decisionConfig, clusterModel
 │   ├── interests/    InterestPicker, InterestsManager, CatalogSearch, FollowChip, EventPresetControls
 │   ├── preferences/  TopicCard, LearnedAdjustmentsPanel
 │   ├── results/      ResultCard, DayHeading, grouping/format/relevance models
 │   ├── debug/        DebugArticleCard, FactsTracePanel, ReasoningTrace, ClusterEvidence, ShadowComparisonPanel
 │   ├── ops/          IngestionPanel, SchedulerPanel, NotificationsPanel, SourceToggleCard, HealthCard, BenchmarkPanel
-│   ├── shell/        AppShell, Masthead, MobileNav, ProductNav, OpsNav, RequireSession, RequireOpsRole, ProfileSwitcher
+│   ├── shell/        ProductShell, ProductHeader, AccountMenu, MastheadSlot;
+│   │                 Ops AppShell, Masthead, MobileNav, ProductNav, OpsNav; session/role guards
+│   ├── signal-ui/    scoped tokens, Assistant/Karantina, wordmark and signal-strength mark
 │   ├── shared/       DeskIntro, EmptyState, ErrorState, PageHeader, …
 │   └── ui/           shadcn/Radix primitives
 ├── context/          AppContext (the data layer), AuthContext, onboarding flow, data routing

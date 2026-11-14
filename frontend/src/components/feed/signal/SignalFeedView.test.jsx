@@ -5,8 +5,8 @@ import { normalizeScoredArticleFromApi } from "@/api/normalizers";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import SignalFeedView from "./SignalFeedView";
 
-// The new feed view (#464) rendered in node, the way the Orbit read-only test
-// does it. The public demo (#469) will render it with no AppProvider.
+// The consumer feed rendered in node. The public demo renders the same view
+// read-only, with no AppProvider.
 
 const REASON = "מכבי תל אביב (כדורסל) ברשימת המעקב שלך";
 const NOW = Date.parse("2026-11-13T18:00:00Z");

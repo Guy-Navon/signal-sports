@@ -5,7 +5,7 @@ import {
   ensurePortAvailable,
   reserveEphemeralPort,
   resolveHarnessPort,
-} from "./capture-orbit-production.mjs";
+} from "./capture-ui-production.mjs";
 
 const HOST = "127.0.0.1";
 const opened = [];
@@ -66,7 +66,7 @@ describe("harness port ownership", () => {
     await occupyPort(port);
 
     await expect(resolveHarnessPort(String(port))).rejects.toThrow(
-      new RegExp(`${port}[\\s\\S]*ORBIT_REVIEW_PORT`)
+      new RegExp(`${port}[\\s\\S]*SIGNAL_UI_REVIEW_PORT`)
     );
   });
 

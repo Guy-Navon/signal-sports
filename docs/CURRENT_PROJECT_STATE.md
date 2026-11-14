@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-11-14** (frontend truth sweep on `ui/next` after #491–#505: header, filters, merged preferences, cluster list, reader-only why line; Orbit cleanup #473; runtime facts retain their dated verification; 2026-11-13: milestone 15 direction approved, #461; 2026-11-11: public read-only demo of guy's feed, #458: built, not yet deployed; 2026-11-06: `title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
+**Last updated: 2026-11-14** (frontend truth sweep on `ui/next` after #491–#505: header, filters, merged preferences, cluster list, reader-only why line; Orbit cleanup #473; runtime facts retain their dated verification; 2026-11-13: milestone 15 direction approved, #461; 2026-11-11: public read-only demo of guy's feed, #458: live since 2026-11-11 from main; 2026-11-06: `title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
 for any agent or human picking the project up with no conversation history. Present-tense
 frontend statements describe this `ui/next` checkout; runtime statements retain their dated
 verification below. History is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
@@ -86,7 +86,7 @@ visible members). Details: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md).
 **Public demo (#458).** `backend/scripts/export_demo_snapshot.py` builds guy's consumer feed
 through the same handler as `/api/me/feed`, from a read-only connection, into static JSON;
 `scripts/demo-publish.ps1` deploys it with a frontend bundle (feed and results strip, read-only) to Firebase Hosting, hourly
-through a Windows scheduled task. Not deployed or scheduled yet (owner steps).
+through a Windows scheduled task. Live since 2026-11-11 at signal-sports-demo.web.app from main (Orbit), hourly task `SignalSportsDemoPublish`; the `ui/next` demo is deployed only after the merge (#475).
 [DEPLOYMENT.md](DEPLOYMENT.md) §17.
 
 | Layer | Where |

@@ -1,7 +1,14 @@
 // Composition of the new feed (#464, docs/FRONTEND_DESIGN_SYSTEM.md B5-B10), as
 // pure data. Placement only: nothing here re-ranks, re-scores or invents a level.
 // Each section keeps the order it was given (the backend's ranking).
-import { leagueFilterId } from "@/components/feed/feedFilters";
+import {
+  activeLeagueIds,
+  facetedLeagueCounts,
+  hasActiveFilters,
+  importanceFloor,
+  leagueFilterId,
+} from "@/components/feed/feedFilters";
+import { DECISION_CONFIG } from "@/components/feed/decisionConfig";
 import { LEAGUE_HE, SPORT_HE } from "@/components/feed/storyLabels";
 import { storyReports, storyTimestamp } from "@/components/feed/storyModel";
 
@@ -52,6 +59,38 @@ export function leaguePills(items) {
   }
   // Array.prototype.sort is stable, so equal counts keep first-appearance order.
   return [...pills.values()].sort((a, b) => b.count - a.count);
+}
+
+/**
+ * The league pills of the filter bar (#483): the order of the whole feed (so
+ * pills never jump when the threshold changes), each count what pressing it
+ * would show under the active threshold. A league with nothing at or above the
+ * threshold is left out, unless it is selected (it must stay unselectable).
+ */
+export function filterBarPills(items, activeFilters) {
+  const counts = facetedLeagueCounts(items, activeFilters);
+  const selected = new Set(activeLeagueIds(activeFilters));
+  return leaguePills(items)
+    .map((pill) => ({ ...pill, count: counts.get(pill.id) ?? 0 }))
+    .filter((pill) => pill.count > 0 || selected.has(pill.id));
+}
+
+/** "Showing X of N" while a filter is active; empty otherwise. */
+export function filterResultLine(shown, total, activeFilters) {
+  if (!hasActiveFilters(activeFilters)) return "";
+  if (shown === 0) return "אין סיפורים שמתאימים לסינון";
+  if (shown === 1) return `מוצג סיפור אחד מתוך ${total}`;
+  return `מוצגים ${shown} מתוך ${total} סיפורים`;
+}
+
+/** The empty result names what was filtered (#483). */
+export function filterEmptyMessage(activeFilters) {
+  const floor = importanceFloor(activeFilters);
+  const leagues = activeLeagueIds(activeFilters).length > 0;
+  const level = floor ? `ברמת ${DECISION_CONFIG[floor].label} ומעלה` : "";
+  if (floor && leagues) return `אין סיפורים ${level} בליגות שבחרת.`;
+  if (floor) return `אין כרגע סיפורים ${level}.`;
+  return "אין סיפורים בליגות שבחרת.";
 }
 
 /** The summary line (B6): "N סיפורים עברו את הסינון שלך · M חשובים". */

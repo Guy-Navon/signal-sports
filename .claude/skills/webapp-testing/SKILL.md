@@ -17,7 +17,7 @@ section); the rest of the directory is unmodified. Provenance in [UPSTREAM.md](U
    (`frontend/scripts/capture-ui-production.mjs`). It starts its own Vite on a free port in
    local-data mode, proves it is talking to that instance, drives headless Chrome over CDP and
    asserts what the browser paints: RTL, horizontal overflow at desktop and mobile viewports, focus
-   transitions under both motion preferences, dock occlusion, typography, filter latency, queue
+   transitions under both motion preferences, fixed-header occlusion, typography, filter latency, queue
    paging. It writes review PNGs to a temp directory. If your change touches something it checks,
    run it. If a new *guarantee* deserves automation, extend this harness (and its `.test.mjs`) as
    a normal product change through `signal-pr-open` — don't start a second suite.

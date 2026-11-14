@@ -28,6 +28,15 @@ import {
   splitFeedSections,
 } from "./feedLayoutModel";
 import {
+  LOAD_SEQUENCE,
+  SETTLED_SEQUENCE,
+  enterStyle,
+  loadSettleMs,
+  nextArrivals,
+  pageStaggerIndex,
+  storyIdSet,
+} from "./feedMotionModel";
+import {
   relativeTimeHe,
   storyLink,
   storySources,
@@ -57,6 +66,46 @@ function useNow(fixedNowMs) {
     return () => clearInterval(id);
   }, [fixedNowMs]);
   return now;
+}
+
+/**
+ * The first-load choreography builds the page top to bottom (LOAD_SEQUENCE);
+ * once it has played, every base is 0, so a filter change, "show more" or a
+ * new story enters at once. The motion is CSS and stops under reduced motion.
+ */
+function useEnterSequence() {
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setSettled(true), loadSettleMs());
+    return () => clearTimeout(id);
+  }, []);
+  return settled ? SETTLED_SEQUENCE : LOAD_SEQUENCE;
+}
+
+/**
+ * Stories that arrived with the latest refresh (nextArrivals). Adjusted while
+ * rendering when the list changes, so the new rows mount already marked.
+ */
+function useArrivals(items) {
+  const [track, setTrack] = useState(() => ({
+    items,
+    ids: storyIdSet(items),
+    arrivals: new Set(),
+  }));
+  if (track.items === items) return track.arrivals;
+  const ids = storyIdSet(items);
+  const next = {
+    items,
+    ids,
+    arrivals: nextArrivals({ previousIds: track.ids, currentIds: ids, previousArrivals: track.arrivals }),
+  };
+  setTrack(next);
+  return next.arrivals;
+}
+
+/** A story that came in with the latest refresh: a word, not only motion (A6). */
+function NewMark({ show }) {
+  return show ? <span className="sg-new">חדש</span> : null;
 }
 
 /** Everything a row needs about one story, from the shared story models. */
@@ -175,14 +224,17 @@ function SummaryLine({ items }) {
   const summary = feedSummary(items);
   return (
     <p className="sg-summary">
-      <b className="sg-num" dir="ltr">{summary.stories}</b> {summary.storiesPhrase}
+      {/* Keyed by value: a changed count ticks in (#467). */}
+      <b key={`s${summary.stories}`} className="sg-num sg-tick" dir="ltr">{summary.stories}</b>{" "}
+      {summary.storiesPhrase}
       <Dot />
-      <b className="sg-num" dir="ltr">{summary.important}</b> {summary.importantPhrase}
+      <b key={`i${summary.important}`} className="sg-num sg-tick" dir="ltr">{summary.important}</b>{" "}
+      {summary.importantPhrase}
     </p>
   );
 }
 
-function LeaguePills({ items, activeFilters, onToggle, onReset }) {
+function LeaguePills({ items, activeFilters, onToggle, onReset, enterBase }) {
   const pills = useMemo(() => leaguePills(items), [items]);
   if (pills.length === 0) return null;
   const all = activeFilters.has("all");
@@ -193,10 +245,11 @@ function LeaguePills({ items, activeFilters, onToggle, onReset }) {
         className="sg-pill sg-pill--all"
         aria-pressed={all}
         onClick={onReset}
+        style={enterStyle(0, enterBase)}
       >
         <i className="sg-pill__mark" aria-hidden="true" />
         <b>הכול</b>
-        <span className="sg-num" dir="ltr">{items.length}</span>
+        <span key={items.length} className="sg-num sg-tick" dir="ltr">{items.length}</span>
       </button>
       {pills.map((pill, index) => (
         <button
@@ -207,17 +260,18 @@ function LeaguePills({ items, activeFilters, onToggle, onReset }) {
           data-filter={pill.id}
           aria-pressed={!all && activeFilters.has(pill.id)}
           onClick={() => onToggle(pill.id)}
+          style={enterStyle(index + 1, enterBase)}
         >
           <i className="sg-pill__mark" aria-hidden="true" />
           <b><bdi dir="auto">{pill.label}</bdi></b>
-          <span className="sg-num" dir="ltr">{pill.count}</span>
+          <span key={pill.count} className="sg-num sg-tick" dir="ltr">{pill.count}</span>
         </button>
       ))}
     </div>
   );
 }
 
-function LeadStory({ item, localScoredArticles, now, readOnly }) {
+function LeadStory({ item, localScoredArticles, now, readOnly, enterBase }) {
   const story = useStory(item, localScoredArticles);
   const surface = useSurface(readOnly);
   return (
@@ -226,6 +280,7 @@ function LeadStory({ item, localScoredArticles, now, readOnly }) {
       aria-label={getDecisionConfig("push").label}
       data-decision={story.decision}
       data-league={leagueFilterId(item)}
+      style={enterStyle(0, enterBase)}
     >
       <div className="sg-lead__deco" aria-hidden="true">
         <i />
@@ -262,7 +317,7 @@ function leagueLabelOf(item, pillLabels) {
   return pillLabels.get(leagueFilterId(item)) ?? null;
 }
 
-function ImportantStory({ item, localScoredArticles, now, readOnly, league }) {
+function ImportantStory({ item, localScoredArticles, now, readOnly, league, arrived, style }) {
   const story = useStory(item, localScoredArticles);
   const surface = useSurface(readOnly);
   return (
@@ -270,10 +325,15 @@ function ImportantStory({ item, localScoredArticles, now, readOnly, league }) {
       className="sg-important__item"
       data-decision={story.decision}
       data-league={leagueFilterId(item)}
+      data-arrived={arrived || undefined}
+      style={style}
     >
-      <span className="sg-tag">
-        <SignalStrength decision={story.decision} />
-        {league && <bdi dir="auto">{league}</bdi>}
+      <span className="sg-important__tags">
+        <span className="sg-tag">
+          <SignalStrength decision={story.decision} />
+          {league && <bdi dir="auto">{league}</bdi>}
+        </span>
+        <NewMark show={arrived} />
       </span>
       <Headline story={story} className="sg-important__title" />
       <p className="sg-meta">
@@ -289,8 +349,8 @@ function ImportantStory({ item, localScoredArticles, now, readOnly, league }) {
 function ClusterMembers({ story, now, id }) {
   return (
     <ul className="sg-members" id={id} aria-label="מקורות הסיפור">
-      {story.sources.reports.map((report) => (
-        <li key={report.articleId ?? report.sourceDisplayName}>
+      {story.sources.reports.map((report, index) => (
+        <li key={report.articleId ?? report.sourceDisplayName} style={enterStyle(index)}>
           <MemberLink report={report}>
             <b><bdi dir="auto">{report.sourceDisplayName}</bdi></b>
             {report.publishedAt && <Dot />}
@@ -321,7 +381,17 @@ function MemberLink({ report, className = "sg-members__item", children = null })
   );
 }
 
-function StreamRow({ item, localScoredArticles, now, readOnly, league, focusOnMount, onFocused }) {
+function StreamRow({
+  item,
+  localScoredArticles,
+  now,
+  readOnly,
+  league,
+  focusOnMount,
+  onFocused,
+  arrived,
+  style,
+}) {
   const story = useStory(item, localScoredArticles);
   const surface = useSurface(readOnly);
   const [open, setOpen] = useState(false);
@@ -337,8 +407,15 @@ function StreamRow({ item, localScoredArticles, now, readOnly, league, focusOnMo
   }, [focusOnMount, onFocused]);
 
   return (
-    <article className="sg-row" data-decision={story.decision} data-league={leagueFilterId(item)}>
+    <article
+      className="sg-row"
+      data-decision={story.decision}
+      data-league={leagueFilterId(item)}
+      data-arrived={arrived || undefined}
+      style={style}
+    >
       <div className="sg-row__by">
+        <NewMark show={arrived} />
         <SignalStrength decision={story.decision} />
         <span className="sg-row__src">
           <bdi dir="auto">{story.source}</bdi>
@@ -377,7 +454,8 @@ function StreamRow({ item, localScoredArticles, now, readOnly, league, focusOnMo
 
 /**
  * A bounded list (A5): one page of QUEUE_PAGE_SIZE rows, then "show more".
- * Rows are plain elements: removal is never animated, and nothing staggers.
+ * Removal is never animated: a row that leaves unmounts at once. Entering rows
+ * stagger, capped and restarted on each page (feedMotionModel).
  */
 function useStoryList({ items, renderRow, moreLabel }) {
   const [pages, setPages] = useState(1);
@@ -396,7 +474,7 @@ function useStoryList({ items, renderRow, moreLabel }) {
     body: (
       <>
         {visible.map((item, index) =>
-          renderRow(item, index === focusIndex, () => setFocusIndex(null))
+          renderRow(item, index === focusIndex, () => setFocusIndex(null), pageStaggerIndex(index))
         )}
       </>
     ),
@@ -408,7 +486,7 @@ function useStoryList({ items, renderRow, moreLabel }) {
   };
 }
 
-function StreamSection({ items, localScoredArticles, now, readOnly, pillLabels }) {
+function StreamSection({ items, localScoredArticles, now, readOnly, pillLabels, arrivals, enterBase }) {
   const list = useStoryList({
     items,
     moreLabel: (remaining) => (
@@ -416,7 +494,7 @@ function StreamSection({ items, localScoredArticles, now, readOnly, pillLabels }
         ועוד <span className="sg-num" dir="ltr">{remaining}</span> סיפורים בפיד
       </>
     ),
-    renderRow: (item, focusOnMount, onFocused) => (
+    renderRow: (item, focusOnMount, onFocused, staggerIndex) => (
       <StreamRow
         key={orbitStoryId(item)}
         item={item}
@@ -426,11 +504,17 @@ function StreamSection({ items, localScoredArticles, now, readOnly, pillLabels }
         league={leagueLabelOf(item, pillLabels)}
         focusOnMount={focusOnMount}
         onFocused={onFocused}
+        arrived={arrivals.has(orbitStoryId(item))}
+        style={enterStyle(staggerIndex, enterBase)}
       />
     ),
   });
   return (
-    <section className="sg-stream-section" aria-labelledby="sg-stream-heading">
+    <section
+      className="sg-stream-section"
+      aria-labelledby="sg-stream-heading"
+      style={enterStyle(0, enterBase)}
+    >
       <h2 className="sg-sech" id="sg-stream-heading">
         עוד בפיד שלך <span>מדורג לפי מה שחשוב לך</span>
         {list.page.hasMore && (
@@ -445,7 +529,7 @@ function StreamSection({ items, localScoredArticles, now, readOnly, pillLabels }
   );
 }
 
-function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFocused }) {
+function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFocused, style }) {
   const story = useStory(item, localScoredArticles);
   const surface = useSurface(readOnly);
   const headlineRef = useRef(null);
@@ -459,6 +543,7 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
       className="sg-box__item sg-brief__item"
       data-decision={story.decision}
       data-league={leagueFilterId(item)}
+      style={style}
     >
       <Headline story={story} className="sg-box__title sg-brief__title" linkRef={headlineRef} />
       <div className="sg-box__meta sg-brief__meta">
@@ -473,7 +558,7 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
   );
 }
 
-function LatestRow({ item, localScoredArticles, now }) {
+function LatestRow({ item, localScoredArticles, now, arrived, style }) {
   const story = useStory(item, localScoredArticles);
   const fresh = isFreshStory(story.timestamp, now);
   return (
@@ -482,6 +567,8 @@ function LatestRow({ item, localScoredArticles, now }) {
       data-decision={story.decision}
       data-league={leagueFilterId(item)}
       data-fresh={fresh || undefined}
+      data-arrived={arrived || undefined}
+      style={style}
     >
       <Headline story={story} className="sg-box__title" />
       <span className="sg-box__meta">
@@ -503,18 +590,20 @@ function LatestRow({ item, localScoredArticles, now }) {
 // filtered list only: the stream keeps its ranked order, and a story may stand
 // in both places, as in the approved mock. No feedback here: every story in it
 // carries its actions where it is placed (lead, important row, stream).
-function LatestSection({ items, localScoredArticles, now }) {
+function LatestSection({ items, localScoredArticles, now, arrivals, enterBase }) {
   if (items.length === 0) return null;
   return (
     <section className="sg-box sg-latest" aria-labelledby="sg-latest-heading">
       <h2 className="sg-box__heading" id="sg-latest-heading">אחרונים</h2>
       <ul>
-        {items.map((item) => (
+        {items.map((item, index) => (
           <LatestRow
             key={orbitStoryId(item)}
             item={item}
             localScoredArticles={localScoredArticles}
             now={now}
+            arrived={arrivals.has(orbitStoryId(item))}
+            style={enterStyle(index, enterBase)}
           />
         ))}
       </ul>
@@ -523,7 +612,7 @@ function LatestSection({ items, localScoredArticles, now }) {
 }
 
 // "בקצרה": the low_feed stories, in the side column (#465), bounded like the stream.
-function BriefSection({ items, localScoredArticles, now, readOnly }) {
+function BriefSection({ items, localScoredArticles, now, readOnly, enterBase }) {
   const list = useStoryList({
     items,
     moreLabel: (remaining) => (
@@ -531,7 +620,7 @@ function BriefSection({ items, localScoredArticles, now, readOnly }) {
         ועוד <span className="sg-num" dir="ltr">{remaining}</span> בקצרה
       </>
     ),
-    renderRow: (item, focusOnMount, onFocused) => (
+    renderRow: (item, focusOnMount, onFocused, staggerIndex) => (
       <BriefRow
         key={orbitStoryId(item)}
         item={item}
@@ -540,6 +629,7 @@ function BriefSection({ items, localScoredArticles, now, readOnly }) {
         readOnly={readOnly}
         focusOnMount={focusOnMount}
         onFocused={onFocused}
+        style={enterStyle(staggerIndex, enterBase)}
       />
     ),
   });
@@ -585,6 +675,8 @@ export default function SignalFeedView({
   ground,
 }) {
   const now = useNow(nowMs);
+  const sequence = useEnterSequence();
+  const arrivals = useArrivals(items);
   const filtered = useMemo(() => filterFeedItems(items, activeFilters), [items, activeFilters]);
   const sections = useMemo(() => splitFeedSections(filtered), [filtered]);
   const latest = useMemo(
@@ -608,6 +700,7 @@ export default function SignalFeedView({
         activeFilters={activeFilters}
         onToggle={onToggleFilter}
         onReset={onResetFilters}
+        enterBase={sequence.pills}
       />
     </>
   );
@@ -615,6 +708,14 @@ export default function SignalFeedView({
   return (
     <div className="signal-ui sg-feed" data-ground={ground}>
       <h1 className="sr-only">הפיד שלך</h1>
+      {/* New stories are marked with a word and a glow; this says it once. */}
+      <p className="sr-only" role="status">
+        {arrivals.size === 1
+          ? "סיפור חדש אחד נוסף לפיד"
+          : arrivals.size > 1
+            ? `${arrivals.size} סיפורים חדשים נוספו לפיד`
+            : ""}
+      </p>
       {/* Inside the consumer shell (#463) the summary line and pills sit under
           the wordmark, through its masthead slot; on their own (the lab, the
           demo until #469) they open the view. */}
@@ -636,22 +737,32 @@ export default function SignalFeedView({
       ) : (
         <>
           <div className="sg-in">
-            {sections.lead && <LeadStory item={sections.lead} {...rowProps} />}
+            {/* Keyed by story: a new lead plays its entrance again. */}
+            {sections.lead && (
+              <LeadStory
+                key={orbitStoryId(sections.lead)}
+                item={sections.lead}
+                enterBase={sequence.lead}
+                {...rowProps}
+              />
+            )}
 
             {sections.important.length > 0 && (
               <section className="sg-important" aria-label="חשובים">
-                {sections.important.map((item) => (
+                {sections.important.map((item, index) => (
                   <ImportantStory
                     key={orbitStoryId(item)}
                     item={item}
                     league={leagueLabelOf(item, pillLabels)}
+                    arrived={arrivals.has(orbitStoryId(item))}
+                    style={enterStyle(index, sequence.important)}
                     {...rowProps}
                   />
                 ))}
               </section>
             )}
 
-            <ResultsStrip results={results} nowMs={now} />
+            <ResultsStrip results={results} nowMs={now} enterBaseMs={sequence.results} />
           </div>
 
           {(sections.stream.length > 0 || sections.brief.length > 0 || latest.length > 0) && (
@@ -663,6 +774,8 @@ export default function SignalFeedView({
                       key={`stream-${listKey}`}
                       items={sections.stream}
                       pillLabels={pillLabels}
+                      arrivals={arrivals}
+                      enterBase={sequence.stream}
                       {...rowProps}
                     />
                   </div>
@@ -670,10 +783,24 @@ export default function SignalFeedView({
                 {/* The side column (B11): sticky beside the stream on desktop; on
                     a phone it follows the stream (#465). Same filtered set. */}
                 {(latest.length > 0 || sections.brief.length > 0) && (
-                  <aside className="sg-side" aria-label="אחרונים ובקצרה">
-                    <LatestSection items={latest} {...rowProps} />
+                  <aside
+                    className="sg-side"
+                    aria-label="אחרונים ובקצרה"
+                    style={enterStyle(0, sequence.side)}
+                  >
+                    <LatestSection
+                      items={latest}
+                      arrivals={arrivals}
+                      enterBase={sequence.side}
+                      {...rowProps}
+                    />
                     {sections.brief.length > 0 && (
-                      <BriefSection key={`brief-${listKey}`} items={sections.brief} {...rowProps} />
+                      <BriefSection
+                        key={`brief-${listKey}`}
+                        items={sections.brief}
+                        enterBase={sequence.side}
+                        {...rowProps}
+                      />
                     )}
                   </aside>
                 )}

@@ -1,14 +1,12 @@
 import React, { useState } from "react";
+import { AccountDialogContent } from "@/pages/AccountDialog";
+import { Button, Input, Label } from "@/pages/AuthControls";
 import { Navigate } from "react-router-dom";
 import { KeyRound, LogIn, LogOut, Trash2, UserRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
-  AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
@@ -17,7 +15,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { changeMePassword, deleteMeAccount } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
-import DeskIntro from "@/components/shared/DeskIntro";
 import { validateSignupPassword } from "@/pages/authValidation";
 import { accountHasPassword } from "@/pages/googleSignIn";
 import GoogleAccountDeletion from "@/pages/GoogleAccountDeletion";
@@ -35,6 +32,7 @@ export default function Account() {
   const [pwBusy, setPwBusy] = useState(false);
   const [deletePw, setDeletePw] = useState("");
   const [deleteNotice, setDeleteNotice] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   if (auth.status !== "loading" && (!auth.authEnforced || !auth.user)) {
     return <Navigate to="/" replace />;
@@ -78,6 +76,8 @@ export default function Account() {
   }
 
   async function confirmDelete() {
+    if (deleteBusy) return;
+    setDeleteBusy(true);
     setDeleteNotice(null);
     try {
       await deleteMeAccount(deletePw);
@@ -94,123 +94,133 @@ export default function Account() {
       } else {
         setDeleteNotice("משהו השתבש — החשבון לא נמחק");
       }
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
   return (
-    <div className="max-w-2xl space-y-8">
-      <DeskIntro kicker="החשבון שלך">ניהול ההתחברות והחשבון — ההעדפות עצמן גרות בעמוד ההעדפות.</DeskIntro>
+    <div className="sg-account sg-gutter">
+      <div className="sg-container sg-account__content">
+        <header className="sg-account__intro">
+          <h1>החשבון שלך</h1>
+          <p className="sg-auth-muted">ניהול ההתחברות והחשבון — ההעדפות עצמן גרות בעמוד ההעדפות.</p>
+        </header>
 
-      <section className="space-y-2">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-text-secondary">
-          <UserRound size={14} /> זהות
-        </h2>
-        <p dir="ltr" className="text-sm text-foreground font-mono">{auth.user.email}</p>
-      </section>
+        <section className="sg-account__section">
+          <h2>
+            <UserRound size={14} /> זהות
+          </h2>
+          <p className="sg-account__identity"><bdi dir="auto">{auth.user.email}</bdi></p>
+        </section>
 
-      <section className="space-y-3 border-t border-border pt-6">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-text-secondary">
-          <LogIn size={14} /> שיטות התחברות
-        </h2>
-        <GoogleSignInMethods
-          hasPassword={hasPassword}
-          googleEmail={auth.user.google_email ?? null}
-          googleEnabled={Boolean(auth.googleEnabled)}
-          onChanged={auth.refreshSession}
-        />
-      </section>
-
-      {hasPassword && (
-      <section className="space-y-3 border-t border-border pt-6">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-text-secondary">
-          <KeyRound size={14} /> החלפת סיסמה
-        </h2>
-        <form onSubmit={submitPasswordChange} noValidate className="space-y-3 max-w-sm">
-          <div className="space-y-1.5">
-            <Label htmlFor="acct-current">סיסמה נוכחית</Label>
-            <Input id="acct-current" type="password" dir="ltr" autoComplete="current-password"
-              value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="acct-new">סיסמה חדשה (לפחות 8 תווים)</Label>
-            <Input id="acct-new" type="password" dir="ltr" autoComplete="new-password"
-              value={newPw} onChange={(e) => setNewPw(e.target.value)} />
-          </div>
-          {pwNotice && (
-            <p role="alert" className={
-              pwNotice.tone === "ok" ? "text-xs text-signal-high" : "text-xs text-signal-hidden"
-            }>
-              {pwNotice.text}
-            </p>
-          )}
-          <Button type="submit" disabled={pwBusy}>
-            {pwBusy ? "מעדכנים…" : "עדכון סיסמה"}
-          </Button>
-          <p className="text-xs text-text-dim">
-            עדכון הסיסמה מנתק את כל ההתחברויות האחרות; ההתחברות הנוכחית נשארת.
-          </p>
-        </form>
-      </section>
-      )}
-
-      <section className="space-y-3 border-t border-border pt-6">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-text-secondary">
-          <LogOut size={14} /> התנתקות
-        </h2>
-        <Button variant="outline" onClick={() => auth.logout()}>התנתקות מהחשבון</Button>
-      </section>
-
-      <section className="space-y-3 border-t border-border pt-6">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-signal-hidden">
-          <Trash2 size={14} /> מחיקת חשבון
-        </h2>
-        <p className="text-xs text-text-secondary max-w-sm">
-          מחיקה מסירה לצמיתות את החשבון, הפרופיל, הכיול, המשובים והלמידה.
-          הכתבות עצמן הן מידע כללי ואינן נמחקות.
-        </p>
-        {!hasPassword ? (
-          <GoogleAccountDeletion
-            email={auth.user.email}
-            onDeleted={async () => {
-              await auth.refreshSession();
-              window.location.assign("/login");
-            }}
+        <section className="sg-account__section">
+          <h2>
+            <LogIn size={14} /> שיטות התחברות
+          </h2>
+          <GoogleSignInMethods
+            hasPassword={hasPassword}
+            googleEmail={auth.user.google_email ?? null}
+            googleEnabled={Boolean(auth.googleEnabled)}
+            onChanged={auth.refreshSession}
           />
-        ) : (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive">מחיקת החשבון…</Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent dir="rtl">
-            <AlertDialogHeader>
-              <AlertDialogTitle>מחיקת החשבון לצמיתות</AlertDialogTitle>
-              <AlertDialogDescription>
-                הפעולה בלתי הפיכה — אין דרך לשחזר את הפרופיל, הכיול או המשובים.
-                לאישור, הזינו את הסיסמה הנוכחית.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="space-y-1.5">
-              <Label htmlFor="acct-delete-pw">סיסמה נוכחית</Label>
-              <Input id="acct-delete-pw" type="password" dir="ltr"
-                autoComplete="current-password"
-                value={deletePw} onChange={(e) => setDeletePw(e.target.value)} />
-              {deleteNotice && (
-                <p role="alert" className="text-xs text-signal-hidden">{deleteNotice}</p>
-              )}
+        </section>
+
+        {hasPassword && (
+        <section className="sg-account__section">
+          <h2>
+            <KeyRound size={14} /> החלפת סיסמה
+          </h2>
+          <form onSubmit={submitPasswordChange} noValidate className="sg-auth-stack sg-account__form">
+            <div className="sg-auth-field">
+              <Label htmlFor="acct-current">סיסמה נוכחית</Label>
+              <Input id="acct-current" type="password" dir="ltr" autoComplete="current-password"
+                value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} />
             </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel>ביטול</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={(e) => { e.preventDefault(); confirmDelete(); }}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                מחיקה לצמיתות
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            <div className="sg-auth-field">
+              <Label htmlFor="acct-new">סיסמה חדשה (לפחות 8 תווים)</Label>
+              <Input id="acct-new" type="password" dir="ltr" autoComplete="new-password"
+                value={newPw} onChange={(e) => setNewPw(e.target.value)} />
+            </div>
+            {pwNotice && (
+              <p role="alert" className={
+                pwNotice.tone === "ok" ? "text-xs sg-auth-success" : "text-xs sg-auth-error"
+              }>
+                {pwNotice.text}
+              </p>
+            )}
+            <Button type="submit" disabled={pwBusy}>
+              {pwBusy ? "מעדכנים…" : "עדכון סיסמה"}
+            </Button>
+            <p className="text-xs sg-auth-muted">
+              עדכון הסיסמה מנתק את כל ההתחברויות האחרות; ההתחברות הנוכחית נשארת.
+            </p>
+          </form>
+        </section>
         )}
-      </section>
+
+        <section className="sg-account__section">
+          <h2>
+            <LogOut size={14} /> התנתקות
+          </h2>
+          <Button variant="outline" onClick={() => auth.logout()}>התנתקות מהחשבון</Button>
+        </section>
+
+        <section className="sg-account__section sg-account__section--danger">
+          <h2>
+            <Trash2 size={14} /> מחיקת חשבון
+          </h2>
+          <p className="text-xs sg-auth-muted max-w-sm">
+            מחיקה מסירה לצמיתות את החשבון, הפרופיל, הכיול, המשובים והלמידה.
+            הכתבות עצמן הן מידע כללי ואינן נמחקות.
+          </p>
+          {!hasPassword ? (
+            <GoogleAccountDeletion
+              email={auth.user.email}
+              onDeleted={async () => {
+                await auth.refreshSession();
+                window.location.assign("/login");
+              }}
+            />
+          ) : (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">מחיקת החשבון…</Button>
+            </AlertDialogTrigger>
+            <AccountDialogContent>
+              <AlertDialogHeader className="sg-account-dialog__header">
+                <AlertDialogTitle>מחיקת החשבון לצמיתות</AlertDialogTitle>
+                <AlertDialogDescription>
+                  הפעולה בלתי הפיכה — אין דרך לשחזר את הפרופיל, הכיול או המשובים.
+                  לאישור, הזינו את הסיסמה הנוכחית.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="sg-auth-field">
+                <Label htmlFor="acct-delete-pw">סיסמה נוכחית</Label>
+                <Input id="acct-delete-pw" type="password" dir="ltr"
+                  autoComplete="current-password"
+                  value={deletePw} onChange={(e) => setDeletePw(e.target.value)} />
+                {deleteNotice && (
+                  <p role="alert" className="text-xs sg-auth-error">{deleteNotice}</p>
+                )}
+              </div>
+              <AlertDialogFooter className="sg-account-dialog__footer">
+                <AlertDialogCancel className="sg-account-dialog__cancel">ביטול</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+                  disabled={deleteBusy}
+                  aria-busy={deleteBusy}
+                  data-auth-variant="destructive"
+                  className="sg-auth-button"
+                >
+                  {deleteBusy ? "מוחקים…" : "מחיקה לצמיתות"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AccountDialogContent>
+          </AlertDialog>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

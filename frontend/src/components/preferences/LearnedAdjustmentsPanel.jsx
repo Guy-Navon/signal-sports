@@ -7,7 +7,6 @@ import {
   resetMeLearning,
 } from "@/api/client";
 import { useApp } from "@/context/AppContext";
-import { cn } from "@/lib/utils";
 
 /** Learned adjustments (issue #34): derived from the user's feedback event
  * log, each individually resettable. Backend mode only — learning is a
@@ -58,21 +57,21 @@ export default function LearnedAdjustmentsPanel() {
 
   if (!isBackendMode) {
     return (
-      <p className="text-xs text-text-secondary">
+      <p className="sg-form-note">
         התאמות נלמדות זמינות רק במצב שרת — הלמידה נגזרת מיומן המשובים בבקאנד.
       </p>
     );
   }
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-text-dim">
+      <div className="sg-form-note sg-form-actions" role="status">
         <RefreshCw size={12} className="animate-spin" /> טוען התאמות נלמדות...
       </div>
     );
   }
   if (error) {
     return (
-      <div className="flex items-start gap-2 text-xs text-signal-push">
+      <div className="sg-form-error" role="alert">
         <AlertCircle size={12} className="mt-0.5 flex-shrink-0" /> {error}
       </div>
     );
@@ -84,35 +83,30 @@ export default function LearnedAdjustmentsPanel() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-text-dim flex items-center gap-1">
+      <p className="sg-form-note sg-form-actions">
         <GraduationCap size={12} />
         התאמות שנלמדו מהמשובים שלך בפיד — כל אחת ניתנת לאיפוס. לחיצה בודדת לעולם לא משנה את הפרופיל.
       </p>
 
       {active.length === 0 && pending.length === 0 && (
-        <p className="text-xs text-text-dim">אין עדיין למידה — תן משוב על כתבות בפיד.</p>
+        <p className="sg-form-empty">אין עדיין למידה — תן משוב על כתבות בפיד.</p>
       )}
 
       {active.length > 0 && (
         <div className="space-y-1.5">
-          <div className="text-xs font-medium text-text-secondary">פעילות</div>
+          <div className="sg-form-heading">פעילות</div>
           {active.map((f, i) => (
             <div key={i}
-              className={cn(
-                "flex items-center justify-between gap-2 rounded-[10px] border px-3 py-2",
-                f.direction > 0
-                  ? "border-signal-high/30 bg-signal-high/5"
-                  : "border-signal-hidden/30 bg-signal-hidden/5"
-              )}
+              className="sg-learning-row"
             >
-              <div className="text-xs text-text-secondary">
-                <span className="px-1.5 py-0.5 me-2 rounded-full bg-surface-3 text-text-dim">נלמד</span>
+              <div className="sg-form-note">
+                <span className="sg-learning-row__label">נלמד</span>
                 {f.explanation}
               </div>
               <button
                 onClick={() => handleReset(f)}
                 title="אפס למידה זו"
-                className="flex items-center gap-1 text-xs text-text-dim hover:text-signal-push transition-colors flex-shrink-0"
+                className="sg-form-button"
               >
                 <RotateCcw size={11} /> אפס
               </button>
@@ -123,9 +117,9 @@ export default function LearnedAdjustmentsPanel() {
 
       {pending.length > 0 && (
         <div className="space-y-1.5">
-          <div className="text-xs font-medium text-text-dim">בצבירה (עדיין לא משפיעות)</div>
+          <div className="sg-form-heading">בצבירה (עדיין לא משפיעות)</div>
           {pending.map((f, i) => (
-            <div key={i} className="text-xs text-text-dim bg-surface-2 border border-border rounded-[10px] px-3 py-2">
+            <div key={i} className="sg-learning-row sg-form-note">
               {f.explanation}
             </div>
           ))}

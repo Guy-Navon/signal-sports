@@ -408,6 +408,14 @@ async function loadApp(client) {
       await document.fonts?.ready;
       window.scrollTo({ top: 0, left: 0, behavior: "instant" });
       await sleep(350);
+      // A readiness wait, not a budget: measure the settled page, after the
+      // load choreography (#467). The looping fresh-story pulse never
+      // finishes, so only finite animations are awaited.
+      await Promise.all(
+        document.getAnimations()
+          .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+          .map((animation) => animation.finished.catch(() => null))
+      );
       const root = document.documentElement;
       const body = document.body;
       const describe = (element) =>
@@ -514,6 +522,19 @@ const EXPECTED_LATEST_SIZE = 8;
 
 /** The side column's sticky offset (B11): 14px; the harness has no safe area. */
 const EXPECTED_SIDE_TOP = 14;
+
+/**
+ * Motion (#467). Must match feedMotionModel.js: ENTER_MAX_STEPS (6) steps of
+ * ENTER_STEP_MS (40) on top of LOAD_SEQUENCE.stream (240).
+ */
+const EXPECTED_STAGGER_MAX_STEPS = 6;
+const STREAM_ENTER_DELAY_BUDGET_MS = 240 + 6 * 40;
+
+/** Cumulative layout shift allowed while the load choreography plays. */
+const MOTION_LAYOUT_SHIFT_BUDGET = 0.001;
+
+/** The only animation allowed to loop (B12). */
+const LOOPING_ANIMATIONS = new Set(["sg-pulse"]);
 
 async function revealAllPages(client) {
   await evaluate(
@@ -1190,18 +1211,17 @@ async function auditTypography(client, label) {
 
   // Auth (/login, /signup) is deliberately unreachable here: main.jsx redirects
   // those routes away in local/bypass mode, which is the mode this harness runs
-  // for hermeticity. Its headings use the `font-display` Tailwind utility — the
-  // same mechanism PageNotFound uses — so /no-such-route exercises that exact
-  // code path, and every route below additionally asserts that --font-display
-  // itself is still the sans stack.
+  // for hermeticity. /no-such-route exercises their shared AuthScene (#472)
+  // and must paint Assistant. Every route below additionally asserts that
+  // --font-display itself is still the sans stack used by Ops.
   const leaks = [];
   for (const [route, heading] of [
     ["/debug", "h1"],            // Ops console
     ["/results", "h1"],          // Results
     ["/preferences", "h1"],      // preferences utility surface
-    ["/no-such-route", "h1"],    // 404 — same font-display utility as Auth
+    ["/no-such-route", "h1"],    // 404 — same Signal utility stage as Auth
   ]) {
-    leaks.push(await auditNoSerifLeak(client, route, heading, route === "/results" ? TEXT_FAMILY : SANS_FAMILY));
+    leaks.push(await auditNoSerifLeak(client, route, heading, ["/results", "/preferences", "/no-such-route"].includes(route) ? TEXT_FAMILY : SANS_FAMILY));
   }
 
   return { label, text, shellChrome, faces, leaks };
@@ -1445,6 +1465,101 @@ async function auditResultsStrip(client, label) {
   return { label, ...audit, after };
 }
 
+/**
+ * Motion (#467), read off a fresh load: the stream's entrance stagger as the
+ * browser computed it, layout shifts while the choreography plays (motion is
+ * transform and opacity only, so there must be none), and what is still
+ * running once it has settled. Under reduced motion nothing may run at all,
+ * not even the fresh-story pulse.
+ */
+async function auditMotion(client) {
+  await client.send("Page.navigate", { url: origin });
+  return await evaluate(
+    client,
+    `(async () => {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const timeoutAt = performance.now() + 45000;
+      const ready = () => document.querySelector(".sg-summary") &&
+        document.querySelector(".sg-feed .sg-row");
+      while (!ready() && performance.now() < timeoutAt) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      if (!ready()) throw new Error("The feed did not render");
+      // Fonts are cached by now (the app has loaded many times), so this does
+      // not skip the choreography; it keeps a font swap out of the count.
+      await document.fonts?.ready;
+      const shifts = [];
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          shifts.push({
+            value: entry.value,
+            sources: (entry.sources ?? []).map((source) =>
+              typeof source.node?.className === "string" ? source.node.className.slice(0, 60) : String(source.node?.nodeName)),
+          });
+        }
+      });
+      observer.observe({ type: "layout-shift" });
+      const named = (animation) => animation.animationName ?? animation.constructor.name;
+      const finite = (animation) => animation.effect?.getComputedTiming().iterations !== Infinity;
+      const rows = Array.from(document.querySelectorAll(".sg-row"));
+      const delays = rows.map((row) => Math.round(parseFloat(getComputedStyle(row).animationDelay) * 1000));
+      const atReady = document.getAnimations().filter((animation) => animation.playState === "running");
+      const rowAnimation = rows.length ? getComputedStyle(rows[0]).animationName : null;
+      const pill = document.querySelector(".sg-pill");
+      const pillTransition = pill ? getComputedStyle(pill).transitionDuration : null;
+      await sleep(1300);
+      await Promise.all(document.getAnimations().filter(finite).map((animation) => animation.finished.catch(() => null)));
+      await sleep(100);
+      observer.disconnect();
+      const settled = document.getAnimations().filter((animation) => animation.playState === "running");
+      return {
+        reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
+        rows: rows.length,
+        rowAnimation,
+        pillTransition,
+        delays,
+        runningAtReady: atReady.map(named),
+        runningSettled: settled.map(named),
+        runningSettledFinite: settled.filter(finite).map(named),
+        layoutShift: shifts.reduce((sum, shift) => sum + shift.value, 0),
+        shifts: shifts.slice(0, 8),
+      };
+    })()`
+  );
+}
+
+function assertMotion(label, audit) {
+  const fail = (message) => {
+    throw new Error(`${label}: ${message}: ${JSON.stringify(audit)}`);
+  };
+  if (audit.rows === 0) fail("no stream rows to measure, so the motion audit is vacuous");
+  if (audit.layoutShift > MOTION_LAYOUT_SHIFT_BUDGET) {
+    fail(`the load shifted layout by ${audit.layoutShift.toFixed(4)} (budget ${MOTION_LAYOUT_SHIFT_BUDGET})`);
+  }
+  if (audit.reduced) {
+    if (audit.runningAtReady.length || audit.runningSettled.length) {
+      fail("animations run under prefers-reduced-motion");
+    }
+    if (audit.rowAnimation !== "none") fail("stream rows still carry an animation under reduced motion");
+    if (audit.pillTransition !== "0s") fail("pills still transition under reduced motion");
+    return;
+  }
+  if (audit.rowAnimation !== "sg-enter") fail("stream rows do not enter (no motion to audit)");
+  if (!audit.runningAtReady.length) fail("nothing was animating on load");
+  if (audit.runningSettledFinite.length) fail("the load choreography had not settled");
+  const looping = audit.runningSettled.filter((name) => !LOOPING_ANIMATIONS.has(name));
+  if (looping.length) fail(`only the fresh-story pulse may loop; also running: ${looping.join(", ")}`);
+  const max = Math.max(...audit.delays);
+  if (max > STREAM_ENTER_DELAY_BUDGET_MS) {
+    fail(`a stream row waits ${max}ms to enter, budget is ${STREAM_ENTER_DELAY_BUDGET_MS}ms`);
+  }
+  const capped = audit.delays.slice(EXPECTED_STAGGER_MAX_STEPS);
+  if (capped.some((value) => value !== max)) fail("the stream stagger is not capped");
+  if (new Set(audit.delays).size > EXPECTED_STAGGER_MAX_STEPS + 1) {
+    fail("more distinct stagger steps than the cap allows");
+  }
+}
+
 /** The whole rendered-behaviour suite, run at one motion preference. */
 async function auditFeedRegressions(client, label) {
   await loadApp(client);
@@ -1468,7 +1583,10 @@ async function auditFeedRegressions(client, label) {
   const cluster = await auditClusterDisclosure(client);
   assertClusterDisclosure(label, cluster);
 
-  return { placement, side, paging, latency, cluster };
+  const motion = await auditMotion(client);
+  assertMotion(label, motion);
+
+  return { placement, side, paging, latency, cluster, motion };
 }
 
 async function stopProcess(child) {
@@ -1656,6 +1774,13 @@ async function main() {
       },
       filterClearedMs: Math.round(regressions.latency.clearedMs),
       filter: regressions.latency.filter,
+      motion: {
+        rowAnimation: regressions.motion.rowAnimation,
+        streamDelaysMs: [...new Set(regressions.motion.delays)],
+        runningAtReady: regressions.motion.runningAtReady.length,
+        runningSettled: regressions.motion.runningSettled,
+        layoutShift: regressions.motion.layoutShift,
+      },
       clusters: {
         namedInline: regressions.cluster.inline.length,
         streamDisclosure: regressions.cluster.disclosure

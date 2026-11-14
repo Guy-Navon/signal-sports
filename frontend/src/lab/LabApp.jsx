@@ -5,6 +5,7 @@ import { getDecisionConfig } from "@/components/feed/decisionConfig";
 import "@/components/signal-ui/signal-ui.css";
 import "./lab.css";
 import FeedLab from "./FeedLab";
+import MotionLab from "./MotionLab";
 import { GROUNDS } from "@/components/signal-ui/ground";
 import { GroundProvider } from "@/components/signal-ui/useGround";
 
@@ -81,11 +82,13 @@ function Ground({ id, label }) {
 }
 
 export default function LabApp() {
-  // lab.html?page=feed opens the feed lab (#464); the default is the specimen (#462).
+  // lab.html?page=feed opens the feed lab (#464), ?page=motion the motion lab
+  // (#467); the default is the specimen (#462).
   const params = new URLSearchParams(window.location.search);
-  if (params.get("page") === "feed") return (
-    <GroundProvider initialGround={params.get("ground") || undefined}><FeedLab /></GroundProvider>
-  );
+  const page = params.get("page");
+  const initialGround = params.get("ground") || undefined;
+  if (page === "feed") return <GroundProvider initialGround={initialGround}><FeedLab /></GroundProvider>;
+  if (page === "motion") return <GroundProvider initialGround={initialGround}><MotionLab /></GroundProvider>;
   return (
     <main className="lab-page">
       {GROUNDS.map((ground) => (

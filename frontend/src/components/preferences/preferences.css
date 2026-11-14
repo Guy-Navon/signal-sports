@@ -1,0 +1,16 @@
+/* Shrinking columns and wrapping tab labels fix the 320px overflow at its source. */
+.signal-ui .sg-preferences__tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); border-block-end: 1px solid var(--sg-line); gap: 0; }
+.signal-ui .sg-preferences__tabs button { min-inline-size: 0; min-block-size: 44px; padding-block: 10px; padding-inline: 8px; border-block-end: 2px solid var(--sg-line); font-size: 15px; color: var(--sg-dim); }
+.signal-ui .sg-preferences__tabs button[aria-pressed="true"] { color: var(--sg-acc); border-color: var(--sg-acc); font-weight: 700; }
+.signal-ui .sg-preferences__count { color: var(--sg-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.signal-ui .sg-topic { border-block-end: 1px solid var(--sg-line); }
+.signal-ui .sg-topic__toggle { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; inline-size: 100%; min-block-size: 44px; padding-block: 16px; text-align: start; }
+.signal-ui .sg-topic__title { color: var(--sg-ink); font-size: 18px; font-weight: 700; }
+.signal-ui .sg-topic__toggle:hover .sg-topic__title { color: var(--sg-acc); }
+.signal-ui .sg-topic__detail { padding-block-end: 20px; }
+.signal-ui .sg-topic__rule { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding-block: 10px; border-block-end: 1px solid var(--sg-line); font-size: 14.5px; }
+.signal-ui .sg-topic__decision { display: flex; align-items: center; gap: 8px; }
+.signal-ui .sg-learning-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px; border-block-end: 1px solid var(--sg-line); }
+.signal-ui .sg-learning-row > div { font-size: 15px; }
+.signal-ui .sg-learning-row .sg-form-button { flex: none; }
+.signal-ui .sg-learning-row__label { color: var(--sg-acc); margin-inline-end: 8px; font-weight: 700; }

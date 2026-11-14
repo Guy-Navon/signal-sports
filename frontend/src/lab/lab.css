@@ -112,3 +112,39 @@
   font-weight: 700;
   padding: 4px 10px;
 }
+
+/* Motion lab (#467): a toolbar above the feed. Sticky so the controls stay in
+   reach while watching the stream. */
+.lab-motion__bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 16px;
+  background: #1c2230;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.lab-motion__bar button {
+  padding: 4px 12px;
+  border: 1px solid #ffffff;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+}
+
+.lab-motion__bar button[aria-pressed="true"] { background: #ffffff; color: #1c2230; }
+.lab-motion__bar button:disabled { opacity: 0.5; }
+.lab-motion__bar a { color: inherit; text-decoration: underline; }
+.lab-motion__bar .lab-dim { color: #cfd6e4; }
+.lab-motion__toggle { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Simulated reduced motion: the same rule the feed applies under
+   prefers-reduced-motion (signal-feed.css), switched by a class. */
+.lab-reduce .sg-feed *,
+.lab-reduce .sg-feed *::before,
+.lab-reduce .sg-feed *::after { animation: none !important; transition: none !important; }

@@ -1,0 +1,46 @@
+.signal-ui .sg-interest-picker > * + * { margin-block-start: 24px; }
+.signal-ui .sg-interest-section h3 { font-size: 18px; font-weight: 800; margin-block-end: 10px; }
+.signal-ui .sg-interest-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
+.signal-ui .sg-interest-row { display: flex; align-items: center; min-inline-size: 0; min-block-size: 48px; border-block-end: 1px solid var(--sg-line); color: var(--sg-ink); font-size: 16px; }
+.signal-ui .sg-interest-row[data-followed] { color: var(--sg-acc); }
+.signal-ui .sg-interest-row[aria-disabled] { color: var(--sg-dim); gap: 12px; padding-block: 8px; }
+.signal-ui .sg-interest-row small { margin-inline-start: auto; font-size: 13.5px; }
+.signal-ui .sg-interest-row__pick { display: flex; align-items: center; gap: 10px; flex: 1; min-inline-size: 0; min-block-size: 48px; padding-block: 10px; text-align: start; }
+.signal-ui .sg-interest-row__pick svg { flex: none; }
+.signal-ui .sg-interest-row__check { inline-size: 16px; block-size: 16px; flex: none; border: 1px solid var(--sg-dim); }
+.signal-ui .sg-interest-row__star { display: flex; align-items: center; justify-content: center; flex: none; gap: 6px; min-inline-size: 52px; min-block-size: 44px; padding-inline: 6px; }
+.signal-ui .sg-interest-row__star[aria-pressed="true"] { background: var(--sg-tint); }
+.signal-ui .sg-sport-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--sg-line); }
+.signal-ui .sg-sport-option { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-block-size: 64px; padding-block: 12px; padding-inline: 16px; font-size: 18px; font-weight: 700; text-align: start; }
+.signal-ui .sg-sport-option + .sg-sport-option { border-inline-start: 1px solid var(--sg-line); }
+.signal-ui .sg-sport-option[aria-pressed="true"] { background: var(--sg-tint); color: var(--sg-acc); box-shadow: inset 0 -3px var(--sg-acc); }
+.signal-ui .sg-interest-suggestions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--sg-dim); font-size: 14.5px; }
+.signal-ui .sg-catalog-search { position: relative; }
+.signal-ui .sg-catalog-search label { display: block; font-size: 15px; font-weight: 700; margin-block-end: 8px; }
+.signal-ui .sg-catalog-search__input { display: flex; align-items: center; gap: 10px; padding-inline: 12px; border: 1px solid var(--sg-dim); background: var(--sg-card); }
+.signal-ui .sg-catalog-search__input svg { flex: none; color: var(--sg-dim); }
+.signal-ui .sg-catalog-search input { inline-size: 100%; min-inline-size: 0; min-block-size: 44px; background: var(--sg-card); color: var(--sg-ink); font: inherit; font-size: 16px; }
+.signal-ui .sg-catalog-search input::placeholder { color: var(--sg-dim); }
+.signal-ui .sg-catalog-search__results { position: absolute; z-index: 20; inset-inline: 0; max-block-size: 300px; overflow-y: auto; border: 1px solid var(--sg-line); background: var(--sg-card); }
+.signal-ui .sg-catalog-search__result { display: flex; align-items: center; justify-content: space-between; gap: 12px; inline-size: 100%; min-block-size: 44px; padding-block: 10px; padding-inline: 12px; text-align: start; border-block-end: 1px solid var(--sg-line); }
+.signal-ui .sg-catalog-search__result small { flex: none; color: var(--sg-dim); font-size: 13.5px; }
+.signal-ui .sg-catalog-search__result:hover { background: var(--sg-tint); }
+.signal-ui .sg-event-presets { border-block-start: 1px solid var(--sg-line); }
+.signal-ui .sg-event-preset { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px; border-block-end: 1px solid var(--sg-line); }
+.signal-ui .sg-event-preset__choices { display: flex; flex: none; gap: 0; }
+.signal-ui .sg-event-preset__choices button { min-inline-size: 48px; min-block-size: 40px; padding-inline: 10px; border-block: 1px solid var(--sg-line); border-inline-start: 1px solid var(--sg-line); color: var(--sg-dim); font-size: 15px; }
+.signal-ui .sg-event-preset__choices button:last-child { border-inline-end: 1px solid var(--sg-line); }
+.signal-ui .sg-event-preset__choices button[aria-pressed="true"] { background: var(--sg-slab); color: var(--sg-slab-fg); border-color: var(--sg-slab); font-weight: 700; }
+.signal-ui .sg-interest-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.signal-ui .sg-interest-steps button { min-block-size: 44px; padding-block: 8px; border-block-end: 2px solid var(--sg-line); color: var(--sg-dim); text-align: start; font-size: 14.5px; }
+.signal-ui .sg-interest-steps button[aria-current="step"] { border-color: var(--sg-acc); color: var(--sg-acc); font-weight: 700; }
+@media (max-width: 600px) {
+  .signal-ui .sg-interest-options { grid-template-columns: minmax(0, 1fr); }
+  .signal-ui .sg-sport-options { grid-template-columns: minmax(0, 1fr); }
+  .signal-ui .sg-sport-option + .sg-sport-option { border-inline-start: 0; border-block-start: 1px solid var(--sg-line); }
+  .signal-ui .sg-event-preset { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .signal-ui .sg-event-preset__choices { align-self: stretch; }
+  .signal-ui .sg-event-preset__choices button { flex: 1; }
+  .signal-ui .sg-interest-steps { gap: 6px; }
+  .signal-ui .sg-interest-steps button { font-size: 13.5px; }
+}

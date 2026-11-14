@@ -186,7 +186,10 @@ unclipped at 320–390, typography (Assistant, Karantina on the lead only, no se
 dock occlusion. Since #465 it also asserts the side column: "Latest" newest first, never low_feed
 or hidden, every story in it placed elsewhere; "in brief" only inside the column; sticky 14px
 from the top halfway down the stream and inside the viewport on desktop; after the stream and
-not sticky on a phone, with every visible story painted. The local corpus puts exactly 40 stories in the stream and its clusters in
+not sticky on a phone, with every visible story painted. Since #467, in both motion passes:
+the stream's entrance stagger is capped, the load causes no layout shift, only the
+fresh-story pulse is still running once the page settles, and under reduced motion nothing
+runs at all. `loadApp` waits for finite animations to finish before it measures. The local corpus puts exactly 40 stories in the stream and its clusters in
 the lead and important row, so the multi-page "show more" path and the stream cluster
 disclosure are locked by `SignalFeedView.test.jsx` instead, and the harness output says so.
 #473 renames it (`capture:orbit` stays until then). Orbit itself (still the demo) is no
@@ -238,6 +241,7 @@ components/feed/
   orbit/orbitQueueMotion.js  page size + stagger cap (A5)
   orbit/orbitFocusModel.js   focus intents and scroll policy (A6)
   signal/feedLayoutModel.js  lead / important / stream / brief, league pills, summary (#464)
+  signal/feedMotionModel.js  entrance delays (capped stagger) and refresh arrivals (#467)
   signal/signalStoryModel.js per-story sources, link, relative time, title direction (#464)
 api/normalizers.js      API → view model, DECISION_LABELS_HE
 components/results/     results model, grouping and formatting (#466, #471)
@@ -540,6 +544,27 @@ now:
 - No layout shift, no jank on a mid-range phone. Animate `transform` and `opacity`.
 - Everything is off under `prefers-reduced-motion` (A6). The page stays fully legible with no
   motion at all.
+
+**Proposed in #467, awaiting Guy's approval.** CSS in `signal-feed.css`; delays and refresh
+arrivals in `signal/feedMotionModel.js` (node-tested). Run it in `lab.html?page=motion`.
+
+| Effect | Trigger | Motion |
+|---|---|---|
+| Load choreography | the feed mounts | summary, pills, lead, important row, results cells, stream rows, side column enter top to bottom (opacity + 10px rise, 360ms). Bases 0–280ms, then 40ms steps capped at 6, so the page settles in under 1s for any length |
+| Lead entrance | a lead mounts or changes | slab fades in (300ms), strokes rise (700ms, 80ms apart), label pops, headline comes up (600ms), the row beneath follows |
+| Signal marks | their row enters | strokes rise after the row starts (0.5s, 60ms apart) |
+| Re-flow | a league pill is pressed | the pill eases to the slab ground (200ms), its stroke rises (280ms), it gives under the finger (scale .96). Rows that stop matching unmount at once; rows that newly match enter with the capped stagger |
+| Count tick | a number changes (summary, pill counts, a score) | the new number rises in (280ms). Keyed by value, so only a changed number moves |
+| New after a refresh | stories absent from the previous list | a "חדש" mark that pops in, a tint glow on the row that settles (1.6s, paint only, a few rows), one polite screen-reader line. A mostly new list (re-score, other profile) marks nothing |
+| Feedback acknowledged | a save starts and is confirmed | the status word and check pop in; on a stream row the accent edge flashes once |
+| Cluster disclosure | the badge is pressed | chevron turns (200ms), member list drops open (200ms), items follow (capped). Closing is immediate |
+| Hover and focus | pointer over a row, or keyboard focus inside it | tint ground, accent edge grows in from the middle (200ms), headline underline (250ms) |
+| Fresh pulse | a story under an hour old in Latest; the lead label | unchanged, the only loop |
+
+Entrances use `animation-fill-mode: backwards`, never `both`: a filled transform makes each row
+a stacking context and the feedback menu would paint under the next row. Under reduced motion
+every animation and transition in the feed and its head is `none`; the "חדש" word still marks
+new stories.
 
 ## B13. Other consumer screens and images
 

@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { AccountDialogContent } from "@/pages/AccountDialog";
+import { Button, Input, Label } from "@/pages/AuthControls";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogCancel,
-  AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
@@ -87,12 +85,12 @@ export default function GoogleAccountDeletion({ email, onDeleted }) {
 
   if (confirming) {
     return (
-      <div role="alert" className="space-y-3 max-w-sm rounded-md border border-signal-hidden/40 p-4">
+      <div role="alert" className="sg-auth-stack sg-account__form sg-account__confirmation">
         <p className="text-sm">
           Google אישר את החשבון. למחוק עכשיו את החשבון לצמיתות? אין דרך לשחזר
           את הפרופיל, הכיול או המשובים.
         </p>
-        {notice && <p className="text-xs text-signal-hidden">{notice}</p>}
+        {notice && <p className="text-xs sg-auth-error">{notice}</p>}
         <div className="flex flex-wrap gap-2">
           <Button variant="destructive" onClick={deleteForGood} disabled={busy}>
             {busy ? "מוחקים…" : "מחיקה לצמיתות"}
@@ -111,32 +109,32 @@ export default function GoogleAccountDeletion({ email, onDeleted }) {
 
   return (
     <div className="space-y-2">
-      {notice && <p role="alert" className="text-xs text-signal-hidden max-w-sm">{notice}</p>}
+      {notice && <p role="alert" className="text-xs sg-auth-error max-w-sm">{notice}</p>}
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button variant="destructive">מחיקת החשבון…</Button>
         </AlertDialogTrigger>
-        <AlertDialogContent dir="rtl">
-          <AlertDialogHeader>
+        <AccountDialogContent>
+          <AlertDialogHeader className="sg-account-dialog__header">
             <AlertDialogTitle>מחיקת החשבון לצמיתות</AlertDialogTitle>
             <AlertDialogDescription>
               הפעולה בלתי הפיכה. לאישור, הקלידו את כתובת האימייל של החשבון ואשרו
               עם אותו חשבון Google. אחרי האישור תחזרו לכאן ללחיצה אחרונה.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-1.5">
+          <div className="sg-auth-field">
             <Label htmlFor="acct-delete-email">אימייל החשבון</Label>
             <Input id="acct-delete-email" type="email" dir="ltr" autoComplete="off"
               value={typed} onChange={(e) => { setTyped(e.target.value); setNotice(null); }} />
-            {notice && <p role="alert" className="text-xs text-signal-hidden">{notice}</p>}
+            {notice && <p role="alert" className="text-xs sg-auth-error">{notice}</p>}
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>ביטול</AlertDialogCancel>
+          <AlertDialogFooter className="sg-account-dialog__footer">
+            <AlertDialogCancel className="sg-account-dialog__cancel">ביטול</AlertDialogCancel>
             <Button variant="destructive" onClick={startGoogle} disabled={busy}>
               {busy ? "מעבירים ל-Google…" : "אישור עם Google"}
             </Button>
           </AlertDialogFooter>
-        </AlertDialogContent>
+        </AccountDialogContent>
       </AlertDialog>
     </div>
   );

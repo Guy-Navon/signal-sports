@@ -245,3 +245,48 @@ it("the league pills say whether they are selected", () => {
   expect(pressed).toEqual([false, true, false]);
   expect(JSON.stringify(view.toJSON())).not.toContain("כותרת b");
 });
+
+// Motion (#467): the motion is CSS; the view decides which rows are new and
+// how long each waits, and both are bounded.
+
+const enterDelay = (node) => node.props.style?.["--sg-enter-delay"];
+const arrivedRows = (root) => byClass(root, "sg-row").filter((row) => row.props["data-arrived"]);
+
+it("marks nothing as new on the first render", () => {
+  const view = render([story("f1", "feed"), story("f2", "feed")]);
+  expect(arrivedRows(view.root)).toHaveLength(0);
+  expect(byClass(view.root, "sg-new")).toHaveLength(0);
+});
+
+it("marks the stories a refresh brought with a word, and only those", () => {
+  const base = Array.from({ length: 4 }, (_, index) => story(`f${index}`, "feed"));
+  const view = render(base);
+  act(() => {
+    view.update(
+      <SignalFeedView
+        items={[story("fresh", "feed"), ...base]}
+        activeFilters={new Set(["all"])}
+        onToggleFilter={() => {}}
+        onResetFilters={() => {}}
+        nowMs={NOW}
+        readOnly
+      />
+    );
+  });
+  const arrived = arrivedRows(view.root);
+  expect(arrived).toHaveLength(1);
+  expect(arrived[0].props["data-league"]).toBeDefined();
+  expect(byClass(arrived[0], "sg-row__title")[0].findByType("a").props.href).toContain("/fresh");
+  expect(byClass(arrived[0], "sg-new")).toHaveLength(1);
+  expect(JSON.stringify(view.toJSON())).toContain("סיפור חדש אחד נוסף לפיד");
+});
+
+it("caps the stream's entrance stagger, whatever the page length", () => {
+  const many = Array.from({ length: 40 }, (_, index) => story(`f${index}`, "feed"));
+  const view = render(many);
+  const delays = byClass(view.root, "sg-row").map((row) => Number.parseInt(enterDelay(row), 10));
+  expect(delays).toHaveLength(40);
+  const max = Math.max(...delays);
+  expect(delays.slice(6).every((value) => value === max)).toBe(true);
+  expect(new Set(delays).size).toBe(7);
+});

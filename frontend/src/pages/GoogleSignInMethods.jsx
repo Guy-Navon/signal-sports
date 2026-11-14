@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { AccountDialogContent } from "@/pages/AccountDialog";
+import { Button, Input, Label } from "@/pages/AuthControls";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogCancel,
-  AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
@@ -87,25 +85,25 @@ export default function GoogleSignInMethods({ hasPassword, googleEmail, googleEn
   }
 
   const passwordField = (
-    <div className="space-y-1.5">
+    <div className="sg-auth-field">
       <Label htmlFor="acct-google-pw">סיסמה נוכחית</Label>
       <Input id="acct-google-pw" type="password" dir="ltr" autoComplete="current-password"
         value={password}
         onChange={(e) => { setPassword(e.target.value); setDialogNotice(null); }} />
-      {dialogNotice && <p role="alert" className="text-xs text-signal-hidden">{dialogNotice}</p>}
+      {dialogNotice && <p role="alert" className="text-xs sg-auth-error">{dialogNotice}</p>}
     </div>
   );
 
   return (
-    <div className="space-y-3 max-w-sm">
-      {notice && <p role="status" className="text-xs text-signal-high">{notice}</p>}
-      <dl className="space-y-1 text-sm">
+    <div className="sg-auth-stack sg-account__form">
+      {notice && <p role="status" className="text-xs sg-auth-success">{notice}</p>}
+      <dl className="sg-account__methods">
         <div className="flex gap-2">
-          <dt className="text-text-secondary">סיסמה:</dt>
+          <dt className="sg-auth-muted">סיסמה:</dt>
           <dd>{hasPassword ? "מוגדרת" : "אין (נכנסים עם Google)"}</dd>
         </div>
         <div className="flex gap-2">
-          <dt className="text-text-secondary">Google:</dt>
+          <dt className="sg-auth-muted">Google:</dt>
           <dd>
             {googleEmail ? <bdi dir="ltr">{googleEmail}</bdi> : "לא מחובר"}
           </dd>
@@ -117,25 +115,25 @@ export default function GoogleSignInMethods({ hasPassword, googleEmail, googleEn
           <AlertDialogTrigger asChild>
             <Button variant="outline">ניתוק Google…</Button>
           </AlertDialogTrigger>
-          <AlertDialogContent dir="rtl">
-            <AlertDialogHeader>
+          <AccountDialogContent>
+            <AlertDialogHeader className="sg-account-dialog__header">
               <AlertDialogTitle>ניתוק Google מהחשבון</AlertDialogTitle>
               <AlertDialogDescription>
                 אחרי הניתוק ההתחברות תהיה עם האימייל והסיסמה בלבד. לאישור, הזינו את הסיסמה הנוכחית.
               </AlertDialogDescription>
             </AlertDialogHeader>
             {passwordField}
-            <AlertDialogFooter>
-              <AlertDialogCancel>ביטול</AlertDialogCancel>
+            <AlertDialogFooter className="sg-account-dialog__footer">
+              <AlertDialogCancel className="sg-account-dialog__cancel">ביטול</AlertDialogCancel>
               <Button onClick={disconnect} disabled={busy}>
                 {busy ? "מנתקים…" : "ניתוק"}
               </Button>
             </AlertDialogFooter>
-          </AlertDialogContent>
+          </AccountDialogContent>
         </AlertDialog>
       )}
       {googleEmail && !hasPassword && (
-        <p className="text-xs text-text-secondary">
+        <p className="text-xs sg-auth-muted">
           לחשבון בלי סיסמה Google הוא הדרך היחידה להתחבר, ולכן אי אפשר לנתק אותו.
         </p>
       )}
@@ -145,8 +143,8 @@ export default function GoogleSignInMethods({ hasPassword, googleEmail, googleEn
           <AlertDialogTrigger asChild>
             <Button variant="outline">חיבור Google…</Button>
           </AlertDialogTrigger>
-          <AlertDialogContent dir="rtl">
-            <AlertDialogHeader>
+          <AccountDialogContent>
+            <AlertDialogHeader className="sg-account-dialog__header">
               <AlertDialogTitle>חיבור חשבון Google</AlertDialogTitle>
               <AlertDialogDescription>
                 אחרי החיבור אפשר יהיה להיכנס גם עם Google. לאישור, הזינו את הסיסמה הנוכחית ואז
@@ -154,13 +152,13 @@ export default function GoogleSignInMethods({ hasPassword, googleEmail, googleEn
               </AlertDialogDescription>
             </AlertDialogHeader>
             {passwordField}
-            <AlertDialogFooter>
-              <AlertDialogCancel>ביטול</AlertDialogCancel>
+            <AlertDialogFooter className="sg-account-dialog__footer">
+              <AlertDialogCancel className="sg-account-dialog__cancel">ביטול</AlertDialogCancel>
               <Button onClick={connect} disabled={busy}>
                 {busy ? "מעבירים ל-Google…" : "המשך ל-Google"}
               </Button>
             </AlertDialogFooter>
-          </AlertDialogContent>
+          </AccountDialogContent>
         </AlertDialog>
       )}
     </div>

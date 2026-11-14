@@ -4,7 +4,6 @@ import { useAuth } from "@/context/AuthContext";
 import { firstUnansweredItemId, onboardingState } from "@/context/onboardingFlow";
 import { useNavigate } from "react-router-dom";
 import { SlidersHorizontal, RefreshCw, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
   getCalibrationItems,
   getMeCalibrationItems,
@@ -16,10 +15,12 @@ import {
   saveMeCalibrationResponses,
   completeMeOnboarding,
 } from "@/api/client";
-import PageHeader from "@/components/shared/PageHeader";
-import SectionCard from "@/components/shared/SectionCard";
-import StatCard from "@/components/shared/StatCard";
-import { consoleButton, consoleAlert } from "@/components/ops/consoleStyles";
+import { PersonalizationHeader as PageHeader, PersonalizationSection as SectionCard, PersonalizationStat as StatCard } from "@/components/preferences/PersonalizationLayout";
+import SignalStrength from "@/components/signal-ui/SignalStrength";
+import AffinityLevel from "@/components/preferences/AffinityLevel";
+// Share the stream row's type, spacing, kicker and why styles with SignalFeedView.
+import "@/components/feed/signal/signal-feed.css";
+import "./calibration.css";
 
 /**
  * Calibration V2 (issue #33) — backend-owned flow: the versioned dataset,
@@ -29,40 +30,36 @@ import { consoleButton, consoleAlert } from "@/components/ops/consoleStyles";
  */
 
 const RATING_BUTTONS = [
-  { key: "push", label: "תעדכן אותי מיד", tone: "text-signal-push border-signal-push/40 bg-signal-push/10" },
-  { key: "interesting", label: "מעניין", tone: "text-signal-high border-signal-high/40 bg-signal-high/10" },
-  { key: "neutral", label: "סבבה, לא קריטי", tone: "text-signal-feed border-signal-feed/40 bg-signal-feed/10" },
-  { key: "not_interesting", label: "לא מעניין", tone: "text-text-secondary border-border bg-surface-2" },
-  { key: "never_show", label: "אל תראה לי כאלה", tone: "text-signal-hidden border-signal-hidden/40 bg-signal-hidden/10" },
+  { key: "push", label: "תעדכן אותי מיד", decision: "push" },
+  { key: "interesting", label: "מעניין", decision: "high_feed" },
+  { key: "neutral", label: "סבבה, לא קריטי", decision: "feed" },
+  { key: "not_interesting", label: "לא מעניין", decision: "low_feed" },
+  { key: "never_show", label: "אל תראה לי כאלה", decision: null },
 ];
 
 const SPORT_LABELS = { basketball: "כדורסל", football: "כדורגל", tennis: "טניס" };
-const LEVEL_LABELS = {
-  "-2": "לא לראות בכלל", "-1": "עניין נמוך", 0: "עניין בינוני",
-  1: "עניין גבוה", 2: "עניין מאוד גבוה",
-};
 
 function ItemCard({ item, rating, onRate }) {
   return (
     // id: the resume anchor — "opens at the first unanswered item" (#52)
-    <div id={`cal-item-${item.id}`} className="bg-surface-1 border border-border rounded-[10px] p-3">
-      <div className="text-sm text-foreground mb-1">{item.title}</div>
-      <div className="text-xs text-text-dim mb-2">{SPORT_LABELS[item.sport] ?? item.sport}</div>
-      <div className="flex gap-1.5 flex-wrap">
-        {RATING_BUTTONS.map(({ key, label, tone }) => (
+    <article id={`cal-item-${item.id}`} className="sg-row sg-calibration-row">
+      <div className="sg-row__by"><bdi dir="auto">{SPORT_LABELS[item.sport] ?? item.sport}</bdi><span>· כותרת לדוגמה</span></div>
+      <h3 className="sg-row__title" dir="auto">{item.title}</h3>
+      <p className="sg-row__why sg-why"><b>למה כאן: </b>דוגמה לכיול ההעדפות שלך. איך תרצה לקבל כותרות כאלה?</p>
+      <div className="sg-calibration-ratings" role="group" aria-label={`דירוג: ${item.title}`}>
+        {RATING_BUTTONS.map(({ key, label, decision }) => (
           <button
             key={key}
             onClick={() => onRate(item.id, rating === key ? null : key)}
-            className={cn(
-              "px-2.5 py-1 max-md:min-h-11 rounded-full text-xs border transition-colors",
-              rating === key ? tone : "border-border text-text-dim hover:border-text-dim"
-            )}
+            className="sg-form-button"
+            aria-label={label}
+            aria-pressed={rating === key}
           >
-            {label}
+            {decision && <SignalStrength decision={decision} />}{label}
           </button>
         ))}
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -81,22 +78,22 @@ function PreviewPanel({ preview }) {
   return (
     <SectionCard title="מה המערכת למדה עליך" icon={Sparkles}>
       {scopes.length === 0 ? (
-        <p className="text-xs text-text-dim">דרג עוד כותרות כדי שנוכל להסיק העדפות (נדרשות לפחות שתיים לכל תחום).</p>
+        <p className="sg-form-note">דרג עוד כותרות כדי שנוכל להסיק העדפות (נדרשות לפחות שתיים לכל תחום).</p>
       ) : (
-        <div className="space-y-2 text-xs">
-          <div className="flex flex-wrap gap-1.5">
+        <div className="space-y-2">
+          <div className="sg-form-list">
             {scopes.map((a) => (
               <span key={`${a.scope}:${a.target_id}`}
-                className="px-2 py-0.5 rounded-full border border-border bg-surface-2 text-text-secondary">
-                {scopeLabel(a)}: {LEVEL_LABELS[a.level] ?? a.level}
+                className="sg-calibration-affinity">
+                <bdi dir="auto">{scopeLabel(a)}</bdi>: <AffinityLevel level={a.level} />
               </span>
             ))}
           </div>
           {events.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="sg-form-list">
               {events.map((e) => (
                 <span key={`${e.scope_ref}:${e.event_type}`}
-                  className="px-2 py-0.5 rounded-full border border-border/60 bg-surface-1 text-text-dim">
+                  className="sg-calibration-affinity sg-form-note">
                   {e.event_type} @ {scopeLabel({ target_id: e.scope_ref ?? "כללי" })}: {e.delta > 0 ? `+${e.delta}` : e.delta}
                 </span>
               ))}
@@ -124,6 +121,7 @@ export default function Calibration() {
   const [preview, setPreview] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState(null);
 
@@ -193,11 +191,14 @@ export default function Calibration() {
   };
 
   const handlePreview = async () => {
+    setIsPreviewing(true);
     setError(null);
     try {
       setPreview(await previewCalibration(ratings));
     } catch (err) {
       setError(err.message);
+    } finally {
+      setIsPreviewing(false);
     }
   };
 
@@ -234,13 +235,13 @@ export default function Calibration() {
 
   if (!isBackendMode) {
     return (
-      <div className="max-w-4xl space-y-4">
+      <div className="sg-personalization sg-calibration">
         <PageHeader title="כיול העדפות" icon={SlidersHorizontal} subtitle="דרג כותרות סינתטיות כדי שנלמד מה מעניין אותך" />
         <SectionCard title="כיול העדפות" icon={SlidersHorizontal}>
-          <p className="text-xs text-text-secondary">
+          <p className="sg-form-note">
             כיול ההעדפות רץ בבקאנד (מודל ההעדפות v2) וזמין רק במצב שרת.
           </p>
-          <p className="text-xs text-text-dim mt-1">
+          <p className="sg-form-note">
             הפעל <span className="font-mono">VITE_DATA_MODE=backend</span> כדי לכייל את הפרופיל.
           </p>
         </SectionCard>
@@ -249,16 +250,16 @@ export default function Calibration() {
   }
 
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="sg-personalization sg-calibration">
       {inOnboarding && (
-        <div className="flex items-center justify-between rounded-lg border border-border bg-surface-1 px-4 py-2.5">
-          <p className="text-xs text-text-secondary">
+        <div className="sg-form-banner">
+          <p className="sg-form-note">
             אפשר לעצור בכל שלב — התשובות נשמרות וממשיכים מכל מכשיר.
           </p>
           <button
             type="button"
             onClick={handleSkipOnboarding}
-            className="text-xs text-text-secondary hover:text-foreground underline underline-offset-4 transition-colors flex-shrink-0 max-md:min-h-11 max-md:px-2"
+            className="sg-form-link"
           >
             דלגו בינתיים
           </button>
@@ -271,55 +272,59 @@ export default function Calibration() {
           <>
             דרג כותרות סינתטיות — המערכת תסיק פרופיל העדפות ותשמור אותו{" "}
             {consumerSession
-              ? <span className="text-signal-high">לפרופיל שלך</span>
-              : <span className="text-signal-high">לפרופיל {activeProfileId}</span>}
-            {version != null && <span className="text-text-dim"> · גרסת מאגר {version}</span>}
+              ? <span className="sg-calibration__profile">לפרופיל שלך</span>
+              : <span className="sg-calibration__profile">לפרופיל {activeProfileId}</span>}
+            {version != null && <span className="sg-form-note"> · גרסת מאגר {version}</span>}
           </>
         }
       />
 
       {error && (
-        <div className={consoleAlert("error")}>
+        <div className="sg-form-error" role="alert">
           <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard label="דורגו" value={`${ratedCount}/${items.length}`} tone={ratedCount > 0 ? "high" : "neutral"} />
+      <div className="sg-form-stats">
+        <StatCard label="דורגו" value={`${ratedCount}/${items.length}`} />
         <StatCard label="תחומים במאגר" value={Object.keys(bySport).length} />
-        <StatCard label="סטטוס" value={applied ? "נשמר" : "טיוטה"} tone={applied ? "high" : "neutral"} />
+        <StatCard label="סטטוס" value={applied ? "נשמר" : "טיוטה"} />
       </div>
 
-      <div className="flex gap-2 flex-wrap items-center">
-        <button onClick={handlePreview} disabled={ratedCount === 0} className={consoleButton("secondary", "max-md:min-h-11")}>
-          <Sparkles size={13} /> תצוגה מקדימה
+      <div className="sg-form-actions">
+        <button onClick={handlePreview} disabled={isPreviewing || ratedCount === 0} aria-busy={isPreviewing} className="sg-form-button">
+          {isPreviewing ? <><RefreshCw size={13} className="animate-spin" /> מכין תצוגה...</> : <><Sparkles size={13} /> תצוגה מקדימה</>}
         </button>
-        <button onClick={handleApply} disabled={isApplying || ratedCount === 0} className={consoleButton("primary", "max-md:min-h-11")}>
+        <button onClick={handleApply} disabled={isApplying || ratedCount === 0} className="sg-form-button sg-form-button--primary">
           {isApplying
             ? <><RefreshCw size={13} className="animate-spin" /> שומר...</>
             : <><CheckCircle2 size={13} /> שמור לפרופיל</>}
         </button>
         {applied && (
-          <span className="text-xs text-signal-high flex items-center gap-1">
+          <span className="sg-form-success" role="status">
             <CheckCircle2 size={12} /> ההעדפות נשמרו — הפיד מחושב לפיהן
           </span>
         )}
       </div>
 
+      {items.length > 0 && ratedCount === items.length && <p className="sg-form-success" role="status">כל הכותרות דורגו. אפשר לשמור לפרופיל או לעדכן את הדירוגים.</p>}
+      {!isLoading && items.length === 0 && !error && <p className="sg-form-empty" role="status">אין כרגע כותרות לכיול.</p>}
       <PreviewPanel preview={preview} />
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-xs text-text-dim">
+        <div className="sg-form-note sg-form-actions" role="status">
           <RefreshCw size={12} className="animate-spin" /> טוען כותרות...
         </div>
       ) : (
         Object.entries(bySport).map(([sport, sportItems]) => (
           <div key={sport} className="space-y-2">
-            <h2 className="text-sm font-semibold text-text-secondary">{SPORT_LABELS[sport] ?? sport}</h2>
-            {sportItems.map((item) => (
-              <ItemCard key={item.id} item={item} rating={ratings[item.id]} onRate={handleRate} />
-            ))}
+            <h2 className="sg-form-heading">{SPORT_LABELS[sport] ?? sport}</h2>
+            <div className="sg-stream">
+              {sportItems.map((item) => (
+                <ItemCard key={item.id} item={item} rating={ratings[item.id]} onRate={handleRate} />
+              ))}
+            </div>
           </div>
         ))
       )}

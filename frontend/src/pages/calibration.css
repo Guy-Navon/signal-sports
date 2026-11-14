@@ -1,0 +1,10 @@
+/* The row, kicker, headline and why styles come from signal-feed.css. */
+.signal-ui .sg-calibration-row { grid-template-areas: "by by" "title title" "why why" "ratings ratings"; }
+.signal-ui .sg-calibration-ratings { grid-area: ratings; display: flex; flex-wrap: wrap; gap: 6px; margin-block-start: 10px; }
+.signal-ui .sg-calibration-ratings .sg-form-button { font-size: 14.5px; padding-inline: 10px; }
+.signal-ui .sg-calibration-ratings [aria-pressed="true"] { background: var(--sg-tint); border-color: var(--sg-acc); color: var(--sg-acc); font-weight: 800; box-shadow: inset 0 -2px var(--sg-acc); }
+.signal-ui .sg-calibration__profile { color: var(--sg-ink); font-weight: 700; }
+@media (max-width: 900px) {
+  .signal-ui .sg-calibration-row { padding-block: 16px; padding-inline: 16px; }
+  .signal-ui .sg-calibration-row .sg-row__title { font-size: 19px; }
+}

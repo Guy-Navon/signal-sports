@@ -8,7 +8,6 @@ import {
 } from "@/api/client";
 import { normalizeProfileFromApi } from "@/api/normalizers";
 import {
-  LEVEL_LABELS,
   SOURCE_LABELS,
   buildPutPayload,
   displayNameFor,
@@ -17,8 +16,9 @@ import {
 } from "@/components/interests/interestsModel";
 import InterestPicker from "@/components/interests/InterestPicker";
 import EventPresetControls from "@/components/interests/EventPresetControls";
-import SectionCard from "@/components/shared/SectionCard";
-import { consoleAlert, consoleButton } from "@/components/ops/consoleStyles";
+import AffinityLevel from "@/components/preferences/AffinityLevel";
+import { PersonalizationSection as SectionCard } from "@/components/preferences/PersonalizationLayout";
+
 
 // Post-onboarding interests editing (issue #83) — the same picker
 // components as onboarding (#82), flat "manage" variant. Editing writes
@@ -69,21 +69,22 @@ export default function InterestsManager({ onSaved }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-text-dim">
+      <div className="sg-form-note sg-form-actions" role="status">
         <RefreshCw size={12} className="animate-spin" /> טוען תחומי עניין...
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="sg-interests-manager space-y-5">
       {error && (
-        <div className={consoleAlert("error")}>
+        <div className="sg-form-error" role="alert">
           <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
 
+      {follows.length === 0 && <p className="sg-form-empty">אין עדיין תחומי עניין במעקב. בחרו ענף, ליגה, קבוצה או שחקן כדי להתחיל.</p>}
       <InterestPicker
         catalog={catalog}
         follows={follows}
@@ -92,7 +93,7 @@ export default function InterestsManager({ onSaved }) {
       />
 
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-text-secondary">
+        <h3 className="sg-form-heading">
           העדפות כלליות לסוגי חדשות
         </h3>
         <EventPresetControls
@@ -101,18 +102,18 @@ export default function InterestsManager({ onSaved }) {
         />
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="sg-form-actions">
         <button
           onClick={save}
           disabled={isSaving}
-          className={consoleButton("primary")}
+          className="sg-form-button sg-form-button--primary"
         >
           {isSaving
             ? <><RefreshCw size={13} className="animate-spin" /> שומר...</>
             : <><CheckCircle2 size={13} /> שמור תחומי עניין</>}
         </button>
         {saved && (
-          <span className="text-xs text-signal-high flex items-center gap-1">
+          <span className="sg-form-success" role="status">
             <CheckCircle2 size={12} /> נשמר — הפיד מחושב לפי הבחירות
           </span>
         )}
@@ -120,21 +121,21 @@ export default function InterestsManager({ onSaved }) {
 
       {derived.length > 0 && (
         <SectionCard title="העדפות שנגזרו מכיול ומהתנהגות" icon={Sparkles}>
-          <p className="text-xs text-text-dim mb-2">
+          <p className="sg-form-note">
             הרשומות האלה נוצרו מהכיול ומהפידבק שלך — הן לא נערכות ידנית.
             בחירה מפורשת שלך תמיד גוברת עליהן; הן מתעדכנות מכיול חוזר ומהמשוב
             בפיד.
           </p>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="sg-form-list">
             {derived.map((entry) => (
               <span
                 key={`${entry.source}:${entry.scope}:${entry.target_id}`}
-                className="px-2 py-0.5 rounded-full border border-border/60 bg-surface-1 text-xs text-text-secondary"
+                className="sg-derived-interest"
               >
-                {displayNameFor(catalog, entry.scope, entry.target_id)}
+                <bdi dir="auto">{displayNameFor(catalog, entry.scope, entry.target_id)}</bdi>
                 {": "}
-                {LEVEL_LABELS[entry.level] ?? entry.level}
-                <span className="text-text-dim">
+                <AffinityLevel level={entry.level} />
+                <span className="sg-form-note">
                   {" · "}
                   {SOURCE_LABELS[entry.source] ?? "מוגדר מראש"}
                 </span>

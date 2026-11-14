@@ -67,7 +67,8 @@ describe("productShellModel", () => {
       for (const path of SIGNAL_SURFACE_PATHS) {
         expect(pageSurface(path)).toBe("signal");
       }
-      expect(pageSurface("/account")).toBe("orbit");
+      expect(pageSurface("/account")).toBe("signal");
+      expect(pageSurface("/login")).toBe("orbit");
     });
   });
 });

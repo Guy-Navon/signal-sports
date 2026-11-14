@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { Button, Input, Label } from "@/pages/AuthControls";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { authPagesRedundant } from "@/context/authView";
 import AuthScene from "@/pages/AuthScene";
@@ -88,17 +86,17 @@ export default function Login() {
 
   return (
     <AuthScene kicker="החדר האישי" title="התחברות">
-      <form onSubmit={onSubmit} noValidate className="space-y-4">
+      <form onSubmit={onSubmit} noValidate aria-busy={submitting} className="sg-auth-stack">
         {notice && (
           <p
             role={noticeIsInfo ? "status" : "alert"}
-            className={`text-sm text-center ${noticeIsInfo ? "text-signal-high" : "text-signal-hidden"}`}
+            className={`text-sm text-center ${noticeIsInfo ? "sg-auth-success" : "sg-auth-error"}`}
           >
             {notice}
           </p>
         )}
         {unverified && (
-          <div role="alert" className="space-y-3 rounded-md border border-border p-3">
+          <div role="alert" className="space-y-3 sg-auth-callout">
             <p className="text-sm text-center">
               עוד לא אימתתם את כתובת האימייל. פתחו את הקישור ששלחנו אל{" "}
               <bdi dir="ltr">{unverified.email}</bdi> כדי להפעיל את החשבון.
@@ -106,34 +104,38 @@ export default function Login() {
             <ResendVerification email={unverified.email} password={unverified.password} />
           </div>
         )}
-        <div className="space-y-1.5">
+        <div className="sg-auth-field">
           <Label htmlFor="login-email">אימייל</Label>
           <Input
             id="login-email"
             type="email"
             dir="ltr"
             autoComplete="email"
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "login-email-error" : undefined}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
           {errors.email && (
-            <p className="text-xs text-signal-hidden">{errors.email}</p>
+            <p id="login-email-error" role="alert" className="sg-auth-error">{errors.email}</p>
           )}
         </div>
-        <div className="space-y-1.5">
+        <div className="sg-auth-field">
           <Label htmlFor="login-password">סיסמה</Label>
           <Input
             id="login-password"
             type="password"
             dir="ltr"
             autoComplete="current-password"
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? "login-password-error" : undefined}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           {errors.password && (
-            <p className="text-xs text-signal-hidden">{errors.password}</p>
+            <p id="login-password-error" role="alert" className="sg-auth-error">{errors.password}</p>
           )}
-          <Link to="/forgot-password" className="text-xs text-text-secondary underline underline-offset-4">
+          <Link to="/forgot-password" className="text-xs sg-auth-muted underline underline-offset-4">
             שכחתם את הסיסמה?
           </Link>
         </div>
@@ -144,10 +146,10 @@ export default function Login() {
 
       {auth.googleEnabled && (
         <div className="mt-5 space-y-4">
-          <div className="flex items-center gap-3 text-xs text-text-dim" aria-hidden>
-            <span className="h-px flex-1 bg-border" />
+          <div className="flex items-center gap-3 text-xs sg-auth-muted" aria-hidden>
+            <span className="h-px flex-1 sg-auth-rule" />
             או
-            <span className="h-px flex-1 bg-border" />
+            <span className="h-px flex-1 sg-auth-rule" />
           </div>
           <GoogleSignInButton
             onStart={dismissGoogleNotice}
@@ -157,9 +159,9 @@ export default function Login() {
       )}
 
       {(auth.signupEnabled || auth.signupByInvitation) && (
-        <p className="mt-6 text-sm text-text-secondary text-center">
+        <p className="mt-6 text-sm sg-auth-muted text-center">
           עדיין אין לכם חשבון?{" "}
-          <Link to="/signup" className="text-foreground underline underline-offset-4">
+          <Link to="/signup" className="sg-auth-ink underline underline-offset-4">
             הרשמה
           </Link>
         </p>

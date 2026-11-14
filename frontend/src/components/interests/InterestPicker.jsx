@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
-import { Sparkles } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
+import "./interests.css";
 import FollowChip from "@/components/interests/FollowChip";
 import CatalogSearch from "@/components/interests/CatalogSearch";
 import {
@@ -24,16 +25,16 @@ import {
 
 function Section({ title, children }) {
   return (
-    <div className="space-y-2">
-      {title && <h3 className="text-sm font-semibold text-text-secondary">{title}</h3>}
-      <div className="flex flex-wrap gap-2">{children}</div>
+    <div className="sg-interest-section">
+      {title && <h3>{title}</h3>}
+      <div className="sg-interest-options">{children}</div>
     </div>
   );
 }
 
 function SportCards({ catalog, follows, onToggle }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="sg-sport-options">
       {(catalog?.sports || []).map((sport) => {
         const followed = isFollowed(follows, "sport", sport.id);
         return (
@@ -41,13 +42,11 @@ function SportCards({ catalog, follows, onToggle }) {
             key={sport.id}
             type="button"
             onClick={() => onToggle("sport", sport.id)}
-            className={
-              followed
-                ? "rounded-[12px] border border-signal-high/50 bg-signal-high/10 px-4 py-6 text-signal-high text-base font-semibold"
-                : "rounded-[12px] border border-border bg-surface-1 px-4 py-6 text-foreground text-base font-semibold hover:border-text-dim transition-colors"
-            }
+            className="sg-sport-option"
+            aria-pressed={followed}
           >
-            {sport.display_he}
+            <bdi dir="auto">{sport.display_he}</bdi>
+            {followed && <Check size={18} aria-hidden="true" />}
           </button>
         );
       })}
@@ -92,21 +91,21 @@ export default function InterestPicker({
     : [];
 
   return (
-    <div className="space-y-5">
+    <div className="sg-interest-picker">
       <CatalogSearch catalog={catalog} follows={follows} onPick={handleToggle} />
 
       {suggestions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
-          <Sparkles size={12} className="text-signal-high" />
+        <div className="sg-interest-suggestions">
+          <Sparkles size={16} aria-hidden="true" />
           <span>אולי תרצו לעקוב גם:</span>
           {suggestions.map(({ scope, item }) => (
             <button
               key={`${scope}:${item.id}`}
               type="button"
               onClick={() => handleToggle(scope, item.id)}
-              className="px-2.5 py-1 rounded-full border border-dashed border-signal-high/40 text-signal-high hover:bg-signal-high/10 transition-colors"
+              className="sg-form-button"
             >
-              + {item.display_he}
+              + <bdi dir="auto">{item.display_he}</bdi>
             </button>
           ))}
         </div>
@@ -141,9 +140,11 @@ export default function InterestPicker({
             </Section>
           );
         })}
+      {showComps && compSports.length === 0 && <p className="sg-form-empty">בחרו ענף כדי לראות ליגות, או חפשו ליגה ישירות.</p>}
 
       {showTeams && (
         <>
+          {teams.length === 0 && people.length === 0 && <p className="sg-form-empty">בחרו ענף או ליגה כדי לראות קבוצות ושחקנים. אפשר גם לחפש ישירות.</p>}
           {teams.length > 0 && (
             <Section title="קבוצות">
               {teams.map((team) => {

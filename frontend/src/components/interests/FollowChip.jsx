@@ -1,6 +1,6 @@
 import React from "react";
-import { Star } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Check, Star } from "lucide-react";
+import SignalStrength from "@/components/signal-ui/SignalStrength";
 
 // One selectable scope chip: tap = Follow/unfollow; star = "אל תפספס לי".
 // Disabled (non-selectable) chips render as "בקרוב" — visible, not followable.
@@ -9,35 +9,29 @@ export default function FollowChip({
 }) {
   if (!selectable) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border border-border/60 text-text-dim/60 cursor-not-allowed select-none">
-        {label}
-        <span className="text-[10px]">בקרוב</span>
+      <span className="sg-interest-row" aria-disabled="true">
+        <bdi dir="auto">{label}</bdi>
+        <small>בקרוב</small>
       </span>
     );
   }
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full text-xs border transition-colors select-none",
-        followed
-          ? starred
-            ? "border-signal-push/50 bg-signal-push/10 text-signal-push"
-            : "border-signal-high/50 bg-signal-high/10 text-signal-high"
-          : "border-border text-text-secondary hover:border-text-dim",
-      )}
-    >
-      <button type="button" onClick={onToggle} className="ps-3 py-1.5 pe-1 max-md:min-h-11">
-        {label}
+    <span className="sg-interest-row" data-followed={followed || undefined}>
+      <button type="button" onClick={onToggle} aria-pressed={followed} className="sg-interest-row__pick">
+        {followed ? <Check size={16} aria-hidden="true" /> : <span className="sg-interest-row__check" aria-hidden="true" />}
+        <bdi dir="auto">{label}</bdi>
       </button>
       {followed && (
         <button
           type="button"
           onClick={onStar}
           title={starred ? "עדיפות רגילה" : "אל תפספס לי"}
+          aria-label={`${starred ? "עדיפות רגילה" : "אל תפספס לי"}: ${label}`}
           aria-pressed={starred}
-          className="pe-2.5 py-1.5 max-md:min-h-11 max-md:min-w-11 max-md:inline-flex max-md:items-center max-md:justify-center"
+          className="sg-interest-row__star"
         >
-          <Star size={12} className={starred ? "fill-current" : ""} />
+          <SignalStrength decision={starred ? "push" : "high_feed"} />
+          <Star size={14} className={starred ? "fill-current" : ""} aria-hidden="true" />
         </button>
       )}
     </span>

@@ -9,11 +9,11 @@ import path from 'path';
 // http://127.0.0.1:5182/lab.html; `npm run build:lab` + `npm run preview:lab`
 // serve a production build of it at http://127.0.0.1:4175/lab.html.
 //
-// The feed lab (lab.html?page=feed, #464) reads a real feed snapshot: the two
-// files the public demo reads, served from SIGNAL_LAB_SNAPSHOT_DIR, or from
-// dist-demo/demo-data (written by scripts/demo-publish.ps1). They are never
+// The feed and motion labs (lab.html?page=feed, #464; ?page=motion, #467) read
+// a real feed snapshot: the files the public demo reads (results.json is
+// optional), served from SIGNAL_LAB_SNAPSHOT_DIR, or from dist-demo/demo-data (written by scripts/demo-publish.ps1). They are never
 // copied into the repo or into any bundle.
-const SNAPSHOT_FILES = new Set(['feed.json', 'meta.json']);
+const SNAPSHOT_FILES = new Set(['feed.json', 'meta.json', 'results.json']);
 
 function labSnapshot() {
   const directory = path.resolve(

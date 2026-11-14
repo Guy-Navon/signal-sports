@@ -401,8 +401,31 @@
     max-block-size: calc(100dvh - var(--sg-bar-h, 0px) - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
     overscroll-behavior: contain;
+    /* The inner scroll stays out of sight (Guy, 2026-11-14): a thin gutter is
+       reserved, so nothing reflows, and its thumb is transparent until the
+       pointer or keyboard focus is in the column. A fade pinned to the bottom
+       edge shows there is more; scrolled to the end it sits below the last
+       item, over the empty band, and focus never lands under it. */
     scrollbar-width: thin;
+    scrollbar-gutter: stable;
+    scrollbar-color: transparent transparent;
+    scroll-padding-block: 8px 48px;
+  }
+
+  .sg-side:hover,
+  .sg-side:focus-within {
     scrollbar-color: var(--sg-off) transparent;
+  }
+
+  .sg-side::after {
+    content: "";
+    position: sticky;
+    inset-block-end: 0;
+    flex: none;
+    block-size: 40px;
+    margin-block-start: -22px;
+    background: linear-gradient(to bottom, transparent, var(--sg-band));
+    pointer-events: none;
   }
 }
 

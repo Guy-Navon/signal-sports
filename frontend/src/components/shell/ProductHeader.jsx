@@ -27,7 +27,7 @@ function NavTabs({ label, compact = false, navRef = undefined }) {
             aria-current={location.pathname === item.path || (item.path === "/preferences" && location.pathname.startsWith("/preferences/")) ? "page" : undefined}
             className="sg-tab"
           >
-            {compact && Icon && <Icon size={20} strokeWidth={2} aria-hidden="true" className="sg-tab__icon" />}
+            {compact && Icon && <Icon size={24} strokeWidth={2} aria-hidden="true" className="sg-tab__icon" />}
             <span className="sg-tab__label">{item.label}</span>
           </Link>
         );

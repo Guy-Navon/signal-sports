@@ -708,6 +708,7 @@ async function auditSideColumn(client) {
         };
       });
       const style = getComputedStyle(side);
+      const fade = getComputedStyle(side, "::after");
       const sideRect = side.getBoundingClientRect();
       const mainRect = main?.getBoundingClientRect() ?? null;
       let midStream = null;
@@ -734,6 +735,14 @@ async function auditSideColumn(client) {
         position: style.position,
         overflowY: style.overflowY,
         scrollsInside: side.scrollHeight > side.clientHeight + 1,
+        // The inner scroll is unobtrusive (Guy, 2026-11-14): a thin, stable
+        // gutter whose thumb is transparent at rest, and a bottom-edge fade.
+        scrollbar: {
+          width: style.scrollbarWidth,
+          gutter: style.scrollbarGutter,
+          color: style.scrollbarColor,
+          fade: fade.content !== "none" && fade.position === "sticky" && fade.pointerEvents === "none",
+        },
         innerHeight,
         side: { left: sideRect.left, right: sideRect.right, top: sideRect.top + scrollY, width: sideRect.width },
         main: mainRect && {
@@ -791,6 +800,12 @@ function assertSideColumn(label, audit, { desktop, briefCount }) {
     return;
   }
   if (audit.position !== "sticky") fail("the side column is not sticky on desktop");
+  const thumbAtRest = audit.scrollbar.color.split(/\s(?![^(]*\))/)[0];
+  if (audit.scrollbar.width !== "thin" || !audit.scrollbar.gutter.startsWith("stable") ||
+    !["transparent", "rgba(0, 0, 0, 0)"].includes(thumbAtRest)) {
+    fail("the side column's inner scrollbar is visible at rest (it must stay thin, stable and transparent)");
+  }
+  if (!audit.scrollbar.fade) fail("the side column lacks its bottom-edge fade");
   if (Math.abs(audit.side.width - 330) > 1) fail("the side column is not 330px wide");
   // RTL: the column sits at the inline end, which is the left.
   if (audit.main && audit.side.right > audit.main.left + 1) {
@@ -1744,6 +1759,12 @@ function assertDockOcclusion(audit) {
 const EXPECTED_NAV_LABELS = ["הפיד שלי", "תוצאות", "העדפות"];
 const BAR_SETTLE_MS = 700;
 const MIN_TARGET = 44;
+// Header presence (Guy, 2026-11-14, B6): the floor each size may not fall
+// under, so a later edit cannot quietly shrink the menu back.
+const HEADER_SIZES = {
+  desktop: { tabFont: 18, tabWeight: 800, tabRow: 56, underline: 4, bar: 68, barTabFont: 17, barLogo: 26 },
+  phone: { tabFont: 16, tabWeight: 800, tabRow: 50, underline: 4, bar: 62, barLabelFont: 12.5, barIcon: 22, barLogo: 22 },
+};
 
 async function pressKey(client, key, code, keyCode, modifiers = 0) {
   for (const type of ["keyDown", "keyUp"]) {
@@ -1799,9 +1820,17 @@ async function auditHeader(client) {
         const label = tab.querySelector(".sg-tab__label");
         const icon = tab.querySelector(".sg-tab__icon");
         const labelRect = label?.getBoundingClientRect();
+        const labelStyle = label ? getComputedStyle(label) : null;
+        const underline = getComputedStyle(tab, "::after");
         return {
           text: label?.textContent.trim() ?? "",
           current: tab.getAttribute("aria-current"),
+          fontSize: labelStyle ? parseFloat(labelStyle.fontSize) : 0,
+          fontWeight: labelStyle ? Number(labelStyle.fontWeight) : 0,
+          underline: tab.getAttribute("aria-current") === "page" && underline.content !== "none"
+            ? parseFloat(underline.height) : null,
+          iconSize: icon && getComputedStyle(icon).display !== "none"
+            ? Math.round(Math.min(icon.getBoundingClientRect().width, icon.getBoundingClientRect().height)) : 0,
           width: Math.round(rect.width),
           height: Math.round(rect.height),
           reachable: reachable(tab),
@@ -1841,6 +1870,7 @@ async function auditHeader(client) {
         date: head.querySelector(".sg-head__date")?.textContent.trim() ?? null,
         dateVisible: getComputedStyle(head.querySelector(".sg-head__date")).display !== "none",
         tabs: tabsOf(headNav),
+        tabRow: Math.round(headNav.getBoundingClientRect().height),
         account: account(head),
         bar: barState(),
         dock: Boolean(document.querySelector(".sg-dock")),
@@ -1886,6 +1916,11 @@ async function auditHeader(client) {
         transition: barStyle.transitionDuration,
         logo: Boolean(bar.querySelector(".sg-bar__brand .sg-wordmark__bars")),
         logoReachable: reachable(bar.querySelector(".sg-bar__brand")),
+        logoSize: parseFloat(getComputedStyle(bar.querySelector(".sg-bar__brand .sg-wordmark__bars")).fontSize),
+        // The side column sticks under the bar by --sg-bar-h, and anchors stop
+        // below it by scroll-padding: both must match the bar's real height.
+        barToken: parseFloat(getComputedStyle(document.querySelector(".sg-shell")).getPropertyValue("--sg-bar-h")),
+        scrollPadding: parseFloat(getComputedStyle(document.documentElement).scrollPaddingBlockStart),
         tabs: tabsOf(bar.querySelector("nav")),
         account: account(bar),
       };
@@ -1949,6 +1984,16 @@ function assertHeader(label, audit, { phone }) {
     }
   };
   checkTabs("masthead", top.tabs, { compact: false });
+  // Sizes (B6, 2026-11-14): the menu must read as present, not small.
+  const sizes = phone ? HEADER_SIZES.phone : HEADER_SIZES.desktop;
+  for (const tab of top.tabs) {
+    if (tab.fontSize < sizes.tabFont || tab.fontWeight < sizes.tabWeight) {
+      fail(`masthead: tab "${tab.text}" is ${tab.fontSize}px ${tab.fontWeight}, under ${sizes.tabFont}px ${sizes.tabWeight}`);
+    }
+  }
+  if (top.tabRow < sizes.tabRow) fail(`masthead: the tab row is ${top.tabRow}px, under ${sizes.tabRow}px`);
+  const activeTop = top.tabs.find((tab) => tab.current === "page");
+  if (!(activeTop?.underline >= sizes.underline)) fail(`masthead: the active underline is under ${sizes.underline}px`);
   if (!top.account?.reachable || top.account.clipped) fail("masthead: the account control is not reachable");
   if (phone && (top.account.width < MIN_TARGET || top.account.height < MIN_TARGET)) fail("masthead: account under 44px");
   if (top.bar.shown || !top.bar.inert || top.bar.visibility !== "hidden") {
@@ -1961,6 +2006,24 @@ function assertHeader(label, audit, { phone }) {
   if (!collapsed.shadow || collapsed.shadow === "none") fail("the slim bar has no shadow");
   if (!collapsed.logo || !collapsed.logoReachable) fail("the slim bar's logo is missing or covered");
   checkTabs("slim bar", collapsed.tabs, { compact: true });
+  if (collapsed.height < sizes.bar) fail(`the slim bar is ${collapsed.height}px, under ${sizes.bar}px`);
+  if (collapsed.logoSize < sizes.barLogo) fail(`the slim bar's logo is ${collapsed.logoSize}px, under ${sizes.barLogo}px`);
+  if (Math.abs(collapsed.barToken - collapsed.height) > 0.5) {
+    fail(`--sg-bar-h (${collapsed.barToken}px) does not match the bar's height (${collapsed.height}px)`);
+  }
+  if (Math.abs(collapsed.scrollPadding - collapsed.height - 8) > 0.5) {
+    fail(`scroll-padding (${collapsed.scrollPadding}px) is not the bar's height plus 8px`);
+  }
+  for (const tab of collapsed.tabs) {
+    if (phone) {
+      if (tab.fontSize < sizes.barLabelFont) fail(`slim bar: label "${tab.text}" is ${tab.fontSize}px, under ${sizes.barLabelFont}px`);
+      if (tab.iconSize < sizes.barIcon) fail(`slim bar: icon of "${tab.text}" is ${tab.iconSize}px, under ${sizes.barIcon}px`);
+    } else if (tab.fontSize < sizes.barTabFont || tab.fontWeight < sizes.tabWeight) {
+      fail(`slim bar: tab "${tab.text}" is ${tab.fontSize}px ${tab.fontWeight}, under ${sizes.barTabFont}px ${sizes.tabWeight}`);
+    }
+  }
+  const activeBar = collapsed.tabs.find((tab) => tab.current === "page");
+  if (!(activeBar?.underline >= sizes.underline)) fail(`slim bar: the active underline is under ${sizes.underline}px`);
   if (!collapsed.account?.reachable || collapsed.account.clipped) fail("slim bar: the account control is not reachable");
   if (phone && (collapsed.account.width < MIN_TARGET || collapsed.account.height < MIN_TARGET)) fail("slim bar: account under 44px");
   if (!audit.partialFromBelow.shown) fail("no hysteresis: the bar hid while the tabs were only partly back");
@@ -2097,11 +2160,14 @@ async function auditResultsStrip(client, label) {
         cards.every((card) => card.getBoundingClientRect().width >= 176) &&
         cards.every((card) => Math.abs(card.getBoundingClientRect().top - cards[0].getBoundingClientRect().top) < 1),
       keyboardReachable: scroller.tabIndex === 0 && document.activeElement === scroller,
+      // No thick native scrollbar (Guy, 2026-11-14): thin, and a styled thumb.
+      scrollbar: { width: getComputedStyle(scroller).scrollbarWidth, color: getComputedStyle(scroller).scrollbarColor },
       overflows: scroller.scrollWidth > scroller.clientWidth,
       before: scroller.scrollLeft,
     };
   })()`);
-  if (![audit.matches, audit.labelled, audit.fullBoard, audit.placed, audit.horizontal, audit.keyboardReachable].every(Boolean)) {
+  const quietScrollbar = audit.scrollbar.width === "thin" && audit.scrollbar.color !== "auto";
+  if (![audit.matches, audit.labelled, audit.fullBoard, audit.placed, audit.horizontal, audit.keyboardReachable, quietScrollbar].every(Boolean)) {
     throw new Error(`${label}: results strip contract failed: ${JSON.stringify(audit)}`);
   }
   await client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "ArrowLeft", code: "ArrowLeft", windowsVirtualKeyCode: 37 });
@@ -2411,6 +2477,13 @@ async function main() {
         headerAudits.push({
           label,
           collapsedTabs: audit.collapsed.tabs.map((tab) => `${tab.width}x${tab.height}`),
+          sizes: {
+            mastheadTab: `${audit.top.tabs[0].fontSize}px ${audit.top.tabs[0].fontWeight}`,
+            tabRow: audit.top.tabRow,
+            bar: audit.collapsed.height,
+            barTab: `${audit.collapsed.tabs[0].fontSize}px` + (audit.collapsed.tabs[0].iconSize ? ` icon ${audit.collapsed.tabs[0].iconSize}px` : ""),
+            underline: audit.top.tabs[0].underline,
+          },
           midTransitionOpacity: audit.midTransition.opacity,
           transition: audit.collapsed.transition,
           layoutShift: audit.layoutShift,

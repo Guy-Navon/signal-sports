@@ -339,8 +339,8 @@ label uses the `--slab`/`--slab-fg` pair, and the fresh-time text uses `--ink` a
 
 | element | size / weight |
 |---|---|
-| logo (masthead / slim bar) | 42px 800 / 22px, letter-spacing −0.02em (30px / 19px under 768px) |
-| tabs | 15px 700 (14px on a phone; 11px label under the icon in the phone's slim bar) |
+| logo (masthead / slim bar) | 46px 800 / 30px, letter-spacing −0.02em (34px / 23px under 768px) (B6, 2026-11-14) |
+| tabs | 19px 800 in the masthead, 18px in the slim bar (17px on a phone; 13px label under a 24px icon in the phone's slim bar) (B6, 2026-11-14) |
 | summary line | 14px, `--dim`, numbers 700 `--ink` |
 | league pill | 15px, name 700 + count |
 | important-row headline | 21px 500 / 1.3 |
@@ -404,15 +404,21 @@ Decided by Guy on 2026-11-14 after five rounds on a navigation mock (#491). Reje
 header ground, a logo-colour stripe, a segmented pill nav, a side rail, a results ticker.
 
 - **One navy header, sticky in effect, navy in both states** (`--sg-top` in every ground).
-  - **Expanded (top of page)**: in normal page flow. Large centred logo (42px, 30px under
-    768px), the date line under it ("שבת, 14 בנובמבר 2026", Asia/Jerusalem, `--top-dim` 12.5px;
-    hidden under 768px), then the tabs centred with words (15px 700, 14px on a phone, 46px tall,
-    44px on a phone). Active tab `--top-fg` with a 3px underline rounded at the top; inactive
-    tabs `--top-dim`. The account avatar sits at the inline end of the top row.
-  - **Collapsed (on scroll)**: a separate slim bar, `position: fixed`, 56px, with a soft shadow:
-    small logo at the inline start, tabs centred, account at the inline end. On a phone each tab
-    is an icon over an 11px label (an iOS-style compact tab bar), every item at least 44px and
-    all four fitting at 320px; under 360px the bar's logo keeps its bars only.
+  - **Sizes, enlarged on 2026-11-14** (Guy: "the menu is too small … on scroll I want it
+    thicker; normally I want the text more present"). The harness (`capture:ui`) asserts a floor
+    under each size, the bar height against `--sg-bar-h` and the anchor `scroll-padding`.
+  - **Expanded (top of page)**: in normal page flow. Large centred logo (46px, 34px under
+    768px), the date line under it ("שבת, 14 בנובמבר 2026", Asia/Jerusalem, `--top-dim` 13.5px;
+    hidden under 768px), then the tabs centred with words (19px 800, 22px inline padding, 8px
+    apart, a 60px row; 17px 800 on a phone, 12px padding, a 52px row). Active tab `--top-fg`
+    with a 4px underline rounded at the top; inactive tabs `--top-dim`. The account avatar
+    (36px face, 44px target) sits at the inline end of the top row.
+  - **Collapsed (on scroll)**: a separate bar, `position: fixed`, 72px (64px on a phone), with
+    a soft shadow: a 30px logo at the inline start, tabs centred (18px 800, 20px padding, 4px
+    underline), account at the inline end. On a phone each tab is a 24px icon over a 13px 800
+    label (an iOS-style compact tab bar), every item at least 44px and all three fitting at
+    320px; under 360px the bar's logo keeps its bars only (26px). `--sg-bar-h` (72px / 64px)
+    and `html { scroll-padding-block-start }` (bar + 8px) follow the bar.
   - **Motion (softer than the mock)**: the masthead scrolls away by itself; the bar fades in
     with a 12px slide (420ms in, 360ms out, `--sg-ease`) and its logo settles from scale 1.18,
     as if it travelled up from the masthead. The bar is out of flow, so nothing moves (layout

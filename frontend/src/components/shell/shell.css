@@ -12,9 +12,10 @@
 
 /* Height of the slim bar shown on scroll (#491), only where there is one (not
    the demo). The feed's sticky side column sits beneath it. useCollapsedBar
-   reads the bar's real height; this value only has to match .sg-bar__inner. */
+   reads the bar's real height; this value only has to match .sg-bar__inner
+   (72px, 64px on a phone; the harness checks they agree). */
 .sg-shell:has(> .sg-bar) {
-  --sg-bar-h: 56px;
+  --sg-bar-h: 72px;
 }
 
 /* Page gutter and content column, shared by the chrome and by rebuilt pages:
@@ -66,7 +67,7 @@
 /* Anything scrolled into view by focus or an anchor stops below the slim bar
    (WCAG 2.4.11). Only the consumer shell renders .sg-bar; Ops is untouched. */
 html:has(.sg-bar) {
-  scroll-padding-block-start: calc(56px + 8px);
+  scroll-padding-block-start: calc(72px + 8px);
 }
 
 /* ── Header: expanded masthead (#491) ────────────────────────────────────── */
@@ -88,14 +89,14 @@ html:has(.sg-bar) {
 
 .sg-head__brand {
   color: inherit;
-  font-size: 42px;
+  font-size: 46px;
   text-decoration: none;
 }
 
 .sg-head__date {
   margin: 0;
   color: var(--sg-top-dim);
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.5;
 }
 
@@ -111,13 +112,15 @@ html:has(.sg-bar) {
 }
 
 /* ── Tabs, shared by the masthead and the bar ────────────────────────────── */
+/* Present, not whispered (Guy, 2026-11-14): 19px 800 words on a 60px row in
+   the masthead, 18px in the 72px slim bar, a 4px active underline. */
 
 .sg-tabs {
   display: flex;
   align-items: stretch;
   justify-content: center;
-  gap: 4px;
-  block-size: 46px;
+  gap: 8px;
+  block-size: 60px;
 }
 
 .sg-tab {
@@ -126,10 +129,10 @@ html:has(.sg-bar) {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding-inline: 14px;
+  padding-inline: 22px;
   color: var(--sg-top-dim);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 800;
   line-height: 1.2;
   white-space: nowrap;
   text-decoration: none;
@@ -141,15 +144,15 @@ html:has(.sg-bar) {
   color: var(--sg-top-fg);
 }
 
-/* The active tab: a 3px underline rounded at the top, in the header's text
+/* The active tab: a 4px underline rounded at the top, in the header's text
    colour, on the header's bottom edge. */
 .sg-tab[aria-current="page"]::after {
   content: "";
   position: absolute;
-  inset-inline: 14px;
+  inset-inline: 18px;
   inset-block-end: 0;
-  block-size: 3px;
-  border-radius: 3px 3px 0 0;
+  block-size: 4px;
+  border-radius: 4px 4px 0 0;
   background: currentColor;
 }
 
@@ -170,8 +173,8 @@ html:has(.sg-bar) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-block-size: 36px;
-  min-inline-size: 36px;
+  min-block-size: 44px;
+  min-inline-size: 44px;
   padding: 0;
   border: 0;
   border-radius: 999px;
@@ -184,12 +187,12 @@ html:has(.sg-bar) {
 .sg-avatar-btn__face {
   display: grid;
   place-items: center;
-  inline-size: 30px;
-  block-size: 30px;
+  inline-size: 36px;
+  block-size: 36px;
   border-radius: 999px;
   background: var(--sg-top-hover);
   color: var(--sg-top-fg);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
   line-height: 1;
   transition: box-shadow 0.15s var(--sg-ease);
@@ -247,13 +250,13 @@ html:has(.sg-bar) {
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 12px;
-  block-size: 56px;
+  block-size: 72px;
 }
 
 .sg-bar__brand {
   justify-self: start;
   color: inherit;
-  font-size: 22px;
+  font-size: 30px;
   text-decoration: none;
   opacity: 0;
   transform: scale(1.18);
@@ -268,7 +271,12 @@ html:has(.sg-bar) {
 }
 
 .sg-bar .sg-tabs {
-  block-size: 56px;
+  block-size: 72px;
+}
+
+.sg-bar .sg-tab {
+  padding-inline: 20px;
+  font-size: 18px;
 }
 
 .sg-bar__end {
@@ -332,13 +340,21 @@ html:has(.sg-bar) {
 /* ── Phone ───────────────────────────────────────────────────────────────── */
 
 @media (max-width: 767px) {
+  .sg-shell:has(> .sg-bar) {
+    --sg-bar-h: 64px;
+  }
+
+  html:has(.sg-bar) {
+    scroll-padding-block-start: calc(64px + 8px);
+  }
+
   .sg-head__inner {
     gap: 2px;
     padding-block-start: 12px;
   }
 
   .sg-head__brand {
-    font-size: 30px;
+    font-size: 34px;
   }
 
   .sg-head__date {
@@ -353,16 +369,16 @@ html:has(.sg-bar) {
   .sg-head .sg-tabs {
     align-self: stretch;
     gap: 0;
-    block-size: 44px;
+    block-size: 52px;
   }
 
   .sg-head .sg-tab {
-    padding-inline: 9px;
-    font-size: 14px;
+    padding-inline: 12px;
+    font-size: 17px;
   }
 
   .sg-head .sg-tab[aria-current="page"]::after {
-    inset-inline: 9px;
+    inset-inline: 10px;
   }
 
   /* Touch targets on a phone. */
@@ -378,13 +394,18 @@ html:has(.sg-bar) {
   .sg-bar__inner {
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 4px;
+    block-size: 64px;
+  }
+
+  .sg-bar .sg-tabs {
+    block-size: 64px;
   }
 
   .sg-bar__brand {
-    font-size: 19px;
+    font-size: 23px;
   }
 
-  /* Compact bar: each tab an icon over a small label, the four sharing the
+  /* Compact bar: each tab a 24px icon over a 13px label, the three sharing the
      middle column, each at least 44px wide. */
   .sg-tabs--compact {
     gap: 0;
@@ -393,11 +414,11 @@ html:has(.sg-bar) {
   .sg-tabs--compact .sg-tab {
     flex: 1 1 0;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     min-inline-size: 44px;
     padding-inline: 2px;
-    font-size: 11px;
-    line-height: 1.1;
+    font-size: 13px;
+    line-height: 1.15;
   }
 
   .sg-tabs--compact .sg-tab__icon {
@@ -405,12 +426,12 @@ html:has(.sg-bar) {
   }
 
   .sg-tabs--compact .sg-tab[aria-current="page"]::after {
-    inset-inline: 6px;
+    inset-inline: 8px;
   }
 }
 
-/* Under 360px the bar's logo keeps its bars only, so four 44px tabs and the
-   account always fit; the link keeps its accessible name. */
+/* Under 360px the bar's logo keeps its bars only, so the tabs and the account
+   always fit at 44px or more; the link keeps its accessible name. */
 @media (max-width: 359px) {
   .sg-bar__brand .sg-wordmark {
     gap: 0;
@@ -418,7 +439,7 @@ html:has(.sg-bar) {
   }
 
   .sg-bar__brand .sg-wordmark__bars {
-    font-size: 22px;
+    font-size: 26px;
   }
 }
 

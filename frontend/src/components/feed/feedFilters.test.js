@@ -18,9 +18,81 @@ import {
   importanceOptions,
   facetedLeagueCounts,
   visibleCount,
+  sourceFilterId,
+  activeSourceIds,
+  facetedSourceCounts,
+  sourceOptions,
+  ALL_SOURCES_ID,
 } from "./feedFilters";
 
 const mk = (over = {}) => ({ score: { decision: "feed" }, ...over });
+
+describe("source facets (#483)", () => {
+  const items = [
+    mk({ id: "p", source: "one", sourceDisplayName: "ONE", league: "NBA", score: { decision: "push" } }),
+    mk({ id: "c", type: "cluster", league: "NBA", score: { decision: "high_feed" },
+      sources: ["stale"], members: [
+        { source: "one", sourceDisplayName: "ONE" },
+        { source: "walla", sourceDisplayName: "וואלה" },
+        { source: "walla", sourceDisplayName: "וואלה" },
+        { source: "secret", decision: "hidden" },
+      ] }),
+    mk({ id: "e", source: "walla", sourceDisplayName: "וואלה", league: "EuroLeague" }),
+    mk({ id: "n", source: "other", league: "NBA" }),
+    mk({ id: "x", source: "secret", league: "NBA", score: { decision: "hidden" } }),
+    mk({ id: "y", source: "secret", score: {} }),
+  ];
+  const ids = (active) => filterFeedItems(items, new Set(active)).map((item) => item.id);
+
+  it("ANDs importance, leagues and sources; ORs values within each facet, keeping rank order", () => {
+    expect(sourceFilterId("walla")).toBe("source:walla");
+    expect(ids(["min:high_feed", "league:NBA", "source:walla"])).toEqual(["c"]);
+    expect(ids(["league:NBA", "league:EuroLeague", "source:walla", "source:one"])).toEqual(["p", "c", "e"]);
+    expect(ids(["league:EuroLeague", "source:one"])).toEqual([]);
+    expect(ids(["source:other"])).toEqual(["n"]);
+  });
+
+  it("matches any visible member source, once per cluster, using the authoritative members", () => {
+    expect(itemMatchesFilter(items[1], "source:walla")).toBe(true);
+    expect(itemMatchesFilter(items[1], "source:stale")).toBe(false);
+    expect(itemMatchesFilter(items[1], "source:secret")).toBe(false);
+    expect(itemMatchesFilter(mk({ type: "cluster", sources: ["one", "walla"] }), "source:walla")).toBe(true);
+    expect(facetedSourceCounts(items, new Set(["all"]))).toEqual(new Map([
+      ["source:one", 2], ["source:walla", 2], ["source:other", 1],
+    ]));
+  });
+
+  it("never passes hidden or decision-less stories, even for all or an empty set", () => {
+    for (const active of [["all"], [], ["source:secret"], ["league:NBA"]]) {
+      expect(ids(active)).not.toEqual(expect.arrayContaining(["x"]));
+      expect(ids(active)).not.toEqual(expect.arrayContaining(["y"]));
+    }
+  });
+
+  it("counts each facet under the other two, ignoring its own selections", () => {
+    const active = new Set(["min:high_feed", "league:NBA", "source:walla"]);
+    expect(facetedSourceCounts(items, active)).toEqual(new Map([["source:one", 2], ["source:walla", 1]]));
+    expect(facetedLeagueCounts(items, new Set(["source:walla", "league:EuroLeague"])))
+      .toEqual(new Map([["league:NBA", 1], ["league:EuroLeague", 1]]));
+    expect(importanceOptions(items, active).map((o) => o.count)).toEqual([1, 1, 1]);
+  });
+
+  it("uses feed display names, stable order, and retains a selected zero-count source", () => {
+    const active = new Set(["league:EuroLeague", "source:one"]);
+    expect(sourceOptions(items, active)).toEqual([
+      { id: "source:one", label: "ONE", count: 0 },
+      { id: "source:walla", label: "וואלה", count: 1 },
+    ]);
+  });
+
+  it("toggles and clears sources independently, with no persistence", () => {
+    const active = new Set(["min:feed", "league:NBA", "source:one", "source:walla"]);
+    expect(activeSourceIds(active)).toEqual(["source:one", "source:walla"]);
+    expect([...toggleFilterSet(active, ALL_SOURCES_ID)]).toEqual(["min:feed", "league:NBA"]);
+    expect([...toggleFilterSet(new Set(["source:one"]), "source:one")]).toEqual(["all"]);
+    expect([...toggleFilterSet(active, "all")]).toEqual(["all"]);
+  });
+});
 
 describe("feedFilters", () => {
   describe("filter families", () => {

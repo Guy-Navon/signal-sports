@@ -398,7 +398,7 @@ stops being sticky and follows the stream, and pills and results scroll horizont
 header follows its own 768px breakpoint, B6). Treat that as a starting point, not as approved
 phone design (#475). #465 decides where the side column goes on a phone.
 
-## B6. Header, summary line, league pills (#463, navigation #491)
+## B6. Header, summary line, filter area (#463, navigation #491, filters #483)
 
 Decided by Guy on 2026-11-14 after five rounds on a navigation mock (#491). Rejected: a grey
 header ground, a logo-colour stripe, a segmented pill nav, a side rail, a results ticker.
@@ -444,11 +444,31 @@ header ground, a logo-colour stripe, a segmented pill nav, a side rail, a result
   banner.
 - **Summary line**, 22px under the header: **"N סיפורים עברו את הסינון שלך · M חשובים"**. N is the number
   of visible stories, M the number of push + high_feed stories, both from the real feed.
-- **League pills**: centred, wrapping, gap 10px, 30px below. Fully rounded, padding 7px 16px,
-  ground `--t1`…`--t4` cycling in order. Each holds the league name (700) and its count. Pills
-  are ordered by count, highest first. In the product they are the feed filters
-  (`feedFilters.js`, current filter behaviour kept) and need a selected state with an
-  accessible pressed or current indication. The mock does not draw one.
+- **Filter area — Guy's choice, 2026-11-14 (#483).** Variant C replaces A from #496:
+  one "סינון" button with an active-filter count, removable chips beside it (importance,
+  each league, each source), "נקה סינון" when active, and the existing "מוצגים X מתוך N
+  סיפורים" line. The summary above still counts the whole visible feed. Importance and
+  league controls appear only after opening. Filters apply live and are never persisted.
+  - **Desktop (≥900px):** a full-width horizontal panel directly below the filter row,
+    inside the page column and in normal flow. RTL columns: "חשיבות", "ליגות", "מקורות";
+    options wrap within their columns. Footer: "נקה הכול" and "סגור". This is a disclosure
+    (`aria-expanded`, `aria-controls`), with no modal semantics. A short height/opacity reveal
+    uses the existing ease; reduced motion opens immediately. Button, Escape and outside
+    click close it. Opening focuses its close control; closing returns to the filter button.
+  - **Phone (<900px):** a native modal bottom sheet with background inertness, a focus trap,
+    Escape, a close control, "הצג N סיפורים" and safe-area padding. The footer stays reachable
+    while the options scroll. Active chips scroll within their row, never the page.
+  - **Facets:** הכול / רגיל ומעלה / חשוב ומעלה (push included at every threshold), leagues
+    and source display names already used by the feed. Importance AND league AND source;
+    several leagues or sources mean any selected value within that facet. **A cluster matches
+    any of its visible member sources**, counted once per source. Authoritative members win
+    over legacy source arrays. Each option counts under the other active facets; selected
+    zero-count options stay removable. Hidden stories never pass or count. League colours
+    remain `--sg-t1`…`--sg-t4`, selected `--sg-slab` / `--sg-slab-fg`, with `aria-pressed`.
+  - **Empty result:** descriptive text and "הצג את כל הפיד"; the persistently mounted filter
+    status announces once per change. Removing a chip or clearing the row returns focus to
+    the filter button. The same component works read-only in the public demo.
+  - **Lab:** `lab.html?page=filters` renders the shipped C component; A and B were removed.
 
 ## B7. Lead block (#464)
 

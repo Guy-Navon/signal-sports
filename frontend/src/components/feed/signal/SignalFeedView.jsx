@@ -9,7 +9,7 @@ import FeedFilterBar from "./FeedFilterBar";
 import { useArticleOpened, useEngineTraceVisible } from "@/context/appContextCore";
 import { getDecisionConfig } from "@/components/feed/decisionConfig";
 import { deskVoiceView } from "@/components/feed/deskVoiceModel";
-import { filterFeedItems, leagueFilterId, visibleCount } from "@/components/feed/feedFilters";
+import { filterFeedItems, itemSourceFilterIds, leagueFilterId, visibleCount } from "@/components/feed/feedFilters";
 import { queuePage } from "@/components/feed/queueMotion";
 import {
   feedbackArticleId,
@@ -47,6 +47,7 @@ import {
 } from "./signalStoryModel";
 import "@/components/signal-ui/signal-ui.css";
 import "./signal-feed.css";
+import "./feed-filters.css";
 
 // The new consumer feed (#464, docs/FRONTEND_DESIGN_SYSTEM.md Part B): summary
 // line, league pills (the filters), a lead block only when there is a push, the
@@ -244,6 +245,7 @@ function LeadStory({ item, localScoredArticles, now, readOnly, enterBase }) {
       aria-label={getDecisionConfig("push").label}
       data-decision={story.decision}
       data-league={leagueFilterId(item)}
+      data-sources={JSON.stringify(itemSourceFilterIds(item))}
       style={enterStyle(0, enterBase)}
     >
       <div className="sg-lead__deco" aria-hidden="true">
@@ -289,6 +291,7 @@ function ImportantStory({ item, localScoredArticles, now, readOnly, league, arri
       className="sg-important__item"
       data-decision={story.decision}
       data-league={leagueFilterId(item)}
+      data-sources={JSON.stringify(itemSourceFilterIds(item))}
       data-arrived={arrived || undefined}
       style={style}
     >
@@ -375,6 +378,7 @@ function StreamRow({
       className="sg-row"
       data-decision={story.decision}
       data-league={leagueFilterId(item)}
+      data-sources={JSON.stringify(itemSourceFilterIds(item))}
       data-arrived={arrived || undefined}
       style={style}
     >
@@ -507,6 +511,7 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
       className="sg-box__item sg-brief__item"
       data-decision={story.decision}
       data-league={leagueFilterId(item)}
+      data-sources={JSON.stringify(itemSourceFilterIds(item))}
       style={style}
     >
       <Headline story={story} className="sg-box__title sg-brief__title" linkRef={headlineRef} />
@@ -530,6 +535,7 @@ function LatestRow({ item, localScoredArticles, now, arrived, style }) {
       className="sg-box__item sg-latest__item"
       data-decision={story.decision}
       data-league={leagueFilterId(item)}
+      data-sources={JSON.stringify(itemSourceFilterIds(item))}
       data-fresh={fresh || undefined}
       data-arrived={arrived || undefined}
       style={style}
@@ -700,7 +706,7 @@ export default function SignalFeedView({
       )}
 
       {filtered.length === 0 ? (
-        <div className="sg-in sg-filter-empty" role="status">
+        <div className="sg-in sg-filter-empty">
           <p>{filterEmptyMessage(activeFilters)}</p>
           <button type="button" className="sg-more" onClick={onResetFilters}>
             הצג את כל הפיד

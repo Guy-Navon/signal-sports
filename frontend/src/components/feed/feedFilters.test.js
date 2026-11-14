@@ -7,13 +7,11 @@ import {
   filterFeedItems,
   leagueFilterId,
   toggleFilterSet,
-  IMPORTANCE_FLOORS,
   ALL_LEAGUES_ID,
   ALL_LEVELS_ID,
-  importanceFilterId,
-  importanceFloor,
-  meetsImportanceFloor,
   activeLeagueIds,
+  activeLevelIds,
+  isVisibleItem,
   hasActiveFilters,
   importanceOptions,
   facetedLeagueCounts,
@@ -46,7 +44,7 @@ describe("source facets (#483)", () => {
 
   it("ANDs importance, leagues and sources; ORs values within each facet, keeping rank order", () => {
     expect(sourceFilterId("walla")).toBe("source:walla");
-    expect(ids(["min:high_feed", "league:NBA", "source:walla"])).toEqual(["c"]);
+    expect(ids(["high_feed", "league:NBA", "source:walla"])).toEqual(["c"]);
     expect(ids(["league:NBA", "league:EuroLeague", "source:walla", "source:one"])).toEqual(["p", "c", "e"]);
     expect(ids(["league:EuroLeague", "source:one"])).toEqual([]);
     expect(ids(["source:other"])).toEqual(["n"]);
@@ -70,11 +68,11 @@ describe("source facets (#483)", () => {
   });
 
   it("counts each facet under the other two, ignoring its own selections", () => {
-    const active = new Set(["min:high_feed", "league:NBA", "source:walla"]);
-    expect(facetedSourceCounts(items, active)).toEqual(new Map([["source:one", 2], ["source:walla", 1]]));
+    const active = new Set(["high_feed", "league:NBA", "source:walla"]);
+    expect(facetedSourceCounts(items, active)).toEqual(new Map([["source:one", 1], ["source:walla", 1]]));
     expect(facetedLeagueCounts(items, new Set(["source:walla", "league:EuroLeague"])))
       .toEqual(new Map([["league:NBA", 1], ["league:EuroLeague", 1]]));
-    expect(importanceOptions(items, active).map((o) => o.count)).toEqual([1, 1, 1]);
+    expect(importanceOptions(items, active).map((o) => o.count)).toEqual([1, 0, 1, 0, 0]);
   });
 
   it("uses feed display names, stable order, and retains a selected zero-count source", () => {
@@ -86,9 +84,9 @@ describe("source facets (#483)", () => {
   });
 
   it("toggles and clears sources independently, with no persistence", () => {
-    const active = new Set(["min:feed", "league:NBA", "source:one", "source:walla"]);
+    const active = new Set(["feed", "league:NBA", "source:one", "source:walla"]);
     expect(activeSourceIds(active)).toEqual(["source:one", "source:walla"]);
-    expect([...toggleFilterSet(active, ALL_SOURCES_ID)]).toEqual(["min:feed", "league:NBA"]);
+    expect([...toggleFilterSet(active, ALL_SOURCES_ID)]).toEqual(["feed", "league:NBA"]);
     expect([...toggleFilterSet(new Set(["source:one"]), "source:one")]).toEqual(["all"]);
     expect([...toggleFilterSet(active, "all")]).toEqual(["all"]);
   });
@@ -208,9 +206,10 @@ describe("feedFilters", () => {
       expect(filterFeedItems(items, new Set(["all"])).map((i) => i.id)).toEqual(["p", "f", "n"]);
     });
 
-    it("ORs multiple active filters", () => {
-      const res = filterFeedItems(items, new Set(["push", "NBA"]));
-      expect(res.map((i) => i.id).sort()).toEqual(["n", "p"]);
+    it("ORs levels with each other and ANDs them with topic filters", () => {
+      expect(filterFeedItems(items, new Set(["push", "feed"])).map((i) => i.id)).toEqual(["p", "f", "n"]);
+      expect(filterFeedItems(items, new Set(["push", "NBA"])).map((i) => i.id)).toEqual([]);
+      expect(filterFeedItems(items, new Set(["feed", "NBA"])).map((i) => i.id)).toEqual(["n"]);
     });
   });
 
@@ -232,76 +231,64 @@ describe("feedFilters", () => {
     });
   });
 
-  describe("importance thresholds (the filter bar, #483)", () => {
+  describe("importance levels as exact checkboxes (#510)", () => {
     const items = [
-      mk({ id: "p", score: { decision: "push" }, league: "NBA" }),
-      mk({ id: "h1", score: { decision: "high_feed" }, league: "EuroLeague" }),
-      mk({ id: "h2", score: { decision: "high_feed" }, league: "NBA" }),
-      mk({ id: "f1", score: { decision: "feed" }, league: "EuroLeague" }),
-      mk({ id: "f2", score: { decision: "feed" }, league: "NBA" }),
-      mk({ id: "l", score: { decision: "low_feed" }, league: "EuroLeague" }),
+      mk({ id: "p", score: { decision: "push" }, league: "NBA", source: "one" }),
+      mk({ id: "h1", score: { decision: "high_feed" }, league: "EuroLeague", source: "walla" }),
+      mk({ id: "h2", score: { decision: "high_feed" }, league: "NBA", source: "walla" }),
+      mk({ id: "f1", score: { decision: "feed" }, league: "EuroLeague", source: "one" }),
+      mk({ id: "f2", score: { decision: "feed" }, league: "NBA", source: "walla" }),
+      mk({ id: "l", score: { decision: "low_feed" }, league: "EuroLeague", source: "one" }),
     ];
     const ids = (list) => list.map((i) => i.id);
+    const run = (active) => ids(filterFeedItems(items, new Set(active)));
 
-    it("offers 'this level and above' for feed and high_feed, labelled from DECISION_CONFIG", () => {
-      expect(IMPORTANCE_FLOORS).toEqual(["feed", "high_feed"]);
-      expect(importanceFilterId("high_feed")).toBe("min:high_feed");
+    it("only regular selects exactly the feed items, in order", () => {
+      expect(run(["feed"])).toEqual(["f1", "f2"]);
+      expect(run(["low_feed"])).toEqual(["l"]);
     });
 
-    it("keeps every level at or above the floor; push always passes", () => {
-      expect(meetsImportanceFloor(items[0], "high_feed")).toBe(true);
-      expect(meetsImportanceFloor(items[1], "high_feed")).toBe(true);
-      expect(meetsImportanceFloor(items[3], "high_feed")).toBe(false);
-      expect(meetsImportanceFloor(items[3], "feed")).toBe(true);
-      expect(meetsImportanceFloor(items[5], "feed")).toBe(false);
-      expect(meetsImportanceFloor(items[5], null)).toBe(true);
-      // Never a way to reveal what the engine hid.
-      expect(meetsImportanceFloor(mk({ score: { decision: "hidden" } }), null)).toBe(false);
-      expect(meetsImportanceFloor(mk({ score: {} }), "feed")).toBe(false);
+    it("several levels are OR; regular + important + push is 'regular and up'", () => {
+      expect(run(["feed", "high_feed"])).toEqual(["h1", "h2", "f1", "f2"]);
+      expect(run(["push", "high_feed", "feed"])).toEqual(["p", "h1", "h2", "f1", "f2"]);
     });
 
-    it("filters by the floor alone, in the order it was given", () => {
-      expect(ids(filterFeedItems(items, new Set(["min:high_feed"])))).toEqual(["p", "h1", "h2"]);
-      expect(ids(filterFeedItems(items, new Set(["min:feed"])))).toEqual(["p", "h1", "h2", "f1", "f2"]);
+    it("ANDs importance with leagues and sources", () => {
+      expect(run(["feed", "high_feed", "league:NBA"])).toEqual(["h2", "f2"]);
+      expect(run(["feed", "high_feed", "league:NBA", "source:walla"])).toEqual(["h2", "f2"]);
+      expect(run(["feed", "league:NBA", "source:one"])).toEqual([]);
     });
 
-    it("ANDs the floor with the league pills, which still OR among themselves", () => {
-      expect(ids(filterFeedItems(items, new Set(["min:high_feed", "league:NBA"])))).toEqual(["p", "h2"]);
-      expect(
-        ids(filterFeedItems(items, new Set(["min:feed", "league:NBA", "league:EuroLeague"])))
-      ).toEqual(["p", "h1", "h2", "f1", "f2"]);
+    it("never passes hidden or decision-less items", () => {
+      expect(isVisibleItem(mk({ score: { decision: "hidden" } }))).toBe(false);
+      expect(isVisibleItem(mk({ score: {} }))).toBe(false);
+      expect(isVisibleItem(items[5])).toBe(true);
     });
 
     it("only narrows: the result is always a subset of what it was given", () => {
       const withHidden = [...items, mk({ id: "x", score: { decision: "hidden" }, league: "NBA" })];
       const visible = getVisibleItems(withHidden);
-      for (const active of [["min:feed"], ["min:high_feed", "league:NBA"], ["all"]]) {
+      for (const active of [["feed"], ["high_feed", "feed", "league:NBA"], ["all"]]) {
         const result = filterFeedItems(visible, new Set(active));
         expect(result.every((item) => visible.includes(item))).toBe(true);
         expect(ids(result)).not.toContain("x");
       }
     });
 
-    it("one floor at a time: choosing another replaces it, choosing it again clears it", () => {
-      let active = toggleFilterSet(new Set(["all"]), "min:feed");
-      expect([...active]).toEqual(["min:feed"]);
-      active = toggleFilterSet(active, "min:high_feed");
-      expect([...active]).toEqual(["min:high_feed"]);
-      active = toggleFilterSet(active, "min:high_feed");
-      expect([...active]).toEqual(["all"]);
-    });
-
-    it("keeps the league selection when the floor changes, and the floor when leagues change", () => {
+    it("toggles levels independently and keeps the other families", () => {
       let active = toggleFilterSet(new Set(["all"]), "league:NBA");
-      active = toggleFilterSet(active, "min:high_feed");
-      expect([...active].sort()).toEqual(["league:NBA", "min:high_feed"]);
+      active = toggleFilterSet(active, "feed");
+      active = toggleFilterSet(active, "high_feed");
+      expect([...active].sort()).toEqual(["feed", "high_feed", "league:NBA"]);
+      active = toggleFilterSet(active, "feed");
+      expect([...active].sort()).toEqual(["high_feed", "league:NBA"]);
       active = toggleFilterSet(active, "league:NBA");
-      expect([...active]).toEqual(["min:high_feed"]);
+      expect([...active]).toEqual(["high_feed"]);
     });
 
     it("clears one family with its '*' id and everything with 'all'", () => {
-      const both = new Set(["min:high_feed", "league:NBA", "league:EuroLeague"]);
-      expect([...toggleFilterSet(both, ALL_LEAGUES_ID)]).toEqual(["min:high_feed"]);
+      const both = new Set(["high_feed", "feed", "league:NBA", "league:EuroLeague"]);
+      expect([...toggleFilterSet(both, ALL_LEAGUES_ID)].sort()).toEqual(["feed", "high_feed"]);
       expect([...toggleFilterSet(both, ALL_LEVELS_ID)].sort()).toEqual(["league:EuroLeague", "league:NBA"]);
       expect([...toggleFilterSet(new Set(["league:NBA"]), ALL_LEAGUES_ID)]).toEqual(["all"]);
       expect([...toggleFilterSet(both, "all")]).toEqual(["all"]);
@@ -309,29 +296,35 @@ describe("feedFilters", () => {
       expect(toggleFilterSet(new Set(["all"]), ALL_LEAGUES_ID).has(ALL_LEAGUES_ID)).toBe(false);
     });
 
-    it("reads the active floor and leagues back", () => {
-      const active = new Set(["min:feed", "league:NBA"]);
-      expect(importanceFloor(active)).toBe("feed");
-      expect(importanceFloor(new Set(["all"]))).toBe(null);
+    it("reads the active levels and leagues back", () => {
+      const active = new Set(["feed", "push", "league:NBA"]);
+      expect(activeLevelIds(active)).toEqual(["feed", "push"]);
+      expect(activeLevelIds(new Set(["all"]))).toEqual([]);
       expect(activeLeagueIds(active)).toEqual(["league:NBA"]);
       expect(hasActiveFilters(active)).toBe(true);
       expect(hasActiveFilters(new Set(["all"]))).toBe(false);
     });
 
-    it("counts each importance option within the selected leagues", () => {
+    it("counts exact levels within the selected leagues, labelled from DECISION_CONFIG", () => {
       const options = importanceOptions(items, new Set(["league:EuroLeague"]));
       expect(options.map((o) => [o.id, o.level, o.count])).toEqual([
         [ALL_LEVELS_ID, null, 3],
-        ["min:feed", "feed", 2],
-        ["min:high_feed", "high_feed", 1],
+        ["push", "push", 0],
+        ["high_feed", "high_feed", 1],
+        ["feed", "feed", 1],
+        ["low_feed", "low_feed", 1],
       ]);
-      expect(options.map((o) => o.label)).toEqual(["הכול", "רגיל ומעלה", "חשוב ומעלה"]);
-      expect(importanceOptions(items, new Set(["min:feed"])).map((o) => o.selected)).toEqual([
-        false,
-        true,
-        false,
+      expect(options.map((o) => o.label).slice(0, 1)).toEqual(["הכול"]);
+      expect(options.some((o) => o.label.includes("ומעלה"))).toBe(false);
+      expect(importanceOptions(items, new Set(["feed", "push"])).map((o) => o.selected)).toEqual([
+        false, true, false, true, false,
       ]);
       expect(importanceOptions(items, new Set(["all"]))[0].selected).toBe(true);
+    });
+
+    it("counts a level ignoring the other selected levels", () => {
+      const counts = importanceOptions(items, new Set(["feed", "league:NBA"])).map((o) => o.count);
+      expect(counts).toEqual([3, 1, 1, 1, 0]);
     });
 
     it("never counts a hidden or decision-less item", () => {
@@ -342,7 +335,7 @@ describe("feedFilters", () => {
     });
 
     it("counts each league within the active floor (what pressing it would show)", () => {
-      const counts = facetedLeagueCounts(items, new Set(["min:high_feed", "league:EuroLeague"]));
+      const counts = facetedLeagueCounts(items, new Set(["high_feed", "push", "league:EuroLeague"]));
       expect(counts.get("league:NBA")).toBe(2);
       expect(counts.get("league:EuroLeague")).toBe(1);
       expect(facetedLeagueCounts(items, new Set(["all"])).get("league:EuroLeague")).toBe(3);

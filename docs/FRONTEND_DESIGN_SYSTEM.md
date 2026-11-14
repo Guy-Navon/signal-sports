@@ -491,9 +491,9 @@ header ground, a logo-colour stripe, a segmented pill nav, a side rail, a result
     while the options scroll. Active chips scroll within their row, never the page; the row
     shows a thin, quiet scrollbar as the results strip does (`--sg-off` thumb, `--sg-dim` while
     hovered or focused, 6px under the chips, #504) instead of hiding it.
-  - **Facets:** הכול / רגיל ומעלה / חשוב ומעלה (push included at every threshold), leagues
+  - **Facets:** הכול plus one independent checkbox per level (דורש תשומת לב / חשוב / רגיל / נמוך, labels from DECISION_CONFIG, exact-level counts; "regular and up" means ticking the three, #510), leagues
     and source display names already used by the feed. Importance AND league AND source;
-    several leagues or sources mean any selected value within that facet. **A cluster matches
+    several levels, leagues or sources mean any selected value within that facet. **A cluster matches
     any of its visible member sources**, counted once per source. Authoritative members win
     over legacy source arrays. Each option counts under the other active facets; selected
     zero-count options stay removable. Hidden stories never pass or count. League colours

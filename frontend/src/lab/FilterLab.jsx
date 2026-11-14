@@ -11,7 +11,7 @@ import "@/components/shell/shell.css";
 import "./filter-lab.css";
 
 // The shipped C on the real snapshot. Historical A/B removed, 2026-11-14.
-// lab.html?page=filters&case=real|push&filters=min:high_feed,league:NBA,source:one&open=1&chrome=0
+// lab.html?page=filters&case=real|push&filters=high_feed,feed,league:NBA,source:one&open=1&chrome=0
 const DATE_FORMAT = new Intl.DateTimeFormat("he-IL", {
   weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jerusalem",
 });

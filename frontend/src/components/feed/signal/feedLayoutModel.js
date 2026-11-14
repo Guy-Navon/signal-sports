@@ -6,11 +6,10 @@ import {
   activeSourceIds,
   facetedLeagueCounts,
   hasActiveFilters,
-  importanceFloor,
+  activeLevelIds,
   leagueFilterId,
-  meetsImportanceFloor,
+  isVisibleItem,
 } from "@/components/feed/feedFilters";
-import { DECISION_CONFIG } from "@/components/feed/decisionConfig";
 import { LEAGUE_HE, SPORT_HE } from "@/components/feed/storyLabels";
 import { storyReports, storyTimestamp } from "@/components/feed/storyModel";
 
@@ -54,7 +53,7 @@ function leagueLabel(item) {
 export function leaguePills(items) {
   const pills = new Map();
   for (const item of items) {
-    if (!meetsImportanceFloor(item, null)) continue;
+    if (!isVisibleItem(item)) continue;
     const id = leagueFilterId(item);
     const pill = pills.get(id);
     if (pill) pill.count += 1;
@@ -88,14 +87,13 @@ export function filterResultLine(shown, total, activeFilters) {
 
 /** The empty result names what was filtered (#483). */
 export function filterEmptyMessage(activeFilters) {
-  const floor = importanceFloor(activeFilters);
-  const leagues = activeLeagueIds(activeFilters).length > 0;
-  const sources = activeSourceIds(activeFilters).length > 0;
-  const level = floor ? `ברמת ${DECISION_CONFIG[floor].label} ומעלה` : "";
-  if (sources) return `אין סיפורים ${[level, leagues ? "בליגות שבחרת" : "", "במקורות שבחרת"].filter(Boolean).join(" ")}.`;
-  if (floor && leagues) return `אין סיפורים ${level} בליגות שבחרת.`;
-  if (floor) return `אין כרגע סיפורים ${level}.`;
-  return "אין סיפורים בליגות שבחרת.";
+  const levels = activeLevelIds(activeFilters).length;
+  const parts = [
+    levels > 1 ? "ברמות שבחרת" : levels === 1 ? "ברמה שבחרת" : "",
+    activeLeagueIds(activeFilters).length > 0 ? "בליגות שבחרת" : "",
+    activeSourceIds(activeFilters).length > 0 ? "במקורות שבחרת" : "",
+  ].filter(Boolean);
+  return `אין סיפורים ${parts.length ? parts.join(" ") : "בליגות שבחרת"}.`;
 }
 
 /** The summary line (B6): "N סיפורים עברו את הסינון שלך · M חשובים". */

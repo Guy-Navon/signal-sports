@@ -25,7 +25,8 @@
 .sg-seg { display: flex; flex-direction: column; gap: 4px; }
 .sg-seg__opt { position: relative; display: flex; align-items: center; gap: 8px; min-block-size: 44px; padding-inline: 10px; border-radius: 6px; font-size: 15px; font-weight: 700; cursor: pointer; }
 .sg-seg__opt[data-selected] { background: var(--sg-tint); color: var(--sg-acc); }
-.sg-seg__input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+/* A visible tick: the levels are a multi-select (#510), like the sources below. */
+.sg-seg__input { flex: none; inline-size: 18px; block-size: 18px; margin: 0; accent-color: var(--sg-acc); cursor: pointer; }
 .sg-seg__opt:has(:focus-visible) { outline: 2px solid currentColor; outline-offset: 2px; }
 .sg-seg__count { margin-inline-start: auto; font-weight: 400; }
 .sg-filter-options { display: flex; flex-wrap: wrap; gap: 4px 12px; }

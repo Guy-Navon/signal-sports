@@ -75,8 +75,14 @@ export default function DemoApp() {
 
   return (
     <div className="signal-ui sg-shell sg-demo" data-ground={DEFAULT_GROUND}>
-      <header className="sg-masthead sg-gutter sg-demo-masthead">
-        <SignalWordmark className="sg-masthead__brand" />
+      {/* The consumer header's expanded masthead (#491), logo only: the demo
+          has no destinations and no account. */}
+      <header className="sg-on-top sg-head sg-head--brand-only">
+        <div className="sg-gutter">
+          <div className="sg-container sg-head__inner">
+            <SignalWordmark className="sg-head__brand" />
+          </div>
+        </div>
       </header>
 
       <main className="sg-body">

@@ -1,6 +1,6 @@
 # Signal Sports — Frontend Design System
 
-Last updated: 2026-11-13 (#461). This file has two parts and an appendix:
+Last updated: 2026-11-14 (#491 navigation; first written 2026-11-13, #461). This file has two parts and an appendix:
 
 - **Part A: engineering and accessibility rules.** These hold for any consumer UI, the one on
   main today and the new one. Each statement was checked against `frontend/` on 2026-11-13.
@@ -183,16 +183,24 @@ placement by level (lead only with a push, important row, stream in rank order, 
 the summary counts, signal-mark fill and colour, the bounded stream page, league-pill filter
 latency, pressed state and focus, cluster member links, feedback actions present and
 unclipped at 320–390, typography (Assistant, Karantina on the lead only, no serif leak) and
-dock occlusion. Since #465 it also asserts the side column: "Latest" newest first, never low_feed
+occlusion by fixed chrome (the phone dock until #491, the slim header bar since). Since #465 it
+also asserts the side column: "Latest" newest first, never low_feed
 or hidden, every story in it placed elsewhere; "in brief" only inside the column; sticky 14px
-from the top halfway down the stream and inside the viewport on desktop; after the stream and
+below the slim header bar halfway down the stream and inside the viewport on desktop; after the stream and
 not sticky on a phone, with every visible story painted. Since #467, in both motion passes:
 the stream's entrance stagger is capped, the load causes no layout shift, only the
 fresh-story pulse is still running once the page settles, and under reduced motion nothing
 runs at all. `loadApp` waits for finite animations to finish before it measures. The local corpus puts exactly 40 stories in the stream and its clusters in
 the lead and important row, so the multi-page "show more" path and the stream cluster
 disclosure are locked by `SignalFeedView.test.jsx` instead, and the harness output says so.
-#473 renames it (`capture:orbit` stays until then). Orbit itself (still the demo) is no
+Since #491 it asserts the consumer header (B6) at 1440/390/375/320 in both motion passes: the
+masthead in page flow with all four tabs reachable and unclipped, the slim bar hidden and inert
+at the top, fixed and shown once the masthead tabs have left (icon over a visible label on a
+phone, every tab and the account at least 44px), the hysteresis band in both directions, zero
+layout shift while it collapses and expands, a soft fade (300–500 ms) under normal motion and
+no transition under reduced motion, the Tab order (skip link, logo, tabs, account) and the
+account menu's keyboard flow (Enter opens with focus inside, arrows move, Escape returns to the
+avatar). #473 renames it (`capture:orbit` stays until then). Orbit itself (still the demo) is no
 longer browser-asserted.
 
 **Demo bundle guard.** `npm run build`, `npm run build:demo`, then `npm run check:demo-bundle`.
@@ -258,7 +266,7 @@ Decided by Guy on 2026-11-13, from the coded mock on his real feed:
 | # | Decision | Delivered by |
 |---|---|---|
 | 1 | **White ground is the default.** "Soft" (grey-blue) and "dark" (slate, mint accent) remain available | #462 tokens, #468 switch |
-| 2 | **Structure inspired by Axios**: navy top bar with navigation, centred wordmark with a slanted accent stroke, a summary line, league pills with counts, a row of up to four important stories | #463, #464 |
+| 2 | **Structure inspired by Axios**: navy header with navigation and a centred logo (since #491 one navy header that collapses on scroll, B6), a summary line, league pills with counts, a row of up to four important stories | #463, #464, #491 |
 | 3 | **Lead block only when the feed has a push.** The headline fills a full-width colour block in Karantina. Summary, "why it is with you" and source sit in one row beneath. No push, no lead: importance is never invented to fill a hero | #464 |
 | 4 | **Stream of compact three-line rows** with cluster badge and feedback actions. Large story cards rejected | #464 |
 | 5 | **Sticky side column on desktop**: "Latest" (by time) and "In brief" (low_feed), so there is never an empty side next to a long column | #465 |
@@ -297,8 +305,12 @@ opens a specimen page of the tokens, type and marks in all three grounds.
 | `--line` | dividers, borders | `#e2e6ee` | `#c9d0dc` | `#353e55` |
 | `--acc` | accent: logo stroke, filled mark, tags, actions, link underline, box rule | `#2446e8` | `#2446e8` | `#3cffd0` |
 | `--tint` | accent tint: tag ground, row hover | `#edf1ff` | `#d8e0f8` | `#25304a` |
-| `--top` | top bar | `#142a66` | `#142a66` | `#0f1422` |
-| `--top-fg` | top bar text | `#ffffff` | `#ffffff` | `#eef1f7` |
+| `--top` | header (masthead and slim bar) | `#142a66` | `#142a66` | `#0f1422` |
+| `--top-fg` | header text, active tab | `#ffffff` | `#ffffff` | `#eef1f7` |
+| `--top-dim` | inactive tabs, date line (#491) | `#b9c4e6` | `#b9c4e6` | `#a3adc0` |
+| `--top-logo-a` / `-b` | logo bars on the header (blue / green, the app icon's own) | `#6a95d8` `#1fc77c` | same | same |
+| `--logo-a` / `-b` | logo bars on the page ground (#491) | `#3a6fc9` `#11995f` | `#3a6fc9` `#0e8753` | `#6a95d8` `#1fc77c` |
+| `--top-hover`, `--top-shadow` | avatar ground, slim-bar shadow | translucent white; navy shadow | same | black shadow |
 | `--slab` | lead block ground | `#2446e8` | `#2446e8` | `#3cffd0` |
 | `--slab-fg` | lead block text and rule | `#ffffff` | `#ffffff` | `#07130f` |
 | `--slab-dim` | lead decoration strokes | `#d5dcff` | `#d5dcff` | `#0d4a3b` |
@@ -327,8 +339,8 @@ falls short as small text**: on `--card` 3.57 / 4.20 / 4.12, and `--hot-fg` on `
 
 | element | size / weight |
 |---|---|
-| wordmark | 44px 800, letter-spacing −0.02em (36px under 900px) |
-| top bar | 13px 700, letter-spacing 0.02em |
+| logo (masthead / slim bar) | 42px 800 / 22px, letter-spacing −0.02em (30px / 19px under 768px) |
+| tabs | 15px 700 (14px on a phone; 11px label under the icon in the phone's slim bar) |
 | summary line | 14px, `--dim`, numbers 700 `--ink` |
 | league pill | 15px, name 700 + count |
 | important-row headline | 21px 500 / 1.3 |
@@ -356,16 +368,23 @@ The count comes from `DECISION_RANK` / `strength` in `decisionConfig.js`, never 
 mapping. It has `role="img"` and an accessible name built from the decision label (for example
 "עוצמה: חשוב"). The mock's own words for the levels are illustration only. Labels follow A3.
 
-**Logo lockup**: the wordmark "סיגנל" with a solid `--acc` stroke, 14×38 px, `skewX(-18deg)`,
-6px before the word at its inline start.
+**Logo lockup** (#491, Guy 2026-11-14; replaces the slanted `--acc` stroke): the app icon's
+three rounded bars (short blue, tall green, medium blue, as in `public/favicon.svg`) at the
+inline start of the word "סיגנל" (800). `SignalWordmark` draws it everywhere (header, auth, 404,
+welcome, demo, lab); sized in em (bars 0.78em tall, 0.15em wide, 0.09em apart, 0.28em before
+the word), the bars keep the icon's left-to-right order in RTL and are `aria-hidden` (the word
+is the text). On the navy header (`.sg-on-top`) the bars take the icon's own colours
+(`--top-logo-*`: 4.45 and 6.13 on `#142a66`); on a white or soft ground they take the darker
+`--logo-*` pair, because the icon green is 2.2:1 on white. The logo is non-text, so 3:1 applies;
+`contrast.test.js` checks every pair on bg, card and band.
 
 ## B5. Feed composition
 
 Top to bottom, content width `max-width: 1180px`, centred, side gutter
 `max(16px, env(safe-area-inset-*))`:
 
-1. **Top bar** (B6), full width.
-2. **Masthead**: wordmark, summary line (B6).
+1. **Header** (B6), full width, navy: masthead, then a slim bar on scroll.
+2. **Summary line** (B6), in the page slot directly under the header.
 3. **League pills** (B6).
 4. **Lead block** (B7), only with a push.
 5. **Important row** (B8).
@@ -375,24 +394,55 @@ Top to bottom, content width `max-width: 1180px`, centred, side gutter
    column is the side column (B11).
 
 Breakpoint in the mock: **900px**. Below it, every grid becomes one column, the side column
-stops being sticky and follows the stream, pills and results scroll horizontally, and the
-top bar keeps only its first and last items. Treat that as a starting point, not as approved
+stops being sticky and follows the stream, and pills and results scroll horizontally (the
+header follows its own 768px breakpoint, B6). Treat that as a starting point, not as approved
 phone design (#475). #465 decides where the side column goes on a phone.
 
-## B6. Top bar, masthead, league pills (#463)
+## B6. Header, summary line, league pills (#463, navigation #491)
 
-- **Top bar**: `--top` ground, `--top-fg` text, padding-block 9px, items 22px apart. The
-  navigation items (feed, results, preferences, calibration) sit at the inline start. The
-  account item sits at the inline end, weight 400.
-- **On `ui/next` (#463)**: `components/shell/ProductShell.jsx`, `ProductTopBar.jsx`,
-  `ProductDock.jsx`, `MastheadSlot.jsx`, `shell.css`. The masthead owns the wordmark; a page
-  renders its own content beneath it (summary line, pills) with `<MastheadSlot>`, which portals
-  into the shell's `.signal-ui` scope and collapses when empty. `.sg-gutter` / `.sg-container`
-  give the side gutter and the 1180px column. Under 768px the top bar carries a compact
-  wordmark and the account, navigation moves to a bottom dock (56px targets), and the masthead
-  block shows only slot content. That phone layout is a proposal for #475, not approved design.
-- **Masthead**: centred column, gap 10px, padding 30px above and 20px below. The wordmark
-  (B4), then the summary line: **"N סיפורים עברו את הסינון שלך · M חשובים"**. N is the number
+Decided by Guy on 2026-11-14 after five rounds on a navigation mock (#491). Rejected: a grey
+header ground, a logo-colour stripe, a segmented pill nav, a side rail, a results ticker.
+
+- **One navy header, sticky in effect, navy in both states** (`--sg-top` in every ground).
+  - **Expanded (top of page)**: in normal page flow. Large centred logo (42px, 30px under
+    768px), the date line under it ("שבת, 14 בנובמבר 2026", Asia/Jerusalem, `--top-dim` 12.5px;
+    hidden under 768px), then the tabs centred with words (15px 700, 14px on a phone, 46px tall,
+    44px on a phone). Active tab `--top-fg` with a 3px underline rounded at the top; inactive
+    tabs `--top-dim`. The account avatar sits at the inline end of the top row.
+  - **Collapsed (on scroll)**: a separate slim bar, `position: fixed`, 56px, with a soft shadow:
+    small logo at the inline start, tabs centred, account at the inline end. On a phone each tab
+    is an icon over an 11px label (an iOS-style compact tab bar), every item at least 44px and
+    all four fitting at 320px; under 360px the bar's logo keeps its bars only.
+  - **Motion (softer than the mock)**: the masthead scrolls away by itself; the bar fades in
+    with a 12px slide (420ms in, 360ms out, `--sg-ease`) and its logo settles from scale 1.18,
+    as if it travelled up from the masthead. The bar is out of flow, so nothing moves (layout
+    shift 0, harness-checked). Under reduced motion it swaps instantly.
+  - **Trigger**: an IntersectionObserver on the masthead tabs with its root line at the bar's
+    bottom edge (no scroll handler). Hysteresis (`productShellModel.nextBarShown`, node-tested):
+    the bar shows once the tabs have fully left (ratio 0, above) and hides only once they are
+    fully back (ratio 1), so it never flickers at the threshold. A hidden bar is `inert`. Keyboard
+    focus or an open menu inside the bar keeps it shown, so focus is never dropped.
+- **No bottom dock.** The console entry moved into the account menu.
+- **Account menu** (avatar: the email's first letter, a person icon in local mode): "החשבון
+  שלי" (email + link), ground (לבן / רך / כהה), an admin-only section "ניהול" (console entry, QA
+  view-as profiles, data mode) shown only to visitors who may use them (#54), sign out. The data
+  mode dot and the loading spinner are gone from the chrome; while the feed loads a thin
+  progress line runs along the header's bottom edge.
+- **Icons** (`shell/navIcons.jsx`, consumer header only; the shared `navConfig` icons stay for
+  the Ops rail): feed `Newspaper`, results a custom scoreboard on Lucide's 24px grid and 2px
+  round stroke (panel, two score blocks, a colon), preferences `SlidersHorizontal`, calibration
+  `Target`. Two other scoreboard candidates are in `lab.html?page=nav` for Guy to choose.
+- **Code**: `ProductShell.jsx` (shell, page slot), `ProductHeader.jsx` (masthead + bar),
+  `AccountMenu.jsx`, `useCollapsedBar.js`, `navIcons.jsx`, `productShellModel.js` (order, icon
+  keys, hysteresis, date, menu sections), `shell.css`. The item list stays data-driven from
+  `navConfig`, so merging preferences and calibration into one destination needs no header work.
+- **Page slot**: a page renders content under the header (summary line, pills) with
+  `<MastheadSlot>`, which portals into a `.signal-ui` band in the page flow directly beneath the
+  header, never inside the slim bar, and collapses when empty. `.sg-gutter` / `.sg-container`
+  give the side gutter and the 1180px column.
+- **Public demo**: the expanded navy header with the logo only (no tabs, no account), then its
+  banner.
+- **Summary line**, 22px under the header: **"N סיפורים עברו את הסינון שלך · M חשובים"**. N is the number
   of visible stories, M the number of push + high_feed stories, both from the real feed.
 - **League pills**: centred, wrapping, gap 10px, 30px below. Fully rounded, padding 7px 16px,
   ground `--t1`…`--t4` cycling in order. Each holds the league name (700) and its count. Pills
@@ -515,8 +565,8 @@ changes the stream's order. It must hold up with 3 and with 40 stories.
 - Fresh marker (`isFreshStory`, under an hour): a pulsing `--hot` dot (a mark, not text), with
   the time in `--ink` 800. Small `--hot` text fails contrast (B2). The pulse stops under reduced
   motion.
-- Desktop: sticky at `14px + env(safe-area-inset-top)`. The top bar scrolls with the page, so
-  its height is not added. A column taller than the viewport is capped at the viewport height
+- Desktop: sticky 14px below the slim header bar (`var(--sg-bar-h) + 14px +
+  env(safe-area-inset-top)`, #491; `--sg-bar-h` is 0 where there is no bar, as in the demo). A column taller than the viewport is capped at the viewport height
   and scrolls inside, so its end is reachable at any scroll position, not only once the stream
   has ended.
 - Phone (under 900px): one column, with the side column after the stream. The other option

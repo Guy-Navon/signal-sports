@@ -29,6 +29,13 @@
   --sg-tint: #edf1ff;
   --sg-top: #142a66;
   --sg-top-fg: #ffffff;
+  --sg-top-dim: #b9c4e6;
+  --sg-top-logo-a: #6a95d8;
+  --sg-top-logo-b: #1fc77c;
+  --sg-logo-a: #3a6fc9;
+  --sg-logo-b: #11995f;
+  --sg-top-hover: rgb(255 255 255 / 0.12);
+  --sg-top-shadow: 0 6px 22px rgb(20 42 102 / 0.2);
   --sg-slab: #2446e8;
   --sg-slab-fg: #ffffff;
   --sg-slab-dim: #d5dcff;
@@ -67,6 +74,11 @@
   --sg-tint: #d8e0f8;
   --sg-top: #142a66;
   --sg-top-fg: #ffffff;
+  --sg-top-dim: #b9c4e6;
+  --sg-top-logo-a: #6a95d8;
+  --sg-top-logo-b: #1fc77c;
+  --sg-logo-a: #3a6fc9;
+  --sg-logo-b: #0e8753;
   --sg-slab: #2446e8;
   --sg-slab-fg: #ffffff;
   --sg-slab-dim: #d5dcff;
@@ -90,6 +102,12 @@
   --sg-tint: #25304a;
   --sg-top: #0f1422;
   --sg-top-fg: #eef1f7;
+  --sg-top-dim: #a3adc0;
+  --sg-top-logo-a: #6a95d8;
+  --sg-top-logo-b: #1fc77c;
+  --sg-logo-a: #6a95d8;
+  --sg-logo-b: #1fc77c;
+  --sg-top-shadow: 0 6px 22px rgb(0 0 0 / 0.45);
   --sg-slab: #3cffd0;
   --sg-slab-fg: #07130f;
   --sg-slab-dim: #0d4a3b;
@@ -110,23 +128,45 @@
   line-height: 0.88;
 }
 
-/* Wordmark lockup: the slanted accent stroke, then "סיגנל". Sized in em so the
-   lockup scales with the font size it is given. */
+/* Logo lockup (#491): the app icon's three rounded bars (short blue, tall
+   green, medium blue, as in public/favicon.svg), then "סיגנל". Sized in em so
+   the lockup scales with the font size it is given. The bars keep the icon's
+   left-to-right order in RTL. On a white or soft ground they take the darker
+   --sg-logo-* pair (3:1 against the ground); inside .sg-on-top (the navy
+   header) they take the app icon's own colours, which pass on navy. */
 .signal-ui .sg-wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 0.14em;
+  gap: 0.28em;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
-.signal-ui .sg-wordmark__stroke {
+.signal-ui .sg-wordmark__bars {
+  display: inline-flex;
+  direction: ltr;
+  flex: none;
+  align-items: flex-end;
+  gap: 0.09em;
+  block-size: 0.78em;
+}
+
+.signal-ui .sg-wordmark__bars > i {
   display: block;
-  inline-size: 0.32em;
-  block-size: 0.86em;
-  background: var(--sg-acc);
-  transform: skewX(var(--sg-skew));
+  inline-size: 0.15em;
+  border-radius: 999px;
+  background: var(--sg-logo-a);
+}
+
+.signal-ui .sg-wordmark__bars > i:nth-child(1) { block-size: 52%; }
+.signal-ui .sg-wordmark__bars > i:nth-child(2) { block-size: 100%; background: var(--sg-logo-b); }
+.signal-ui .sg-wordmark__bars > i:nth-child(3) { block-size: 76%; }
+
+.signal-ui .sg-on-top {
+  --sg-logo-a: var(--sg-top-logo-a);
+  --sg-logo-b: var(--sg-top-logo-b);
 }
 
 /* Signal strength mark: three slanted strokes, ascending. Filled strokes take

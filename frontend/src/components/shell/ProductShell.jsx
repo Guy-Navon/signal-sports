@@ -1,23 +1,21 @@
 import React, { useState } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
-import SignalWordmark from "@/components/signal-ui/SignalWordmark";
 import { GroundProvider, useGround } from "@/components/signal-ui/useGround";
 import ErrorState from "@/components/shared/ErrorState";
 import { connectionErrorStrip } from "@/components/feed/feedLoadModel";
-import ProductTopBar from "@/components/shell/ProductTopBar";
-import ProductDock from "@/components/shell/ProductDock";
+import ProductHeader from "@/components/shell/ProductHeader";
 import { MastheadSlotContext } from "@/components/shell/MastheadSlot";
 import { pageSurface } from "@/components/shell/productShellModel";
 import "@/components/signal-ui/signal-ui.css";
 import "@/components/shell/shell.css";
 
-// The consumer product shell (#463, Part B §B5–B6): navy top bar, centred
-// wordmark masthead with a page slot beneath it, the page, and a bottom dock
-// on phones. The chrome carries the `.signal-ui` scope (white ground by
-// default). The page body carries a scope chosen per route: pages not yet
+// The consumer product shell (#463, navigation #491, Part B §B5–B6): the navy
+// header (expanded masthead + slim bar on scroll, ProductHeader), the page slot
+// directly beneath it (outside the sticky bar), then the page. No bottom dock.
+// The chrome carries the `.signal-ui` scope (white ground by default). The page body carries a scope chosen per route: pages not yet
 // rebuilt keep `.orbit-product`, so their Orbit tokens still resolve exactly
 // as before; rebuilt pages get `.signal-ui`. See productShellModel.pageSurface.
 export default function ProductShell() {
@@ -39,17 +37,13 @@ function ProductShellContent() {
         דילוג לתוכן
       </a>
 
-      <header className="signal-ui sg-chrome" data-ground={ground}>
-        <ProductTopBar isBackendMode={isBackendMode} isLoading={isLoading} />
-        <div className="sg-gutter">
-          <div className="sg-container sg-masthead">
-            <Link to="/" className="sg-masthead__brand" aria-label="סיגנל, לפיד">
-              <SignalWordmark />
-            </Link>
-            <div ref={setSlotNode} className="sg-masthead__slot" />
-          </div>
-        </div>
-      </header>
+      <ProductHeader ground={ground} isBackendMode={isBackendMode} isLoading={isLoading} />
+
+      {/* Page content under the header (the feed's summary line and league
+          pills, MastheadSlot). In the page flow, never inside the sticky bar. */}
+      <div className="signal-ui sg-gutter sg-slotband" data-ground={ground}>
+        <div ref={setSlotNode} className="sg-container sg-masthead__slot" />
+      </div>
 
       <main
         id="sg-main"
@@ -89,8 +83,6 @@ function ProductShellContent() {
           </MastheadSlotContext.Provider>
         </div>
       </main>
-
-      <ProductDock isBackendMode={isBackendMode} />
     </div>
   );
 }

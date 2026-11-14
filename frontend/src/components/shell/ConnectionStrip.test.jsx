@@ -6,7 +6,8 @@ import { connectionErrorStrip } from "@/components/feed/feedLoadModel";
 
 it("announces the consumer connection error and retries from a real button", () => {
   const onRetry = vi.fn();
-  let renderer;
+  /** @type {import("react-test-renderer").ReactTestRenderer} */
+  let renderer = /** @type {any} */ (null);
   act(() => {
     renderer = create(<ConnectionStrip {...connectionErrorStrip({ area: "product", message: "boom" })} onRetry={onRetry} />);
   });

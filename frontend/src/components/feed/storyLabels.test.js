@@ -56,6 +56,21 @@ describe("condensedReason", () => {
     expect(condensedReason([])).toBeNull();
     expect(condensedReason(undefined)).toBeNull();
   });
+
+  it("skips the V2 score summary and keeps the deciding explanation", () => {
+    expect(condensedReason(["בסיס: מעקב אחרי NBA", "ניקוד: 3 → חשוב", "החלטה סופית: חשוב"]))
+      .toBe("בסיס: מעקב אחרי NBA");
+  });
+
+  it.each(["ניקוד: 3 → חשוב", "  ניקוד: 0 → נמוך  ", "3 → 2", "-1.5 -> +3", "2 ← 3", "3 ➔ 2", "(3) ⇨ (2)", "3", "החלטה סופית: feed", "   "])(
+    "returns null when only a score or final decision remains: %s", (line) => {
+      expect(condensedReason([line, "החלטה סופית: feed"])).toBeNull();
+    }
+  );
+
+  it("does not accept a score disguised as a quoted topic", () => {
+    expect(condensedReason(['נושא: "3 → 2"', "ניקוד: 3 → חשוב"])).toBeNull();
+  });
 });
 
 describe("entityLabel", () => {

@@ -111,15 +111,16 @@ export function buildKicker(item) {
 /**
  * Distil the engine's reasoning chain into the "why you're seeing this" line.
  * Prefers the quoted topic label the engine emits (נושא: "..."), falling back
- * to the most specific non-final reasoning line.
+ * to the most specific non-final explanation. Score summaries are never labels.
  */
 export function condensedReason(reasoning) {
   if (!reasoning || reasoning.length === 0) return null;
-  for (const line of reasoning) {
+  const meaningful = (line) => /\p{L}/u.test(line) && !line.includes("החלטה סופית") &&
+    !/ניקוד\s*:/.test(line);
+  const lines = reasoning.map((line) => line.trim());
+  for (const line of lines) {
     const m = line.match(/נושא:\s*"([^"]+)"/);
-    if (m) return m[1].trim();
+    if (m && meaningful(m[1].trim())) return m[1].trim();
   }
-  const meaningful = reasoning.filter((l) => !l.includes("החלטה סופית"));
-  const finalLine = [...reasoning].reverse().find((l) => l.includes("החלטה סופית"));
-  return (meaningful[meaningful.length - 1] || finalLine || reasoning[0]).trim();
+  return lines.filter((line) => meaningful(line) && !/נושא:\s*"/.test(line)).at(-1) || null;
 }

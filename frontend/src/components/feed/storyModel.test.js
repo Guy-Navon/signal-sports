@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  feedSurface,
   feedbackArticleId,
   hasMultiSourceField,
   queueItems,
@@ -19,6 +20,14 @@ import {
   selectStoryFocus,
   sourceInitial,
 } from "./storyModel";
+
+it.each([false, true])("consumer surfaces never expose a trace (readOnly=%s)", (readOnly) => {
+  for (const traceAllowed of [false, true]) {
+    expect(feedSurface({ readOnly, traceAllowed })).toEqual({
+      showFeedback: !readOnly, showTrace: false,
+    });
+  }
+});
 
 const cluster = {
   id: "displayed-article",

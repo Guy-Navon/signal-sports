@@ -13,9 +13,12 @@ describe("deskVoiceView (journey audit D6)", () => {
     expect(deskVoiceView({ showTrace: false, reason: null, reasoning: trace })).toBeNull();
   });
 
-  it("ops (admin, local QA) keep the engine trace", () => {
+  it("admins and local QA get the same reader sentence on the consumer feed", () => {
     const v = deskVoiceView({ showTrace: true, reason: "x", reasoning: trace });
-    expect(v.mode).toBe("trace");
-    expect(v.steps.length).toBeGreaterThan(0);
+    expect(v).toEqual({ mode: "reader", text: "x", steps: [] });
+  });
+
+  it("admins with no reader sentence get nothing even with a full trace", () => {
+    expect(deskVoiceView({ showTrace: true, reason: null, reasoning: trace })).toBeNull();
   });
 });

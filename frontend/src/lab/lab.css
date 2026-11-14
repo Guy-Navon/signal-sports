@@ -151,6 +151,9 @@
 
 /* Navigation lab (#491), lab.html?page=nav. */
 .lab-nav {
+  /* One column no wider than the page: an auto track would grow to the
+     min-content of the 320px bar copies inside the cards (#504). */
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   min-block-size: 100vh;
   gap: 28px;
@@ -178,6 +181,9 @@
 .lab-nav__card {
   display: grid;
   gap: 12px;
+  /* Same inside the card, whose bar copy is 320px wide (max 100%). */
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
   margin: 0;
   padding: 16px;
   border: 1px solid var(--sg-line);

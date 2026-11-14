@@ -1687,8 +1687,25 @@ async function auditNoSerifLeak(client, route, headingSelector, expectedFamily =
 async function auditTypography(client, label) {
   await loadApp(client);
   await openFilters(client);
-  const text = await readFamilies(client, TEXT_SURFACES);
-  assertFamilies(label, text, TEXT_FAMILY);
+  // Legacy local fixtures have no reader sentence (#497). Keep the why-line
+  // font assertion non-vacuous by rendering the real feed component with one.
+  const fixture = await evaluate(client, `(async () => {
+    const fixture = await import("/scripts/capture-reader-reason.jsx");
+    return fixture.mount();
+  })()`);
+  let text;
+  try {
+    if (!fixture.text?.includes(fixture.expected) || fixture.text.includes("ניקוד:")) {
+      throw new Error(`${label}: the reader-reason fixture did not render its sentence: ${JSON.stringify(fixture)}`);
+    }
+    text = await readFamilies(client, TEXT_SURFACES);
+    assertFamilies(label, text, TEXT_FAMILY);
+  } finally {
+    await evaluate(client, `(async () => {
+      const fixture = await import("/scripts/capture-reader-reason.jsx");
+      fixture.unmount();
+    })()`);
+  }
   const shellChrome = await readFamilies(client, SHELL_SURFACES);
   assertFamilies(label, shellChrome, TEXT_FAMILY);
   const faces = await auditFeedFaces(client);

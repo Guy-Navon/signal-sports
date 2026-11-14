@@ -160,12 +160,12 @@ function Headline({ as = "h3", story, className = "", linkRef = undefined }) {
   );
 }
 
-/** "למה אצלך:" + the reader's reason (or, for ops, the engine line). */
-function WhyLine({ item, showTrace, className = "", children = null }) {
+/** "למה אצלך:" + the reader's reason, for every consumer role.
+ * @param {{ item: any, showTrace?: boolean, className?: string, children?: React.ReactNode }} props
+ */
+function WhyLine({ item, className = "", children = null }) {
   const view = deskVoiceView({
-    showTrace,
     reason: item.score?.reasonHe,
-    reasoning: item.score?.reasoning,
   });
   if (!view && !children) return null;
   return (

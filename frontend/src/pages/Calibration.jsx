@@ -243,8 +243,10 @@ export default function Calibration({ embedded = false }) {
   if (!isBackendMode) {
     return (
       <div className={embedded ? "sg-preferences__section sg-calibration" : "sg-personalization sg-calibration"}>
-        <PageHeader level={embedded ? 2 : 1} title="כיול העדפות" icon={SlidersHorizontal} subtitle="דרג כותרות סינתטיות כדי שנלמד מה מעניין אותך" />
-        <SectionCard title="כיול העדפות" icon={SlidersHorizontal}>
+        {embedded
+          ? <p className="sg-form-note">דרג כותרות לדוגמה כדי שנלמד מה מעניין אותך.</p>
+          : <PageHeader title="כיול העדפות" icon={SlidersHorizontal} subtitle="דרג כותרות סינתטיות כדי שנלמד מה מעניין אותך" />}
+        <SectionCard>
           <p className="sg-form-note">
             כיול ההעדפות רץ בבקאנד (מודל ההעדפות v2) וזמין רק במצב שרת.
           </p>
@@ -272,8 +274,7 @@ export default function Calibration({ embedded = false }) {
           </button>
         </div>
       )}
-      <PageHeader
-        level={embedded ? 2 : 1}
+      {embedded ? <p className="sg-form-note">דרג כותרות לדוגמה כדי שנלמד מה מעניין אותך.</p> : <PageHeader
         title="כיול העדפות"
         icon={SlidersHorizontal}
         subtitle={
@@ -285,7 +286,7 @@ export default function Calibration({ embedded = false }) {
             {version != null && <span className="sg-form-note"> · גרסת מאגר {version}</span>}
           </>
         }
-      />
+      />}
 
       {error && (
         <div className="sg-form-error" role="alert">
@@ -299,6 +300,12 @@ export default function Calibration({ embedded = false }) {
         <StatCard label="תחומים במאגר" value={Object.keys(bySport).length} />
         <StatCard label="סטטוס" value={appliedResult ? "נשמר" : "טיוטה"} />
       </div>
+
+      <p className="sg-form-success sg-calibration__completion" role="status" aria-atomic="true">
+        {!appliedResult && items.length > 0 && ratedCount === items.length
+          ? "כל הכותרות דורגו. אפשר לשמור לפרופיל או לעדכן את הדירוגים."
+          : ""}
+      </p>
 
       {appliedResult ? (
         <CalibrationSummary result={appliedResult} onContinueRating={() => {
@@ -317,7 +324,6 @@ export default function Calibration({ embedded = false }) {
         </button>
       </div>
 
-      {items.length > 0 && ratedCount === items.length && <p className="sg-form-success" role="status">כל הכותרות דורגו. אפשר לשמור לפרופיל או לעדכן את הדירוגים.</p>}
       {!isLoading && items.length === 0 && !error && <p className="sg-form-empty" role="status">אין כרגע כותרות לכיול.</p>}
       <PreviewPanel preview={preview} />
 

@@ -5,6 +5,7 @@ import { getDecisionConfig } from "@/components/feed/decisionConfig";
 import "@/components/signal-ui/signal-ui.css";
 import "./lab.css";
 import FeedLab from "./FeedLab";
+import MotionLab from "./MotionLab";
 
 const GROUNDS = [
   { id: "light", name: "לבן (ברירת מחדל)" },
@@ -85,8 +86,11 @@ function Ground({ id, name }) {
 }
 
 export default function LabApp() {
-  // lab.html?page=feed opens the feed lab (#464); the default is the specimen (#462).
-  if (new URLSearchParams(window.location.search).get("page") === "feed") return <FeedLab />;
+  // lab.html?page=feed opens the feed lab (#464), ?page=motion the motion lab
+  // (#467); the default is the specimen (#462).
+  const page = new URLSearchParams(window.location.search).get("page");
+  if (page === "feed") return <FeedLab />;
+  if (page === "motion") return <MotionLab />;
   return (
     <main className="lab-page">
       {GROUNDS.map((ground) => (

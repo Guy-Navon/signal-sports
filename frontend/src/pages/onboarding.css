@@ -1,0 +1,20 @@
+.signal-ui.sg-welcome { min-block-size: 100vh; min-block-size: 100dvh; padding-block-end: 48px; overflow-wrap: anywhere; }
+.signal-ui.sg-welcome .sg-welcome__masthead { display: flex; justify-content: center; padding-block: 28px; padding-inline: 16px; border-block-end: 1px solid var(--sg-line); }
+.signal-ui.sg-welcome .sg-welcome__masthead a { font-size: 44px; color: var(--sg-ink); text-decoration: none; }
+.signal-ui.sg-welcome .sg-welcome__body { max-inline-size: 640px; margin-inline: auto; padding-block: 48px; padding-inline: 24px; }
+.signal-ui.sg-welcome .sg-welcome__body > * + * { margin-block-start: 20px; }
+.signal-ui.sg-welcome h1 { font: 800 36px/1.2 var(--sg-font-text); text-wrap: balance; }
+.signal-ui.sg-welcome .sg-welcome__intro { font-size: 19px; line-height: 1.5; }
+.signal-ui.sg-welcome .sg-welcome__steps { list-style: none; padding-block: 8px; }
+.signal-ui.sg-welcome .sg-welcome__steps li { display: flex; align-items: baseline; gap: 18px; padding-block: 16px; border-block-start: 1px solid var(--sg-line); }
+.signal-ui.sg-welcome .sg-welcome__steps li > span { color: var(--sg-acc); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.signal-ui.sg-welcome .sg-welcome__steps h2 { font-size: 18px; font-weight: 800; }
+.signal-ui.sg-welcome .sg-welcome__steps p { color: var(--sg-dim); font-size: 15px; }
+.signal-ui.sg-welcome .sg-welcome__actions { display: flex; flex-direction: column; gap: 12px; }
+.signal-ui.sg-welcome .sg-welcome__actions button:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 600px) {
+  .signal-ui.sg-welcome .sg-welcome__masthead { padding-block: 20px; }
+  .signal-ui.sg-welcome .sg-welcome__masthead a { font-size: 36px; }
+  .signal-ui.sg-welcome .sg-welcome__body { padding-block: 28px; padding-inline: 16px; }
+  .signal-ui.sg-welcome h1 { font-size: 30px; }
+}

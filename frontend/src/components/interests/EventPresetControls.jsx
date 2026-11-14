@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "@/lib/utils";
+import "./interests.css";
 import {
   EVENT_PRESET_GROUPS,
   PRESET_STATES,
@@ -10,31 +10,22 @@ import {
 // this control never invents event vocabulary.
 export default function EventPresetControls({ value, onChange }) {
   return (
-    <div className="space-y-2">
+    <div className="sg-event-presets">
       {EVENT_PRESET_GROUPS.map((group) => {
         const current = value?.[group.id] || "normal";
         return (
           <div
             key={group.id}
-            className="flex items-center justify-between gap-3 bg-surface-1 border border-border rounded-[10px] px-3 py-2"
+            className="sg-event-preset"
           >
-            <span className="text-sm text-foreground">{group.label}</span>
-            <div className="flex gap-1">
+            <span>{group.label}</span>
+            <div className="sg-event-preset__choices" role="group" aria-label={group.label}>
               {PRESET_STATES.map((state) => (
                 <button
                   key={state.id}
                   type="button"
                   onClick={() => onChange({ ...value, [group.id]: state.id })}
-                  className={cn(
-                    "px-2.5 py-1 rounded-full text-xs border transition-colors",
-                    current === state.id
-                      ? state.id === "more"
-                        ? "border-signal-high/50 bg-signal-high/10 text-signal-high"
-                        : state.id === "less"
-                          ? "border-signal-hidden/40 bg-signal-hidden/10 text-signal-hidden"
-                          : "border-text-dim/50 bg-surface-2 text-text-secondary"
-                      : "border-border text-text-dim hover:border-text-dim",
-                  )}
+                  aria-pressed={current === state.id}
                 >
                   {state.label}
                 </button>

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { ChevronDown, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
-import DecisionBadge from "@/components/feed/DecisionBadge";
-import GhostChip from "@/components/shared/GhostChip";
+import SignalStrength from "@/components/signal-ui/SignalStrength";
+import { getDecisionConfig } from "@/components/feed/decisionConfig";
 
 const MODE_LABELS = {
   all: "הכל — כל הכתבות",
@@ -23,42 +23,43 @@ export default function TopicCard({ topic }) {
     .join(" · ");
 
   return (
-    <div className="border-b border-border/60 last:border-0">
+    <div className="sg-topic">
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="w-full text-start py-3.5 flex items-start justify-between gap-3 group"
+        aria-expanded={expanded}
+        className="sg-topic__toggle"
       >
         <div className="min-w-0">
-          <p className="font-medium text-foreground text-sm group-hover:text-signal-high transition-colors">
-            {topic.label}
+          <p className="sg-topic__title">
+            <bdi dir="auto">{topic.label}</bdi>
           </p>
-          <p className="text-xs text-text-dim mt-0.5">{kicker}</p>
+          <p className="sg-form-note">{kicker}</p>
         </div>
         <ChevronDown
           size={15}
           className={cn(
-            "text-text-dim flex-shrink-0 mt-0.5 transition-transform",
+            "shrink-0 transition-transform",
             expanded && "rotate-180"
           )}
         />
       </button>
 
       {expanded && (
-        <div className="pb-4 ps-0.5 space-y-4">
+        <div className="sg-topic__detail space-y-4">
           {topic.mode === "followed_entities_only" && (
-            <p className="text-xs text-signal-ai/90">
+            <p className="sg-form-note">
               נושא זה יציג רק כתבות שמכילות את הישויות שאתה עוקב אחריהן
             </p>
           )}
 
           {topic.entities && topic.entities.length > 0 && (
             <div>
-              <p className="text-xs text-text-dim mb-2 flex items-center gap-1">
+              <p className="sg-form-heading">
                 <Tag size={11} /> ישויות
               </p>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="sg-form-list">
                 {topic.entities.map((e) => (
-                  <GhostChip key={e}>{e}</GhostChip>
+                  <bdi key={e} dir="auto">{e}</bdi>
                 ))}
               </div>
             </div>
@@ -66,15 +67,15 @@ export default function TopicCard({ topic }) {
 
           {topic.eventRules && Object.keys(topic.eventRules).length > 0 && (
             <div>
-              <p className="text-xs text-text-dim mb-2">כללי אירוע</p>
+              <p className="sg-form-heading">כללי אירוע</p>
               <div className="space-y-1">
                 {Object.entries(topic.eventRules).map(([eventType, decision]) => (
                   <div
                     key={eventType}
-                    className="flex items-center justify-between py-1 border-b border-border/40 last:border-0"
+                    className="sg-topic__rule"
                   >
-                    <span className="text-xs text-text-secondary font-mono">{eventType}</span>
-                    <DecisionBadge decision={decision} size="xs" />
+                    <span dir="ltr">{eventType}</span>
+                    <span className="sg-topic__decision">{decision !== "hidden" && <SignalStrength decision={decision} />}{getDecisionConfig(decision).label}</span>
                   </div>
                 ))}
               </div>

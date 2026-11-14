@@ -1,0 +1,51 @@
+/* Consumer forms only: no base/Radix tokens or Ops selectors are changed. */
+.signal-ui .sg-personalization {
+  max-inline-size: 920px;
+  min-inline-size: 0;
+  margin-inline: auto;
+  padding-block: 12px 64px;
+  padding-inline: 24px;
+  overflow-wrap: anywhere;
+}
+.signal-ui .sg-personalization > * + * { margin-block-start: 24px; }
+.signal-ui .sg-personalization__header { padding-block-end: 20px; border-block-end: 1px solid var(--sg-line); }
+.signal-ui .sg-personalization__eyebrow { color: var(--sg-acc); font-size: 13.5px; font-weight: 700; margin-block-end: 8px; }
+.signal-ui .sg-personalization__header h1 { display: flex; align-items: baseline; gap: 10px; font: 800 30px/1.2 var(--sg-font-text); color: var(--sg-ink); }
+.signal-ui .sg-personalization__header h1 svg { flex: none; align-self: center; color: var(--sg-acc); }
+.signal-ui .sg-personalization__header > p:last-child:not(:first-child) { margin-block-start: 10px; max-inline-size: 68ch; color: var(--sg-dim); font-size: 16px; }
+.signal-ui .sg-form-section { padding-block: 20px; border-block-start: 1px solid var(--sg-line); }
+.signal-ui .sg-form-section h2,
+.signal-ui .sg-form-heading { display: flex; align-items: center; gap: 8px; margin-block-end: 12px; font-size: 18px; line-height: 1.35; font-weight: 800; color: var(--sg-ink); }
+.signal-ui .sg-form-section h3 { font-size: 16px; font-weight: 700; color: var(--sg-ink); }
+.signal-ui .sg-form-note { color: var(--sg-dim); font-size: 14.5px; line-height: 1.5; }
+.signal-ui .sg-form-note b { color: var(--sg-ink); font-weight: 700; }
+.signal-ui .sg-form-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px; border-block: 1px solid var(--sg-line); color: var(--sg-dim); font-size: 14.5px; }
+.signal-ui .sg-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.signal-ui .sg-form-actions--between { justify-content: space-between; }
+.signal-ui .sg-form-button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-block-size: 40px; max-inline-size: 100%; padding-block: 8px; padding-inline: 14px; border: 1px solid var(--sg-line); border-radius: 0; background: var(--sg-card); color: var(--sg-acc); font: 700 15px/1.35 var(--sg-font-text); text-align: start; white-space: normal; }
+.signal-ui .sg-form-button--primary { background: var(--sg-slab); color: var(--sg-slab-fg); border-color: var(--sg-slab); }
+.signal-ui .sg-form-link { min-block-size: 40px; padding-block: 8px; padding-inline: 4px; color: var(--sg-acc); text-decoration: underline; text-underline-offset: 4px; font-size: 14.5px; }
+.signal-ui .sg-form-error { display: flex; align-items: flex-start; gap: 8px; padding-block: 12px; padding-inline: 14px; border-inline-start: 3px solid var(--sg-ink); background: var(--sg-band); color: var(--sg-ink); font-size: 15px; overflow-wrap: anywhere; }
+.signal-ui .sg-form-error svg { flex: none; margin-block-start: 3px; }
+.signal-ui .sg-form-success { display: flex; align-items: center; gap: 8px; color: var(--sg-acc); font-size: 15px; }
+.signal-ui .sg-form-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--sg-line); }
+.signal-ui .sg-form-stat { display: flex; flex-direction: column; gap: 3px; padding-block: 12px; padding-inline: 14px; min-inline-size: 0; }
+.signal-ui .sg-form-stat + .sg-form-stat { border-inline-start: 1px solid var(--sg-line); }
+.signal-ui .sg-form-stat b { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.signal-ui .sg-form-stat span { font-size: 13.5px; color: var(--sg-dim); }
+.signal-ui .sg-form-list { display: grid; grid-template-columns: minmax(0, 1fr); }
+.signal-ui .sg-form-list > * { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding-block: 12px; border-block-end: 1px solid var(--sg-line); min-inline-size: 0; font-size: 15px; }
+.signal-ui .sg-form-list bdi { min-inline-size: 0; }
+.signal-ui .sg-affinity-level { display: inline-flex; align-items: center; gap: 8px; }
+.signal-ui .sg-form-empty { padding-block: 16px; color: var(--sg-dim); font-size: 15px; }
+.signal-ui .sg-personalization :focus-visible,
+.signal-ui.sg-welcome :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.signal-ui .sg-personalization button:not(:disabled) { cursor: pointer; }
+.signal-ui .sg-personalization button:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 600px) {
+  .signal-ui .sg-personalization { padding-inline: 16px; padding-block-end: 100px; }
+  .signal-ui .sg-personalization__header h1 { font-size: 26px; }
+  .signal-ui .sg-form-banner { flex-wrap: wrap; }
+  .signal-ui .sg-form-stat { padding-inline: 8px; }
+  .signal-ui .sg-form-stat b { font-size: 20px; }
+}

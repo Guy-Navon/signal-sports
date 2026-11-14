@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Compass, RefreshCw, AlertCircle, ChevronLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
   completeMeInterests,
   getMeInterests,
@@ -17,8 +16,8 @@ import {
 } from "@/components/interests/interestsModel";
 import InterestPicker from "@/components/interests/InterestPicker";
 import EventPresetControls from "@/components/interests/EventPresetControls";
-import PageHeader from "@/components/shared/PageHeader";
-import { consoleAlert, consoleButton } from "@/components/ops/consoleStyles";
+import { PersonalizationHeader as PageHeader } from "@/components/preferences/PersonalizationLayout";
+
 
 // Explicit interest selection (issue #82, docs/INTERESTS.md) — stage 1 of
 // EXPLICIT SELECTION → CALIBRATION → LEARNING. A four-step stepper during
@@ -97,10 +96,10 @@ export default function InterestSelection() {
   }
 
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="sg-personalization">
       {inOnboarding && (
-        <div className="flex items-center justify-between rounded-lg border border-border bg-surface-1 px-4 py-2.5">
-          <p className="text-xs text-text-secondary">
+        <div className="sg-form-banner">
+          <p className="sg-form-note">
             שלב {stepIndex + 1} מתוך {STEPS.length} · אפשר לדלג — הכול ניתן לעריכה
             אחר כך בהעדפות.
           </p>
@@ -108,7 +107,7 @@ export default function InterestSelection() {
             type="button"
             onClick={skipAll}
             disabled={isSaving}
-            className="text-xs text-text-secondary hover:text-foreground underline underline-offset-4 transition-colors flex-shrink-0 max-md:min-h-11 max-md:px-2"
+            className="sg-form-link"
           >
             דלגו על הבחירה
           </button>
@@ -121,31 +120,30 @@ export default function InterestSelection() {
         subtitle={step.subtitle}
       />
 
-      {/* Step dots */}
-      <div className="flex gap-1.5">
+      {/* Full-size step targets, with the active step exposed to assistive technology. */}
+      <div className="sg-interest-steps" role="group" aria-label="שלבי בחירת תחומי עניין">
         {STEPS.map((s, i) => (
           <button
             key={s.id}
             type="button"
             onClick={() => setStepIndex(i)}
             aria-label={s.title}
-            className={cn(
-              "h-1.5 rounded-full transition-all",
-              i === stepIndex ? "w-8 bg-signal-high" : "w-4 bg-border hover:bg-text-dim",
-            )}
-          />
+            aria-current={i === stepIndex ? "step" : undefined}
+          >
+            {i + 1}. {s.id === "sports" ? "ענפים" : s.id === "competitions" ? "ליגות" : s.id === "teams" ? "קבוצות" : "חדשות"}
+          </button>
         ))}
       </div>
 
       {error && (
-        <div className={consoleAlert("error")}>
+        <div className="sg-form-error" role="alert">
           <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-xs text-text-dim">
+        <div className="sg-form-note sg-form-actions" role="status">
           <RefreshCw size={12} className="animate-spin" /> טוען את הקטלוג...
         </div>
       ) : step.id === "events" ? (
@@ -160,24 +158,24 @@ export default function InterestSelection() {
         />
       )}
 
-      <div className="flex items-center justify-between pt-2">
+      <div className="sg-form-actions sg-form-actions--between">
         <button
           type="button"
           onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
           disabled={stepIndex === 0}
-          className="text-xs text-text-secondary hover:text-foreground disabled:opacity-40 transition-colors max-md:min-h-11 max-md:min-w-11 max-md:px-2"
+          className="sg-form-button"
         >
           חזרה
         </button>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-text-dim">
+        <div className="sg-form-actions">
+          <span className="sg-form-note" role="status">
             {followCount > 0 ? `${followCount} תחומים במעקב` : "עוד לא נבחר כלום"}
           </span>
           {isLast ? (
             <button
               onClick={saveAndContinue}
               disabled={isSaving || !canContinue}
-              className={consoleButton("primary", "max-md:min-h-11")}
+              className="sg-form-button sg-form-button--primary"
             >
               {isSaving
                 ? <><RefreshCw size={13} className="animate-spin" /> שומר...</>
@@ -186,7 +184,7 @@ export default function InterestSelection() {
           ) : (
             <button
               onClick={() => setStepIndex((i) => i + 1)}
-              className={consoleButton("primary", "max-md:min-h-11")}
+              className="sg-form-button sg-form-button--primary"
             >
               הבא <ChevronLeft size={13} />
             </button>

@@ -1,4 +1,4 @@
-/* Shrinking columns and wrapping tab labels fix the 320px overflow at its source. */
+/* Desktop keeps equal columns; phones scroll the full labels inside one row. */
 .signal-ui .sg-preferences__tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-block-end: 1px solid var(--sg-line); gap: 0; }
 .signal-ui .sg-preferences__tabs a { display: flex; align-items: center; justify-content: center; text-align: center; min-inline-size: 0; min-block-size: 44px; padding-block: 10px; padding-inline: 8px; border-block-end: 2px solid var(--sg-line); font-size: 15px; color: var(--sg-dim); text-decoration: none; }
 .signal-ui .sg-preferences__tabs a[aria-selected="true"] { color: var(--sg-acc); border-color: var(--sg-acc); font-weight: 700; }
@@ -11,8 +11,19 @@
 .signal-ui .sg-preferences__panel { max-inline-size: 872px; margin-inline: auto; }
 .signal-ui .sg-preferences__panel:has(.sg-calibration) { max-inline-size: none; }
 @media (max-width: 600px) {
-  .signal-ui .sg-preferences__tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .signal-ui .sg-preferences__tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow: auto;
+    padding-block: 4px 8px;
+    padding-inline: 4px;
+    scroll-padding-inline: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sg-off) var(--sg-bg);
+  }
+  .signal-ui .sg-preferences__tabs a { flex: none; white-space: nowrap; }
 }
+.signal-ui .sg-calibration__completion:empty { margin-block-start: 0; }
 .signal-ui .sg-preferences__count { color: var(--sg-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 .signal-ui .sg-topic { border-block-end: 1px solid var(--sg-line); }
 .signal-ui .sg-topic__toggle { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; inline-size: 100%; min-block-size: 44px; padding-block: 16px; text-align: start; }

@@ -101,3 +101,28 @@ it("keeps failed apply ratings available and clears stale preview after a change
   expect(text()).not.toContain("מה השתנה בהעדפות שלך");
   expect(button("תעדכן אותי מיד").props["aria-pressed"]).toBe(true);
 });
+
+it("mounts an empty completion status before any rating and fills the same region after the last", async () => {
+  await render();
+  const status = renderer.root.findByProps({ className: "sg-form-success sg-calibration__completion" });
+  expect(status.props.role).toBe("status");
+  expect(status.children).toEqual([]);
+  await act(async () => button("מעניין").props.onClick());
+  expect(status.children).toEqual([]);
+  const lastRating = renderer.root.findAllByProps({ "aria-label": "מעניין" })[1];
+  await act(async () => lastRating.props.onClick());
+  expect(status.children.join("")).toContain("כל הכותרות דורגו");
+  await act(async () => lastRating.props.onClick());
+  expect(status.children).toEqual([]);
+});
+
+it.each([true, false])("keeps the embedded calibration introduction to one instruction (backend=%s)", async (backend) => {
+  state.app.isBackendMode = backend;
+  await render();
+  expect(renderer.root.findAllByType("header")).toHaveLength(0);
+  expect(renderer.root.findAllByType("h1")).toHaveLength(0);
+  expect(renderer.root.findAllByType("h2").map((node) => node.children.join("")))
+    .toEqual(backend ? ["כדורסל", "טניס"] : []);
+  expect(text()).toContain("דרג כותרות");
+  expect(text()).not.toContain("הפיד שלך, לפי מה שחשוב לך");
+});

@@ -1,4 +1,4 @@
-import React, { lazy, useRef } from "react";
+import React, { lazy, useEffect, useRef } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -25,6 +25,10 @@ export default function Preferences() {
   const tabRefs = useRef({});
   const activeTab = preferenceTab(location.pathname);
   const inOnboarding = consumerSession && onboardingState(auth) !== "ACTIVE";
+
+  useEffect(() => {
+    tabRefs.current[activeTab]?.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" });
+  }, [activeTab]);
 
   if (!activeTab) return <Navigate replace to={`/preferences${location.search}${location.hash}`} />;
 

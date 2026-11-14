@@ -2,7 +2,7 @@ import { Rss, Settings, Sliders, BarChart2, Database, Bug, FlaskConical, Termina
 
 // Product area — the consumer experience.
 export const PRODUCT_NAV_ITEMS = [
-  { path: "/", label: "פיד אישי", icon: Rss },
+  { path: "/", label: "הפיד שלי", icon: Rss },
   { path: "/preferences", label: "העדפות", icon: Settings },
   { path: "/calibration", label: "כיוונון", icon: Sliders },
   { path: "/results", label: "תוצאות", icon: BarChart2 },

@@ -6,12 +6,8 @@ import "@/components/signal-ui/signal-ui.css";
 import "./lab.css";
 import FeedLab from "./FeedLab";
 import MotionLab from "./MotionLab";
-
-const GROUNDS = [
-  { id: "light", name: "לבן (ברירת מחדל)" },
-  { id: "soft", name: "רך" },
-  { id: "dark", name: "כהה" },
-];
+import { GROUNDS } from "@/components/signal-ui/ground";
+import { GroundProvider } from "@/components/signal-ui/useGround";
 
 const TOKENS = [
   "bg", "band", "card", "ink", "dim", "line", "acc", "tint", "top", "top-fg",
@@ -44,12 +40,12 @@ function TokenSwatches() {
   );
 }
 
-function Ground({ id, name }) {
+function Ground({ id, label }) {
   return (
     <section className="signal-ui lab-ground" data-ground={id === "light" ? undefined : id}>
       <header className="lab-ground__head">
         <SignalWordmark className="lab-wordmark" />
-        <span className="lab-dim">רקע: {name}</span>
+        <span className="lab-dim">רקע: {label}{id === "light" && " (ברירת מחדל)"}</span>
       </header>
 
       <h2 className="lab-h">צבעים</h2>
@@ -88,9 +84,11 @@ function Ground({ id, name }) {
 export default function LabApp() {
   // lab.html?page=feed opens the feed lab (#464), ?page=motion the motion lab
   // (#467); the default is the specimen (#462).
-  const page = new URLSearchParams(window.location.search).get("page");
-  if (page === "feed") return <FeedLab />;
-  if (page === "motion") return <MotionLab />;
+  const params = new URLSearchParams(window.location.search);
+  const page = params.get("page");
+  const initialGround = params.get("ground") || undefined;
+  if (page === "feed") return <GroundProvider initialGround={initialGround}><FeedLab /></GroundProvider>;
+  if (page === "motion") return <GroundProvider initialGround={initialGround}><MotionLab /></GroundProvider>;
   return (
     <main className="lab-page">
       {GROUNDS.map((ground) => (

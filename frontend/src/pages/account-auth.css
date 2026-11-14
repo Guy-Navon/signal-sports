@@ -1,0 +1,212 @@
+/* Account and utility screens (#472). Local opt-in only; no shared token or
+   primitive overrides. Part B type, plain grounds and hairline separators. */
+.signal-ui.sg-auth-scene {
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+  padding-block-end: 48px;
+}
+.sg-auth-scene__bar { block-size: 8px; background: var(--sg-top); }
+.sg-auth-scene__masthead {
+  display: flex;
+  justify-content: center;
+  padding-block: 48px 36px;
+  padding-inline: 16px;
+}
+.sg-auth-scene__brand { color: var(--sg-ink); font-size: 44px; text-decoration: none; }
+.sg-auth-scene__column {
+  max-inline-size: 380px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  overflow-wrap: anywhere;
+}
+.sg-auth-scene__heading { margin-block-end: 28px; text-align: center; }
+.sg-auth-scene__kicker {
+  margin-block-end: 6px;
+  color: var(--sg-acc);
+  font-size: 14px;
+  font-weight: 700;
+}
+.sg-auth-scene h1, .sg-account h1 {
+  font-family: var(--sg-font-text);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+.signal-ui .sg-auth-stack { display: flex; flex-direction: column; gap: 20px; }
+.signal-ui .sg-auth-field { display: flex; flex-direction: column; gap: 7px; }
+.signal-ui .sg-auth-label {
+  color: var(--sg-ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.signal-ui .sg-auth-input {
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: 44px;
+  padding-block: 9px;
+  padding-inline: 12px;
+  border: 1px solid var(--sg-dim);
+  border-radius: 0;
+  background: var(--sg-card);
+  color: var(--sg-ink);
+  font-family: inherit;
+  font-size: 16px;
+  box-shadow: none;
+}
+.signal-ui .sg-auth-input::placeholder { color: var(--sg-dim); }
+.signal-ui .sg-auth-input[aria-invalid="true"] { border-color: var(--sg-hot); }
+.signal-ui .sg-auth-button {
+  min-block-size: 44px;
+  block-size: auto;
+  max-inline-size: 100%;
+  padding-block: 10px;
+  padding-inline: 18px;
+  border: 1px solid var(--sg-acc);
+  border-radius: 0;
+  background: var(--sg-acc);
+  color: var(--sg-slab-fg);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: normal;
+  box-shadow: none;
+}
+.signal-ui .sg-auth-button[data-auth-variant="outline"] {
+  border-color: var(--sg-dim);
+  background: var(--sg-bg);
+  color: var(--sg-ink);
+}
+.signal-ui .sg-auth-button:hover { background: var(--sg-tint); color: var(--sg-acc); }
+/* Current --sg-hot meets 3:1. Bold 19px is large text (AA); #468 owns
+   improving the token itself. Never introduce a private alert colour. */
+.signal-ui .sg-auth-button[data-auth-variant="destructive"] {
+  border-color: var(--sg-hot);
+  background: var(--sg-hot);
+  color: var(--sg-hot-fg);
+  font-size: 19px;
+  font-weight: 700;
+}
+.signal-ui .sg-auth-button:disabled, .signal-ui .sg-auth-google:disabled { cursor: wait; opacity: 0.65; }
+.signal-ui.sg-auth-scene :focus-visible,
+.signal-ui .sg-account :focus-visible,
+.signal-ui.sg-account-dialog :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+.signal-ui .sg-auth-muted { color: var(--sg-dim); font-size: 15px; line-height: 1.5; }
+.signal-ui .sg-auth-ink { color: var(--sg-ink); }
+.signal-ui .sg-auth-success { color: var(--sg-acc); font-size: 15px; }
+.signal-ui .sg-auth-error { color: var(--sg-hot); font-size: 19px; font-weight: 700; line-height: 1.4; }
+.signal-ui .sg-auth-rule { background: var(--sg-line); }
+/* Welcome also uses AuthScene. Keep its existing children legible on the new
+   ground without changing that page or the primitives they render elsewhere. */
+.sg-auth-scene .text-text-secondary,
+.sg-auth-scene .text-text-dim { color: var(--sg-dim); }
+.sg-auth-scene .text-signal-hidden { color: var(--sg-hot); font-size: 19px; font-weight: 700; }
+.sg-auth-scene button.bg-primary { background: var(--sg-acc); color: var(--sg-slab-fg); }
+.sg-auth-scene button.bg-primary:hover { background: var(--sg-tint); color: var(--sg-acc); }
+.sg-auth-scene a:not(.sg-auth-scene__brand), .sg-auth-scene button.sg-auth-text-link {
+  color: var(--sg-acc);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.sg-auth-footer { margin-block-start: 24px; text-align: center; font-size: 15px; }
+.signal-ui .sg-auth-callout { border-block: 1px solid var(--sg-line); padding-block: 16px; }
+.signal-ui .sg-auth-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding-block: 10px;
+  padding-inline: 12px;
+  border: 1px solid var(--sg-dim);
+  border-radius: 4px;
+  /* Google's G always sits on a light surface, independent of the ground. */
+  background: var(--sg-top-fg);
+  color: var(--sg-top);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+.signal-ui .sg-auth-google:hover { border-color: var(--sg-top); }
+.sg-auth-google svg { inline-size: 18px; block-size: 18px; flex: none; }
+.sg-account { padding-block: 12px 40px; }
+.sg-account__content { max-inline-size: 680px; }
+.sg-account__intro { padding-block-end: 24px; }
+.sg-account__intro p { margin-block-start: 10px; }
+.sg-account__section { border-block-start: 1px solid var(--sg-line); padding-block: 22px; }
+.sg-account__section h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-block-end: 14px;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.sg-account__section--danger h2 { color: var(--sg-hot); font-size: 19px; }
+.sg-account__section--danger { margin-block-start: 16px; border-block-start-color: var(--sg-hot); }
+.sg-account__section--danger > p { margin-block-end: 16px; }
+.sg-account__identity { font-size: 17px; overflow-wrap: anywhere; }
+.sg-account__form { max-inline-size: 380px; }
+.sg-account__methods { margin-block: 0; }
+.sg-account__methods > div { display: flex; flex-wrap: wrap; gap: 4px 10px; padding-block: 5px; }
+.sg-account__methods dd { overflow-wrap: anywhere; min-inline-size: 0; }
+.sg-account__confirmation { border-inline-start: 3px solid var(--sg-hot); padding-inline-start: 16px; }
+.signal-ui.sg-account-overlay {
+  position: fixed;
+  inset-block: 0;
+  inset-inline: 0;
+  z-index: 50;
+  background: var(--sg-top);
+  opacity: 0.65;
+}
+.signal-ui.sg-account-dialog {
+  position: fixed;
+  inset-block: 0;
+  inset-inline: 0;
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  inline-size: calc(100% - 32px);
+  max-inline-size: 480px;
+  block-size: fit-content;
+  max-block-size: calc(100dvh - 32px);
+  margin-block: auto;
+  margin-inline: auto;
+  padding-block: 24px;
+  padding-inline: 24px;
+  border: 1px solid var(--sg-line);
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+.sg-account-dialog .sg-account-dialog__header { gap: 10px; text-align: start; }
+.sg-account-dialog__header h2 { color: var(--sg-ink); font-size: 21px; font-weight: 800; }
+.sg-account-dialog__header p { color: var(--sg-dim); font-size: 15px; line-height: 1.5; }
+.sg-account-dialog .sg-account-dialog__footer { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.sg-account-dialog__footer > * { margin-inline: 0; margin-block: 0; }
+.sg-account-dialog .sg-account-dialog__cancel {
+  min-block-size: 44px;
+  padding-inline: 18px;
+  border: 1px solid var(--sg-dim);
+  border-radius: 0;
+  background: var(--sg-bg);
+  color: var(--sg-ink);
+  font-family: inherit;
+  font-size: 16px;
+  box-shadow: none;
+}
+.sg-account-dialog .sg-account-dialog__cancel:hover { background: var(--sg-tint); color: var(--sg-ink); }
+@media (max-width: 767px) {
+  .sg-auth-scene__masthead { padding-block: 32px 28px; }
+  .sg-auth-scene__brand { font-size: 36px; }
+  .sg-account { padding-block: 24px 100px; }
+  .signal-ui.sg-account-dialog { padding-block: 20px; padding-inline: 20px; }
+}

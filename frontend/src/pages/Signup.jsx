@@ -1,8 +1,6 @@
 import React, { useState } from "react";
+import { Button, Input, Label } from "@/pages/AuthControls";
 import { Link, Navigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { authPagesRedundant } from "@/context/authView";
 import AuthScene from "@/pages/AuthScene";
@@ -38,12 +36,12 @@ export default function Signup() {
   if (auth.status !== "loading" && !auth.signupEnabled && !auth.signupByInvitation) {
     return (
       <AuthScene kicker="מצטרפים לסיגנל" title="ההרשמה סגורה">
-        <p className="text-sm text-text-secondary text-center">
+        <p className="text-sm sg-auth-muted text-center">
           פתיחת חשבונות חדשים אינה זמינה כרגע.
         </p>
-        <p className="mt-6 text-sm text-text-secondary text-center">
+        <p className="mt-6 text-sm sg-auth-muted text-center">
           כבר יש לכם חשבון?{" "}
-          <Link to="/login" className="text-foreground underline underline-offset-4">
+          <Link to="/login" className="sg-auth-ink underline underline-offset-4">
             התחברות
           </Link>
         </p>
@@ -81,15 +79,15 @@ export default function Signup() {
       <AuthScene kicker="מצטרפים לסיגנל" title="בדקו את תיבת האימייל">
         <div className="space-y-5">
           {pending.delivered ? (
-            <p className="text-sm text-text-secondary text-center">
+            <p className="text-sm sg-auth-muted text-center">
               שלחנו קישור אימות אל{" "}
-              <bdi dir="ltr" className="text-foreground">{pending.email}</bdi>.
+              <bdi dir="ltr" className="sg-auth-ink">{pending.email}</bdi>.
               <br />
               פתחו אותו בכל מכשיר והזינו את הסיסמה כדי להפעיל את החשבון.
               הקישור תקף ל-24 שעות.
             </p>
           ) : (
-            <p role="alert" className="text-sm text-signal-hidden text-center">
+            <p role="alert" className="text-sm sg-auth-error text-center">
               לא הצלחנו לשלוח את האימייל אל{" "}
               <bdi dir="ltr">{pending.email}</bdi>. נסו לשלוח שוב בעוד דקה.
             </p>
@@ -99,13 +97,13 @@ export default function Signup() {
             password={password}
             initialSentAt={pending.sentAt}
           />
-          <p className="text-sm text-text-secondary text-center">
+          <p className="text-sm sg-auth-muted text-center">
             לא מוצאים? בדקו גם בתיקיית הספאם.
             <br />
             הכתובת שגויה?{" "}
             <button
               type="button"
-              className="text-foreground underline underline-offset-4"
+              className="sg-auth-text-link"
               onClick={() => {
                 setPending(null);
                 setPassword("");
@@ -122,17 +120,17 @@ export default function Signup() {
   return (
     <AuthScene kicker="מצטרפים לסיגנל" title="פתיחת חשבון">
       {auth.signupByInvitation && (
-        <p className="mb-4 text-sm text-text-secondary text-center">
+        <p className="mb-4 text-sm sg-auth-muted text-center">
           ההרשמה פתוחה כרגע למוזמנים בלבד.
         </p>
       )}
-      <form onSubmit={onSubmit} noValidate className="space-y-4">
+      <form onSubmit={onSubmit} noValidate aria-busy={submitting} className="sg-auth-stack">
         {notice && (
-          <p role="alert" className="text-sm text-signal-hidden text-center">
+          <p role="alert" className="text-sm sg-auth-error text-center">
             {notice}
           </p>
         )}
-        <div className="space-y-1.5">
+        <div className="sg-auth-field">
           <Label htmlFor="signup-name">איך לקרוא לכם? (לא חובה)</Label>
           <Input
             id="signup-name"
@@ -142,32 +140,36 @@ export default function Signup() {
             onChange={(e) => setDisplayName(e.target.value)}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="sg-auth-field">
           <Label htmlFor="signup-email">אימייל</Label>
           <Input
             id="signup-email"
             type="email"
             dir="ltr"
             autoComplete="email"
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "signup-email-error" : undefined}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
           {errors.email && (
-            <p className="text-xs text-signal-hidden">{errors.email}</p>
+            <p id="signup-email-error" role="alert" className="sg-auth-error">{errors.email}</p>
           )}
         </div>
-        <div className="space-y-1.5">
+        <div className="sg-auth-field">
           <Label htmlFor="signup-password">סיסמה (לפחות 8 תווים)</Label>
           <Input
             id="signup-password"
             type="password"
             dir="ltr"
             autoComplete="new-password"
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? "signup-password-error" : undefined}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           {errors.password && (
-            <p className="text-xs text-signal-hidden">{errors.password}</p>
+            <p id="signup-password-error" role="alert" className="sg-auth-error">{errors.password}</p>
           )}
         </div>
         <Button type="submit" className="w-full" disabled={submitting}>
@@ -177,18 +179,18 @@ export default function Signup() {
 
       {auth.googleEnabled && (
         <div className="mt-5 space-y-4">
-          <div className="flex items-center gap-3 text-xs text-text-dim" aria-hidden>
-            <span className="h-px flex-1 bg-border" />
+          <div className="flex items-center gap-3 text-xs sg-auth-muted" aria-hidden>
+            <span className="h-px flex-1 sg-auth-rule" />
             או
-            <span className="h-px flex-1 bg-border" />
+            <span className="h-px flex-1 sg-auth-rule" />
           </div>
           <GoogleSignInButton onError={() => setNotice(googleNoticeMessage("unavailable"))} />
         </div>
       )}
 
-      <p className="mt-6 text-sm text-text-secondary text-center">
+      <p className="mt-6 text-sm sg-auth-muted text-center">
         כבר יש לכם חשבון?{" "}
-        <Link to="/login" className="text-foreground underline underline-offset-4">
+        <Link to="/login" className="sg-auth-ink underline underline-offset-4">
           התחברות
         </Link>
       </p>

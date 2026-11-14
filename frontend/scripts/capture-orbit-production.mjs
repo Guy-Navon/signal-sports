@@ -1190,18 +1190,17 @@ async function auditTypography(client, label) {
 
   // Auth (/login, /signup) is deliberately unreachable here: main.jsx redirects
   // those routes away in local/bypass mode, which is the mode this harness runs
-  // for hermeticity. Its headings use the `font-display` Tailwind utility — the
-  // same mechanism PageNotFound uses — so /no-such-route exercises that exact
-  // code path, and every route below additionally asserts that --font-display
-  // itself is still the sans stack.
+  // for hermeticity. /no-such-route exercises their shared AuthScene (#472)
+  // and must paint Assistant. Every route below additionally asserts that
+  // --font-display itself is still the sans stack used by Ops.
   const leaks = [];
   for (const [route, heading] of [
     ["/debug", "h1"],            // Ops console
     ["/results", "h1"],          // Results
     ["/preferences", "h1"],      // preferences utility surface
-    ["/no-such-route", "h1"],    // 404 — same font-display utility as Auth
+    ["/no-such-route", "h1"],    // 404 — same Signal utility stage as Auth
   ]) {
-    leaks.push(await auditNoSerifLeak(client, route, heading, route === "/results" ? TEXT_FAMILY : SANS_FAMILY));
+    leaks.push(await auditNoSerifLeak(client, route, heading, ["/results", "/no-such-route"].includes(route) ? TEXT_FAMILY : SANS_FAMILY));
   }
 
   return { label, text, shellChrome, faces, leaks };

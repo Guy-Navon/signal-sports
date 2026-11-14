@@ -35,7 +35,7 @@ export function consumerDockItems({ isBackendMode, showConsoleEntry }) {
 // styling stays legible inside the new chrome until its own milestone-15 issue
 // migrates it (#464 feed, #470 preferences/interests/calibration, #471
 // results, #472 account). Migrating a page = adding its path here.
-export const SIGNAL_SURFACE_PATHS = ["/", "/results"];
+export const SIGNAL_SURFACE_PATHS = ["/", "/results", "/account"];
 
 export function pageSurface(pathname, migrated = SIGNAL_SURFACE_PATHS) {
   return migrated.includes(pathname) ? "signal" : "orbit";

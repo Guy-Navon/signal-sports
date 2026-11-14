@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Button, Input, Label } from "@/pages/AuthControls";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   authGoogleVerificationPeek,
   authGoogleVerificationStart,
@@ -95,7 +93,7 @@ export default function VerifyEmail() {
   if (state === "checking") {
     return (
       <AuthScene kicker="אימות אימייל" title="בודקים את הקישור…">
-        <p role="status" className="text-sm text-text-secondary text-center">
+        <p role="status" className="text-sm sg-auth-muted text-center">
           רגע אחד.
         </p>
       </AuthScene>
@@ -105,11 +103,11 @@ export default function VerifyEmail() {
   if (state === "invalid") {
     return (
       <AuthScene kicker="אימות אימייל" title="הקישור לא בתוקף">
-        <p role="alert" className="text-sm text-text-secondary text-center">
+        <p role="alert" className="text-sm sg-auth-muted text-center">
           {notice || "הקישור חסר או שכבר השתמשו בו."}
         </p>
-        <p className="mt-6 text-sm text-text-secondary text-center">
-          <Link to="/login" className="text-foreground underline underline-offset-4">
+        <p className="mt-6 text-sm sg-auth-muted text-center">
+          <Link to="/login" className="sg-auth-ink underline underline-offset-4">
             התחברות
           </Link>{" "}
           — אם החשבון עוד לא אומת, תוכלו לבקש שם קישור חדש.
@@ -123,13 +121,13 @@ export default function VerifyEmail() {
     return (
       <AuthScene kicker="אימות אימייל" title="הפעלת החשבון">
         <div className="space-y-4">
-          <p className="text-sm text-text-secondary text-center">
+          <p className="text-sm sg-auth-muted text-center">
             כדי להפעיל את החשבון של{" "}
-            <bdi dir="ltr" className="text-foreground">{maskedEmail}</bdi>, המשיכו עם
+            <bdi dir="ltr" className="sg-auth-ink">{maskedEmail}</bdi>, המשיכו עם
             אותו חשבון Google שאיתו נרשמתם.
           </p>
           {notice && (
-            <p role="alert" className="text-sm text-signal-hidden text-center">
+            <p role="alert" className="text-sm sg-auth-error text-center">
               {notice}
             </p>
           )}
@@ -137,7 +135,7 @@ export default function VerifyEmail() {
             startRequest={() => authGoogleVerificationStart(token)}
             onError={(err) => setNotice(verificationErrorMessage(err))}
           />
-          <p className="text-xs text-text-secondary text-center">
+          <p className="text-xs sg-auth-muted text-center">
             לא נרשמתם? אפשר לסגור את הדף. בלי חשבון ה-Google החשבון לא יופעל.
           </p>
         </div>
@@ -147,18 +145,18 @@ export default function VerifyEmail() {
 
   return (
     <AuthScene kicker="אימות אימייל" title="הפעלת החשבון">
-      <form onSubmit={onSubmit} noValidate className="space-y-4">
-        <p className="text-sm text-text-secondary text-center">
+      <form onSubmit={onSubmit} noValidate className="sg-auth-stack">
+        <p className="text-sm sg-auth-muted text-center">
           כדי להפעיל את החשבון של{" "}
-          <bdi dir="ltr" className="text-foreground">{maskedEmail}</bdi>, הזינו את
+          <bdi dir="ltr" className="sg-auth-ink">{maskedEmail}</bdi>, הזינו את
           הסיסמה שבחרתם בהרשמה.
         </p>
         {notice && (
-          <p role="alert" className="text-sm text-signal-hidden text-center">
+          <p role="alert" className="text-sm sg-auth-error text-center">
             {notice}
           </p>
         )}
-        <div className="space-y-1.5">
+        <div className="sg-auth-field">
           <Label htmlFor="verify-password">סיסמה</Label>
           <Input
             id="verify-password"
@@ -172,7 +170,7 @@ export default function VerifyEmail() {
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? "מפעילים…" : "הפעלת החשבון"}
         </Button>
-        <p className="text-xs text-text-secondary text-center">
+        <p className="text-xs sg-auth-muted text-center">
           לא נרשמתם? אפשר לסגור את הדף. בלי הסיסמה החשבון לא יופעל.
         </p>
       </form>

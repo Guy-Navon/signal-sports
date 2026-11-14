@@ -1,18 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Clock, Inbox } from "lucide-react";
-import Atmosphere from "@/components/shell/Atmosphere";
-import SignalMark from "@/components/shell/SignalMark";
-import EmptyState from "@/components/shared/EmptyState";
-import ErrorState from "@/components/shared/ErrorState";
+import React, { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, Clock } from "lucide-react";
+import SignalWordmark from "@/components/signal-ui/SignalWordmark";
 import { feedBodyState } from "@/components/feed/feedLoadModel";
-import { filterFeedItems, toggleFilterSet } from "@/components/feed/feedFilters";
-import OrbitFeedView from "@/components/feed/orbit/OrbitFeedView";
-import OrbitLoadingState from "@/components/feed/orbit/OrbitLoadingState";
-import "@/components/feed/orbit/orbit.css";
-import { demoBanner, demoDecisionCounts, loadDemoSnapshot } from "./demoModel";
+import { toggleFilterSet } from "@/components/feed/feedFilters";
+import SignalFeedView from "@/components/feed/signal/SignalFeedView";
+import "@/components/shell/shell.css";
+import { demoBanner, loadDemoSnapshot } from "./demoModel";
+import "./demo.css";
 
 // The public read-only demo (#458). The feed and its explanations only: no
-// router, no auth, no app provider, no API. It reads two static JSON files.
+// router, no auth, no app provider, no API. It reads static snapshot files only.
 
 const PROFILE_NAME = "גיא";
 const TICK_MS = 60_000;
@@ -20,25 +17,22 @@ const TICK_MS = 60_000;
 function DemoBanner({ meta, now }) {
   const view = meta ? demoBanner(meta, now) : null;
   return (
-    <div
-      role="status"
-      className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border bg-surface-1/70 px-3 py-2 text-xs text-text-secondary"
-    >
-      <span className="font-medium text-signal-ai">הדגמה לקריאה בלבד</span>
-      <span aria-hidden className="hidden sm:inline">·</span>
+    <div role="status" className="sg-demo-banner">
+      <strong>הדגמה לקריאה בלבד</strong>
+      <span aria-hidden="true">·</span>
       <span>הפיד החי של הפרופיל של {PROFILE_NAME}, מתעדכן כל שעה</span>
       {view && (
         <>
-          <span aria-hidden className="hidden sm:inline">·</span>
-          <span className="inline-flex items-center gap-1">
-            <Clock size={12} aria-hidden />
+          <span aria-hidden="true">·</span>
+          <span className="sg-demo-banner__time">
+            <Clock size={12} aria-hidden="true" />
             {view.updated}
           </span>
         </>
       )}
       {view?.warning && (
-        <span className="inline-flex basis-full items-center gap-1 text-signal-hidden">
-          <AlertTriangle size={13} aria-hidden />
+        <span className="sg-demo-banner__warning">
+          <AlertTriangle size={13} aria-hidden="true" />
           {view.warning}
         </span>
       )}
@@ -47,18 +41,18 @@ function DemoBanner({ meta, now }) {
 }
 
 export default function DemoApp() {
-  const [snapshot, setSnapshot] = useState({ status: "loading", items: [], meta: null });
+  const [snapshot, setSnapshot] = useState({ status: "loading", items: [], results: [], meta: null });
   const [now, setNow] = useState(() => Date.now());
   const [activeFilters, setActiveFilters] = useState(new Set(["all"]));
 
   const load = useCallback(() => {
     setSnapshot((current) => ({ ...current, status: "loading" }));
     loadDemoSnapshot(window.fetch.bind(window), import.meta.env.BASE_URL)
-      .then(({ items, meta }) => {
-        setSnapshot({ status: "ready", items, meta });
+      .then(({ items, meta, results }) => {
+        setSnapshot({ status: "ready", items, meta, results });
         setNow(Date.now());
       })
-      .catch(() => setSnapshot({ status: "error", items: [], meta: null }));
+      .catch(() => setSnapshot({ status: "error", items: [], results: [], meta: null }));
   }, []);
 
   useEffect(() => {
@@ -70,9 +64,7 @@ export default function DemoApp() {
     return () => clearInterval(id);
   }, []);
 
-  const { items, meta, status } = snapshot;
-  const filteredItems = useMemo(() => filterFeedItems(items, activeFilters), [items, activeFilters]);
-  const decisionCounts = useMemo(() => demoDecisionCounts(items), [items]);
+  const { items, meta, results, status } = snapshot;
   const bodyState = feedBodyState({
     isBackendMode: true,
     isLoading: status === "loading",
@@ -81,50 +73,41 @@ export default function DemoApp() {
   });
 
   return (
-    <div className="orbit-product min-h-screen flex flex-col relative">
-      <Atmosphere />
-      <header className="orbit-masthead border-b border-transparent">
-        <div className="max-w-screen-2xl mx-auto px-4 h-14 flex items-center gap-2">
-          <SignalMark />
-          <span className="orbit-wordmark font-display font-bold text-foreground text-[1.05rem] tracking-tight">
-            <span>סיגנל</span>
-            <small>מודיעין ספורט</small>
-          </span>
-        </div>
+    <div className="signal-ui sg-shell sg-demo">
+      <header className="sg-masthead sg-gutter sg-demo-masthead">
+        <SignalWordmark className="sg-masthead__brand" />
       </header>
 
-      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-5 pb-12 md:px-5 md:pt-6">
-        <DemoBanner meta={meta} now={now} />
+      <main className="sg-body">
+        {bodyState !== "items" && (
+          <div className="sg-gutter">
+            <div className="sg-container"><DemoBanner meta={meta} now={now} /></div>
+          </div>
+        )}
         {bodyState === "loading" ? (
-          <div className="orbit-feed-view">
-            <OrbitLoadingState />
+          <div className="sg-feed">
+            <div className="sg-in sg-skeleton" role="status" aria-busy="true" aria-label="טוען את הפיד שלך">
+              <i /><i /><i /><i /><i />
+            </div>
           </div>
         ) : bodyState === "error" ? (
-          <div className="orbit-feed-view orbit-feed-empty" role="alert">
-            <ErrorState
-              variant="page"
-              title="לא הצלחנו לטעון את ההדגמה"
-              message="הנתונים לא נטענו. נסו שוב בעוד רגע."
-              retryLabel="נסו שוב"
-              onRetry={load}
-            />
+          <div className="sg-gutter sg-state" role="alert">
+            <h2>לא הצלחנו לטעון את ההדגמה</h2>
+            <p>הנתונים לא נטענו. נסו שוב בעוד רגע.</p>
+            <button type="button" className="sg-more" onClick={load}>נסו שוב</button>
           </div>
         ) : bodyState === "empty" ? (
-          <div className="orbit-feed-view orbit-feed-empty">
-            <EmptyState
-              icon={Inbox}
-              title="אין כרגע סיפורים בפיד"
-              hint="סיפורים חדשים יופיעו כאן בעדכון הבא."
-            />
+          <div className="sg-gutter sg-state" role="status">
+            <h2>אין כרגע סיפורים בפיד</h2>
+            <p>סיפורים חדשים יופיעו כאן בעדכון הבא.</p>
           </div>
         ) : (
-          <OrbitFeedView
+          <SignalFeedView
             readOnly
-            items={filteredItems}
+            items={items}
+            results={results}
             localScoredArticles={[]}
-            profileName={PROFILE_NAME}
-            scanned={0}
-            decisionCounts={decisionCounts}
+            status={<DemoBanner meta={meta} now={now} />}
             activeFilters={activeFilters}
             onToggleFilter={(id) => setActiveFilters((current) => toggleFilterSet(current, id))}
             onResetFilters={() => setActiveFilters(new Set(["all"]))}

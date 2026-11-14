@@ -1,10 +1,11 @@
 // The public read-only demo (#458): the live feed of profile "guy", exported
 // hourly to static JSON by backend/scripts/export_demo_snapshot.py. Pure and
-// node-tested. The demo makes no API calls: these two files are all it reads.
+// node-tested. The demo makes no API calls: it reads static snapshot files only.
 import { normalizeScoredArticleFromApi } from "@/api/normalizers";
 import { getVisibleItems } from "@/components/feed/feedFilters";
 import { formatUpdatedAgo } from "@/components/feed/feedFreshnessModel";
 import { prepareFeedItems } from "@/components/feed/orbit/orbitStoryModel";
+import { normalizeResultsResponse } from "@/components/results/resultsModel";
 
 // The worker runs every few minutes and the export every hour, so anything
 // older than this means the pipeline or the owner's PC has stopped.
@@ -22,19 +23,24 @@ async function fetchJson(fetchImpl, url) {
 /**
  * Load the snapshot and shape it exactly as the real app shapes /api/me/feed:
  * normalizeScoredArticleFromApi, visible items only, backend-mode preparation.
- * Throws on a missing or malformed file, so the page can show its error state.
+ * Throws on a missing or malformed feed/meta file. Results are optional: an
+ * older snapshot or a broken results file leaves the feed usable with no strip.
  * @param {(url: string, init?: { cache?: string }) => Promise<{ ok: boolean, status: number, json: () => Promise<any> }>} fetchImpl
  * @param {string} base  the site base path (import.meta.env.BASE_URL), ending in "/"
  */
 export async function loadDemoSnapshot(fetchImpl, base = "/") {
-  const [feed, meta] = await Promise.all([
+  const [feed, meta, results] = await Promise.all([
     fetchJson(fetchImpl, `${base}demo-data/feed.json`),
     fetchJson(fetchImpl, `${base}demo-data/meta.json`),
+    fetchJson(fetchImpl, `${base}demo-data/results.json`)
+      .then((raw) => normalizeResultsResponse(raw).games)
+      .catch(() => []),
   ]);
   if (!Array.isArray(feed)) throw new Error("demo feed is not a list");
   const visible = getVisibleItems(feed.map(normalizeScoredArticleFromApi));
   return {
     meta,
+    results,
     items: prepareFeedItems(visible, { isBackendMode: true, localScoredArticles: [] }),
   };
 }

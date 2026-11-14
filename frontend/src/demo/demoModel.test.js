@@ -37,6 +37,12 @@ const META = {
   last_successful_cycle_at: "2026-11-11T09:50:00+00:00",
   item_count: 1,
 };
+const RESULT = {
+  id: "game_1", competition_id: "comp:euroleague", competition_he: "יורוליג",
+  status: "final", start_time: "2026-11-11T08:00:00Z", winner: "home",
+  home: { name: "מכבי תל אביב", score: 90, is_winner: true },
+  away: { name: "ריאל מדריד", score: 85, is_winner: false },
+};
 
 function fakeFetch(responses) {
   const calls = [];
@@ -50,15 +56,18 @@ function fakeFetch(responses) {
 }
 
 describe("loadDemoSnapshot", () => {
-  it("fetches only its two static files, uncached, and returns orbit items", async () => {
+  it("fetches only its three static files, uncached, and returns prepared items and normalized results", async () => {
     const { impl, calls } = fakeFetch({
       "/demo-data/feed.json": [ITEM, { ...ITEM, decision: "hidden", article: { ...ITEM.article, id: "rss_h" } }],
       "/demo-data/meta.json": META,
+      "/demo-data/results.json": { has_preferences: true, games: [RESULT] },
     });
 
     const snapshot = await loadDemoSnapshot(impl, "/");
 
-    expect(calls.map((c) => c.url).sort()).toEqual(["/demo-data/feed.json", "/demo-data/meta.json"]);
+    expect(calls.map((c) => c.url).sort()).toEqual([
+      "/demo-data/feed.json", "/demo-data/meta.json", "/demo-data/results.json",
+    ]);
     expect(calls.every((c) => c.init?.cache === "no-store")).toBe(true);
     expect(snapshot.meta).toEqual(META);
     // Same normalization the real app applies; hidden items never reach the view.
@@ -66,16 +75,46 @@ describe("loadDemoSnapshot", () => {
     expect(snapshot.items[0].score.reasonHe).toBe(ITEM.reason_he);
     expect(snapshot.items[0].sourceDisplayName).toBe("וואלה ספורט");
     expect(snapshot.items[0].type).toBe("article");
+    expect(snapshot.results).toMatchObject([{
+      id: "game_1", competitionId: "comp:euroleague", competitionHe: "יורוליג",
+      startTime: RESULT.start_time, home: { name: "מכבי תל אביב", score: 90, isWinner: true },
+    }]);
   });
 
   it("honours a non-root base path", async () => {
     const { impl, calls } = fakeFetch({
       "/sub/demo-data/feed.json": [],
       "/sub/demo-data/meta.json": { ...META, item_count: 0 },
+      "/sub/demo-data/results.json": { has_preferences: true, games: [RESULT] },
     });
     const snapshot = await loadDemoSnapshot(impl, "/sub/");
     expect(snapshot.items).toEqual([]);
-    expect(calls).toHaveLength(2);
+    expect(snapshot.results).toHaveLength(1);
+    expect(calls).toHaveLength(3);
+  });
+
+  it.each([undefined, null, "broken", {}, { games: "broken" }, { games: [null] }])(
+    "ignores missing or malformed optional results (%j)", async (results) => {
+      const { impl } = fakeFetch({
+        "/demo-data/feed.json": [ITEM], "/demo-data/meta.json": META,
+        "/demo-data/results.json": results,
+      });
+      const snapshot = await loadDemoSnapshot(impl);
+      expect(snapshot.items).toHaveLength(1);
+      expect(snapshot.results).toEqual([]);
+    },
+  );
+
+  it.each(["network", "json"])("ignores an optional results %s failure", async (failure) => {
+    const { impl } = fakeFetch({ "/demo-data/feed.json": [ITEM], "/demo-data/meta.json": META });
+    const fetchImpl = async (url, init) => {
+      if (url.endsWith("results.json")) {
+        if (failure === "network") throw new Error("offline");
+        return { ok: true, status: 200, json: async () => { throw new SyntaxError("invalid JSON"); } };
+      }
+      return impl(url, init);
+    };
+    expect((await loadDemoSnapshot(fetchImpl)).results).toEqual([]);
   });
 
   it("fails when a file is missing, so the page shows its error state", async () => {

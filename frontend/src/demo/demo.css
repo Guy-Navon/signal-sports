@@ -12,6 +12,11 @@
   outline-offset: 2px;
 }
 
+/* The static demo has no full results page. Keep the shared strip's games. */
+.sg-demo .sg-results__link {
+  display: none;
+}
+
 .sg-demo-banner {
   display: flex;
   flex-wrap: wrap;

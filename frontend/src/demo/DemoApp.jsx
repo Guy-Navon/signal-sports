@@ -9,7 +9,7 @@ import { demoBanner, loadDemoSnapshot } from "./demoModel";
 import "./demo.css";
 
 // The public read-only demo (#458). The feed and its explanations only: no
-// router, no auth, no app provider, no API. It reads two static JSON files.
+// router, no auth, no app provider, no API. It reads static snapshot files only.
 
 const PROFILE_NAME = "גיא";
 const TICK_MS = 60_000;
@@ -41,18 +41,18 @@ function DemoBanner({ meta, now }) {
 }
 
 export default function DemoApp() {
-  const [snapshot, setSnapshot] = useState({ status: "loading", items: [], meta: null });
+  const [snapshot, setSnapshot] = useState({ status: "loading", items: [], results: [], meta: null });
   const [now, setNow] = useState(() => Date.now());
   const [activeFilters, setActiveFilters] = useState(new Set(["all"]));
 
   const load = useCallback(() => {
     setSnapshot((current) => ({ ...current, status: "loading" }));
     loadDemoSnapshot(window.fetch.bind(window), import.meta.env.BASE_URL)
-      .then(({ items, meta }) => {
-        setSnapshot({ status: "ready", items, meta });
+      .then(({ items, meta, results }) => {
+        setSnapshot({ status: "ready", items, meta, results });
         setNow(Date.now());
       })
-      .catch(() => setSnapshot({ status: "error", items: [], meta: null }));
+      .catch(() => setSnapshot({ status: "error", items: [], results: [], meta: null }));
   }, []);
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export default function DemoApp() {
     return () => clearInterval(id);
   }, []);
 
-  const { items, meta, status } = snapshot;
+  const { items, meta, results, status } = snapshot;
   const bodyState = feedBodyState({
     isBackendMode: true,
     isLoading: status === "loading",
@@ -105,6 +105,7 @@ export default function DemoApp() {
           <SignalFeedView
             readOnly
             items={items}
+            results={results}
             localScoredArticles={[]}
             status={<DemoBanner meta={meta} now={now} />}
             activeFilters={activeFilters}

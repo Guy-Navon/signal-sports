@@ -15,6 +15,11 @@ vi.mock("./demoModel", async (importOriginal) => ({
 
 const NOW = Date.parse("2026-11-14T10:00:00Z");
 const meta = { generated_at: new Date(NOW).toISOString() };
+const results = [{
+  id: "game-1", competitionHe: "יורוליג", status: "final",
+  startTime: "2026-11-14T09:00:00Z", winner: "home",
+  home: { name: "מכבי תל אביב", score: 90 }, away: { name: "ריאל מדריד", score: 85 },
+}];
 const items = ["NBA", "EuroLeague"].map((league, index) => normalizeScoredArticleFromApi({
   decision: "feed",
   reason_he: "ליגה במעקב שלך",
@@ -45,10 +50,12 @@ async function render() {
 }
 
 it("renders the shared feed read-only without providers, with one banner and no navigation", async () => {
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta });
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results });
   const root = await render();
   expect(root.findAllByType(SignalWordmark)).toHaveLength(1);
   expect(root.findByType(SignalFeedView).props.readOnly).toBe(true);
+  expect(root.findByType(SignalFeedView).props.results).toBe(results);
+  expect(root.findAllByProps({ className: "sg-result" })).toHaveLength(1);
   expect(root.findAllByType(FeedbackControls)).toHaveLength(0);
   expect(root.findAllByType("nav")).toHaveLength(0);
   expect(root.findAllByProps({ className: "sg-demo-banner" })).toHaveLength(1);
@@ -76,7 +83,7 @@ it("keeps the loading and empty states", async () => {
 
 it("keeps the error state and retries the snapshot", async () => {
   vi.mocked(loadDemoSnapshot).mockRejectedValueOnce(new Error("offline"))
-    .mockResolvedValueOnce({ items, meta });
+    .mockResolvedValueOnce({ items, meta, results: [] });
   const root = await render();
   expect(root.findByProps({ role: "alert" }).findByType("h2").children).toEqual(["לא הצלחנו לטעון את ההדגמה"]);
   await act(async () => { root.findByType("button").props.onClick(); });

@@ -1,23 +1,19 @@
 import React, { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import { GroundProvider, useGround } from "@/components/signal-ui/useGround";
 import ErrorState from "@/components/shared/ErrorState";
 import { connectionErrorStrip } from "@/components/feed/feedLoadModel";
 import ProductHeader from "@/components/shell/ProductHeader";
 import { MastheadSlotContext } from "@/components/shell/MastheadSlot";
-import { pageSurface } from "@/components/shell/productShellModel";
 import "@/components/signal-ui/signal-ui.css";
 import "@/components/shell/shell.css";
 
 // The consumer product shell (#463, navigation #491, Part B §B5–B6): the navy
 // header (expanded masthead + slim bar on scroll, ProductHeader), the page slot
 // directly beneath it (outside the sticky bar), then the page. No bottom dock.
-// The chrome carries the `.signal-ui` scope (white ground by default). The page body carries a scope chosen per route: pages not yet
-// rebuilt keep `.orbit-product`, so their Orbit tokens still resolve exactly
-// as before; rebuilt pages get `.signal-ui`. See productShellModel.pageSurface.
+// All consumer pages carry `.signal-ui` (white ground by default).
 export default function ProductShell() {
   return <GroundProvider><ProductShellContent /></GroundProvider>;
 }
@@ -29,7 +25,6 @@ function ProductShellContent() {
   const reduce = useReducedMotion();
   // Callback-ref state, so pages re-render with the node once it exists.
   const [slotNode, setSlotNode] = useState(null);
-  const surface = pageSurface(location.pathname);
 
   return (
     <div className="sg-shell">
@@ -48,11 +43,8 @@ function ProductShellContent() {
       <main
         id="sg-main"
         tabIndex={-1}
-        data-ground={surface === "signal" ? ground : undefined}
-        className={cn(
-          "sg-body",
-          surface === "orbit" ? "orbit-product sg-body--orbit" : "signal-ui sg-body--signal"
-        )}
+        data-ground={ground}
+        className="sg-body signal-ui sg-body--signal"
       >
         {isBackendMode && apiError && (
           <ErrorState
@@ -61,17 +53,11 @@ function ProductShellContent() {
             onRetry={refreshFeed}
           />
         )}
-        <div
-          className={
-            surface === "orbit"
-              ? "w-full max-w-screen-2xl mx-auto px-4 pt-5 pb-28 md:px-5 md:pt-6 md:pb-12"
-              : "w-full"
-          }
-        >
+        <div className="w-full">
           <MastheadSlotContext.Provider value={slotNode}>
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
-                key={location.pathname}
+                key={location.pathname.startsWith("/preferences") ? "/preferences" : location.pathname}
                 initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}

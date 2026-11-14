@@ -1741,7 +1741,7 @@ function assertDockOcclusion(audit) {
 
 // ── Consumer header (#491) ────────────────────────────────────────────────────
 
-const EXPECTED_NAV_LABELS = ["הפיד שלי", "תוצאות", "העדפות", "כיוונון"];
+const EXPECTED_NAV_LABELS = ["הפיד שלי", "תוצאות", "העדפות"];
 const BAR_SETTLE_MS = 700;
 const MIN_TARGET = 44;
 
@@ -1931,7 +1931,7 @@ function assertHeader(label, audit, { phone }) {
   if (!top.slotAfterHeader || !top.summaryInSlot) fail("the summary line is not in the slot directly under the header");
   const checkTabs = (where, tabs, { compact }) => {
     if (JSON.stringify(tabs.map((tab) => tab.text)) !== JSON.stringify(EXPECTED_NAV_LABELS)) {
-      fail(`${where}: tabs are not feed, results, preferences, calibration`);
+      fail(`${where}: tabs are not feed, results, preferences`);
     }
     if (tabs.filter((tab) => tab.current === "page").length !== 1 || tabs[0].current !== "page") {
       fail(`${where}: the feed tab is not the single aria-current page`);
@@ -1981,7 +1981,7 @@ function assertHeader(label, audit, { phone }) {
 }
 
 /**
- * Keyboard flow (#491): Tab order skip link, logo, the four tabs, account;
+ * Keyboard flow (#491): Tab order skip link, logo, destination tabs, account;
  * Enter opens the account menu with focus inside, the ground switch and the
  * admin section (local mode is an admin view) are there, arrows move focus,
  * Escape closes it and returns focus to the avatar.
@@ -2003,7 +2003,7 @@ async function auditHeaderKeyboard(client) {
     return (element.tagName + "." + (element.className || "")).slice(0, 60);
   })()`;
   const order = [];
-  for (let index = 0; index < 7; index += 1) {
+  for (let index = 0; index < EXPECTED_NAV_LABELS.length + 3; index += 1) {
     await pressKey(client, "Tab", "Tab", 9);
     order.push(await evaluate(client, describeActive));
   }

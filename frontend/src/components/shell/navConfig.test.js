@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   PRODUCT_NAV_ITEMS,
+  OPS_PRODUCT_NAV_ITEMS,
   OPS_NAV_ITEMS,
   OPS_PATHS,
   getOpsNavItems,
@@ -10,13 +11,16 @@ import {
 
 describe("navConfig", () => {
   describe("nav item lists", () => {
-    it("keeps all product routes", () => {
+    it("merges consumer calibration into preferences", () => {
       expect(PRODUCT_NAV_ITEMS.map((i) => i.path)).toEqual([
         "/",
         "/preferences",
-        "/calibration",
         "/results",
       ]);
+    });
+
+    it("preserves the console's existing product rail", () => {
+      expect(OPS_PRODUCT_NAV_ITEMS.map((item) => item.path)).toEqual(["/", "/preferences", "/calibration", "/results"]);
     });
 
     it("keeps all ops routes", () => {
@@ -73,14 +77,14 @@ describe("navConfig", () => {
   describe("getMobileNavItems", () => {
     it("product area shows product items plus a console entry", () => {
       const paths = getMobileNavItems("product", false).map((i) => i.path);
-      expect(paths).toEqual(["/", "/preferences", "/calibration", "/results", "/sources"]);
+      expect(paths).toEqual(["/", "/preferences", "/results", "/sources"]);
     });
 
     it("product area drops the console entry for a visitor who may not enter it", () => {
       // A regular user's dock showed "קונסולה", which only bounced back to
       // the feed (RequireOpsRole). The masthead already hid it (#54).
       const paths = getMobileNavItems("product", true, { showConsoleEntry: false }).map((i) => i.path);
-      expect(paths).toEqual(["/", "/preferences", "/calibration", "/results"]);
+      expect(paths).toEqual(["/", "/preferences", "/results"]);
       expect(getMobileNavItems("product", true, { showConsoleEntry: true }).map((i) => i.path))
         .toContain("/sources");
     });

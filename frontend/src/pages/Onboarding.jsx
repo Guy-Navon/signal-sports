@@ -68,7 +68,7 @@ export default function Onboarding() {
           <button
             type="button"
             className="sg-form-button sg-form-button--primary"
-            onClick={() => navigate("/interests")}
+            onClick={() => navigate("/preferences")}
           >
             <Compass size={15} />
             בחרו מה מעניין אתכם

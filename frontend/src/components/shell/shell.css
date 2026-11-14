@@ -56,17 +56,11 @@
   transform: none;
 }
 
-/* The page body takes the remaining height. The Orbit scope sets its own
-   min-height: 100vh for a whole-screen shell; inside this shell that would
-   add a screen of empty space under the header, so it is reset here. */
+/* The page body takes the remaining height. */
 .sg-body {
   flex: 1 0 auto;
   min-inline-size: 0;
   outline: none;
-}
-
-.sg-body.orbit-product {
-  min-height: 0;
 }
 
 /* Anything scrolled into view by focus or an anchor stops below the slim bar

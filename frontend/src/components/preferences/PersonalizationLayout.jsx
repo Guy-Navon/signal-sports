@@ -2,11 +2,12 @@ import React from "react";
 import "./personalization.css";
 
 // Consumer-only wrappers. Shared console primitives keep their own appearance.
-export function PersonalizationHeader({ title, subtitle, icon: Icon }) {
+export function PersonalizationHeader({ title, subtitle, icon: Icon, level = 1 }) {
+  const Heading = level === 2 ? "h2" : "h1";
   return (
     <header className="sg-personalization__header">
       <p className="sg-personalization__eyebrow">הפיד שלך, לפי מה שחשוב לך</p>
-      <h1>{Icon && <Icon size={22} aria-hidden="true" />}{title}</h1>
+      <Heading>{Icon && <Icon size={22} aria-hidden="true" />}{title}</Heading>
       {subtitle && <p>{subtitle}</p>}
     </header>
   );

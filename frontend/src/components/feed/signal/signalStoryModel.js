@@ -25,6 +25,63 @@ export function storySources(item, reports) {
   };
 }
 
+const publishedMs = (report) => {
+  const at = Date.parse(report.publishedAt ?? "");
+  return Number.isFinite(at) ? at : null;
+};
+
+/**
+ * What a multi-source story opens to (#501): every visible report, not one per
+ * source, because two reports from one site can say different things.
+ *
+ * Order: the displayed report (the one the headline opens) first, then the
+ * others in the order they were published, oldest first, so the list reads as
+ * the story's sequence of arrival; an undated report goes last. The displayed
+ * report follows storyLink: the cluster's displayed member when visible, else
+ * the first visible report.
+ *
+ * canOpen is false when the payload holds fewer than two reports: the story
+ * then shows the source names only, rather than a list that cannot be filled.
+ * @param {any} item
+ * @param {Array<{ articleId: string, source?: string, sourceDisplayName: string, title: string, url: string|null, publishedAt: string|null }>} reports
+ *   from storyReports (visible members only)
+ */
+export function clusterReportList(item, reports) {
+  const seen = new Set();
+  const unique = reports.filter((report) => {
+    const key = report.articleId ?? report.url;
+    if (key == null) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const displayedId =
+    unique.find((report) => report.articleId === item?.primaryArticleId)?.articleId ??
+    unique[0]?.articleId;
+  const displayed = unique.filter((report) => report.articleId === displayedId).slice(0, 1);
+  const others = unique
+    .filter((report) => !displayed.includes(report))
+    .map((report, index) => ({ report, index, at: publishedMs(report) }))
+    .sort((a, b) => {
+      if (a.at === null || b.at === null) {
+        return a.at === b.at ? a.index - b.index : a.at === null ? 1 : -1;
+      }
+      return a.at - b.at || a.index - b.index;
+    })
+    .map(({ report }) => report);
+  const ordered = [...displayed, ...others].map((report) => ({
+    ...report,
+    displayed: report === displayed[0],
+  }));
+  const isCluster = item?.type === "cluster";
+  return {
+    reports: isCluster ? ordered : [],
+    reportCount: isCluster ? ordered.length : 0,
+    sourceCount: sourceCount(item, reports),
+    canOpen: isCluster && ordered.length >= 2 && sourceCount(item, reports) >= 2,
+  };
+}
+
 /** The article a story's headline opens: a cluster's displayed member, else its own url. */
 export function storyLink(item, reports) {
   if (item?.type === "cluster") {
@@ -79,4 +136,13 @@ export function titleDirection(item) {
   const translated = Boolean(item?.translatedTitle);
   const language = item?.language ?? "he";
   return !translated && language !== "he" ? "auto" : undefined;
+}
+
+/**
+ * A member report carries no language field. A headline with Hebrew in it is
+ * Hebrew (or translated) and follows the page, so one that opens with a Latin
+ * name still reads right to left; one with no Hebrew finds its own direction.
+ */
+export function reportTitleDirection(title) {
+  return /[\u0590-\u05FF]/.test(String(title ?? "")) ? undefined : "auto";
 }

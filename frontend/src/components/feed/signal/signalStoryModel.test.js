@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { normalizeScoredArticleFromApi } from "@/api/normalizers";
 import { storyReports } from "@/components/feed/storyModel";
 import {
+  clusterReportList,
+  reportTitleDirection,
   relativeTimeHe,
   storyLink,
   storySources,
@@ -100,6 +102,82 @@ describe("storySources", () => {
   });
 });
 
+describe("clusterReportList", () => {
+  const twoSources = (displayed, members, sourceCount = 2) =>
+    cluster({ sourceCount, displayed, members });
+
+  it("puts the displayed report first, then the others in the order they were published", () => {
+    const item = twoSources("b", [
+      member("c", "sport5", "ספורט 5", "https://s5.test/c", "2026-11-13T11:00:00Z"),
+      member("b", "walla_sport", "וואלה ספורט", "https://walla.test/b", "2026-11-13T12:00:00Z"),
+      member("a", "one", "ONE", "https://one.test/a", "2026-11-13T09:00:00Z"),
+    ], 3);
+    const list = clusterReportList(item, storyReports(item));
+    expect(list.reports.map((r) => r.articleId)).toEqual(["b", "a", "c"]);
+    expect(list.reports.map((r) => r.displayed)).toEqual([true, false, false]);
+  });
+
+  it("keeps every visible report, including a second one from the same source", () => {
+    const item = twoSources("b", [
+      member("a", "one", "ONE", "https://one.test/a", "2026-11-13T09:00:00Z"),
+      member("b", "walla_sport", "וואלה ספורט", "https://walla.test/b", "2026-11-13T12:00:00Z"),
+      member("c", "one", "ONE", "https://one.test/c", "2026-11-13T11:00:00Z"),
+    ]);
+    const list = clusterReportList(item, storyReports(item));
+    expect(list.reports.map((r) => r.articleId)).toEqual(["b", "a", "c"]);
+    expect(list).toMatchObject({ reportCount: 3, sourceCount: 2, canOpen: true });
+  });
+
+  it("lists an undated report last, without inventing a time", () => {
+    const item = twoSources("b", [
+      member("x", "sport5", "ספורט 5", "https://s5.test/x", null),
+      member("a", "one", "ONE", "https://one.test/a", "2026-11-13T09:00:00Z"),
+      member("b", "walla_sport", "וואלה ספורט", "https://walla.test/b", "2026-11-13T12:00:00Z"),
+    ], 3);
+    const list = clusterReportList(item, storyReports(item));
+    expect(list.reports.map((r) => r.articleId)).toEqual(["b", "a", "x"]);
+    expect(list.reports[2].publishedAt).toBeNull();
+  });
+
+  it("marks the report the headline opens when the displayed member is not visible", () => {
+    // Same fallback as storyLink: the first visible report stands in.
+    const item = twoSources("h", [
+      member("a", "one", "ONE", "https://one.test/a", "2026-11-13T09:00:00Z"),
+      member("b", "walla_sport", "וואלה ספורט", "https://walla.test/b", "2026-11-13T12:00:00Z"),
+      member("h", "sport5", "ספורט 5", "https://s5.test/h", "2026-11-13T13:00:00Z", "hidden"),
+    ]);
+    const reports = storyReports(item);
+    const list = clusterReportList(item, reports);
+    const displayed = list.reports.filter((r) => r.displayed);
+    expect(displayed).toHaveLength(1);
+    expect(displayed[0].url).toBe(storyLink(item, reports));
+    expect(list.reports.map((r) => r.articleId)).toEqual(["a", "b"]);
+  });
+
+  it("never lists a hidden member or the same report twice", () => {
+    const item = twoSources("a", [
+      member("a", "one", "ONE", "https://one.test/a", "2026-11-13T09:00:00Z"),
+      member("a", "one", "ONE", "https://one.test/a", "2026-11-13T09:00:00Z"),
+      member("b", "walla_sport", "וואלה ספורט", "https://walla.test/b", "2026-11-13T12:00:00Z"),
+      member("h", "sport5", "ספורט 5", "https://s5.test/h", "2026-11-13T13:00:00Z", "hidden"),
+    ]);
+    const list = clusterReportList(item, storyReports(item));
+    expect(list.reports.map((r) => r.articleId)).toEqual(["a", "b"]);
+  });
+
+  it("cannot open when the payload carries fewer than two reports (names only, honestly)", () => {
+    // The backend says two sources but sent no members: nothing to open.
+    const item = { ...twoSources("a", []), members: [] };
+    const list = clusterReportList(item, storyReports(item));
+    expect(list).toMatchObject({ canOpen: false, reportCount: 0, sourceCount: 2 });
+  });
+
+  it("does not open a plain article", () => {
+    const item = { type: "article", id: "x", source: "one", sourceDisplayName: "ONE", url: "u" };
+    expect(clusterReportList(item, storyReports(item)).canOpen).toBe(false);
+  });
+});
+
 describe("storyLink", () => {
   it("opens a cluster at its displayed member", () => {
     const item = cluster({
@@ -170,5 +248,17 @@ describe("titleDirection", () => {
     expect(
       titleDirection({ language: "en", title: "Deni", translatedTitle: "דני אבדיה הועבר" })
     ).toBeUndefined();
+  });
+});
+
+describe("reportTitleDirection", () => {
+  it("keeps a Hebrew headline in the page direction, even when it opens with a Latin name", () => {
+    expect(reportTitleDirection("Deni Avdija הועבר לבלייזרס")).toBeUndefined();
+    expect(reportTitleDirection("מכבי תל אביב החתימה גארד")).toBeUndefined();
+  });
+
+  it("lets a headline with no Hebrew find its own direction", () => {
+    expect(reportTitleDirection("Maccabi sign EuroLeague guard")).toBe("auto");
+    expect(reportTitleDirection("")).toBe("auto");
   });
 });

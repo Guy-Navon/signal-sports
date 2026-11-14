@@ -16,7 +16,7 @@ import { LAB_APP_CONTEXT, LAB_CASES, labCaseName } from "./labCases";
 // Nothing here reaches the main or demo bundles.
 //
 // lab.html?page=feed&case=<case>&ground=<soft|dark>&readonly=1
-// Cases (real, push, push2, pushlong) are described in labCases.js.
+// Cases (real, push, push2, pushlong, pushcluster) are described in labCases.js.
 
 export default function FeedLab() {
   const params = new URLSearchParams(window.location.search);

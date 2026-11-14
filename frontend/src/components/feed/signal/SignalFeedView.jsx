@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ArrowUpLeft, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SignalStrength from "@/components/signal-ui/SignalStrength";
 import MastheadSlot, { MastheadSlotContext } from "@/components/shell/MastheadSlot";
@@ -39,7 +39,9 @@ import {
   storyIdSet,
 } from "./feedMotionModel";
 import {
+  clusterReportList,
   relativeTimeHe,
+  reportTitleDirection,
   storyLink,
   storySources,
   titleDirection,
@@ -121,6 +123,7 @@ function useStory(item, localScoredArticles) {
       url: storyLink(item, reports),
       source: storySourceLine(item, reports),
       sources: storySources(item, reports),
+      members: clusterReportList(item, reports),
       timestamp: storyTimestamp(item, reports),
       feedbackId: feedbackArticleId(item, reports),
       decision: item.score?.decision,
@@ -181,24 +184,65 @@ function WhyLine({ item, showTrace, className = "", children = null }) {
   );
 }
 
-function SourceNames({ story }) {
-  const { sources } = story;
+/**
+ * One disclosure per placed story (#501): the "N מקורות" badge opens the
+ * story's reports right below it. Every surface uses this hook, SourcesBadge
+ * and ClusterMembers; nothing is forked per surface.
+ */
+function useDisclosure() {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  return { open, id, toggle: () => setOpen((value) => !value) };
+}
+
+/** The one control that opens a multi-source story. Focus stays on it. */
+function SourcesBadge({ story, disclosure }) {
+  if (!story.members.canOpen) return null;
+  return (
+    <button
+      type="button"
+      className="sg-badge"
+      aria-expanded={disclosure.open}
+      aria-controls={disclosure.id}
+      onClick={disclosure.toggle}
+    >
+      <span className="sg-num">{story.sources.count}</span> מקורות
+      <ChevronDown size={12} aria-hidden="true" className="sg-badge__chev" />
+    </button>
+  );
+}
+
+/**
+ * The meta line's "who reported it". A multi-source story shows the badge (the
+ * way in) and then its source names as plain text: the names stay readable as
+ * a list, and the links live in one place, the opened list. When the payload
+ * holds no reports to open, the count and names stand alone, honestly.
+ */
+function SourceNames({ story, disclosure }) {
+  const { sources, members } = story;
   if (!sources.multi) return <bdi dir="auto">{story.source}</bdi>;
+  const names = sources.names.length > 0 && (
+    <span className="sg-sources">
+      {sources.names.map((name, index) => (
+        <React.Fragment key={name}>
+          {index > 0 && <Dot />}
+          <bdi dir="auto">{name}</bdi>
+        </React.Fragment>
+      ))}
+    </span>
+  );
+  if (!members.canOpen) {
+    return (
+      <>
+        <span className="sg-num">{sources.count}</span> מקורות{names && ": "}
+        {names}
+      </>
+    );
+  }
   return (
     <>
-      <span className="sg-num">{sources.count}</span> מקורות:{" "}
-      {/* Each member source opens its own report, so a cluster's sources stay
-          reachable outside the stream too. */}
-      <span className="sg-sources" role="list" aria-label="מקורות הסיפור">
-        {sources.reports.map((report, index) => (
-          <span role="listitem" key={report.articleId ?? report.sourceDisplayName}>
-            {index > 0 && <Dot />}
-            <MemberLink report={report} className="sg-source-link">
-              <bdi dir="auto">{report.sourceDisplayName}</bdi>
-            </MemberLink>
-          </span>
-        ))}
-      </span>
+      <SourcesBadge story={story} disclosure={disclosure} />
+      {names}
     </>
   );
 }
@@ -239,6 +283,7 @@ function SummaryLine({ items }) {
 function LeadStory({ item, localScoredArticles, now, readOnly, enterBase }) {
   const story = useStory(item, localScoredArticles);
   const surface = useSurface(readOnly);
+  const disclosure = useDisclosure();
   return (
     <section
       className="sg-lead"
@@ -263,7 +308,7 @@ function LeadStory({ item, localScoredArticles, now, readOnly, enterBase }) {
         <WhyLine item={item} showTrace={surface.showTrace} className="sg-lead__why" />
         <div className="sg-lead__meta">
           <span>
-            <SourceNames story={story} />
+            <SourceNames story={story} disclosure={disclosure} />
             {story.timestamp && <Dot />}
             <Time value={story.timestamp} now={now} />
           </span>
@@ -274,6 +319,7 @@ function LeadStory({ item, localScoredArticles, now, readOnly, enterBase }) {
           )}
           <Feedback story={story} surface={surface} className="sg-acts--slab" />
         </div>
+        <ClusterMembers story={story} now={now} disclosure={disclosure} className="sg-lead__members" />
       </div>
     </section>
   );
@@ -286,6 +332,7 @@ function leagueLabelOf(item, pillLabels) {
 function ImportantStory({ item, localScoredArticles, now, readOnly, league, arrived, style }) {
   const story = useStory(item, localScoredArticles);
   const surface = useSurface(readOnly);
+  const disclosure = useDisclosure();
   return (
     <article
       className="sg-important__item"
@@ -304,31 +351,63 @@ function ImportantStory({ item, localScoredArticles, now, readOnly, league, arri
       </span>
       <Headline story={story} className="sg-important__title" />
       <p className="sg-meta">
-        <SourceNames story={story} />
+        <SourceNames story={story} disclosure={disclosure} />
         {story.timestamp && <Dot />}
         <Time value={story.timestamp} now={now} />
       </p>
+      <ClusterMembers story={story} now={now} disclosure={disclosure} />
       <Feedback story={story} surface={surface} className="sg-acts--quiet" />
     </article>
   );
 }
 
-function ClusterMembers({ story, now, id }) {
+/**
+ * Each report of an opened story (#501): source, time, that source's own
+ * headline and a link to the original. The displayed report (the one the
+ * headline opens) comes first and says so; the rest follow in the order they
+ * were published (clusterReportList). Entries stagger in on the capped scale.
+ */
+function ClusterMembers({ story, now, disclosure, className = "" }) {
+  const { members } = story;
+  if (!members.canOpen || !disclosure.open) return null;
   return (
-    <ul className="sg-members" id={id} aria-label="מקורות הסיפור">
-      {story.sources.reports.map((report, index) => (
-        <li key={report.articleId ?? report.sourceDisplayName} style={enterStyle(index)}>
-          <MemberLink report={report}>
-            <b><bdi dir="auto">{report.sourceDisplayName}</bdi></b>
-            {report.publishedAt && <Dot />}
-            <Time value={report.publishedAt} now={now} />
-            {report.title && (
-              <span className="sg-members__title">{report.title}</span>
-            )}
-          </MemberLink>
-        </li>
-      ))}
-    </ul>
+    <div className={cn("sg-members", className)} id={disclosure.id}>
+      {members.reportCount > members.sourceCount && (
+        <p className="sg-members__cap">
+          <span className="sg-num">{members.reportCount}</span> דיווחים מ־
+          <span className="sg-num">{members.sourceCount}</span> מקורות
+        </p>
+      )}
+      <ul aria-label="דיווחי המקורות">
+        {members.reports.map((report, index) => (
+          <li
+            key={report.articleId ?? report.url ?? index}
+            data-displayed={report.displayed || undefined}
+            style={enterStyle(index)}
+          >
+            <MemberLink report={report}>
+              <span className="sg-members__by">
+                <b><bdi dir="auto">{report.sourceDisplayName}</bdi></b>
+                {report.publishedAt && <Dot />}
+                <Time value={report.publishedAt} now={now} />
+                {report.displayed && <span className="sg-members__mark">הדיווח המוצג</span>}
+              </span>
+              {report.title && (
+                <span className="sg-members__title" dir={reportTitleDirection(report.title)}>
+                  {unbreakableHebrewPrefixes(report.title)}
+                </span>
+              )}
+              {report.url && (
+                <span className="sg-members__go">
+                  לדיווח המקורי
+                  <ArrowUpLeft size={13} aria-hidden="true" />
+                </span>
+              )}
+            </MemberLink>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -361,8 +440,7 @@ function StreamRow({
 }) {
   const story = useStory(item, localScoredArticles);
   const surface = useSurface(readOnly);
-  const [open, setOpen] = useState(false);
-  const membersId = useId();
+  const disclosure = useDisclosure();
   const headlineRef = useRef(null);
 
   // Ref-based focus from inside the row that owns the element (A6): after
@@ -400,22 +478,9 @@ function StreamRow({
       <Feedback story={story} surface={surface} className="sg-row__acts" />
       <Headline story={story} className="sg-row__title" linkRef={headlineRef} />
       <WhyLine item={item} showTrace={surface.showTrace} className="sg-row__why">
-        {story.sources.multi && (
-          <button
-            type="button"
-            className="sg-badge"
-            aria-expanded={open}
-            aria-controls={membersId}
-            onClick={() => setOpen((value) => !value)}
-          >
-            <span className="sg-num">{story.sources.count}</span> מקורות
-            <ChevronDown size={12} aria-hidden="true" className="sg-badge__chev" />
-          </button>
-        )}
+        <SourcesBadge story={story} disclosure={disclosure} />
       </WhyLine>
-      {story.sources.multi && open && (
-        <ClusterMembers story={story} now={now} id={membersId} />
-      )}
+      <ClusterMembers story={story} now={now} disclosure={disclosure} />
     </article>
   );
 }
@@ -500,6 +565,7 @@ function StreamSection({ items, localScoredArticles, now, readOnly, pillLabels, 
 function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFocused, style }) {
   const story = useStory(item, localScoredArticles);
   const surface = useSurface(readOnly);
+  const disclosure = useDisclosure();
   const headlineRef = useRef(null);
   useEffect(() => {
     if (!focusOnMount) return;
@@ -519,10 +585,11 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
         <span>
           <Time value={story.timestamp} now={now} />
           {story.timestamp && <Dot />}
-          <SourceNames story={story} />
+          <SourceNames story={story} disclosure={disclosure} />
         </span>
         <Feedback story={story} surface={surface} className="sg-acts--quiet" />
       </div>
+      <ClusterMembers story={story} now={now} disclosure={disclosure} />
     </li>
   );
 }

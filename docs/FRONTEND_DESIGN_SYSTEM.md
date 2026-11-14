@@ -193,6 +193,11 @@ fresh-story pulse is still running once the page settles, and under reduced moti
 runs at all. `loadApp` waits for finite animations to finish before it measures. The local corpus puts exactly 40 stories in the stream and its clusters in
 the lead and important row, so the multi-page "show more" path and the stream cluster
 disclosure are locked by `SignalFeedView.test.jsx` instead, and the harness output says so.
+Since #501 it opens the "N מקורות" disclosure on every surface that has one (the important row
+must have one in the local corpus): every story that names several sources carries the badge and
+no competing name links, the opened list is painted inside its story, keeps focus on the badge,
+lists every report with its own headline and a new-tab link, the displayed report first and
+marked once, the distinct sources match the badge, and it closes again; at 1440 and on phones.
 Since #491 it asserts the consumer header (B6) at 1440/390/375/320 in both motion passes: the
 masthead in page flow with all three tabs reachable and unclipped, the slim bar hidden and inert
 at the top, fixed and shown once the masthead tabs have left (icon over a visible label on a
@@ -499,7 +504,8 @@ to the important row. Nothing is promoted to fill the space.
 - **One row beneath**, separated by a 3px `--slab-fg` rule with 14px above the text: a grid of
   `1.3fr 1.3fr auto`, gap 8px 36px. In order: the summary (subtitle), "למה אצלך:" + `reason_he`,
   and a meta column with sources · time and a rounded outline "לכתבה" link (1.5px
-  `--slab-fg` border). Under 900px the row stacks.
+  `--slab-fg` border). Under 900px the row stacks. A multi-source lead opens its reports with
+  the inverted "N מקורות" badge, below the row across the slab (B10).
 
 ## B8. Important row (#464)
 
@@ -509,7 +515,9 @@ padding. The first column has neither.
 
 Each item: a tag chip (`--acc` text on `--tint`, 13px 700) holding the signal mark and the
 league; the headline linking to the article; a meta line "sources · time" in which a cluster
-names its member sources ("2 מקורות: ONE · וואלה"). Under 900px the row becomes a list with
+shows the "N מקורות" badge and then names its member sources as plain text ("[2 מקורות ⌄]
+ONE · וואלה · לפני שעה"). The badge opens the story's reports inside the column, below the meta
+line (B10, "Opening a multi-source story"). Under 900px the row becomes a list with
 top rules. High_feed stories beyond four continue at the top of the stream.
 
 ## B9. Results strip (#466)
@@ -543,7 +551,8 @@ padding 18px 26px (16px under 900px), gap 5px, is **three lines**:
    existing feedback set via `FeedbackControls`/`feedbackSaveModel`).
 2. **Headline**, linking to the original article.
 3. **Why**: for a cluster, a badge first ("N מקורות", `--ink` ground, `--card` text, 12px 800),
-   then "למה אצלך:" + `reason_he`. The product also exposes the cluster's member sources.
+   then "למה אצלך:" + `reason_he`. The badge opens the story's reports (below, "Opening a
+   multi-source story").
 
 Order is the ranked feed (high_feed beyond the important row, then feed). The page bound and
 "show more" follow A5. The mock shows 14 rows and an "ועוד N סיפורים" line. Hover: `--tint`
@@ -563,9 +572,35 @@ brief") carries them. No large cards, no images (B13).
   `.signal-ui` scope; nested in a parent scope without `data-ground` it inherits the parent's
   ground.
 
-- **Cluster members.** In the stream the badge is a disclosure button (`aria-expanded`) that
-  lists each visible member once (source, time, report title), each linking to its report. In
-  the lead and the important row each named source links to its own report.
+- **Opening a multi-source story (#501).** One disclosure on every surface that places a
+  cluster: the lead, the important row, the stream and "in brief". The control is the
+  "N מקורות" badge (a button with a chevron, `aria-expanded`/`aria-controls`; on the lead's slab
+  it inverts to `--slab-fg` ground, `--slab` text; on a phone its hit area reaches 32px). In the
+  lead, the important row and "in brief" the badge leads the meta line and the source names
+  follow as plain text, so they still read as a list but are not a second set of links; in the
+  stream it opens the why line, as in the mock. "אחרונים" has no badge: every story in it is
+  also placed in the lead, important row, stream or "in brief", where it opens.
+  - Opening keeps focus on the badge and renders the list right below the story's meta (in the
+    important row inside its own column, which grows; the other columns keep their top
+    alignment; in the lead spanning the slab beneath its row, in columns on a wide screen, in
+    slab colours). Not a floating panel, so there is nothing to dismiss with Escape; the badge
+    closes it.
+  - The list holds **every visible report** (`clusterReportList` in `signalStoryModel.js`), not
+    one per source, since two reports from one site can differ. When there are more reports
+    than sources a caption says so ("4 דיווחים מ־3 מקורות"). Each entry is one link to the
+    original (new tab, `useArticleOpened`): source (700 `--ink`) · relative time, then that
+    source's own headline (15px 600 `--ink`, Hebrew follows the page, a headline with no Hebrew
+    takes `dir="auto"`), then "לדיווח המקורי" (`--acc` 700) with an arrow.
+  - Order: the displayed report (the one the headline opens, the backend's
+    `displayed_article_id`, else the first visible report as `storyLink` does) first, marked
+    "הדיווח המוצג" (`--acc` on `--tint`); then the others oldest first, the story's order of
+    arrival; an undated report last.
+  - Entries enter on the capped stagger (`enterStyle`), the list drops open (`sg-drop`); both off
+    under reduced motion. Closing is immediate.
+  - Data: backend members and the public demo snapshot (`MEMBER_FIELDS`) carry source, title,
+    url and time for every visible member; local mode hydrates them from the scored catalogue.
+    A cluster whose payload holds fewer than two reports shows "N מקורות: names" as text with
+    no badge, rather than a list that cannot be filled.
 - **Pill selected state.** `aria-pressed`; the pressed pill takes the `--slab`/`--slab-fg`
   pair and shows a slanted stroke, so colour is not the only cue. A "הכול" pill with the
   total comes first. Pills reuse `feedFilters` (`league:<name>` ids, same toggle semantics);

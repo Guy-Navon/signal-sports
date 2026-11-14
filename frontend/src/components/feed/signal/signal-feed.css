@@ -413,8 +413,10 @@
 
 .sg-lead .sg-headline-link { background-image: linear-gradient(var(--sg-slab-fg), var(--sg-slab-fg)); }
 
-/* Cluster badge: ink ground, card text; a button that reveals the members. */
+/* Cluster badge: ink ground, card text; the one button that opens a
+   multi-source story, wherever it is placed (#501). */
 .sg-badge {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -434,29 +436,89 @@
 .sg-badge__chev { transition: transform 0.15s; }
 .sg-badge[aria-expanded="true"] .sg-badge__chev { transform: rotate(180deg); }
 .sg-badge:focus-visible { outline-color: var(--sg-ink); }
+.sg-badge:hover { background: var(--sg-acc); }
 
-.sg-source-link { text-decoration: underline; text-decoration-color: var(--sg-line); text-underline-offset: 3px; }
-.sg-source-link:hover { text-decoration-color: currentColor; }
-.sg-lead .sg-source-link { text-decoration-color: currentColor; }
+/* On the lead's slab the badge inverts: slab-fg ground, slab text. */
+.sg-lead .sg-badge { background: var(--sg-slab-fg); color: var(--sg-slab); }
+.sg-lead .sg-badge:focus-visible { outline-color: var(--sg-slab-fg); }
 
+/* The opened story (#501): one entry per visible report, divided by rules,
+   hanging off a 2px rule at the inline start. Each entry is one link. */
 .sg-members {
-  display: flex;
-  flex-direction: column;
   margin-block-start: 4px;
+  padding-inline-start: 12px;
   border-inline-start: 2px solid var(--sg-line);
 }
 
+.sg-members ul { display: flex; flex-direction: column; }
+.sg-members li + li { border-block-start: 1px solid var(--sg-line); }
+
+.sg-members__cap { padding-block-start: 6px; font-size: 12.5px; color: var(--sg-dim); }
+
 .sg-members__item {
-  display: block;
-  padding-block: 5px;
-  padding-inline: 12px 0;
-  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding-block: 9px;
+  font-size: 13px;
+  line-height: 1.45;
   color: var(--sg-dim);
 }
 
+.sg-members__by { display: block; }
 .sg-members__item b { color: var(--sg-ink); font-weight: 700; }
-.sg-members__title { display: block; color: var(--sg-ink); }
-a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-decoration-color: var(--sg-acc); }
+
+.sg-members__mark {
+  display: inline-block;
+  margin-inline-start: 8px;
+  padding: 0 6px;
+  background: var(--sg-tint);
+  color: var(--sg-acc);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sg-members__title {
+  color: var(--sg-ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.sg-members__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--sg-acc);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-decoration-color: var(--sg-acc); text-underline-offset: 3px; }
+
+/* In the lead the list spans the slab beneath its row, in columns on a wide
+   screen, in the slab's own colours. */
+.sg-lead__members {
+  grid-column: 1 / -1;
+  margin-block-start: 10px;
+  border-inline-start-color: var(--sg-slab-dim);
+}
+
+.sg-lead__members ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  column-gap: 28px;
+}
+
+.sg-lead__members li + li { border-block-start: 0; }
+.sg-lead__members li { border-block-end: 1px solid var(--sg-slab-dim); }
+
+.sg-lead .sg-members :is(.sg-members__item, .sg-members__item b, .sg-members__title, .sg-members__go, .sg-members__cap) { color: inherit; }
+.sg-lead .sg-members__title { font-size: 17px; }
+.sg-lead .sg-members__mark { background: var(--sg-slab-fg); color: var(--sg-slab); }
+.sg-lead a.sg-members__item:hover .sg-members__title { text-decoration-color: currentColor; }
 
 .sg-more {
   display: block;
@@ -830,9 +892,13 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
   .sg-row {
     padding: 16px;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "by" "title" "why" "acts" "members";
+    grid-template-areas: "by" "title" "why" "members" "acts";
   }
   .sg-feed .sg-row__acts { justify-self: end; margin-block-start: -2px; }
   .sg-row__title { font-size: 19px; }
   .sg-feed .sg-acts button { min-block-size: 32px; }
+
+  /* The badge stays small but its hit area reaches 32px, like the actions. */
+  .sg-badge::after { content: ""; position: absolute; inset: -7px -4px; }
+  .sg-members__item { padding-block: 11px; }
 }

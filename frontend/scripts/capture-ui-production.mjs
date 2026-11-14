@@ -1434,50 +1434,75 @@ function assertQueuePaging(label, paging) {
 }
 
 /**
- * A multi-source story's members are reachable wherever it is placed. In the
- * lead and the important row each named source links to its own report; in
- * the stream the badge is a disclosure that keeps focus, lists every visible
- * member once with a link, and closes.
+ * A multi-source story opens wherever it is placed (#501). Every story that
+ * names several sources carries the one "N מקורות" disclosure next to the names
+ * (the names themselves are not links); opening it keeps focus on the badge
+ * and lists each visible report with its source, own headline and a link to
+ * the original, the displayed report first and marked; closing removes it.
+ * Each surface that renders a multi-source story is opened: the lead, the
+ * important row (always, in the local corpus), the stream and "in brief".
  */
 async function auditClusterDisclosure(client) {
   return await evaluate(
     client,
     `(async () => {
       const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      const inline = Array.from(document.querySelectorAll(".sg-sources")).map((list) => {
-        const items = Array.from(list.querySelectorAll("[role=listitem]"));
+      const named = Array.from(document.querySelectorAll(".sg-sources")).map((list) => {
+        const line = list.parentElement;
+        const badge = line.querySelector(".sg-badge");
         return {
-          claimed: Number.parseInt(list.parentElement.querySelector(".sg-num")?.textContent, 10),
-          members: items.length,
-          linked: items.filter((item) => item.querySelector("a.sg-source-link[href]")).length,
-          names: items.map((item) => item.innerText.replace(/[·\\s]+/g, " ").trim()),
+          names: list.querySelectorAll("bdi").length,
+          links: list.querySelectorAll("a").length,
+          claimed: Number.parseInt(badge?.textContent ?? "", 10),
+          hasBadge: Boolean(badge),
         };
       });
-      const badge = document.querySelector(".sg-row .sg-badge");
-      if (!badge) return { inline, disclosure: null };
-      badge.scrollIntoView({ block: "center", behavior: "instant" });
-      badge.focus();
-      const claimed = Number.parseInt(badge.textContent, 10);
-      badge.click();
-      await sleep(250);
-      const list = document.getElementById(badge.getAttribute("aria-controls"));
-      const members = list ? Array.from(list.querySelectorAll("li")) : [];
-      const opened = {
-        expanded: badge.getAttribute("aria-expanded"),
-        claimed,
-        members: members.length,
-        linked: members.filter((li) => li.querySelector("a.sg-members__item[href]")).length,
-        names: members.map((li) => li.querySelector("b")?.innerText.trim()),
-        focusOnBadge: document.activeElement === badge,
+      const surfaces = {
+        lead: ".sg-lead .sg-badge",
+        important: ".sg-important__item .sg-badge",
+        stream: ".sg-row .sg-badge",
+        brief: ".sg-brief__item .sg-badge",
       };
-      badge.click();
-      await sleep(250);
-      const closed = {
-        expanded: badge.getAttribute("aria-expanded"),
-        listGone: !document.getElementById(badge.getAttribute("aria-controls")),
-        focusOnBadge: document.activeElement === badge,
-      };
-      return { inline, disclosure: { opened, closed } };
+      const opened = {};
+      for (const [surface, selector] of Object.entries(surfaces)) {
+        const badge = document.querySelector(selector);
+        if (!badge) continue;
+        badge.scrollIntoView({ block: "center", behavior: "instant" });
+        badge.focus();
+        const claimed = Number.parseInt(badge.textContent, 10);
+        badge.click();
+        await sleep(250);
+        const list = document.getElementById(badge.getAttribute("aria-controls"));
+        const items = list ? Array.from(list.querySelectorAll("li")) : [];
+        const box = list?.getBoundingClientRect();
+        const story = badge.closest(".sg-lead, .sg-important__item, .sg-row, .sg-brief__item");
+        const storyBox = story?.getBoundingClientRect();
+        const result = {
+          expanded: badge.getAttribute("aria-expanded"),
+          claimed,
+          members: items.length,
+          linked: items.filter((li) => {
+            const a = li.querySelector("a.sg-members__item[href]");
+            return a && a.target === "_blank" && /noopener/.test(a.rel);
+          }).length,
+          titled: items.filter((li) => li.querySelector(".sg-members__title")?.innerText.trim()).length,
+          sources: new Set(items.map((li) => li.querySelector("b")?.innerText.trim())).size,
+          marked: items.map((li) => Boolean(li.querySelector(".sg-members__mark"))),
+          firstDisplayed: items[0]?.hasAttribute("data-displayed") ?? false,
+          insideStory: Boolean(box && storyBox && box.left >= storyBox.left - 1 && box.right <= storyBox.right + 1),
+          painted: Boolean(box && box.width > 0 && box.height > 0),
+          focusOnBadge: document.activeElement === badge,
+        };
+        badge.click();
+        await sleep(250);
+        result.closed = {
+          expanded: badge.getAttribute("aria-expanded"),
+          listGone: !document.getElementById(badge.getAttribute("aria-controls")),
+          focusOnBadge: document.activeElement === badge,
+        };
+        opened[surface] = result;
+      }
+      return { named, opened };
     })()`
   );
 }
@@ -1486,30 +1511,37 @@ function assertClusterDisclosure(label, audit) {
   const fail = (message) => {
     throw new Error(`${label}: ${message}: ${JSON.stringify(audit)}`);
   };
-  if (!audit.inline.length && !audit.disclosure) {
+  if (!audit.named.length && !Object.keys(audit.opened).length) {
     fail("no multi-source story rendered, so cluster reachability is unverified");
   }
-  for (const cluster of audit.inline) {
-    if (cluster.members < 2) fail("a named cluster lists fewer than two sources");
-    if (cluster.linked !== cluster.members) fail("a named cluster source has no link to its report");
-    if (new Set(cluster.names).size !== cluster.names.length) fail("a source is named twice");
-    // Local mode hydrates clusters, so the count and the names must agree here.
-    if (cluster.claimed !== cluster.members) fail("a cluster's count and its named sources disagree");
+  for (const line of audit.named) {
+    if (line.names < 2) fail("a named cluster lists fewer than two sources");
+    // Local mode hydrates every cluster, so each one must be openable.
+    if (!line.hasBadge) fail("a multi-source story names its sources but cannot be opened");
+    if (line.links) fail("a source name in the meta line is a second, competing link");
+    if (line.claimed !== line.names) fail("a cluster's count and its named sources disagree");
   }
-  // The local corpus places its clusters in the lead and the important row, so
-  // the stream disclosure is locked by SignalFeedView.test.jsx; main() reports
-  // whether it also ran here.
-  if (!audit.disclosure) return;
-  const { opened, closed } = audit.disclosure;
-  if (opened.expanded !== "true") fail("the cluster badge did not open");
-  if (opened.members < 2) fail("an open cluster lists fewer than two sources");
-  if (opened.linked !== opened.members) fail("a cluster member has no link to its report");
-  if (new Set(opened.names).size !== opened.names.length) fail("a source is listed twice");
-  // Local mode hydrates clusters, so the badge and the list must agree here.
-  if (opened.claimed !== opened.members) fail("the badge count and the member list disagree");
-  if (!opened.focusOnBadge) fail("opening the cluster moved focus off the badge");
-  if (closed.expanded !== "false" || !closed.listGone) fail("the cluster did not close");
-  if (!closed.focusOnBadge) fail("closing the cluster moved focus off the badge");
+  // The local corpus places its clusters in the lead and the important row:
+  // the important row must be opened here (#501); the stream disclosure is
+  // also locked by SignalFeedView.test.jsx, and main() reports whether it ran.
+  if (!audit.opened.important) fail("no multi-source story in the important row was opened");
+  for (const [surface, opened] of Object.entries(audit.opened)) {
+    const where = `${surface}: `;
+    if (opened.expanded !== "true") fail(`${where}the cluster badge did not open`);
+    if (!opened.painted) fail(`${where}the opened list was not painted`);
+    if (!opened.insideStory) fail(`${where}the opened list overflows its story`);
+    if (opened.members < 2) fail(`${where}an open cluster lists fewer than two reports`);
+    if (opened.linked !== opened.members) fail(`${where}a report has no link to its original in a new tab`);
+    if (opened.titled !== opened.members) fail(`${where}a report is missing its own headline`);
+    // Local mode hydrates clusters, so the badge and the distinct sources agree.
+    if (opened.claimed !== opened.sources) fail(`${where}the badge count and the listed sources disagree`);
+    if (!opened.firstDisplayed || opened.marked.filter(Boolean).length !== 1 || !opened.marked[0]) {
+      fail(`${where}the displayed report is not first and marked once`);
+    }
+    if (!opened.focusOnBadge) fail(`${where}opening the cluster moved focus off the badge`);
+    if (opened.closed.expanded !== "false" || !opened.closed.listGone) fail(`${where}the cluster did not close`);
+    if (!opened.closed.focusOnBadge) fail(`${where}closing the cluster moved focus off the badge`);
+  }
 }
 
 // ── Typography ────────────────────────────────────────────────────────────────
@@ -1847,13 +1879,13 @@ async function auditDockOcclusion(client, label) {
   states.onLoad = {
     firstRowMore: await probeControl(client, ".sg-row .sg-acts button"),
     clusterBadge: await probeControl(client, ".sg-row .sg-badge"),
-    namedSourceLink: await probeControl(client, ".sg-sources a"),
+    importantBadge: await probeControl(client, ".sg-important__item .sg-badge"),
   };
 
   await evaluate(
     client,
     `(async () => {
-      document.querySelector(".sg-row .sg-badge")?.click();
+      (document.querySelector(".sg-row .sg-badge") ?? document.querySelector(".sg-important__item .sg-badge"))?.click();
       await new Promise((resolve) => setTimeout(resolve, 250));
     })()`
   );
@@ -1902,7 +1934,7 @@ function assertDockOcclusion(audit) {
     }
   }
   // At least one way to a cluster's member reports must have been probed.
-  if (!states.onLoad.clusterBadge?.present && !states.onLoad.namedSourceLink?.present) {
+  if (!states.onLoad.clusterBadge?.present && !states.onLoad.importantBadge?.present) {
     throw new Error(`${label}: no cluster member control was found to test.`);
   }
   // Nor may it pass because the bar selector no longer matches anything.
@@ -2602,6 +2634,18 @@ async function main() {
     await evaluate(client, `document.querySelector(".sg-row .sg-badge")?.click()`);
     await delay(250);
     await capture(client, path.join(outputDirectory, "feed-cluster-open.png"));
+    await loadApp(client);
+    await evaluate(
+      client,
+      `(() => {
+        const badge = document.querySelector(".sg-important__item .sg-badge");
+        badge?.scrollIntoView({ block: "start", behavior: "instant" });
+        window.scrollBy(0, -160);
+        badge?.click();
+      })()`
+    );
+    await delay(400);
+    await capture(client, path.join(outputDirectory, "feed-cluster-important-open.png"));
 
     const narrowViewports = [];
     for (const [width, height] of [[390, 844], [375, 812], [320, 640]]) {
@@ -2794,10 +2838,15 @@ async function main() {
         layoutShift: regressions.motion.layoutShift,
       },
       clusters: {
-        namedInline: regressions.cluster.inline.length,
-        streamDisclosure: regressions.cluster.disclosure
-          ? regressions.cluster.disclosure.opened.members
-          : "not exercised: no multi-source story in the local stream; locked by SignalFeedView.test.jsx",
+        named: regressions.cluster.named.length,
+        opened: Object.fromEntries(
+          ["lead", "important", "stream", "brief"].map((surface) => [
+            surface,
+            regressions.cluster.opened[surface]
+              ? regressions.cluster.opened[surface].members
+              : "not exercised: no multi-source story there in the local corpus; locked by SignalFeedView.test.jsx",
+          ])
+        ),
       },
     });
 

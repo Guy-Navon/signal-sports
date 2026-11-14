@@ -4,8 +4,16 @@ import { Rss, Settings, Sliders, BarChart2, Database, Bug, FlaskConical, Termina
 export const PRODUCT_NAV_ITEMS = [
   { path: "/", label: "הפיד שלי", icon: Rss },
   { path: "/preferences", label: "העדפות", icon: Settings },
-  { path: "/calibration", label: "כיוונון", icon: Sliders },
   { path: "/results", label: "תוצאות", icon: BarChart2 },
+];
+
+// The console's cross-surface rail keeps its existing links and icons. The
+// legacy calibration URL now redirects, but the Ops UI stays identical (#492).
+export const OPS_PRODUCT_NAV_ITEMS = [
+  PRODUCT_NAV_ITEMS[0],
+  PRODUCT_NAV_ITEMS[1],
+  { path: "/calibration", label: "כיוונון", icon: Sliders },
+  PRODUCT_NAV_ITEMS[2],
 ];
 
 // Ops console — dev/QA tooling, visually separated from the product.

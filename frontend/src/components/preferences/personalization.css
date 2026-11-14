@@ -10,8 +10,8 @@
 .signal-ui .sg-personalization > * + * { margin-block-start: 24px; }
 .signal-ui .sg-personalization__header { padding-block-end: 20px; border-block-end: 1px solid var(--sg-line); }
 .signal-ui .sg-personalization__eyebrow { color: var(--sg-acc); font-size: 13.5px; font-weight: 700; margin-block-end: 8px; }
-.signal-ui .sg-personalization__header h1 { display: flex; align-items: baseline; gap: 10px; font: 800 30px/1.2 var(--sg-font-text); color: var(--sg-ink); }
-.signal-ui .sg-personalization__header h1 svg { flex: none; align-self: center; color: var(--sg-acc); }
+.signal-ui .sg-personalization__header :is(h1, h2) { display: flex; align-items: baseline; gap: 10px; font: 800 30px/1.2 var(--sg-font-text); color: var(--sg-ink); }
+.signal-ui .sg-personalization__header :is(h1, h2) svg { flex: none; align-self: center; color: var(--sg-acc); }
 .signal-ui .sg-personalization__header > p:last-child:not(:first-child) { margin-block-start: 10px; max-inline-size: 68ch; color: var(--sg-dim); font-size: 16px; }
 .signal-ui .sg-form-section { padding-block: 20px; border-block-start: 1px solid var(--sg-line); }
 .signal-ui .sg-form-section h2,
@@ -44,7 +44,7 @@
 .signal-ui .sg-personalization button:disabled { opacity: .55; cursor: not-allowed; }
 @media (max-width: 600px) {
   .signal-ui .sg-personalization { padding-inline: 16px; padding-block-end: 100px; }
-  .signal-ui .sg-personalization__header h1 { font-size: 26px; }
+  .signal-ui .sg-personalization__header :is(h1, h2) { font-size: 26px; }
   .signal-ui .sg-form-banner { flex-wrap: wrap; }
   .signal-ui .sg-form-stat { padding-inline: 8px; }
   .signal-ui .sg-form-stat b { font-size: 20px; }

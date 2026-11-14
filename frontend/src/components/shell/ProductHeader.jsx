@@ -24,7 +24,7 @@ function NavTabs({ label, compact = false, navRef = undefined }) {
           <Link
             key={item.path}
             to={item.path}
-            aria-current={location.pathname === item.path ? "page" : undefined}
+            aria-current={location.pathname === item.path || (item.path === "/preferences" && location.pathname.startsWith("/preferences/")) ? "page" : undefined}
             className="sg-tab"
           >
             {compact && Icon && <Icon size={20} strokeWidth={2} aria-hidden="true" className="sg-tab__icon" />}

@@ -1,34 +1,32 @@
-import React, { useState } from "react";
+import React, { lazy, useRef } from "react";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
+import { onboardingState } from "@/context/onboardingFlow";
 import { Settings, User, VolumeX } from "lucide-react";
 import TopicCard from "@/components/preferences/TopicCard";
 import LearnedAdjustmentsPanel from "@/components/preferences/LearnedAdjustmentsPanel";
 import InterestsManager from "@/components/interests/InterestsManager";
+import InterestSelection from "@/pages/InterestSelection";
+import LazyBoundary from "@/components/shell/LazyBoundary";
+import { PREFERENCE_TABS, adjacentTab, preferenceTab } from "@/components/preferences/preferencesRoutes";
 import { PersonalizationHeader as PageHeader } from "@/components/preferences/PersonalizationLayout";
 import "@/components/preferences/preferences.css";
 
-// Consumer sessions manage explicit interests (issue #83) and no longer see
-// the legacy topics tab (that model stays for ops/local demo contexts).
-const CONSUMER_TABS = [
-  { id: "interests", label: "תחומי עניין" },
-  { id: "muted", label: "מושתק" },
-  { id: "learned", label: "נלמד" },
-];
-
-const LEGACY_TABS = [
-  { id: "topics", label: "נושאים ועדיפויות" },
-  { id: "entities", label: "ישויות במעקב" },
-  { id: "muted", label: "מושתק" },
-  { id: "learned", label: "נלמד" },
-];
+const Calibration = lazy(() => import("@/pages/Calibration"));
 
 export default function Preferences() {
   const {
     activeProfile, activeProfileId, updateProfile,
     consumerSession, refreshProfiles, refreshFeed,
   } = useApp();
-  const tabs = consumerSession ? CONSUMER_TABS : LEGACY_TABS;
-  const [activeTab, setActiveTab] = useState(tabs[0].id);
+  const auth = useAuth();
+  const location = useLocation();
+  const tabRefs = useRef({});
+  const activeTab = preferenceTab(location.pathname);
+  const inOnboarding = consumerSession && onboardingState(auth) !== "ACTIVE";
+
+  if (!activeTab) return <Navigate replace to={`/preferences${location.search}${location.hash}`} />;
 
   const handleMuteSource = (sourceId) => {
     const updated = {
@@ -93,22 +91,36 @@ export default function Preferences() {
       </p>
 
       {/* Tabs */}
-      <div className="sg-preferences__tabs" role="group" aria-label="סוגי העדפות">
-        {tabs.map((tab) => (
-          <button
+      <div className="sg-preferences__tabs" role="tablist" aria-label="סוגי העדפות" aria-orientation="horizontal">
+        {PREFERENCE_TABS.map((tab) => (
+          <Link
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            type="button"
-            aria-pressed={activeTab === tab.id}
+            ref={(node) => { tabRefs.current[tab.id] = node; }}
+            id={`sg-preferences-tab-${tab.id}`}
+            to={`${tab.path}${location.search}`}
+            role="tab"
+            tabIndex={activeTab === tab.id ? 0 : -1}
+            aria-selected={activeTab === tab.id}
             aria-controls="sg-preferences-content"
+            onKeyDown={(event) => {
+              const next = adjacentTab(tab.id, event.key);
+              if (next) {
+                event.preventDefault();
+                tabRefs.current[next]?.focus();
+              } else if (event.key === " ") {
+                event.preventDefault();
+                event.currentTarget.click();
+              }
+            }}
           >
             {tab.label}
-          </button>
+          </Link>
         ))}
       </div>
 
-      <div id="sg-preferences-content">
-      {activeTab === "interests" && consumerSession && (
+      <div id="sg-preferences-content" className="sg-preferences__panel" role="tabpanel" tabIndex={0} aria-labelledby={`sg-preferences-tab-${activeTab}`}>
+      {activeTab === "following" && inOnboarding && <InterestSelection embedded />}
+      {activeTab === "following" && consumerSession && !inOnboarding && (
         <InterestsManager
           onSaved={() => {
             refreshProfiles?.();
@@ -117,7 +129,7 @@ export default function Preferences() {
         />
       )}
 
-      {activeTab === "topics" && (
+      {activeTab === "following" && !consumerSession && (
         <div>
           {!activeProfile?.topics?.length && <p className="sg-form-empty">אין עדיין העדפות. בחירת תחומי עניין מחכה לכם במסך תחומי העניין.</p>}
           {activeProfile?.topics?.map((topic) => (
@@ -126,7 +138,7 @@ export default function Preferences() {
         </div>
       )}
 
-      {activeTab === "entities" && (
+      {activeTab === "following" && !consumerSession && (
         <div className="space-y-4">
           <div>
             <p className="sg-form-heading">
@@ -177,6 +189,7 @@ export default function Preferences() {
       {activeTab === "learned" && (
         <LearnedAdjustmentsPanel />
       )}
+      {activeTab === "calibration" && <LazyBoundary><Calibration embedded /></LazyBoundary>}
       </div>
     </div>
   );

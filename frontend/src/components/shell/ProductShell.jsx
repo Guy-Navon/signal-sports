@@ -3,7 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { GroundProvider, useGround } from "@/components/signal-ui/useGround";
-import ErrorState from "@/components/shared/ErrorState";
+import ConnectionStrip from "@/components/shell/ConnectionStrip";
 import { connectionErrorStrip } from "@/components/feed/feedLoadModel";
 import ProductHeader from "@/components/shell/ProductHeader";
 import { MastheadSlotContext } from "@/components/shell/MastheadSlot";
@@ -47,8 +47,7 @@ function ProductShellContent() {
         className="sg-body signal-ui sg-body--signal"
       >
         {isBackendMode && apiError && (
-          <ErrorState
-            variant="strip"
+          <ConnectionStrip
             {...connectionErrorStrip({ area: "product", message: apiError })}
             onRetry={refreshFeed}
           />

@@ -71,6 +71,19 @@ it("renders the shared feed read-only without providers, with one banner and no 
   expect(JSON.stringify(renderer.toJSON())).toContain("הנתונים בהדגמה לא התעדכנו כבר כמה שעות");
 });
 
+it("announces only the staleness warning, not the minute-by-minute update time", async () => {
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results });
+  const root = await render();
+  const banner = root.findByProps({ className: "sg-demo-banner" });
+  expect(banner.props.role).toBeUndefined();
+  const slot = banner.findByProps({ className: "sg-demo-banner__status" });
+  expect(slot.props.role).toBe("status");
+  expect(slot.findAllByProps({ className: "sg-demo-banner__warning" })).toHaveLength(0);
+  act(() => vi.advanceTimersByTime(181 * 60_000));
+  const warning = slot.findByProps({ className: "sg-demo-banner__warning" });
+  expect(warning.children).toContain("הנתונים בהדגמה לא התעדכנו כבר כמה שעות");
+});
+
 it("keeps the loading and empty states", async () => {
   let resolve;
   vi.mocked(loadDemoSnapshot).mockReturnValue(new Promise((done) => { resolve = done; }));

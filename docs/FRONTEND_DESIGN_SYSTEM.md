@@ -194,13 +194,18 @@ runs at all. `loadApp` waits for finite animations to finish before it measures.
 the lead and important row, so the multi-page "show more" path and the stream cluster
 disclosure are locked by `SignalFeedView.test.jsx` instead, and the harness output says so.
 Since #491 it asserts the consumer header (B6) at 1440/390/375/320 in both motion passes: the
-masthead in page flow with all four tabs reachable and unclipped, the slim bar hidden and inert
+masthead in page flow with all three tabs reachable and unclipped, the slim bar hidden and inert
 at the top, fixed and shown once the masthead tabs have left (icon over a visible label on a
 phone, every tab and the account at least 44px), the hysteresis band in both directions, zero
 layout shift while it collapses and expands, a soft fade (300–500 ms) under normal motion and
 no transition under reduced motion, the Tab order (skip link, logo, tabs, account) and the
 account menu's keyboard flow (Enter opens with focus inside, arrows move, Escape returns to the
 avatar).
+Since the milestone-15 accessibility pass (2026-11-14) it also asserts a floor under every header
+size (B6) and that `--sg-bar-h` and the anchor `scroll-padding` match the bar's real height; the
+results strip's thin scrollbar with its `--sg-off` thumb, spaced off the scores (B9), and the
+hit-tested target of its "ללוח המלא" link (at least 24px on desktop, 44px on a phone); and the side
+column's scrollbar transparent at rest, with a stable gutter and its bottom-edge fade (B11).
 The harness keeps every existing browser assertion through the #473 rename to `capture:ui`.
 
 **Demo bundle guard.** `npm run build`, `npm run build:demo`, then `npm run check:demo-bundle`.
@@ -339,8 +344,8 @@ label uses the `--slab`/`--slab-fg` pair, and the fresh-time text uses `--ink` a
 
 | element | size / weight |
 |---|---|
-| logo (masthead / slim bar) | 42px 800 / 22px, letter-spacing −0.02em (30px / 19px under 768px) |
-| tabs | 15px 700 (14px on a phone; 11px label under the icon in the phone's slim bar) |
+| logo (masthead / slim bar) | 46px 800 / 30px, letter-spacing −0.02em (34px / 23px under 768px) (B6, 2026-11-14) |
+| tabs | 19px 800 in the masthead, 18px in the slim bar (17px on a phone; 13px label under a 24px icon in the phone's slim bar) (B6, 2026-11-14) |
 | summary line | 14px, `--dim`, numbers 700 `--ink` |
 | league pill | 15px, name 700 + count |
 | important-row headline | 21px 500 / 1.3 |
@@ -404,15 +409,21 @@ Decided by Guy on 2026-11-14 after five rounds on a navigation mock (#491). Reje
 header ground, a logo-colour stripe, a segmented pill nav, a side rail, a results ticker.
 
 - **One navy header, sticky in effect, navy in both states** (`--sg-top` in every ground).
-  - **Expanded (top of page)**: in normal page flow. Large centred logo (42px, 30px under
-    768px), the date line under it ("שבת, 14 בנובמבר 2026", Asia/Jerusalem, `--top-dim` 12.5px;
-    hidden under 768px), then the tabs centred with words (15px 700, 14px on a phone, 46px tall,
-    44px on a phone). Active tab `--top-fg` with a 3px underline rounded at the top; inactive
-    tabs `--top-dim`. The account avatar sits at the inline end of the top row.
-  - **Collapsed (on scroll)**: a separate slim bar, `position: fixed`, 56px, with a soft shadow:
-    small logo at the inline start, tabs centred, account at the inline end. On a phone each tab
-    is an icon over an 11px label (an iOS-style compact tab bar), every item at least 44px and
-    all four fitting at 320px; under 360px the bar's logo keeps its bars only.
+  - **Sizes, enlarged on 2026-11-14** (Guy: "the menu is too small … on scroll I want it
+    thicker; normally I want the text more present"). The harness (`capture:ui`) asserts a floor
+    under each size, the bar height against `--sg-bar-h` and the anchor `scroll-padding`.
+  - **Expanded (top of page)**: in normal page flow. Large centred logo (46px, 34px under
+    768px), the date line under it ("שבת, 14 בנובמבר 2026", Asia/Jerusalem, `--top-dim` 13.5px;
+    hidden under 768px), then the tabs centred with words (19px 800, 22px inline padding, 8px
+    apart, a 60px row; 17px 800 on a phone, 12px padding, a 52px row). Active tab `--top-fg`
+    with a 4px underline rounded at the top; inactive tabs `--top-dim`. The account avatar
+    (36px face, 44px target) sits at the inline end of the top row.
+  - **Collapsed (on scroll)**: a separate bar, `position: fixed`, 72px (64px on a phone), with
+    a soft shadow: a 30px logo at the inline start, tabs centred (18px 800, 20px padding, 4px
+    underline), account at the inline end. On a phone each tab is a 24px icon over a 13px 800
+    label (an iOS-style compact tab bar), every item at least 44px and all three fitting at
+    320px; under 360px the bar's logo keeps its bars only (26px). `--sg-bar-h` (72px / 64px)
+    and `html { scroll-padding-block-start }` (bar + 8px) follow the bar.
   - **Motion (softer than the mock)**: the masthead scrolls away by itself; the bar fades in
     with a 12px slide (420ms in, 360ms out, `--sg-ease`) and its logo settles from scale 1.18,
     as if it travelled up from the masthead. The bar is out of flow, so nothing moves (layout
@@ -506,8 +517,12 @@ top rules. High_feed stories beyond four continue at the top of the stream.
 Between the important row and the band. A 1px `--line` rule above and below, padding-block 14px.
 
 - **Header** at the inline start: "תוצאות" (15px 800) and a link to the results page, "ללוח
-  המלא" (13px 700, `--acc`).
-- **Games**: a horizontally scrolling row. Each game is at least 176px wide with a 1px
+  המלא" (13px 700, `--acc`), whose hit area extends above and below the line (26px on desktop,
+  46px on a phone) without moving the layout.
+- **Games**: a horizontally scrolling row with a thin, quiet scrollbar (2026-11-14, replacing the
+  ink-dark one that touched the scores): `scrollbar-width: thin`, thumb `--sg-off` (`--sg-dim`
+  while hovered or focused), 6px below the scores. Wheel, trackpad, touch and the arrow keys
+  (the row is focusable) scroll it. Each game is at least 176px wide with a 1px
   inline-start rule: a small line "competition · time" (11.5px 700 `--dim`), then one row per
   team, name and score. The winner's row is `--ink` 800, the loser's `--dim`.
 - **Data**: the session user's most recent finals (`/api/me/results`). The mock shows the ten
@@ -588,7 +603,11 @@ changes the stream's order. It must hold up with 3 and with 40 stories.
 - Desktop: sticky 14px below the slim header bar (`var(--sg-bar-h) + 14px +
   env(safe-area-inset-top)`, #491; `--sg-bar-h` is 0 where there is no bar, as in the demo). A column taller than the viewport is capped at the viewport height
   and scrolls inside, so its end is reachable at any scroll position, not only once the stream
-  has ended.
+  has ended. Since 2026-11-14 that inner scroll is unobtrusive: a thin, stable gutter (nothing
+  reflows) whose thumb is transparent until the pointer or keyboard focus is in the column, a
+  40px fade to `--band` pinned to the column's bottom edge while there is more (scrolled to the
+  end it sits over empty band, below the last item), and `scroll-padding` so focus never lands
+  under the fade.
 - Phone (under 900px): one column, with the side column after the stream. The other option
   (after the important row) is shown in the #465 PR for Guy to choose.
 - "In brief" keeps the bounded page and "show more" of A5.

@@ -64,7 +64,7 @@ export default function Preferences() {
         icon={Settings}
         subtitle={
           <>
-            פרופיל: <bdi dir="auto">{activeProfile?.displayName}</bdi> · סוג: {activeProfile?.profileType}
+            פרופיל: <bdi dir="auto">{activeProfile?.displayName}</bdi> · סוג: <bdi dir="auto">{activeProfile?.profileType}</bdi>
           </>
         }
       />

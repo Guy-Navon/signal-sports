@@ -1,0 +1,26 @@
+import React from "react";
+import "./personalization.css";
+
+// Consumer-only wrappers. Shared console primitives keep their own appearance.
+export function PersonalizationHeader({ title, subtitle, icon: Icon }) {
+  return (
+    <header className="sg-personalization__header">
+      <p className="sg-personalization__eyebrow">הפיד שלך, לפי מה שחשוב לך</p>
+      <h1>{Icon && <Icon size={22} aria-hidden="true" />}{title}</h1>
+      {subtitle && <p>{subtitle}</p>}
+    </header>
+  );
+}
+
+export function PersonalizationSection({ title, icon: Icon, children }) {
+  return (
+    <section className="sg-form-section">
+      {title && <h2>{Icon && <Icon size={18} aria-hidden="true" />}{title}</h2>}
+      {children}
+    </section>
+  );
+}
+
+export function PersonalizationStat({ label, value }) {
+  return <div className="sg-form-stat"><b><bdi dir="auto">{value}</bdi></b><span>{label}</span></div>;
+}

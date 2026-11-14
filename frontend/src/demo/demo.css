@@ -3,10 +3,6 @@
   min-inline-size: 0;
 }
 
-.sg-demo .sg-demo-masthead {
-  padding-block-end: 10px;
-}
-
 .sg-demo :focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;

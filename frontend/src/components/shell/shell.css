@@ -1,14 +1,20 @@
-/* Consumer product shell (#463, Part B §B5–B6). Values come from the approved
-   mock (docs/design/2026-11-13-feed-direction/). Every colour is an --sg-*
-   token from signal-ui.css, so the chrome follows the ground set on its
-   `.signal-ui` scope. Ops (AppShell area="ops") never renders these classes.
-   Logical properties only (FRONTEND_DESIGN_SYSTEM §A2). */
+/* Consumer product shell (#463, navigation #491, Part B §B5–B6). Every colour
+   is an --sg-* token from signal-ui.css, so the chrome follows the ground set
+   on its `.signal-ui` scope. Ops (AppShell area="ops") never renders these
+   classes. Logical properties only (FRONTEND_DESIGN_SYSTEM §A2). */
 
 .sg-shell {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+/* Height of the slim bar shown on scroll (#491), only where there is one (not
+   the demo). The feed's sticky side column sits beneath it. useCollapsedBar
+   reads the bar's real height; this value only has to match .sg-bar__inner. */
+.sg-shell:has(> .sg-bar) {
+  --sg-bar-h: 56px;
 }
 
 /* Page gutter and content column, shared by the chrome and by rebuilt pages:
@@ -23,8 +29,8 @@
 }
 
 /* §A6: visible focus in currentColor, 2px, offset 2px, on every ground. */
-.sg-chrome :focus-visible,
-.sg-dock :focus-visible,
+.sg-head :focus-visible,
+.sg-bar :focus-visible,
 .sg-body--signal :focus-visible,
 .sg-skip:focus-visible {
   outline: 2px solid currentColor;
@@ -52,7 +58,7 @@
 
 /* The page body takes the remaining height. The Orbit scope sets its own
    min-height: 100vh for a whole-screen shell; inside this shell that would
-   push the dock's last screen of content down, so it is reset here. */
+   add a screen of empty space under the header, so it is reset here. */
 .sg-body {
   flex: 1 0 auto;
   min-inline-size: 0;
@@ -63,250 +69,376 @@
   min-height: 0;
 }
 
-/* ── Top bar ─────────────────────────────────────────────────────────────── */
+/* Anything scrolled into view by focus or an anchor stops below the slim bar
+   (WCAG 2.4.11). Only the consumer shell renders .sg-bar; Ops is untouched. */
+html:has(.sg-bar) {
+  scroll-padding-block-start: calc(56px + 8px);
+}
 
-.sg-topbar {
+/* ── Header: expanded masthead (#491) ────────────────────────────────────── */
+
+.sg-head {
+  position: relative;
   background: var(--sg-top);
   color: var(--sg-top-fg);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
 }
 
-.sg-topbar__inner {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  min-block-size: 40px;
-}
-
-.sg-topbar__brand {
-  display: none;
-  align-items: center;
-  color: inherit;
-  font-size: 26px;
-  text-decoration: none;
-}
-
-/* On the navy bar the stroke takes the bar's text colour: the accent blue
-   would sit at under 2:1 against --sg-top. */
-.sg-topbar__brand .sg-wordmark__stroke {
-  background: currentColor;
-}
-
-.sg-topbar__nav {
-  display: flex;
-  align-items: stretch;
-  align-self: stretch;
-  gap: 22px;
-}
-
-.sg-topbar__link {
-  display: inline-flex;
-  align-items: center;
-  color: inherit;
-  text-decoration: none;
-  opacity: 0.8;
-  border-block: 2px solid transparent;
-  transition: opacity 0.15s var(--sg-ease);
-}
-
-.sg-topbar__link:hover {
-  opacity: 1;
-}
-
-.sg-topbar__link[aria-current="page"] {
-  opacity: 1;
-  border-block-end-color: currentColor;
-}
-
-.sg-topbar__end {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-inline-start: auto;
-  font-weight: 400;
-  min-inline-size: 0;
-}
-
-.sg-topbar__viewas {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-inline-size: 0;
-}
-
-.sg-topbar__note {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.75;
-}
-
-/* Account trigger, console entry and the view-as switcher on the navy bar. */
-.sg-topbar__control {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-block-size: 32px;
-  min-inline-size: 32px;
-  padding-inline: 8px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-decoration: none;
-  transition: background-color 0.15s var(--sg-ease);
-}
-
-.sg-topbar__control:hover,
-.sg-topbar__control[data-state="open"] {
-  background: rgb(255 255 255 / 0.12);
-}
-
-.sg-topbar__control--outlined {
-  border-color: rgb(255 255 255 / 0.35);
-  max-inline-size: 45vw;
-}
-
-/* ── Masthead ────────────────────────────────────────────────────────────── */
-
-.sg-masthead {
+.sg-head__inner {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding-block: 30px 20px;
-  text-align: center;
+  gap: 4px;
+  padding-block-start: 16px;
 }
 
-.sg-masthead__brand {
-  color: var(--sg-ink);
-  font-size: 44px;
+.sg-head__brand {
+  color: inherit;
+  font-size: 42px;
   text-decoration: none;
 }
 
-/* Page content rendered through <MastheadSlot>; full width so a row inside
-   it (the league pills) can scroll on its own, collapsed when empty. */
+.sg-head__date {
+  margin: 0;
+  color: var(--sg-top-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.sg-head__end {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 10px;
+}
+
+/* Logo only (the public demo): no tabs under it. */
+.sg-head--brand-only .sg-head__inner {
+  padding-block: 18px 16px;
+}
+
+/* ── Tabs, shared by the masthead and the bar ────────────────────────────── */
+
+.sg-tabs {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 4px;
+  block-size: 46px;
+}
+
+.sg-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-inline: 14px;
+  color: var(--sg-top-dim);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: color 0.2s var(--sg-ease);
+}
+
+.sg-tab:hover,
+.sg-tab[aria-current="page"] {
+  color: var(--sg-top-fg);
+}
+
+/* The active tab: a 3px underline rounded at the top, in the header's text
+   colour, on the header's bottom edge. */
+.sg-tab[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 14px;
+  inset-block-end: 0;
+  block-size: 3px;
+  border-radius: 3px 3px 0 0;
+  background: currentColor;
+}
+
+.sg-head .sg-tab:focus-visible,
+.sg-bar .sg-tab:focus-visible {
+  outline-offset: -3px;
+}
+
+/* Icons belong to the phone's compact bar only. */
+.sg-tab__icon {
+  display: none;
+  flex: none;
+}
+
+/* ── Account trigger (avatar) ────────────────────────────────────────────── */
+
+.sg-avatar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 36px;
+  min-inline-size: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sg-avatar-btn__face {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 999px;
+  background: var(--sg-top-hover);
+  color: var(--sg-top-fg);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  transition: box-shadow 0.15s var(--sg-ease);
+}
+
+.sg-avatar-btn:hover .sg-avatar-btn__face,
+.sg-avatar-btn[data-state="open"] .sg-avatar-btn__face {
+  box-shadow: 0 0 0 2px var(--sg-top-dim);
+}
+
+.sg-head .sg-avatar-btn:focus-visible,
+.sg-bar .sg-avatar-btn:focus-visible {
+  border-radius: 999px;
+}
+
+/* ── Slim bar shown on scroll (#491) ─────────────────────────────────────── */
+/* Fixed, so it never takes space: showing it cannot shift the content. It
+   fades in with a small slide (420ms, --sg-ease) and its logo settles from a
+   slightly larger size, as if it travelled up from the masthead. Hidden, it is
+   invisible and inert (useCollapsedBar). */
+
+.sg-bar {
+  position: fixed;
+  z-index: 40;
+  inset-inline: 0;
+  inset-block-start: 0;
+  background: var(--sg-top);
+  color: var(--sg-top-fg);
+  box-shadow: var(--sg-top-shadow);
+  opacity: 0;
+  transform: translateY(-12px);
+  visibility: hidden;
+  transition:
+    opacity 360ms var(--sg-ease),
+    transform 360ms var(--sg-ease),
+    visibility 0s linear 360ms;
+}
+
+.sg-bar[data-shown] {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition:
+    opacity 420ms var(--sg-ease),
+    transform 420ms var(--sg-ease),
+    visibility 0s;
+}
+
+.sg-bar__gutter {
+  padding-inline: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+}
+
+.sg-bar__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  block-size: 56px;
+}
+
+.sg-bar__brand {
+  justify-self: start;
+  color: inherit;
+  font-size: 22px;
+  text-decoration: none;
+  opacity: 0;
+  transform: scale(1.18);
+  transition:
+    opacity 450ms var(--sg-ease),
+    transform 450ms var(--sg-ease);
+}
+
+.sg-bar[data-shown] .sg-bar__brand {
+  opacity: 1;
+  transform: none;
+}
+
+.sg-bar .sg-tabs {
+  block-size: 56px;
+}
+
+.sg-bar__end {
+  justify-self: end;
+}
+
+/* ── Loading line ────────────────────────────────────────────────────────── */
+
+.sg-progress {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  block-size: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sg-progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--sg-top-logo-b);
+  transform-origin: center;
+  animation: sg-progress 1.4s var(--sg-ease) infinite;
+}
+
+@keyframes sg-progress {
+  from { transform: scaleX(0); opacity: 1; }
+  to { transform: scaleX(1); opacity: 0; }
+}
+
+/* ── Page slot under the header ──────────────────────────────────────────── */
+
+/* Page content rendered through <MastheadSlot>, in the page flow directly
+   under the header (never in the sticky bar); full width so a row inside it
+   (the league pills) can scroll on its own, collapsed when empty. */
 .sg-masthead__slot {
-  align-self: stretch;
   min-inline-size: 0;
+  padding-block-start: 22px;
 }
 
 .sg-masthead__slot:empty {
   display: none;
 }
 
-/* ── Phone dock ──────────────────────────────────────────────────────────── */
+/* ── Account menu additions (portal, see ground-portals.css) ─────────────── */
 
-.sg-dock {
-  position: fixed;
-  z-index: 50;
-  inset-inline: 0;
-  inset-block-end: 0;
-  padding-block-end: env(safe-area-inset-bottom, 0px);
-  border-block-start: 1px solid var(--sg-line);
-  background: var(--sg-card);
-  transition:
-    opacity 180ms var(--sg-ease),
-    transform 220ms var(--sg-ease);
+.sg-consumer-menu .sg-menu-label--sub {
+  padding-block-start: 2px;
+  font-size: 13px;
 }
 
-.sg-dock__list {
-  display: flex;
-  padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
-}
-
-.sg-dock__link {
-  position: relative;
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  min-inline-size: 0;
-  min-block-size: 56px;
+.sg-consumer-menu .sg-menu-note {
+  margin: 0;
+  padding-block: 6px 4px;
+  padding-inline: 8px;
   color: var(--sg-dim);
-  font-size: 11.5px;
-  font-weight: 700;
-  line-height: 1;
-  text-decoration: none;
+  font-size: 13px;
 }
 
-.sg-dock__link[aria-current="page"] {
-  color: var(--sg-acc);
-}
-
-.sg-dock__link[aria-current="page"]::before {
-  content: "";
-  position: absolute;
-  inset-block-start: -1px;
-  inset-inline: 26%;
-  block-size: 3px;
-  background: var(--sg-acc);
-}
-
-.sg-dock__link:focus-visible {
-  outline-offset: -4px;
-}
-
-/* ── Breakpoints ─────────────────────────────────────────────────────────── */
-
-@media (max-width: 899px) {
-  .sg-masthead__brand {
-    font-size: 36px;
-  }
-}
+/* ── Phone ───────────────────────────────────────────────────────────────── */
 
 @media (max-width: 767px) {
-  .sg-topbar__nav,
-  .sg-topbar__wide,
-  .sg-topbar__wide-flex {
+  .sg-head__inner {
+    gap: 2px;
+    padding-block-start: 12px;
+  }
+
+  .sg-head__brand {
+    font-size: 30px;
+  }
+
+  .sg-head__date {
     display: none;
   }
 
-  .sg-topbar__inner {
-    min-block-size: 52px;
-    padding-block: 4px;
+  .sg-head__end {
+    inset-block-start: 4px;
+    inset-inline-end: -8px;
+  }
+
+  .sg-head .sg-tabs {
+    align-self: stretch;
+    gap: 0;
+    block-size: 44px;
+  }
+
+  .sg-head .sg-tab {
+    padding-inline: 9px;
+    font-size: 14px;
+  }
+
+  .sg-head .sg-tab[aria-current="page"]::after {
+    inset-inline: 9px;
   }
 
   /* Touch targets on a phone. */
-  .sg-topbar__control {
+  .sg-avatar-btn {
     min-block-size: 44px;
     min-inline-size: 44px;
   }
 
-  .sg-topbar__brand {
-    display: inline-flex;
+  .sg-bar__gutter {
+    padding-inline: max(8px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
   }
 
-  /* Phone: the wordmark lives in the bar, so the masthead shows only page
-     content from <MastheadSlot>, and disappears when there is none. This keeps
-     the chrome one row tall above the page, as the Orbit header was, so the
-     page's first actions stay clear of the dock at 320x640. */
-  .sg-masthead__brand {
-    display: none;
+  .sg-bar__inner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 4px;
   }
 
-  .sg-masthead {
-    padding-block: 14px 4px;
+  .sg-bar__brand {
+    font-size: 19px;
   }
 
-  .sg-masthead:has(> .sg-masthead__slot:empty) {
-    display: none;
+  /* Compact bar: each tab an icon over a small label, the four sharing the
+     middle column, each at least 44px wide. */
+  .sg-tabs--compact {
+    gap: 0;
   }
 
-  .sg-body--signal {
-    padding-block-end: calc(64px + env(safe-area-inset-bottom, 0px));
+  .sg-tabs--compact .sg-tab {
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 2px;
+    min-inline-size: 44px;
+    padding-inline: 2px;
+    font-size: 11px;
+    line-height: 1.1;
+  }
+
+  .sg-tabs--compact .sg-tab__icon {
+    display: block;
+  }
+
+  .sg-tabs--compact .sg-tab[aria-current="page"]::after {
+    inset-inline: 6px;
   }
 }
 
-@media (min-width: 768px) {
-  .sg-dock {
-    display: none;
+/* Under 360px the bar's logo keeps its bars only, so four 44px tabs and the
+   account always fit; the link keeps its accessible name. */
+@media (max-width: 359px) {
+  .sg-bar__brand .sg-wordmark {
+    gap: 0;
+    font-size: 0;
+  }
+
+  .sg-bar__brand .sg-wordmark__bars {
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sg-bar,
+  .sg-bar[data-shown],
+  .sg-bar__brand,
+  .sg-tab,
+  .sg-avatar-btn__face {
+    transition: none;
+  }
+
+  .sg-progress::before {
+    animation: none;
+    opacity: 0.7;
   }
 }

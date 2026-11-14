@@ -284,15 +284,15 @@
 @media (min-width: 901px) {
   .sg-cols:has(> .sg-main):has(> .sg-side) { grid-template-columns: minmax(0, 1fr) 330px; }
 
-  /* Sticky 14px from the top (the top bar scrolls away with the page, so only
-     the safe area is added). A column taller than the screen is capped at the
-     viewport and scrolls inside, so its end is reachable at any scroll
-     position instead of only once the stream has ended. */
+  /* Sticky 14px below the consumer shell's slim bar (#491: --sg-bar-h, 0 where
+     there is no bar, as in the demo), plus the safe area. A column taller than
+     the screen is capped at the viewport and scrolls inside, so its end is
+     reachable at any scroll position instead of only once the stream ended. */
   .sg-side {
     position: sticky;
-    inset-block-start: calc(14px + env(safe-area-inset-top, 0px));
-    max-block-size: calc(100vh - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-    max-block-size: calc(100dvh - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    inset-block-start: calc(var(--sg-bar-h, 0px) + 14px + env(safe-area-inset-top, 0px));
+    max-block-size: calc(100vh - var(--sg-bar-h, 0px) - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    max-block-size: calc(100dvh - var(--sg-bar-h, 0px) - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;

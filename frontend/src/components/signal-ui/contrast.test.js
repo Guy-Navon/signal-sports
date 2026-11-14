@@ -37,4 +37,21 @@ describe("Signal ground WCAG AA contrast", () => {
       expect(contrast(tokens.hot, tokens["slab-fg"]), "push label dot").toBeGreaterThanOrEqual(3);
     });
   }
+
+  // The logo (#491): the app icon's three bars. Non-text, so 3:1 (WCAG 1.4.11)
+  // against every ground it sits on, and against the navy header.
+  for (const ground of ["light", "soft", "dark"]) {
+    it(`${ground}: the logo bars and the header text pass on their grounds`, () => {
+      const tokens = grounds[ground];
+      for (const bar of ["logo-a", "logo-b"]) {
+        for (const surface of ["bg", "card", "band"]) {
+          expect(contrast(tokens[bar], tokens[surface]), `${bar} on ${surface}`).toBeGreaterThanOrEqual(3);
+        }
+        expect(contrast(tokens[`top-${bar}`], tokens.top), `top-${bar} on top`).toBeGreaterThanOrEqual(3);
+      }
+      // Inactive tabs are 15px bold text: AA for small text.
+      expect(contrast(tokens["top-dim"], tokens.top), "top-dim on top").toBeGreaterThanOrEqual(4.5);
+      expect(contrast(tokens["top-fg"], tokens.top), "top-fg on top").toBeGreaterThanOrEqual(4.5);
+    });
+  }
 });

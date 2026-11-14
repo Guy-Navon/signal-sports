@@ -29,9 +29,11 @@ import { LAB_APP_CONTEXT, LAB_CASES, labCaseName } from "./labCases";
 const HELD_STORIES = 3;
 const REHOLD_PAUSE_MS = 900;
 
+// The lead (a push) is never held back, so its entrance plays on load.
 function heldBack(items, results, nowMs) {
+  const candidates = items.filter((item) => item.score?.decision !== "push");
   const stories = new Set(
-    latestStories(items, { localScoredArticles: [] }).slice(0, HELD_STORIES).map(orbitStoryId)
+    latestStories(candidates, { localScoredArticles: [] }).slice(0, HELD_STORIES).map(orbitStoryId)
   );
   const newestGame = latestFinals(results, nowMs)[0];
   return { stories, gameId: newestGame?.id ?? null };

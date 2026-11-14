@@ -1,0 +1,50 @@
+/* Public demo chrome only; the shared shell and feed own their composition. */
+.sg-demo {
+  min-inline-size: 0;
+}
+
+.sg-demo .sg-demo-masthead {
+  padding-block-end: 10px;
+}
+
+.sg-demo :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.sg-demo-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 8px;
+  padding-block: 10px;
+  padding-inline: 12px;
+  border-block: 1px solid var(--sg-line);
+  background: var(--sg-band);
+  color: var(--sg-dim);
+  font-size: 14px;
+  text-align: center;
+}
+
+.sg-demo-banner strong {
+  color: var(--sg-ink);
+  font-weight: 700;
+}
+
+.sg-demo-banner__time,
+.sg-demo-banner__warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.sg-demo-banner__warning {
+  flex-basis: 100%;
+  font-weight: 700;
+}
+
+.sg-demo-banner svg {
+  flex: none;
+}

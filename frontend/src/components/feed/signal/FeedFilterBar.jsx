@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 
 import { SlidersHorizontal, X } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
-  ALL_LEVELS_ID, ALL_LEAGUES_ID, activeLeagueIds, activeSourceIds, hasActiveFilters,
+  ALL_LEAGUES_ID, activeLeagueIds, activeSourceIds, hasActiveFilters,
   filterFeedItems, importanceOptions, sourceOptions, toggleFilterSet, visibleCount,
 } from "@/components/feed/feedFilters";
 import { filterBarPills, filterResultLine } from "./feedLayoutModel";
@@ -20,16 +20,15 @@ function useIsPhone() {
   return phone;
 }
 
-/** Native radios preserve the browser's RTL arrow-key behaviour. */
+/** Independent checkboxes: levels are OR; "הכול" clears only the importance group. */
 export function ImportanceControl({ items, activeFilters, onToggle }) {
-  const name = useId();
   const options = importanceOptions(items, activeFilters);
   return (
-    <div className="sg-seg" role="radiogroup" aria-label="סינון לפי חשיבות">
+    <div className="sg-seg" role="group" aria-label="סינון לפי חשיבות">
       {options.map((option) => (
         <label key={option.id} className="sg-seg__opt" data-filter={option.id} data-selected={option.selected || undefined}>
-          <input type="radio" className="sg-seg__input" name={name} value={option.id}
-            checked={option.selected} onChange={() => onToggle(option.level === null ? ALL_LEVELS_ID : option.id)} />
+          <input type="checkbox" className="sg-seg__input" value={option.id}
+            checked={option.selected} onChange={() => onToggle(option.id)} />
           <span className="sg-seg__label">{option.label}</span>
           <span className="sg-seg__count sg-num" dir="ltr" aria-hidden="true">{option.count}</span>
           <span className="sr-only">{`, ${option.count} סיפורים`}</span>
@@ -152,10 +151,10 @@ export default function FeedFilterBar({ items, activeFilters, shown, onToggle, o
   const panelId = useId();
   const leagues = useMemo(() => filterBarPills(items, activeFilters), [items, activeFilters]);
   const sources = useMemo(() => sourceOptions(items, activeFilters), [items, activeFilters]);
-  const floor = importanceOptions(items, activeFilters).find((option) => option.selected && option.level);
+  const levels = importanceOptions(items, activeFilters).filter((option) => option.selected && option.level);
   const labels = new Map([...leagues, ...sources].map((option) => [option.id, option.label]));
   const chips = [
-    ...(floor ? [{ id: floor.id, label: floor.label }] : []),
+    ...levels.map((option) => ({ id: option.id, label: option.label })),
     ...[...activeLeagueIds(activeFilters), ...activeSourceIds(activeFilters)]
       .map((id) => ({ id, label: labels.get(id) ?? id.slice(id.indexOf(":") + 1) })),
   ];

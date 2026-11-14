@@ -1052,7 +1052,7 @@ async function selectThreeFacets(client) {
   await openFilters(client);
   await evaluate(client, `(async () => {
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    document.querySelector('.sg-seg__opt[data-filter="min:feed"] input').click(); await sleep(120);
+    document.querySelector('.sg-seg__opt[data-filter="feed"] input').click(); await sleep(120);
     document.querySelector('.sg-pill[data-filter]').click(); await sleep(120);
     const source = document.querySelector('.sg-filter-check input');
     if (!source) throw new Error("No source under selected importance and league");
@@ -1077,7 +1077,7 @@ const FILTER_BAR_HELPERS = `
   const headline = (story) =>
     story.querySelector("h2, h3")?.textContent.replace(/\\s+/g, " ").trim() ?? "";
   const options = () => Array.from(document.querySelectorAll(".sg-seg__opt")).map((label) => {
-    const input = label.querySelector("input[type=radio]");
+    const input = label.querySelector("input[type=checkbox]");
     return {
       id: label.dataset.filter,
       label: label.querySelector(".sg-seg__label")?.textContent.trim(),
@@ -1102,9 +1102,9 @@ const FILTER_BAR_HELPERS = `
 `;
 
 /**
- * The importance threshold as painted: one labelled radio group, counts that
- * match what each choice shows, the "חשוב ומעלה" choice clearing every story
- * below it within the filter budget, nothing that was not visible before
+ * The importance levels as painted: one labelled checkbox group, exact-level
+ * counts that match what each choice shows, ticking חשוב + דורש תשומת לב
+ * clearing every story outside them within the filter budget, nothing that was not visible before
  * appearing, the summary untouched, focus kept, then "נקה סינון" back.
  */
 async function auditImportanceFilter(client) {
@@ -1113,8 +1113,8 @@ async function auditImportanceFilter(client) {
     client,
     `(async () => {
       ${FILTER_BAR_HELPERS}
-      const group = document.querySelector(".sg-seg[role=radiogroup]");
-      if (!group) throw new Error("No importance radio group rendered");
+      const group = document.querySelector(".sg-seg[role=group]");
+      if (!group) throw new Error("No importance checkbox group rendered");
       await revealAll();
       const beforeIds = placed().map(headline);
       const before = {
@@ -1124,12 +1124,14 @@ async function auditImportanceFilter(client) {
         resultLine: resultLine(),
         resultDrawn: Boolean(document.querySelector(".sg-filter-result[data-active]")),
       };
-      const target = options().find((option) => option.id === "min:high_feed");
-      if (!target) throw new Error("No 'חשוב ומעלה' option");
+      const target = options().find((option) => option.id === "high_feed");
+      const pushOption = options().find((option) => option.id === "push");
+      if (!target || !pushOption) throw new Error("No exact-level options");
       const stale = () => placed().filter((story) => !${JSON.stringify(IMPORTANT_DECISIONS)}.includes(story.dataset.decision)).length;
       const staleBefore = stale();
       target.input.focus();
       const started = performance.now();
+      pushOption.input.click();
       target.input.click();
       let clearedAt = null;
       while (performance.now() - started < 3000) {
@@ -1162,8 +1164,7 @@ async function auditImportanceFilter(client) {
       };
       return {
         groupLabel: group.getAttribute("aria-label"),
-        radios: group.querySelectorAll("input[type=radio]").length,
-        radioNames: new Set(Array.from(group.querySelectorAll("input[type=radio]")).map((r) => r.name)).size,
+        boxes: group.querySelectorAll("input[type=checkbox]").length,
         staleBefore,
         clearedMs: clearedAt,
         before,
@@ -1178,22 +1179,23 @@ function assertImportanceFilter(label, audit) {
   const fail = (message) => {
     throw new Error(`${label}: importance filter: ${message}: ${JSON.stringify(audit)}`);
   };
-  if (!audit.groupLabel) fail("the radio group has no accessible name");
-  if (audit.radios !== 3 || audit.radioNames !== 1) fail("expected three radios in one group");
-  const [all, normal, important] = audit.before.options;
-  if (!all?.checked || normal?.checked || important?.checked) fail("'הכול' is not the starting choice");
+  if (!audit.groupLabel) fail("the checkbox group has no accessible name");
+  if (audit.boxes !== 5) fail("expected five checkboxes in one group");
+  const [all, pushOpt, important, normal, low] = audit.before.options;
+  if (!all?.checked || audit.before.options.slice(1).some((option) => option.checked)) fail("'הכול' is not the starting choice");
+  if (audit.before.options.some((option) => /ומעלה/.test(option.label))) fail("an option still reads as a threshold");
   for (const option of [...audit.before.options, ...audit.after.options]) {
     if (option.visibleCount !== option.spokenCount) fail(`'${option.label}' shows one count and announces another`);
   }
   // Counts match what is painted, and the thresholds nest.
   if (all.visibleCount !== audit.before.stories) fail("'הכול' does not count the painted stories");
   if (all.visibleCount !== audit.before.summary) fail("'הכול' disagrees with the summary line");
-  if (!(all.visibleCount >= normal.visibleCount && normal.visibleCount >= important.visibleCount)) {
-    fail("the threshold counts do not nest");
+  if (all.visibleCount !== pushOpt.visibleCount + important.visibleCount + normal.visibleCount + low.visibleCount) {
+    fail("the exact-level counts do not add up to 'הכול'");
   }
   if (audit.before.resultLine !== "" || audit.before.resultDrawn) fail("a result line shows with no filter");
-  if (audit.staleBefore === 0) fail("vacuous: no story below חשוב was on screen before filtering");
-  if (important.visibleCount === 0) fail("vacuous: the local feed has nothing at חשוב or above");
+  if (audit.staleBefore === 0) fail("vacuous: no story outside חשוב / דורש תשומת לב was on screen before filtering");
+  if (important.visibleCount + pushOpt.visibleCount === 0) fail("vacuous: the local feed has nothing at חשוב or דורש תשומת לב");
   if (audit.clearedMs === null) fail("stories below the threshold never cleared");
   if (audit.clearedMs > FILTER_LATENCY_BUDGET_MS) {
     fail(`stale stories survived ${Math.round(audit.clearedMs)}ms, budget is ${FILTER_LATENCY_BUDGET_MS}ms`);
@@ -1205,15 +1207,15 @@ function assertImportanceFilter(label, audit) {
     fail("a story with no visible level is painted");
   }
   if (audit.after.notBefore.length) fail("the filter revealed a story that was not visible before");
-  if (audit.after.stories !== important.visibleCount) fail("'חשוב ומעלה' shows a different number than it counted");
-  if (!audit.after.options[2].checked) fail("the chosen threshold is not checked");
+  if (audit.after.stories !== important.visibleCount + pushOpt.visibleCount) fail("the chosen levels show a different number than they counted");
+  if (!audit.after.options[1].checked || !audit.after.options[2].checked) fail("the chosen levels are not checked");
   if (audit.after.summary !== audit.before.summary) fail("filtering changed the summary line (it counts the whole feed)");
   if (!audit.after.resultDrawn || !audit.after.resultLine.includes(String(audit.after.stories))) {
     fail("the result line does not say how many stories are shown");
   }
   if (!audit.after.focusStayed) fail("focus left the chosen threshold");
   if (!audit.reset.clearPresent) fail("no 'נקה סינון' while filtered");
-  if (audit.reset.stories !== audit.before.stories || audit.reset.checked !== "min:*") {
+  if (audit.reset.stories !== audit.before.stories || audit.reset.checked !== "level:*") {
     fail("'נקה סינון' did not bring the whole feed back");
   }
   if (audit.reset.resultDrawn) fail("the result line stayed after clearing");
@@ -1232,31 +1234,41 @@ async function auditImportanceKeyboard(client) {
         ${FILTER_BAR_HELPERS}
         const list = options();
         return {
-          checked: list.findIndex((option) => option.checked),
+          checked: list.flatMap((option, index) => (option.checked ? [index] : [])),
           focused: list.findIndex((option) => option.input === document.activeElement),
           stories: placed().length,
         };
       })()`
     );
+  const space = async () => {
+    for (const type of ["keyDown", "keyUp"]) {
+      await client.send("Input.dispatchKeyEvent", {
+        type, key: " ", code: "Space", text: type === "keyDown" ? " " : undefined,
+        windowsVirtualKeyCode: 32, nativeVirtualKeyCode: 32,
+      });
+    }
+    await delay(120);
+  };
   await evaluate(client, `document.querySelector(".sg-seg__input:checked")?.focus()`);
   const start = await read();
-  await pressKey(client, "ArrowLeft", "ArrowLeft", 37);
-  await delay(120);
+  await pressKey(client, "Tab", "Tab", 9);
+  const moved = await read();
+  await space();
   const next = await read();
-  await pressKey(client, "ArrowRight", "ArrowRight", 39);
-  await delay(120);
+  await space();
   const back = await read();
-  return { start, next, back };
+  return { start, moved, next, back };
 }
 
 function assertImportanceKeyboard(label, audit) {
   const fail = (message) => {
     throw new Error(`${label}: importance keyboard: ${message}: ${JSON.stringify(audit)}`);
   };
-  if (audit.start.focused !== 0 || audit.start.checked !== 0) fail("focus did not start on the checked 'הכול'");
-  if (audit.next.checked !== 1 || audit.next.focused !== 1) fail("ArrowLeft did not move to and choose the next threshold");
-  if (audit.next.stories > audit.start.stories) fail("a higher threshold showed more stories");
-  if (audit.back.checked !== 0 || audit.back.focused !== 0) fail("ArrowRight did not come back to 'הכול'");
+  if (audit.start.focused !== 0 || audit.start.checked[0] !== 0) fail("focus did not start on the checked 'הכול'");
+  if (audit.moved.focused !== 1) fail("Tab did not reach the next level");
+  if (audit.next.checked.join() !== "1") fail("Space did not tick exactly that level");
+  if (audit.next.stories > audit.start.stories) fail("one level showed more stories than the whole feed");
+  if (audit.back.checked.join() !== "0") fail("Space did not untick back to 'הכול'");
   if (audit.back.stories !== audit.start.stories) fail("coming back to 'הכול' did not restore the feed");
 }
 
@@ -1282,7 +1294,7 @@ async function auditFilterEmpty(client) {
       const before = stories.length;
       document.querySelector('.sg-pill[data-filter="' + CSS.escape(quiet) + '"]')?.click();
       await sleep(120);
-      options().find((option) => option.id === "min:high_feed")?.input.click();
+      options().find((option) => option.id === "high_feed")?.input.click();
       await sleep(160);
       const empty = document.querySelector(".sg-filter-empty");
       const pill = document.querySelector('.sg-pill[data-filter="' + CSS.escape(quiet) + '"]');
@@ -1326,13 +1338,13 @@ function assertFilterEmpty(label, empty, back) {
   const fail = (message) => {
     throw new Error(`${label}: empty filter result: ${message}: ${JSON.stringify({ empty, back })}`);
   };
-  if (!empty.emptyText?.includes("חשוב ומעלה")) fail("the empty result does not name the threshold");
+  if (!empty.emptyText?.includes("ברמה שבחרת")) fail("the empty result does not name the threshold");
   if (empty.placed !== 0) fail("stories are still placed");
   if (empty.pillPressed !== "true" || empty.pillCount !== 0) fail("the selected league pill did not stay, at 0");
   if (empty.resultDrawn) fail("the result line is drawn on top of the empty state");
   if (!empty.announced) fail("the empty result is not announced");
   if (empty.scrollWidth > empty.clientWidth + 1) fail("the empty state overflows horizontally");
-  if (back.placed !== empty.before || back.checked !== "min:*" || back.anyPillPressed) {
+  if (back.placed !== empty.before || back.checked !== "level:*" || back.anyPillPressed) {
     fail("the way back did not restore the whole feed");
   }
 }
@@ -1351,7 +1363,7 @@ async function auditFilterBarPhone(client) {
     client,
     `(async () => {
       ${FILTER_BAR_HELPERS}
-      options().find((option) => option.id === "min:high_feed")?.input.click();
+      options().find((option) => option.id === "high_feed")?.input.click();
       await sleep(160);
       const seg = document.querySelector(".sg-seg");
       const rect = seg?.getBoundingClientRect();
@@ -1394,7 +1406,7 @@ function assertFilterBarPhone(label, audit) {
   };
   if (audit.scrollWidth > audit.clientWidth + 1) fail("horizontal page scroll with a filter on");
   if (!audit.seg || audit.seg.left < 0 || audit.seg.right > audit.clientWidth) fail("the threshold control leaves the viewport");
-  if (audit.options.length !== 3) fail("expected three threshold options");
+  if (audit.options.length !== 5) fail("expected five importance options");
   if (audit.options.some((option) => option.clipped)) fail("a threshold label is clipped");
   if (audit.options.some((option) => option.height < 44)) fail("a threshold option is under 44px tall");
   if (audit.rowScrollbar) {

@@ -203,7 +203,7 @@ What the consumer UI does on `ui/next` after #491–#505 (verified against the c
   label. There is no bottom dock. The account menu holds "החשבון שלי", the ground switch
   (לבן / רך / כהה, persisted per device), and for admins the console entry and QA view-as.
 - **Filters (#483, #496, #498).** One "סינון" button with removable chips. It opens a horizontal
-  panel on desktop and a bottom sheet on a phone, with importance (a threshold: הכול · רגיל ומעלה · חשוב ומעלה), leagues and sources. A story matches a source if any visible member
+  panel on desktop and a bottom sheet on a phone, with importance (each level its own checkbox, several are OR: דורש תשומת לב · חשוב · רגיל · נמוך; "הכול" clears only importance, #510), leagues and sources. A story matches a source if any visible member
   matches. Filters apply live and are not remembered (undecided, #496).
 - **Several sources (#501, #503).** The "N מקורות" badge opens the list of reports on the lead,
   important row, stream and "בקצרה" alike (not in "אחרונים").

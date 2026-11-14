@@ -234,7 +234,7 @@ describe("filterBarPills (league pills under an importance threshold, #483)", ()
   });
 
   it("keeps the unfiltered order, counts within the floor, and drops leagues with nothing above it", () => {
-    const pills = filterBarPills(items, new Set(["min:high_feed"]));
+    const pills = filterBarPills(items, new Set(["high_feed"]));
     expect(pills.map(({ id, count }) => [id, count])).toEqual([
       ["league:NBA", 1],
       ["league:WNBA", 1],
@@ -242,7 +242,7 @@ describe("filterBarPills (league pills under an importance threshold, #483)", ()
   });
 
   it("keeps a selected league even at zero, so it can be unselected", () => {
-    const pills = filterBarPills(items, new Set(["min:high_feed", "league:EuroLeague"]));
+    const pills = filterBarPills(items, new Set(["high_feed", "league:EuroLeague"]));
     expect(pills.map(({ id, count }) => [id, count])).toEqual([
       ["league:NBA", 1],
       ["league:EuroLeague", 0],
@@ -251,9 +251,9 @@ describe("filterBarPills (league pills under an importance threshold, #483)", ()
   });
 
   it("each pill's count is what pressing it (alone, with the floor) shows", () => {
-    const active = new Set(["min:high_feed"]);
+    const active = new Set(["high_feed"]);
     for (const pill of filterBarPills(items, active)) {
-      expect(filterFeedItems(items, new Set(["min:high_feed", pill.id]))).toHaveLength(pill.count);
+      expect(filterFeedItems(items, new Set(["high_feed", pill.id]))).toHaveLength(pill.count);
     }
   });
 });
@@ -261,16 +261,20 @@ describe("filterBarPills (league pills under an importance threshold, #483)", ()
 describe("filterResultLine and filterEmptyMessage (#483)", () => {
   it("says nothing without a filter, and 'showing X of N' with one", () => {
     expect(filterResultLine(57, 57, new Set(["all"]))).toBe("");
-    expect(filterResultLine(10, 57, new Set(["min:high_feed"]))).toBe("מוצגים 10 מתוך 57 סיפורים");
-    expect(filterResultLine(1, 57, new Set(["min:high_feed"]))).toBe("מוצג סיפור אחד מתוך 57");
-    expect(filterResultLine(0, 57, new Set(["min:high_feed"]))).toBe("אין סיפורים שמתאימים לסינון");
+    expect(filterResultLine(10, 57, new Set(["high_feed"]))).toBe("מוצגים 10 מתוך 57 סיפורים");
+    expect(filterResultLine(1, 57, new Set(["high_feed"]))).toBe("מוצג סיפור אחד מתוך 57");
+    expect(filterResultLine(0, 57, new Set(["high_feed"]))).toBe("אין סיפורים שמתאימים לסינון");
   });
 
   it("names what was filtered, in the decision vocabulary", () => {
     expect(filterEmptyMessage(new Set(["league:NBA"]))).toBe("אין סיפורים בליגות שבחרת.");
-    expect(filterEmptyMessage(new Set(["min:high_feed"]))).toBe("אין כרגע סיפורים ברמת חשוב ומעלה.");
-    expect(filterEmptyMessage(new Set(["min:feed", "league:NBA"]))).toBe(
-      "אין סיפורים ברמת רגיל ומעלה בליגות שבחרת."
+    expect(filterEmptyMessage(new Set(["high_feed"]))).toBe("אין סיפורים ברמה שבחרת.");
+    expect(filterEmptyMessage(new Set(["feed", "push"]))).toBe("אין סיפורים ברמות שבחרת.");
+    expect(filterEmptyMessage(new Set(["feed", "league:NBA"]))).toBe(
+      "אין סיפורים ברמה שבחרת בליגות שבחרת."
+    );
+    expect(filterEmptyMessage(new Set(["feed", "source:one"]))).toBe(
+      "אין סיפורים ברמה שבחרת במקורות שבחרת."
     );
   });
 });

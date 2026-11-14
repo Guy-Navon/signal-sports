@@ -4,11 +4,11 @@
 //   topics  — content filters, topic and league filters
 //   leagues — "league:<name>", toggled from the league pills of the new feed (#464)
 //   sources — "source:<id>", any visible member source for a cluster (#483)
-//   floor   — "min:<level>", an importance threshold from the filter bar (#483):
-//             that level and above. At most one; ANDed with everything else.
+//   levels also drive the filter bar's importance group (#510): each level is its
+//             own checkbox, several are OR, and the group is ANDed with the rest.
 // Filters only narrow what the engine already decided to show: every result is
 // a subset of the visible items it was given, in the same order.
-import { DECISION_CONFIG, DECISION_RANK } from "./decisionConfig";
+import { DECISION_CONFIG } from "./decisionConfig";
 
 export const LEVEL_FILTER_IDS = ["push", "high_feed", "feed", "low_feed"];
 
@@ -59,36 +59,24 @@ export function leagueFilterId(item) {
   return `${LEAGUE_PREFIX}none`;
 }
 
-const FLOOR_PREFIX = "min:";
-
-/** The thresholds the filter bar offers: "רגיל ומעלה", "חשוב ומעלה" (#483). */
-export const IMPORTANCE_FLOORS = ["feed", "high_feed"];
-
 /** Commands, never stored: clear one family (toggleFilterSet). */
 export const ALL_LEAGUES_ID = `${LEAGUE_PREFIX}*`;
-export const ALL_LEVELS_ID = `${FLOOR_PREFIX}*`;
+export const ALL_LEVELS_ID = "level:*";
 export const ALL_SOURCES_ID = `${SOURCE_PREFIX}*`;
 
-export function importanceFilterId(level) {
-  return `${FLOOR_PREFIX}${level}`;
-}
-
-const isFloorId = (filterId) => filterId.startsWith(FLOOR_PREFIX);
+const isLevelId = (filterId) => LEVEL_FILTER_IDS.includes(filterId);
 const isLeagueId = (filterId) => filterId.startsWith(LEAGUE_PREFIX);
 const isSourceId = (filterId) => filterId.startsWith(SOURCE_PREFIX);
 export const activeSourceIds = (activeFilters) => [...activeFilters].filter(isSourceId);
 
 /** How many of these items a reader can see (never hidden or decision-less). */
 export function visibleCount(items) {
-  return items.filter((item) => meetsImportanceFloor(item, null)).length;
+  return items.filter((item) => isVisibleItem(item)).length;
 }
 
-/** The active threshold level, or null for every level. */
-export function importanceFloor(activeFilters) {
-  for (const filterId of activeFilters) {
-    if (isFloorId(filterId)) return filterId.slice(FLOOR_PREFIX.length);
-  }
-  return null;
+/** The selected importance levels, in selection order. */
+export function activeLevelIds(activeFilters) {
+  return [...activeFilters].filter(isLevelId);
 }
 
 /** The selected league pills, in selection order. */
@@ -100,14 +88,10 @@ export function hasActiveFilters(activeFilters) {
   return [...activeFilters].some((filterId) => filterId !== "all");
 }
 
-/**
- * At or above the floor (null: any visible level). Hidden and decision-less
- * items never pass, so a threshold can never reveal what the engine hid.
- */
-export function meetsImportanceFloor(item, level) {
-  const rank = DECISION_RANK[item.score?.decision] ?? 0;
-  if (rank === 0) return false;
-  return level == null || rank >= (DECISION_RANK[level] ?? Infinity);
+/** Hidden and decision-less items never pass, so no filter can reveal what the engine hid. */
+export function isVisibleItem(item) {
+  const decision = item.score?.decision;
+  return Boolean(decision) && decision !== "hidden";
 }
 
 export function itemMatchesFilter(item, filterId) {
@@ -139,32 +123,31 @@ export function itemMatchesFilter(item, filterId) {
  */
 export function filterFeedItems(visibleItems, activeFilters) {
   const active = activeFilters.has("all") ? [] : [...activeFilters];
-  const floor = importanceFloor(new Set(active));
+  const levels = active.filter(isLevelId);
   const leagues = active.filter(isLeagueId);
   const sources = active.filter(isSourceId);
-  const others = active.filter((f) => !isFloorId(f) && !isLeagueId(f) && !isSourceId(f));
+  const others = active.filter((f) => !isLevelId(f) && !isLeagueId(f) && !isSourceId(f));
   const matches = (item, family) => family.length === 0 || family.some((f) => itemMatchesFilter(item, f));
   return visibleItems.filter(
     (item) =>
-      meetsImportanceFloor(item, floor) && matches(item, leagues) &&
+      isVisibleItem(item) && matches(item, levels) && matches(item, leagues) &&
       matches(item, sources) && matches(item, others)
   );
 }
 
 // Chip toggle semantics: "all" resets; empty selection falls back to "all".
-// A floor replaces any other floor (choosing the same one clears it);
+// Levels toggle independently (several are OR);
 // ALL_LEAGUES_ID / ALL_LEVELS_ID clear only their own family.
 export function toggleFilterSet(prev, chipId) {
   if (chipId === "all") return new Set(["all"]);
   const next = new Set(prev);
   next.delete("all");
   if (chipId === ALL_LEAGUES_ID || chipId === ALL_LEVELS_ID || chipId === ALL_SOURCES_ID) {
-    const inFamily = chipId === ALL_LEAGUES_ID ? isLeagueId : chipId === ALL_SOURCES_ID ? isSourceId : isFloorId;
+    const inFamily = chipId === ALL_LEAGUES_ID ? isLeagueId : chipId === ALL_SOURCES_ID ? isSourceId : isLevelId;
     for (const filterId of prev) if (inFamily(filterId)) next.delete(filterId);
   } else if (next.has(chipId)) {
     next.delete(chipId);
   } else {
-    if (isFloorId(chipId)) for (const filterId of prev) if (isFloorId(filterId)) next.delete(filterId);
     next.add(chipId);
   }
   return next.size === 0 ? new Set(["all"]) : next;
@@ -176,35 +159,31 @@ const withoutFamily = (activeFilters, inFamily) => {
 };
 
 /**
- * The importance control (#483): "הכול" then each threshold, with the number
- * of stories choosing it would show under the other active filters (faceted).
- * Labels come from DECISION_CONFIG, the one decision vocabulary (A3).
+ * The importance control (#483, #510): "הכול" then each level as its own
+ * checkbox, with the number of stories that level alone would add under the
+ * other active filters (faceted). Labels come from DECISION_CONFIG (A3).
  */
 export function importanceOptions(items, activeFilters) {
-  const scope = filterFeedItems(items, withoutFamily(activeFilters, isFloorId)).filter((item) =>
-    meetsImportanceFloor(item, null)
-  );
-  const floor = importanceFloor(activeFilters);
+  const scope = filterFeedItems(items, withoutFamily(activeFilters, isLevelId)).filter(isVisibleItem);
+  const selected = new Set(activeLevelIds(activeFilters));
   return [
-    { id: ALL_LEVELS_ID, level: null, label: "הכול", count: scope.length, selected: floor === null },
-    ...IMPORTANCE_FLOORS.map((level) => ({
-      id: importanceFilterId(level),
+    { id: ALL_LEVELS_ID, level: null, label: "הכול", count: scope.length, selected: selected.size === 0 },
+    ...LEVEL_FILTER_IDS.map((level) => ({
+      id: level,
       level,
-      label: `${DECISION_CONFIG[level].label} ומעלה`,
-      count: scope.filter((item) => meetsImportanceFloor(item, level)).length,
-      selected: floor === level,
+      label: DECISION_CONFIG[level].label,
+      count: scope.filter((item) => item.score.decision === level).length,
+      selected: selected.has(level),
     })),
   ];
 }
 
 /**
  * Per league filter id, how many stories pressing that pill would show under
- * the other active filters (the floor). Leagues with none are absent.
+ * the other active filters (the levels). Leagues with none are absent.
  */
 export function facetedLeagueCounts(items, activeFilters) {
-  const scope = filterFeedItems(items, withoutFamily(activeFilters, isLeagueId)).filter((item) =>
-    meetsImportanceFloor(item, null)
-  );
+  const scope = filterFeedItems(items, withoutFamily(activeFilters, isLeagueId)).filter(isVisibleItem);
   const counts = new Map();
   for (const item of scope) {
     const id = leagueFilterId(item);
@@ -226,7 +205,7 @@ export function facetedSourceCounts(items, activeFilters) {
 /** Feed display names and stable whole-feed order, retaining selected zeros. */
 export function sourceOptions(items, activeFilters) {
   const names = new Map();
-  for (const item of items.filter((item) => meetsImportanceFloor(item, null))) {
+  for (const item of items.filter(isVisibleItem)) {
     for (const [id, label] of filterSources(item)) if (!names.has(id)) names.set(id, label);
   }
   const totals = facetedSourceCounts(items, new Set(["all"]));

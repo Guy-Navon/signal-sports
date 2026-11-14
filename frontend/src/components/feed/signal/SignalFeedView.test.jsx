@@ -343,11 +343,11 @@ it("the league pills say whether they are selected", () => {
 
 // The filter bar (#483): C's disclosure contains all three facets.
 
-const radios = (root) => root.findAll((node) => node.type === "input" && node.props.type === "radio");
+const levelBoxes = (root) => root.findAll((node) => node.type === "input" && node.props.type === "checkbox" && node.props.className === "sg-seg__input");
 const textOf = (node) =>
   node.children.map((child) => (typeof child === "string" ? child : textOf(child))).join("");
 
-it("offers the importance thresholds as one radio group, each named with its count", () => {
+it("offers each importance level as its own checkbox, each named with its count", () => {
   const items = [
     story("p", "push", "NBA"),
     story("h", "high_feed", "EuroLeague"),
@@ -355,40 +355,42 @@ it("offers the importance thresholds as one radio group, each named with its cou
     story("l", "low_feed", "NBA"),
   ];
   const view = render(items);
-  expect(radios(view.root)).toHaveLength(0);
+  expect(levelBoxes(view.root)).toHaveLength(0);
   expect(byClass(view.root, "sg-pill")).toHaveLength(0);
   act(() => byClass(view.root, "sg-filter-toggle")[0].props.onClick());
-  const group = view.root.find((node) => node.props.role === "radiogroup");
+  const group = view.root.find((node) => node.props.role === "group" && node.props["aria-label"] === "סינון לפי חשיבות");
   expect(group.props["aria-label"]).toBe("סינון לפי חשיבות");
-  const inputs = radios(view.root);
-  expect(new Set(inputs.map((input) => input.props.name)).size).toBe(1);
-  expect(inputs.map((input) => input.props.checked)).toEqual([true, false, false]);
+  const inputs = levelBoxes(view.root);
+  expect(inputs.map((input) => input.props.checked)).toEqual([true, false, false, false, false]);
   const names = byClass(view.root, "sg-seg__opt").map((label) =>
     textOf(label).replace(/\s+/g, " ").trim()
   );
   expect(names).toEqual([
     "הכול4, 4 סיפורים",
-    "רגיל ומעלה3, 3 סיפורים",
-    "חשוב ומעלה2, 2 סיפורים",
+    "דורש תשומת לב1, 1 סיפורים",
+    "חשוב1, 1 סיפורים",
+    "רגיל1, 1 סיפורים",
+    "נמוך1, 1 סיפורים",
   ]);
+  expect(names.join("")).not.toContain("ומעלה");
 });
 
-it("choosing a threshold asks for it; 'הכול' clears only the threshold", () => {
+it("choosing a level asks for exactly it; 'הכול' clears only the importance group", () => {
   const onToggleFilter = vi.fn();
   const items = [story("h", "high_feed"), story("f", "feed")];
   const view = render(items, { onToggleFilter });
   act(() => byClass(view.root, "sg-filter-toggle")[0].props.onClick());
-  act(() => radios(view.root)[2].props.onChange());
-  expect(onToggleFilter).toHaveBeenLastCalledWith("min:high_feed");
+  act(() => levelBoxes(view.root)[2].props.onChange());
+  expect(onToggleFilter).toHaveBeenLastCalledWith("high_feed");
   act(() => view.update(
-    <SignalFeedView items={items} activeFilters={new Set(["min:high_feed"])}
+    <SignalFeedView items={items} activeFilters={new Set(["high_feed"])}
       onToggleFilter={onToggleFilter} onResetFilters={() => {}} nowMs={NOW} readOnly />
   ));
-  act(() => radios(view.root)[0].props.onChange());
-  expect(onToggleFilter).toHaveBeenLastCalledWith("min:*");
+  act(() => levelBoxes(view.root)[0].props.onChange());
+  expect(onToggleFilter).toHaveBeenLastCalledWith("level:*");
 });
 
-it("a threshold narrows every section, keeps the push lead, and never reveals a hidden story", () => {
+it("a level filter narrows every section, keeps the push lead, and never reveals a hidden story", () => {
   const items = [
     story("p", "push", "NBA"),
     story("h", "high_feed", "EuroLeague"),
@@ -396,7 +398,7 @@ it("a threshold narrows every section, keeps the push lead, and never reveals a 
     story("l", "low_feed", "NBA"),
     story("x", "hidden", "NBA"),
   ];
-  const view = render(items, { activeFilters: new Set(["min:high_feed"]) });
+  const view = render(items, { activeFilters: new Set(["push", "high_feed"]) });
   const text = JSON.stringify(view.toJSON());
   expect(byClass(view.root, "sg-lead")).toHaveLength(1);
   expect(text).toContain("כותרת h");
@@ -408,14 +410,14 @@ it("a threshold narrows every section, keeps the push lead, and never reveals a 
   expect(textOf(byClass(view.root, "sg-filter-result")[0])).toContain("מוצגים 2 מתוך 4 סיפורים");
 });
 
-it("the league pills count under the threshold, and 'כל הליגות' clears only the leagues", () => {
+it("the league pills count under the level, and 'כל הליגות' clears only the leagues", () => {
   const onToggleFilter = vi.fn();
   const items = [
     story("h", "high_feed", "NBA"),
     story("f1", "feed", "NBA"),
     story("f2", "feed", "EuroLeague"),
   ];
-  const view = render(items, { activeFilters: new Set(["min:high_feed"]), onToggleFilter });
+  const view = render(items, { activeFilters: new Set(["high_feed"]), onToggleFilter });
   act(() => byClass(view.root, "sg-filter-toggle")[0].props.onClick());
   const pills = byClass(view.root, "sg-pill");
   // EuroLeague has nothing at חשוב or above, so it is not offered.
@@ -428,9 +430,9 @@ it("the league pills count under the threshold, and 'כל הליגות' clears o
 it("an empty result names the filter and offers the whole feed", () => {
   const onResetFilters = vi.fn();
   const items = [story("f", "feed", "NBA")];
-  const view = render(items, { activeFilters: new Set(["min:high_feed"]), onResetFilters });
+  const view = render(items, { activeFilters: new Set(["high_feed"]), onResetFilters });
   const empty = byClass(view.root, "sg-filter-empty")[0];
-  expect(textOf(empty)).toContain("אין כרגע סיפורים ברמת חשוב ומעלה.");
+  expect(textOf(empty)).toContain("אין סיפורים ברמה שבחרת.");
   act(() => empty.findByType("button").props.onClick());
   expect(onResetFilters).toHaveBeenCalled();
   expect(byClass(view.root, "sg-row")).toHaveLength(0);
@@ -446,12 +448,12 @@ it("shows removable chips for all three facets and counts sources in read-only m
   const onToggleFilter = vi.fn();
   const onResetFilters = vi.fn();
   const items = [story("h", "high_feed", "NBA"), story("f", "feed", "EuroLeague")];
-  const view = render(items, { activeFilters: new Set(["min:feed", "league:NBA", "source:walla_sport"]), onToggleFilter, onResetFilters });
+  const view = render(items, { activeFilters: new Set(["feed", "high_feed", "league:NBA", "source:walla_sport"]), onToggleFilter, onResetFilters });
   const chips = byClass(view.root, "sg-filter-chip");
-  expect(chips.map((chip) => chip.props["data-filter"])).toEqual(["min:feed", "league:NBA", "source:walla_sport"]);
-  expect(textOf(chips[2])).toBe("וואלה ספורט");
-  expect(textOf(byClass(view.root, "sg-filter-badge")[0])).toBe("3");
-  act(() => chips[2].props.onClick());
+  expect(chips.map((chip) => chip.props["data-filter"])).toEqual(["high_feed", "feed", "league:NBA", "source:walla_sport"]);
+  expect(textOf(chips[3])).toBe("וואלה ספורט");
+  expect(textOf(byClass(view.root, "sg-filter-badge")[0])).toBe("4");
+  act(() => chips[3].props.onClick());
   expect(onToggleFilter).toHaveBeenLastCalledWith("source:walla_sport");
   act(() => byClass(view.root, "sg-filter-clear")[0].props.onClick());
   expect(onResetFilters).toHaveBeenCalledOnce();

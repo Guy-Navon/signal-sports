@@ -2389,6 +2389,97 @@ function assertHeaderKeyboard(label, audit) {
   if (audit.closed.open || !audit.closed.focusOnAvatar) fail("Escape did not close the menu back onto the avatar");
 }
 
+/** Trusted mouse input: verify the hand/content direction in Chrome's actual RTL layout. */
+async function auditResultsDrag(client, label) {
+  const before = await evaluate(client, `(() => {
+    const row = document.querySelector(".sg-results__scroller");
+    row.scrollIntoView({ block: "center", behavior: "instant" });
+    // The small local corpus can fit on desktop. Constrain this probe only;
+    // restore the row before taking the production-layout screenshots.
+    const maxInlineSize = row.style.maxInlineSize;
+    const constrained = row.scrollWidth <= row.clientWidth;
+    if (constrained) row.style.maxInlineSize = Math.max(80, Math.min(400, row.scrollWidth - 150)) + "px";
+    row.scrollLeft = 0;
+    row.dataset.reviewClicks = "0";
+    row.addEventListener("click", () => { row.dataset.reviewClicks = String(+row.dataset.reviewClicks + 1); });
+    const r = row.getBoundingClientRect();
+    return { x: r.right - Math.min(120, r.width / 2), y: r.top + 30, maxInlineSize, constrained,
+      cardX: row.firstElementChild.getBoundingClientRect().x,
+      direction: getComputedStyle(row).direction,
+      cursor: getComputedStyle(row).cursor,
+      fineHover: matchMedia("(hover: hover) and (pointer: fine)").matches,
+      overflows: row.scrollWidth > row.clientWidth };
+  })()`);
+  const read = () => evaluate(client, `(() => {
+    const row = document.querySelector(".sg-results__scroller");
+    return { scroll: row.scrollLeft, cardX: row.firstElementChild.getBoundingClientRect().x,
+      cursor: getComputedStyle(row).cursor, selection: getComputedStyle(row).userSelect,
+      selectedText: document.getSelection().toString(), clicks: +row.dataset.reviewClicks };
+  })()`);
+  const mouse = (type, x, buttons = 1) => client.send("Input.dispatchMouseEvent", {
+    type, x, y: before.y, button: "left", buttons, clickCount: 1,
+  });
+  if (!before.overflows || before.direction !== "rtl" || (before.fineHover && before.cursor !== "grab")) {
+    throw new Error(`${label}: mouse drag needs an overflowing RTL strip with its grab cursor: ${JSON.stringify(before)}`);
+  }
+  await mouse("mouseMoved", before.x, 0);
+  await mouse("mousePressed", before.x);
+  await mouse("mouseMoved", before.x + 3);
+  const belowThreshold = await read();
+  await mouse("mouseMoved", before.x + 70);
+  const right = await read();
+  await mouse("mouseReleased", before.x + 70, 0);
+  const released = await read();
+  await delay(150);
+  const settled = await read();
+  await mouse("mousePressed", before.x);
+  await mouse("mouseMoved", before.x - 30);
+  const left = await read();
+  await mouse("mouseReleased", before.x - 30, 0);
+  const afterDrags = await read();
+  await mouse("mousePressed", before.x);
+  await mouse("mouseReleased", before.x, 0);
+  const clicked = await read();
+  if (belowThreshold.scroll !== 0 || right.scroll !== -70 ||
+      Math.abs(right.cardX - before.cardX - 70) > 1 ||
+      right.cursor !== "grabbing" || right.selection !== "none" || right.selectedText ||
+      released.cursor === "grabbing" || settled.scroll !== released.scroll ||
+      left.scroll !== -40 || Math.abs(left.cardX - right.cardX + 30) > 1 ||
+      afterDrags.clicks !== 0 || clicked.clicks !== 1) {
+    throw new Error(`${label}: mouse drag failed: ${JSON.stringify({ before, belowThreshold, right, released, settled, left, afterDrags, clicked })}`);
+  }
+  await evaluate(client, `document.querySelector(".sg-results__scroller").scrollLeft = 0`);
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mouseWheel", x: before.x, y: before.y, deltaX: -80, deltaY: 0,
+  });
+  await delay(300);
+  const wheel = await read();
+  if (wheel.scroll >= 0) throw new Error(`${label}: wheel stopped scrolling the strip`);
+  const linkPoint = await evaluate(client, `(() => {
+    const link = document.querySelector(".sg-results__link");
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      link.dataset.reviewClicked = "yes";
+    }, { once: true });
+    const r = link.getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  })()`);
+  for (const type of ["mousePressed", "mouseReleased"]) {
+    await client.send("Input.dispatchMouseEvent", { type, ...linkPoint, button: "left", clickCount: 1 });
+  }
+  const linkWorks = await evaluate(client, `document.querySelector(".sg-results__link").dataset.reviewClicked === "yes"`);
+  if (!linkWorks) throw new Error(`${label}: the full-board link did not receive its click`);
+  await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 0, y: 0 });
+  await evaluate(client, `(() => {
+    const row = document.querySelector(".sg-results__scroller");
+    row.style.maxInlineSize = ${JSON.stringify(before.maxInlineSize)};
+    row.scrollLeft = 0;
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  })()`);
+  return { constrained: before.constrained, right, left, noInertia: settled.scroll === released.scroll,
+    dragClicks: afterDrags.clicks, plainClicks: clicked.clicks, wheel: wheel.scroll, linkWorks };
+}
+
 /** Results supplied by the real local-mode context, with independent expectations. */
 async function auditResultsStrip(client, label) {
   const audit = await evaluate(client, `(async () => {
@@ -2481,7 +2572,8 @@ async function auditResultsStrip(client, label) {
     throw new Error(`${label}: arrow key did not scroll the focused results strip`);
   }
   await evaluate(client, `document.querySelector(".sg-results__scroller").scrollLeft = 0`);
-  return { label, ...audit, after };
+  const drag = label.startsWith("desktop") ? await auditResultsDrag(client, label) : null;
+  return { label, ...audit, after, drag };
 }
 
 /**

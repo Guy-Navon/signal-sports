@@ -1,6 +1,6 @@
 import React from "react";
 import { act, create } from "react-test-renderer";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import ResultsStrip from "./ResultsStrip";
 import SignalFeedView from "./SignalFeedView";
 
@@ -18,6 +18,137 @@ function render(element) {
   act(() => { view = create(element); });
   return view;
 }
+
+function dragFixture() {
+  render(<ResultsStrip results={[final]} nowMs={NOW} />);
+  const doc = Object.assign(new EventTarget(), { getSelection: () => null });
+  let captured = false;
+  const scroller = Object.assign(new EventTarget(), {
+    ownerDocument: doc,
+    scrollLeft: -100,
+    setPointerCapture: vi.fn(() => { captured = true; }),
+    hasPointerCapture: () => captured,
+    releasePointerCapture: vi.fn(() => { captured = false; }),
+  });
+  const props = () => view.root.findByProps({ role: "group" }).props;
+  const pointer = (type, overrides = {}) => Object.assign(new Event(type, { cancelable: true }), {
+    pointerType: "mouse", pointerId: 1, button: 0, buttons: 1, clientX: 100, ...overrides,
+  });
+  return {
+    scroller, props,
+    down(overrides = {}) {
+      const event = { currentTarget: scroller, pointerType: "mouse", pointerId: 1, button: 0, clientX: 100, ...overrides };
+      act(() => props().onPointerDown(event));
+    },
+    send(type, overrides = {}) {
+      const event = pointer(type, overrides);
+      act(() => (type === "lostpointercapture" ? scroller : doc).dispatchEvent(event));
+      return event;
+    },
+    click(detail = 1) {
+      const event = Object.assign(new Event("click", { cancelable: true }), { detail });
+      const stop = vi.spyOn(event, "stopPropagation");
+      act(() => props().onClickCapture(event));
+      return { event, stop };
+    },
+  };
+}
+
+it("starts after the threshold and moves RTL content with the mouse in both directions", () => {
+  const drag = dragFixture();
+  drag.down();
+  expect(drag.send("pointermove", { clientX: 104 }).defaultPrevented).toBe(false);
+  expect(drag.scroller.scrollLeft).toBe(-100);
+  expect(drag.scroller.setPointerCapture).not.toHaveBeenCalled();
+  expect(drag.send("pointermove", { clientX: 130 }).defaultPrevented).toBe(true);
+  expect(drag.scroller.scrollLeft).toBe(-130);
+  expect(drag.scroller.hasPointerCapture()).toBe(true);
+  expect(drag.props().className).toContain("--dragging");
+  drag.send("pointermove", { clientX: 80 });
+  expect(drag.scroller.scrollLeft).toBe(-80);
+  drag.send("pointerup", { buttons: 0 });
+  expect(drag.scroller.hasPointerCapture()).toBe(false);
+  expect(drag.props().className).not.toContain("--dragging");
+  drag.send("pointermove", { clientX: 160 });
+  expect(drag.scroller.scrollLeft).toBe(-80);
+});
+
+it.each([
+  { pointerType: "touch" }, { pointerType: "pen" }, { button: 1 }, { button: 2 },
+])("leaves native scrolling alone for $pointerType / button $button", (input) => {
+  const drag = dragFixture();
+  drag.down(input);
+  const move = drag.send("pointermove", { ...input, clientX: 140 });
+  expect(move.defaultPrevented).toBe(false);
+  expect(drag.scroller.scrollLeft).toBe(-100);
+  expect(drag.scroller.setPointerCapture).not.toHaveBeenCalled();
+});
+
+it("swallows the ending click in capture, then allows a plain click and the header link", () => {
+  const drag = dragFixture();
+  drag.down();
+  drag.send("pointermove", { clientX: 130 });
+  drag.send("pointerup", { buttons: 0 });
+  const blocked = drag.click();
+  expect(blocked.event.defaultPrevented).toBe(true);
+  expect(blocked.stop).toHaveBeenCalledOnce();
+  drag.down();
+  drag.send("pointermove", { clientX: 103 });
+  drag.send("pointerup", { buttons: 0 });
+  const plain = drag.click();
+  expect(plain.event.defaultPrevented).toBe(false);
+  expect(plain.stop).not.toHaveBeenCalled();
+  expect(view.root.findByType("a").props.href).toBe("/results");
+  expect(view.root.findByType("a").props.onClickCapture).toBeUndefined();
+});
+
+it.each(["pointercancel", "lostpointercapture"])("ends a drag on %s and allows later keyboard and mouse clicks", (type) => {
+  const drag = dragFixture();
+  drag.down();
+  drag.send("pointermove", { clientX: 130 });
+  drag.send(type);
+  drag.send("pointermove", { clientX: 170 });
+  expect(drag.scroller.scrollLeft).toBe(-130);
+  expect(drag.scroller.hasPointerCapture()).toBe(false);
+  expect(drag.props().className).not.toContain("--dragging");
+  expect(drag.click(0).event.defaultPrevented).toBe(false);
+  drag.down();
+  drag.send("pointerup", { buttons: 0 });
+  expect(drag.click().event.defaultPrevented).toBe(false);
+});
+
+it("keeps a touch tap after a cancelled mouse drag native", () => {
+  const drag = dragFixture();
+  drag.down();
+  drag.send("pointermove", { clientX: 130 });
+  drag.send("pointercancel");
+  drag.down({ pointerType: "touch", pointerId: 2 });
+  expect(drag.click().event.defaultPrevented).toBe(false);
+});
+
+it("ignores other pointers and cleans up a release outside the strip before the threshold", () => {
+  const drag = dragFixture();
+  drag.down();
+  expect(drag.send("pointermove", { pointerId: 2, clientX: 150 }).defaultPrevented).toBe(false);
+  drag.send("pointerup", { pointerId: 2, buttons: 0 });
+  drag.send("pointerup", { buttons: 0 });
+  drag.send("pointermove", { clientX: 170 });
+  expect(drag.scroller.scrollLeft).toBe(-100);
+  expect(drag.scroller.setPointerCapture).not.toHaveBeenCalled();
+});
+
+it.each(["unmount", "no finals"])("releases capture and stops tracking the mouse on %s", (change) => {
+  const drag = dragFixture();
+  drag.down();
+  drag.send("pointermove", { clientX: 130 });
+  act(() => {
+    if (change === "unmount") view.unmount();
+    else view.update(<ResultsStrip results={[]} nowMs={NOW} />);
+  });
+  drag.send("pointermove", { clientX: 170 });
+  expect(drag.scroller.scrollLeft).toBe(-130);
+  expect(drag.scroller.hasPointerCapture()).toBe(false);
+});
 
 it("renders no placeholder or heading when results are absent or have no finals", () => {
   render(<ResultsStrip nowMs={NOW} />);

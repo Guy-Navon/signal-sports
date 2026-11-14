@@ -50,7 +50,7 @@
   overscroll-behavior-inline: contain;
   /* A thin, quiet scrollbar instead of the thick native one (Guy, 2026-11-14):
      the thumb in --sg-off, darker while the pointer or keyboard focus is on
-     the row. Wheel, trackpad, touch and the arrow keys still scroll it. */
+     the row. Mouse drag, wheel, trackpad, touch and the arrow keys scroll it. */
   padding-block-end: 6px;
   scrollbar-width: thin;
   scrollbar-color: var(--sg-off) transparent;
@@ -59,6 +59,15 @@
 .signal-ui .sg-results__scroller:hover,
 .signal-ui .sg-results__scroller:focus-visible {
   scrollbar-color: var(--sg-dim) transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .signal-ui .sg-results__scroller { cursor: grab; }
+}
+
+.signal-ui .sg-results__scroller--dragging {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .signal-ui .sg-result {

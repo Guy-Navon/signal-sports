@@ -546,8 +546,11 @@ Between the important row and the band. A 1px `--line` rule above and below, pad
   46px on a phone) without moving the layout.
 - **Games**: a horizontally scrolling row with a thin, quiet scrollbar (2026-11-14, replacing the
   ink-dark one that touched the scores): `scrollbar-width: thin`, thumb `--sg-off` (`--sg-dim`
-  while hovered or focused), 6px below the scores. Wheel, trackpad, touch and the arrow keys
-  (the row is focusable) scroll it. Each game is at least 176px wide with a 1px
+  while hovered or focused), 6px below the scores. Mouse drag, wheel, trackpad, touch and the
+  arrow keys (the row is focusable) scroll it. Mouse dragging starts after 5px, follows the
+  hand in RTL, and suppresses the ending click; a plain click works as usual. Fine hover
+  pointers show grab/grabbing cursors, with no text selection during a drag and no inertia.
+  Touch and pen keep native scrolling. Each game is at least 176px wide with a 1px
   inline-start rule: a small line "competition · time" (11.5px 700 `--dim`), then one row per
   team, name and score. The winner's row is `--ink` 800, the loser's `--dim`.
 - **Data**: the session user's most recent finals (`/api/me/results`). The mock shows the ten

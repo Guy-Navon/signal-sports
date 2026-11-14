@@ -65,23 +65,24 @@ describe("onboardingState", () => {
 describe("onboardingRedirect", () => {
   it("NEEDS_ONBOARDING routes everything to /welcome except the funnel", () => {
     expect(onboardingRedirect(view(), "/")).toBe("/welcome");
-    expect(onboardingRedirect(view(), "/preferences")).toBe("/welcome");
+    // #492: /preferences is now the interests stage, inside the funnel.
+    expect(onboardingRedirect(view(), "/preferences")).toBe(null);
     expect(onboardingRedirect(view(), "/welcome")).toBe(null);
     expect(onboardingRedirect(view(), "/interests")).toBe(null);
     expect(onboardingRedirect(view(), "/calibration")).toBe(null);
   });
 
-  it("SELECTING_INTERESTS resumes at /interests", () => {
+  it("SELECTING_INTERESTS resumes at /preferences", () => {
     const v = view({ selected: 3 });
-    expect(onboardingRedirect(v, "/")).toBe("/interests");
+    expect(onboardingRedirect(v, "/")).toBe("/preferences");
     expect(onboardingRedirect(v, "/interests")).toBe(null);
     expect(onboardingRedirect(v, "/calibration")).toBe(null);
   });
 
   it("CALIBRATING resumes at calibration; interests stays reachable", () => {
     const v = view({ interestsCompleted: true, answered: 5 });
-    expect(onboardingRedirect(v, "/")).toBe("/calibration");
-    expect(onboardingRedirect(v, "/welcome")).toBe("/calibration");
+    expect(onboardingRedirect(v, "/")).toBe("/preferences/calibration");
+    expect(onboardingRedirect(v, "/welcome")).toBe("/preferences/calibration");
     expect(onboardingRedirect(v, "/calibration")).toBe(null);
     expect(onboardingRedirect(v, "/interests")).toBe(null);
   });
@@ -89,6 +90,16 @@ describe("onboardingRedirect", () => {
   it("ACTIVE and admins are never redirected", () => {
     expect(onboardingRedirect(view({ completed: true }), "/")).toBe(null);
     expect(onboardingRedirect(view({ u: admin }), "/")).toBe(null);
+  });
+
+  it("admits the merged funnel routes in every incomplete state and keeps unrelated tabs gated", () => {
+    for (const v of [view(), view({ selected: 3 }), view({ interestsCompleted: true })]) {
+      for (const path of ["/preferences", "/preferences/", "/preferences/calibration", "/interests", "/calibration"]) {
+        expect(onboardingRedirect(v, path)).toBeNull();
+      }
+      expect(onboardingRedirect(v, "/preferences/learned")).not.toBeNull();
+      expect(onboardingRedirect(v, "/preferences/muted")).not.toBeNull();
+    }
   });
 });
 

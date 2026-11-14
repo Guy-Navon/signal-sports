@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { PRODUCT_NAV_ITEMS, getOpsNavItems } from "@/components/shell/navConfig";
+import { OPS_PRODUCT_NAV_ITEMS, getOpsNavItems } from "@/components/shell/navConfig";
 
 // Deliberately quiet: the nav is a margin note, the feed is the page. Active
 // state is colour + a start-edge tick — no filled pill, no boxed hovers.
@@ -44,7 +44,7 @@ export default function ProductNav({ isBackendMode }) {
     <nav className="hidden md:block w-44 flex-shrink-0 pt-7 pe-2">
       <div className="sticky top-20 space-y-0.5">
         <GroupLabel>מוצר</GroupLabel>
-        {PRODUCT_NAV_ITEMS.map((item) => (
+        {OPS_PRODUCT_NAV_ITEMS.map((item) => (
           <NavItem key={item.path} {...item} active={location.pathname === item.path} />
         ))}
         <div className="mx-3 my-3 border-t border-border/60" />

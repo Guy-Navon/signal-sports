@@ -10,7 +10,7 @@ import RequireOpsRole from '@/components/shell/RequireOpsRole';
 import LazyBoundary from '@/components/shell/LazyBoundary';
 import Feed from '@/pages/Feed';
 import Preferences from '@/pages/Preferences';
-import InterestSelection from '@/pages/InterestSelection';
+import LegacyPreferencesRedirect from '@/components/preferences/LegacyPreferencesRedirect';
 import Results from '@/pages/Results';
 import Account from '@/pages/Account';
 import Login from '@/pages/Login';
@@ -25,7 +25,6 @@ import './index.css';
 
 // Screens most sessions never open load on demand (#199). The ops console is
 // admin-only under a consumer session; calibration is an occasional tool.
-const Calibration = lazy(() => import('@/pages/Calibration'));
 const Sources = lazy(() => import('@/pages/Sources'));
 const Debug = lazy(() => import('@/pages/Debug'));
 const LlmQa = lazy(() => import('@/pages/LlmQa'));
@@ -55,9 +54,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 <Route path="welcome" element={<Onboarding />} />
                 <Route element={<AppShell area="product" />}>
                   <Route index element={<Feed />} />
-                  <Route path="preferences" element={<Preferences />} />
-                  <Route path="interests" element={<InterestSelection />} />
-                  <Route path="calibration" element={<LazyBoundary><Calibration /></LazyBoundary>} />
+                  <Route path="preferences/:tab?" element={<Preferences />} />
+                  <Route path="interests" element={<LegacyPreferencesRedirect />} />
+                  <Route path="calibration" element={<LegacyPreferencesRedirect />} />
                   <Route path="results" element={<Results />} />
                   <Route path="account" element={<Account />} />
                 </Route>

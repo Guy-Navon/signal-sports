@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { firstUnansweredItemId, onboardingState } from "@/context/onboardingFlow";
@@ -18,6 +18,7 @@ import {
 import { PersonalizationHeader as PageHeader, PersonalizationSection as SectionCard, PersonalizationStat as StatCard } from "@/components/preferences/PersonalizationLayout";
 import SignalStrength from "@/components/signal-ui/SignalStrength";
 import AffinityLevel from "@/components/preferences/AffinityLevel";
+import CalibrationSummary from "@/components/preferences/CalibrationSummary";
 // Share the stream row's type, spacing, kicker and why styles with SignalFeedView.
 import "@/components/feed/signal/signal-feed.css";
 import "./calibration.css";
@@ -105,7 +106,7 @@ function PreviewPanel({ preview }) {
   );
 }
 
-export default function Calibration() {
+export default function Calibration({ embedded = false }) {
   const { isBackendMode, activeProfileId, consumerSession, refreshProfiles, refreshFeed } = useApp();
   const auth = useAuth();
   const navigate = useNavigate();
@@ -122,8 +123,17 @@ export default function Calibration() {
   const [isLoading, setIsLoading] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
-  const [applied, setApplied] = useState(false);
+  const [appliedResult, setAppliedResult] = useState(null);
+  const applyButtonRef = useRef(null);
+  const returnToRatings = useRef(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!appliedResult && returnToRatings.current) {
+      returnToRatings.current = false;
+      applyButtonRef.current?.focus();
+    }
+  }, [appliedResult]);
 
   useEffect(() => {
     if (!isBackendMode) return;
@@ -160,7 +170,7 @@ export default function Calibration() {
   }, [resumeAnchor]);
 
   const handleRate = (id, rating) => {
-    setApplied(false);
+    setAppliedResult(null);
     // A preview describes the ratings it was computed from; once they change
     // it is stale and must not be read as current (#447).
     setPreview(null);
@@ -206,19 +216,16 @@ export default function Calibration() {
     setIsApplying(true);
     setError(null);
     try {
-      if (consumerSession) {
-        await applyMeCalibration(ratings);
-      } else {
-        await applyCalibration(activeProfileId, ratings);
-      }
-      setApplied(true);
+      const result = consumerSession
+        ? await applyMeCalibration(ratings)
+        : await applyCalibration(activeProfileId, ratings);
+      setAppliedResult(result);
       refreshProfiles?.();
       refreshFeed?.();
       if (inOnboarding) {
-        // Apply transitions the derived state machine to ACTIVE — hand the
-        // user their first personalized feed.
+        // Apply still completes onboarding. Show the saved levels before the
+        // user continues to the feed from the summary (#492).
         await auth.refreshSession();
-        navigate("/", { replace: true });
       }
     } catch (err) {
       setError(err.message);
@@ -235,8 +242,8 @@ export default function Calibration() {
 
   if (!isBackendMode) {
     return (
-      <div className="sg-personalization sg-calibration">
-        <PageHeader title="כיול העדפות" icon={SlidersHorizontal} subtitle="דרג כותרות סינתטיות כדי שנלמד מה מעניין אותך" />
+      <div className={embedded ? "sg-preferences__section sg-calibration" : "sg-personalization sg-calibration"}>
+        <PageHeader level={embedded ? 2 : 1} title="כיול העדפות" icon={SlidersHorizontal} subtitle="דרג כותרות סינתטיות כדי שנלמד מה מעניין אותך" />
         <SectionCard title="כיול העדפות" icon={SlidersHorizontal}>
           <p className="sg-form-note">
             כיול ההעדפות רץ בבקאנד (מודל ההעדפות v2) וזמין רק במצב שרת.
@@ -250,7 +257,7 @@ export default function Calibration() {
   }
 
   return (
-    <div className="sg-personalization sg-calibration">
+    <div className={embedded ? "sg-preferences__section sg-calibration" : "sg-personalization sg-calibration"}>
       {inOnboarding && (
         <div className="sg-form-banner">
           <p className="sg-form-note">
@@ -266,6 +273,7 @@ export default function Calibration() {
         </div>
       )}
       <PageHeader
+        level={embedded ? 2 : 1}
         title="כיול העדפות"
         icon={SlidersHorizontal}
         subtitle={
@@ -289,23 +297,24 @@ export default function Calibration() {
       <div className="sg-form-stats">
         <StatCard label="דורגו" value={`${ratedCount}/${items.length}`} />
         <StatCard label="תחומים במאגר" value={Object.keys(bySport).length} />
-        <StatCard label="סטטוס" value={applied ? "נשמר" : "טיוטה"} />
+        <StatCard label="סטטוס" value={appliedResult ? "נשמר" : "טיוטה"} />
       </div>
 
+      {appliedResult ? (
+        <CalibrationSummary result={appliedResult} onContinueRating={() => {
+          returnToRatings.current = true;
+          setAppliedResult(null);
+        }} />
+      ) : <>
       <div className="sg-form-actions">
         <button onClick={handlePreview} disabled={isPreviewing || ratedCount === 0} aria-busy={isPreviewing} className="sg-form-button">
           {isPreviewing ? <><RefreshCw size={13} className="animate-spin" /> מכין תצוגה...</> : <><Sparkles size={13} /> תצוגה מקדימה</>}
         </button>
-        <button onClick={handleApply} disabled={isApplying || ratedCount === 0} className="sg-form-button sg-form-button--primary">
+        <button ref={applyButtonRef} onClick={handleApply} disabled={isApplying || ratedCount === 0} className="sg-form-button sg-form-button--primary">
           {isApplying
             ? <><RefreshCw size={13} className="animate-spin" /> שומר...</>
             : <><CheckCircle2 size={13} /> שמור לפרופיל</>}
         </button>
-        {applied && (
-          <span className="sg-form-success" role="status">
-            <CheckCircle2 size={12} /> ההעדפות נשמרו — הפיד מחושב לפיהן
-          </span>
-        )}
       </div>
 
       {items.length > 0 && ratedCount === items.length && <p className="sg-form-success" role="status">כל הכותרות דורגו. אפשר לשמור לפרופיל או לעדכן את הדירוגים.</p>}
@@ -328,6 +337,7 @@ export default function Calibration() {
           </div>
         ))
       )}
+      </>}
     </div>
   );
 }

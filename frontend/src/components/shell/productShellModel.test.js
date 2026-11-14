@@ -14,8 +14,8 @@ const paths = (items) => items.map((item) => item.path);
 
 describe("productShellModel", () => {
   describe("consumerNavItems", () => {
-    it("orders the header as Part B §B6: feed, results, preferences, calibration", () => {
-      expect(paths(consumerNavItems())).toEqual(["/", "/results", "/preferences", "/calibration"]);
+    it("orders the merged consumer header: feed, results, preferences", () => {
+      expect(paths(consumerNavItems())).toEqual(["/", "/results", "/preferences"]);
     });
 
     it("keeps every product route and its label, so no destination is lost", () => {
@@ -48,7 +48,6 @@ describe("productShellModel", () => {
         "feed",
         "results",
         "preferences",
-        "calibration",
       ]);
     });
 

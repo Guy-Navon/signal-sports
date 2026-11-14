@@ -32,7 +32,7 @@ const STEPS = [
   { id: "events", title: "אילו סוגי חדשות?", subtitle: "כיוון גס וגלובלי — את הניואנסים לכל ליגה נלמד בכיול ומהפידבק שלכם." },
 ];
 
-export default function InterestSelection() {
+export default function InterestSelection({ embedded = false }) {
   const navigate = useNavigate();
   const auth = useAuth();
   const { consumerSession } = useApp();
@@ -75,7 +75,7 @@ export default function InterestSelection() {
     try {
       await putMeInterests(buildPutPayload(follows, eventPreferences));
       await auth.refreshSession();
-      navigate(inOnboarding ? "/calibration" : "/", { replace: true });
+      navigate(inOnboarding ? "/preferences/calibration" : "/", { replace: true });
     } catch (err) {
       setError(err?.message || "שמירת ההעדפות נכשלה");
       setIsSaving(false);
@@ -88,7 +88,7 @@ export default function InterestSelection() {
     try {
       await completeMeInterests();
       await auth.refreshSession();
-      navigate("/calibration", { replace: true });
+      navigate("/preferences/calibration", { replace: true });
     } catch (err) {
       setError(err?.message || "משהו השתבש");
       setIsSaving(false);
@@ -96,7 +96,7 @@ export default function InterestSelection() {
   }
 
   return (
-    <div className="sg-personalization">
+    <div className={embedded ? "sg-preferences__section" : "sg-personalization"}>
       {inOnboarding && (
         <div className="sg-form-banner">
           <p className="sg-form-note">
@@ -115,6 +115,7 @@ export default function InterestSelection() {
       )}
 
       <PageHeader
+        level={embedded ? 2 : 1}
         title={step.title}
         icon={Compass}
         subtitle={step.subtitle}

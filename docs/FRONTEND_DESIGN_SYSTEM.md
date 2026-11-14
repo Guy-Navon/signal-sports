@@ -194,13 +194,18 @@ runs at all. `loadApp` waits for finite animations to finish before it measures.
 the lead and important row, so the multi-page "show more" path and the stream cluster
 disclosure are locked by `SignalFeedView.test.jsx` instead, and the harness output says so.
 Since #491 it asserts the consumer header (B6) at 1440/390/375/320 in both motion passes: the
-masthead in page flow with all four tabs reachable and unclipped, the slim bar hidden and inert
+masthead in page flow with all three tabs reachable and unclipped, the slim bar hidden and inert
 at the top, fixed and shown once the masthead tabs have left (icon over a visible label on a
 phone, every tab and the account at least 44px), the hysteresis band in both directions, zero
 layout shift while it collapses and expands, a soft fade (300–500 ms) under normal motion and
 no transition under reduced motion, the Tab order (skip link, logo, tabs, account) and the
 account menu's keyboard flow (Enter opens with focus inside, arrows move, Escape returns to the
 avatar).
+Since the milestone-15 accessibility pass (2026-11-14) it also asserts a floor under every header
+size (B6) and that `--sg-bar-h` and the anchor `scroll-padding` match the bar's real height; the
+results strip's thin scrollbar with its `--sg-off` thumb, spaced off the scores (B9), and the
+hit-tested target of its "ללוח המלא" link (at least 24px on desktop, 44px on a phone); and the side
+column's scrollbar transparent at rest, with a stable gutter and its bottom-edge fade (B11).
 The harness keeps every existing browser assertion through the #473 rename to `capture:ui`.
 
 **Demo bundle guard.** `npm run build`, `npm run build:demo`, then `npm run check:demo-bundle`.
@@ -492,8 +497,12 @@ top rules. High_feed stories beyond four continue at the top of the stream.
 Between the important row and the band. A 1px `--line` rule above and below, padding-block 14px.
 
 - **Header** at the inline start: "תוצאות" (15px 800) and a link to the results page, "ללוח
-  המלא" (13px 700, `--acc`).
-- **Games**: a horizontally scrolling row. Each game is at least 176px wide with a 1px
+  המלא" (13px 700, `--acc`), whose hit area extends above and below the line (26px on desktop,
+  46px on a phone) without moving the layout.
+- **Games**: a horizontally scrolling row with a thin, quiet scrollbar (2026-11-14, replacing the
+  ink-dark one that touched the scores): `scrollbar-width: thin`, thumb `--sg-off` (`--sg-dim`
+  while hovered or focused), 6px below the scores. Wheel, trackpad, touch and the arrow keys
+  (the row is focusable) scroll it. Each game is at least 176px wide with a 1px
   inline-start rule: a small line "competition · time" (11.5px 700 `--dim`), then one row per
   team, name and score. The winner's row is `--ink` 800, the loser's `--dim`.
 - **Data**: the session user's most recent finals (`/api/me/results`). The mock shows the ten
@@ -574,7 +583,11 @@ changes the stream's order. It must hold up with 3 and with 40 stories.
 - Desktop: sticky 14px below the slim header bar (`var(--sg-bar-h) + 14px +
   env(safe-area-inset-top)`, #491; `--sg-bar-h` is 0 where there is no bar, as in the demo). A column taller than the viewport is capped at the viewport height
   and scrolls inside, so its end is reachable at any scroll position, not only once the stream
-  has ended.
+  has ended. Since 2026-11-14 that inner scroll is unobtrusive: a thin, stable gutter (nothing
+  reflows) whose thumb is transparent until the pointer or keyboard focus is in the column, a
+  40px fade to `--band` pinned to the column's bottom edge while there is more (scrolled to the
+  end it sits over empty band, below the last item), and `scroll-padding` so focus never lands
+  under the fade.
 - Phone (under 900px): one column, with the side column after the stream. The other option
   (after the important row) is shown in the #465 PR for Guy to choose.
 - "In brief" keeps the bounded page and "show more" of A5.

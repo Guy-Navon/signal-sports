@@ -115,7 +115,7 @@
   text-underline-offset: 4px;
 }
 .sg-auth-footer { margin-block-start: 24px; text-align: center; font-size: 15px; }
-/* Text links (footer, "forgot password", 404): a hit area 12px taller on
+/* Text links (footer, "forgot password", 404): a hit area 14px taller on
    each side, so a ~20px line becomes a 44px target without moving the layout
    (WCAG 2.5.8; phone targets). */
 .sg-auth-scene a:not(.sg-auth-scene__brand),
@@ -126,7 +126,7 @@
 .sg-auth-scene button.sg-auth-text-link::after {
   content: "";
   position: absolute;
-  inset-block: -12px;
+  inset-block: -14px;
   inset-inline: 0;
 }
 .signal-ui .sg-auth-callout { border-block: 1px solid var(--sg-line); padding-block: 16px; }

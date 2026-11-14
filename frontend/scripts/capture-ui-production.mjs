@@ -2161,6 +2161,16 @@ async function auditResultsStrip(client, label) {
     while (reach < 16 && hits(linkRect.top - reach - 1) && hits(linkRect.bottom + reach + 1)) reach += 1;
     const linkTarget = Math.round(linkRect.height + 2 * reach);
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    // Read at rest, before the scroller takes focus (its thumb darkens then).
+    const scrollbar = (() => {
+      const probe = document.createElement("i");
+      probe.style.color = "var(--sg-off)";
+      scroller.append(probe);
+      const quiet = getComputedStyle(probe).color;
+      probe.remove();
+      const style = getComputedStyle(scroller);
+      return { width: style.scrollbarWidth, color: style.scrollbarColor, quiet, gap: parseFloat(style.paddingBlockEnd) };
+    })();
     scroller.focus();
     return {
       count: cards.length, matches,
@@ -2175,12 +2185,16 @@ async function auditResultsStrip(client, label) {
         cards.every((card) => Math.abs(card.getBoundingClientRect().top - cards[0].getBoundingClientRect().top) < 1),
       keyboardReachable: scroller.tabIndex === 0 && document.activeElement === scroller,
       // No thick native scrollbar (Guy, 2026-11-14): thin, and a styled thumb.
-      scrollbar: { width: getComputedStyle(scroller).scrollbarWidth, color: getComputedStyle(scroller).scrollbarColor },
+      scrollbar,
       overflows: scroller.scrollWidth > scroller.clientWidth,
       before: scroller.scrollLeft,
     };
   })()`);
-  const quietScrollbar = audit.scrollbar.width === "thin" && audit.scrollbar.color !== "auto";
+  // Thin, its thumb the quiet --sg-off (not the ink-dark bar it was), and
+  // spaced off the scores.
+  const thumb = audit.scrollbar.color.split(/\s(?![^(]*\))/)[0];
+  const quietScrollbar = audit.scrollbar.width === "thin" && audit.scrollbar.gap >= 4 &&
+    thumb === audit.scrollbar.quiet;
   if (![audit.matches, audit.labelled, audit.fullBoard, audit.placed, audit.horizontal, audit.keyboardReachable, quietScrollbar, audit.linkTargetOk].every(Boolean)) {
     throw new Error(`${label}: results strip contract failed: ${JSON.stringify(audit)}`);
   }

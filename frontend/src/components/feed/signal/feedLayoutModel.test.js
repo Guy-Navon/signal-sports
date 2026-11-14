@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { filterFeedItems } from "@/components/feed/feedFilters";
 import {
   IMPORTANT_ROW_SIZE,
+  LATEST_SIZE,
   feedSummary,
+  isFreshStory,
+  latestStories,
   leaguePills,
   showMoreFocusIndex,
   splitFeedSections,
@@ -140,5 +143,75 @@ describe("showMoreFocusIndex", () => {
   it("has nowhere to go when nothing new was revealed", () => {
     expect(showMoreFocusIndex(40, 40)).toBeNull();
     expect(showMoreFocusIndex(40, 12)).toBeNull();
+  });
+});
+
+describe("latestStories (the side column's \"אחרונים\", #465)", () => {
+  const NOW = Date.parse("2026-11-13T18:00:00Z");
+  const at = (minutesAgo) => new Date(NOW - minutesAgo * 60_000).toISOString();
+  const timed = (id, decision, minutesAgo, over = {}) =>
+    story(id, decision, { publishedAt: minutesAgo == null ? null : at(minutesAgo), ...over });
+
+  it("lists the visible non-low stories newest first, whatever their rank", () => {
+    const items = [
+      timed("p", "push", 300),
+      timed("h", "high_feed", 30),
+      timed("f", "feed", 5),
+      timed("l", "low_feed", 1),
+      timed("x", "hidden", 2),
+      timed("n", undefined, 3),
+    ];
+    expect(ids(latestStories(items))).toEqual(["f", "h", "p"]);
+  });
+
+  it("shows at most LATEST_SIZE stories, and all of them when there are fewer", () => {
+    const many = Array.from({ length: 40 }, (_, index) => timed(`f${index}`, "feed", index));
+    expect(LATEST_SIZE).toBe(8);
+    expect(ids(latestStories(many))).toEqual(ids(many.slice(0, 8)));
+    const few = [timed("a", "feed", 90), timed("b", "high_feed", 10), timed("c", "feed", 50)];
+    expect(ids(latestStories(few))).toEqual(["b", "c", "a"]);
+  });
+
+  it("never reorders or removes anything from the ranked stream", () => {
+    const items = [timed("f1", "feed", 120), timed("f2", "feed", 1), timed("f3", "feed", 60)];
+    const before = ids(items);
+    const streamBefore = ids(splitFeedSections(items).stream);
+    latestStories(items);
+    expect(ids(items)).toEqual(before);
+    expect(ids(splitFeedSections(items).stream)).toEqual(streamBefore);
+  });
+
+  it("orders a cluster by its backend update time, not its first report", () => {
+    const cluster = timed("c", "feed", 600, { type: "cluster", lastUpdatedAt: at(2) });
+    const single = timed("s", "feed", 10);
+    expect(ids(latestStories([single, cluster]))).toEqual(["c", "s"]);
+  });
+
+  it("leaves out a story with no readable time (it stays in the stream) and keeps rank order on ties", () => {
+    const items = [timed("a", "feed", 20), timed("u", "feed", null), timed("b", "feed", 20)];
+    expect(ids(latestStories(items))).toEqual(["a", "b"]);
+  });
+
+  it("follows the active league filter, like the stream", () => {
+    const items = [
+      timed("nba", "feed", 5, { league: "NBA" }),
+      timed("el", "feed", 1, { league: "EuroLeague" }),
+    ];
+    const filtered = filterFeedItems(items, new Set(["league:NBA"]));
+    expect(ids(latestStories(filtered))).toEqual(["nba"]);
+  });
+});
+
+describe("isFreshStory", () => {
+  const NOW = Date.parse("2026-11-13T18:00:00Z");
+
+  it("marks a story under an hour old", () => {
+    expect(isFreshStory(new Date(NOW - 59 * 60_000).toISOString(), NOW)).toBe(true);
+    expect(isFreshStory(new Date(NOW - 61 * 60_000).toISOString(), NOW)).toBe(false);
+  });
+
+  it("does not mark a missing or unreadable time", () => {
+    expect(isFreshStory(null, NOW)).toBe(false);
+    expect(isFreshStory("not a date", NOW)).toBe(false);
   });
 });

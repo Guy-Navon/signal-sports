@@ -183,7 +183,10 @@ placement by level (lead only with a push, important row, stream in rank order, 
 the summary counts, signal-mark fill and colour, the bounded stream page, league-pill filter
 latency, pressed state and focus, cluster member links, feedback actions present and
 unclipped at 320–390, typography (Assistant, Karantina on the lead only, no serif leak) and
-dock occlusion. The local corpus puts exactly 40 stories in the stream and its clusters in
+dock occlusion. Since #465 it also asserts the side column: "Latest" newest first, never low_feed
+or hidden, every story in it placed elsewhere; "in brief" only inside the column; sticky 14px
+from the top halfway down the stream and inside the viewport on desktop; after the stream and
+not sticky on a phone, with every visible story painted. The local corpus puts exactly 40 stories in the stream and its clusters in
 the lead and important row, so the multi-page "show more" path and the stream cluster
 disclosure are locked by `SignalFeedView.test.jsx` instead, and the harness output says so.
 #473 renames it (`capture:orbit` stays until then). Orbit itself (still the demo) is no
@@ -481,8 +484,7 @@ brief") carries them. No large cards, no images (B13).
 - **Alert colour.** `--hot` is used only for non-text marks (push strokes, the dot in the lead
   label). The lead label itself is `--slab` text on a `--slab-fg` chip (6.7:1 white, 14.8:1
   dark), pending #468.
-- **"In brief"** renders as a box after the stream until #465 moves it into the side column;
-  `.sg-cols` gains the 330px column when an `.sg-side` child exists.
+- **"In brief"** moved into the side column with #465 (B11).
 
 ## B11. Side column (#465)
 
@@ -498,6 +500,24 @@ by 1px rules.
 
 The column reads the same visible set as the stream. It never adds hidden stories and never
 changes the stream's order. It must hold up with 3 and with 40 stories.
+
+**As built in #465:**
+
+- "Latest" is `latestStories` in `feedLayoutModel.js`: it runs on the filtered list (it follows
+  the league pills), reads time from `orbitStoryTimestamp` (a cluster's backend update time),
+  leaves out stories with no readable time, and keeps rank order on ties. A story may appear
+  both in "Latest" and in the lead, important row or stream, as in the mock. "Latest" carries
+  no feedback actions; each story has them where it is placed.
+- Fresh marker (`isFreshStory`, under an hour): a pulsing `--hot` dot (a mark, not text), with
+  the time in `--ink` 800. Small `--hot` text fails contrast (B2). The pulse stops under reduced
+  motion.
+- Desktop: sticky at `14px + env(safe-area-inset-top)`. The top bar scrolls with the page, so
+  its height is not added. A column taller than the viewport is capped at the viewport height
+  and scrolls inside, so its end is reachable at any scroll position, not only once the stream
+  has ended.
+- Phone (under 900px): one column, with the side column after the stream. The other option
+  (after the important row) is shown in the #465 PR for Guy to choose.
+- "In brief" keeps the bounded page and "show more" of A5.
 
 ## B12. Motion (#467)
 

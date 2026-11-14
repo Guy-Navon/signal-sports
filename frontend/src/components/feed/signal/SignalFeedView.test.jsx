@@ -11,7 +11,7 @@ import SignalFeedView from "./SignalFeedView";
 const REASON = "מכבי תל אביב (כדורסל) ברשימת המעקב שלך";
 const NOW = Date.parse("2026-11-13T18:00:00Z");
 
-function story(id, decision, league = "EuroLeague") {
+function story(id, decision, league = "EuroLeague", publishedAt = "2026-11-13T16:00:00Z") {
   return normalizeScoredArticleFromApi({
     decision,
     reason_he: REASON,
@@ -21,7 +21,7 @@ function story(id, decision, league = "EuroLeague") {
       source_display_name: "וואלה ספורט",
       url: `https://example.test/${id}`,
       title: `כותרת ${id}`,
-      published_at: "2026-11-13T16:00:00Z",
+      published_at: publishedAt,
       sport: "basketball",
       league,
       entities: [],
@@ -195,6 +195,47 @@ it("'show more' reveals the next page and moves focus to its first new row", () 
   expect(byClass(renderer.root, "sg-row")).toHaveLength(45);
   expect(byClass(renderer.root, "sg-more")).toHaveLength(0);
   expect(focused).toEqual(["https://example.test/f40"]);
+});
+
+const headlinesIn = (node) =>
+  byClass(node, "sg-headline-link").map((link) => link.props.href.split("/").pop());
+
+it("the side column holds 'latest' by time and the low_feed stories, never hidden ones, and leaves the stream's order alone", () => {
+  const items = [
+    story("h1", "high_feed", "EuroLeague", "2026-11-13T10:00:00Z"),
+    ...["h2", "h3", "h4", "h5"].map((id) => story(id, "high_feed", "EuroLeague", "2026-11-13T09:00:00Z")),
+    story("f1", "feed", "EuroLeague", "2026-11-13T12:00:00Z"),
+    story("f2", "feed", "EuroLeague", "2026-11-13T17:30:00Z"),
+    story("l1", "low_feed", "EuroLeague", "2026-11-13T17:55:00Z"),
+    story("x", "hidden", "EuroLeague", "2026-11-13T17:59:00Z"),
+  ];
+  const view = render(items);
+  const side = byClass(view.root, "sg-side")[0];
+  const [latest] = byClass(side, "sg-latest");
+  const [brief] = byClass(side, "sg-brief");
+  expect(headlinesIn(latest).slice(0, 3)).toEqual(["f2", "f1", "h1"]);
+  expect(headlinesIn(latest)).not.toContain("l1");
+  expect(headlinesIn(brief)).toEqual(["l1"]);
+  expect(JSON.stringify(view.toJSON())).not.toContain("כותרת x");
+  // The ranked stream is unchanged; f2 stands both there and in "latest".
+  expect(headlinesIn(byClass(view.root, "sg-stream")[0])).toEqual(["h5", "f1", "f2"]);
+  // Only the story under an hour old carries the fresh marker.
+  expect(byClass(latest, "sg-latest__item").filter((li) => li.props["data-fresh"])).toHaveLength(1);
+  // "בקצרה" no longer follows the stream outside the column.
+  expect(byClass(view.root, "sg-brief")).toHaveLength(1);
+});
+
+it("the side column follows the active league filter, like the stream", () => {
+  const items = [
+    story("nba", "feed", "NBA", "2026-11-13T17:00:00Z"),
+    story("el", "feed", "EuroLeague", "2026-11-13T17:50:00Z"),
+    story("lnba", "low_feed", "NBA"),
+    story("lel", "low_feed", "EuroLeague"),
+  ];
+  const view = render(items, { activeFilters: new Set(["league:NBA"]) });
+  const side = byClass(view.root, "sg-side")[0];
+  expect(headlinesIn(byClass(side, "sg-latest")[0])).toEqual(["nba"]);
+  expect(headlinesIn(byClass(side, "sg-brief")[0])).toEqual(["lnba"]);
 });
 
 it("the league pills say whether they are selected", () => {

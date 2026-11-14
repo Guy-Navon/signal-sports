@@ -396,7 +396,9 @@ async function loadApp(client) {
     client,
     `(async () => {
       const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-      const timeoutAt = performance.now() + 12000;
+      // A readiness wait, not a budget: the first navigation compiles the app
+      // on a cold Vite, which took over 12 s on a busy machine (#465).
+      const timeoutAt = performance.now() + 45000;
       const ready = () => document.querySelector(".sg-summary") &&
         document.querySelector(".sg-feed [data-decision]");
       while (!ready() && performance.now() < timeoutAt) {
@@ -498,8 +500,20 @@ const FILTER_LATENCY_BUDGET_MS = 100;
 /** Filled strokes of the signal mark per level (DECISION_CONFIG.strength, capped at 3). */
 const EXPECTED_FILLED = { low_feed: 1, feed: 2, high_feed: 3, push: 3 };
 
-/** Every placed story, everywhere on the page. */
+/** Every story on the page, including the side column's "latest" (filter audit). */
 const STORY_SELECTOR = ".sg-feed [data-decision]";
+
+/**
+ * Every placed story, each exactly once. "אחרונים" (#465) repeats stories that
+ * are placed elsewhere by time, so it is audited on its own (auditSideColumn).
+ */
+const PLACED_SELECTOR = ".sg-feed [data-decision]:not(.sg-latest__item)";
+
+/** Must match LATEST_SIZE in src/components/feed/signal/feedLayoutModel.js. */
+const EXPECTED_LATEST_SIZE = 8;
+
+/** The side column's sticky offset (B11): 14px; the harness has no safe area. */
+const EXPECTED_SIDE_TOP = 14;
 
 async function revealAllPages(client) {
   await evaluate(
@@ -544,7 +558,7 @@ async function auditPlacement(client) {
         });
       return {
         summary: { stories: numbers[0], important: numbers[1] },
-        all: decisions(${JSON.stringify(STORY_SELECTOR)}),
+        all: decisions(${JSON.stringify(PLACED_SELECTOR)}),
         lead: decisions(".sg-lead"),
         leadTitleIsLink: Boolean(document.querySelector(".sg-lead__title a[href]")),
         important: decisions(".sg-important__item"),
@@ -620,6 +634,140 @@ function assertPlacement(label, placement) {
   const feedMark = marks.find((mark) => mark.decision === "feed");
   if (feedMark && feedMark.filledColor === feedMark.emptyColor) {
     fail("filled and empty strokes paint the same colour");
+  }
+}
+
+/**
+ * The side column (#465, B11), read off the painted page with every page
+ * revealed: "אחרונים" newest first, only visible non-low stories that are also
+ * placed elsewhere; "בקצרה" only inside the column; every placed story painted
+ * with a size (nothing lost on a phone); on desktop the column sits at the
+ * inline end, is sticky 14px from the top halfway down the stream, and never
+ * runs past the bottom of the viewport.
+ */
+async function auditSideColumn(client) {
+  await revealAllPages(client);
+  return await evaluate(
+    client,
+    `(async () => {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const side = document.querySelector(".sg-feed .sg-side");
+      const main = document.querySelector(".sg-feed .sg-main");
+      const placed = Array.from(document.querySelectorAll(${JSON.stringify(PLACED_SELECTOR)}));
+      const sized = (element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      };
+      const titleOf = (element) =>
+        element.querySelector(".sg-headline-link")?.textContent.trim() ?? null;
+      const placedTitles = new Set(placed.map(titleOf));
+      const summaryStories = Number.parseInt(document.querySelector(".sg-summary b")?.textContent, 10);
+      const base = {
+        present: Boolean(side),
+        summaryStories,
+        placedPainted: placed.filter(sized).length,
+        briefOutside: document.querySelectorAll(".sg-feed .sg-brief:not(.sg-side .sg-brief)").length,
+      };
+      if (!side) return base;
+      const latest = Array.from(side.querySelectorAll(".sg-latest__item")).map((item) => {
+        const freshText = item.querySelector(".sg-latest__fresh");
+        const dot = item.querySelector(".sg-fresh-dot");
+        return {
+          decision: item.dataset.decision,
+          at: item.querySelector("time")?.getAttribute("datetime") ?? null,
+          title: titleOf(item),
+          marked: Boolean(item.querySelector(".sg-strength[role='img']")),
+          painted: sized(item),
+          fresh: item.hasAttribute("data-fresh"),
+          freshTextColor: freshText ? getComputedStyle(freshText).color : null,
+          dotColor: dot ? getComputedStyle(dot).backgroundColor : null,
+        };
+      });
+      const style = getComputedStyle(side);
+      const sideRect = side.getBoundingClientRect();
+      const mainRect = main?.getBoundingClientRect() ?? null;
+      let midStream = null;
+      if (mainRect) {
+        const mainTop = scrollY + mainRect.top;
+        window.scrollTo({ top: mainTop + mainRect.height / 2 - innerHeight / 2, left: 0, behavior: "instant" });
+        await sleep(150);
+        const rect = side.getBoundingClientRect();
+        midStream = { scrollY, top: rect.top, bottom: rect.bottom };
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        await sleep(80);
+      }
+      return {
+        ...base,
+        position: style.position,
+        overflowY: style.overflowY,
+        scrollsInside: side.scrollHeight > side.clientHeight + 1,
+        innerHeight,
+        side: { left: sideRect.left, right: sideRect.right, top: sideRect.top + scrollY, width: sideRect.width },
+        main: mainRect && {
+          left: mainRect.left,
+          right: mainRect.right,
+          bottom: mainRect.bottom + scrollY,
+          height: mainRect.height,
+        },
+        midStream,
+        latest,
+        latestNotPlaced: latest.filter((item) => !placedTitles.has(item.title)).map((item) => item.title),
+        briefItems: side.querySelectorAll(".sg-brief__item").length,
+      };
+    })()`
+  );
+}
+
+function assertSideColumn(label, audit, { desktop, briefCount }) {
+  const fail = (message) => {
+    throw new Error(`${label}: ${message}: ${JSON.stringify(audit)}`);
+  };
+  if (!audit.present) fail("the side column is missing");
+  if (audit.placedPainted !== audit.summaryStories) {
+    fail("not every visible story is painted somewhere on the page");
+  }
+  if (audit.briefOutside !== 0) fail("'in brief' renders outside the side column");
+  if (briefCount != null && audit.briefItems !== briefCount) {
+    fail("'in brief' in the column differs from the low_feed stories placed");
+  }
+  const { latest } = audit;
+  if (latest.length === 0) fail("'latest' is empty, so the column is unverified");
+  if (latest.length > EXPECTED_LATEST_SIZE) fail("'latest' holds more than eight stories");
+  if (latest.some((item) => !["push", "high_feed", "feed"].includes(item.decision))) {
+    fail("'latest' holds a low_feed or non-visible story");
+  }
+  if (audit.latestNotPlaced.length) fail("'latest' shows a story that is not placed in the feed");
+  if (latest.some((item) => !item.marked || !item.painted || !item.at)) {
+    fail("a 'latest' item lacks its signal mark, time, or paint");
+  }
+  const times = latest.map((item) => Date.parse(item.at));
+  if (times.some((time, index) => index > 0 && time > times[index - 1])) {
+    fail("'latest' is not newest first");
+  }
+  for (const item of latest.filter((entry) => entry.fresh)) {
+    if (!item.dotColor || item.freshTextColor === item.dotColor) {
+      fail("a fresh time is painted in the alert colour (small --hot text fails contrast)");
+    }
+  }
+
+  if (!desktop) {
+    if (audit.position === "sticky") fail("the side column is sticky on a phone");
+    if (audit.main && audit.side.top < audit.main.bottom - 1) {
+      fail("on a phone the side column does not follow the stream");
+    }
+    return;
+  }
+  if (audit.position !== "sticky") fail("the side column is not sticky on desktop");
+  if (Math.abs(audit.side.width - 330) > 1) fail("the side column is not 330px wide");
+  // RTL: the column sits at the inline end, which is the left.
+  if (audit.main && audit.side.right > audit.main.left + 1) {
+    fail("the side column is not beside the stream at its inline end");
+  }
+  if (audit.main && audit.main.height > audit.innerHeight && audit.midStream) {
+    if (Math.abs(audit.midStream.top - EXPECTED_SIDE_TOP) > 1) {
+      fail("halfway down the stream the column did not stick 14px from the top");
+    }
+    if (audit.midStream.bottom > audit.innerHeight + 1) fail("the stuck column runs past the viewport");
   }
 }
 
@@ -1240,6 +1388,10 @@ async function auditFeedRegressions(client, label) {
   assertPlacement(label, placement);
 
   await loadApp(client);
+  const side = await auditSideColumn(client);
+  assertSideColumn(label, side, { desktop: true, briefCount: placement.brief.length });
+
+  await loadApp(client);
   const paging = await auditQueuePaging(client);
   assertQueuePaging(label, paging);
 
@@ -1252,7 +1404,7 @@ async function auditFeedRegressions(client, label) {
   const cluster = await auditClusterDisclosure(client);
   assertClusterDisclosure(label, cluster);
 
-  return { placement, paging, latency, cluster };
+  return { placement, side, paging, latency, cluster };
 }
 
 async function stopProcess(child) {
@@ -1345,6 +1497,12 @@ async function main() {
       assertClusterDisclosure(`${width}px mobile`, cluster);
       const openLayout = await currentLayout(client);
       assertLayout(`${width}px mobile, cluster open`, openLayout, width);
+      await loadApp(client);
+      const side = await auditSideColumn(client);
+      assertSideColumn(`${width}px mobile`, side, {
+        desktop: false,
+        briefCount: reducedMotionRegressions.placement.brief.length,
+      });
       narrowViewports.push({
         width,
         scrollWidth: metrics.scrollWidth,
@@ -1411,6 +1569,16 @@ async function main() {
         stream: regressions.placement.stream.length,
         brief: regressions.placement.brief.length,
         summary: regressions.placement.summary,
+      },
+      side: {
+        position: regressions.side.position,
+        latest: regressions.side.latest.length,
+        fresh: regressions.side.latest.filter((item) => item.fresh).length,
+        brief: regressions.side.briefItems,
+        scrollsInside: regressions.side.scrollsInside,
+        midStreamTop: regressions.side.midStream
+          ? Math.round(regressions.side.midStream.top)
+          : "not exercised: no stream",
       },
       paging: {
         ...regressions.paging,

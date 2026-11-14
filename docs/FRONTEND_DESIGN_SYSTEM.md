@@ -35,7 +35,7 @@ deep reference. Read it before adding any consumer UI.
 
 | surface | routes | shell |
 |---|---|---|
-| **Consumer product** | `/` (Feed), `/preferences`, `/interests`, `/calibration`, `/results`, `/account` | `AppShell area="product"` |
+| **Consumer product** | `/` (Feed), `/preferences[/:tab]`, `/results`, `/account` (`/interests`, `/calibration` redirect into `/preferences`) | `AppShell area="product"` |
 | **Ops console** (admin only, `RequireOpsRole`) | `/sources`, `/debug`, `/llm-qa` | `AppShell area="ops"` |
 | **Utility** | `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password`, `/welcome`, 404 | outside both shells, product-styled |
 | **Public demo** | `frontend/demo.html` → `src/demo/` (its own Vite entry) | no router, no auth, no app provider |
@@ -89,9 +89,10 @@ consumer screen. It exists only in the Debug console.
 - **Nothing is invented to fill a screen.** No push means no lead block. No results means no
   results strip, not a placeholder. Counts and the summary line come from the real feed. The
   side column never shows hidden stories and never reorders the ranked stream.
-- **Reader explanations.** `DeskVoice` / `deskVoiceModel.js`: readers get `reason_he` (one Hebrew
-  sentence, or nothing). Admin and local QA get the engine trace. The new "why it is with you"
-  line uses the same model.
+- **Reader explanations.** `deskVoiceModel.js` (rendered by `WhyLine` in `SignalFeedView`; `DeskVoice.jsx` is unused): on every consumer surface, for
+  every role (admins and local QA included), the "why it is with you" line is `reason_he` (one
+  Hebrew sentence) or nothing; never a score or the engine trace (#497, 2026-11-14). The engine
+  trace lives in the Debug console (`/debug`) only.
 - **Read-only mode.** The demo renders the feed with `readOnly`: no feedback controls, no engine
   trace, no write path. `npm run check:demo-bundle` enforces this on the built bundle (A7).
 
@@ -262,7 +263,7 @@ components/feed/
   feedFilters.js        level + topic filtering (drives the league pills, #463)
   storyLabels.js        Hebrew kickers, condensed reasoning
   feedLoadModel.js      loading / empty / error states
-  deskVoiceModel.js     reader sentence vs engine trace
+  deskVoiceModel.js     reader sentence (or nothing)
   feedbackSaveModel.js  feedback action state
   storyModel.js        prepareFeedItems + authority resolvers (A4)
   queueMotion.js       page size + stagger cap (A5)

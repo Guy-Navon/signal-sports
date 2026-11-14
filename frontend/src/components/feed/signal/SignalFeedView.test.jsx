@@ -3,6 +3,7 @@ import { act, create } from "react-test-renderer";
 import { afterEach, expect, it, vi } from "vitest";
 import { normalizeScoredArticleFromApi } from "@/api/normalizers";
 import FeedbackControls from "@/components/feed/FeedbackControls";
+import { AppContext } from "@/context/appContextCore";
 import SignalFeedView from "./SignalFeedView";
 
 // The consumer feed rendered in node. The public demo renders the same view
@@ -67,6 +68,45 @@ it("read-only renders the stories and the reader reason without feedback control
   expect(text).toContain("כותרת b");
   expect(text).toContain(REASON);
   expect(view.root.findAllByType(FeedbackControls)).toHaveLength(0);
+});
+
+it.each(["admin", "reader", "demo"])("%s sees reader sentences in every section, never engine scores", (role) => {
+  const items = [story("lead", "push"), story("important", "high_feed"), story("stream", "feed")];
+  items.forEach((item) => { item.score.reasoning = ["ניקוד: 3 → חשוב", "החלטה סופית: חשוב"]; });
+  act(() => {
+    renderer = create(
+      <AppContext.Provider value={{ qaSurfaceAllowed: role === "admin", isBackendMode: true }}>
+        <SignalFeedView items={items} activeFilters={new Set(["all"])} onToggleFilter={() => {}} onResetFilters={() => {}} nowMs={NOW} readOnly={role === "demo"} />
+      </AppContext.Provider>
+    );
+  });
+  for (const section of ["sg-lead", "sg-row"]) {
+    const node = byClass(renderer.root, section)[0];
+    expect(node).toBeDefined();
+    expect(node.findAll((n) => n.children?.includes(REASON)).length).toBeGreaterThan(0);
+  }
+  const text = JSON.stringify(renderer.toJSON());
+  expect(text).not.toContain("ניקוד:");
+  expect(text).not.toContain("החלטה סופית");
+  expect(renderer.root.findAllByType(FeedbackControls)).toHaveLength(role === "demo" ? 0 : 3);
+});
+
+it.each(["admin", "reader", "demo"])("%s gets no why line when the reader sentence is absent", (role) => {
+  const items = [story("lead", "push"), story("important", "high_feed"), story("stream", "feed")];
+  items.forEach((item) => {
+    item.score.reasonHe = null;
+    item.score.reasoning = ["ניקוד: 3 → חשוב", "החלטה סופית: חשוב"];
+  });
+  act(() => {
+    renderer = create(
+      <AppContext.Provider value={{ qaSurfaceAllowed: role === "admin", isBackendMode: true }}>
+        <SignalFeedView items={items} activeFilters={new Set(["all"])} onToggleFilter={() => {}} onResetFilters={() => {}} nowMs={NOW} readOnly={role === "demo"} />
+      </AppContext.Provider>
+    );
+  });
+  const text = JSON.stringify(renderer.toJSON());
+  expect(text).not.toContain("למה אצלך");
+  expect(text).not.toContain("ניקוד:");
 });
 
 it("without read-only every placed story gets feedback controls (and they need the app context)", () => {

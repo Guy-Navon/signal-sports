@@ -40,7 +40,7 @@ language Part B. Historical Orbit screenshots are not an implementation referenc
 2. **Long content:** very long Hebrew headlines, long unbroken English tokens or URLs, and clusters
    with many sources don't overflow or collide (`min-w-0`, `line-clamp-*`, `break-words`); check at
    320 px.
-3. **Mobile:** 320×640 and 390×844 single-column layouts; the fixed dock never covers a control
+3. **Mobile:** 320×640 and 390×844 single-column layouts; the fixed slim header bar never covers a control (there is no dock since #491)
    (§A7); primary touch targets ≥44 px.
 4. **Keyboard and focus:** every action is keyboard-reachable; visible `:focus-visible`; focus lands
    where §A6 specifies after a disclosure or pagination; `prefers-reduced-motion` is honored.

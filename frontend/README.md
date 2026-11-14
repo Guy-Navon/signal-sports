@@ -4,7 +4,8 @@ The Hebrew-first, RTL product UI and the ops console for Signal Sports. React 18
 JavaScript/JSX (type-checked through `jsconfig.json`).
 
 On `ui/next`, every consumer page and the public read-only demo use **Signal UI**: a lead
-block only for a push, compact stream rows, a side column and a results strip. Ops keeps
+block only for a push, compact stream rows, a side column and a results strip, under one
+navy sticky header (logo, date, tabs; slim bar on scroll). Ops keeps
 its existing console shell, base tokens, Heebo and signal-bars logo. Design contract: [`../docs/FRONTEND_DESIGN_SYSTEM.md`](../docs/FRONTEND_DESIGN_SYSTEM.md).
 Whole-project state: [`../docs/CURRENT_PROJECT_STATE.md`](../docs/CURRENT_PROJECT_STATE.md).
 
@@ -57,26 +58,33 @@ CI runs lint, typecheck, test, build, build:demo and check:demo-bundle on every 
 
 ```
 src/
-├── pages/            Feed, Preferences, InterestSelection, Calibration, Results, Account,
+├── pages/            Feed, Preferences (hosts InterestSelection and Calibration as tabs), Results, Account,
 │                     Login, Signup, Onboarding (/welcome) · ops: Sources, Debug, LlmQa
 ├── components/
 │   ├── feed/         signal/: SignalFeedView, layout/motion/story models, ResultsStrip;
 │   │                 shared storyModel, focusModel, queueMotion and their tests;
-│   │                 DecisionBadge, DeskVoice, FeedbackControls, SourceMeta, decisionConfig, clusterModel
+│   │                 feedFilters (importance, league, source), FeedFilterBar, deskVoiceModel
+│   │                 (the reader "למה אצלך" line; DeskVoice.jsx is unused), DecisionBadge,
+│   │                 FeedbackControls, SourceMeta, decisionConfig, clusterModel
 │   ├── interests/    InterestPicker, InterestsManager, CatalogSearch, FollowChip, EventPresetControls
-│   ├── preferences/  TopicCard, LearnedAdjustmentsPanel
+│   ├── preferences/  PersonalizationLayout, TopicCard, LearnedAdjustmentsPanel, preferencesRoutes
+│   │                 (/preferences/:tab? with four tabs; /interests and /calibration redirect)
 │   ├── results/      ResultCard, DayHeading, grouping/format/relevance models
 │   ├── debug/        DebugArticleCard, FactsTracePanel, ReasoningTrace, ClusterEvidence, ShadowComparisonPanel
 │   ├── ops/          IngestionPanel, SchedulerPanel, NotificationsPanel, SourceToggleCard, HealthCard, BenchmarkPanel
-│   ├── shell/        ProductShell, ProductHeader, AccountMenu, MastheadSlot;
+│   ├── shell/        ProductShell, ProductHeader (navy header + slim bar), AccountMenu, MastheadSlot,
+│   │                 ConnectionStrip, navIcons, useCollapsedBar;
 │   │                 Ops AppShell, Masthead, MobileNav, ProductNav, OpsNav; session/role guards
-│   ├── signal-ui/    scoped tokens, Assistant/Karantina, wordmark and signal-strength mark
+│   ├── signal-ui/    scoped tokens, Assistant/Karantina, grounds (white, soft, dark), wordmark and
+│   │                 signal-strength mark
 │   ├── shared/       DeskIntro, EmptyState, ErrorState, PageHeader, …
 │   └── ui/           shadcn/Radix primitives
 ├── context/          AppContext (the data layer), AuthContext, onboarding flow, data routing
 ├── api/              client + normalizers (the backend contract)
 ├── engine/           the frozen legacy relevance engine (local mode only) + taxonomy reach
 ├── data/             mock data, the demo profiles, the generated taxonomy reach export
+├── demo/             the public read-only demo entry (demo.html)
+├── lab/              lab.html: feed, filter, motion and nav labs (not in the product or demo bundle)
 └── main.jsx          routes: public auth → session → product AppShell / admin ops AppShell
 ```
 

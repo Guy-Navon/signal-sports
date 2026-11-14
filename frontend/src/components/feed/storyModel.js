@@ -14,13 +14,13 @@ export function storyTitle(item) {
 }
 
 /**
- * What a feed surface may show. A read-only surface (the public demo, #458) is
- * a reader surface: no feedback controls, which write preferences, and no
- * engine trace, only the reader's Hebrew reason.
+ * Every consumer surface shows only the reader's Hebrew reason. Engine traces
+ * remain in Debug, including for admins and local QA. Read-only surfaces also
+ * omit feedback controls, which write preferences.
  * @param {{ readOnly?: boolean, traceAllowed?: boolean }} p
  */
-export function feedSurface({ readOnly = false, traceAllowed = false } = {}) {
-  return { showFeedback: !readOnly, showTrace: Boolean(traceAllowed) && !readOnly };
+export function feedSurface({ readOnly = false } = {}) {
+  return { showFeedback: !readOnly, showTrace: false };
 }
 
 export function feedbackArticleId(item, reports = []) {

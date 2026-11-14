@@ -241,12 +241,13 @@ it("the side column follows the active league filter, like the stream", () => {
 it("the league pills say whether they are selected", () => {
   const items = [story("a", "feed", "NBA"), story("b", "feed", "EuroLeague")];
   const view = render(items, { activeFilters: new Set(["league:NBA"]) });
+  act(() => byClass(view.root, "sg-filter-toggle")[0].props.onClick());
   const pressed = byClass(view.root, "sg-pill").map((pill) => pill.props["aria-pressed"]);
   expect(pressed).toEqual([false, true, false]);
   expect(JSON.stringify(view.toJSON())).not.toContain("כותרת b");
 });
 
-// The filter bar (#483): an importance threshold above the league pills.
+// The filter bar (#483): C's disclosure contains all three facets.
 
 const radios = (root) => root.findAll((node) => node.type === "input" && node.props.type === "radio");
 const textOf = (node) =>
@@ -260,6 +261,9 @@ it("offers the importance thresholds as one radio group, each named with its cou
     story("l", "low_feed", "NBA"),
   ];
   const view = render(items);
+  expect(radios(view.root)).toHaveLength(0);
+  expect(byClass(view.root, "sg-pill")).toHaveLength(0);
+  act(() => byClass(view.root, "sg-filter-toggle")[0].props.onClick());
   const group = view.root.find((node) => node.props.role === "radiogroup");
   expect(group.props["aria-label"]).toBe("סינון לפי חשיבות");
   const inputs = radios(view.root);
@@ -279,6 +283,7 @@ it("choosing a threshold asks for it; 'הכול' clears only the threshold", () 
   const onToggleFilter = vi.fn();
   const items = [story("h", "high_feed"), story("f", "feed")];
   const view = render(items, { onToggleFilter });
+  act(() => byClass(view.root, "sg-filter-toggle")[0].props.onClick());
   act(() => radios(view.root)[2].props.onChange());
   expect(onToggleFilter).toHaveBeenLastCalledWith("min:high_feed");
   act(() => view.update(
@@ -317,6 +322,7 @@ it("the league pills count under the threshold, and 'כל הליגות' clears o
     story("f2", "feed", "EuroLeague"),
   ];
   const view = render(items, { activeFilters: new Set(["min:high_feed"]), onToggleFilter });
+  act(() => byClass(view.root, "sg-filter-toggle")[0].props.onClick());
   const pills = byClass(view.root, "sg-pill");
   // EuroLeague has nothing at חשוב or above, so it is not offered.
   expect(pills.map((pill) => pill.props["data-filter"] ?? "all")).toEqual(["all", "league:NBA"]);
@@ -340,6 +346,36 @@ it("says nothing in the result line while nothing is filtered", () => {
   const view = render([story("f", "feed")]);
   expect(textOf(byClass(view.root, "sg-filter-result")[0])).toBe("");
   expect(byClass(view.root, "sg-filter-clear")).toHaveLength(0);
+});
+
+it("shows removable chips for all three facets and counts sources in read-only mode", () => {
+  const onToggleFilter = vi.fn();
+  const onResetFilters = vi.fn();
+  const items = [story("h", "high_feed", "NBA"), story("f", "feed", "EuroLeague")];
+  const view = render(items, { activeFilters: new Set(["min:feed", "league:NBA", "source:walla_sport"]), onToggleFilter, onResetFilters });
+  const chips = byClass(view.root, "sg-filter-chip");
+  expect(chips.map((chip) => chip.props["data-filter"])).toEqual(["min:feed", "league:NBA", "source:walla_sport"]);
+  expect(textOf(chips[2])).toBe("וואלה ספורט");
+  expect(textOf(byClass(view.root, "sg-filter-badge")[0])).toBe("3");
+  act(() => chips[2].props.onClick());
+  expect(onToggleFilter).toHaveBeenLastCalledWith("source:walla_sport");
+  act(() => byClass(view.root, "sg-filter-clear")[0].props.onClick());
+  expect(onResetFilters).toHaveBeenCalledOnce();
+  act(() => byClass(view.root, "sg-filter-toggle")[0].props.onClick());
+  const source = byClass(view.root, "sg-filter-check")[0];
+  expect(source.props["data-filter"]).toBe("source:walla_sport");
+  expect(source.findByType("input").props.checked).toBe(true);
+  expect(textOf(source)).toBe("וואלה ספורט1");
+  expect(view.root.findAllByType(FeedbackControls)).toHaveLength(0);
+});
+
+it("an empty source result has one filter announcement and a descriptive recovery", () => {
+  const view = render([story("f", "feed")], { activeFilters: new Set(["source:missing"]) });
+  const empty = byClass(view.root, "sg-filter-empty")[0];
+  expect(textOf(empty)).toContain("במקורות שבחרת");
+  expect(empty.props.role).toBeUndefined();
+  const result = byClass(view.root, "sg-filter-result")[0];
+  expect(result.findByProps({ role: "status" }).children).toEqual(["אין סיפורים שמתאימים לסינון"]);
 });
 
 // Motion (#467): the motion is CSS; the view decides which rows are new and

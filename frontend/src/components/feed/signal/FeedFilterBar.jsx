@@ -1,57 +1,37 @@
-import React, { useId, useMemo } from "react";
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { SlidersHorizontal, X } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
-  ALL_LEAGUES_ID,
-  ALL_LEVELS_ID,
-  activeLeagueIds,
-  filterFeedItems,
-  hasActiveFilters,
-  importanceOptions,
-  toggleFilterSet,
-  visibleCount,
+  ALL_LEVELS_ID, ALL_LEAGUES_ID, activeLeagueIds, activeSourceIds, hasActiveFilters,
+  filterFeedItems, importanceOptions, sourceOptions, toggleFilterSet, visibleCount,
 } from "@/components/feed/feedFilters";
 import { filterBarPills, filterResultLine } from "./feedLayoutModel";
-import { enterStyle } from "./feedMotionModel";
 
-// The feed's filter bar (#483, variant A of lab.html?page=filters): the
-// importance threshold as a segmented control beside the league pills (one
-// row on desktop while they fit, stacked on a phone), and a quiet "showing X of N" line with
-// a clear-all while anything is filtered. Filters only narrow what the engine
-// already chose to show (feedFilters); nothing here ranks, scores or reveals
-// a hidden story.
+function useIsPhone() {
+  const query = "(width < 900px)";
+  const [phone, setPhone] = useState(() => typeof window !== "undefined" && Boolean(window.matchMedia?.(query).matches));
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+    const media = window.matchMedia(query);
+    const update = () => setPhone(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return phone;
+}
 
-const PILL_TINTS = 4;
-
-/**
- * The importance threshold ("הכול", "רגיל ומעלה", "חשוב ומעלה") as native
- * radios under a segmented look: one choice, arrow keys move and choose
- * (RTL-aware, from the browser), and each option's name carries its count
- * ("חשוב ומעלה, 10 סיפורים").
- */
-export function ImportanceControl({ items, activeFilters, onToggle, enterBase = 0 }) {
+/** Native radios preserve the browser's RTL arrow-key behaviour. */
+export function ImportanceControl({ items, activeFilters, onToggle }) {
   const name = useId();
-  const options = useMemo(() => importanceOptions(items, activeFilters), [items, activeFilters]);
-  const choose = (option) => onToggle(option.level === null ? ALL_LEVELS_ID : option.id);
+  const options = importanceOptions(items, activeFilters);
   return (
-    <div className="sg-seg" role="radiogroup" aria-label="סינון לפי חשיבות" style={enterStyle(0, enterBase)}>
+    <div className="sg-seg" role="radiogroup" aria-label="סינון לפי חשיבות">
       {options.map((option) => (
-        <label
-          key={option.id}
-          className="sg-seg__opt"
-          data-filter={option.id}
-          data-selected={option.selected || undefined}
-        >
-          <input
-            type="radio"
-            className="sg-seg__input"
-            name={name}
-            value={option.id}
-            checked={option.selected}
-            onChange={() => choose(option)}
-          />
+        <label key={option.id} className="sg-seg__opt" data-filter={option.id} data-selected={option.selected || undefined}>
+          <input type="radio" className="sg-seg__input" name={name} value={option.id}
+            checked={option.selected} onChange={() => onToggle(option.level === null ? ALL_LEVELS_ID : option.id)} />
           <span className="sg-seg__label">{option.label}</span>
-          <span key={option.count} className="sg-seg__count sg-num sg-tick" dir="ltr" aria-hidden="true">
-            {option.count}
-          </span>
+          <span className="sg-seg__count sg-num" dir="ltr" aria-hidden="true">{option.count}</span>
           <span className="sr-only">{`, ${option.count} סיפורים`}</span>
         </label>
       ))}
@@ -59,99 +39,180 @@ export function ImportanceControl({ items, activeFilters, onToggle, enterBase = 
   );
 }
 
-/**
- * The league pills (B6): "כל הליגות" clears the leagues only (the threshold
- * stays); each count is what pressing it would show under the threshold.
- */
-export function LeaguePillRow({ items, activeFilters, onToggle, enterBase = 0, shownAll }) {
-  const pills = useMemo(() => filterBarPills(items, activeFilters), [items, activeFilters]);
-  if (pills.length === 0) return null;
-  const selected = new Set(activeLeagueIds(activeFilters));
-  const noLeague = selected.size === 0;
+/** The single, persistently mounted filter-change announcement. */
+export function FilterResult({ shown, total, activeFilters }) {
+  const line = filterResultLine(shown, total, activeFilters);
   return (
-    <div className="sg-pills" role="group" aria-label="סינון לפי ליגה">
-      <button
-        type="button"
-        className="sg-pill sg-pill--all"
-        aria-pressed={noLeague}
-        onClick={() => onToggle(ALL_LEAGUES_ID)}
-        style={enterStyle(0, enterBase)}
-      >
-        <i className="sg-pill__mark" aria-hidden="true" />
-        <b>כל הליגות</b>
-        <span key={shownAll} className="sg-num sg-tick" dir="ltr">{shownAll}</span>
-      </button>
-      {pills.map((pill, index) => (
-        <button
-          type="button"
-          key={pill.id}
-          className="sg-pill"
-          data-tint={(index % PILL_TINTS) + 1}
-          data-filter={pill.id}
-          aria-pressed={selected.has(pill.id)}
-          onClick={() => onToggle(pill.id)}
-          style={enterStyle(index + 1, enterBase)}
-        >
-          <i className="sg-pill__mark" aria-hidden="true" />
-          <b><bdi dir="auto">{pill.label}</bdi></b>
-          <span key={pill.count} className="sg-num sg-tick" dir="ltr">{pill.count}</span>
-        </button>
+    <div className="sg-filter-result" data-active={Boolean(line) && shown > 0 || undefined}>
+      <span role="status" aria-atomic="true">{line}</span>
+    </div>
+  );
+}
+
+function FacetOptions({ options, activeFilters, onToggle }) {
+  return (
+    <div className="sg-filter-options">
+      {options.map((option) => (
+        <label key={option.id} className="sg-filter-check" data-filter={option.id}>
+          <input type="checkbox" checked={activeFilters.has(option.id)} onChange={() => onToggle(option.id)} />
+          <bdi dir="auto">{option.label}</bdi>
+          <span className="sg-num" dir="ltr">{option.count}</span>
+        </label>
       ))}
     </div>
   );
 }
 
-/**
- * "מוצגים X מתוך N סיפורים · נקה סינון" while anything is filtered. The line
- * is a polite live region, so a change of filter is announced once, as the
- * number of stories now shown. With nothing shown the feed's empty state
- * speaks (and offers the way back), so the line is announced but not drawn.
- */
-export function FilterResult({ shown, total, activeFilters, onReset }) {
-  const line = filterResultLine(shown, total, activeFilters);
-  const drawn = Boolean(line) && shown > 0;
+function LeagueOptions({ items, options, activeFilters, onToggle }) {
+  const allCount = visibleCount(filterFeedItems(items, toggleFilterSet(activeFilters, ALL_LEAGUES_ID)));
+  return <div className="sg-filter-options">
+    <button type="button" className="sg-pill sg-pill--all" aria-pressed={activeLeagueIds(activeFilters).length === 0}
+      onClick={() => onToggle(ALL_LEAGUES_ID)}>כל הליגות<span className="sg-num" dir="ltr">{allCount}</span></button>
+    {options.map((option, index) => <button key={option.id} type="button" className="sg-pill"
+      data-filter={option.id} data-tint={(index % 4) + 1} aria-pressed={activeFilters.has(option.id)} onClick={() => onToggle(option.id)}>
+      <i className="sg-pill__mark" aria-hidden="true" /><bdi dir="auto">{option.label}</bdi><span className="sg-num" dir="ltr">{option.count}</span>
+    </button>)}
+  </div>;
+}
+
+/** Desktop disclosure; native modal dialog on phones supplies background inertness. */
+function FilterPanel({ phone, panelId, items, activeFilters, shown, leagues, sources, onToggle, onReset, onClose }) {
+  const panelRef = useRef(null);
+  const closeRef = useRef(null);
+  const lastRef = useRef(null);
+  useEffect(() => {
+    if (phone) panelRef.current?.showModal();
+    closeRef.current?.focus({ preventScroll: true });
+    if (!phone || typeof document === "undefined") return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const dialog = panelRef.current;
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = previous;
+    };
+  }, [phone]);
+
+  const Panel = phone ? "dialog" : "div";
   return (
-    <div className="sg-filter-result" data-active={drawn || undefined}>
-      <span role="status">{line}</span>
-      {drawn && (
-        <button type="button" className="sg-filter-clear" onClick={onReset}>
-          נקה סינון
+    <Panel ref={panelRef} id={panelId} className="sg-filter-panel" aria-labelledby={`${panelId}-title`}
+      role={phone ? undefined : "region"} aria-modal={phone ? true : undefined}
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
+      onClick={(event) => {
+        if (!phone || event.target !== panelRef.current) return;
+        const rect = panelRef.current.getBoundingClientRect();
+        if (event.clientY < rect.top || event.clientY > rect.bottom || event.clientX < rect.left || event.clientX > rect.right) onClose();
+      }}
+      onKeyDown={(event) => {
+        if (!phone || event.key !== "Tab") return;
+        if (event.shiftKey && event.target === closeRef.current) {
+          event.preventDefault(); lastRef.current?.focus();
+        } else if (!event.shiftKey && event.target === lastRef.current) {
+          event.preventDefault(); closeRef.current?.focus();
+        }
+      }}>
+      <div className="sg-filter-panel__head">
+        <h2 id={`${panelId}-title`}>סינון</h2>
+        <button ref={closeRef} type="button" className="sg-filter-close" onClick={onClose} aria-label="סגירת סינון">
+          <X size={18} aria-hidden="true" />
         </button>
-      )}
-    </div>
+      </div>
+      <div className="sg-filter-panel__columns">
+        <section className="sg-filter-section" aria-labelledby={`${panelId}-importance`}>
+          <h3 id={`${panelId}-importance`}>חשיבות</h3>
+          <ImportanceControl items={items} activeFilters={activeFilters} onToggle={onToggle} />
+        </section>
+        <section className="sg-filter-section" aria-labelledby={`${panelId}-leagues`}>
+          <h3 id={`${panelId}-leagues`}>ליגות</h3>
+          <LeagueOptions items={items} options={leagues} activeFilters={activeFilters} onToggle={onToggle} />
+        </section>
+        <section className="sg-filter-section" aria-labelledby={`${panelId}-sources`}>
+          <h3 id={`${panelId}-sources`}>מקורות</h3>
+          <FacetOptions options={sources} activeFilters={activeFilters} onToggle={onToggle} />
+        </section>
+      </div>
+      <div className="sg-filter-panel__foot">
+        <button type="button" className="sg-filter-clear" onClick={onReset}>נקה הכול</button>
+        <button ref={lastRef} type="button" className="sg-filter-done" onClick={onClose}>
+          {phone ? <>הצג <span className="sg-num" dir="ltr">{shown}</span> סיפורים</> : "סגור"}
+        </button>
+      </div>
+    </Panel>
   );
 }
 
-/**
- * The bar as the feed renders it.
- * @param {{
- *   items: any[],
- *   activeFilters: Set<string>,
- *   shown: number,
- *   onToggle: (id: string) => void,
- *   onReset: () => void,
- *   enterBase?: number,
- * }} props
- */
-export default function FeedFilterBar({ items, activeFilters, shown, onToggle, onReset, enterBase = 0 }) {
-  // "כל הליגות" counts what clearing the leagues would show.
-  const shownAll = useMemo(
-    () => visibleCount(filterFeedItems(items, toggleFilterSet(activeFilters, ALL_LEAGUES_ID))),
-    [items, activeFilters]
-  );
+/** Variant C, chosen by Guy 2026-11-14. Filters apply live, without persistence. */
+export default function FeedFilterBar({ items, activeFilters, shown, onToggle, onReset, initialOpen = false }) {
+  const [open, setOpen] = useState(initialOpen);
+  const phone = useIsPhone();
+  const reducedMotion = useReducedMotion();
+  const buttonRef = useRef(null);
+  const rootRef = useRef(null);
+  const wasOpen = useRef(initialOpen);
+  const panelId = useId();
+  const leagues = useMemo(() => filterBarPills(items, activeFilters), [items, activeFilters]);
+  const sources = useMemo(() => sourceOptions(items, activeFilters), [items, activeFilters]);
+  const floor = importanceOptions(items, activeFilters).find((option) => option.selected && option.level);
+  const labels = new Map([...leagues, ...sources].map((option) => [option.id, option.label]));
+  const chips = [
+    ...(floor ? [{ id: floor.id, label: floor.label }] : []),
+    ...[...activeLeagueIds(activeFilters), ...activeSourceIds(activeFilters)]
+      .map((id) => ({ id, label: labels.get(id) ?? id.slice(id.indexOf(":") + 1) })),
+  ];
+  const close = useCallback(() => {
+    setOpen(false);
+  }, []);
+  useEffect(() => {
+    // A modal makes the trigger inert until its dialog has unmounted. Restore
+    // focus in the owning view after that commit, including initially open labs.
+    if (!open && wasOpen.current) buttonRef.current?.focus({ preventScroll: true });
+    wasOpen.current = open;
+  }, [open]);
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+    const escape = (event) => {
+      if (event.key === "Escape") { event.preventDefault(); close(); }
+    };
+    const outside = (event) => {
+      if (!phone && !rootRef.current?.contains(event.target)) close();
+    };
+    document.addEventListener("keydown", escape);
+    document.addEventListener("click", outside);
+    return () => {
+      document.removeEventListener("keydown", escape);
+      document.removeEventListener("click", outside);
+    };
+  }, [open, phone, close]);
+
+  const panel = open ? <FilterPanel key={phone ? "sheet" : "panel"} phone={phone} panelId={panelId}
+    items={items} activeFilters={activeFilters} shown={shown} leagues={leagues} sources={sources}
+    onToggle={onToggle} onReset={onReset} onClose={close} /> : null;
+
   return (
-    <div className="sg-filters" data-filtered={hasActiveFilters(activeFilters) || undefined}>
+    <div ref={rootRef} className="sg-filters" data-filtered={hasActiveFilters(activeFilters) || undefined}>
       <div className="sg-filters__row">
-        <ImportanceControl items={items} activeFilters={activeFilters} onToggle={onToggle} enterBase={enterBase} />
-        <LeaguePillRow
-          items={items}
-          activeFilters={activeFilters}
-          onToggle={onToggle}
-          enterBase={enterBase}
-          shownAll={shownAll}
-        />
+        <button ref={buttonRef} type="button" className="sg-filter-toggle" aria-expanded={open}
+          aria-controls={panelId} aria-haspopup={phone ? "dialog" : undefined} onClick={() => open ? close() : setOpen(true)}>
+          <SlidersHorizontal size={16} aria-hidden="true" />סינון
+          {chips.length > 0 && <span className="sg-filter-badge sg-num" dir="ltr">{chips.length}</span>}
+        </button>
+        {chips.length > 0 && <ul className="sg-filter-chips" aria-label="סינון פעיל">
+          {chips.map((chip) => <li key={chip.id}>
+            <button type="button" className="sg-filter-chip" data-filter={chip.id}
+              onClick={() => { onToggle(chip.id); buttonRef.current?.focus({ preventScroll: true }); }}
+              aria-label={`הסרת סינון: ${chip.label}`}>
+              <bdi dir="auto">{chip.label}</bdi><X size={14} aria-hidden="true" />
+            </button>
+          </li>)}
+        </ul>}
+        {chips.length > 0 && <button type="button" className="sg-filter-clear" onClick={() => {
+          onReset(); buttonRef.current?.focus({ preventScroll: true });
+        }}>נקה סינון</button>}
       </div>
-      <FilterResult shown={shown} total={visibleCount(items)} activeFilters={activeFilters} onReset={onReset} />
+      {phone ? panel : open && <motion.div className="sg-filter-reveal"
+        initial={reducedMotion ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+        transition={{ duration: reducedMotion ? 0 : 0.2, ease: [0.2, 0.8, 0.2, 1] }}>{panel}</motion.div>}
+      <FilterResult shown={shown} total={visibleCount(items)} activeFilters={activeFilters} />
     </div>
   );
 }

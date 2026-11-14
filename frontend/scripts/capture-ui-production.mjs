@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Local production-view review harness for the consumer feed.
  *
@@ -813,6 +811,7 @@ function assertSideColumn(label, audit, { desktop, briefCount }) {
  * where focus is afterwards.
  */
 async function auditFilterLatency(client) {
+  await openFilters(client);
   return await evaluate(
     client,
     `(async () => {
@@ -873,8 +872,8 @@ async function resetFilters(client) {
     `(async () => {
       // "כל הליגות" clears the leagues; the first threshold ("הכול") clears
       // the importance filter (#483).
-      document.querySelector(".sg-pill--all")?.click();
-      document.querySelector(".sg-seg__input")?.click();
+      document.querySelector(".sg-filter-clear")?.click();
+      document.querySelector(".sg-filter-close")?.click();
       await new Promise((resolve) => requestAnimationFrame(resolve));
     })()`
   );
@@ -885,6 +884,148 @@ async function resetFilters(client) {
 
 const VISIBLE_DECISIONS = ["push", "high_feed", "feed", "low_feed"];
 const IMPORTANT_DECISIONS = ["push", "high_feed"];
+
+async function openFilters(client) {
+  await evaluate(client, `(() => {
+    const button = document.querySelector(".sg-filter-toggle");
+    if (!button) throw new Error("No filter disclosure button");
+    if (button.getAttribute("aria-expanded") !== "true") button.click();
+  })()`);
+  await delay(240);
+}
+
+async function closeFilters(client) {
+  await evaluate(client, `document.querySelector(".sg-filter-close")?.click()`);
+  await delay(40);
+}
+
+/** Disclosure geometry, modality, focus, dismissal and motion at every size. */
+async function auditFilterDisclosure(client, label, phone, reducedMotion) {
+  await loadApp(client);
+  const before = await evaluate(client, `(() => ({
+    panel: Boolean(document.querySelector(".sg-filter-panel")),
+    options: document.querySelectorAll(".sg-seg__input, .sg-pill").length,
+    bottom: document.querySelector(".sg-feed__head").getBoundingClientRect().bottom,
+  }))()`);
+  if (before.panel || before.options) throw new Error(`${label}: filter options always visible`);
+  await openFilters(client);
+  const open = await evaluate(client, `(() => {
+    const button = document.querySelector(".sg-filter-toggle");
+    const panel = document.querySelector(".sg-filter-panel");
+    if (!panel) throw new Error("No filter panel");
+    const rect = panel.getBoundingClientRect();
+    const sections = Array.from(panel.querySelectorAll(".sg-filter-section")).map((node) => {
+      const r = node.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width };
+    });
+    return {
+      controls: button.getAttribute("aria-controls") === panel.id,
+      expanded: button.getAttribute("aria-expanded"),
+      dialog: panel.matches("dialog:modal"), modal: panel.getAttribute("aria-modal"),
+      role: panel.getAttribute("role"), position: getComputedStyle(panel).position,
+      focus: panel.contains(document.activeElement), sections,
+      width: rect.width, x: rect.x, right: rect.right, bottom: rect.bottom,
+      rowBottom: document.querySelector(".sg-filters__row").getBoundingClientRect().bottom,
+      y: rect.y, headBottom: document.querySelector(".sg-feed__head").getBoundingClientRect().bottom,
+      containerWidth: document.querySelector(".sg-filters").getBoundingClientRect().width,
+      animation: getComputedStyle(panel).animationName,
+      running: document.getAnimations().some((a) => a.playState === "running" &&
+        (panel.contains(a.effect?.target) || a.effect?.target?.classList?.contains("sg-filter-reveal"))),
+      pillTransition: getComputedStyle(panel.querySelector(".sg-pill")).transitionDuration,
+      overflow: document.documentElement.scrollWidth > innerWidth + 1,
+      safePadding: parseFloat(getComputedStyle(panel).paddingBlockEnd),
+      go: panel.querySelector(".sg-filter-done").textContent,
+    };
+  })()`);
+  const fail = (message) => { throw new Error(`${label}: ${message}: ${JSON.stringify({ before, open })}`); };
+  if (!open.controls || open.expanded !== "true" || !open.focus) fail("disclosure relationship or opening focus failed");
+  if (open.sections.length !== 3 || open.overflow) fail("missing facets or horizontal overflow");
+  if (reducedMotion && (open.running || open.animation !== "none")) fail("filter reveal runs under reduced motion");
+  if (reducedMotion && open.pillTransition !== "0s") fail("league pills transition under reduced motion");
+  if (phone) {
+    if (!open.dialog || open.modal !== "true" || open.position !== "fixed") fail("phone sheet is not modal");
+    if (open.safePadding < 18 || !open.go.includes("סיפורים")) fail("missing safe area or result action");
+    if (!(open.sections[0].y < open.sections[1].y && open.sections[1].y < open.sections[2].y)) fail("sheet facets do not stack");
+    await evaluate(client, `document.querySelector(".sg-filter-done").focus()`);
+    await pressKey(client, "Tab", "Tab", 9);
+    if (!await evaluate(client, `document.activeElement === document.querySelector(".sg-filter-close")`)) fail("Tab escaped sheet");
+    await pressKey(client, "Tab", "Tab", 9, 8);
+    if (!await evaluate(client, `document.activeElement === document.querySelector(".sg-filter-done")`)) fail("Shift+Tab escaped sheet");
+  } else {
+    if (open.dialog || open.modal || open.role !== "region" || open.position !== "static") fail("desktop panel is not a disclosure in flow");
+    if (Math.abs(open.width - open.containerWidth) > 2 || open.y < open.rowBottom) fail("panel is not full width below row");
+    if (open.headBottom <= before.bottom + 100) fail("panel did not expand page flow");
+    if (!(open.sections[0].x > open.sections[1].x && open.sections[1].x > open.sections[2].x) ||
+        Math.max(...open.sections.map((s) => s.y)) - Math.min(...open.sections.map((s) => s.y)) > 2) fail("facets are not horizontal RTL columns");
+    await evaluate(client, `document.querySelector(".sg-filter-toggle").click()`);
+    if (!await evaluate(client, `!document.querySelector(".sg-filter-panel") && document.activeElement === document.querySelector(".sg-filter-toggle")`)) fail("button did not close with focus return");
+    await openFilters(client);
+    // A real pointer event outside the disclosure, in the summary line.
+    const point = await evaluate(client, `(() => { const r = document.querySelector(".sg-summary").getBoundingClientRect(); return { x: r.x + 4, y: r.y + 4 }; })()`);
+    await client.send("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", clickCount: 1, ...point });
+    await client.send("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 1, ...point });
+    await delay(40);
+    if (!await evaluate(client, `!document.querySelector(".sg-filter-panel") && document.activeElement === document.querySelector(".sg-filter-toggle")`)) fail("outside click did not dismiss with focus return");
+    await openFilters(client);
+  }
+  await pressKey(client, "Escape", "Escape", 27);
+  if (!await evaluate(client, `!document.querySelector(".sg-filter-panel") && document.activeElement === document.querySelector(".sg-filter-toggle")`)) fail("Escape did not dismiss with focus return");
+  return open;
+}
+
+/** Source counts, any-member cluster matching, live AND filtering and latency. */
+async function auditSourceFilter(client, label) {
+  await loadApp(client);
+  await openFilters(client);
+  const audit = await evaluate(client, `(async () => {
+    ${FILTER_BAR_HELPERS}
+    await revealAll();
+    const sourcesOf = (story) => JSON.parse(story.dataset.sources);
+    const before = placed();
+    const sourceOptions = Array.from(document.querySelectorAll(".sg-filter-check"));
+    if (!sourceOptions.length) throw new Error("No source options");
+    for (const option of sourceOptions) {
+      const expected = before.filter((story) => sourcesOf(story).includes(option.dataset.filter)).length;
+      if (expected !== Number(option.querySelector(".sg-num").textContent)) throw new Error("Wrong source facet count");
+    }
+    const target = sourceOptions.find((option) => Number(option.querySelector(".sg-num").textContent) < before.length);
+    if (!target) throw new Error("Vacuous source audit: no narrowing source");
+    const id = target.dataset.filter;
+    const expected = before.filter((story) => sourcesOf(story).includes(id)).map(headline);
+    const input = target.querySelector("input");
+    input.focus();
+    const started = performance.now(); input.click();
+    while (placed().some((story) => !sourcesOf(story).includes(id)) && performance.now() - started < 3000) await sleep(1);
+    const clearedMs = performance.now() - started;
+    await sleep(120); await revealAll();
+    const actual = placed().map(headline);
+    return { id, expected, actual, clearedMs, focus: document.activeElement === input,
+      checked: input.checked, chip: Boolean(document.querySelector('.sg-filter-chip[data-filter="' + CSS.escape(id) + '"]')) };
+  })()`);
+  if (!audit.expected.length || JSON.stringify(audit.expected) !== JSON.stringify(audit.actual) ||
+      audit.clearedMs > FILTER_LATENCY_BUDGET_MS || !audit.focus || !audit.checked || !audit.chip) {
+    throw new Error(`${label}: source filter failed: ${JSON.stringify(audit)}`);
+  }
+  return audit;
+}
+
+async function selectThreeFacets(client) {
+  await openFilters(client);
+  await evaluate(client, `(async () => {
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    document.querySelector('.sg-seg__opt[data-filter="min:feed"] input').click(); await sleep(120);
+    document.querySelector('.sg-pill[data-filter]').click(); await sleep(120);
+    const source = document.querySelector('.sg-filter-check input');
+    if (!source) throw new Error("No source under selected importance and league");
+    const expected = Number(source.closest("label").querySelector(".sg-num").textContent);
+    source.click(); await sleep(120);
+    const chips = document.querySelectorAll(".sg-filter-chip");
+    const shown = document.querySelectorAll(${JSON.stringify(PLACED_SELECTOR)}).length;
+    if (chips.length !== 3 || shown !== expected || Number(document.querySelector(".sg-filter-badge").textContent) !== 3) {
+      throw new Error("Importance AND league AND source did not produce three chips and the faceted count");
+    }
+  })()`);
+  await closeFilters(client);
+}
 
 /**
  * In-page helpers for the filter bar: the painted stories (placed once each,
@@ -927,6 +1068,7 @@ const FILTER_BAR_HELPERS = `
  * appearing, the summary untouched, focus kept, then "נקה סינון" back.
  */
 async function auditImportanceFilter(client) {
+  await openFilters(client);
   return await evaluate(
     client,
     `(async () => {
@@ -1042,6 +1184,7 @@ function assertImportanceFilter(label, audit) {
  * (RTL: ArrowLeft is the next option), and the feed follows the choice.
  */
 async function auditImportanceKeyboard(client) {
+  await openFilters(client);
   const read = () =>
     evaluate(
       client,
@@ -1084,6 +1227,7 @@ function assertImportanceKeyboard(label, audit) {
  * feed has no such league (then SignalFeedView.test.jsx locks the state).
  */
 async function auditFilterEmpty(client) {
+  await openFilters(client);
   return await evaluate(
     client,
     `(async () => {
@@ -1119,11 +1263,14 @@ async function auditFilterEmpty(client) {
 }
 
 async function leaveFilterEmpty(client) {
+  await closeFilters(client);
+  await evaluate(client, `document.querySelector(".sg-filter-empty .sg-more")?.click()`);
+  await delay(160);
+  await openFilters(client);
   return await evaluate(
     client,
     `(async () => {
       ${FILTER_BAR_HELPERS}
-      document.querySelector(".sg-filter-empty .sg-more")?.click();
       await sleep(160);
       await revealAll();
       return {
@@ -1156,6 +1303,7 @@ function assertFilterEmpty(label, empty, back) {
  * option at least the pills' 36px tall.
  */
 async function auditFilterBarPhone(client) {
+  await openFilters(client);
   return await evaluate(
     client,
     `(async () => {
@@ -1523,6 +1671,7 @@ async function auditNoSerifLeak(client, route, headingSelector, expectedFamily =
 
 async function auditTypography(client, label) {
   await loadApp(client);
+  await openFilters(client);
   const text = await readFamilies(client, TEXT_SURFACES);
   assertFamilies(label, text, TEXT_FAMILY);
   const shellChrome = await readFamilies(client, SHELL_SURFACES);
@@ -1668,8 +1817,19 @@ async function probeControl(client, selector, { active = false } = {}) {
 async function auditDockOcclusion(client, label) {
   const states = {};
   await loadApp(client);
-  states.onLoad = {
+  states.filterButton = { button: await probeControl(client, ".sg-filter-toggle") };
+  await openFilters(client);
+  states.filterPanel = {
     firstPill: await probeControl(client, ".sg-pill"),
+    close: await probeControl(client, ".sg-filter-close"),
+    apply: await probeControl(client, ".sg-filter-done"),
+    lastSource: await probeControl(client, ".sg-filter-check:last-child input"),
+  };
+  for (const [name, probe] of Object.entries(states.filterPanel)) {
+    if (!probe.present) throw new Error(`${label}: missing filter panel control ${name}`);
+  }
+  await closeFilters(client);
+  states.onLoad = {
     firstRowMore: await probeControl(client, ".sg-row .sg-acts button"),
     clusterBadge: await probeControl(client, ".sg-row .sg-badge"),
     namedSourceLink: await probeControl(client, ".sg-sources a"),
@@ -1717,7 +1877,8 @@ function assertDockOcclusion(audit) {
   }
   // A pass must not be vacuous: these controls have to have been seen.
   for (const [stateName, controlName] of [
-    ["onLoad", "firstPill"],
+    ["filterPanel", "firstPill"],
+    ["filterButton", "button"],
     ["onLoad", "firstRowMore"],
     ["pageEnd", "lastRowActions"],
   ]) {
@@ -2138,6 +2299,12 @@ async function auditMotion(client) {
       // Fonts are cached by now (the app has loaded many times), so this does
       // not skip the choreography; it keeps a font swap out of the count.
       await document.fonts?.ready;
+      // Measure after the first painted frame, as loadApp does. The global
+      // reduced-motion fallback is 0.01ms; a synchronous ready() can catch
+      // these initial style transitions before the browser has painted once.
+      document.body.getBoundingClientRect();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await new Promise((resolve) => requestAnimationFrame(resolve));
       const shifts = [];
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
@@ -2155,8 +2322,9 @@ async function auditMotion(client) {
       const delays = rows.map((row) => Math.round(parseFloat(getComputedStyle(row).animationDelay) * 1000));
       const atReady = document.getAnimations().filter((animation) => animation.playState === "running");
       const rowAnimation = rows.length ? getComputedStyle(rows[0]).animationName : null;
-      const pill = document.querySelector(".sg-pill");
-      const pillTransition = pill ? getComputedStyle(pill).transitionDuration : null;
+      const button = document.querySelector(".sg-filter-toggle");
+      if (!button) throw new Error("No filter button to measure");
+      const pillTransition = getComputedStyle(button).transitionDuration;
       await sleep(1300);
       await Promise.all(document.getAnimations().filter(finite).map((animation) => animation.finished.catch(() => null)));
       await sleep(100);
@@ -2169,6 +2337,7 @@ async function auditMotion(client) {
         pillTransition,
         delays,
         runningAtReady: atReady.map(named),
+        readyDetails: atReady.map((a) => ({ name: named(a), target: a.effect?.target?.className, duration: a.effect?.getComputedTiming().duration })),
         runningSettled: settled.map(named),
         runningSettledFinite: settled.filter(finite).map(named),
         layoutShift: shifts.reduce((sum, shift) => sum + shift.value, 0),
@@ -2330,6 +2499,7 @@ async function main() {
     await capture(client, path.join(outputDirectory, "feed-filter-important-desktop.png"));
     await loadApp(client);
     if (await auditFilterEmpty(client)) {
+      await closeFilters(client);
       await capture(client, path.join(outputDirectory, "feed-filter-empty-desktop.png"));
     }
 
@@ -2354,8 +2524,10 @@ async function main() {
       await loadApp(client);
       const phoneEmpty = await auditFilterEmpty(client);
       if (phoneEmpty) {
+        await closeFilters(client);
         await capture(client, path.join(outputDirectory, `feed-filter-empty-${width}.png`));
         assertFilterEmpty(`${width}px mobile`, phoneEmpty, await leaveFilterEmpty(client));
+        await closeFilters(client);
       }
       const cluster = await auditClusterDisclosure(client);
       assertClusterDisclosure(`${width}px mobile`, cluster);
@@ -2389,6 +2561,30 @@ async function main() {
       throw new Error("Normal-motion smoke unexpectedly received reduced motion.");
     }
     const normalMotionRegressions = await auditFeedRegressions(client, "desktop normal-motion");
+
+    // C's desktop panel and phone sheet, both motion modes; all evidence on white.
+    const filterDisclosureAudits = [];
+    for (const reducedMotion of [true, false]) {
+      for (const [width, height] of [[1440, 1000], [1024, 900], [390, 844], [320, 640]]) {
+        const phone = width < 900;
+        await configureViewport(client, width, height, phone, reducedMotion);
+        const label = `${width}px filters ${reducedMotion ? "reduced" : "normal"}-motion`;
+        filterDisclosureAudits.push({ label, ...await auditFilterDisclosure(client, label, phone, reducedMotion) });
+        await auditSourceFilter(client, label);
+        await loadApp(client);
+        if (reducedMotion) await capture(client, path.join(outputDirectory, `filters-closed-${width}.png`));
+        await openFilters(client);
+        if (reducedMotion) await capture(client, path.join(outputDirectory, `filters-open-${width}.png`));
+        await selectThreeFacets(client);
+        if (reducedMotion) await capture(client, path.join(outputDirectory, `filters-chips-${width}.png`));
+        await loadApp(client);
+        const empty = await auditFilterEmpty(client);
+        if (!empty) throw new Error(`${label}: no empty-result evidence`);
+        await closeFilters(client);
+        if (reducedMotion) await capture(client, path.join(outputDirectory, `filters-empty-${width}.png`));
+        assertFilterEmpty(label, empty, await leaveFilterEmpty(client));
+      }
+    }
 
     // Typography from computed styles under both motion preferences.
     const typographyAudits = [];
@@ -2508,6 +2704,7 @@ async function main() {
       JSON.stringify(
         {
           outputDirectory,
+          filterDisclosureAudits,
           instance: { port, ...ownership },
           desktop: {
             viewport: `${desktop.clientWidth}x${desktop.height}`,

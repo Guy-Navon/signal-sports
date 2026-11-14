@@ -3,6 +3,7 @@
 //   levels  — decision levels, decision-level filters
 //   topics  — content filters, topic and league filters
 //   leagues — "league:<name>", toggled from the league pills of the new feed (#464)
+//   sources — "source:<id>", any visible member source for a cluster (#483)
 //   floor   — "min:<level>", an importance threshold from the filter bar (#483):
 //             that level and above. At most one; ANDed with everything else.
 // Filters only narrow what the engine already decided to show: every result is
@@ -29,6 +30,23 @@ export function getVisibleItems(items) {
 }
 
 const LEAGUE_PREFIX = "league:";
+const SOURCE_PREFIX = "source:";
+
+export const sourceFilterId = (source) => `${SOURCE_PREFIX}${source}`;
+
+/** Authoritative visible members win over legacy source arrays. One entry per source. */
+function filterSources(item) {
+  const entries = item.type !== "cluster"
+    ? [{ source: item.source, sourceDisplayName: item.sourceDisplayName }]
+    : Array.isArray(item.members)
+      ? item.members.filter((member) => (member.decision ?? member.score?.decision) !== "hidden")
+      : (item.sources ?? []).map((source, index) => ({ source, sourceDisplayName: item.sourceDisplayNames?.[index] }));
+  return [...new Map(entries.filter((entry) => entry.source).map((entry) => [
+    sourceFilterId(entry.source), entry.sourceDisplayName ?? entry.source,
+  ])).entries()];
+}
+
+export const itemSourceFilterIds = (item) => filterSources(item).map(([id]) => id);
 
 /**
  * The one league filter an item belongs to (the league pills, #464): its league,
@@ -49,6 +67,7 @@ export const IMPORTANCE_FLOORS = ["feed", "high_feed"];
 /** Commands, never stored: clear one family (toggleFilterSet). */
 export const ALL_LEAGUES_ID = `${LEAGUE_PREFIX}*`;
 export const ALL_LEVELS_ID = `${FLOOR_PREFIX}*`;
+export const ALL_SOURCES_ID = `${SOURCE_PREFIX}*`;
 
 export function importanceFilterId(level) {
   return `${FLOOR_PREFIX}${level}`;
@@ -56,6 +75,8 @@ export function importanceFilterId(level) {
 
 const isFloorId = (filterId) => filterId.startsWith(FLOOR_PREFIX);
 const isLeagueId = (filterId) => filterId.startsWith(LEAGUE_PREFIX);
+const isSourceId = (filterId) => filterId.startsWith(SOURCE_PREFIX);
+export const activeSourceIds = (activeFilters) => [...activeFilters].filter(isSourceId);
 
 /** How many of these items a reader can see (never hidden or decision-less). */
 export function visibleCount(items) {
@@ -92,6 +113,7 @@ export function meetsImportanceFloor(item, level) {
 export function itemMatchesFilter(item, filterId) {
   if (LEVEL_FILTER_IDS.includes(filterId)) return item.score?.decision === filterId;
   if (filterId.startsWith(LEAGUE_PREFIX)) return leagueFilterId(item) === filterId;
+  if (isSourceId(filterId)) return filterSources(item).some(([id]) => id === filterId);
   if (filterId === "maccabi") {
     const entities = item.entities || [];
     const tags = item.tags || [];
@@ -111,17 +133,21 @@ export function itemMatchesFilter(item, filterId) {
 }
 
 /**
- * The floor (if any) ANDed with the other active filters, which OR among
- * themselves as they always have. Order is kept.
+ * AND across importance, league and source; OR within each multi-value facet.
+ * Legacy exact-level/topic filters keep their OR semantics in their own group.
+ * Every path rejects hidden/decision-less stories. Order and identities stay.
  */
 export function filterFeedItems(visibleItems, activeFilters) {
-  if (activeFilters.has("all")) return visibleItems;
-  const floor = importanceFloor(activeFilters);
-  const others = [...activeFilters].filter((f) => !isFloorId(f));
+  const active = activeFilters.has("all") ? [] : [...activeFilters];
+  const floor = importanceFloor(new Set(active));
+  const leagues = active.filter(isLeagueId);
+  const sources = active.filter(isSourceId);
+  const others = active.filter((f) => !isFloorId(f) && !isLeagueId(f) && !isSourceId(f));
+  const matches = (item, family) => family.length === 0 || family.some((f) => itemMatchesFilter(item, f));
   return visibleItems.filter(
     (item) =>
-      (floor === null || meetsImportanceFloor(item, floor)) &&
-      (others.length === 0 || others.some((f) => itemMatchesFilter(item, f)))
+      meetsImportanceFloor(item, floor) && matches(item, leagues) &&
+      matches(item, sources) && matches(item, others)
   );
 }
 
@@ -132,8 +158,8 @@ export function toggleFilterSet(prev, chipId) {
   if (chipId === "all") return new Set(["all"]);
   const next = new Set(prev);
   next.delete("all");
-  if (chipId === ALL_LEAGUES_ID || chipId === ALL_LEVELS_ID) {
-    const inFamily = chipId === ALL_LEAGUES_ID ? isLeagueId : isFloorId;
+  if (chipId === ALL_LEAGUES_ID || chipId === ALL_LEVELS_ID || chipId === ALL_SOURCES_ID) {
+    const inFamily = chipId === ALL_LEAGUES_ID ? isLeagueId : chipId === ALL_SOURCES_ID ? isSourceId : isFloorId;
     for (const filterId of prev) if (inFamily(filterId)) next.delete(filterId);
   } else if (next.has(chipId)) {
     next.delete(chipId);
@@ -185,4 +211,28 @@ export function facetedLeagueCounts(items, activeFilters) {
     counts.set(id, (counts.get(id) ?? 0) + 1);
   }
   return counts;
+}
+
+/** Each cluster counts once per visible source, under the other active facets. */
+export function facetedSourceCounts(items, activeFilters) {
+  const scope = filterFeedItems(items, withoutFamily(activeFilters, isSourceId));
+  const counts = new Map();
+  for (const item of scope) {
+    for (const [id] of filterSources(item)) counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** Feed display names and stable whole-feed order, retaining selected zeros. */
+export function sourceOptions(items, activeFilters) {
+  const names = new Map();
+  for (const item of items.filter((item) => meetsImportanceFloor(item, null))) {
+    for (const [id, label] of filterSources(item)) if (!names.has(id)) names.set(id, label);
+  }
+  const totals = facetedSourceCounts(items, new Set(["all"]));
+  const counts = facetedSourceCounts(items, activeFilters);
+  for (const id of activeSourceIds(activeFilters)) if (!names.has(id)) names.set(id, id.slice(SOURCE_PREFIX.length));
+  return [...names].sort(([a], [b]) => (totals.get(b) ?? 0) - (totals.get(a) ?? 0))
+    .map(([id, label]) => ({ id, label, count: counts.get(id) ?? 0 }))
+    .filter((option) => option.count > 0 || activeFilters.has(option.id));
 }

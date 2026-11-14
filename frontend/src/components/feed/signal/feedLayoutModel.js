@@ -3,10 +3,12 @@
 // Each section keeps the order it was given (the backend's ranking).
 import {
   activeLeagueIds,
+  activeSourceIds,
   facetedLeagueCounts,
   hasActiveFilters,
   importanceFloor,
   leagueFilterId,
+  meetsImportanceFloor,
 } from "@/components/feed/feedFilters";
 import { DECISION_CONFIG } from "@/components/feed/decisionConfig";
 import { LEAGUE_HE, SPORT_HE } from "@/components/feed/storyLabels";
@@ -52,6 +54,7 @@ function leagueLabel(item) {
 export function leaguePills(items) {
   const pills = new Map();
   for (const item of items) {
+    if (!meetsImportanceFloor(item, null)) continue;
     const id = leagueFilterId(item);
     const pill = pills.get(id);
     if (pill) pill.count += 1;
@@ -87,7 +90,9 @@ export function filterResultLine(shown, total, activeFilters) {
 export function filterEmptyMessage(activeFilters) {
   const floor = importanceFloor(activeFilters);
   const leagues = activeLeagueIds(activeFilters).length > 0;
+  const sources = activeSourceIds(activeFilters).length > 0;
   const level = floor ? `ברמת ${DECISION_CONFIG[floor].label} ומעלה` : "";
+  if (sources) return `אין סיפורים ${[level, leagues ? "בליגות שבחרת" : "", "במקורות שבחרת"].filter(Boolean).join(" ")}.`;
   if (floor && leagues) return `אין סיפורים ${level} בליגות שבחרת.`;
   if (floor) return `אין כרגע סיפורים ${level}.`;
   return "אין סיפורים בליגות שבחרת.";

@@ -871,11 +871,324 @@ async function resetFilters(client) {
   await evaluate(
     client,
     `(async () => {
+      // "כל הליגות" clears the leagues; the first threshold ("הכול") clears
+      // the importance filter (#483).
       document.querySelector(".sg-pill--all")?.click();
+      document.querySelector(".sg-seg__input")?.click();
       await new Promise((resolve) => requestAnimationFrame(resolve));
     })()`
   );
   await delay(220);
+}
+
+// ── Filter bar (#483) ─────────────────────────────────────────────────────────
+
+const VISIBLE_DECISIONS = ["push", "high_feed", "feed", "low_feed"];
+const IMPORTANT_DECISIONS = ["push", "high_feed"];
+
+/**
+ * In-page helpers for the filter bar: the painted stories (placed once each,
+ * "Latest" excluded), their headlines as identities, the importance options
+ * with their visible and announced counts, and the summary's first number.
+ */
+const FILTER_BAR_HELPERS = `
+  const placed = () => Array.from(document.querySelectorAll(${JSON.stringify(PLACED_SELECTOR)}));
+  const headline = (story) =>
+    story.querySelector("h2, h3")?.textContent.replace(/\\s+/g, " ").trim() ?? "";
+  const options = () => Array.from(document.querySelectorAll(".sg-seg__opt")).map((label) => {
+    const input = label.querySelector("input[type=radio]");
+    return {
+      id: label.dataset.filter,
+      label: label.querySelector(".sg-seg__label")?.textContent.trim(),
+      visibleCount: Number(label.querySelector(".sg-seg__count")?.textContent),
+      spokenCount: Number((label.querySelector(".sr-only")?.textContent.match(/\\d+/) ?? [NaN])[0]),
+      checked: input?.checked ?? false,
+      input,
+    };
+  });
+  const summaryCount = () =>
+    Number(document.querySelector(".sg-summary .sg-num")?.textContent);
+  const resultLine = () => document.querySelector(".sg-filter-result [role=status]")?.textContent.trim() ?? null;
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const revealAll = async () => {
+    for (let i = 0; i < 20; i += 1) {
+      const more = document.querySelector(".sg-feed .sg-more:not(.sg-filter-empty .sg-more)");
+      if (!more) break;
+      more.click();
+      await sleep(160);
+    }
+  };
+`;
+
+/**
+ * The importance threshold as painted: one labelled radio group, counts that
+ * match what each choice shows, the "חשוב ומעלה" choice clearing every story
+ * below it within the filter budget, nothing that was not visible before
+ * appearing, the summary untouched, focus kept, then "נקה סינון" back.
+ */
+async function auditImportanceFilter(client) {
+  return await evaluate(
+    client,
+    `(async () => {
+      ${FILTER_BAR_HELPERS}
+      const group = document.querySelector(".sg-seg[role=radiogroup]");
+      if (!group) throw new Error("No importance radio group rendered");
+      await revealAll();
+      const beforeIds = placed().map(headline);
+      const before = {
+        stories: beforeIds.length,
+        summary: summaryCount(),
+        options: options().map(({ input, ...rest }) => rest),
+        resultLine: resultLine(),
+        resultDrawn: Boolean(document.querySelector(".sg-filter-result[data-active]")),
+      };
+      const target = options().find((option) => option.id === "min:high_feed");
+      if (!target) throw new Error("No 'חשוב ומעלה' option");
+      const stale = () => placed().filter((story) => !${JSON.stringify(IMPORTANT_DECISIONS)}.includes(story.dataset.decision)).length;
+      const staleBefore = stale();
+      target.input.focus();
+      const started = performance.now();
+      target.input.click();
+      let clearedAt = null;
+      while (performance.now() - started < 3000) {
+        if (stale() === 0) { clearedAt = performance.now() - started; break; }
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      await sleep(160);
+      await revealAll();
+      const afterIds = placed().map(headline);
+      const after = {
+        stories: afterIds.length,
+        decisions: [...new Set(placed().map((story) => story.dataset.decision))],
+        everyDecision: [...new Set(Array.from(document.querySelectorAll(${JSON.stringify(STORY_SELECTOR)})).map((s) => s.dataset.decision))],
+        notBefore: afterIds.filter((id) => !beforeIds.includes(id)),
+        summary: summaryCount(),
+        options: options().map(({ input, ...rest }) => rest),
+        resultLine: resultLine(),
+        resultDrawn: Boolean(document.querySelector(".sg-filter-result[data-active]")),
+        focusStayed: document.activeElement === target.input,
+      };
+      const clear = document.querySelector(".sg-filter-clear");
+      clear?.click();
+      await sleep(160);
+      await revealAll();
+      const reset = {
+        clearPresent: Boolean(clear),
+        stories: placed().length,
+        checked: options().find((option) => option.checked)?.id ?? null,
+        resultDrawn: Boolean(document.querySelector(".sg-filter-result[data-active]")),
+      };
+      return {
+        groupLabel: group.getAttribute("aria-label"),
+        radios: group.querySelectorAll("input[type=radio]").length,
+        radioNames: new Set(Array.from(group.querySelectorAll("input[type=radio]")).map((r) => r.name)).size,
+        staleBefore,
+        clearedMs: clearedAt,
+        before,
+        after,
+        reset,
+      };
+    })()`
+  );
+}
+
+function assertImportanceFilter(label, audit) {
+  const fail = (message) => {
+    throw new Error(`${label}: importance filter: ${message}: ${JSON.stringify(audit)}`);
+  };
+  if (!audit.groupLabel) fail("the radio group has no accessible name");
+  if (audit.radios !== 3 || audit.radioNames !== 1) fail("expected three radios in one group");
+  const [all, normal, important] = audit.before.options;
+  if (!all?.checked || normal?.checked || important?.checked) fail("'הכול' is not the starting choice");
+  for (const option of [...audit.before.options, ...audit.after.options]) {
+    if (option.visibleCount !== option.spokenCount) fail(`'${option.label}' shows one count and announces another`);
+  }
+  // Counts match what is painted, and the thresholds nest.
+  if (all.visibleCount !== audit.before.stories) fail("'הכול' does not count the painted stories");
+  if (all.visibleCount !== audit.before.summary) fail("'הכול' disagrees with the summary line");
+  if (!(all.visibleCount >= normal.visibleCount && normal.visibleCount >= important.visibleCount)) {
+    fail("the threshold counts do not nest");
+  }
+  if (audit.before.resultLine !== "" || audit.before.resultDrawn) fail("a result line shows with no filter");
+  if (audit.staleBefore === 0) fail("vacuous: no story below חשוב was on screen before filtering");
+  if (important.visibleCount === 0) fail("vacuous: the local feed has nothing at חשוב or above");
+  if (audit.clearedMs === null) fail("stories below the threshold never cleared");
+  if (audit.clearedMs > FILTER_LATENCY_BUDGET_MS) {
+    fail(`stale stories survived ${Math.round(audit.clearedMs)}ms, budget is ${FILTER_LATENCY_BUDGET_MS}ms`);
+  }
+  if (audit.after.decisions.some((decision) => !IMPORTANT_DECISIONS.includes(decision))) {
+    fail("a story below the threshold is still placed");
+  }
+  if (audit.after.everyDecision.some((decision) => !VISIBLE_DECISIONS.includes(decision))) {
+    fail("a story with no visible level is painted");
+  }
+  if (audit.after.notBefore.length) fail("the filter revealed a story that was not visible before");
+  if (audit.after.stories !== important.visibleCount) fail("'חשוב ומעלה' shows a different number than it counted");
+  if (!audit.after.options[2].checked) fail("the chosen threshold is not checked");
+  if (audit.after.summary !== audit.before.summary) fail("filtering changed the summary line (it counts the whole feed)");
+  if (!audit.after.resultDrawn || !audit.after.resultLine.includes(String(audit.after.stories))) {
+    fail("the result line does not say how many stories are shown");
+  }
+  if (!audit.after.focusStayed) fail("focus left the chosen threshold");
+  if (!audit.reset.clearPresent) fail("no 'נקה סינון' while filtered");
+  if (audit.reset.stories !== audit.before.stories || audit.reset.checked !== "min:*") {
+    fail("'נקה סינון' did not bring the whole feed back");
+  }
+  if (audit.reset.resultDrawn) fail("the result line stayed after clearing");
+}
+
+/**
+ * Keyboard: the threshold is reached with Tab and moved with the arrow keys
+ * (RTL: ArrowLeft is the next option), and the feed follows the choice.
+ */
+async function auditImportanceKeyboard(client) {
+  const read = () =>
+    evaluate(
+      client,
+      `(() => {
+        ${FILTER_BAR_HELPERS}
+        const list = options();
+        return {
+          checked: list.findIndex((option) => option.checked),
+          focused: list.findIndex((option) => option.input === document.activeElement),
+          stories: placed().length,
+        };
+      })()`
+    );
+  await evaluate(client, `document.querySelector(".sg-seg__input:checked")?.focus()`);
+  const start = await read();
+  await pressKey(client, "ArrowLeft", "ArrowLeft", 37);
+  await delay(120);
+  const next = await read();
+  await pressKey(client, "ArrowRight", "ArrowRight", 39);
+  await delay(120);
+  const back = await read();
+  return { start, next, back };
+}
+
+function assertImportanceKeyboard(label, audit) {
+  const fail = (message) => {
+    throw new Error(`${label}: importance keyboard: ${message}: ${JSON.stringify(audit)}`);
+  };
+  if (audit.start.focused !== 0 || audit.start.checked !== 0) fail("focus did not start on the checked 'הכול'");
+  if (audit.next.checked !== 1 || audit.next.focused !== 1) fail("ArrowLeft did not move to and choose the next threshold");
+  if (audit.next.stories > audit.start.stories) fail("a higher threshold showed more stories");
+  if (audit.back.checked !== 0 || audit.back.focused !== 0) fail("ArrowRight did not come back to 'הכול'");
+  if (audit.back.stories !== audit.start.stories) fail("coming back to 'הכול' did not restore the feed");
+}
+
+/**
+ * A threshold with a league that has nothing at or above it: the empty
+ * result names the filter, the selected pill stays (at 0) so it can be
+ * unselected, and the way back restores the feed. Returns null when the local
+ * feed has no such league (then SignalFeedView.test.jsx locks the state).
+ */
+async function auditFilterEmpty(client) {
+  return await evaluate(
+    client,
+    `(async () => {
+      ${FILTER_BAR_HELPERS}
+      await revealAll();
+      const stories = placed();
+      const leagues = [...new Set(stories.map((story) => story.dataset.league))];
+      const quiet = leagues.find((league) =>
+        stories.filter((story) => story.dataset.league === league)
+          .every((story) => !${JSON.stringify(IMPORTANT_DECISIONS)}.includes(story.dataset.decision)));
+      if (!quiet) return null;
+      const before = stories.length;
+      document.querySelector('.sg-pill[data-filter="' + CSS.escape(quiet) + '"]')?.click();
+      await sleep(120);
+      options().find((option) => option.id === "min:high_feed")?.input.click();
+      await sleep(160);
+      const empty = document.querySelector(".sg-filter-empty");
+      const pill = document.querySelector('.sg-pill[data-filter="' + CSS.escape(quiet) + '"]');
+      const result = {
+        league: quiet,
+        emptyText: empty?.textContent.replace(/\\s+/g, " ").trim() ?? null,
+        placed: placed().length,
+        pillPressed: pill?.getAttribute("aria-pressed") ?? null,
+        pillCount: pill ? Number(pill.querySelector(".sg-num")?.textContent) : null,
+        resultDrawn: Boolean(document.querySelector(".sg-filter-result[data-active]")),
+        announced: resultLine(),
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      };
+      return { ...result, before };
+    })()`
+  );
+}
+
+async function leaveFilterEmpty(client) {
+  return await evaluate(
+    client,
+    `(async () => {
+      ${FILTER_BAR_HELPERS}
+      document.querySelector(".sg-filter-empty .sg-more")?.click();
+      await sleep(160);
+      await revealAll();
+      return {
+        placed: placed().length,
+        checked: options().find((option) => option.checked)?.id ?? null,
+        anyPillPressed: Boolean(document.querySelector('.sg-pill[data-filter][aria-pressed="true"]')),
+      };
+    })()`
+  );
+}
+
+function assertFilterEmpty(label, empty, back) {
+  const fail = (message) => {
+    throw new Error(`${label}: empty filter result: ${message}: ${JSON.stringify({ empty, back })}`);
+  };
+  if (!empty.emptyText?.includes("חשוב ומעלה")) fail("the empty result does not name the threshold");
+  if (empty.placed !== 0) fail("stories are still placed");
+  if (empty.pillPressed !== "true" || empty.pillCount !== 0) fail("the selected league pill did not stay, at 0");
+  if (empty.resultDrawn) fail("the result line is drawn on top of the empty state");
+  if (!empty.announced) fail("the empty result is not announced");
+  if (empty.scrollWidth > empty.clientWidth + 1) fail("the empty state overflows horizontally");
+  if (back.placed !== empty.before || back.checked !== "min:*" || back.anyPillPressed) {
+    fail("the way back did not restore the whole feed");
+  }
+}
+
+/**
+ * Phone widths: with a threshold chosen, no horizontal page scroll, the
+ * segmented control inside the viewport with every label unclipped and every
+ * option at least the pills' 36px tall.
+ */
+async function auditFilterBarPhone(client) {
+  return await evaluate(
+    client,
+    `(async () => {
+      ${FILTER_BAR_HELPERS}
+      options().find((option) => option.id === "min:high_feed")?.input.click();
+      await sleep(160);
+      const seg = document.querySelector(".sg-seg");
+      const rect = seg?.getBoundingClientRect();
+      const root = document.documentElement;
+      return {
+        scrollWidth: Math.max(root.scrollWidth, document.body.scrollWidth),
+        clientWidth: root.clientWidth,
+        seg: rect ? { left: Math.round(rect.left), right: Math.round(rect.right) } : null,
+        options: Array.from(document.querySelectorAll(".sg-seg__opt")).map((label) => ({
+          height: Math.round(label.getBoundingClientRect().height),
+          clipped: label.scrollWidth > label.clientWidth + 1,
+        })),
+        resultDrawn: Boolean(document.querySelector(".sg-filter-result[data-active]")),
+      };
+    })()`
+  );
+}
+
+function assertFilterBarPhone(label, audit) {
+  const fail = (message) => {
+    throw new Error(`${label}: filter bar: ${message}: ${JSON.stringify(audit)}`);
+  };
+  if (audit.scrollWidth > audit.clientWidth + 1) fail("horizontal page scroll with a filter on");
+  if (!audit.seg || audit.seg.left < 0 || audit.seg.right > audit.clientWidth) fail("the threshold control leaves the viewport");
+  if (audit.options.length !== 3) fail("expected three threshold options");
+  if (audit.options.some((option) => option.clipped)) fail("a threshold label is clipped");
+  if (audit.options.some((option) => option.height < 36)) fail("a threshold option is under 36px tall");
+  if (!audit.resultDrawn) fail("no result line with a filter on");
 }
 
 /**
@@ -1916,6 +2229,17 @@ async function auditFeedRegressions(client, label) {
   assertFilterLatency(label, latency);
   await resetFilters(client);
 
+  // The filter bar's importance threshold (#483).
+  await loadApp(client);
+  const importance = await auditImportanceFilter(client);
+  assertImportanceFilter(label, importance);
+  await loadApp(client);
+  const importanceKeyboard = await auditImportanceKeyboard(client);
+  assertImportanceKeyboard(label, importanceKeyboard);
+  await loadApp(client);
+  const filterEmpty = await auditFilterEmpty(client);
+  if (filterEmpty) assertFilterEmpty(label, filterEmpty, await leaveFilterEmpty(client));
+
   await loadApp(client);
   const cluster = await auditClusterDisclosure(client);
   assertClusterDisclosure(label, cluster);
@@ -1923,7 +2247,7 @@ async function auditFeedRegressions(client, label) {
   const motion = await auditMotion(client);
   assertMotion(label, motion);
 
-  return { placement, side, paging, latency, cluster, motion };
+  return { placement, side, paging, latency, importance, importanceKeyboard, filterEmpty, cluster, motion };
 }
 
 async function stopProcess(child) {
@@ -2000,6 +2324,15 @@ async function main() {
     // Rendered-behaviour regressions, reduced motion (the evidence pass).
     const reducedMotionRegressions = await auditFeedRegressions(client, "desktop reduced-motion");
 
+    // The filter bar (#483) as painted: a threshold on, and an empty result.
+    await loadApp(client);
+    assertFilterBarPhone("desktop", await auditFilterBarPhone(client));
+    await capture(client, path.join(outputDirectory, "feed-filter-important-desktop.png"));
+    await loadApp(client);
+    if (await auditFilterEmpty(client)) {
+      await capture(client, path.join(outputDirectory, "feed-filter-empty-desktop.png"));
+    }
+
     await loadApp(client);
     await auditClusterDisclosure(client);
     await evaluate(client, `document.querySelector(".sg-row .sg-badge")?.click()`);
@@ -2014,6 +2347,16 @@ async function main() {
       assertRowActions(`${width}px mobile`, metrics);
       resultsAudits.push(await auditResultsStrip(client, `${width}px mobile`));
       await capture(client, path.join(outputDirectory, `feed-mobile-${width}.png`));
+      await loadApp(client);
+      const phoneBar = await auditFilterBarPhone(client);
+      assertFilterBarPhone(`${width}px mobile`, phoneBar);
+      await capture(client, path.join(outputDirectory, `feed-filter-important-${width}.png`));
+      await loadApp(client);
+      const phoneEmpty = await auditFilterEmpty(client);
+      if (phoneEmpty) {
+        await capture(client, path.join(outputDirectory, `feed-filter-empty-${width}.png`));
+        assertFilterEmpty(`${width}px mobile`, phoneEmpty, await leaveFilterEmpty(client));
+      }
       const cluster = await auditClusterDisclosure(client);
       assertClusterDisclosure(`${width}px mobile`, cluster);
       const openLayout = await currentLayout(client);
@@ -2136,6 +2479,16 @@ async function main() {
       },
       filterClearedMs: Math.round(regressions.latency.clearedMs),
       filter: regressions.latency.filter,
+      importanceFilter: {
+        clearedMs: Math.round(regressions.importance.clearedMs),
+        counts: regressions.importance.before.options.map((option) => `${option.label} ${option.visibleCount}`),
+        shownAtImportant: regressions.importance.after.stories,
+        resultLine: regressions.importance.after.resultLine,
+        keyboard: regressions.importanceKeyboard,
+        empty: regressions.filterEmpty
+          ? { league: regressions.filterEmpty.league, text: regressions.filterEmpty.emptyText }
+          : "not exercised: every local league has an important story; locked by SignalFeedView.test.jsx",
+      },
       motion: {
         rowAnimation: regressions.motion.rowAnimation,
         streamDelaysMs: [...new Set(regressions.motion.delays)],
@@ -2184,6 +2537,9 @@ async function main() {
     );
   } catch (error) {
     if (browserErrors.length) console.error("Browser errors:", browserErrors);
+    // Print the failure now: a locked Chrome profile in the cleanup below can
+    // otherwise replace it with an unrelated EBUSY.
+    console.error(error);
     throw error;
   } finally {
     client?.close();

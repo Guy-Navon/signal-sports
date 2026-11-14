@@ -134,8 +134,9 @@
 .sg-pill[aria-pressed="true"] .sg-pill__mark { display: block; }
 
 /* ── filter bar: importance threshold + league pills (#483) ────────────────
-   One row on desktop: the threshold as a segmented control, a hairline, then
-   the league pills; stacked on a phone. The selected segment takes the ink
+   The threshold as a segmented control, then the league pills: one row on
+   desktop while they fit (with many leagues the pills drop to their own
+   centred line below it), stacked on a phone. The selected segment takes the ink
    ground (the pills' selection is the slab pair, so the two controls never
    read as one), and the count says what choosing it shows. Native radios
    under the labels give the keyboard and the semantics. */
@@ -150,20 +151,19 @@
 
 .sg-filters__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 10px 14px;
+  gap: 10px 22px;
   max-inline-size: 100%;
 }
 
 .sg-filters__row > .sg-pills { flex: 0 1 auto; min-inline-size: 0; }
 
-.sg-filters__sep { flex: none; inline-size: 1px; block-size: 26px; background: var(--sg-line); }
-
 .sg-seg {
   display: inline-flex;
   flex: none;
-  padding: 3px;
+  padding: 2px;
   border: 1px solid var(--sg-line);
   border-radius: 999px;
 }
@@ -174,7 +174,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-block-size: 34px;
+  min-block-size: 36px;
   padding: 0 14px;
   border-radius: 999px;
   color: var(--sg-dim);
@@ -893,10 +893,9 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
 
   /* Stacked: the threshold spans the width in equal parts ("הכול" sized to
      its words); the pills scroll inside their own row below it. */
-  .sg-filters__row { flex-direction: column; align-items: stretch; gap: 10px; }
-  .sg-filters__sep { display: none; }
+  .sg-filters__row { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 10px; }
   .sg-seg { display: grid; grid-template-columns: auto 1fr 1fr; }
-  .sg-seg__opt { padding: 0 8px; font-size: 14px; min-block-size: 36px; }
+  .sg-seg__opt { padding: 0 8px; font-size: 14px; }
   .sg-filters { align-items: stretch; gap: 10px; }
 
   .sg-lead { padding: 20px; }

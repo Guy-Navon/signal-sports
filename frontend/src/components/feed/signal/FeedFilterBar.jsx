@@ -14,7 +14,7 @@ import { enterStyle } from "./feedMotionModel";
 
 // The feed's filter bar (#483, variant A of lab.html?page=filters): the
 // importance threshold as a segmented control beside the league pills (one
-// row on desktop, stacked on a phone), and a quiet "showing X of N" line with
+// row on desktop while they fit, stacked on a phone), and a quiet "showing X of N" line with
 // a clear-all while anything is filtered. Filters only narrow what the engine
 // already chose to show (feedFilters); nothing here ranks, scores or reveals
 // a hidden story.
@@ -143,7 +143,6 @@ export default function FeedFilterBar({ items, activeFilters, shown, onToggle, o
     <div className="sg-filters" data-filtered={hasActiveFilters(activeFilters) || undefined}>
       <div className="sg-filters__row">
         <ImportanceControl items={items} activeFilters={activeFilters} onToggle={onToggle} enterBase={enterBase} />
-        <span className="sg-filters__sep" aria-hidden="true" />
         <LeaguePillRow
           items={items}
           activeFilters={activeFilters}

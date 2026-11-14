@@ -106,14 +106,14 @@ describe("clusterReportList", () => {
   const twoSources = (displayed, members, sourceCount = 2) =>
     cluster({ sourceCount, displayed, members });
 
-  it("puts the displayed report first, then the others in the order they were published", () => {
+  it("puts the displayed report first, then the others newest first", () => {
     const item = twoSources("b", [
       member("c", "sport5", "ספורט 5", "https://s5.test/c", "2026-11-13T11:00:00Z"),
       member("b", "walla_sport", "וואלה ספורט", "https://walla.test/b", "2026-11-13T12:00:00Z"),
       member("a", "one", "ONE", "https://one.test/a", "2026-11-13T09:00:00Z"),
     ], 3);
     const list = clusterReportList(item, storyReports(item));
-    expect(list.reports.map((r) => r.articleId)).toEqual(["b", "a", "c"]);
+    expect(list.reports.map((r) => r.articleId)).toEqual(["b", "c", "a"]);
     expect(list.reports.map((r) => r.displayed)).toEqual([true, false, false]);
   });
 
@@ -124,7 +124,7 @@ describe("clusterReportList", () => {
       member("c", "one", "ONE", "https://one.test/c", "2026-11-13T11:00:00Z"),
     ]);
     const list = clusterReportList(item, storyReports(item));
-    expect(list.reports.map((r) => r.articleId)).toEqual(["b", "a", "c"]);
+    expect(list.reports.map((r) => r.articleId)).toEqual(["b", "c", "a"]);
     expect(list).toMatchObject({ reportCount: 3, sourceCount: 2, canOpen: true });
   });
 
@@ -137,6 +137,16 @@ describe("clusterReportList", () => {
     const list = clusterReportList(item, storyReports(item));
     expect(list.reports.map((r) => r.articleId)).toEqual(["b", "a", "x"]);
     expect(list.reports[2].publishedAt).toBeNull();
+  });
+
+  it("keeps input order for reports published at the same time", () => {
+    const item = twoSources("b", [
+      member("p", "one", "ONE", "https://one.test/p", "2026-11-13T09:00:00Z"),
+      member("b", "walla_sport", "וואלה ספורט", "https://walla.test/b", "2026-11-13T12:00:00Z"),
+      member("q", "sport5", "ספורט 5", "https://s5.test/q", "2026-11-13T09:00:00Z"),
+    ], 3);
+    const list = clusterReportList(item, storyReports(item));
+    expect(list.reports.map((r) => r.articleId)).toEqual(["b", "p", "q"]);
   });
 
   it("marks the report the headline opens when the displayed member is not visible", () => {

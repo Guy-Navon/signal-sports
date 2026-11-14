@@ -227,17 +227,17 @@ it("a multi-source story in the important row opens to each source's own report 
   expect(textIn(meta)).toContain("ישראל היום");
 
   const items = openStory(view, "sg-important__item");
-  // Displayed report first, then the others oldest first.
+  // Displayed report first, then the others newest first.
   expect(items.map((link) => link.props.href)).toEqual([
     "https://walla_sport.test/m2",
-    "https://one.test/m1",
     "https://israel_hayom.test/m3",
+    "https://one.test/m1",
   ]);
   for (const link of items) {
     expect(link.props.target).toBe("_blank");
     expect(link.props.rel).toContain("noopener");
   }
-  const [first, second] = items;
+  const [first, , second] = items;
   expect(textIn(byClass(first, "sg-members__mark")[0])).toBe("הדיווח המוצג");
   expect(byClass(second, "sg-members__mark")).toHaveLength(0);
   expect(textIn(byClass(second, "sg-members__title")[0])).toContain("דיווח m1");

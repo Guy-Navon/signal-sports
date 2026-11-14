@@ -610,8 +610,7 @@ brief") carries them. No large cards, no images (B13).
     takes `dir="auto"`), then "לדיווח המקורי" (`--acc` 700) with an arrow.
   - Order: the displayed report (the one the headline opens, the backend's
     `displayed_article_id`, else the first visible report as `storyLink` does) first, marked
-    "הדיווח המוצג" (`--acc` on `--tint`); then the others oldest first, the story's order of
-    arrival; an undated report last.
+    "הדיווח המוצג" (`--acc` on `--tint`); then the others newest first; an undated report last.
   - Entries enter on the capped stagger (`enterStyle`), the list drops open (`sg-drop`); both off
     under reduced motion. Closing is immediate.
   - Data: backend members and the public demo snapshot (`MEMBER_FIELDS`) carry source, title,

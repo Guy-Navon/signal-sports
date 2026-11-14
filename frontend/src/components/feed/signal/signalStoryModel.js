@@ -36,8 +36,9 @@ const publishedMs = (report) => {
  *
  * Order: the displayed report (the one the headline opens) first, then the
  * others newest first (#512), so the latest word on the story comes right
- * after it; an undated report goes last. The displayed report follows storyLink: the cluster's displayed member when visible, else
- * the first visible report.
+ * after it; an undated report goes last. The displayed report follows
+ * storyLink: the cluster's displayed member when visible, else the first
+ * visible report.
  *
  * canOpen is false when the payload holds fewer than two reports: the story
  * then shows the source names only, rather than a list that cannot be filled.

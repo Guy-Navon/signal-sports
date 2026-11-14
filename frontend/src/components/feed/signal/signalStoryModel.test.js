@@ -3,6 +3,7 @@ import { normalizeScoredArticleFromApi } from "@/api/normalizers";
 import { storyReports } from "@/components/feed/storyModel";
 import {
   clusterReportList,
+  reportTitleDirection,
   relativeTimeHe,
   storyLink,
   storySources,
@@ -247,5 +248,17 @@ describe("titleDirection", () => {
     expect(
       titleDirection({ language: "en", title: "Deni", translatedTitle: "דני אבדיה הועבר" })
     ).toBeUndefined();
+  });
+});
+
+describe("reportTitleDirection", () => {
+  it("keeps a Hebrew headline in the page direction, even when it opens with a Latin name", () => {
+    expect(reportTitleDirection("Deni Avdija הועבר לבלייזרס")).toBeUndefined();
+    expect(reportTitleDirection("מכבי תל אביב החתימה גארד")).toBeUndefined();
+  });
+
+  it("lets a headline with no Hebrew find its own direction", () => {
+    expect(reportTitleDirection("Maccabi sign EuroLeague guard")).toBe("auto");
+    expect(reportTitleDirection("")).toBe("auto");
   });
 });

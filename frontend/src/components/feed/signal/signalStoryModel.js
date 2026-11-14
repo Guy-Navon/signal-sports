@@ -137,3 +137,12 @@ export function titleDirection(item) {
   const language = item?.language ?? "he";
   return !translated && language !== "he" ? "auto" : undefined;
 }
+
+/**
+ * A member report carries no language field. A headline with Hebrew in it is
+ * Hebrew (or translated) and follows the page, so one that opens with a Latin
+ * name still reads right to left; one with no Hebrew finds its own direction.
+ */
+export function reportTitleDirection(title) {
+  return /[\u0590-\u05FF]/.test(String(title ?? "")) ? undefined : "auto";
+}

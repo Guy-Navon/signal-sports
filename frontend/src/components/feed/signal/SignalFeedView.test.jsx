@@ -158,17 +158,71 @@ it("a stream cluster's badge discloses every member source with a link, and clos
   expect(byClass(view.root, "sg-members")).toHaveLength(0);
 });
 
-it("a cluster in the important row names each source as a link to its report", () => {
+const textIn = (node) =>
+  node.children.map((child) => (typeof child === "string" ? child : textIn(child))).join("");
+
+function openStory(view, section) {
+  const scope = byClass(view.root, section)[0];
+  const badge = byClass(scope, "sg-badge")[0];
+  expect(badge.props["aria-expanded"]).toBe(false);
+  act(() => badge.props.onClick());
+  const opened = byClass(view.root, section)[0];
+  const list = byClass(opened, "sg-members")[0];
+  expect(byClass(opened, "sg-badge")[0].props["aria-expanded"]).toBe(true);
+  expect(list.props.id).toBe(byClass(opened, "sg-badge")[0].props["aria-controls"]);
+  return byClass(list, "sg-members__item");
+}
+
+it("a multi-source story in the important row opens to each source's own report (#501)", () => {
   const cluster = clusterStory("c2", "high_feed", [
+    { ...member("m2", "walla_sport", "וואלה ספורט"), published_at: "2026-11-13T15:30:00Z" },
+    { ...member("m3", "israel_hayom", "ישראל היום"), published_at: "2026-11-13T15:10:00Z" },
+    { ...member("m1", "one", "ONE"), published_at: "2026-11-13T14:00:00Z" },
+  ]);
+  const view = render([cluster]);
+  // The names stay a readable list in the meta line, but are not links: the
+  // badge is the one way in, and the links live in the opened list.
+  const meta = byClass(byClass(view.root, "sg-important__item")[0], "sg-meta")[0];
+  expect(meta.findAll((node) => node.type === "a")).toHaveLength(0);
+  expect(textIn(meta)).toContain("ישראל היום");
+
+  const items = openStory(view, "sg-important__item");
+  // Displayed report first, then the others oldest first.
+  expect(items.map((link) => link.props.href)).toEqual([
+    "https://walla_sport.test/m2",
+    "https://one.test/m1",
+    "https://israel_hayom.test/m3",
+  ]);
+  for (const link of items) {
+    expect(link.props.target).toBe("_blank");
+    expect(link.props.rel).toContain("noopener");
+  }
+  const [first, second] = items;
+  expect(textIn(byClass(first, "sg-members__mark")[0])).toBe("הדיווח המוצג");
+  expect(byClass(second, "sg-members__mark")).toHaveLength(0);
+  expect(textIn(byClass(second, "sg-members__title")[0])).toContain("דיווח m1");
+  expect(byClass(second, "sg-members__go")).toHaveLength(1);
+  expect(textIn(second.findAll((node) => node.type === "time")[0])).toBe("לפני 4 שעות");
+});
+
+it("the lead and 'in brief' open a multi-source story the same way", () => {
+  const members = [member("m1", "one", "ONE"), member("m2", "walla_sport", "וואלה ספורט")];
+  const lead = render([clusterStory("cp", "push", members)]);
+  expect(openStory(lead, "sg-lead")).toHaveLength(2);
+  act(() => lead.unmount());
+  const brief = render([clusterStory("cl", "low_feed", members)]);
+  expect(openStory(brief, "sg-brief__item")).toHaveLength(2);
+});
+
+it("a multi-source story whose payload carries no reports shows its names only", () => {
+  const cluster = clusterStory("c3", "high_feed", [
     member("m1", "one", "ONE"),
     member("m2", "walla_sport", "וואלה ספורט"),
   ]);
-  const view = render([cluster]);
-  const links = byClass(view.root, "sg-source-link");
-  expect(links.map((link) => link.props.href)).toEqual([
-    "https://one.test/m1",
-    "https://walla_sport.test/m2",
-  ]);
+  const bare = { ...cluster, members: [], articleIds: [] };
+  const view = render([bare]);
+  expect(byClass(view.root, "sg-badge")).toHaveLength(0);
+  expect(JSON.stringify(view.toJSON())).toContain("מקורות");
 });
 
 it("'show more' reveals the next page and moves focus to its first new row", () => {

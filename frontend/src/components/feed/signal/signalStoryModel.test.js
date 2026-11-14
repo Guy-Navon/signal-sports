@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeScoredArticleFromApi } from "@/api/normalizers";
-import { orbitStoryReports } from "@/components/feed/orbit/orbitStoryModel";
+import { storyReports } from "@/components/feed/storyModel";
 import {
   relativeTimeHe,
   storyLink,
@@ -60,7 +60,7 @@ describe("storySources", () => {
         member("c", "one", "ONE", "https://one.test/c", "2026-11-13T11:00:00Z"),
       ],
     });
-    const view = storySources(item, orbitStoryReports(item));
+    const view = storySources(item, storyReports(item));
     expect(view.multi).toBe(true);
     expect(view.names).toEqual(["וואלה ספורט", "ONE"]);
     expect(view.reports.map((r) => r.articleId)).toEqual(["b", "a"]);
@@ -76,7 +76,7 @@ describe("storySources", () => {
         member("b", "walla_sport", "וואלה ספורט", "https://walla.test/b", "2026-11-13T12:00:00Z"),
       ],
     });
-    expect(storySources(item, orbitStoryReports(item)).count).toBe(3);
+    expect(storySources(item, storyReports(item)).count).toBe(3);
   });
 
   it("never lists a hidden member", () => {
@@ -88,14 +88,14 @@ describe("storySources", () => {
         member("h", "sport5", "ספורט 5", "https://s5.test/h", "2026-11-13T12:00:00Z", "hidden"),
       ],
     });
-    const view = storySources(item, orbitStoryReports(item));
+    const view = storySources(item, storyReports(item));
     expect(view.names).toEqual(["ONE"]);
     expect(view.multi).toBe(false);
   });
 
   it("is a single source for a plain article", () => {
     const item = { type: "article", id: "x", source: "one", sourceDisplayName: "ONE", url: "u" };
-    const view = storySources(item, orbitStoryReports(item));
+    const view = storySources(item, storyReports(item));
     expect(view).toMatchObject({ count: 1, multi: false, names: ["ONE"] });
   });
 });
@@ -110,7 +110,7 @@ describe("storyLink", () => {
         member("b", "walla_sport", "וואלה ספורט", "https://walla.test/b", "2026-11-13T12:00:00Z"),
       ],
     });
-    expect(storyLink(item, orbitStoryReports(item))).toBe("https://walla.test/b");
+    expect(storyLink(item, storyReports(item))).toBe("https://walla.test/b");
   });
 
   it("opens an article at its own url, and has none when the article has none", () => {

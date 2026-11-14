@@ -1,6 +1,6 @@
 ---
 name: webapp-testing
-description: Use when a Signal Sports frontend change must be seen or checked in a real browser - rendered layout, RTL, focus, overflow, console errors, screenshots. Start with the existing hermetic harness (npm run capture:orbit in frontend/); ad-hoc Playwright scripts are scratchpad-only exploration and never a committed or competing test suite.
+description: Use when a Signal Sports frontend change must be seen or checked in a real browser - rendered layout, RTL, focus, overflow, console errors, screenshots. Start with the existing hermetic harness (npm run capture:ui in frontend/); ad-hoc Playwright scripts are scratchpad-only exploration and never a committed or competing test suite.
 license: Complete terms in LICENSE.txt
 ---
 
@@ -13,8 +13,8 @@ file was changed for Signal Sports on 2026-10-17 (new frontmatter description an
 section); the rest of the directory is unmodified. Provenance in [UPSTREAM.md](UPSTREAM.md).
 
 **Reuse before you build — in this order:**
-1. **`npm run capture:orbit`** (in `frontend/`) — the existing hermetic harness
-   (`frontend/scripts/capture-orbit-production.mjs`). It starts its own Vite on a free port in
+1. **`npm run capture:ui`** (in `frontend/`) — the existing hermetic harness
+   (`frontend/scripts/capture-ui-production.mjs`). It starts its own Vite on a free port in
    local-data mode, proves it is talking to that instance, drives headless Chrome over CDP and
    asserts what the browser paints: RTL, horizontal overflow at desktop and mobile viewports, focus
    transitions under both motion preferences, dock occlusion, typography, filter latency, queue

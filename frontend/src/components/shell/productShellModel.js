@@ -83,13 +83,7 @@ export function accountMenuSections({ signedIn, showConsoleEntry, showSwitcher }
   return sections;
 }
 
-// Pages already rebuilt in the new look render on the Signal UI ground. Every
-// other consumer page keeps the Orbit token scope on its body, so its Orbit
-// styling stays legible inside the new chrome until its own milestone-15 issue
-// migrates it (#464 feed, #470 preferences/interests/calibration, #471
-// results, #472 account). Migrating a page = adding its path here.
-export const SIGNAL_SURFACE_PATHS = ["/", "/results", "/preferences", "/interests", "/calibration", "/account"];
-
-export function pageSurface(pathname, migrated = SIGNAL_SURFACE_PATHS) {
-  return migrated.includes(pathname) ? "signal" : "orbit";
+// All consumer pages use Signal UI. Ops renders through its separate AppShell.
+export function pageSurface(_pathname) {
+  return "signal";
 }

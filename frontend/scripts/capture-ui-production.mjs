@@ -12,8 +12,8 @@
  * occlusion by the fixed slim bar and runtime errors. Writes temporary review
  * PNGs.
  *
- * Adapted from the Orbit harness for the new feed in #464 with the same
- * invariants; #473 renames it (capture:orbit is kept until then).
+ * Adapted for the current feed in #464; renamed in #473 with every
+ * existing browser assertion preserved.
  */
 
 import { spawn } from "node:child_process";
@@ -57,7 +57,7 @@ export async function reserveEphemeralPort() {
  *
  * `--strictPort` alone is not enough: Vite exits, but the foreign server keeps
  * answering, so a naive readiness poll sees 200 and proceeds against the wrong
- * application. Locked by capture-orbit-production.test.mjs.
+ * application. Locked by capture-ui-production.test.mjs.
  */
 export async function ensurePortAvailable(candidate) {
   await new Promise((resolve, reject) => {
@@ -67,7 +67,7 @@ export async function ensurePortAvailable(candidate) {
         reject(
           new Error(
             `Port ${candidate} is already in use, so this harness cannot own it. ` +
-              `Stop the process holding ${HOST}:${candidate}, or unset ORBIT_REVIEW_PORT ` +
+              `Stop the process holding ${HOST}:${candidate}, or unset SIGNAL_UI_REVIEW_PORT ` +
               `to let the harness pick a free port automatically.`
           )
         );
@@ -83,11 +83,11 @@ export async function ensurePortAvailable(candidate) {
 }
 
 /** Explicit port must be free; otherwise take one the OS says is free. */
-export async function resolveHarnessPort(requested = process.env.ORBIT_REVIEW_PORT) {
+export async function resolveHarnessPort(requested = process.env.SIGNAL_UI_REVIEW_PORT) {
   if (requested !== undefined && requested !== null && String(requested).trim() !== "") {
     const parsed = Number.parseInt(String(requested), 10);
     if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
-      throw new Error(`ORBIT_REVIEW_PORT must be a valid port number, got "${requested}".`);
+      throw new Error(`SIGNAL_UI_REVIEW_PORT must be a valid port number, got "${requested}".`);
     }
     return await ensurePortAvailable(parsed);
   }
@@ -498,7 +498,7 @@ function assertRowActions(label, metrics) {
 // models declare. The models are unit-tested; only the browser proves that the
 // page in front of the reader follows them.
 
-/** Must match QUEUE_PAGE_SIZE in src/components/feed/orbit/orbitQueueMotion.js. */
+/** Must match QUEUE_PAGE_SIZE in src/components/feed/queueMotion.js. */
 const EXPECTED_QUEUE_PAGE_SIZE = 40;
 
 /** Must match IMPORTANT_ROW_SIZE in src/components/feed/signal/feedLayoutModel.js. */
@@ -1949,8 +1949,8 @@ async function safeRemove(directory, prefix) {
 
 async function main() {
   const chromePath = await findChrome();
-  const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "signal-orbit-evidence-"));
-  const profileDirectory = await mkdtemp(path.join(os.tmpdir(), "signal-orbit-chrome-"));
+  const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "signal-ui-evidence-"));
+  const profileDirectory = await mkdtemp(path.join(os.tmpdir(), "signal-ui-chrome-"));
   // Preflight before spawning: an occupied port must fail here, loudly, rather
   // than silently handing the run to a foreign server.
   port = await resolveHarnessPort();
@@ -2189,12 +2189,12 @@ async function main() {
     client?.close();
     await stopProcess(chrome);
     await stopProcess(vite);
-    await safeRemove(profileDirectory, "signal-orbit-chrome-");
+    await safeRemove(profileDirectory, "signal-ui-chrome-");
   }
 }
 
 // Only run when invoked directly, so the port-ownership helpers above can be
-// imported and exercised by capture-orbit-production.test.mjs.
+// imported and exercised by capture-ui-production.test.mjs.
 const invokedDirectly =
   process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (invokedDirectly) await main();

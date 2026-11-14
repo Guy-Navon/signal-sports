@@ -2,15 +2,15 @@
    2026-11-13 (milestone 15). Source of truth for the values: the approved mock,
    `.t-light` / `.t-soft` / `.t-dark`.
 
-   Scoped, like orbit.css: nothing here touches `:root`, so Ops (/debug,
-   /sources, /llm-qa) and the Orbit screens keep their tokens. A screen opts in
+   Scoped: nothing here touches `:root`, so Ops (/debug, /sources, /llm-qa)
+   keeps its base tokens. A screen opts in
    by importing this file and setting `.signal-ui` on its root, plus
    `data-ground="soft"` or `data-ground="dark"` on the same element; white is
    the default ground. Token names carry an `--sg-` prefix so they can never
    shadow the shadcn/base names (`--card`, `--border`, ...) of components
    rendered inside the scope.
 
-   Fonts load the way index.css loads Heebo and Frank Ruhl Libre: self-hosted
+   Fonts load the way index.css loads Ops Heebo: self-hosted
    @fontsource faces, each subset gated by unicode-range. Declaring a face only
    costs a download when text actually uses it. */
 @import "@fontsource-variable/assistant";

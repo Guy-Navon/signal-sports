@@ -1,22 +1,22 @@
-// Per-story values of the new feed rows (#464). Built on the Orbit story model so
+// Per-story values of the new feed rows (#464). Built on the shared story model so
 // backend-authoritative cluster values are read, never re-derived (FRONTEND_DESIGN_SYSTEM
-// A4): the source count is orbitSourceCount, the members are orbitStoryReports.
+// A4): the source count is sourceCount, the members are storyReports.
 import {
-  orbitSourceCount,
+  sourceCount,
   reportsWithPrimaryFirst,
-  uniqueOrbitSourceReports,
-} from "@/components/feed/orbit/orbitStoryModel";
+  uniqueSourceReports,
+} from "@/components/feed/storyModel";
 
 /**
  * Who reported a story: the authoritative count, and each visible member source
  * once (displayed member first) with the report to open for it.
  * @param {any} item
  * @param {Array<{ articleId: string, sourceDisplayName: string, url: string|null }>} reports
- *   from orbitStoryReports (visible members only)
+ *   from storyReports (visible members only)
  */
 export function storySources(item, reports) {
-  const unique = uniqueOrbitSourceReports(reportsWithPrimaryFirst(item, reports));
-  const count = orbitSourceCount(item, reports);
+  const unique = uniqueSourceReports(reportsWithPrimaryFirst(item, reports));
+  const count = sourceCount(item, reports);
   return {
     count,
     multi: item?.type === "cluster" && count >= 2,

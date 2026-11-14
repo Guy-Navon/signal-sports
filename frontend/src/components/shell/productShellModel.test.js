@@ -8,7 +8,6 @@ import {
   accountInitial,
   accountMenuSections,
   pageSurface,
-  SIGNAL_SURFACE_PATHS,
 } from "./productShellModel";
 
 const paths = (items) => items.map((item) => item.path);
@@ -142,23 +141,16 @@ describe("productShellModel", () => {
   });
 
   describe("pageSurface", () => {
-    it("keeps unmigrated consumer pages on the Orbit scope", () => {
+    it("uses the Signal UI scope for every consumer page", () => {
       for (const path of ["/", "/preferences", "/interests", "/calibration", "/results", "/account"]) {
-        expect(pageSurface(path, [])).toBe("orbit");
-      }
-    });
-
-    it("gives a migrated page the Signal UI scope", () => {
-      expect(pageSurface("/", ["/"])).toBe("signal");
-      expect(pageSurface("/results", ["/"])).toBe("orbit");
-    });
-
-    it("defaults to the shipped migration list", () => {
-      for (const path of SIGNAL_SURFACE_PATHS) {
         expect(pageSurface(path)).toBe("signal");
       }
-      expect(pageSurface("/account")).toBe("signal");
-      expect(pageSurface("/login")).toBe("orbit");
+    });
+
+    it("needs no migration allowlist for new or utility paths", () => {
+      for (const path of ["/future-consumer-page", "/login"]) {
+        expect(pageSurface(path)).toBe("signal");
+      }
     });
   });
 });

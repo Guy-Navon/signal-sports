@@ -2,11 +2,11 @@ import { getDecisionConfig } from "@/components/feed/decisionConfig";
 
 const SOURCE_FALLBACK = "מקור לא ידוע";
 
-export function orbitStoryId(item) {
+export function storyId(item) {
   return item?.clusterId ?? item?.id ?? null;
 }
 
-export function orbitStoryTitle(item) {
+export function storyTitle(item) {
   if (!item) return "";
   return item.type === "cluster"
     ? item.clusterTitle || item.translatedTitle || item.title || ""
@@ -19,11 +19,11 @@ export function orbitStoryTitle(item) {
  * engine trace, only the reader's Hebrew reason.
  * @param {{ readOnly?: boolean, traceAllowed?: boolean }} p
  */
-export function orbitSurface({ readOnly = false, traceAllowed = false } = {}) {
+export function feedSurface({ readOnly = false, traceAllowed = false } = {}) {
   return { showFeedback: !readOnly, showTrace: Boolean(traceAllowed) && !readOnly };
 }
 
-export function orbitFeedbackArticleId(item, reports = []) {
+export function feedbackArticleId(item, reports = []) {
   if (!item) return null;
   if (item.type !== "cluster") return item.id;
   const visiblePrimary = reports.find(
@@ -52,7 +52,7 @@ function normalizeReport(report) {
  * already-scored local article catalogue. A locally hidden/disabled article is
  * filtered out here and `suppressedMembers` is deliberately never read.
  */
-export function orbitStoryReports(item, localScoredArticles = []) {
+export function storyReports(item, localScoredArticles = []) {
   if (!item) return [];
   if (item.type !== "cluster") return [normalizeReport(item)];
 
@@ -91,26 +91,26 @@ export function reportsChronologically(reports) {
   });
 }
 
-export function orbitSourceKey(report) {
+export function sourceKey(report) {
   return report?.source ?? report?.sourceDisplayName?.trim().toLocaleLowerCase() ?? null;
 }
 
-export function uniqueOrbitSourceReports(reports) {
+export function uniqueSourceReports(reports) {
   const seen = new Set();
   return reports.filter((report) => {
-    const key = orbitSourceKey(report);
+    const key = sourceKey(report);
     if (!key || seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 }
 
-export function orbitUniqueSourceCount(reports) {
-  return uniqueOrbitSourceReports(reports).length;
+export function uniqueSourceCount(reports) {
+  return uniqueSourceReports(reports).length;
 }
 
 /**
- * The one place Orbit answers "how many sources does this story have?".
+ * The one place the feed answers "how many sources does this story have?".
  *
  * `sourceCount` is backend-authoritative — `len({m.article.source for m in
  * visible})`, test-locked server-side and mapped straight through by
@@ -119,27 +119,27 @@ export function orbitUniqueSourceCount(reports) {
  * value means the consumer feed and Debug cannot disagree even if the client's
  * deduplication behaviour changes.
  */
-export function orbitSourceCount(item, reports = []) {
+export function sourceCount(item, reports = []) {
   if (Number.isFinite(item?.sourceCount)) return item.sourceCount;
-  return orbitUniqueSourceCount(reports);
+  return uniqueSourceCount(reports);
 }
 
-export function orbitHasMultiSourceField(item, reports) {
+export function hasMultiSourceField(item, reports) {
   if (item?.type !== "cluster") return false;
-  return orbitSourceCount(item, reports) >= 2;
+  return sourceCount(item, reports) >= 2;
 }
 
 export function detectNewSource(previousReports, nextReports) {
-  const previousSources = new Set(previousReports.map(orbitSourceKey).filter(Boolean));
+  const previousSources = new Set(previousReports.map(sourceKey).filter(Boolean));
   return (
     nextReports.find((report) => {
-      const source = orbitSourceKey(report);
+      const source = sourceKey(report);
       return source && !previousSources.has(source);
     }) ?? null
   );
 }
 
-export function orbitStorySourceLine(item, reports) {
+export function storySourceLine(item, reports) {
   if (!item) return SOURCE_FALLBACK;
   if (item.type !== "cluster") {
     return item.sourceDisplayName ?? item.source ?? SOURCE_FALLBACK;
@@ -155,7 +155,7 @@ export function orbitStorySourceLine(item, reports) {
 /**
  * Newest timestamp across a set of reports.
  *
- * Kept separate from orbitStoryTimestamp on purpose: local hydration needs to
+ * Kept separate from storyTimestamp on purpose: local hydration needs to
  * CALCULATE `lastUpdatedAt`, while rendering needs to READ it. Folding both into
  * one function makes hydration consume the very field it is producing.
  */
@@ -169,7 +169,7 @@ export function latestReportTimestamp(reports = []) {
 }
 
 /**
- * The timestamp Orbit shows for a story.
+ * The timestamp the feed shows for a story.
  *
  * For clusters the backend's `sort_at` — normalized to `lastUpdatedAt` — is
  * authoritative: it is the newest VISIBLE member, computed server-side and
@@ -177,7 +177,7 @@ export function latestReportTimestamp(reports = []) {
  * the same answer, but only by coincidence of the two calculations agreeing.
  * The derivation survives as the local/legacy fallback.
  */
-export function orbitStoryTimestamp(item, reports = []) {
+export function storyTimestamp(item, reports = []) {
   if (!item) return null;
   if (item.type !== "cluster") return item.publishedAt ?? null;
   return (
@@ -189,7 +189,7 @@ export function orbitStoryTimestamp(item, reports = []) {
   );
 }
 
-export function orbitStoryState(item) {
+export function storyState(item) {
   const decision = item?.score?.decision ?? "feed";
   const config = getDecisionConfig(decision);
   return {
@@ -205,23 +205,23 @@ export function sourceInitial(sourceName) {
   return normalized ? normalized[0].toUpperCase() : "•";
 }
 
-export function selectOrbitFocus(items) {
+export function selectStoryFocus(items) {
   return items[0] ?? null;
 }
 
-export function resolveOrbitFocus(items, selectedStoryId) {
+export function resolveStoryFocus(items, selectedStoryId) {
   const selected = selectedStoryId
-    ? items.find((item) => orbitStoryId(item) === selectedStoryId)
+    ? items.find((item) => storyId(item) === selectedStoryId)
     : null;
   return {
-    item: selected ?? selectOrbitFocus(items),
+    item: selected ?? selectStoryFocus(items),
     isPinned: Boolean(selected),
   };
 }
 
-export function orbitQueueItems(items, focusItem) {
-  const focusId = orbitStoryId(focusItem);
-  return items.filter((item) => orbitStoryId(item) !== focusId);
+export function queueItems(items, focusItem) {
+  const focusId = storyId(focusItem);
+  return items.filter((item) => storyId(item) !== focusId);
 }
 
 /**
@@ -240,8 +240,8 @@ export function orbitQueueItems(items, focusItem) {
 export function hydrateLocalClusters(items, localScoredArticles = []) {
   return items.map((item) => {
     if (item.type !== "cluster") return item;
-    const reports = orbitStoryReports(item, localScoredArticles);
-    const uniqueReports = uniqueOrbitSourceReports(reports);
+    const reports = storyReports(item, localScoredArticles);
+    const uniqueReports = uniqueSourceReports(reports);
     const visiblePrimary =
       reports.find((report) => report.articleId === item.primaryArticleId) ??
       reports[0] ??
@@ -258,7 +258,7 @@ export function hydrateLocalClusters(items, localScoredArticles = []) {
       sourceDisplayNames: uniqueReports.map((report) => report.sourceDisplayName),
       sourceCount: uniqueReports.length,
       // Calculated from the hydrated reports, not read back through
-      // orbitStoryTimestamp — that reader now prefers `lastUpdatedAt`, so using
+      // storyTimestamp — that reader now prefers `lastUpdatedAt`, so using
       // it here would make hydration echo whatever stale value the mock item
       // already carried instead of deriving the real one.
       lastUpdatedAt:

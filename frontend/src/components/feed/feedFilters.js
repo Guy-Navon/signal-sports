@@ -1,7 +1,7 @@
 // Feed filter logic — extracted from Feed.jsx so behavior is locked by tests.
 // Filter families share one active-filter Set:
-//   levels  — decision levels, toggled from the Orbit signal spectrum
-//   topics  — content filters, toggled from the Orbit topic row
+//   levels  — decision levels, decision-level filters
+//   topics  — content filters, topic and league filters
 //   leagues — "league:<name>", toggled from the league pills of the new feed (#464)
 
 export const LEVEL_FILTER_IDS = ["push", "high_feed", "feed", "low_feed"];

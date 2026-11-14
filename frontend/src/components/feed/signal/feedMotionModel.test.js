@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { QUEUE_PAGE_SIZE } from "@/components/feed/orbit/orbitQueueMotion";
+import { QUEUE_PAGE_SIZE } from "@/components/feed/queueMotion";
 import {
   ENTER_DURATION_MS,
   ENTER_MAX_STEPS,

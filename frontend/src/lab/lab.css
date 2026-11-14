@@ -5,6 +5,30 @@
   gap: 0;
 }
 
+.lab-ground-control {
+  display: flex;
+  gap: 16px;
+  padding-block: 10px;
+  padding-inline: 16px;
+  border-block-end: 1px solid var(--sg-line);
+}
+
+.lab-ground-control label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lab-ground-control :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.lab-dialog-trigger {
+  color: var(--sg-acc);
+  text-decoration: underline;
+}
+
 .lab-ground {
   padding-block: 28px 36px;
   padding-inline: max(16px, env(safe-area-inset-left, 0px));

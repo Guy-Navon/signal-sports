@@ -3,6 +3,12 @@ import SignalFeedView from "@/components/feed/signal/SignalFeedView";
 import { toggleFilterSet } from "@/components/feed/feedFilters";
 import { AppContext } from "@/context/appContextCore";
 import { loadDemoSnapshot } from "@/demo/demoModel";
+import { GROUNDS } from "@/components/signal-ui/ground";
+import { useGround } from "@/components/signal-ui/useGround";
+import {
+  AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 // Dev-only feed lab (#464): the new feed view on a real snapshot of the demo
 // feed (dist-demo/demo-data, or SIGNAL_LAB_SNAPSHOT_DIR; see vite.lab.config.js).
@@ -52,8 +58,7 @@ const LAB_APP_CONTEXT = {
 export default function FeedLab() {
   const params = new URLSearchParams(window.location.search);
   const caseName = CASES[params.get("case")] ? params.get("case") : "real";
-  const groundParam = params.get("ground");
-  const ground = groundParam === "soft" || groundParam === "dark" ? groundParam : undefined;
+  const { ground, setGround } = useGround();
   const readOnly = params.get("readonly") === "1";
 
   const [snapshot, setSnapshot] = useState({ status: "loading", items: [], meta: null, error: null });
@@ -86,7 +91,7 @@ export default function FeedLab() {
       onResetFilters={() => setActiveFilters(new Set(["all"]))}
       readOnly={readOnly}
       nowMs={nowMs}
-      ground={ground}
+      ground={ground === "light" ? undefined : ground}
       status={
         caseName === "real" ? null : (
           <p className="lab-feed-fixture">תרחיש מעבדה: {caseName} (סיפור אמיתי שסומן push לבדיקה)</p>
@@ -95,5 +100,27 @@ export default function FeedLab() {
     />
   );
 
-  return readOnly ? view : <AppContext.Provider value={LAB_APP_CONTEXT}>{view}</AppContext.Provider>;
+  return (
+    <div className="signal-ui" data-ground={ground}>
+      <fieldset className="lab-ground-control">
+        <legend>רקע</legend>
+        {GROUNDS.map(({ id, label }) => (
+          <label key={id}>
+            <input type="radio" name="ground" value={id} checked={ground === id}
+              onChange={() => setGround(id)} />
+            {label}
+          </label>
+        ))}
+        <AlertDialog>
+          <AlertDialogTrigger className="lab-dialog-trigger">בדיקת חלון</AlertDialogTrigger>
+          <AlertDialogContent dir="rtl">
+            <AlertDialogTitle>חלון ברקע הנבחר</AlertDialogTitle>
+            <AlertDialogDescription>בדיקת צבעים, מקלדת ומיקוד בחלון שמוצג מחוץ לפיד.</AlertDialogDescription>
+            <AlertDialogCancel>סגירה</AlertDialogCancel>
+          </AlertDialogContent>
+        </AlertDialog>
+      </fieldset>
+      {readOnly ? view : <AppContext.Provider value={LAB_APP_CONTEXT}>{view}</AppContext.Provider>}
+    </div>
+  );
 }

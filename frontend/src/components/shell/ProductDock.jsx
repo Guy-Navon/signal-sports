@@ -3,11 +3,13 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { canEnterOpsShell } from "@/context/dataRouting";
 import { consumerDockItems } from "@/components/shell/productShellModel";
+import { useGround } from "@/components/signal-ui/useGround";
 
 // Phone navigation of the consumer product (under 768px, where the top bar
 // drops its links): a bottom bar within thumb reach, every destination one tap
 // away, 56px tall targets. Hidden from 768px up by shell.css.
 export default function ProductDock({ isBackendMode }) {
+  const { ground } = useGround();
   const location = useLocation();
   const auth = useAuth();
   const showConsoleEntry = canEnterOpsShell({
@@ -18,7 +20,7 @@ export default function ProductDock({ isBackendMode }) {
   const items = consumerDockItems({ isBackendMode, showConsoleEntry });
 
   return (
-    <nav aria-label="ניווט ראשי" className="signal-ui sg-dock">
+    <nav aria-label="ניווט ראשי" className="signal-ui sg-dock" data-ground={ground}>
       <div className="sg-dock__list">
         {items.map(({ path, label, icon: Icon }) => (
           <Link

@@ -9,6 +9,7 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useConsumerGround } from "@/components/signal-ui/useGround"
 
 const DropdownMenu = DropdownMenuPrimitive.Root
 
@@ -38,19 +39,26 @@ const DropdownMenuSubTrigger = /** @type {any} */ (React.forwardRef(({ className
 DropdownMenuSubTrigger.displayName =
   DropdownMenuPrimitive.SubTrigger.displayName
 
-const DropdownMenuSubContent = /** @type {any} */ (React.forwardRef(({ className, ...props }, ref) => (
+const DropdownMenuSubContent = /** @type {any} */ (React.forwardRef(({ className, ...props }, ref) => {
+  const preference = useConsumerGround()
+  return (
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
       "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+      preference && "signal-ui sg-consumer-menu",
       className
     )}
-    {...props} />
-)))
+    {...props}
+    data-ground={preference?.ground} />
+  )
+}))
 DropdownMenuSubContent.displayName =
   DropdownMenuPrimitive.SubContent.displayName
 
-const DropdownMenuContent = /** @type {any} */ (React.forwardRef(({ className, sideOffset = 4, ...props }, ref) => (
+const DropdownMenuContent = /** @type {any} */ (React.forwardRef(({ className, sideOffset = 4, ...props }, ref) => {
+  const preference = useConsumerGround()
+  return (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
@@ -58,11 +66,14 @@ const DropdownMenuContent = /** @type {any} */ (React.forwardRef(({ className, s
       className={cn(
         "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        preference && "signal-ui sg-consumer-menu",
         className
       )}
-      {...props} />
+      {...props}
+      data-ground={preference?.ground} />
   </DropdownMenuPrimitive.Portal>
-)))
+  )
+}))
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
 
 const DropdownMenuItem = /** @type {any} */ (React.forwardRef(({ className, inset, ...props }, ref) => (

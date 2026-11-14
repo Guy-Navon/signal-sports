@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronDown, User } from "lucide-react";
+import { Check, ChevronDown, User } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { SANDBOX_PROFILE_ID } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
@@ -35,8 +35,9 @@ export default function ProfileSwitcher({ variant = "default" }) {
           <ChevronDown size={13} className="text-text-secondary flex-shrink-0" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[190px] bg-surface-2 border-border">
-        <DropdownMenuLabel className="text-xs text-text-dim font-normal">
+      <DropdownMenuContent align="end"
+        className={variant === "topbar" ? "min-w-[190px]" : "min-w-[190px] bg-surface-2 border-border"}>
+        <DropdownMenuLabel className={variant === "topbar" ? "sg-menu-label" : "text-xs text-text-dim font-normal"}>
           החלף פרופיל
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-border" />
@@ -52,10 +53,12 @@ export default function ProfileSwitcher({ variant = "default" }) {
                 isActive ? "text-signal-high focus:text-signal-high" : "text-foreground"
               )}
             >
-              <PulseDot tone={isActive ? "high" : "neutral"} />
+              {variant === "topbar" ? (
+                <span className="sg-ground-choice__indicator">{isActive && <Check size={14} aria-hidden="true" />}</span>
+              ) : <PulseDot tone={isActive ? "high" : "neutral"} />}
               <span className="flex-1">{profile.label}</span>
               {isSandbox && (
-                <span className="text-[9px] bg-signal-ai/10 border border-signal-ai/30 text-signal-ai rounded px-1.5 py-0.5">
+                <span className={variant === "topbar" ? "sg-menu-badge" : "text-[9px] bg-signal-ai/10 border border-signal-ai/30 text-signal-ai rounded px-1.5 py-0.5"}>
                   בדיקה
                 </span>
               )}

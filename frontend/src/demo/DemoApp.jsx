@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Clock } from "lucide-react";
 import SignalWordmark from "@/components/signal-ui/SignalWordmark";
+import { DEFAULT_GROUND } from "@/components/signal-ui/ground";
 import { feedBodyState } from "@/components/feed/feedLoadModel";
 import { toggleFilterSet } from "@/components/feed/feedFilters";
 import SignalFeedView from "@/components/feed/signal/SignalFeedView";
@@ -73,7 +74,7 @@ export default function DemoApp() {
   });
 
   return (
-    <div className="signal-ui sg-shell sg-demo">
+    <div className="signal-ui sg-shell sg-demo" data-ground={DEFAULT_GROUND}>
       <header className="sg-masthead sg-gutter sg-demo-masthead">
         <SignalWordmark className="sg-masthead__brand" />
       </header>

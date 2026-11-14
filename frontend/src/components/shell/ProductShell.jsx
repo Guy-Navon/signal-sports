@@ -4,6 +4,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import SignalWordmark from "@/components/signal-ui/SignalWordmark";
+import { GroundProvider, useGround } from "@/components/signal-ui/useGround";
 import ErrorState from "@/components/shared/ErrorState";
 import { connectionErrorStrip } from "@/components/feed/feedLoadModel";
 import ProductTopBar from "@/components/shell/ProductTopBar";
@@ -20,6 +21,11 @@ import "@/components/shell/shell.css";
 // rebuilt keep `.orbit-product`, so their Orbit tokens still resolve exactly
 // as before; rebuilt pages get `.signal-ui`. See productShellModel.pageSurface.
 export default function ProductShell() {
+  return <GroundProvider><ProductShellContent /></GroundProvider>;
+}
+
+function ProductShellContent() {
+  const { ground } = useGround();
   const { isBackendMode, isLoading, apiError, refreshFeed } = useApp();
   const location = useLocation();
   const reduce = useReducedMotion();
@@ -29,11 +35,11 @@ export default function ProductShell() {
 
   return (
     <div className="sg-shell">
-      <a href="#sg-main" className="signal-ui sg-skip">
+      <a href="#sg-main" className="signal-ui sg-skip" data-ground={ground}>
         דילוג לתוכן
       </a>
 
-      <header className="signal-ui sg-chrome">
+      <header className="signal-ui sg-chrome" data-ground={ground}>
         <ProductTopBar isBackendMode={isBackendMode} isLoading={isLoading} />
         <div className="sg-gutter">
           <div className="sg-container sg-masthead">
@@ -48,6 +54,7 @@ export default function ProductShell() {
       <main
         id="sg-main"
         tabIndex={-1}
+        data-ground={surface === "signal" ? ground : undefined}
         className={cn(
           "sg-body",
           surface === "orbit" ? "orbit-product sg-body--orbit" : "signal-ui sg-body--signal"

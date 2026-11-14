@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LogOut, RefreshCw, Settings2, Terminal, UserRound } from "lucide-react";
+import { Check, LogOut, RefreshCw, Settings2, Terminal, UserRound } from "lucide-react";
 import SignalWordmark from "@/components/signal-ui/SignalWordmark";
 import DataModeBadge from "@/components/shell/DataModeBadge";
 import ProfileSwitcher from "@/components/shell/ProfileSwitcher";
@@ -16,34 +16,59 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getOpsNavItems } from "@/components/shell/navConfig";
 import { consumerNavItems } from "@/components/shell/productShellModel";
+import * as Menu from "@radix-ui/react-dropdown-menu";
+import { GROUNDS } from "@/components/signal-ui/ground";
+import { useGround } from "@/components/signal-ui/useGround";
 
-// Account entry (User Platform PR 3, #51): only under real enforcement with a
-// signed-in user. Local and bypass modes have no account, as before.
+// The ground is a device preference, available in local/bypass mode too.
+// Account links and sign-out still require a real signed-in account.
 function AccountEntry() {
   const auth = useAuth();
-  if (!auth.authEnforced || !auth.user) return null;
-  const label = auth.user.email || auth.user.id;
+  const { ground, setGround } = useGround();
+  const signedIn = auth.authEnforced && auth.user;
+  const label = signedIn ? auth.user.email || auth.user.id : null;
   return (
     <DropdownMenu dir="rtl">
       <DropdownMenuTrigger aria-label="החשבון" className="sg-topbar__control">
         <UserRound size={15} aria-hidden="true" />
         <span className="sg-topbar__wide">החשבון</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[200px]">
-        <DropdownMenuLabel dir="ltr" className="font-normal text-text-secondary truncate">
-          {label}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-          <Link to="/account">
-            <Settings2 size={14} />
-            החשבון שלי
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => auth.logout()} className="gap-2 cursor-pointer">
-          <LogOut size={14} />
-          התנתקות
-        </DropdownMenuItem>
+      <DropdownMenuContent align="end">
+        {signedIn && (
+          <>
+            <DropdownMenuLabel dir="ltr" className="sg-menu-label truncate">
+              {label}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="gap-2 cursor-pointer">
+              <Link to="/account">
+                <Settings2 size={14} />
+                החשבון שלי
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuLabel className="sg-menu-label">רקע</DropdownMenuLabel>
+        <Menu.RadioGroup value={ground} onValueChange={setGround} aria-label="רקע">
+          {GROUNDS.map(({ id, label: groundLabel }) => (
+            <Menu.RadioItem key={id} value={id} className="sg-ground-choice">
+              <span className="sg-ground-choice__indicator">
+                <Menu.ItemIndicator><Check size={14} aria-hidden="true" /></Menu.ItemIndicator>
+              </span>
+              {groundLabel}
+            </Menu.RadioItem>
+          ))}
+        </Menu.RadioGroup>
+        {signedIn && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => auth.logout()} className="gap-2 cursor-pointer">
+              <LogOut size={14} />
+              התנתקות
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

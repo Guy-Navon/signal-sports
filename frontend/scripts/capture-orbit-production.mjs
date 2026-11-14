@@ -1102,7 +1102,7 @@ async function auditFeedFaces(client) {
 }
 
 /** No serif may reach a non-product route, and the route must really render. */
-async function auditNoSerifLeak(client, route, headingSelector) {
+async function auditNoSerifLeak(client, route, headingSelector, expectedFamily = SANS_FAMILY) {
   await client.send("Page.navigate", { url: `${origin}${route}` });
   await delay(1200);
   const evidence = await evaluate(
@@ -1149,9 +1149,9 @@ async function auditNoSerifLeak(client, route, headingSelector) {
         JSON.stringify(evidence)
     );
   }
-  if (!evidence.headingFamily.toLowerCase().includes(SANS_FAMILY)) {
+  if (!evidence.headingFamily.toLowerCase().includes(expectedFamily)) {
     throw new Error(
-      `${route}: heading computed "${evidence.headingFamily}", expected the sans face: ` +
+      `${route}: heading computed "${evidence.headingFamily}", expected ${expectedFamily}: ` +
         JSON.stringify(evidence)
     );
   }
@@ -1201,7 +1201,7 @@ async function auditTypography(client, label) {
     ["/preferences", "h1"],      // preferences utility surface
     ["/no-such-route", "h1"],    // 404 — same font-display utility as Auth
   ]) {
-    leaks.push(await auditNoSerifLeak(client, route, heading));
+    leaks.push(await auditNoSerifLeak(client, route, heading, route === "/results" ? TEXT_FAMILY : SANS_FAMILY));
   }
 
   return { label, text, shellChrome, faces, leaks };

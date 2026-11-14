@@ -1,0 +1,162 @@
+/* Results page (#471): Part B type, strip game cells and shell gutters.
+   Only this page extends the shared strip styles; the feed stays unchanged. */
+.signal-ui .sg-results-page {
+  max-inline-size: 920px;
+  padding-block: 24px 60px;
+}
+
+.signal-ui .sg-results-page__heading { margin-block-end: 32px; }
+
+.signal-ui .sg-results-page__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-block-end: 8px;
+  color: var(--sg-acc);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.signal-ui .sg-results-page h1,
+.signal-ui .sg-results-page__state h2 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.signal-ui .sg-results-page__intro {
+  max-inline-size: 60ch;
+  margin-block-start: 8px;
+  color: var(--sg-dim);
+  font-size: 14.5px;
+}
+
+.signal-ui .sg-results-page__groups {
+  display: grid;
+  gap: 32px;
+}
+
+.signal-ui .sg-results-page__day {
+  padding-block-end: 10px;
+  border-block-end: 1px solid var(--sg-line);
+}
+
+.signal-ui .sg-results-page__day h2 {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.signal-ui .sg-results-page__count {
+  color: var(--sg-dim);
+  font-size: 14px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.signal-ui .sg-results-page__games { gap: 0 32px; }
+
+.signal-ui .sg-results-page__game {
+  min-inline-size: 0;
+  padding-block: 14px;
+  border-block-end: 1px solid var(--sg-line);
+  font-size: 14px;
+}
+
+.signal-ui .sg-results-page__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-block-end: 4px;
+}
+
+.signal-ui .sg-results-page__meta .sg-result__meta {
+  min-inline-size: 0;
+  margin-block-end: 0;
+  overflow-wrap: anywhere;
+}
+
+.signal-ui .sg-results-page__status {
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--sg-dim);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.signal-ui .sg-results-page__game[data-status="live"] .sg-results-page__status {
+  color: var(--sg-hot);
+  font-weight: 800;
+}
+
+.signal-ui .sg-results-page__game .sg-result__team { align-items: baseline; }
+
+.signal-ui .sg-results-page__game .sg-result__team bdi {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.signal-ui .sg-results-page__game .sg-result__score { flex: none; }
+
+.signal-ui .sg-results-page__state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding-block: 32px;
+  border-block-start: 1px solid var(--sg-line);
+}
+
+.signal-ui .sg-results-page__state > svg { color: var(--sg-acc); }
+
+.signal-ui .sg-results-page__state p {
+  max-inline-size: 60ch;
+  margin: 0;
+  color: var(--sg-dim);
+  font-size: 14.5px;
+}
+
+.signal-ui .sg-results-page__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 44px;
+  padding-inline: 12px;
+  border: 1px solid var(--sg-line);
+  background: var(--sg-card);
+  color: var(--sg-acc);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.signal-ui .sg-results-page__action:hover {
+  background: var(--sg-tint);
+  text-decoration: underline;
+}
+
+/* Static skeletons also work under reduced motion. */
+.signal-ui .sg-results-page__placeholder {
+  inline-size: 65%;
+  block-size: 14px;
+  margin-block: 6px;
+  background: var(--sg-line);
+}
+
+.signal-ui .sg-results-page__placeholder--meta { inline-size: 40%; block-size: 10px; }
+.signal-ui .sg-results-page__placeholder--heading { inline-size: 25%; block-size: 18px; }
+
+@media (max-width: 767px) {
+  .signal-ui .sg-results-page {
+    padding-block: 20px calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+}

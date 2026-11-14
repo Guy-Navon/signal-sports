@@ -5,10 +5,11 @@ import SignalStrength from "@/components/signal-ui/SignalStrength";
 import MastheadSlot, { MastheadSlotContext } from "@/components/shell/MastheadSlot";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import ResultsStrip from "./ResultsStrip";
+import FeedFilterBar from "./FeedFilterBar";
 import { useArticleOpened, useEngineTraceVisible } from "@/context/appContextCore";
 import { getDecisionConfig } from "@/components/feed/decisionConfig";
 import { deskVoiceView } from "@/components/feed/deskVoiceModel";
-import { filterFeedItems, leagueFilterId } from "@/components/feed/feedFilters";
+import { filterFeedItems, leagueFilterId, visibleCount } from "@/components/feed/feedFilters";
 import { queuePage } from "@/components/feed/queueMotion";
 import {
   feedbackArticleId,
@@ -21,6 +22,7 @@ import {
 } from "@/components/feed/storyModel";
 import {
   feedSummary,
+  filterEmptyMessage,
   isFreshStory,
   latestStories,
   leaguePills,
@@ -52,7 +54,6 @@ import "./signal-feed.css";
 // from feedLayoutModel; nothing here ranks, scores or invents a level.
 
 const TICK_MS = 60_000;
-const PILL_TINTS = 4;
 
 /** Relative times stay current without a reload. */
 function useNow(fixedNowMs) {
@@ -231,43 +232,6 @@ function SummaryLine({ items }) {
       <b key={`i${summary.important}`} className="sg-num sg-tick" dir="ltr">{summary.important}</b>{" "}
       {summary.importantPhrase}
     </p>
-  );
-}
-
-function LeaguePills({ items, activeFilters, onToggle, onReset, enterBase }) {
-  const pills = useMemo(() => leaguePills(items), [items]);
-  if (pills.length === 0) return null;
-  const all = activeFilters.has("all");
-  return (
-    <div className="sg-pills" role="group" aria-label="סינון לפי ליגה">
-      <button
-        type="button"
-        className="sg-pill sg-pill--all"
-        aria-pressed={all}
-        onClick={onReset}
-        style={enterStyle(0, enterBase)}
-      >
-        <i className="sg-pill__mark" aria-hidden="true" />
-        <b>הכול</b>
-        <span key={items.length} className="sg-num sg-tick" dir="ltr">{items.length}</span>
-      </button>
-      {pills.map((pill, index) => (
-        <button
-          type="button"
-          key={pill.id}
-          className="sg-pill"
-          data-tint={(index % PILL_TINTS) + 1}
-          data-filter={pill.id}
-          aria-pressed={!all && activeFilters.has(pill.id)}
-          onClick={() => onToggle(pill.id)}
-          style={enterStyle(index + 1, enterBase)}
-        >
-          <i className="sg-pill__mark" aria-hidden="true" />
-          <b><bdi dir="auto">{pill.label}</bdi></b>
-          <span key={pill.count} className="sg-num sg-tick" dir="ltr">{pill.count}</span>
-        </button>
-      ))}
-    </div>
   );
 }
 
@@ -642,6 +606,8 @@ function BriefSection({ items, localScoredArticles, now, readOnly, enterBase }) 
   );
 }
 
+const defaultFilterBar = (bar) => <FeedFilterBar {...bar} />;
+
 /**
  * items: the visible, prepared stories (prepareFeedItems), unfiltered.
  * localScoredArticles: the local/mock catalogue for cluster members; [] in backend mode.
@@ -649,6 +615,9 @@ function BriefSection({ items, localScoredArticles, now, readOnly, enterBase }) 
  * status: a quiet line above the summary (FeedFreshness, the demo banner).
  * nowMs: a fixed "now" for relative times (lab snapshots); live otherwise.
  * ground: only for a standalone render; inside a parent scope it follows the parent.
+ * filterBar: LAB SEAM ONLY (lab.html?page=filters, #483): renders a candidate
+ *   filter bar in place of FeedFilterBar, with the same inputs. Product code
+ *   never passes it.
  * @param {{
  *   items: any[],
  *   results?: any[],
@@ -660,6 +629,7 @@ function BriefSection({ items, localScoredArticles, now, readOnly, enterBase }) 
  *   status?: React.ReactNode,
  *   nowMs?: number,
  *   ground?: "soft" | "dark",
+ *   filterBar?: (bar: any) => React.ReactNode,
  * }} props
  */
 export default function SignalFeedView({
@@ -673,6 +643,7 @@ export default function SignalFeedView({
   status = null,
   nowMs,
   ground,
+  filterBar = undefined,
 }) {
   const now = useNow(nowMs);
   const sequence = useEnterSequence();
@@ -695,13 +666,14 @@ export default function SignalFeedView({
     <>
       {status && <div className="sg-status">{status}</div>}
       <SummaryLine items={items} />
-      <LeaguePills
-        items={items}
-        activeFilters={activeFilters}
-        onToggle={onToggleFilter}
-        onReset={onResetFilters}
-        enterBase={sequence.pills}
-      />
+      {(filterBar ?? defaultFilterBar)({
+        items,
+        activeFilters,
+        shown: visibleCount(filtered),
+        onToggle: onToggleFilter,
+        onReset: onResetFilters,
+        enterBase: sequence.pills,
+      })}
     </>
   );
 
@@ -729,7 +701,7 @@ export default function SignalFeedView({
 
       {filtered.length === 0 ? (
         <div className="sg-in sg-filter-empty" role="status">
-          <p>אין סיפורים בליגות שבחרת.</p>
+          <p>{filterEmptyMessage(activeFilters)}</p>
           <button type="button" className="sg-more" onClick={onResetFilters}>
             הצג את כל הפיד
           </button>

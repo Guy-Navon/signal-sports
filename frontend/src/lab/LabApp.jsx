@@ -7,6 +7,7 @@ import "./lab.css";
 import FeedLab from "./FeedLab";
 import MotionLab from "./MotionLab";
 import NavLab from "./NavLab";
+import FilterLab from "./FilterLab";
 import { GROUNDS } from "@/components/signal-ui/ground";
 import { GroundProvider } from "@/components/signal-ui/useGround";
 
@@ -84,13 +85,15 @@ function Ground({ id, label }) {
 
 export default function LabApp() {
   // lab.html?page=feed opens the feed lab (#464), ?page=motion the motion lab
-  // (#467), ?page=nav the navigation lab (#491); the default is the specimen
+  // (#467), ?page=nav the navigation lab (#491), ?page=filters the filter-bar
+  // lab (#483); the default is the specimen
   // (#462).
   const params = new URLSearchParams(window.location.search);
   const page = params.get("page");
   const initialGround = params.get("ground") || undefined;
   if (page === "feed") return <GroundProvider initialGround={initialGround}><FeedLab /></GroundProvider>;
   if (page === "motion") return <GroundProvider initialGround={initialGround}><MotionLab /></GroundProvider>;
+  if (page === "filters") return <GroundProvider initialGround={initialGround}><FilterLab /></GroundProvider>;
   if (page === "nav") return <GroundProvider initialGround={initialGround}><NavLab /></GroundProvider>;
   return (
     <main className="lab-page">

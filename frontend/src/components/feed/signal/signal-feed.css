@@ -133,6 +133,112 @@
 
 .sg-pill[aria-pressed="true"] .sg-pill__mark { display: block; }
 
+/* ── filter bar: importance threshold + league pills (#483) ────────────────
+   The threshold as a segmented control, then the league pills: one row on
+   desktop while they fit (with many leagues the pills drop to their own
+   centred line below it), stacked on a phone. The selected segment takes the ink
+   ground (the pills' selection is the slab pair, so the two controls never
+   read as one), and the count says what choosing it shows. Native radios
+   under the labels give the keyboard and the semantics. */
+
+.sg-filters {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-inline-size: 100%;
+}
+
+.sg-filters__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 22px;
+  max-inline-size: 100%;
+}
+
+.sg-filters__row > .sg-pills { flex: 0 1 auto; min-inline-size: 0; }
+
+.sg-seg {
+  display: inline-flex;
+  flex: none;
+  padding: 2px;
+  border: 1px solid var(--sg-line);
+  border-radius: 999px;
+}
+
+.sg-seg__opt {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-block-size: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: var(--sg-dim);
+  font-size: 14.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s var(--sg-ease), color 0.2s var(--sg-ease);
+}
+
+.sg-seg__opt:hover { color: var(--sg-ink); }
+.sg-seg__opt[data-selected] { background: var(--sg-ink); color: var(--sg-card); }
+.sg-seg__count { font-weight: 400; }
+
+/* The radio itself covers its label invisibly: it takes the click, the tap
+   and the keyboard, and its focus ring is drawn on the label. */
+.sg-seg__input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.sg-seg__opt:has(.sg-seg__input:focus-visible) {
+  outline: 2px solid var(--sg-ink);
+  outline-offset: 2px;
+}
+
+/* "מוצגים X מתוך N · נקה סינון": only while something is filtered. */
+.sg-filter-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 10px;
+  font-size: 13.5px;
+  color: var(--sg-dim);
+}
+
+/* Idle, the live region stays mounted (so the first change is announced) but
+   takes no room. */
+.sg-filter-result:not([data-active]) {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sg-filter-clear {
+  min-block-size: 32px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--sg-acc);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sg-filter-clear:hover { text-decoration: underline; }
+
 /* ── lead block: only with a push (B7) ──────────────────────────────────── */
 
 .sg-lead {
@@ -598,7 +704,7 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
 
 /* Entrance: the page builds top to bottom on load; later, whatever newly
    appears (a filter change, "show more", a refresh) enters the same way. */
-:is(.sg-feed, .sg-feed__head) :is(.sg-summary, .sg-pill),
+:is(.sg-feed, .sg-feed__head) :is(.sg-summary, .sg-pill, .sg-seg, .sg-filter-result[data-active]),
 .sg-feed :is(
   .sg-important__item,
   .sg-sech,
@@ -784,6 +890,13 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
     margin: -3px;
   }
   .sg-pills::-webkit-scrollbar { display: none; }
+
+  /* Stacked: the threshold spans the width in equal parts ("הכול" sized to
+     its words); the pills scroll inside their own row below it. */
+  .sg-filters__row { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 10px; }
+  .sg-seg { display: grid; grid-template-columns: auto 1fr 1fr; }
+  .sg-seg__opt { padding: 0 8px; font-size: 14px; }
+  .sg-filters { align-items: stretch; gap: 10px; }
 
   .sg-lead { padding: 20px; }
   .sg-lead__row { grid-template-columns: minmax(0, 1fr); }

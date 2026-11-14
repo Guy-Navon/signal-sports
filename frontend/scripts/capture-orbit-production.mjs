@@ -1381,6 +1381,70 @@ function assertDockOcclusion(audit) {
   }
 }
 
+/** Results supplied by the real local-mode context, with independent expectations. */
+async function auditResultsStrip(client, label) {
+  const audit = await evaluate(client, `(async () => {
+    const { computeLocalResults, userProfiles } = await import("/src/context/localDemo.js");
+    const expected = computeLocalResults(userProfiles.guy).games
+      .filter((game) => game.status === "final" && Number.isFinite(game.home.score) &&
+        Number.isFinite(game.away.score) && Date.parse(game.startTime) <= Date.now())
+      .sort((a, b) => Date.parse(b.startTime) - Date.parse(a.startTime)).slice(0, 10);
+    const strip = document.querySelector(".sg-results");
+    const scroller = strip?.querySelector(".sg-results__scroller");
+    if (!expected.length || !strip || !scroller) throw new Error("Results audit requires real local finals and a strip");
+    const cards = [...scroller.querySelectorAll(".sg-result")];
+    const matches = cards.length === expected.length && cards.every((card, index) => {
+      const game = expected[index];
+      const rows = [...card.querySelectorAll(".sg-result__team")];
+      return card.getAttribute("aria-label").includes("תוצאה סופית") &&
+        card.querySelector(".sg-result__meta bdi").textContent === game.competitionHe &&
+        card.querySelector("time").dateTime === game.startTime &&
+        rows.length === 2 && rows.every((row, sideIndex) => {
+          const side = sideIndex === 0 ? "home" : "away";
+          const score = row.querySelector(".sg-result__score");
+          const style = getComputedStyle(row);
+          const winner = game.winner === side;
+          return row.querySelector("bdi").textContent === game[side].name &&
+            score.textContent === String(game[side].score) && score.dir === "ltr" &&
+            getComputedStyle(score).fontVariantNumeric.includes("tabular-nums") &&
+            (style.fontWeight === "800") === winner &&
+            row.classList.contains("sg-result__team--winner") === winner;
+        });
+    });
+    const important = document.querySelector(".sg-important");
+    const band = document.querySelector(".sg-band");
+    const follows = (a, b) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const heading = document.getElementById(strip.getAttribute("aria-labelledby"));
+    const link = strip.querySelector("a");
+    scroller.focus();
+    return {
+      count: cards.length, matches,
+      labelled: heading?.textContent === "תוצאות" && Boolean(scroller.getAttribute("aria-label")),
+      fullBoard: link?.getAttribute("href") === "/results" && link.textContent === "ללוח המלא",
+      placed: (!important || follows(important, strip)) && Boolean(band && follows(strip, band)) &&
+        Math.abs(band.getBoundingClientRect().top - strip.getBoundingClientRect().bottom - 40) < 1,
+      horizontal: getComputedStyle(scroller).overflowX === "auto" &&
+        cards.every((card) => card.getBoundingClientRect().width >= 176) &&
+        cards.every((card) => Math.abs(card.getBoundingClientRect().top - cards[0].getBoundingClientRect().top) < 1),
+      keyboardReachable: scroller.tabIndex === 0 && document.activeElement === scroller,
+      overflows: scroller.scrollWidth > scroller.clientWidth,
+      before: scroller.scrollLeft,
+    };
+  })()`);
+  if (![audit.matches, audit.labelled, audit.fullBoard, audit.placed, audit.horizontal, audit.keyboardReachable].every(Boolean)) {
+    throw new Error(`${label}: results strip contract failed: ${JSON.stringify(audit)}`);
+  }
+  await client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "ArrowLeft", code: "ArrowLeft", windowsVirtualKeyCode: 37 });
+  await client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "ArrowLeft", code: "ArrowLeft", windowsVirtualKeyCode: 37 });
+  await delay(300);
+  const after = await evaluate(client, `document.querySelector(".sg-results__scroller").scrollLeft`);
+  if (audit.overflows && after === audit.before) {
+    throw new Error(`${label}: arrow key did not scroll the focused results strip`);
+  }
+  await evaluate(client, `document.querySelector(".sg-results__scroller").scrollLeft = 0`);
+  return { label, ...audit, after };
+}
+
 /** The whole rendered-behaviour suite, run at one motion preference. */
 async function auditFeedRegressions(client, label) {
   await loadApp(client);
@@ -1475,6 +1539,7 @@ async function main() {
     const ownership = await assertOwnedInstance(client, vite);
     assertLayout("desktop", desktop, 1440);
     assertRowActions("desktop", desktop);
+    const resultsAudits = [await auditResultsStrip(client, "desktop reduced-motion")];
     await capture(client, path.join(outputDirectory, "feed-desktop.png"));
 
     // Rendered-behaviour regressions, reduced motion (the evidence pass).
@@ -1492,6 +1557,7 @@ async function main() {
       const metrics = await loadApp(client);
       assertLayout(`${width}px mobile`, metrics, width);
       assertRowActions(`${width}px mobile`, metrics);
+      resultsAudits.push(await auditResultsStrip(client, `${width}px mobile`));
       await capture(client, path.join(outputDirectory, `feed-mobile-${width}.png`));
       const cluster = await auditClusterDisclosure(client);
       assertClusterDisclosure(`${width}px mobile`, cluster);
@@ -1516,6 +1582,7 @@ async function main() {
     await configureViewport(client, 1440, 1000, false, false);
     const normalMotionLayout = await loadApp(client);
     assertLayout("normal-motion desktop", normalMotionLayout, 1440);
+    resultsAudits.push(await auditResultsStrip(client, "desktop normal-motion"));
     const normalMotionPreference = await evaluate(
       client,
       `matchMedia("(prefers-reduced-motion: reduce)").matches`
@@ -1609,6 +1676,7 @@ async function main() {
             rows: desktop.queueCount,
           },
           narrowViewports,
+          resultsAudits,
           regressions: {
             reducedMotion: summarise(reducedMotionRegressions),
             normalMotion: summarise(normalMotionRegressions),

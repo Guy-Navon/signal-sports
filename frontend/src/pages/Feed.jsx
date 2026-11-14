@@ -17,6 +17,7 @@ import { getVisibleItems, toggleFilterSet } from "@/components/feed/feedFilters"
 export default function Feed() {
   const {
     feedItems,
+    resultsGames,
     scoredArticles,
     activeProfileId,
     isBackendMode,
@@ -71,6 +72,7 @@ export default function Feed() {
       ) : (
         <SignalFeedView
           items={storyItems}
+          results={resultsGames}
           localScoredArticles={isBackendMode ? [] : scoredArticles}
           activeFilters={activeFilters}
           onToggleFilter={toggleFilter}

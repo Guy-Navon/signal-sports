@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import SignalStrength from "@/components/signal-ui/SignalStrength";
 import MastheadSlot, { MastheadSlotContext } from "@/components/shell/MastheadSlot";
 import FeedbackControls from "@/components/feed/FeedbackControls";
+import ResultsStrip from "./ResultsStrip";
 import { useArticleOpened, useEngineTraceVisible } from "@/context/appContextCore";
 import { getDecisionConfig } from "@/components/feed/decisionConfig";
 import { deskVoiceView } from "@/components/feed/deskVoiceModel";
@@ -560,6 +561,7 @@ function BriefSection({ items, localScoredArticles, now, readOnly }) {
  * ground: only for a standalone render; inside a parent scope it follows the parent.
  * @param {{
  *   items: any[],
+ *   results?: any[],
  *   localScoredArticles?: any[],
  *   activeFilters: Set<string>,
  *   onToggleFilter: (id: string) => void,
@@ -572,6 +574,7 @@ function BriefSection({ items, localScoredArticles, now, readOnly }) {
  */
 export default function SignalFeedView({
   items,
+  results = [],
   localScoredArticles = [],
   activeFilters,
   onToggleFilter,
@@ -648,8 +651,7 @@ export default function SignalFeedView({
               </section>
             )}
 
-            {/* #466: the results strip goes here, between the important row and
-                the band. It renders nothing until then (and never without results). */}
+            <ResultsStrip results={results} nowMs={now} />
           </div>
 
           {(sections.stream.length > 0 || sections.brief.length > 0 || latest.length > 0) && (

@@ -57,6 +57,11 @@ export function importanceFilterId(level) {
 const isFloorId = (filterId) => filterId.startsWith(FLOOR_PREFIX);
 const isLeagueId = (filterId) => filterId.startsWith(LEAGUE_PREFIX);
 
+/** How many of these items a reader can see (never hidden or decision-less). */
+export function visibleCount(items) {
+  return items.filter((item) => meetsImportanceFloor(item, null)).length;
+}
+
 /** The active threshold level, or null for every level. */
 export function importanceFloor(activeFilters) {
   for (const filterId of activeFilters) {
@@ -150,7 +155,9 @@ const withoutFamily = (activeFilters, inFamily) => {
  * Labels come from DECISION_CONFIG, the one decision vocabulary (A3).
  */
 export function importanceOptions(items, activeFilters) {
-  const scope = filterFeedItems(items, withoutFamily(activeFilters, isFloorId));
+  const scope = filterFeedItems(items, withoutFamily(activeFilters, isFloorId)).filter((item) =>
+    meetsImportanceFloor(item, null)
+  );
   const floor = importanceFloor(activeFilters);
   return [
     { id: ALL_LEVELS_ID, level: null, label: "הכול", count: scope.length, selected: floor === null },
@@ -169,7 +176,9 @@ export function importanceOptions(items, activeFilters) {
  * the other active filters (the floor). Leagues with none are absent.
  */
 export function facetedLeagueCounts(items, activeFilters) {
-  const scope = filterFeedItems(items, withoutFamily(activeFilters, isLeagueId));
+  const scope = filterFeedItems(items, withoutFamily(activeFilters, isLeagueId)).filter((item) =>
+    meetsImportanceFloor(item, null)
+  );
   const counts = new Map();
   for (const item of scope) {
     const id = leagueFilterId(item);

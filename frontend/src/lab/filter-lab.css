@@ -1,0 +1,275 @@
+/* Filter-bar lab (#483): candidate bars B and C. Variant A's styles live in
+   the feed (signal-feed.css), since that is what the feed renders. Every
+   colour is a --sg- token; logical properties only. */
+
+.lab-filters { min-block-size: 100vh; background: var(--sg-bg); color: var(--sg-ink); }
+
+.lab-variant-control { flex-wrap: wrap; font-size: 14px; }
+
+.lab-filters :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* ── B: two quiet rows, importance with the signal mark ───────────────────
+   A quiet row of text options, no grounds: the signal mark (the strokes
+   every story carries) says which levels each keeps, the selected option
+   takes ink and an accent underline. */
+
+.lab-fb { display: flex; flex-direction: column; align-items: center; gap: 12px; max-inline-size: 100%; }
+
+.lab-imp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 20px;
+  max-inline-size: 100%;
+  font-size: 15px;
+}
+
+.lab-imp__title { font-size: 13px; font-weight: 700; color: var(--sg-dim); }
+
+.lab-imp__opt {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  min-block-size: 40px;
+  padding-inline: 2px;
+  border-block-end: 2px solid transparent;
+  color: var(--sg-dim);
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s var(--sg-ease), border-color 0.2s var(--sg-ease);
+}
+
+.lab-imp__opt:hover { color: var(--sg-ink); }
+
+.lab-imp__opt[data-selected] {
+  color: var(--sg-ink);
+  border-block-end-color: var(--sg-acc);
+}
+
+/* The radio itself covers its label invisibly: it takes the click, the tap
+   and the keyboard, and its focus ring is drawn on the label. */
+.lab-imp__input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.lab-imp__opt:has(.lab-imp__input:focus-visible) {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.lab-imp__mark { display: inline-flex; }
+.lab-imp__count { font-weight: 400; color: var(--sg-dim); }
+
+
+@media (max-width: 900px) {
+  .lab-fb { align-items: stretch; gap: 10px; }
+  /* The threshold stays one row: it shares the width evenly and scrolls
+     inside itself only if a long label still does not fit (A2). */
+  .lab-imp {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 0 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 3px;
+    margin: -3px;
+    font-size: 14px;
+  }
+  .lab-imp::-webkit-scrollbar { display: none; }
+  /* The group keeps its name for assistive technology; on a phone the row
+     needs the width, and the marks already say what it is. */
+  .lab-imp__title {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .lab-imp__opt { gap: 6px; }
+}
+
+/* ── C: one button, a panel, removable chips ──────────────────────────────── */
+
+.lab-fc { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; max-inline-size: 100%; }
+
+.lab-fc__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  max-inline-size: 100%;
+}
+
+.lab-fc__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-block-size: 40px;
+  padding: 0 18px;
+  border: 1.5px solid var(--sg-ink);
+  border-radius: 999px;
+  background: var(--sg-card);
+  color: var(--sg-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lab-fc__btn[aria-expanded="true"] { background: var(--sg-ink); color: var(--sg-card); }
+
+.lab-fc__badge {
+  min-inline-size: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--sg-slab);
+  color: var(--sg-slab-fg);
+  font-size: 12.5px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.lab-fc__hint { font-size: 14px; color: var(--sg-dim); }
+
+.lab-fc__chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+.lab-fc__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 36px;
+  padding: 0 10px 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sg-tint);
+  color: var(--sg-acc);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lab-fc__chip:hover { background: var(--sg-slab); color: var(--sg-slab-fg); }
+
+.lab-fc__panel {
+  position: absolute;
+  inset-block-start: 52px;
+  z-index: 30;
+  inline-size: min(380px, 100%);
+  max-block-size: 70vh;
+  overflow-y: auto;
+  padding: 16px 20px 18px;
+  border: 1px solid var(--sg-line);
+  border-block-start: 3px solid var(--sg-acc);
+  background: var(--sg-card);
+  box-shadow: var(--sg-top-shadow);
+  text-align: start;
+}
+
+.lab-fc__head { display: flex; align-items: center; justify-content: space-between; margin-block-end: 4px; }
+.lab-fc__head h2 { font-size: 18px; font-weight: 800; }
+
+.lab-fc__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border: 0;
+  background: none;
+  color: var(--sg-ink);
+  cursor: pointer;
+}
+
+.lab-fc__sec { padding-block: 10px; border-block-start: 1px solid var(--sg-line); }
+.lab-fc__sec h3 { margin-block-end: 4px; font-size: 13px; font-weight: 700; color: var(--sg-dim); }
+
+/* The threshold as a vertical list inside the panel. */
+.lab-fc .lab-fc__imp {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+}
+.lab-fc .lab-fc__imp .lab-imp__title { margin-block-end: 4px; }
+.lab-fc .lab-fc__imp .lab-imp__opt { border-block-end: 0; min-block-size: 42px; }
+.lab-fc .lab-fc__imp .lab-imp__opt[data-selected] { color: var(--sg-acc); }
+.lab-fc .lab-fc__imp .lab-imp__count { margin-inline-start: auto; }
+
+.lab-fc__check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: 42px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lab-fc__check input { inline-size: 18px; block-size: 18px; accent-color: var(--sg-acc); }
+.lab-fc__check .sg-num { margin-inline-start: auto; color: var(--sg-dim); font-weight: 400; }
+
+.lab-fc__foot { display: flex; align-items: center; gap: 12px; padding-block-start: 12px; border-block-start: 1px solid var(--sg-line); }
+
+.lab-fc__go {
+  flex: 1;
+  min-block-size: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sg-slab);
+  color: var(--sg-slab-fg);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lab-fc__scrim { position: fixed; inset: 0; z-index: 29; background: color-mix(in srgb, var(--sg-top) 45%, transparent); }
+
+@media (max-width: 900px) {
+  .lab-fc { align-items: stretch; }
+  .lab-fc__row { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 3px; margin: -3px; }
+  .lab-fc__btn, .lab-fc__chips li { flex: none; }
+  .lab-fc__chips { flex-wrap: nowrap; }
+  .lab-fc__panel {
+    position: fixed;
+    inset-inline: 0;
+    inset-block: auto 0;
+    inline-size: auto;
+    max-block-size: 85dvh;
+    padding-block-end: max(18px, env(safe-area-inset-bottom, 0px));
+    border-radius: 16px 16px 0 0;
+    animation: lab-sheet 260ms var(--sg-ease) backwards;
+  }
+}
+
+@keyframes lab-sheet {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-filters *, .lab-filters *::before, .lab-filters *::after { animation: none !important; transition: none !important; }
+}
+
+/* In the sheet the threshold keeps its visible title at every width. */
+@media (max-width: 900px) {
+  .lab-fc .lab-fc__imp .lab-imp__title {
+    position: static;
+    inline-size: auto;
+    block-size: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+}

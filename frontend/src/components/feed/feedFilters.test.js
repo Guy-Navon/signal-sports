@@ -17,6 +17,7 @@ import {
   hasActiveFilters,
   importanceOptions,
   facetedLeagueCounts,
+  visibleCount,
 } from "./feedFilters";
 
 const mk = (over = {}) => ({ score: { decision: "feed" }, ...over });
@@ -259,6 +260,13 @@ describe("feedFilters", () => {
         false,
       ]);
       expect(importanceOptions(items, new Set(["all"]))[0].selected).toBe(true);
+    });
+
+    it("never counts a hidden or decision-less item", () => {
+      const withHidden = [...items, mk({ id: "x", score: { decision: "hidden" }, league: "NBA" }), mk({ id: "y", score: {} })];
+      expect(visibleCount(withHidden)).toBe(6);
+      expect(importanceOptions(withHidden, new Set(["all"]))[0].count).toBe(6);
+      expect(facetedLeagueCounts(withHidden, new Set(["all"])).get("league:NBA")).toBe(3);
     });
 
     it("counts each league within the active floor (what pressing it would show)", () => {

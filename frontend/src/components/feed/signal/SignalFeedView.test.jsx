@@ -246,6 +246,102 @@ it("the league pills say whether they are selected", () => {
   expect(JSON.stringify(view.toJSON())).not.toContain("כותרת b");
 });
 
+// The filter bar (#483): an importance threshold above the league pills.
+
+const radios = (root) => root.findAll((node) => node.type === "input" && node.props.type === "radio");
+const textOf = (node) =>
+  node.children.map((child) => (typeof child === "string" ? child : textOf(child))).join("");
+
+it("offers the importance thresholds as one radio group, each named with its count", () => {
+  const items = [
+    story("p", "push", "NBA"),
+    story("h", "high_feed", "EuroLeague"),
+    story("f", "feed", "NBA"),
+    story("l", "low_feed", "NBA"),
+  ];
+  const view = render(items);
+  const group = view.root.find((node) => node.props.role === "radiogroup");
+  expect(group.props["aria-label"]).toBe("סינון לפי חשיבות");
+  const inputs = radios(view.root);
+  expect(new Set(inputs.map((input) => input.props.name)).size).toBe(1);
+  expect(inputs.map((input) => input.props.checked)).toEqual([true, false, false]);
+  const names = byClass(view.root, "sg-seg__opt").map((label) =>
+    textOf(label).replace(/\s+/g, " ").trim()
+  );
+  expect(names).toEqual([
+    "הכול4, 4 סיפורים",
+    "רגיל ומעלה3, 3 סיפורים",
+    "חשוב ומעלה2, 2 סיפורים",
+  ]);
+});
+
+it("choosing a threshold asks for it; 'הכול' clears only the threshold", () => {
+  const onToggleFilter = vi.fn();
+  const items = [story("h", "high_feed"), story("f", "feed")];
+  const view = render(items, { onToggleFilter });
+  act(() => radios(view.root)[2].props.onChange());
+  expect(onToggleFilter).toHaveBeenLastCalledWith("min:high_feed");
+  act(() => view.update(
+    <SignalFeedView items={items} activeFilters={new Set(["min:high_feed"])}
+      onToggleFilter={onToggleFilter} onResetFilters={() => {}} nowMs={NOW} readOnly />
+  ));
+  act(() => radios(view.root)[0].props.onChange());
+  expect(onToggleFilter).toHaveBeenLastCalledWith("min:*");
+});
+
+it("a threshold narrows every section, keeps the push lead, and never reveals a hidden story", () => {
+  const items = [
+    story("p", "push", "NBA"),
+    story("h", "high_feed", "EuroLeague"),
+    story("f", "feed", "NBA"),
+    story("l", "low_feed", "NBA"),
+    story("x", "hidden", "NBA"),
+  ];
+  const view = render(items, { activeFilters: new Set(["min:high_feed"]) });
+  const text = JSON.stringify(view.toJSON());
+  expect(byClass(view.root, "sg-lead")).toHaveLength(1);
+  expect(text).toContain("כותרת h");
+  expect(text).not.toContain("כותרת f");
+  expect(text).not.toContain("כותרת l");
+  expect(text).not.toContain("כותרת x");
+  // The summary still counts the whole feed; the result line says what is shown.
+  expect(textOf(byClass(view.root, "sg-summary")[0])).toContain("4");
+  expect(textOf(byClass(view.root, "sg-filter-result")[0])).toContain("מוצגים 2 מתוך 4 סיפורים");
+});
+
+it("the league pills count under the threshold, and 'כל הליגות' clears only the leagues", () => {
+  const onToggleFilter = vi.fn();
+  const items = [
+    story("h", "high_feed", "NBA"),
+    story("f1", "feed", "NBA"),
+    story("f2", "feed", "EuroLeague"),
+  ];
+  const view = render(items, { activeFilters: new Set(["min:high_feed"]), onToggleFilter });
+  const pills = byClass(view.root, "sg-pill");
+  // EuroLeague has nothing at חשוב or above, so it is not offered.
+  expect(pills.map((pill) => pill.props["data-filter"] ?? "all")).toEqual(["all", "league:NBA"]);
+  expect(pills.map((pill) => textOf(pill))).toEqual(["כל הליגות1", "NBA1"]);
+  act(() => pills[0].props.onClick());
+  expect(onToggleFilter).toHaveBeenLastCalledWith("league:*");
+});
+
+it("an empty result names the filter and offers the whole feed", () => {
+  const onResetFilters = vi.fn();
+  const items = [story("f", "feed", "NBA")];
+  const view = render(items, { activeFilters: new Set(["min:high_feed"]), onResetFilters });
+  const empty = byClass(view.root, "sg-filter-empty")[0];
+  expect(textOf(empty)).toContain("אין כרגע סיפורים ברמת חשוב ומעלה.");
+  act(() => empty.findByType("button").props.onClick());
+  expect(onResetFilters).toHaveBeenCalled();
+  expect(byClass(view.root, "sg-row")).toHaveLength(0);
+});
+
+it("says nothing in the result line while nothing is filtered", () => {
+  const view = render([story("f", "feed")]);
+  expect(textOf(byClass(view.root, "sg-filter-result")[0])).toBe("");
+  expect(byClass(view.root, "sg-filter-clear")).toHaveLength(0);
+});
+
 // Motion (#467): the motion is CSS; the view decides which rows are new and
 // how long each waits, and both are bounded.
 

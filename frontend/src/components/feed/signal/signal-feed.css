@@ -580,11 +580,174 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
 .sg-skeleton i:nth-child(2) { inline-size: 60%; margin-inline: auto; block-size: 30px; }
 .sg-skeleton i:nth-child(n + 3) { block-size: 74px; }
 
-/* ── motion: what the mock has, nothing more (B12; more is #467) ──────────── */
+/* ── motion (B12, #467) ──────────────────────────────────────────────────────
+   Every effect carries meaning: something arrived, changed, was acknowledged,
+   or has focus. Only the fresh-story pulse loops. Transform and opacity only
+   (the arrival glow is the one paint-only effect, on a few rows at most), so
+   nothing shifts layout. Delays come from feedMotionModel as
+   --sg-enter-delay: capped stagger (A5), the first-load sequence, then 0.
+   Entrances use `backwards` fill, never `both`: a filled transform would make
+   every row a stacking context and trap the feedback menu under the next row.
+   Removal is never animated. All of it is off under reduced motion (the block
+   at the end of this section). */
+
+.sg-feed,
+.sg-feed__head {
+  --sg-enter-dur: 360ms;
+}
+
+/* Entrance: the page builds top to bottom on load; later, whatever newly
+   appears (a filter change, "show more", a refresh) enters the same way. */
+:is(.sg-feed, .sg-feed__head) :is(.sg-summary, .sg-pill),
+.sg-feed :is(
+  .sg-important__item,
+  .sg-sech,
+  .sg-row,
+  .sg-box,
+  .sg-box__item,
+  .sg-result,
+  .sg-results__heading,
+  .sg-members li,
+  .sg-more,
+  .sg-filter-empty
+) {
+  animation: sg-enter var(--sg-enter-dur) var(--sg-ease) backwards;
+  animation-delay: var(--sg-enter-delay, 0ms);
+}
+
+/* Signal marks grow once their row has started to enter. */
+.sg-feed .sg-strength__stroke:nth-child(1) { animation-delay: calc(var(--sg-enter-delay, 0ms) + 120ms); }
+.sg-feed .sg-strength__stroke:nth-child(2) { animation-delay: calc(var(--sg-enter-delay, 0ms) + 180ms); }
+.sg-feed .sg-strength__stroke:nth-child(3) { animation-delay: calc(var(--sg-enter-delay, 0ms) + 240ms); }
+
+/* Lead: the slab fades in, the strokes rise, the label pops, the headline
+   comes up, then the row beneath it. */
+.sg-feed .sg-lead { animation: sg-fade 300ms var(--sg-ease) var(--sg-enter-delay, 0ms) backwards; }
+.sg-feed .sg-lead__deco i:nth-child(1) { animation-delay: var(--sg-enter-delay, 0ms); }
+.sg-feed .sg-lead__deco i:nth-child(2) { animation-delay: calc(var(--sg-enter-delay, 0ms) + 80ms); }
+.sg-feed .sg-lead__deco i:nth-child(3) { animation-delay: calc(var(--sg-enter-delay, 0ms) + 160ms); }
+.sg-feed .sg-lead__label { animation: sg-pop 300ms var(--sg-ease) calc(var(--sg-enter-delay, 0ms) + 60ms) backwards; }
+.sg-feed .sg-lead__title { animation: sg-up 600ms var(--sg-ease) calc(var(--sg-enter-delay, 0ms) + 100ms) backwards; }
+.sg-feed .sg-lead__row { animation: sg-enter 450ms var(--sg-ease) calc(var(--sg-enter-delay, 0ms) + 260ms) backwards; }
+
+/* A changed number (summary, pill counts, a score) ticks in. Keyed by value
+   in the markup, so only a number that changed plays it. */
+.sg-tick {
+  display: inline-block;
+  animation: sg-tick 280ms var(--sg-ease) var(--sg-enter-delay, 0ms) backwards;
+}
+
+/* League pills: pressing gives way under the finger; the selected stroke
+   rises; the slab ground eases in. */
+.sg-pill {
+  transition:
+    background-color 0.2s var(--sg-ease),
+    color 0.2s var(--sg-ease),
+    border-color 0.2s var(--sg-ease),
+    transform 0.12s var(--sg-ease);
+}
+.sg-pill:active { transform: scale(0.96); }
+.sg-pill[aria-pressed="true"] .sg-pill__mark { animation: sg-mark 280ms var(--sg-ease) 60ms backwards; }
+
+/* New after a refresh: a word (the meaning, A6) that pops in, and a glow that
+   settles. Rows already on screen do not move; nothing re-sorts under the
+   reader beyond the insertion itself (browser scroll anchoring keeps the
+   viewport in place when it lands above). */
+.sg-new {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  background: var(--sg-slab);
+  color: var(--sg-slab-fg);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.6;
+  animation: sg-pop 300ms var(--sg-ease) calc(var(--sg-enter-delay, 0ms) + 120ms) backwards;
+}
+
+.sg-important__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.sg-feed :is(.sg-row, .sg-important__item, .sg-box__item)[data-arrived] {
+  animation:
+    sg-enter var(--sg-enter-dur) var(--sg-ease) var(--sg-enter-delay, 0ms) backwards,
+    sg-glow 1.6s var(--sg-ease) var(--sg-enter-delay, 0ms) backwards;
+}
+
+/* Hover and keyboard focus: the accent edge grows in from the middle; a row
+   holding keyboard focus reads like a hovered one. */
+.sg-row::before {
+  transform: scaleY(0.4);
+  transition: opacity 0.15s var(--sg-ease), transform 0.2s var(--sg-ease);
+}
+.sg-row:hover::before,
+.sg-row:has(:focus-visible)::before { opacity: 1; transform: none; }
+.sg-row:has(:focus-visible) { background: var(--sg-tint); }
+
+/* Feedback acknowledges itself: the status word and its check pop in, and on
+   a stream row the accent edge flashes once when the save is confirmed. */
+.sg-feed .sg-acts :is([role="status"], [role="alert"]) { animation: sg-pop 220ms var(--sg-ease) backwards; }
+.sg-feed .sg-acts [role="status"] svg { animation: sg-pop 320ms var(--sg-ease) 60ms backwards; }
+.sg-feed .sg-acts [role="menu"] {
+  transform-origin: top;
+  animation: sg-drop 180ms var(--sg-ease) backwards;
+}
+.sg-row:has(.sg-acts [role="status"]:not([aria-busy]))::before { animation: sg-ack 900ms var(--sg-ease); }
+
+/* Cluster badge: the chevron turns, the member list drops open and its items
+   follow (capped). Closing is immediate. */
+.sg-badge__chev { transition: transform 0.2s var(--sg-ease); }
+.sg-feed .sg-members { animation: sg-drop 200ms var(--sg-ease) backwards; }
+
+@keyframes sg-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sg-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 @keyframes sg-up {
   from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: none; }
+}
+
+@keyframes sg-pop {
+  from { opacity: 0; transform: scale(0.82); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sg-drop {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sg-tick {
+  from { opacity: 0; transform: translateY(0.45em); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sg-mark {
+  from { transform: skewX(var(--sg-skew)) scaleY(0); }
+  to { transform: skewX(var(--sg-skew)) scaleY(1); }
+}
+
+@keyframes sg-glow {
+  0%, 35% { background-color: var(--sg-tint); }
+  100% { background-color: transparent; }
+}
+
+@keyframes sg-ack {
+  0% { opacity: 0; transform: scaleY(0.2); }
+  25% { opacity: 1; transform: none; }
+  70% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
 }
 
 @keyframes sg-pulse {
@@ -593,9 +756,17 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 
+/* Reduced motion: no animation and no transition anywhere in the feed,
+   including the head rendered in the shell's masthead slot. The pulse stops
+   (not merely shortens). Everything is at its final state; "חדש" still marks
+   a new story. */
 @media (prefers-reduced-motion: reduce) {
   .sg-feed *,
-  .sg-feed *::before { animation: none !important; transition: none !important; }
+  .sg-feed *::before,
+  .sg-feed *::after,
+  .sg-feed__head *,
+  .sg-feed__head *::before,
+  .sg-feed__head *::after { animation: none !important; transition: none !important; }
 }
 
 /* ── narrow (the mock's 900px breakpoint; phone layout unverified per #475) ── */

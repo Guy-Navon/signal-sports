@@ -73,6 +73,17 @@ it("starts after the threshold and moves RTL content with the mouse in both dire
   expect(drag.scroller.scrollLeft).toBe(-80);
 });
 
+it("leaves a press on the native scrollbar to the browser", () => {
+  const drag = dragFixture();
+  Object.assign(drag.scroller, { clientHeight: 100, clientTop: 0, getBoundingClientRect: () => ({ top: 10 }) });
+  drag.down({ clientY: 112 });
+  expect(drag.send("pointermove", { clientX: 140 }).defaultPrevented).toBe(false);
+  expect(drag.scroller.scrollLeft).toBe(-100);
+  drag.down({ clientY: 60 });
+  drag.send("pointermove", { clientX: 140 });
+  expect(drag.scroller.scrollLeft).toBe(-140);
+});
+
 it.each([
   { pointerType: "touch" }, { pointerType: "pen" }, { button: 1 }, { button: 2 },
 ])("leaves native scrolling alone for $pointerType / button $button", (input) => {

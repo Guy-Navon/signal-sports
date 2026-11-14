@@ -15,6 +15,10 @@ function useMouseDragScroll(active) {
     if (event.pointerType !== "mouse" || event.button !== 0) return;
     cleanup.current?.();
     const scroller = event.currentTarget;
+    // Below clientHeight is the native scrollbar: its thumb drags natively, so
+    // a second drag here would fight it over scrollLeft.
+    const rect = scroller.getBoundingClientRect?.();
+    if (rect && event.clientY - rect.top - (scroller.clientTop || 0) >= scroller.clientHeight) return;
     const doc = scroller.ownerDocument;
     const { pointerId, clientX: startX } = event;
     const startScroll = scroller.scrollLeft;

@@ -233,6 +233,11 @@ The harness keeps every existing browser assertion through the #473 rename to `c
 It fails if the demo bundle holds the API client, router, auth, app provider, a non-feed page
 or a write request method. Its markers are confirmed present in the main bundle, so a stale
 marker fails loudly.
+The results-statistics boundary (#526) adds `private-results-statistics` as a
+forbidden demo marker, calibrated in the main Results page. Private rows/dialogs
+reuse that marker; the shared scores-only strip never imports the boundary.
+Guard tests cover accidental stat rendering with no API/write import, a stale
+marker, and a clean score-only demo. No demo deployment is part of this change.
 
 **Ops unchanged.** Any change to shared CSS or tokens verifies that the computed styles of
 `/debug`, `/sources` and `/llm-qa` did not change (#462).

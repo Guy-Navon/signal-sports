@@ -8,6 +8,7 @@ import ResultCard from "@/components/results/ResultCard";
 import { groupByDay, dayGridClass } from "@/components/results/resultsGrouping";
 import { formatDayHeading } from "@/components/results/resultsFormat";
 import "@/components/results/results-page.css";
+import { RESULTS_STATS_MARKER } from "@/components/results/resultsStatsBoundary";
 
 function ResultsSkeleton() {
   return (
@@ -130,7 +131,7 @@ export default function Results() {
   }
 
   return (
-    <div className="sg-gutter">
+    <div className="sg-gutter" data-results-statistics={RESULTS_STATS_MARKER}>
       <div className="sg-container sg-results-page">
         {Header}
         {body}

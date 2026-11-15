@@ -1,0 +1,243 @@
+{
+  "data": [
+    {
+      "id": "0bfbbd13-9cdd-4bda-be3b-d0f50d5f6e69",
+      "identifier": "U2026_103",
+      "gameCode": 103,
+      "season": {
+        "name": "EuroCup 2026-27",
+        "code": "U2026",
+        "alias": "2026-27",
+        "competitionCode": "U",
+        "year": 2026,
+        "startDate": "2026-07-01T00:00:00"
+      },
+      "group": {
+        "id": "93ea0bac-1c18-426b-b884-3c7e83fad282",
+        "order": 2,
+        "name": "Group B",
+        "rawName": "B"
+      },
+      "phaseType": {
+        "code": "RS",
+        "alias": "REGULAR SEASON",
+        "name": "Regular Season",
+        "isGroupPhase": true
+      },
+      "round": 7,
+      "roundAlias": "Round 7",
+      "roundName": "Round 7",
+      "played": true,
+      "date": "2026-11-12T20:00:00",
+      "confirmedDate": true,
+      "confirmedHour": true,
+      "localTimeZone": 1,
+      "localDate": "2026-11-12T20:00:00",
+      "utcDate": "2026-11-12T19:00:00Z",
+      "local": {
+        "club": {
+          "code": "FRA",
+          "name": "Skyliners Frankfurt",
+          "abbreviatedName": "Skyliners",
+          "editorialName": "Skyliners",
+          "tvCode": "SKY",
+          "isVirtual": false,
+          "images": {
+            "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/6afb32b8-e6dc-4f79-b14a-2d99fdb34cde.png"
+          }
+        },
+        "score": 89,
+        "standingsScore": 89,
+        "partials": {
+          "partials1": 14,
+          "partials2": 27,
+          "partials3": 26,
+          "partials4": 22,
+          "extraPeriods": {}
+        }
+      },
+      "road": {
+        "club": {
+          "code": "MRO",
+          "name": "Maxima Roma",
+          "abbreviatedName": "Maxima Roma",
+          "editorialName": "Maxima Roma",
+          "tvCode": "RMA",
+          "isVirtual": false,
+          "images": {
+            "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjChWbHH/f1547a87-c0bf-41ab-bf7e-a0001649430d.png"
+          }
+        },
+        "score": 113,
+        "standingsScore": 113,
+        "partials": {
+          "partials1": 28,
+          "partials2": 36,
+          "partials3": 26,
+          "partials4": 23,
+          "extraPeriods": {}
+        }
+      },
+      "audience": 1666,
+      "audienceConfirmed": true,
+      "socialFeed": "",
+      "operationsCode": null,
+      "referee1": {
+        "code": "OJFP",
+        "name": "DRAGOJEVIC, IGOR",
+        "alias": "DRAGOJEVIC, I.",
+        "country": {
+          "code": "MNE",
+          "name": "Montenegro"
+        },
+        "images": {
+          "verticalSmall": "87yus4cpo4p8q56s"
+        },
+        "active": true
+      },
+      "referee2": {
+        "code": "QJMC",
+        "name": "CELIK, HUSEYIN",
+        "alias": "CELIK, H.",
+        "country": {
+          "code": "TUR",
+          "name": "Turkiye"
+        },
+        "images": {
+          "verticalSmall": "awygpbjer97vgknx"
+        },
+        "active": true
+      },
+      "referee3": {
+        "code": "QJMY",
+        "name": "SANCHEZ SIXTO, ALBERTO",
+        "alias": "SANCHEZ SIXTO, A.",
+        "country": {
+          "code": "ESP",
+          "name": "Spain"
+        },
+        "images": {
+          "verticalSmall": null
+        },
+        "active": true
+      },
+      "referee4": null,
+      "venue": {
+        "name": "SUWAG ENERGIE ARENA",
+        "code": "ATN1",
+        "capacity": 5002,
+        "address": "Silostra\u00dfe 46, 65929 Frankfurt AM Main, Germany",
+        "images": {
+          "medium": null
+        },
+        "active": true,
+        "notes": ""
+      },
+      "isNeutralVenue": false,
+      "gameStatus": "Confirmed",
+      "winner": null
+    },
+    {
+      "id": "79ff91b7-8961-45be-9580-1931c7297aff",
+      "identifier": "U2026_213",
+      "gameCode": 213,
+      "season": {
+        "name": "EuroCup 2026-27",
+        "code": "U2026",
+        "alias": "2026-27",
+        "competitionCode": "U",
+        "year": 2026,
+        "startDate": "2026-07-01T00:00:00"
+      },
+      "group": {
+        "id": "93ea0bac-1c18-426b-b884-3c7e83fad282",
+        "order": 2,
+        "name": "Group B",
+        "rawName": "B"
+      },
+      "phaseType": {
+        "code": "RS",
+        "alias": "REGULAR SEASON",
+        "name": "Regular Season",
+        "isGroupPhase": true
+      },
+      "round": 14,
+      "roundAlias": "Round 14",
+      "roundName": "Round 14",
+      "played": false,
+      "date": "2027-01-13T21:00:00",
+      "confirmedDate": true,
+      "confirmedHour": true,
+      "localTimeZone": 0,
+      "localDate": "2027-01-13T20:00:00",
+      "utcDate": "2027-01-13T20:00:00Z",
+      "local": {
+        "club": {
+          "code": "TNF",
+          "name": "La Laguna Tenerife",
+          "abbreviatedName": "LL Tenerife",
+          "editorialName": "La Laguna Tenerife",
+          "tvCode": "LLT",
+          "isVirtual": false,
+          "images": {
+            "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/59bf7582-6c0b-4e14-bce6-1380aad90f34.png"
+          }
+        },
+        "score": 0,
+        "standingsScore": 0,
+        "partials": {
+          "partials1": 0,
+          "partials2": 0,
+          "partials3": 0,
+          "partials4": 0,
+          "extraPeriods": {}
+        }
+      },
+      "road": {
+        "club": {
+          "code": "SIA",
+          "name": "Siauliai Basketball",
+          "abbreviatedName": "Siauliai ",
+          "editorialName": "Siauliai ",
+          "tvCode": "SIA",
+          "isVirtual": false,
+          "images": {
+            "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/55a49aa3-e91f-45cc-88d0-670896ce5825.png"
+          }
+        },
+        "score": 0,
+        "standingsScore": 0,
+        "partials": {
+          "partials1": 0,
+          "partials2": 0,
+          "partials3": 0,
+          "partials4": 0,
+          "extraPeriods": {}
+        }
+      },
+      "audience": 0,
+      "audienceConfirmed": false,
+      "socialFeed": "",
+      "operationsCode": null,
+      "referee1": null,
+      "referee2": null,
+      "referee3": null,
+      "referee4": null,
+      "venue": {
+        "name": "PABELLON SANTIAGO MARTIN",
+        "code": "AID1",
+        "capacity": 5100,
+        "address": "Calle Mercedes S/N, La Laguna, 38108, Spain",
+        "images": {
+          "medium": null
+        },
+        "active": true,
+        "notes": ""
+      },
+      "isNeutralVenue": false,
+      "gameStatus": "Confirmed",
+      "winner": null
+    }
+  ],
+  "total": 2
+}

@@ -67,6 +67,9 @@ The source is isolated behind `app/results/providers/`:
   `RESULTS_PROVIDER=fake` (no network). It also implements the optional detail
   capability (§11).
 
+`euroleague.EuroLeagueProvider` (issue #519) supports official EuroLeague and
+EuroCup results and detail. It is opt-in; see the activation example below.
+
 `providers.get_provider()` selects by `RESULTS_PROVIDER` from `providers.REGISTRY`
 (name -> constructor; a new provider is one line there).
 
@@ -91,6 +94,63 @@ competitions are `not_checked` without a request) and is skipped entirely (`rate
 only when every provider it would call is blocked. The detail stage likewise skips only
 the limited or blocked providers. A summary written before #529 (only
 `rate_limited_until`) blocks every provider until it passes.
+
+### Official EuroLeague / EuroCup (issue #519, opt-in)
+
+Keep `RESULTS_PROVIDER=thesportsdb` for other competitions and set:
+
+```dotenv
+RESULTS_PROVIDER_ROUTES=comp:euroleague=euroleague,comp:eurocup=euroleague
+RESULTS_DETAIL_ENABLED=true
+```
+
+If Winner routes (section 12) are already enabled, combine both providers' entries
+in the same comma-separated `RESULTS_PROVIDER_ROUTES` value.
+
+Defaults stay unchanged: routes are empty and detail is off. Neither deployment
+nor reading results sends new requests. The existing scheduler/manual sync runs
+this provider only after it is selected. Roll back by clearing these routes and
+setting `RESULTS_DETAIL_ENABLED=false`.
+
+The Competition Engine's public reads currently need no API key. `fetch` makes
+one `api-live.euroleague.net/v2/competitions/{E|U}/seasons/{code}/games`
+request per requested competition per sync, including played and upcoming games.
+Season codes roll over on July 1 (`season.startDate`): November 2026 and January
+2027 both select `E2026` / `U2026`. The normalized season label is `2026-2027`;
+external ids include the season and competition (`E2026_103` / `U2026_103`), so
+identical game codes cannot collide. `RESULTS_SEASONS`, `RESULTS_RECENT_DAYS`
+and the TheSportsDB-specific `RESULTS_MAX_GAMES_PER_COMPETITION` cap do not limit
+this complete current-season response. `utcDate` supplies UTC start times;
+`played=false` means scheduled, with scores unset rather than the source's 0-0.
+Teams use the existing resolver; the league's sponsored Israeli club names (Maccabi Rapyd, Hapoel IBI, Hapoel Midtown) map through a provider-local table, never taxonomy aliases, so sponsor names do not change article classification.
+
+Detail uses `live.euroleague.net/api/Boxscore?gamecode=N&seasoncode=E2026`
+(or `U2026`), one request per finished candidate. This endpoint matches the saved
+real fixtures and provides player ids, decimal-converted minutes (`DNP` -> null),
+English names, native player/team stats, quarter scores, attendance and referees
+in one response. `leaders_from_lines(..., "points")` retains tied top scorers.
+The venue comes from the season response when available in this provider instance;
+it may be absent for an older stored game. The existing detail stage caps each
+run and permanently skips games with stored detail (section 11).
+
+Ranks use the v3 `competitions/{E|U}/seasons/{code}/rounds/{round}/basicstandings`
+endpoint, cached by season + round for the provider instance (including failures).
+Each lookup uses the same bounded retry policy; it is not repeated for every game.
+The source's `position` is stored as `team_stats.home.rank` / `.away.rank`, with
+`standings_round` on each side, ready for #523. EuroCup positions are group ranks.
+Native totals remain on each side, with `coach`, `quarters` and the unmodified
+`referees` string (commas also occur inside referee names). Missing standings
+leave rank absent without losing the box score. A standings 429 keeps the already
+fetched box score without rank, stops further requests and propagates Retry-After.
+
+Requests share `RESULTS_HTTP_TIMEOUT_SECONDS`, `RESULTS_HTTP_MAX_RETRIES` and
+`RESULTS_HTTP_MIN_INTERVAL_SECONDS`, including scores, box scores, standings and
+retries. The User-Agent is `signal-sports-results/1.0`. 401/403 report
+`source unavailable (HTTP N)` for that competition/game without retrying or
+raising to the caller. A 429 is never retried: remaining competitions/games
+are `not_checked`, with Retry-After (60 seconds if missing/invalid), using the
+existing provider-specific sync block. No LLM, player Hebrew mapping or API/UI
+changes are included.
 
 ### Tracked competitions → provider league ids (verified live 2026-07)
 
@@ -245,6 +305,12 @@ surface available (safe with an empty corpus). Rollback = flip
   games only, never re-fetched, the per-run cap, providers without detail, per-game
   and whole-call failures that leave the scores sync untouched, provider-identity
   scoping, and both rate-limit paths.
+- Backend `tests/test_results_euroleague_519.py`: saved EuroLeague/EuroCup
+  payloads, UTC dates, upcoming games, season rollover, complete season coverage,
+  sponsored-name resolution, box scores/leaders/DNP, ranks, auth failures,
+  bounded retries, pacing, 429 isolation, routing with a fake default and an
+  in-memory DB sync proving stored detail is never fetched again. All HTTP uses
+  `httpx.MockTransport`; no network or live DB is used.
 - Frontend `src/components/results/*.test.js` (26): normalization, timezone/day
   formatting, grouping, and relevance/isolation (deriveFollows, filter,
   preference-change).
@@ -272,8 +338,9 @@ surface available (safe with an empty corpus). Rollback = flip
 ## 11. Per-game detail (issue #517)
 
 **Status:** implemented behind `RESULTS_DETAIL_ENABLED` (default **false** in code and
-`.env.example`). The Ligat Winner provider (section 12, #518) is the first real one with the
-capability; #519-#521 add more, so otherwise only `RESULTS_PROVIDER=fake` returns detail. `/api/me/results` does not expose it yet
+`.env.example`). The Ligat Winner provider (section 12, #518), the official
+`euroleague` provider (section 3, #519) and `RESULTS_PROVIDER=fake` return detail.
+Other real providers are added by #520 and #521. `/api/me/results` does not expose it yet
 (#523). `game_results` is unchanged, so the page keeps working with scores only when a
 detail source fails or has nothing.
 

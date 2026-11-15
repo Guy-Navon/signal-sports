@@ -194,3 +194,10 @@ def test_api_seed_profiles_two_users_popup_and_admin_parity(client,user_client,a
     assert admin_client.get(f"/api/results/{user_client.identity_user_id}/games/{g.id}/detail").json()==user_client.get(path).json()
     assert user_client.get(f"/api/results/guy/games/{g.id}/detail").status_code==403
     assert user_client.get("/api/me/results/games/invisible/detail").status_code==404
+    invisible=game(ext="api-523-invisible",competition_id="comp:euroleague",
+        home_team_id="team:maccabi_tlv_bb",away_team_id="team:real_madrid_bb",
+        start_time=datetime.now(timezone.utc).isoformat())
+    with SessionLocal() as s:
+        seed_detail(s,invisible)
+    assert user_client.get(f"/api/me/results/games/{invisible.id}/detail").status_code==404
+    assert admin_client.get(f"/api/me/results/games/{invisible.id}/detail").status_code==200

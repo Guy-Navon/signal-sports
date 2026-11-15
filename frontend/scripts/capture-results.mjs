@@ -132,6 +132,7 @@ export async function auditResultsPages({ client, origin, configureViewport, eva
   await configureViewport(client, 390, 844, true, true);
   for (const [state, text] of [["loading", "טוען"], ["error", "לא הצלחנו"], ["preferences", "עדיין לא בחרת"], ["empty", "אין משחקים להיום"], ["unavailable", "נתוני המשחק לא זמינים"]]) {
     await load(`/lab.html?page=results&state=${state}`, ".sr-board");
+    assert.ok(await evaluate(client, `document.querySelector('.sr-results-lab').getBoundingClientRect().height>=innerHeight`), `state ${state}: ground fills viewport`);
     assert.ok(await evaluate(client, `document.querySelector('.sr-board').textContent.includes(${JSON.stringify(text)})`), `state ${state}`);
     await capture(client, path.join(outputDirectory, `results-state-${state}.png`));
     if (state === "error") {

@@ -330,6 +330,15 @@ classification policy remain unchanged; result choices are not feed follows.
 
 ## 7. Frontend
 
+**Public demo boundary (#526, 2026-11-15).** The backend demo exporter still
+exports only `feed.json` and `meta.json`: it does not read results, even when
+scores and box scores exist. Before replacing either file it recursively rejects
+results detail/stat keys (including leaders, chosen lines, players, team stats,
+rank, venue and attendance). A violation fails the export and preserves the
+previous snapshot. No source calls, data deletion or demo deployment are added.
+Frontend optional score-strip input remains a separate static-file concern;
+the stats bundle guard is the UI part of #526 on `ui/next`.
+
 `/results` (product route, RTL). Data flows through `AppContext`
 (`resultsGames` / `resultsHasPreferences` / `resultsLoading` / `resultsError`),
 using `/api/me/results` for consumer sessions and `/api/results/{user_id}` for

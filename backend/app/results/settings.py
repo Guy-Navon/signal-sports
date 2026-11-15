@@ -41,6 +41,18 @@ def sync_enabled() -> bool:
     return _bool("RESULTS_SYNC_ENABLED", False)
 
 
+def detail_enabled() -> bool:
+    """Whether the sync also fetches per-game detail for finished games (#517).
+    Default OFF: with it off the sync sends exactly the requests it sent before."""
+    return _bool("RESULTS_DETAIL_ENABLED", False)
+
+
+def detail_max_per_run() -> int:
+    """At most this many games' detail are requested per sync, newest first, so a
+    backfill of old games cannot flood a source. 0 = no detail requests."""
+    return _int("RESULTS_DETAIL_MAX_PER_RUN", 10, minimum=0)
+
+
 # ── Provider ──────────────────────────────────────────────────────────────────
 
 def provider_name() -> str:

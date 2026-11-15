@@ -37,6 +37,8 @@ os.environ["FEED_FRESHNESS_ENABLED"] = "false"
 # network. Tests inject a FakeResultsProvider explicitly where they sync.
 os.environ["RESULTS_PROVIDER"] = "fake"
 os.environ["RESULTS_SYNC_ENABLED"] = "false"
+# Per-game detail (#517) off unless a test enables it.
+os.environ["RESULTS_DETAIL_ENABLED"] = "false"
 # CRITICAL SECRET ISOLATION: pin the Telegram secrets EMPTY. Pinning only the
 # ENABLE flag is not enough — a test that legitimately enables notifications
 # (planner tests set TELEGRAM_NOTIFICATIONS_ENABLED=true to exercise planning)

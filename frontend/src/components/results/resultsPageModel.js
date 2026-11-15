@@ -66,12 +66,30 @@ const STAT_LABELS = { points: "נקודות", Points: "נקודות", rebounds: 
   goals: "שערים", yellow_cards: "צהובים", red_cards: "אדומים", own_goals: "שערים עצמיים", minutes: "דקות", coach: "מאמן", rank: "דירוג",
   quarters: "רבעים", quarter_scores: "רבעים", q1: "רבע 1", q2: "רבע 2", q3: "רבע 3", q4: "רבע 4", Q1: "רבע 1", Q2: "רבע 2", Q3: "רבע 3", Q4: "רבע 4",
   steals: "חטיפות", Steals: "חטיפות", turnovers: "איבודים", Turnovers: "איבודים", blocks: "חסימות", BlocksFavour: "חסימות", fouls: "עבירות", FoulsCommited: "עבירות",
-  OffensiveRebounds: "ריבאונד התקפה", DefensiveRebounds: "ריבאונד הגנה", Plusminus: "פלוס/מינוס", Valuation: "מדד", xg: "שערים צפויים", attendance: "קהל" };
+  OffensiveRebounds: "ריבאונד התקפה", DefensiveRebounds: "ריבאונד הגנה", Plusminus: "פלוס/מינוס", Valuation: "מדד", xg: "שערים צפויים", attendance: "קהל",
+  offensiveRebounds: "ריבאונד התקפה", defensiveRebounds: "ריבאונד הגנה", totalRebounds: "ריבאונדים",
+  "fieldGoalsMade-fieldGoalsAttempted": "קליעות מהשדה / ניסיונות", fieldGoalPct: "אחוז מהשדה",
+  "threePointFieldGoalsMade-threePointFieldGoalsAttempted": "שלשות / ניסיונות", threePointFieldGoalPct: "אחוז לשלוש",
+  "freeThrowsMade-freeThrowsAttempted": "קליעות עונשין / ניסיונות", freeThrowPct: "אחוז מהעונשין",
+  FieldGoalsMade2: "קליעות לשתיים", FieldGoalsAttempted2: "ניסיונות לשתיים", FieldGoalsMade3: "שלשות", FieldGoalsAttempted3: "ניסיונות לשלוש",
+  FreeThrowsMade: "קליעות עונשין", FreeThrowsAttempted: "ניסיונות עונשין", BlocksAgainst: "זריקות שנחסמו", FoulsReceived: "עבירות שסחט",
+  FG: "קליעות מהשדה / ניסיונות", FT: "קליעות עונשין / ניסיונות", "3PT": "שלשות / ניסיונות", "+/-": "פלוס/מינוס", plus_minus: "פלוס/מינוס",
+  PTS: "נקודות", REB: "ריבאונדים", AST: "אסיסטים", STL: "חטיפות", BLK: "חסימות", TO: "איבודים", PF: "עבירות", MIN: "דקות", Minutes: "דקות",
+  OREB: "ריבאונד התקפה", DREB: "ריבאונד הגנה", rebounds_offensive: "ריבאונד התקפה", rebounds_defensive: "ריבאונד הגנה",
+  fg2_made: "קליעות לשתיים", fg2_missed: "החטאות לשתיים", fg3_made: "שלשות", fg3_missed: "החטאות לשלוש", ft_made: "קליעות עונשין", ft_missed: "החטאות עונשין",
+  bench_points: "נקודות ספסל", biggest_lead: "יתרון שיא", largestLead: "יתרון שיא", lead_changes: "חילופי יתרון", leadChanges: "חילופי יתרון", leadPercentage: "אחוז זמן ביתרון",
+  fastBreakPoints: "נקודות במתפרצת", pointsInPaint: "נקודות בצבע", pts_in_the_paint: "נקודות בצבע", pts_from_turnovers: "נקודות מאיבודים", turnoverPoints: "נקודות מאיבודים",
+  second_chance_pts: "נקודות מהזדמנות שנייה", times_tied: "מצבי שוויון", teamTurnovers: "איבודי קבוצה", totalTurnovers: "סך איבודים",
+  technicalFouls: "עבירות טכניות", totalTechnicalFouls: "סך עבירות טכניות", flagrantFouls: "עבירות בלתי ספורטיביות", starting_points: "נקודות חמישייה",
+  referees: "שופטים", rate: "מדד", Dorsal: "מספר חולצה", Team: "קבוצה", starter: "בחמישייה", IsStarter: "בחמישייה", IsPlaying: "משתתף" };
 export const statLabel = key => STAT_LABELS[key] || key.replace(/([a-z])([A-Z])/g, "$1 $2").replaceAll("_", " ");
 
 export function teamStatEntries(stats, prefix = "", depth = 0) {
   return Object.entries(stats || {}).flatMap(([key, value]) => {
-    if (value == null || typeof value === "boolean" || key === "standings_round") return [];
+    if (value == null || typeof value === "boolean" || key === "standings_round" || key === "rank") return [];
+    if (Array.isArray(value) && ["quarters", "quarter_scores"].includes(key)) {
+      return value.flatMap((score, index) => score == null ? [] : [[`רבע ${index + 1}`, score]]);
+    }
     const label = [prefix, statLabel(key)].filter(Boolean).join(" · ");
     if (typeof value === "object") return depth < 2 ? teamStatEntries(value, label, depth + 1) : [];
     return [[label, value]];

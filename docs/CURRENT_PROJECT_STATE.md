@@ -2,7 +2,9 @@
 
 **Last updated: 2026-11-15** (results backend from `main`: detail storage/providers, health,
 exact player mapping, separate player choices, enriched API and demo export guard, all
-activation defaults unchanged; frontend truth sweep on `ui/next` after #491–#505:
+activation defaults unchanged; grouped results/popup and coded alternatives #513,
+separate results player setting #524, demo statistics guard #526 and read-only ops
+provider health #538 on `ui/next`; frontend truth sweep after #491–#505:
 header, filters, merged preferences, cluster list, reader-only why line; Orbit cleanup
 #473. Runtime facts retain their dated verification: public read-only demo of guy's
 feed, #458, recorded live since 2026-11-11 from main; ONE enabled on 2026-11-01.
@@ -218,7 +220,8 @@ compact stream rows, a sticky side column and a results strip. The demo shares t
 shared story, queue and focus models and their tests now live under neutral names in
 `components/feed/`. Ops keeps its existing shell, base `:root` tokens, Heebo and logo.
 
-What the consumer UI does on `ui/next` after #491–#505 (verified against the code on 2026-11-14):
+What the consumer UI does on `ui/next` (results updated 2026-11-15;
+the #491–#505 shell verified against the code on 2026-11-14):
 
 - **Header (#491, #493, #499).** One navy sticky header (`shell/ProductHeader.jsx`): a large
   centred logo, the date and the tabs הפיד שלי · תוצאות · העדפות at the top of the page; on scroll it
@@ -236,9 +239,16 @@ What the consumer UI does on `ui/next` after #491–#505 (verified against the c
 - **Preferences (#492, #495, #500, #502).** One destination `/preferences/:tab?` with four tabs:
   מה אני עוקב · כיוונון · מה המערכת למדה · מושתק. `/interests` and `/calibration` redirect
   to it (`LegacyPreferencesRedirect`). The Ops rail keeps its own כיוונון link.
-- **Not finished (in progress in #504, not merged when this was written):** font loading, login,
-  signup and 404 following the chosen ground (they are always white), phone filter targets,
-  the account menu on dark/soft grounds, a flaky harness check.
+- **Results (#513, #524, #526, #538).** The private page groups today, upcoming
+  days ascending and past days descending, then sport and league. Compact rows
+  show finals/scheduled games, bracketed ranks, API scorers and explicit chosen
+  player lines; available finals open an accessible box-score dialog (phone
+  bottom sheet). Preferences → מה אני עוקב → שחקנים בתוצאות uses separate
+  session-owned choices and never changes feed affinities. Coded row/popup and
+  placement alternatives are in `lab.html?page=results` and `?page=resultsplayers`;
+  Guy retains those choices. The demo strip stays scores-only with a calibrated
+  statistics marker guard. Admin Sources shows the provider health block read-only
+  in the existing console style. These are `ui/next` code, not production activation.
 Milestone 15 (#461–#475) lands on `ui/next`; merging to main and deploying the demo still
 need the owner's approval (#475). This is a branch-code statement, not a deployment claim.
 [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) holds the engineering rules (Part A)

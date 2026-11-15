@@ -33,7 +33,7 @@ export default function ResultsLab() {
         <option value="ready">משחקים</option><option value="loading">טעינה</option><option value="error">שגיאה</option>
         <option value="preferences">ללא העדפות</option><option value="empty">אין משחקים</option><option value="unavailable">תוצאות ללא נתונים</option>
       </select></label>
-      <p>הבחירה כאן היא להדגמה. בשני סגנונות הפרטים מופיעים כגיליון תחתון בטלפון.</p>
+      <p>הבחירה כאן היא להדגמה. בשני הסגנונות פרטי המשחק מופיעים כגיליון תחתון בטלפון.</p>
     </div></div>
     <ResultsBoard key={`${state}-${popup}`} games={["empty", "loading"].includes(state) ? [] : state === "unavailable" ? games.map(g => ({ ...g, detailAvailable: false, leaders: [], chosenPlayerLines: [] })) : games}
       hasPreferences={state !== "preferences"} loading={state === "loading"} error={state === "error" ? "fixture failure" : null}

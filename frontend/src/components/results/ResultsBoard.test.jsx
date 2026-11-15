@@ -3,6 +3,7 @@ import { act, create } from "react-test-renderer";
 import { afterEach, expect, it, vi } from "vitest";
 import ResultsBoard from "./ResultsBoard";
 import GameDetailDialog from "./GameDetailDialog";
+import ResultRow from "./ResultRow";
 const game = { id: "g1", localDate: "2026-11-15", startTime: "2026-11-15T10:00:00Z", status: "final",
   sport: "basketball", competitionId: "comp:nba", competitionHe: "NBA", home: { name: "פורטלנד", score: 121, rank: 5, isWinner: true },
   away: { name: "סקרמנטו", score: 118, rank: 9 }, leaders: [{ side: "home", name: "דני אבדיה", value: 34, stat: "points" }],
@@ -16,6 +17,15 @@ it("shows ranks, scorers and quiet winner emphasis, without fabricating a chosen
   render(); const text = JSON.stringify(view.toJSON());
   for (const s of ["פורטלנד", "סקרמנטו", "[", "5", "34", "דני אבדיה"]) expect(text).toContain(s);
   expect(view.root.findAllByProps({ className: "sr-chosen-line" })).toHaveLength(0);
+});
+it("bounds the initial page and focuses the first newly revealed row", () => {
+  const focus = vi.fn();
+  act(() => { view = create(<ResultsBoard games={Array.from({ length: 41 }, (_, i) => ({ ...game, id: `g${String(i).padStart(2, "0")}` }))} hasPreferences getDetail={async () => ({})} />,
+    { createNodeMock: element => ({ focus: element.props["data-game-id"] === "g40" ? focus : () => {} }) }); });
+  expect(view.root.findAllByType(ResultRow)).toHaveLength(40);
+  act(() => view.root.findAllByType("button").find(b => b.props.children === "הצג משחקים נוספים").props.onClick());
+  expect(view.root.findAllByType(ResultRow)).toHaveLength(41);
+  expect(focus).toHaveBeenCalledTimes(1);
 });
 it.each([[{ loading: true, games: [] }, "טוען"], [{ error: "down" }, "לא הצלחנו לטעון את התוצאות"],
   [{ hasPreferences: false }, "עדיין לא בחרת"], [{ games: [] }, "אין משחקים להיום"]])("renders intentional state %j", (props, text) => {
@@ -51,4 +61,16 @@ it("dialog keeps close available through loading and a retryable detail failure"
   expect(JSON.stringify(view.toJSON())).toContain("לא הצלחנו לטעון את פרטי המשחק");
   await act(async () => view.root.findAllByType("button").find(b => b.props.children === "נסה שוב").props.onClick());
   expect(getDetail).toHaveBeenCalledTimes(2);
+});
+it("explicitly wraps Tab and Shift+Tab between the first and last modal controls", async () => {
+  const first = { focus: vi.fn() }, last = { focus: vi.fn() };
+  await act(async () => { view = create(<GameDetailDialog game={game} onClose={() => {}} getDetail={async () => ({ players: [], team_stats: {} })} />,
+    { createNodeMock: element => element.type === "dialog" ? { showModal() {}, close() {} }
+      : element.type === "summary" ? last : first }); });
+  first.focus.mockClear();
+  const preventDefault = vi.fn();
+  act(() => view.root.findByType("dialog").props.onKeyDown({ key: "Tab", shiftKey: true, target: first, preventDefault }));
+  expect(last.focus).toHaveBeenCalledTimes(1);
+  act(() => view.root.findByType("dialog").props.onKeyDown({ key: "Tab", shiftKey: false, target: last, preventDefault }));
+  expect(first.focus).toHaveBeenCalledTimes(1); expect(preventDefault).toHaveBeenCalledTimes(2);
 });

@@ -1,9 +1,15 @@
 import { expect, it } from "vitest";
-import { groupResults, chosenLineText, pageState } from "./resultsPageModel";
+import { groupResults, chosenLineText, pageState, teamStatEntries } from "./resultsPageModel";
 import { normalizeResultFromApi } from "./resultsModel";
 const now = new Date("2026-11-15T12:00:00Z");
 const game = (id, date, more = {}) => ({ id, localDate: date, startTime: date ? `${date}T10:00:00Z` : null,
   status: "final", sport: "basketball", competitionId: "comp:nba", competitionHe: "NBA", ...more });
+it("keeps standings ranks only in team-name brackets, out of the extra-stat table", () => {
+  expect(teamStatEntries({ rank: 5, rebounds: 40 })).toEqual([["ריבאונדים", 40]]);
+});
+it("labels zero-indexed source quarter arrays as quarters one through four in the popup", () => {
+  expect(teamStatEntries({ quarters: [25, 28] })).toEqual([["רבע 1", 25], ["רבע 2", 28]]);
+});
 it("orders today, ascending upcoming days, descending past days and undated last", () => {
   const groups = groupResults([game("old", "2026-11-13"), game("tomorrow", "2026-11-16", { status: "scheduled" }),
     game("today", "2026-11-15"), game("later", "2026-11-17", { status: "scheduled" }),

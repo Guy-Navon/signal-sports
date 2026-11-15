@@ -1,6 +1,7 @@
 # Signal Sports — Frontend Design System
 
-Last updated: 2026-11-15 (#538 results health in the existing ops surface;
+Last updated: 2026-11-15 (#513 grouped results, private popup and coded alternatives;
+#524 separate player choices; #526 demo statistics guard; #538 results health in the existing ops surface;
 #491 navigation, #473 cleanup; first written 2026-11-13, #461).
 This file has two parts:
 
@@ -228,6 +229,12 @@ header when the feed was ready (the old flake). A production build has none (0 i
 3–4 in 15 under dev). Only CSS transitions of exactly 0.01ms are waited out, for at most 120 frames;
 anything still running after that, fallback or not, fails as before.
 The harness keeps every existing browser assertion through the #473 rename to `capture:ui`.
+The #513 extension (`scripts/capture-results.mjs`) uses the real results board and
+saved-provider lab fixtures at 1440/390/320: every scorer, the chosen-player line,
+no inline quarters, RTL, overflow, 44px targets, Enter, modal Tab/Shift+Tab, Escape
+and opener restoration. It checks both row layouts and popup styles, intentional
+states, soft/dark grounds, local-only player search/add/remove/save, and the actual
+read-only ops health renderer. Existing feed assertions remain in place.
 
 **Demo bundle guard.** `npm run build`, `npm run build:demo`, then `npm run check:demo-bundle`.
 It fails if the demo bundle holds the API client, router, auth, app provider, a non-feed page
@@ -739,7 +746,26 @@ new stories.
   their own `.signal-ui` scope, so they match the ground (re-verified on all three in #504).
 - **Preferences, interests, calibration** (#470): the same tokens and type. Calibration headline
   cards read like stream rows, so the user rates what they will see. No behaviour change.
-- **Results page** (#471): shares the strip's game row where possible.
+- **Results page (#513, 2026-11-15):** a compact private board, separate from the
+  scores-only strip. Dates are today, future days ascending, past days descending,
+  then undated; inside each date: sport, then league. Only finals and scheduled
+  games render. The default two-line row shows each team with its rank in brackets,
+  score (or local start time), every API-supplied scorer and only explicit results
+  choices' player lines. The server owns relevance, names, leaders and choices;
+  the page adds none. Winners use weight only; draws emphasize neither side.
+  Forty rows mount initially; "הצג משחקים נוספים" reveals forty and focuses the
+  first new row. Loading, retryable error, no-preferences CTA, no games today and
+  scores-only source-unavailable states have explicit copy.
+  Enter or click on an available final opens a native modal with box scores,
+  extra native player/team stats, venue and attendance. Ranks remain in name
+  brackets. Focus starts on the 44px close button, wraps in both directions,
+  Escape closes the dialog before restoring its opener, and body scrolling is
+  locked until close. On phones both popup styles are bottom sheets; wide tables
+  scroll inside their labelled keyboard-focusable regions, never the page.
+  `lab.html?page=results` codes the default and a one-line row alternative, plus
+  a desktop side-panel alternative (`&layout=one-line&popup=side`). Saved real
+  provider fixtures are documented in `frontend/src/lab/RESULTS_FIXTURES.md`;
+  labs make no user-API requests. Guy retains the final design choice (#513).
 - **Account, auth, welcome, 404** (#472) and the **public demo** (#469): the new shell and
   feed. The demo stays feed-only and read-only.
 - **Images** (#474): open owner decision, ingestion work before design work. Every layout here

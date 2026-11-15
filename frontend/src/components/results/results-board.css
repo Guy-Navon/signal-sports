@@ -63,7 +63,7 @@ button.sr-row:hover, button.sr-row:focus-visible { background: var(--sg-tint); }
   .sr-row--one-line .sr-side { grid-template-columns: minmax(0, 1fr); }
   .sr-row--one-line .sr-leaders { padding: 0; }
   .sr-row--one-line .sr-score { text-align: start; }
-  .sr-dialog { margin-block-start: auto; margin-block-end: 0; margin-inline: auto; inline-size: 100%; max-block-size: 90dvh; border-end-start-radius: 0; border-end-end-radius: 0; border-start-start-radius: 16px; border-start-end-radius: 16px; }
+  .sr-dialog { margin-block-start: auto; margin-block-end: 0; margin-inline: 0; inline-size: 100%; max-inline-size: 100%; max-block-size: 90dvh; border-end-start-radius: 0; border-end-end-radius: 0; border-start-start-radius: 16px; border-start-end-radius: 16px; }
   .sr-dialog-head, .sr-dialog-body, .sr-dialog > .sr-message { padding-inline: 14px; }
   .sr-native-player dl, .sr-team-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

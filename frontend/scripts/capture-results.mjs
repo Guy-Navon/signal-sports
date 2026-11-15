@@ -17,6 +17,7 @@ export async function auditResultsPages({ client, origin, configureViewport, eva
   }
   async function load(url, selector) {
     await client.send("Page.navigate", { url: `${origin}${url}` });
+    await client.send("Page.bringToFront");
     try { await waitFor(`document.querySelector(${JSON.stringify(selector)})`); }
     catch (error) {
       await capture(client, path.join(outputDirectory, "results-load-failure.png"));
@@ -25,7 +26,10 @@ export async function auditResultsPages({ client, origin, configureViewport, eva
     }
   }
   async function key(name, code, modifiers = 0) {
-    for (const type of ["keyDown", "keyUp"]) await client.send("Input.dispatchKeyEvent", { type, key: name, code: name, windowsVirtualKeyCode: code, nativeVirtualKeyCode: code, modifiers });
+    for (const type of ["keyDown", "keyUp"]) await client.send("Input.dispatchKeyEvent", {
+      type, key: name, code: name, windowsVirtualKeyCode: code, nativeVirtualKeyCode: code, modifiers,
+      ...(type === "keyDown" && name === "Enter" ? { text: "\r", unmodifiedText: "\r" } : {}),
+    });
   }
   async function layout(label) {
     const value = await evaluate(client, `(() => ({ width:document.documentElement.clientWidth, scroll:document.documentElement.scrollWidth, rtl:document.documentElement.dir,
@@ -45,12 +49,13 @@ export async function auditResultsPages({ client, origin, configureViewport, eva
   }
   const rowSelector = `[data-game-id="${nba.id}"]`;
   async function openAndReview(label, width, style) {
+    await evaluate(client, `(() => { window.__resultsKeys=[]; for(const type of ['keydown','keyup','click']) document.addEventListener(type,e=>window.__resultsKeys.push({type,key:e.key,target:e.target.tagName,label:e.target.getAttribute('aria-label'),game:e.target.dataset.gameId,trusted:e.isTrusted}),{capture:true}); })()`);
     await evaluate(client, `(() => {const row=document.querySelector(${JSON.stringify(rowSelector)}); row.scrollIntoView({block:'center',behavior:'instant'}); row.focus();})()`);
     await key("Enter", 13);
     try { await waitFor(`document.querySelector('.sr-dialog[open] .sr-box-side')`); }
     catch (error) {
       await capture(client, path.join(outputDirectory, "results-popup-failure.png"));
-      const diagnostic = await evaluate(client, `({active:document.activeElement?.outerHTML.slice(0,1200),dialog:document.querySelector('dialog')?.outerHTML.slice(0,3000),text:document.body.innerText.slice(-3000)})`);
+      const diagnostic = await evaluate(client, `({focus:document.hasFocus(),events:window.__resultsKeys,active:document.activeElement?.outerHTML.slice(0,1200),dialog:document.querySelector('dialog')?.outerHTML.slice(0,3000),text:document.body.innerText.slice(-3000)})`);
       throw new Error(`${error.message}: ${JSON.stringify(diagnostic)}`);
     }
     const info = await evaluate(client, `(() => {const d=document.querySelector('.sr-dialog[open]'),r=d.getBoundingClientRect(),b=d.querySelector('button').getBoundingClientRect();return {
@@ -64,7 +69,10 @@ export async function auditResultsPages({ client, origin, configureViewport, eva
     assert.ok(info.button.every(n => n >= 44), `${label}: close target >=44`);
     assert.ok(info.scroll <= info.viewport[0], `${label}: dialog page overflow`);
     assert.ok(info.text.includes("דני אבדיה") && info.text.includes("34") && info.text.includes("11-13"), `${label}: actual full player stats`);
-    if (width < 700) assert.ok(Math.abs(info.box[4] - info.viewport[1]) <= 2, `${label}: bottom sheet`);
+    if (width < 700) {
+      assert.ok(Math.abs(info.box[4] - info.viewport[1]) <= 2, `${label}: bottom sheet`);
+      assert.ok(Math.abs(info.box[2] - info.viewport[0]) <= 2, `${label}: sheet spans phone width ${info.box[2]}/${info.viewport[0]}`);
+    }
     if (width >= 700 && style === "side") assert.ok(Math.abs(info.box[3] - info.viewport[1]) <= 2, `${label}: full-height side panel`);
     await key("Tab", 9, 8);
     for (let n = 0; n < 12; n += 1) {
@@ -145,7 +153,7 @@ async function auditAdminHealth({ client, origin, configureViewport, evaluate, c
       competitions: [{ competition_id: "comp:euroleague", serving: "thesportsdb", reason: "stale", freshness: { euroleague: { age_hours: 7.5, last_status: "error" }, thesportsdb: { age_hours: .4, last_status: "ok" } } }],
     } }));
   } finally { await server.close(); }
-  const directory = await mkdtemp(path.join(frontend, "health-review-"));
+  const directory = await mkdtemp(path.join(frontend, "results-health-review-"));
   try {
     await writeFile(path.join(directory, "index.html"), `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script type="module">import "/src/index.css";</script></head><body><main style="max-inline-size:900px;margin-inline:auto;padding:16px"><h1>בריאות מקורות התוצאות</h1>${markup}</main></body></html>`);
     for (const [width, height] of [[1440, 1000], [390, 844], [320, 640]]) {
@@ -158,7 +166,7 @@ async function auditAdminHealth({ client, origin, configureViewport, evaluate, c
   } finally {
     // This exact temporary directory is owned by this run, inside this worktree.
     assert.equal(path.dirname(path.resolve(directory)), frontend);
-    assert.ok(path.basename(directory).startsWith("health-review-"));
+    assert.ok(path.basename(directory).startsWith("results-health-review-"));
     await rm(directory, { recursive: true, force: true });
   }
 }

@@ -86,6 +86,8 @@ competition listed twice raises `ValueError`; nothing is dropped silently. One p
 raising does not lose the others (its competitions get the exception class name in
 `errors`).
 
+**Read rule (#532).** Reads show, per competition, only rows whose `provider` equals the provider that competition is currently routed to (the route, else `RESULTS_PROVIDER`): `providers.active_provider_for(competition_id)` / `active_provider_map()`, applied in `game_result_repository.list_games(active_providers=...)` by `results.service.personalized_results` (consumer and admin view-as share it). Older rows of the same games from a previous provider are not shown as duplicates; nothing is deleted, and switching a route back shows them again. Detail lookups use only the ids that pass. With no routes every row belongs to the default provider, so output is unchanged. A bad route config on the read path logs a warning and falls back to the default provider instead of failing. The demo exporter does not read results.
+
 **Rate limits are per provider.** A 429 puts only that provider's competitions in
 `not_checked`; the others sync. The block is stored in the sync summary as
 `rate_limited_until_by_provider` (`{name: ISO time}`); `rate_limited_until` stays as the
@@ -243,7 +245,7 @@ way by `create_all`.
   (skips if the last attempt is newer), failure-degrading the cycle like the
   notification/retention stages (never blocks ingestion, its own session); and
   (b) via the manual admin `POST /api/results/sync` (bypasses the throttle, not the
-  lease or a provider block; blocks are per provider, ง3).
+  lease or a provider block; blocks are per provider, ยง3).
 
 ## 6. API
 

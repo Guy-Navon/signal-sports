@@ -32,7 +32,7 @@ describe("normalizeResultFromApi", () => {
     expect(g.startTime).toBe("2026-04-10T02:00:00+00:00");
     expect(g.home).toEqual({
       id: "team:portland_blazers", name: "פורטלנד",
-      nameProvider: "Portland", score: 110, isWinner: true,
+      nameProvider: "Portland", score: 110, isWinner: true, rank: null,
     });
     expect(g.away.isWinner).toBe(false);
     expect(g.winner).toBe("home");

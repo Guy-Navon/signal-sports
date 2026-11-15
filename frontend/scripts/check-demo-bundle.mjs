@@ -25,7 +25,7 @@
 
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const frontendDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -52,6 +52,7 @@ const FORBIDDEN = [
   // Pages other than the feed (titles from src/pages/*.jsx).
   ["Preferences page", /נושאים מושתקים/],
   ["Results page", /לא הצלחנו לטעון את התוצאות/],
+  ["results statistics UI", /private-results-statistics/],
   ["Calibration page", /כיול העדפות/],
   ["Login page", /החדר האישי/],
   ["Debug page", /פאנל דיבאג/],
@@ -85,18 +86,8 @@ function hits(files, pattern) {
   return files.filter((file) => pattern.test(file.text)).map((file) => file.name);
 }
 
-async function main() {
+export function checkBundleMarkers(demo, app) {
   const problems = [];
-  let demo;
-  let app;
-  try {
-    demo = await readBundle("dist-demo");
-    app = await readBundle("dist");
-  } catch (error) {
-    console.error(`check-demo-bundle: ${error.message}`);
-    return 1;
-  }
-
   for (const [label, pattern] of [...FORBIDDEN, ...FORBIDDEN_UNCALIBRATED]) {
     const found = hits(demo, pattern);
     if (found.length > 0) {
@@ -107,6 +98,19 @@ async function main() {
     if (hits(app, pattern).length === 0) {
       problems.push(`STALE marker: ${label} (${pattern}) no longer matches the main bundle; update it`);
     }
+  }
+  return problems;
+}
+
+async function main() {
+  let problems;
+  let demo;
+  try {
+    demo = await readBundle("dist-demo");
+    problems = checkBundleMarkers(demo, await readBundle("dist"));
+  } catch (error) {
+    console.error(`check-demo-bundle: ${error.message}`);
+    return 1;
   }
 
   if (problems.length > 0) {
@@ -123,4 +127,6 @@ async function main() {
   return 0;
 }
 
-process.exitCode = await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  process.exitCode = await main();
+}

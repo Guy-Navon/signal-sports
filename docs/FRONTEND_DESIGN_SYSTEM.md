@@ -1,6 +1,7 @@
 # Signal Sports — Frontend Design System
 
-Last updated: 2026-11-14 (#491 navigation, #473 cleanup; first written 2026-11-13, #461).
+Last updated: 2026-11-15 (#538 results health in the existing ops surface;
+#491 navigation, #473 cleanup; first written 2026-11-13, #461).
 This file has two parts:
 
 - **Part A: engineering and accessibility rules.** These hold for any consumer UI, the one on
@@ -47,6 +48,11 @@ deep reference. Read it before adding any consumer UI.
   has migrated, so no migration allowlist remains. The unused compatibility branches in
   `ProductShell.jsx` / `shell.css` remain for the separate navigation work (#491).
   Never redefine a shared token to style one surface.
+  The read-only results-health panel (#538) on `/sources` uses the existing
+  `SectionCard` and `consoleStyles.js` recipes. It fetches the admin sync-state GET
+  only for an admin in backend mode, showing provider failures/blocks and each
+  competition's serving source/reason/freshness. Loading, failure with retry and
+  never-synced states are explicit. It adds no source controls or restyling.
 - **Changing the look never changes what the user sees.** Exposure rules, engine decisions,
   ranking and filter behaviour are not touched to make a screen look fuller.
 

@@ -59,6 +59,14 @@ export function getMeResults() {
   return apiFetch("/api/me/results");
 }
 
+export function getMeResultsGameDetail(gameId) {
+  return apiFetch(`/api/me/results/games/${encodeURIComponent(gameId)}/detail`);
+}
+
+export function getResultsGameDetail(userId, gameId) {
+  return apiFetch(`/api/results/${encodeURIComponent(userId)}/games/${encodeURIComponent(gameId)}/detail`);
+}
+
 export function getResults(userId) {
   return apiFetch(`/api/results/${encodeURIComponent(userId)}`);
 }

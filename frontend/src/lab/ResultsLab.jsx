@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import ResultsBoard from "@/components/results/ResultsBoard";
 import { normalizeResultsResponse } from "@/components/results/resultsModel";
 import SignalWordmark from "@/components/signal-ui/SignalWordmark";
+import { useGround } from "@/components/signal-ui/useGround";
 import fixture from "./resultsFixtures.json";
 import "./results-lab.css";
 
@@ -16,11 +17,12 @@ function chooseParam(name, value) {
 }
 
 export default function ResultsLab() {
+  const { ground } = useGround();
   const params = new URLSearchParams(window.location.search);
   const [layout, setLayout] = useState(params.get("layout") === "one-line" ? "one-line" : "two-line");
   const [popup, setPopup] = useState(params.get("popup") === "side" ? "side" : "dialog");
   const [state, setState] = useState(params.get("state") || "ready");
-  return <main className="signal-ui sr-results-lab">
+  return <main className="signal-ui sr-results-lab" data-ground={ground}>
     <header className="sr-lab-head"><div className="sg-container"><SignalWordmark /><p>מעבדת תוצאות · נתוני המקורות השמורים</p></div></header>
     <div className="sg-gutter"><div className="sg-container sr-lab-controls">
       <div role="group" aria-label="סגנון שורת משחק">{[["two-line", "שתי שורות · ברירת מחדל"], ["one-line", "שורה אחת · חלופה"]].map(([id, label]) =>

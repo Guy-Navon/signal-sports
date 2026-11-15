@@ -12,7 +12,7 @@ export default function ResultsBoard({ games = [], hasPreferences = false, loadi
   const opener = useRef(null), heading = useRef(null), rows = useRef(new Map());
   const pendingFocus = useRef(null);
   useEffect(() => {
-    if (pendingFocus.current) rows.current.get(pendingFocus.current)?.focus({ preventScroll: true });
+    if (pendingFocus.current) rows.current.get(pendingFocus.current)?.focus();
     pendingFocus.current = null;
   }, [count]);
   const state = pageState({ loading, error, hasPreferences, games });

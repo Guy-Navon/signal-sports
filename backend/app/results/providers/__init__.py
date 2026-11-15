@@ -36,6 +36,11 @@ def _espn_nba():
     return ESPNNBAProvider()
 
 
+def _bamboo():
+    from app.results.providers.bamboo import BambooFootballProvider
+    return BambooFootballProvider()
+
+
 # Provider name -> constructor. Adding a provider is one line here.
 REGISTRY: dict[str, Callable[[], ResultsProvider]] = {
     "fake": _fake,
@@ -43,6 +48,7 @@ REGISTRY: dict[str, Callable[[], ResultsProvider]] = {
     "winner": _winner,
     "euroleague": _euroleague,
     "espn_nba": _espn_nba,
+    "bamboo": _bamboo,
 }
 
 

@@ -1,0 +1,20 @@
+{
+  "data": {
+    "561189": {
+      "id": 561189,
+      "name": "Youssouf Sissokho",
+      "firstName": "איסוף",
+      "lastName": "סיסוקו",
+      "shirtNumber": "28",
+      "position": "mid-fielder",
+      "teamId": {
+        "id": 4536,
+        "name": "Maccabi Tel Aviv",
+        "hebrewName": "מכבי ת\"א"
+      }
+    }
+  },
+  "meta": {
+    "total": 1
+  }
+}

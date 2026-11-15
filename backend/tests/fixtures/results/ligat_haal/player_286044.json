@@ -1,0 +1,20 @@
+{
+  "data": {
+    "286044": {
+      "id": 286044,
+      "name": "Sagiv Jehezkel",
+      "firstName": "שגיב",
+      "lastName": "יחזקאל",
+      "shirtNumber": "11",
+      "position": "mid-fielder",
+      "teamId": {
+        "id": 4536,
+        "name": "Maccabi Tel Aviv",
+        "hebrewName": "מכבי ת\"א"
+      }
+    }
+  },
+  "meta": {
+    "total": 1
+  }
+}

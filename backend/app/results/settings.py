@@ -104,6 +104,15 @@ def winner_min_interval_seconds() -> float:
         return 2.0
 
 
+def bamboo_min_interval_seconds() -> float:
+    """Courtesy pacing for all Bamboo football requests (#521), including retries."""
+    try:
+        v = float(os.environ.get("RESULTS_BAMBOO_MIN_INTERVAL_SECONDS", "2"))
+        return v if v >= 0 and v < float("inf") else 2.0
+    except ValueError:
+        return 2.0
+
+
 def http_max_retries() -> int:
     return _int("RESULTS_HTTP_MAX_RETRIES", 2, minimum=0)
 

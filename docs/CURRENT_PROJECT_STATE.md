@@ -100,7 +100,7 @@ through a Windows scheduled task. Not deployed or scheduled yet (owner steps).
 | Relevance | `app/services/preference_engine.py` (v2, default), `relevance_engine.py` (visibility tiers; the legacy engine is the rollback path) |
 | Clustering | `app/clustering/` (deterministic; no LLM or embeddings) |
 | Notifications | `app/notifications/` (planner, outbox, dispatcher, Telegram) |
-| Results | `app/results/` (TheSportsDB provider + fake) |
+| Results | `app/results/` (TheSportsDB default; opt-in Winner, EuroLeague/EuroCup and Bamboo football providers, plus fake; [contract and activation](RESULTS.md)) |
 | QA tooling | `app/qa/`, `backend/scripts/` (gate, census, rerun-diff, probes, reviewed correction scripts) |
 
 ---

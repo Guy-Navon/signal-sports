@@ -1,0 +1,178 @@
+{
+  "data": {
+    "310734": {
+      "id": 310734,
+      "status": 3,
+      "homeTeamId": 15006,
+      "awayTeamId": 4563,
+      "stadiumId": 8529,
+      "league": 902,
+      "round": 1,
+      "stage": "RegularSeason",
+      "homeScore": 2,
+      "awayScore": 1,
+      "date": {
+        "sec": 1787418000,
+        "usec": 0
+      },
+      "stringDate": "22.08.26 - 24.08.26",
+      "currentMinute": 94,
+      "season": "26/27"
+    },
+    "310733": {
+      "id": 310733,
+      "status": 3,
+      "homeTeamId": 12039,
+      "awayTeamId": 4542,
+      "stadiumId": 8679,
+      "league": 902,
+      "round": 1,
+      "stage": "RegularSeason",
+      "homeScore": 1,
+      "awayScore": 0,
+      "date": {
+        "sec": 1787418000,
+        "usec": 0
+      },
+      "stringDate": "22.08.26 - 24.08.26",
+      "currentMinute": 95,
+      "season": "26/27"
+    },
+    "310731": {
+      "id": 310731,
+      "status": 3,
+      "homeTeamId": 4539,
+      "awayTeamId": 4551,
+      "stadiumId": 7284,
+      "league": 902,
+      "round": 1,
+      "stage": "RegularSeason",
+      "homeScore": 2,
+      "awayScore": 1,
+      "date": {
+        "sec": 1787419800,
+        "usec": 0
+      },
+      "stringDate": "22.08.26 - 24.08.26",
+      "currentMinute": 97,
+      "season": "26/27"
+    },
+    "310735": {
+      "id": 310735,
+      "status": 3,
+      "homeTeamId": 7020,
+      "awayTeamId": 4536,
+      "stadiumId": 67428,
+      "league": 902,
+      "round": 1,
+      "stage": "RegularSeason",
+      "homeScore": 2,
+      "awayScore": 5,
+      "date": {
+        "sec": 1787505300,
+        "usec": 0
+      },
+      "stringDate": "23.08.26 - 25.08.26",
+      "currentMinute": 95,
+      "season": "26/27"
+    },
+    "310730": {
+      "id": 310730,
+      "status": 3,
+      "homeTeamId": 4545,
+      "awayTeamId": 15960,
+      "stadiumId": 4608,
+      "league": 902,
+      "round": 1,
+      "stage": "RegularSeason",
+      "homeScore": 0,
+      "awayScore": 0,
+      "date": {
+        "sec": 1787590800,
+        "usec": 0
+      },
+      "stringDate": "24.08.26 - 26.08.26",
+      "currentMinute": 93,
+      "season": "26/27"
+    },
+    "310732": {
+      "id": 310732,
+      "status": 3,
+      "homeTeamId": 4554,
+      "awayTeamId": 14316,
+      "stadiumId": 11556,
+      "league": 902,
+      "round": 1,
+      "stage": "RegularSeason",
+      "homeScore": 2,
+      "awayScore": 2,
+      "date": {
+        "sec": 1788368400,
+        "usec": 0
+      },
+      "stringDate": "02.09.26 - 04.09.26",
+      "currentMinute": 96,
+      "season": "26/27"
+    },
+    "310729": {
+      "id": 310729,
+      "status": 3,
+      "homeTeamId": 4530,
+      "awayTeamId": 4524,
+      "stadiumId": 1536,
+      "league": 902,
+      "round": 1,
+      "stage": "RegularSeason",
+      "homeScore": 3,
+      "awayScore": 0,
+      "date": {
+        "sec": 1788456600,
+        "usec": 0
+      },
+      "stringDate": "03.09.26 - 05.09.26",
+      "currentMinute": 93,
+      "season": "26/27"
+    },
+    "310793": {
+      "id": 310793,
+      "status": 3,
+      "homeTeamId": 4536,
+      "awayTeamId": 15006,
+      "stadiumId": 1536,
+      "league": 902,
+      "round": 10,
+      "stage": "RegularSeason",
+      "homeScore": 2,
+      "awayScore": 2,
+      "date": {
+        "sec": 1793966400,
+        "usec": 0
+      },
+      "stringDate": "06.11.26 - 08.11.26",
+      "currentMinute": 97,
+      "season": "26/27"
+    },
+    "310803": {
+      "id": 310803,
+      "status": null,
+      "homeTeamId": 15006,
+      "awayTeamId": 4530,
+      "stadiumId": 8529,
+      "league": 902,
+      "round": 11,
+      "stage": "RegularSeason",
+      "homeScore": null,
+      "awayScore": null,
+      "date": {
+        "sec": 1795780800,
+        "usec": 0
+      },
+      "stringDate": "27.11.26 - 29.11.26",
+      "currentMinute": null,
+      "season": "26/27"
+    }
+  },
+  "meta": {
+    "total": 9
+  }
+}

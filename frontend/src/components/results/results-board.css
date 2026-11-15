@@ -29,7 +29,8 @@ button.sr-tile:hover { border-color: var(--sg-acc); }
 .sr-tile__pts { font-size: 30px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
 .sr-tile__side[data-winner] { color: var(--sg-ink); }
 .sr-tile__side[data-winner] .sr-tile__name, .sr-tile__side[data-winner] .sr-tile__pts { font-weight: 800; }
-.sr-rank { margin-inline-start: 5px; color: var(--sg-dim); font-size: 13px; font-weight: 600; }
+.sr-tile__team { display: flex; align-items: center; min-inline-size: 0; }
+.sr-rank { flex: none; margin-inline-start: 5px; color: var(--sg-dim); font-size: 13px; font-weight: 600; }
 .sr-chosen { padding: 6px 9px; border-radius: 8px; background: var(--sg-tint); font-size: 13.5px; font-weight: 600; }
 .sr-chosen b { margin-inline-end: 6px; color: var(--sg-acc); font-weight: 800; }
 .sr-tile__leaders { padding-block-start: 8px; border-block-start: 1px solid var(--sg-line); color: var(--sg-dim); font-size: 13px; }

@@ -1,5 +1,6 @@
 import React from "react";
 import { FollowDot } from "./ResultRow";
+import Rank from "./Rank";
 import { chosenLineText } from "./resultsPageModel";
 import { leadersText } from "./resultsLayoutModel";
 import { shortTeamName } from "./resultsTeamNames";
@@ -18,8 +19,8 @@ export default function ResultTile({ entry, followed, dayLabel, onOpen, tileRef 
     <span className="sr-tile__meta"><span><bdi dir="auto">{game.competitionHe}</bdi> · {dayLabel}</span>
       {verdict && <span className="sr-verdict" data-kind={verdict.kind}>{verdict.label}</span>}</span>
     {["home", "away"].map(key => <span key={key} className="sr-tile__side" data-winner={winner === key || undefined}>
-      <span className="sr-tile__name">{followed.has(game[key].id) && <FollowDot />}<bdi dir="auto">{shortTeamName(game[key])}</bdi>
-        {game[key].rank != null && <span className="sr-rank" dir="ltr">[{game[key].rank}]</span>}</span>
+      <span className="sr-tile__team"><span className="sr-tile__name">{followed.has(game[key].id) && <FollowDot />}<bdi dir="auto">{shortTeamName(game[key])}</bdi></span>
+        <Rank value={game[key].rank} /></span>
       <span className="sr-tile__pts" dir="ltr">{game[key].score ?? "—"}</span>
     </span>)}
     {chosen && chosenLineText({ stats: chosen.stats }, game.sport) &&

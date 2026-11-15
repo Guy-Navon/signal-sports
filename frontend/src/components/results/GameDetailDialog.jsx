@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import { RESULTS_STATS_MARKER } from "./resultsStatsBoundary";
 import { boxScore, footballEvents, periodTable, popupHeader, scoreboard, teamFacts } from "./resultsPopupModel";
+import Rank from "./Rank";
 
 const COLUMN_LABELS = { min: "דק׳", pts: "נק׳", reb: "ריב׳", ast: "אס׳", fg2: "2 נק׳", fg3: "3 נק׳", ft: "עונשין", pm: "+/-" };
 const FOCUSABLE = 'button:not([disabled]), a[href], summary, [tabindex="0"]';
@@ -13,7 +14,7 @@ const cell = (row, col) => {
 function Scoreboard({ game }) {
   const board = scoreboard(game);
   const side = (key) => <div className="sr-board-team" data-winner={board.winner === key || undefined}>
-    <span className="sr-board-team__name"><bdi dir="auto">{board[key].name}</bdi>{game[key].rank != null && <span className="sr-rank" dir="ltr"> [{game[key].rank}]</span>}</span>
+    <span className="sr-board-team__name"><bdi dir="auto">{board[key].name}</bdi><Rank value={game[key].rank} /></span>
     {board[key].top && <span className="sr-board-team__top"><bdi dir="auto">{board[key].top}</bdi></span>}
   </div>;
   return <div className="sr-scoreboard">
@@ -42,10 +43,9 @@ function Facts({ facts, game }) {
     <dd><span><span className="sr-vh">{game.home.name} </span>{fact.home}</span><span><span className="sr-vh">{game.away.name} </span>{fact.away}</span></dd></div>)}</dl>;
 }
 
-function BoxScore({ box, game, side, labelledBy }) {
-  const name = game[side].name;
+function BoxScore({ box, labelledBy }) {
   if (!box.groups.length) return <p className="sr-note">אין נתוני שחקנים למשחק הזה.</p>;
-  return <div className="sr-box-scroll" tabIndex={0} role="region" aria-label={`נתוני שחקנים ${name}`}>
+  return <div className="sr-box-scroll" tabIndex={0}>
     <table className="sr-box-table" aria-labelledby={labelledBy}>
       <thead><tr><th scope="col" className="sr-p">שחקן</th>{box.columns.map(col => <th key={col} scope="col">{COLUMN_LABELS[col]}</th>)}</tr></thead>
       {box.groups.map(group => <tbody key={group.key}>
@@ -133,7 +133,7 @@ export default function GameDetailDialog({ game, getDetail, onClose }) {
         {basketball && <>
           <Tabs game={game} active={side} onPick={setSide} tabRefs={tabRefs} baseId={baseId} />
           <div id={`${baseId}-panel`} role="tabpanel" aria-labelledby={`${baseId}-${side}`}>
-            <BoxScore box={box} game={game} side={side} labelledBy={`${baseId}-${side}`} />
+            <BoxScore box={box} labelledBy={`${baseId}-${side}`} />
           </div>
         </>}
         {football && <FootballEvents events={footballEvents(detail)} game={game} />}

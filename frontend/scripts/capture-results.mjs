@@ -122,7 +122,7 @@ export async function auditResultsPages({ client, origin, configureViewport, eva
       top:[...d.querySelectorAll('tr[data-top] th')].map(t=>t.textContent), topBg:getComputedStyle(d.querySelector('tr[data-top] td')).backgroundColor,
       tint:(()=>{const p=document.createElement('i');p.style.background='var(--sg-tint)';document.querySelector('.sr-dialog').append(p);const c=getComputedStyle(p).backgroundColor;p.remove();return c;})(),
       headers:[...d.querySelectorAll('.sr-box-table thead th')].map(t=>t.textContent), groups:[...d.querySelectorAll('.sr-box-grp th')].map(t=>t.textContent),
-      pcolPos:pcol&&getComputedStyle(pcol).position, scrollerFocusable:scroller&&scroller.tabIndex===0&&scroller.getAttribute('role')==='region',
+      pcolPos:pcol&&getComputedStyle(pcol).position, scrollerFocusable:scroller&&scroller.tabIndex===0&&!scroller.closest('[role=tabpanel]').querySelector('[role=region]'),
       scrollerScrolls:scroller&&scroller.scrollWidth>scroller.clientWidth, source:d.querySelector('.sr-source')?.textContent,
       drawnFont:getComputedStyle(d).fontFamily, bg:getComputedStyle(d).backgroundColor, card:getComputedStyle(document.querySelector('.signal-ui')).getPropertyValue('--sg-card').trim()
     };})()`);
@@ -141,7 +141,7 @@ export async function auditResultsPages({ client, origin, configureViewport, eva
     assert.equal(info.topBg, info.tint, `${label}: top scorer on --sg-tint`);
     for (const h of ["שחקן", "דק׳", "נק׳", "ריב׳", "אס׳", "2 נק׳", "3 נק׳", "עונשין", "+/-"]) assert.ok(info.headers.includes(h), `${label}: column ${h} in ${info.headers}`);
     assert.deepEqual(info.groups, ["חמישייה", "ספסל"], `${label}: starters and bench`);
-    assert.ok(info.scrollerFocusable, `${label}: keyboard focusable box-score region`);
+    assert.ok(info.scrollerFocusable, `${label}: keyboard focusable box-score scroller, no nested region`);
     assert.ok(info.source && info.source.includes("נתוני המשחק"), `${label}: source line`);
     if (width < 700) {
       assert.ok(Math.abs(info.box[4] - info.viewport[1]) <= 2, `${label}: bottom sheet`);

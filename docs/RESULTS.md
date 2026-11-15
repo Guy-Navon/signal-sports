@@ -272,8 +272,8 @@ surface available (safe with an empty corpus). Rollback = flip
 ## 11. Per-game detail (issue #517)
 
 **Status:** implemented behind `RESULTS_DETAIL_ENABLED` (default **false** in code and
-`.env.example`). No real provider has the capability yet (#518–#521 add them), so today
-only `RESULTS_PROVIDER=fake` returns detail. `/api/me/results` does not expose it yet
+`.env.example`). The Ligat Winner provider (section 12, #518) is the first real one with the
+capability; #519-#521 add more, so otherwise only `RESULTS_PROVIDER=fake` returns detail. `/api/me/results` does not expose it yet
 (#523). `game_results` is unchanged, so the page keeps working with scores only when a
 detail source fails or has nothing.
 
@@ -350,3 +350,69 @@ sync sends exactly the requests it sent before.
 
 The lease (stale after an hour) also covers the detail requests: each provider paces
 them, and the per-run cap keeps one sync well inside that hour.
+
+## 12. Ligat Winner provider (issue #518)
+
+**Status:** implemented, **not switched on by default**: the tracked list and the routes
+are unchanged (TheSportsDB has no league id for the cups), so nothing changes until the
+owner sets the config below. Provider name `winner` (`providers/winner.py`).
+
+**Sources** (the league's own public endpoints, no key, verified live 2026-11-15):
+
+- Scores: `https://basket.co.il/ws/ws.asmx/Games?...&cYear=<ending year>...` returns the
+  whole season of every competition in one response. One request per sync; the
+  competitions asked for are filtered by `BOARD_ID` (5 `comp:ibl`, 10 `comp:winner_cup`,
+  34 `comp:il_super_cup`). Future games are stored as `scheduled`. The season is the
+  first of `RESULTS_SEASONS` (default: the current one); `cYear` is its ending year.
+- Detail: Segev Stats `getBoxScore` and `getGameInfo` (names, Hebrew and English), two
+  requests per game, plus one season-list request per run for the Segev id, venue
+  (`PlaceOfGameHeb`) and attendance (`total_viewers`).
+
+**Normalization.** `external_id` is the league's `game_id` (always present). Segev's
+`ExternalID` is `0` until a game is set up there, so it cannot be the identity; it is
+looked up at detail time. `team1` is home. Times are Israel local converted to UTC (a game
+with no time yet is placed at local midnight). The list says `0`/`0` before a game, which
+is read as no score (basketball has no 0-0). A half-readable score is no score. Names are
+HTML-unescaped. `stage` is the round (`gameNumber`). Status is final when scored and in
+the past, scheduled when in the future without a score.
+
+**Teams.** The league lists clubs under sponsor names (`Maccabi Rapyd Tel Aviv`, `Hapoel IBI
+Tel Aviv`) that the taxonomy aliases do not match, so the provider carries a local
+name-to-team table (`CLUB_IDS`) for the clubs the generic resolver misses, and falls back
+to the resolver (Hebrew, then English, always against `comp:ibl`: the cups' clubs are the
+league's). A club the taxonomy lacks (Maccabi Rishon LeZion) keeps the provider name, so
+that game is relevant only through a followed competition. The classifier's aliases were
+deliberately not touched.
+
+**Detail.** Player lines (Hebrew and English name, minutes, points, rebounds, assists,
+steals, turnovers, blocks, shooting splits, fouls, plus/minus, rate, starter; players who
+did not play are dropped), leaders by points via `leaders_from_lines`, team stats (points in
+the paint, bench points, biggest lead, quarter scores, ...), venue, attendance. Segev gives
+numbers as strings; they are cast defensively. A box score that is not final, or a game
+Segev does not have yet, is not an error: it stays a candidate. A failed game-info request
+is an error (so the names are retried rather than storing lines without them).
+
+**Reliability.** Timeout, bounded retries for transient errors, requests spaced by
+`RESULTS_WINNER_MIN_INTERVAL_SECONDS` (default 2; the league publishes no limit). A 429 is
+not retried: scores mark the competitions `not_checked`, detail marks the unrequested games
+`not_checked`, both with `retry_after_seconds` (60 when the header is absent). A malformed
+payload or HTTP error is a short per-game or per-competition error with no URL. Per
+competition at most `RESULTS_MAX_GAMES_PER_COMPETITION` games are kept: the nearest
+upcoming ones (a quarter of the cap) and the newest results.
+
+**How to switch on** (all in the live `.env`; the code default stays off):
+
+```
+RESULTS_PROVIDER_ROUTES=comp:ibl=winner,comp:winner_cup=winner,comp:il_super_cup=winner
+RESULTS_COMPETITIONS=comp:nba,comp:euroleague,comp:eurocup,comp:ibl,comp:acb,comp:ligat_haal,comp:epl,comp:la_liga,comp:bundesliga,comp:ucl,comp:winner_cup,comp:il_super_cup
+RESULTS_DETAIL_ENABLED=true
+```
+
+Games already stored for `comp:ibl` by TheSportsDB stay as rows of that provider (a
+different identity), so the page can show both until the old rows age out of the read
+window; check for duplicate Ligat Winner games after switching.
+
+**Relevance of the cups.** Results relevance (`relevance.py`) matches the competition
+exactly; it does not follow the taxonomy `parent`. A profile that follows `comp:ibl` is
+therefore **not** shown `comp:winner_cup` or `comp:il_super_cup` games between unfollowed
+clubs (only the games of a followed team). Not changed in #518.

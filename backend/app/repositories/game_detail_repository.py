@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.db.orm_models import GameDetailRow, GamePlayerLineRow, GameResultRow
 from app.results import status as status_vocab
 from app.results.models import NormalizedGameDetail, PlayerLine, StoredGameDetail, TeamLeader
+from app.results.player_mapping import display_player, remember_player
 
 
 def _now_iso() -> str:
@@ -36,6 +37,8 @@ def upsert(session: Session, detail: NormalizedGameDetail, *, now: Optional[str]
     row.venue = detail.venue
     row.attendance = detail.attendance
     row.fetched_at = now
+    for person in [*detail.players, *detail.leaders]:
+        remember_player(session, detail.provider, person.source_player_id, person.name, person.name_he)
     session.execute(delete(GamePlayerLineRow).where(GamePlayerLineRow.game_id == detail.game_id))
     session.add_all(
         GamePlayerLineRow(
@@ -94,7 +97,7 @@ def get_details(session: Session, game_ids: Iterable[str]) -> dict[str, StoredGa
             side=line.side, source_player_id=line.source_player_id, name=line.name,
             name_he=line.name_he, minutes=line.minutes, stats=line.stats or {},
         ))
-    return {
+    stored = {
         row.game_id: StoredGameDetail(
             provider=row.provider, external_id=row.external_id,
             leaders=[TeamLeader(**leader) for leader in row.leaders or []],
@@ -104,3 +107,10 @@ def get_details(session: Session, game_ids: Iterable[str]) -> dict[str, StoredGa
         )
         for row in rows
     }
+    for detail in stored.values():
+        for collection in (detail.players, detail.leaders):
+            for i, person in enumerate(collection):
+                eid, name = display_player(session, detail.provider, person.source_player_id,
+                                            person.name, person.name_he)
+                collection[i] = person.model_copy(update={"entity_id": eid, "display_name": name})
+    return stored

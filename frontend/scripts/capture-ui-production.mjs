@@ -2741,10 +2741,25 @@ async function auditFeedRegressions(client, label) {
   return { placement, side, paging, latency, importance, importanceKeyboard, filterEmpty, cluster, motion };
 }
 
-async function stopProcess(child) {
+export async function stopProcess(child, { graceful = false } = {}) {
   if (!child || child.exitCode !== null) return;
-  child.kill();
-  await delay(200);
+  await new Promise((resolve, reject) => {
+    let killTimer;
+    const cleanup = () => {
+      clearTimeout(timeout);
+      clearTimeout(killTimer);
+      child.off("exit", exited);
+    };
+    const exited = () => { cleanup(); resolve(); };
+    const timeout = setTimeout(() => {
+      cleanup(); reject(new Error("Harness-owned process did not exit after shutdown"));
+    }, 5000);
+    child.once("exit", exited);
+    // Browser.close first gives Chromium time to release its Crashpad mappings.
+    // Kill only this exact child as a bounded fallback; never enumerate processes.
+    if (graceful) killTimer = setTimeout(() => child.kill(), 2000);
+    else child.kill();
+  });
 }
 
 async function safeRemove(directory, prefix) {
@@ -2759,7 +2774,7 @@ async function safeRemove(directory, prefix) {
   ) {
     throw new Error(`Refusing to remove unexpected temporary path: ${resolved}`);
   }
-  await rm(resolved, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  await rm(resolved, { recursive: true, force: true, maxRetries: 12, retryDelay: 250 });
 }
 
 async function main() {
@@ -3087,8 +3102,11 @@ async function main() {
     console.error(error);
     throw error;
   } finally {
+    if (client) {
+      await Promise.race([client.send("Browser.close").catch(() => null), delay(1000)]);
+    }
     client?.close();
-    await stopProcess(chrome);
+    await stopProcess(chrome, { graceful: true });
     await stopProcess(vite);
     await safeRemove(profileDirectory, "signal-ui-chrome-");
   }

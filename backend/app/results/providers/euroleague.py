@@ -84,13 +84,27 @@ def normalize_game(raw: dict, competition_id: str, season_code: str) -> Optional
             season=f"{year}-{year + 1}", stage=_text(raw.get("round")) or None,
             status="final" if played else "scheduled", start_time=_start_time(raw),
             home_team_name=home_name, away_team_name=away_name,
-            home_team_id=resolve_team(home_name, competition_id),
-            away_team_id=resolve_team(away_name, competition_id),
+            home_team_id=_team_id(home_name, competition_id),
+            away_team_id=_team_id(away_name, competition_id),
             home_score=parse_int(home.get("score")) if played else None,
             away_score=parse_int(away.get("score")) if played else None,
         )
     except (KeyError, TypeError, ValueError, AttributeError):
         return None
+
+
+# Sponsored club names the league uses. Kept here, not as taxonomy aliases, so a
+# sponsor name never changes how articles are classified (same rule as the Winner
+# provider's CLUB_IDS, #518).
+_SPONSOR_NAMES = {
+    "maccabi rapyd tel aviv": "team:maccabi_tlv_bb",
+    "hapoel ibi tel aviv": "team:hapoel_tlv_bb",
+    "hapoel midtown jerusalem": "team:hapoel_jlm_bb",
+}
+
+
+def _team_id(name: str, competition_id: str) -> Optional[str]:
+    return _SPONSOR_NAMES.get(" ".join(name.casefold().split())) or resolve_team(name, competition_id)
 
 
 def _minutes(value) -> Optional[float]:
@@ -106,8 +120,8 @@ def _minutes(value) -> Optional[float]:
 def _same_team(name: str, expected: str, competition_id: str) -> bool:
     if name.strip().casefold() == expected.strip().casefold():
         return True
-    team_id = resolve_team(name, competition_id)
-    return team_id is not None and team_id == resolve_team(expected, competition_id)
+    team_id = _team_id(name, competition_id)
+    return team_id is not None and team_id == _team_id(expected, competition_id)
 
 
 def normalize_boxscore(raw: dict, game: NormalizedGame,

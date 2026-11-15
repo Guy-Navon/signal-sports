@@ -147,7 +147,7 @@ def test_saved_eurocup_boxscore_and_group_standings(make_provider):
         ("home", "MINTZ, JUDAH", 23), ("away", "MOON, XAVIER", 19)}
 
 
-def test_eurocup_jerusalem_sponsored_name_resolves_via_taxonomy(make_provider):
+def test_eurocup_jerusalem_sponsored_name_resolves_via_provider_map(make_provider):
     data = payload("v2_games_U2026.json")
     jerusalem = next(t["club"] for t in payload("v3_standings_U2026_round7.json")["teams"]
                      if t["club"]["code"] == "JER")

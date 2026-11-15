@@ -122,7 +122,7 @@ identical game codes cannot collide. `RESULTS_SEASONS`, `RESULTS_RECENT_DAYS`
 and the TheSportsDB-specific `RESULTS_MAX_GAMES_PER_COMPETITION` cap do not limit
 this complete current-season response. `utcDate` supplies UTC start times;
 `played=false` means scheduled, with scores unset rather than the source's 0-0.
-Teams use the existing resolver; sponsored Israeli names are taxonomy aliases.
+Teams use the existing resolver; the league's sponsored Israeli club names (Maccabi Rapyd, Hapoel IBI, Hapoel Midtown) map through a provider-local table, never taxonomy aliases, so sponsor names do not change article classification.
 
 Detail uses `live.euroleague.net/api/Boxscore?gamecode=N&seasoncode=E2026`
 (or `U2026`), one request per finished candidate. This endpoint matches the saved

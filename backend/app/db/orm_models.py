@@ -606,6 +606,15 @@ class GameResultRow(Base):
     )
 
 
+class ResultsChosenPlayerRow(Base):
+    """Explicit results-only choices; never part of profile/feed affinities."""
+    __tablename__ = "results_chosen_players"
+
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    entity_id = Column(String, primary_key=True)
+    created_at = Column(String, nullable=False)
+
+
 class ResultsPlayerMappingRow(Base):
     """Results-only exact identity; no taxonomy/classification aliases are changed."""
     __tablename__ = "results_player_mappings"

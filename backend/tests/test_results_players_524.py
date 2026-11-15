@@ -1,10 +1,11 @@
 """Chosen result lines are session-owned and cannot change feed intelligence."""
 import httpx
 import pytest
+from datetime import datetime, timezone
 from sqlalchemy import select
 
 from app.db.database import SessionLocal
-from app.db.orm_models import ResultsChosenPlayerRow
+from app.db.orm_models import ResultsChosenPlayerRow, ArticleRow
 from app.repositories import profile_repository
 
 URL = "/api/me/results/players"
@@ -63,7 +64,23 @@ def test_session_auth_and_csrf(client, user_client):
     assert user_client.get(URL).json() == {"players": []}
 
 
-def test_feed_and_profile_identical_before_after_results_setting(user_client, rss_seeded):
+@pytest.fixture
+def feed_article(client):
+    aid = "rss_results_524_isolation"
+    with SessionLocal() as s:
+        s.add(ArticleRow(id=aid, source="sport5", source_display_name="ספורט 5",
+            url="https://example.test/results-524", title="מכבי תל אביב החתימה גארד",
+            language="he", published_at=datetime.now(timezone.utc).isoformat(), sport="basketball",
+            league="Israeli Basketball League", entities=["Maccabi Tel Aviv Basketball"],
+            event_type="signing", event_certainty="confirmed", importance="high", tags=[]))
+        s.commit()
+    yield aid
+    with SessionLocal() as s:
+        s.query(ArticleRow).filter_by(id=aid).delete()
+        s.commit()
+
+
+def test_feed_and_profile_identical_before_after_results_setting(user_client, feed_article):
     with SessionLocal() as s:
         guy = profile_repository.get_by_id(s, "guy")
     profile = user_client.get("/api/me/profile").json()
@@ -71,7 +88,7 @@ def test_feed_and_profile_identical_before_after_results_setting(user_client, rs
     assert user_client.put("/api/me/profile", json=profile).status_code == 200
     before_profile = user_client.get("/api/me/profile").json()
     before_feed = user_client.get("/api/me/feed").json()
-    assert before_feed, "exercise real scored articles, not an empty feed"
+    assert any(item["article"]["id"] == feed_article for item in before_feed)
     assert user_client.put(URL, json={"entity_ids": [DENI]}).status_code == 200
     assert user_client.get("/api/me/feed").json() == before_feed
     assert user_client.get("/api/me/profile").json() == before_profile

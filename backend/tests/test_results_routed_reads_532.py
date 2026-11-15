@@ -17,6 +17,9 @@ def _follow_two_comps(client, monkeypatch):
         competition_ids=frozenset({"comp:euroleague", "comp:nba"})))
     monkeypatch.setenv("RESULTS_PROVIDER", "fake")
     monkeypatch.delenv("RESULTS_PROVIDER_ROUTES", raising=False)
+    # The #532 rule alone: no health-based fallback (#522 is tested in
+    # test_results_health_522.py; there a never-synced route reads the default).
+    monkeypatch.setenv("RESULTS_PROVIDER_STALE_HOURS", "0")
 
 
 def _game(provider, ext, comp):

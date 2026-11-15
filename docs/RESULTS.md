@@ -10,6 +10,11 @@ disagrees, this wins for results behavior.
 behind `RESULTS_DETAIL_ENABLED` (default off). See §11. No API or UI change yet
 (#523, #513).
 
+2026-11-15 — issue #522: per-provider health (`results_provider_health`), a
+per-provider switch (`RESULTS_PROVIDER_DISABLED`), a read-time fallback to the
+default provider (`RESULTS_PROVIDER_STALE_HOURS`) and a backup sync. See §15. No
+effect while no route is set (production today).
+
 ## 1. What it is
 
 A **preference-filtered history of real game results** — scores, competition,
@@ -90,7 +95,7 @@ competition listed twice raises `ValueError`; nothing is dropped silently. One p
 raising does not lose the others (its competitions get the exception class name in
 `errors`).
 
-**Read rule (#532).** Reads show, per competition, only rows whose `provider` equals the provider that competition is currently routed to (the route, else `RESULTS_PROVIDER`): `providers.active_provider_for(competition_id)` / `active_provider_map()`, applied in `game_result_repository.list_games(active_providers=...)` by `results.service.personalized_results` (consumer and admin view-as share it). Older rows of the same games from a previous provider are not shown as duplicates; nothing is deleted, and switching a route back shows them again. Detail lookups use only the ids that pass. With no routes every row belongs to the default provider, so output is unchanged. A bad route config on the read path logs a warning and falls back to the default provider instead of failing. The demo exporter does not read results.
+**Read rule (#532).** Reads show, per competition, only rows whose `provider` equals the provider that competition is currently routed to (the route, else `RESULTS_PROVIDER`): `providers.active_provider_for(competition_id)` / `active_provider_map()`, applied in `game_result_repository.list_games(active_providers=...)` by `results.service.personalized_results` (consumer and admin view-as share it). Older rows of the same games from a previous provider are not shown as duplicates; nothing is deleted, and switching a route back shows them again. Detail lookups use only the ids that pass. With no routes every row belongs to the default provider, so output is unchanged. A bad route config on the read path logs a warning and falls back to the default provider instead of failing. The demo exporter does not read results. Since #522 the route is also dropped when its provider is disabled or not fresh for that competition (§15); one provider per competition still holds.
 
 **Rate limits are per provider.** A 429 puts only that provider's competitions in
 `not_checked`; the others sync. The block is stored in the sync summary as
@@ -239,7 +244,8 @@ provider. It has no heartbeat: a crashed holder blocks syncs until the lease is 
 old, then the next sync takes over.
 
 `game_details` and `game_player_lines` hold per-game detail (§11), created the same
-way by `create_all`.
+way by `create_all`. `results_provider_health` holds per-provider health (§15), also
+created by `create_all`.
 
 ## 5. Sync & scheduling
 
@@ -258,7 +264,7 @@ way by `create_all`.
 | GET | `/api/me/results` | session (`require_user`) | consumer surface; identity from session |
 | GET | `/api/results/{user_id}` | admin (`require_admin`) | ops view-as, parity handler |
 | POST | `/api/results/sync` | admin | manual sync (force) |
-| GET | `/api/results/sync/state` | admin | last sync outcome |
+| GET | `/api/results/sync/state` | admin | last sync outcome, plus `health` (§15) |
 
 Response: `{ "has_preferences": bool, "games": [GameResult] }`. `has_preferences`
 distinguishes the "no follows" state from "no relevant results". Each
@@ -289,7 +295,9 @@ matches CLUSTERING/TELEGRAM: `RESULTS_SYNC_ENABLED` defaults false in the exampl
 and is opted into in the live `.env`. `RESULTS_ENABLED=true` keeps the read
 surface available (safe with an empty corpus). Rollback = flip
 `RESULTS_SYNC_ENABLED=false` (no data touched). `RESULTS_DETAIL_ENABLED` and
-`RESULTS_DETAIL_MAX_PER_RUN` control the detail stage (§11).
+`RESULTS_DETAIL_MAX_PER_RUN` control the detail stage (§11). `RESULTS_PROVIDER_DISABLED`,
+`RESULTS_PROVIDER_STALE_HOURS` and `RESULTS_PROVIDER_BACKUP_SYNC` control health,
+fallback and backup sync (§15).
 
 ## 9. Tests
 
@@ -322,6 +330,15 @@ surface available (safe with an empty corpus). Rollback = flip
   bounded retries, pacing, 429 isolation, routing with a fake default and an
   in-memory DB sync proving stored detail is never fetched again. All HTTP uses
   `httpx.MockTransport`; no network or live DB is used.
+- Backend `tests/test_results_health_522.py`: health on success, error, shape failure,
+  a raising provider and a 429, per provider and per competition; failure count reset;
+  a health-write failure that leaves the sync intact; the switch (not constructed, not
+  called, synced and read through the default, bad names rejected); the read fallback
+  with an injected clock (fresh, stale, back to fresh, never synced, no fresher default,
+  threshold 0); one provider per competition; detail and consumer/admin view-as
+  agreeing; backup sync (order, separate reporting, blocked default, rows hidden while
+  healthy, TheSportsDB pacing and 429 stop over the backup); no-routes identity; the
+  admin view and its auth.
 - Frontend `src/components/results/*.test.js` (26): normalization, timezone/day
   formatting, grouping, and relevance/isolation (deriveFollows, filter,
   preference-change).
@@ -654,3 +671,127 @@ team-from-key transfers, missing names, cards, ranks, venue, retries, pacing,
 syncs with detail on/off. A second sync requests only scores/teams, never stored
 detail or player names. No API output (#523), UI, health UI (#522), player mapping
 (#525), LLM or feed-policy changes are included.
+
+## 15. Provider health, switch and fallback (issue #522)
+
+2026-11-15. Nothing changes while `RESULTS_PROVIDER_ROUTES` is empty: the sync calls
+the plain default provider exactly as before, the summary has the same keys, and
+reads ignore health. Health rows are still written for the default provider.
+
+### Health (`results_provider_health`)
+
+Every sync records the scores fetch per provider and per competition it asked that
+provider for, plus one provider-level row (`competition_id = "*"`). Columns:
+`last_attempt_at`, `last_success_at`, `last_status`, `last_error` (short, URL-free:
+the provider's own error string or the exception class name), `last_error_at`,
+`consecutive_failures`, `shape_failures` (cumulative). Per competition:
+
+- the provider raised: `error` with the class name;
+- in `not_checked` (a 429 stopped it): `rate_limited`. That is not a source failure,
+  so the failure count and `last_success_at` are unchanged;
+- in `errors`: `error`. When the error names a parse/shape exception
+  (`MalformedResponse`, `ValueError`, `TypeError`, `KeyError`, `AttributeError`,
+  `IndexError`, `JSONDecodeError`, `ValidationError`) it also counts as a shape
+  failure. This reads the providers' own error strings, so it classifies what they
+  report; it is not a separate parser check;
+- otherwise `ok` (the provider answered for it, even with zero games), which resets
+  the failure count.
+
+The provider row is `ok`, `partial` (some competitions failed), `error` (none
+succeeded; the failure count goes up) or `rate_limited`. A blocked provider is not
+called and not recorded. The current block is not duplicated here: it is
+`rate_limited_until_by_provider` in the sync summary (§3). Health is written after
+the scores are committed, in its own commit. If it fails it is rolled back and
+logged, and the summary gets `health_error` (class name). It never fails, rolls back
+or re-statuses the scores sync. The detail stage (§11) is not part of health yet.
+
+### Switch: `RESULTS_PROVIDER_DISABLED`
+
+Comma-separated provider names (case-insensitive). A disabled provider is not
+constructed or called; its routed competitions are synced by `RESULTS_PROVIDER` and
+read from its rows. With every route disabled, `get_provider()` returns the plain
+default provider. An unknown name, or the default provider itself, raises
+`ValueError` at API startup; a sync with a bad value records `status=error`, and
+reads fall back to the default provider with a warning (the same handling as a bad
+route).
+
+### Read-time fallback: one provider per competition
+
+`providers.active_provider_map(session, now=...)` (and `active_provider_for`) decides,
+per routed competition, the one provider whose rows are served (`health.decide`, pure):
+
+1. provider disabled: the default (`disabled`);
+2. `RESULTS_PROVIDER_STALE_HOURS` is 0: the route (the #532 rule alone);
+3. the routed provider succeeded for **this competition** within the threshold
+   (default 6 hours, measured at `now`): the route (`routed`);
+4. it never succeeded for it: the default (`never_succeeded`);
+5. it is stale: the default (`stale`) when the default provider succeeded for this
+   competition more recently, else the route (`stale_no_fallback`). A competition
+   the default cannot serve (for example a cup TheSportsDB has no league id for) so
+   keeps its last rows instead of showing an empty list.
+
+Only the last success counts: errors after a fresh success do not switch early, and a
+success for another competition does not count. `game_result_repository.list_games`
+then filters each competition to exactly that provider, so two providers' rows are
+never mixed. `personalized_results` (consumer `/api/me/results` and admin view-as)
+and `service.visible_details` (the detail lookup for #523) use the same call. If the
+health table cannot be read, reads use the default provider and log.
+
+### Backup sync: `RESULTS_PROVIDER_BACKUP_SYNC` (default true)
+
+With routes set, the routing provider also asks the default provider for every routed
+competition, in the same `fetch` call and **after** its own competitions. Its pacing
+and its 429 stop therefore cover the backup requests, and a 429 costs the backup
+first. Backup games are stored under the default provider's identity and stay hidden
+while the route is healthy (rule 3). The routed (serving) view in the summary
+(`errors`, `fetched_counts`, `not_checked`) is unchanged; the backup is reported
+apart under `backup: {provider, competitions, fetched_counts, errors, not_checked}`.
+A backup 429 still blocks the default provider (§3). The scores status counts every
+stored game, so a sync where every routed provider failed but the backup returned
+games is `partial`, not `error`.
+
+**Request volume (TheSportsDB).** One sync makes 1 + S + D requests per competition
+it has a league id for (S = seasons in `RESULTS_SEASONS`, D = `RESULTS_RECENT_DAYS`,
+§3), 7 s apart. With the production config documented in §3 (one season, two days,
+so 4 per competition) and the 10 tracked competitions:
+
+| Setup | TheSportsDB requests per sync | Per day (at most 48 syncs, 30-minute throttle) |
+|---|---|---|
+| No routes (production today) | 40 (about 4.6 minutes) | at most 1,920 |
+| 5 routes (NBA, EuroLeague, EuroCup, IBL, Ligat ha'Al), backup off | 20 | at most 960 |
+| The same 5 routes, backup on | 40 | at most 1,920 |
+
+The backup adds 4 requests per routed competition per sync (20 per sync, at most 960
+a day for those five routes) compared with routing without it, and nothing compared
+with today. With the code defaults (two seasons, no days) it is 3 per competition: 30
+per sync with the backup, 15 without it for those five routes. The rate stays at most
+8.6 a minute, under the documented 30 a minute; the repository's notes record no
+daily limit. Competitions TheSportsDB has no league id for (`comp:winner_cup`,
+`comp:il_super_cup`) cost no request: they record a backup error and fall under
+rule 5. `RESULTS_PROVIDER_BACKUP_SYNC=false` turns the backup off.
+
+### Ops view
+
+`GET /api/results/sync/state` (admin only, read-only) adds `health`:
+
+```json
+{
+  "default_provider": "thesportsdb", "stale_hours": 6, "backup_sync": true,
+  "config_error": null,
+  "providers": [{"provider": "euroleague", "is_default": false, "enabled": true,
+                 "rate_limited_until": null, "last_attempt_at": "...",
+                 "last_success_at": "...", "last_status": "error",
+                 "last_error": "HTTP 503", "last_error_at": "...",
+                 "consecutive_failures": 3, "shape_failures": 0}],
+  "competitions": [{"competition_id": "comp:euroleague", "routed_to": "euroleague",
+                    "serving": "thesportsdb", "reason": "stale",
+                    "freshness": {"euroleague": {"last_success_at": "...", "age_hours": 7.5,
+                                                 "last_status": "error", "consecutive_failures": 3},
+                                  "thesportsdb": {"last_success_at": "...", "age_hours": 0.4,
+                                                  "last_status": "ok", "consecutive_failures": 0}}}]
+}
+```
+
+`reason` is `default` (not routed), `routed`, `disabled`, `never_succeeded`, `stale` or
+`stale_no_fallback`. No frontend page reads this endpoint today; the ops UI that shows
+it follows on `ui/next`.

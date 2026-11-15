@@ -32,6 +32,23 @@ class FetchOutcome:
     # Set by the routing provider (#529): provider name -> its Retry-After (None
     # when it limited us without saying for how long). Empty for a plain provider.
     provider_retry_after: dict[str, Optional[float]] = field(default_factory=dict)
+    # Set by the routing provider: provider name -> what it was asked and what it
+    # returned, for per-provider health (#522). Providers that were blocked (not
+    # called) are absent. Empty for a plain provider (the sync builds it).
+    provider_runs: dict[str, "ProviderRun"] = field(default_factory=dict)
+    # Backup sync (#522): what the default provider returned for competitions
+    # routed to another provider. ``errors``/``fetched_counts``/``not_checked``
+    # above stay the routed (serving) view. None when there is no backup.
+    backup: Optional["FetchOutcome"] = None
+
+
+@dataclass
+class ProviderRun:
+    """What one provider was asked for in one sync and what it returned (#522).
+    ``outcome`` is None when the call raised (``raised`` = class name only)."""
+    competitions: list[str]
+    outcome: Optional[FetchOutcome] = None
+    raised: Optional[str] = None
 
 
 class ResultsProvider(Protocol):

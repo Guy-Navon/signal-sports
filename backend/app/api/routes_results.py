@@ -8,6 +8,7 @@ the read path never touches the provider.
 """
 from __future__ import annotations
 
+import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -19,10 +20,12 @@ from app.core.security_deps import require_admin
 from app.db.database import get_session
 from app.models.profile import UserProfile
 from app.repositories import profile_repository
-from app.results import settings
+from app.results import health as results_health, settings
 from app.results.models import GameResult
 from app.results.service import personalized_results
 from app.results.sync_service import get_sync_state, sync_results
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -54,8 +57,16 @@ def get_results_for_user(user_id: str, session: Session, limit: Optional[int]) -
 
 @router.get("/results/sync/state", dependencies=[Depends(require_admin)])
 def results_sync_state(session: Session = Depends(get_session)):
-    """Last results-sync outcome (ops observability)."""
-    return get_sync_state(session)
+    """Last results-sync outcome plus per-provider health and, per competition,
+    the provider serving it and its freshness (#522). Read-only."""
+    state = get_sync_state(session)
+    try:
+        state["health"] = results_health.ops_view(session)
+    except Exception as exc:  # the sync state must stay readable
+        logger.exception("results health view failed")
+        session.rollback()
+        state["health"] = {"error": type(exc).__name__}
+    return state
 
 
 @router.post("/results/sync", dependencies=[Depends(require_admin)])

@@ -606,6 +606,68 @@ class GameResultRow(Base):
     )
 
 
+class ResultsChosenPlayerRow(Base):
+    """Explicit results-only choices; never part of profile/feed affinities."""
+    __tablename__ = "results_chosen_players"
+
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    entity_id = Column(String, primary_key=True)
+    created_at = Column(String, nullable=False)
+
+
+class ResultsPlayerMappingRow(Base):
+    """Results-only exact identity; no taxonomy/classification aliases are changed."""
+    __tablename__ = "results_player_mappings"
+
+    provider = Column(String, primary_key=True)
+    source_player_id = Column(String, primary_key=True)
+    entity_id = Column(String, nullable=False)
+
+
+class GameDetailRow(Base):
+    """Per-game detail for a finished game (issue #517), one row per game.
+
+    Keyed by the SAME id as ``game_results`` (``game_`` + sha1(provider|external_id)),
+    so a detail always belongs to the game with that provider identity. No foreign
+    key, like the rest of the results tables; rows are only written for stored
+    games. A row's presence means "fetched": the sync never asks the provider for
+    this game again (docs/RESULTS.md §11).
+    """
+    __tablename__ = "game_details"
+
+    game_id = Column(String, primary_key=True)        # == game_results.id
+    provider = Column(String, nullable=False)
+    external_id = Column(String, nullable=False)
+    # [{"side", "stat", "value", "source_player_id", "name", "name_he"}]
+    leaders = Column(JSON, nullable=False)
+    team_stats = Column(JSON, nullable=True)          # {"home": {...}, "away": {...}}
+    venue = Column(String, nullable=True)
+    attendance = Column(Integer, nullable=True)
+    fetched_at = Column(String, nullable=False)       # ISO-8601 UTC, refreshed on upsert
+
+    __table_args__ = (
+        UniqueConstraint("provider", "external_id", name="uq_game_detail_identity"),
+    )
+
+
+class GamePlayerLineRow(Base):
+    """One player's box-score line in one game (issue #517). Optional: a source
+    with leaders only stores none. Replaced as a set whenever the game's detail
+    is upserted, so a repeat never duplicates lines. ``stats`` carries the
+    source's own fields per sport. Player identity is the source's id; mapping to
+    taxonomy players is #525."""
+    __tablename__ = "game_player_lines"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    game_id = Column(String, nullable=False, index=True)   # == game_details.game_id
+    side = Column(String, nullable=False)                  # "home" | "away"
+    source_player_id = Column(String, nullable=True, index=True)
+    name = Column(String, nullable=True)
+    name_he = Column(String, nullable=True)
+    minutes = Column(Float, nullable=True)
+    stats = Column(JSON, nullable=False)
+
+
 class ResultsSyncStateRow(Base):
     """Single-row results-sync bookkeeping (issue #178), id always 1.
 
@@ -622,6 +684,29 @@ class ResultsSyncStateRow(Base):
     # The sync summary. While rate-limited it also carries ``rate_limited_until``
     # (ISO UTC), which sync_results reads to skip until that time.
     last_summary = Column(JSON, nullable=True)
+
+
+class ResultsProviderHealthRow(Base):
+    """Per-provider results health (issue #522), written by every sync.
+
+    One row per (provider, competition) the provider was asked for, plus one
+    provider-level row with ``competition_id = "*"``. Read by the read-time
+    fallback (a routed competition whose provider has not succeeded for it within
+    ``RESULTS_PROVIDER_STALE_HOURS`` is served by the default provider) and by
+    the admin sync-state view. The current 429 block is not stored here: it is
+    ``rate_limited_until_by_provider`` in ``results_sync_state.last_summary``.
+    """
+    __tablename__ = "results_provider_health"
+
+    provider = Column(String, primary_key=True)
+    competition_id = Column(String, primary_key=True)   # "*" = the provider as a whole
+    last_attempt_at = Column(String, nullable=True)     # ISO UTC, a request was sent
+    last_success_at = Column(String, nullable=True)
+    last_status = Column(String, nullable=True)         # ok | partial | error | rate_limited
+    last_error = Column(String, nullable=True)          # short, URL-free
+    last_error_at = Column(String, nullable=True)
+    consecutive_failures = Column(Integer, nullable=False, default=0)
+    shape_failures = Column(Integer, nullable=False, default=0)   # cumulative
 
 
 class ResultsSyncLeaseRow(Base):

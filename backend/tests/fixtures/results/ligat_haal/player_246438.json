@@ -1,0 +1,20 @@
+{
+  "data": {
+    "246438": {
+      "id": 246438,
+      "name": "Kyle Spence",
+      "firstName": "קייל",
+      "lastName": "ספנס",
+      "shirtNumber": "7",
+      "position": "mid-fielder",
+      "teamId": {
+        "id": 15006,
+        "name": "Maccabi Petach Tikva",
+        "hebrewName": "מכבי פ\"ת"
+      }
+    }
+  },
+  "meta": {
+    "total": 1
+  }
+}

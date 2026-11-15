@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Iterable, Optional
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.orm_models import GameResultRow
@@ -90,9 +90,11 @@ def list_games(
     since_iso: Optional[str] = None,
     statuses: Optional[Iterable[str]] = None,
     limit: Optional[int] = None,
+    active_providers: Optional[tuple[dict[str, str], str]] = None,
 ) -> list[GameResultRow]:
     """Games newest-first, filtered in SQL by the cheap dimensions. Per-user
-    relevance is applied in the service layer, not here."""
+    relevance is applied in the service layer, not here. ``active_providers`` is
+    ``(routes, default)`` from ``providers.active_provider_map()``."""
     stmt = select(GameResultRow)
     conds = []
     if competition_ids is not None:
@@ -101,8 +103,16 @@ def list_games(
         conds.append(GameResultRow.status.in_(list(statuses)))
     if since_iso is not None:
         conds.append(GameResultRow.start_time >= since_iso)
+    if active_providers is not None:
+        # #532: per competition, only the provider it is routed to (route map,
+        # else the default). Rows of other providers stay stored, just unread.
+        routes, default = active_providers
+        branches = [and_(GameResultRow.competition_id == cid, GameResultRow.provider == prov)
+                    for cid, prov in routes.items()]
+        branches.append(and_(GameResultRow.competition_id.not_in(list(routes)),
+                             GameResultRow.provider == default))
+        conds.append(or_(*branches))
     if conds:
-        from sqlalchemy import and_
         stmt = stmt.where(and_(*conds))
     # NULL start_time sorts last; SQLite orders NULLs first on DESC, so coalesce.
     stmt = stmt.order_by(GameResultRow.start_time.is_(None), GameResultRow.start_time.desc())

@@ -63,6 +63,25 @@ MEMBER_FIELDS = (
     "published_at", "decision",
 )
 
+# The exporter currently reads feed only. Fail closed if a later export path or
+# nested field introduces results detail; the public demo is scores-only (#526).
+_RESULT_STAT_KEYS = frozenset({
+    "leaders", "chosen_player_lines", "players", "player_lines", "team_stats",
+    "box_score", "stats", "detail", "detail_available", "rank", "venue", "attendance",
+    "quarter_scores", "quarters", "rebounds", "assists", "minutes",
+})
+
+
+def _assert_scores_only(value) -> None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key in _RESULT_STAT_KEYS:
+                raise ExportError(f"public demo is scores-only: forbidden result field {key}")
+            _assert_scores_only(child)
+    elif isinstance(value, list):
+        for child in value:
+            _assert_scores_only(child)
+
 
 class ExportError(RuntimeError):
     """The snapshot could not be built; nothing was written."""
@@ -157,6 +176,8 @@ def write_snapshot(out_dir: Path, feed: list, meta: dict) -> None:
     so meta never describes a feed that is not there yet).
     """
     out_dir = Path(out_dir)
+    _assert_scores_only(feed)
+    _assert_scores_only(meta)
     texts = {FEED_FILE: _dumps(feed), META_FILE: _dumps(meta)}
     out_dir.mkdir(parents=True, exist_ok=True)
     temps: dict[str, str] = {}

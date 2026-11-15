@@ -1,6 +1,12 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-11-14** (frontend truth sweep on `ui/next` after #491–#505: header, filters, merged preferences, cluster list, reader-only why line; Orbit cleanup #473; runtime facts retain their dated verification; 2026-11-13: milestone 15 direction approved, #461; 2026-11-11: public read-only demo of guy's feed, #458: live since 2026-11-11 from main; 2026-11-06: `title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
+**Last updated: 2026-11-15** (results backend from `main`: detail storage/providers, health,
+exact player mapping, separate player choices, enriched API and demo export guard, all
+activation defaults unchanged; frontend truth sweep on `ui/next` after #491–#505:
+header, filters, merged preferences, cluster list, reader-only why line; Orbit cleanup
+#473. Runtime facts retain their dated verification: public read-only demo of guy's
+feed, #458, recorded live since 2026-11-11 from main; ONE enabled on 2026-11-01.
+This integration performs no deployment or production switch-on.) This is the cold-start orientation
 for any agent or human picking the project up with no conversation history. Present-tense
 frontend statements describe this `ui/next` checkout; runtime statements retain their dated
 verification below. History is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
@@ -100,7 +106,7 @@ through a Windows scheduled task. Live since 2026-11-11 at signal-sports-demo.we
 | Relevance | `app/services/preference_engine.py` (v2, default), `relevance_engine.py` (visibility tiers; the legacy engine is the rollback path) |
 | Clustering | `app/clustering/` (deterministic; no LLM or embeddings) |
 | Notifications | `app/notifications/` (planner, outbox, dispatcher, Telegram) |
-| Results | `app/results/` (TheSportsDB provider + fake) |
+| Results | `app/results/` (TheSportsDB default; opt-in Winner, EuroLeague/EuroCup and Bamboo football providers, plus fake; [contract and activation](RESULTS.md)) |
 | QA tooling | `app/qa/`, `backend/scripts/` (gate, census, rerun-diff, probes, reviewed correction scripts) |
 
 ---
@@ -135,8 +141,17 @@ side effect.
 `sources`, `source_overrides`, `ingestion_runs` (incl. the `metrics` JSON), `scheduler_cycles`,
 `scheduler_lease`, `worker_status`, `story_clusters`, `cluster_edges`, `notification_events`,
 `notification_story_members`, `notification_watermarks`, `game_results`,
-`results_sync_state`, `results_sync_lease`. Startup creates missing tables, applies additive column migrations
+`game_details`, `game_player_lines` (per-game results detail, #517),
+`results_player_mappings` (provider-local exact player identity and Hebrew display, #525),
+`results_chosen_players` (session-owned result-line choices, separate from feed follows, #524),
+`results_sync_state`, `results_sync_lease`, `results_provider_health` (#522). Startup creates missing tables, applies additive column migrations
 (fail-loud), seeds empty tables, and creates credential-less demo `users` rows.
+
+With `RESULTS_DETAIL_ENABLED` opted in, results lists add top scorers, ranks,
+chosen-player lines and a Jerusalem date; relevant final-game box scores have
+session/admin view-as detail endpoints. Stored scheduled games through
+`RESULTS_UPCOMING_DAYS=7` are included and live games omitted. With the flag off,
+legacy result fields and game selection remain unchanged ([RESULTS.md](RESULTS.md) §6).
 
 **API surface** (the exact inventory is OpenAPI `/docs`; an authz test derives it from the routes):
 
@@ -162,6 +177,8 @@ untracked `backend/.env`):
 | `FEED_FRESHNESS_ENABLED` / `FEED_MAX_AGE_HOURS` | false / 36 | true / 36 |
 | `TELEGRAM_NOTIFICATIONS_ENABLED` | false | **false since 2026-09-13** (was true from 2026-07-18) |
 | `RESULTS_ENABLED` / `RESULTS_SYNC_ENABLED` | true / false | true / true |
+| `RESULTS_DETAIL_ENABLED` (+ `RESULTS_DETAIL_MAX_PER_RUN`, #517) | false (10) | not opted in (new flag) |
+| `RESULTS_PROVIDER_DISABLED` / `RESULTS_PROVIDER_STALE_HOURS` / `RESULTS_PROVIDER_BACKUP_SYNC` (#522; no effect without routes) | empty / 6 / true | not set (new flags) |
 | `RETENTION_CLEANUP_ENABLED` | false | false (keep off at least until `protect_rated_articles.py --apply` has run on the live corpus, #255; see §10) |
 | `TRANSLATION_PROVIDER` | disabled | disabled |
 | `ALLOW_DEV_RESET` / `ALLOW_CORPUS_DB_RESET` / `ALLOW_INSECURE_AUTH_BYPASS` | false | false |
@@ -171,6 +188,12 @@ untracked `backend/.env`):
 | `AUTH_SIGNUP_ALLOWED_EMAILS` | empty | unset. Closed signup still admits these addresses (pending until verified) |
 | `GOOGLE_OAUTH_CLIENT_ID` / `_CLIENT_SECRET` / `_REDIRECT_URI` | unset = Google sign-in off | unset |
 | `MAIL_BACKEND` (+ `SMTP_*`, `MAIL_FROM`, `APP_PUBLIC_URL`) | unset = no mailer (signup 503); `console` = explicit dev opt-in that logs the link | unset. A host needs `smtp` |
+
+Results providers include opt-in NBA scores, upcoming games and box scores via
+`espn_nba` (#520), using a paced US-date window. Defaults remain unchanged;
+activation uses `RESULTS_PROVIDER_ROUTES=comp:nba=espn_nba` and
+`RESULTS_DETAIL_ENABLED=true`. Production activation requires #532's routed
+read rule. See [RESULTS.md section 13](RESULTS.md#13-nba-via-espn-issue-520-opt-in).
 
 Authentication: email/password (Argon2), HttpOnly cookie sessions, origin/fetch-metadata CSRF,
 and admin role gating ([USER_PLATFORM.md](USER_PLATFORM.md)). A password signup is only a

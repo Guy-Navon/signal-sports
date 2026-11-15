@@ -1,0 +1,380 @@
+{
+  "data": [
+    {
+      "id": "7a7603cf-e87c-482a-a638-cac8d70dc841",
+      "identifier": "E2026_103",
+      "gameCode": 103,
+      "season": {
+        "name": "EuroLeague 2026-27",
+        "code": "E2026",
+        "alias": "2026-27",
+        "competitionCode": "E",
+        "year": 2026,
+        "startDate": "2026-07-01T00:00:00"
+      },
+      "group": {
+        "id": "c3243224-039c-4e93-9e16-12a7f4b2d383",
+        "order": 1,
+        "name": "Group Regular Season",
+        "rawName": "Regular Season"
+      },
+      "phaseType": {
+        "code": "RS",
+        "alias": "REGULAR SEASON",
+        "name": "Regular Season",
+        "isGroupPhase": true
+      },
+      "round": 11,
+      "roundAlias": "Round 11",
+      "roundName": "Round 11",
+      "played": true,
+      "date": "2026-11-12T20:05:00",
+      "confirmedDate": true,
+      "confirmedHour": true,
+      "localTimeZone": 2,
+      "localDate": "2026-11-12T21:05:00",
+      "utcDate": "2026-11-12T19:05:00Z",
+      "local": {
+        "club": {
+          "code": "TEL",
+          "name": "Maccabi Rapyd Tel Aviv",
+          "abbreviatedName": "Maccabi",
+          "editorialName": "Maccabi",
+          "tvCode": "MTA",
+          "isVirtual": false,
+          "images": {
+            "crest": "https://media-cdn.cortextech.io/1b533342-78f5-4932-b714-a7d80b5826b5.png"
+          }
+        },
+        "score": 80,
+        "standingsScore": 80,
+        "partials": {
+          "partials1": 25,
+          "partials2": 16,
+          "partials3": 15,
+          "partials4": 24,
+          "extraPeriods": {}
+        }
+      },
+      "road": {
+        "club": {
+          "code": "HTA",
+          "name": "Hapoel IBI Tel Aviv",
+          "abbreviatedName": "Hapoel TLV",
+          "editorialName": "Hapoel",
+          "tvCode": "HTA",
+          "isVirtual": false,
+          "images": {
+            "crest": "https://media-cdn.incrowdsports.com/cbb1c3ad-03d5-426a-b5ef-2832a4eee484.png"
+          }
+        },
+        "score": 73,
+        "standingsScore": 73,
+        "partials": {
+          "partials1": 21,
+          "partials2": 12,
+          "partials3": 19,
+          "partials4": 21,
+          "extraPeriods": {}
+        }
+      },
+      "audience": 1212,
+      "audienceConfirmed": true,
+      "socialFeed": "",
+      "operationsCode": null,
+      "referee1": {
+        "code": "OJIZ",
+        "name": "PERUGA, CARLOS",
+        "alias": "PERUGA, C.",
+        "country": {
+          "code": "ESP",
+          "name": "Spain"
+        },
+        "images": {
+          "verticalSmall": "885qkoqdo5npvomj"
+        },
+        "active": true
+      },
+      "referee2": {
+        "code": "OACI",
+        "name": "BELOSEVIC, ILIJA",
+        "alias": "BELOSEVIC, I.",
+        "country": {
+          "code": "SRB",
+          "name": "Serbia"
+        },
+        "images": {
+          "verticalSmall": "ayrnxwrdng99dusy"
+        },
+        "active": true
+      },
+      "referee3": {
+        "code": "OJLQ",
+        "name": "ALIAGA, JORDI",
+        "alias": "ALIAGA, J.",
+        "country": {
+          "code": "ESP",
+          "name": "Spain"
+        },
+        "images": {
+          "verticalSmall": "ayrigtbycwi5iitj"
+        },
+        "active": true
+      },
+      "referee4": null,
+      "venue": {
+        "name": "SPYROS KYPRIANOU ATHLETIC CENTER",
+        "code": "AVU1",
+        "capacity": 6552,
+        "address": "",
+        "images": {
+          "medium": null
+        },
+        "active": true,
+        "notes": ""
+      },
+      "isNeutralVenue": false,
+      "gameStatus": "Confirmed",
+      "winner": null
+    },
+    {
+      "id": "fa6cd403-a3ad-4be6-aa2f-88d8ee88d4eb",
+      "identifier": "E2026_108",
+      "gameCode": 108,
+      "season": {
+        "name": "EuroLeague 2026-27",
+        "code": "E2026",
+        "alias": "2026-27",
+        "competitionCode": "E",
+        "year": 2026,
+        "startDate": "2026-07-01T00:00:00"
+      },
+      "group": {
+        "id": "c3243224-039c-4e93-9e16-12a7f4b2d383",
+        "order": 1,
+        "name": "Group Regular Season",
+        "rawName": "Regular Season"
+      },
+      "phaseType": {
+        "code": "RS",
+        "alias": "REGULAR SEASON",
+        "name": "Regular Season",
+        "isGroupPhase": true
+      },
+      "round": 11,
+      "roundAlias": "Round 11",
+      "roundName": "Round 11",
+      "played": true,
+      "date": "2026-11-13T20:30:00",
+      "confirmedDate": true,
+      "confirmedHour": true,
+      "localTimeZone": 1,
+      "localDate": "2026-11-13T20:30:00",
+      "utcDate": "2026-11-13T19:30:00Z",
+      "local": {
+        "club": {
+          "code": "ASV",
+          "name": "LDLC ASVEL Villeurbanne",
+          "abbreviatedName": "LDLC ASVEL",
+          "editorialName": "ASVEL",
+          "tvCode": "ASV",
+          "isVirtual": false,
+          "images": {
+            "crest": "https://media-cdn.incrowdsports.com/e33c6d1a-95ca-4dbc-b8cb-0201812104cc.png"
+          }
+        },
+        "score": 91,
+        "standingsScore": 91,
+        "partials": {
+          "partials1": 28,
+          "partials2": 24,
+          "partials3": 16,
+          "partials4": 23,
+          "extraPeriods": {}
+        }
+      },
+      "road": {
+        "club": {
+          "code": "BES",
+          "name": "Besiktas Istanbul",
+          "abbreviatedName": "Besiktas",
+          "editorialName": "Besiktas",
+          "tvCode": "BJK",
+          "isVirtual": false,
+          "images": {
+            "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjChWbHH/b05e3c54-e672-4b31-9f86-c91e9de7715c.png"
+          }
+        },
+        "score": 95,
+        "standingsScore": 95,
+        "partials": {
+          "partials1": 25,
+          "partials2": 18,
+          "partials3": 22,
+          "partials4": 30,
+          "extraPeriods": {}
+        }
+      },
+      "audience": 8267,
+      "audienceConfirmed": true,
+      "socialFeed": "",
+      "operationsCode": null,
+      "referee1": {
+        "code": "OJLM",
+        "name": "NEDOVIC, MILAN",
+        "alias": "NEDOVIC, M.",
+        "country": {
+          "code": "SLO",
+          "name": "Slovenia"
+        },
+        "images": {
+          "verticalSmall": "885uo7l4abjbyoam"
+        },
+        "active": true
+      },
+      "referee2": {
+        "code": "OJGK",
+        "name": "PETEK, SASO",
+        "alias": "PETEK, S.",
+        "country": {
+          "code": "SLO",
+          "name": "Slovenia"
+        },
+        "images": {
+          "verticalSmall": "885y7w6ple8p7mei"
+        },
+        "active": true
+      },
+      "referee3": {
+        "code": "OJIY",
+        "name": "PASTUSIAK, PIOTR",
+        "alias": "PASTUSIAK, P.",
+        "country": {
+          "code": "POL",
+          "name": "Poland"
+        },
+        "images": {
+          "verticalSmall": "885wrb4rki89jxa3"
+        },
+        "active": true
+      },
+      "referee4": null,
+      "venue": {
+        "name": "LDLC ARENA",
+        "code": "AUZ1",
+        "capacity": 12523,
+        "address": "Avenue Simone Veil 5, 69150 D\u00e9cines-Charpieu - France",
+        "images": {
+          "medium": null
+        },
+        "active": true,
+        "notes": ""
+      },
+      "isNeutralVenue": false,
+      "gameStatus": "Confirmed",
+      "winner": null
+    },
+    {
+      "id": "b4377faa-0f7f-445d-a2c6-d66d20f60f54",
+      "identifier": "E2026_379",
+      "gameCode": 379,
+      "season": {
+        "name": "EuroLeague 2026-27",
+        "code": "E2026",
+        "alias": "2026-27",
+        "competitionCode": "E",
+        "year": 2026,
+        "startDate": "2026-07-01T00:00:00"
+      },
+      "group": {
+        "id": "c3243224-039c-4e93-9e16-12a7f4b2d383",
+        "order": 1,
+        "name": "Group Regular Season",
+        "rawName": "Regular Season"
+      },
+      "phaseType": {
+        "code": "RS",
+        "alias": "REGULAR SEASON",
+        "name": "Regular Season",
+        "isGroupPhase": true
+      },
+      "round": 38,
+      "roundAlias": "Round 38",
+      "roundName": "Round 38",
+      "played": false,
+      "date": "2027-04-16T20:30:00",
+      "confirmedDate": true,
+      "confirmedHour": true,
+      "localTimeZone": 2,
+      "localDate": "2027-04-16T20:30:00",
+      "utcDate": "2027-04-16T18:30:00Z",
+      "local": {
+        "club": {
+          "code": "BAR",
+          "name": "FC Barcelona",
+          "abbreviatedName": "FC Barcelona",
+          "editorialName": "Barca",
+          "tvCode": "BAR",
+          "isVirtual": false,
+          "images": {
+            "crest": "https://media-cdn.incrowdsports.com/35dfa503-e417-481f-963a-bdf6f013763e.png"
+          }
+        },
+        "score": 0,
+        "standingsScore": 0,
+        "partials": {
+          "partials1": 0,
+          "partials2": 0,
+          "partials3": 0,
+          "partials4": 0,
+          "extraPeriods": {}
+        }
+      },
+      "road": {
+        "club": {
+          "code": "PAR",
+          "name": "Partizan Mozzart Bet Belgrade",
+          "abbreviatedName": "Partizan",
+          "editorialName": "Partizan",
+          "tvCode": "PAR",
+          "isVirtual": false,
+          "images": {
+            "crest": "https://media-cdn.incrowdsports.com/2681304e-77dd-4331-88b1-683078c0fb49.png"
+          }
+        },
+        "score": 0,
+        "standingsScore": 0,
+        "partials": {
+          "partials1": 0,
+          "partials2": 0,
+          "partials3": 0,
+          "partials4": 0,
+          "extraPeriods": {}
+        }
+      },
+      "audience": 0,
+      "audienceConfirmed": false,
+      "socialFeed": "",
+      "operationsCode": null,
+      "referee1": null,
+      "referee2": null,
+      "referee3": null,
+      "referee4": null,
+      "venue": {
+        "name": "PALAU BLAUGRANA",
+        "code": "AMH",
+        "capacity": 7585,
+        "address": "Aristides Maillol Av S/N, 08028 Barcelona",
+        "images": {
+          "medium": null
+        },
+        "active": true,
+        "notes": ""
+      },
+      "isNeutralVenue": false,
+      "gameStatus": "Confirmed",
+      "winner": null
+    }
+  ],
+  "total": 3
+}

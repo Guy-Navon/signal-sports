@@ -75,8 +75,30 @@ def build_results_snapshot(db_path: pathlib.Path) -> dict:
             session.rollback()
     finally:
         engine.dispose()
-    payload["games"] = [game for game in payload["games"] if game["status"] in COMPLETED]
-    return payload
+    games = [_public_game(game) for game in payload["games"] if game["status"] in COMPLETED]
+    snapshot = {"has_preferences": bool(payload.get("has_preferences")), "games": games}
+    _assert_scores_only(snapshot)
+    return snapshot
+
+
+# The public demo is scores-only (#526): an allowlist, so a field the results API
+# gains later (leaders, lines, venue, ranks, box scores) never reaches it by default.
+_PUBLIC_GAME_FIELDS = ("id", "competition_id", "competition_he", "competition_en", "sport",
+                       "season", "stage", "status", "start_time", "local_date", "winner",
+                       "relevance_reason")
+_PUBLIC_SIDE_FIELDS = ("id", "name", "name_provider", "score", "is_winner")
+
+
+def _public_game(game: dict) -> dict:
+    public = {key: game.get(key) for key in _PUBLIC_GAME_FIELDS}
+    for side in ("home", "away"):
+        public[side] = {key: (game.get(side) or {}).get(key) for key in _PUBLIC_SIDE_FIELDS}
+    return public
+
+
+def _assert_scores_only(snapshot: dict) -> None:
+    from app.ops.demo_snapshot import _assert_scores_only as assert_scores_only
+    assert_scores_only(snapshot)
 
 
 def export_demo_snapshot(db_path: pathlib.Path, out_dir: pathlib.Path, *, allow_empty: bool = False) -> dict:

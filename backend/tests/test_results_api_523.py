@@ -154,6 +154,24 @@ def test_football_includes_every_scorer_not_only_highest(session):
     assert [l.value for l in service.personalized_results(session,profile(comp="comp:ligat_haal"),now=NOW).games[0].leaders]==[1,2]
 
 
+def test_detail_identity_reads_are_batched(session):
+    from sqlalchemy import event
+    g=game()
+    details.upsert(session,NormalizedGameDetail(provider=g.provider,external_id=g.external_id,
+        players=[PlayerLine(side="home",source_player_id=str(i),name="Unknown player") for i in range(50)]))
+    session.commit()
+    queries=[]
+    def count(conn,cursor,statement,parameters,context,executemany):
+        if statement.lstrip().upper().startswith("SELECT"):
+            queries.append(statement)
+    event.listen(session.bind,"before_cursor_execute",count)
+    try:
+        assert len(details.get_details(session,[g.id])[g.id].players)==50
+    finally:
+        event.remove(session.bind,"before_cursor_execute",count)
+    assert len(queries)<=3, "player count must not multiply identity queries"
+
+
 def test_api_seed_profiles_two_users_popup_and_admin_parity(client,user_client,admin_client):
     g=game(ext="api-523",start_time=datetime.now(timezone.utc).isoformat())
     with SessionLocal() as s:

@@ -10,10 +10,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Iterable, Optional
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, tuple_
 from sqlalchemy.orm import Session
 
-from app.db.orm_models import GameDetailRow, GamePlayerLineRow, GameResultRow
+from app.db.orm_models import GameDetailRow, GamePlayerLineRow, GameResultRow, ResultsPlayerMappingRow
 from app.results import status as status_vocab
 from app.results.models import NormalizedGameDetail, PlayerLine, StoredGameDetail, TeamLeader
 from app.results.player_mapping import display_player, remember_player
@@ -107,10 +107,15 @@ def get_details(session: Session, game_ids: Iterable[str]) -> dict[str, StoredGa
         )
         for row in rows
     }
+    identities = {(d.provider, p.source_player_id) for d in stored.values()
+                  for p in [*d.players, *d.leaders] if p.source_player_id}
+    mappings = {(r.provider, r.source_player_id): r.entity_id for r in session.scalars(
+        select(ResultsPlayerMappingRow).where(tuple_(ResultsPlayerMappingRow.provider,
+            ResultsPlayerMappingRow.source_player_id).in_(identities)))} if identities else {}
     for detail in stored.values():
         for collection in (detail.players, detail.leaders):
             for i, person in enumerate(collection):
                 eid, name = display_player(session, detail.provider, person.source_player_id,
-                                            person.name, person.name_he)
+                                            person.name, person.name_he, mappings=mappings)
                 collection[i] = person.model_copy(update={"entity_id": eid, "display_name": name})
     return stored

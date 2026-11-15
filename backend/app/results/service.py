@@ -12,6 +12,7 @@ from typing import Iterable, Optional
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.db.orm_models import GameResultRow
 from app.models.profile import UserProfile
@@ -196,7 +197,6 @@ def visible_details(session: Session, game_ids: Iterable[str], *,
     if not ids:
         return {}
     routes, default = active_provider_map(session, now=now or datetime.now(tz=timezone.utc))
-    shown = [gid for gid in ids
-             if (row := game_result_repository.get_by_id(session, gid)) is not None
-             and row.provider == routes.get(row.competition_id, default)]
+    shown = [row.id for row in session.scalars(select(GameResultRow).where(GameResultRow.id.in_(ids)))
+             if row.provider == routes.get(row.competition_id, default)]
     return game_detail_repository.get_details(session, shown)

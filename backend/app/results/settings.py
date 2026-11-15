@@ -108,6 +108,25 @@ def http_max_retries() -> int:
     return _int("RESULTS_HTTP_MAX_RETRIES", 2, minimum=0)
 
 
+def espn_min_interval_seconds() -> float:
+    """Courtesy spacing for the undocumented ESPN NBA endpoints (#520)."""
+    try:
+        value = float(os.environ.get("RESULTS_ESPN_MIN_INTERVAL_SECONDS", "2"))
+        return value if 0 <= value < float("inf") else 2.0
+    except ValueError:
+        return 2.0
+
+
+def espn_days_back() -> int:
+    """US scoreboard dates before today; bounded to two weeks."""
+    return min(_int("RESULTS_ESPN_DAYS_BACK", 1), 14)
+
+
+def espn_days_ahead() -> int:
+    """US scoreboard dates after today; bounded to a week."""
+    return min(_int("RESULTS_ESPN_DAYS_AHEAD", 3), 7)
+
+
 # ── Scope ─────────────────────────────────────────────────────────────────────
 
 _DEFAULT_COMPETITIONS = (

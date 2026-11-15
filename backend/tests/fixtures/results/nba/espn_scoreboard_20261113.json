@@ -1,0 +1,1761 @@
+{
+  "events": [
+    {
+      "id": "401909296",
+      "date": "2026-11-14T00:00Z",
+      "status": {
+        "clock": 720.0,
+        "displayClock": "12:00",
+        "period": 4,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "106",
+              "linescores": [
+                {
+                  "value": 26.0,
+                  "displayValue": "26",
+                  "period": 1
+                },
+                {
+                  "value": 32.0,
+                  "displayValue": "32",
+                  "period": 2
+                },
+                {
+                  "value": 27.0,
+                  "displayValue": "27",
+                  "period": 3
+                },
+                {
+                  "value": 21.0,
+                  "displayValue": "21",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "11",
+                "displayName": "Indiana Pacers",
+                "abbreviation": "IND"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "19",
+                      "value": 19.0,
+                      "athlete": {
+                        "id": "3149673",
+                        "displayName": "Pascal Siakam"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "13",
+                      "value": 13.0,
+                      "athlete": {
+                        "id": "4017837",
+                        "displayName": "Ivica Zubac"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "7",
+                      "value": 7.0,
+                      "athlete": {
+                        "id": "2530530",
+                        "displayName": "T.J. McConnell"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "18 PTS, 7 REB",
+                      "value": 31.799999237060547,
+                      "athlete": {
+                        "id": "4396909",
+                        "displayName": "Aaron Nesmith"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "homeAway": "away",
+              "score": "104",
+              "linescores": [
+                {
+                  "value": 27.0,
+                  "displayValue": "27",
+                  "period": 1
+                },
+                {
+                  "value": 22.0,
+                  "displayValue": "22",
+                  "period": 2
+                },
+                {
+                  "value": 35.0,
+                  "displayValue": "35",
+                  "period": 3
+                },
+                {
+                  "value": 20.0,
+                  "displayValue": "20",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "18",
+                "displayName": "New York Knicks",
+                "abbreviation": "NY"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "33",
+                      "value": 33.0,
+                      "athlete": {
+                        "id": "3934672",
+                        "displayName": "Jalen Brunson"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "15",
+                      "value": 15.0,
+                      "athlete": {
+                        "id": "3136195",
+                        "displayName": "Karl-Anthony Towns"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "11",
+                      "value": 11.0,
+                      "athlete": {
+                        "id": "3934672",
+                        "displayName": "Jalen Brunson"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "33 PTS, 11 AST",
+                      "value": 53.75,
+                      "athlete": {
+                        "id": "3934672",
+                        "displayName": "Jalen Brunson"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401909297",
+      "date": "2026-11-14T00:00Z",
+      "status": {
+        "clock": 720.0,
+        "displayClock": "12:00",
+        "period": 4,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "107",
+              "linescores": [
+                {
+                  "value": 23.0,
+                  "displayValue": "23",
+                  "period": 1
+                },
+                {
+                  "value": 29.0,
+                  "displayValue": "29",
+                  "period": 2
+                },
+                {
+                  "value": 32.0,
+                  "displayValue": "32",
+                  "period": 3
+                },
+                {
+                  "value": 23.0,
+                  "displayValue": "23",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "19",
+                "displayName": "Orlando Magic",
+                "abbreviation": "ORL"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "35",
+                      "value": 35.0,
+                      "athlete": {
+                        "id": "4566434",
+                        "displayName": "Franz Wagner"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "9",
+                      "value": 9.0,
+                      "athlete": {
+                        "id": "4566434",
+                        "displayName": "Franz Wagner"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "12",
+                      "value": 12.0,
+                      "athlete": {
+                        "id": "4566434",
+                        "displayName": "Franz Wagner"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "35 PTS, 9 REB, 12 AST",
+                      "value": 69.9000015258789,
+                      "athlete": {
+                        "id": "4566434",
+                        "displayName": "Franz Wagner"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "homeAway": "away",
+              "score": "99",
+              "linescores": [
+                {
+                  "value": 15.0,
+                  "displayValue": "15",
+                  "period": 1
+                },
+                {
+                  "value": 22.0,
+                  "displayValue": "22",
+                  "period": 2
+                },
+                {
+                  "value": 35.0,
+                  "displayValue": "35",
+                  "period": 3
+                },
+                {
+                  "value": 27.0,
+                  "displayValue": "27",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "15",
+                "displayName": "Milwaukee Bucks",
+                "abbreviation": "MIL"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "22",
+                      "value": 22.0,
+                      "athlete": {
+                        "id": "4432848",
+                        "displayName": "Jaime Jaquez Jr."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "11",
+                      "value": 11.0,
+                      "athlete": {
+                        "id": "3133628",
+                        "displayName": "Myles Turner"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "4",
+                      "value": 4.0,
+                      "athlete": {
+                        "id": "4432848",
+                        "displayName": "Jaime Jaquez Jr."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "22 PTS, 6 REB",
+                      "value": 35.75,
+                      "athlete": {
+                        "id": "4432848",
+                        "displayName": "Jaime Jaquez Jr."
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401909298",
+      "date": "2026-11-14T01:00Z",
+      "status": {
+        "clock": 720.0,
+        "displayClock": "12:00",
+        "period": 4,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "133",
+              "linescores": [
+                {
+                  "value": 29.0,
+                  "displayValue": "29",
+                  "period": 1
+                },
+                {
+                  "value": 25.0,
+                  "displayValue": "25",
+                  "period": 2
+                },
+                {
+                  "value": 38.0,
+                  "displayValue": "38",
+                  "period": 3
+                },
+                {
+                  "value": 41.0,
+                  "displayValue": "41",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "14",
+                "displayName": "Miami Heat",
+                "abbreviation": "MIA"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "37",
+                      "value": 37.0,
+                      "athlete": {
+                        "id": "4066261",
+                        "displayName": "Bam Adebayo"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "14",
+                      "value": 14.0,
+                      "athlete": {
+                        "id": "4066261",
+                        "displayName": "Bam Adebayo"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "17",
+                      "value": 17.0,
+                      "athlete": {
+                        "id": "4278053",
+                        "displayName": "Davion Mitchell"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "37 PTS, 14 REB",
+                      "value": 65.8499984741211,
+                      "athlete": {
+                        "id": "4066261",
+                        "displayName": "Bam Adebayo"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "homeAway": "away",
+              "score": "121",
+              "linescores": [
+                {
+                  "value": 27.0,
+                  "displayValue": "27",
+                  "period": 1
+                },
+                {
+                  "value": 30.0,
+                  "displayValue": "30",
+                  "period": 2
+                },
+                {
+                  "value": 34.0,
+                  "displayValue": "34",
+                  "period": 3
+                },
+                {
+                  "value": 30.0,
+                  "displayValue": "30",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "5",
+                "displayName": "Cleveland Cavaliers",
+                "abbreviation": "CLE"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "25",
+                      "value": 25.0,
+                      "athlete": {
+                        "id": "3908809",
+                        "displayName": "Donovan Mitchell"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "8",
+                      "value": 8.0,
+                      "athlete": {
+                        "id": "4066328",
+                        "displayName": "Jarrett Allen"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "8",
+                      "value": 8.0,
+                      "athlete": {
+                        "id": "3992",
+                        "displayName": "James Harden"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "20 PTS, 6 REB, 8 AST, 3 STL",
+                      "value": 41.79999923706055,
+                      "athlete": {
+                        "id": "3992",
+                        "displayName": "James Harden"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401909299",
+      "date": "2026-11-14T01:00Z",
+      "status": {
+        "clock": 300.0,
+        "displayClock": "5:00",
+        "period": 5,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final/OT",
+          "shortDetail": "Final/OT",
+          "altDetail": "OT"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "125",
+              "linescores": [
+                {
+                  "value": 33.0,
+                  "displayValue": "33",
+                  "period": 1
+                },
+                {
+                  "value": 27.0,
+                  "displayValue": "27",
+                  "period": 2
+                },
+                {
+                  "value": 24.0,
+                  "displayValue": "24",
+                  "period": 3
+                },
+                {
+                  "value": 26.0,
+                  "displayValue": "26",
+                  "period": 4
+                },
+                {
+                  "value": 15.0,
+                  "displayValue": "15",
+                  "period": 5
+                }
+              ],
+              "team": {
+                "id": "4",
+                "displayName": "Chicago Bulls",
+                "abbreviation": "CHI"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "33",
+                      "value": 33.0,
+                      "athlete": {
+                        "id": "2595516",
+                        "displayName": "Norman Powell"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "12",
+                      "value": 12.0,
+                      "athlete": {
+                        "id": "4397189",
+                        "displayName": "Jalen Smith"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "14",
+                      "value": 14.0,
+                      "athlete": {
+                        "id": "4871145",
+                        "displayName": "Josh Giddey"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "33 PTS",
+                      "value": 48.54999923706055,
+                      "athlete": {
+                        "id": "2595516",
+                        "displayName": "Norman Powell"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "homeAway": "away",
+              "score": "117",
+              "linescores": [
+                {
+                  "value": 24.0,
+                  "displayValue": "24",
+                  "period": 1
+                },
+                {
+                  "value": 29.0,
+                  "displayValue": "29",
+                  "period": 2
+                },
+                {
+                  "value": 30.0,
+                  "displayValue": "30",
+                  "period": 3
+                },
+                {
+                  "value": 27.0,
+                  "displayValue": "27",
+                  "period": 4
+                },
+                {
+                  "value": 7.0,
+                  "displayValue": "7",
+                  "period": 5
+                }
+              ],
+              "team": {
+                "id": "1",
+                "displayName": "Atlanta Hawks",
+                "abbreviation": "ATL"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "27",
+                      "value": 27.0,
+                      "athlete": {
+                        "id": "4701230",
+                        "displayName": "Jalen Johnson"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "11",
+                      "value": 11.0,
+                      "athlete": {
+                        "id": "4701230",
+                        "displayName": "Jalen Johnson"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "10",
+                      "value": 10.0,
+                      "athlete": {
+                        "id": "4701230",
+                        "displayName": "Jalen Johnson"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "27 PTS, 11 REB, 10 AST",
+                      "value": 48.95000076293945,
+                      "athlete": {
+                        "id": "4701230",
+                        "displayName": "Jalen Johnson"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401909300",
+      "date": "2026-11-14T01:00Z",
+      "status": {
+        "clock": 0.0,
+        "displayClock": "0.0",
+        "period": 4,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "111",
+              "linescores": [
+                {
+                  "value": 28.0,
+                  "displayValue": "28",
+                  "period": 1
+                },
+                {
+                  "value": 30.0,
+                  "displayValue": "30",
+                  "period": 2
+                },
+                {
+                  "value": 28.0,
+                  "displayValue": "28",
+                  "period": 3
+                },
+                {
+                  "value": 25.0,
+                  "displayValue": "25",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "3",
+                "displayName": "New Orleans Pelicans",
+                "abbreviation": "NO"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "30",
+                      "value": 30.0,
+                      "athlete": {
+                        "id": "4397136",
+                        "displayName": "Saddiq Bey"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "10",
+                      "value": 10.0,
+                      "athlete": {
+                        "id": "4397136",
+                        "displayName": "Saddiq Bey"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "7",
+                      "value": 7.0,
+                      "athlete": {
+                        "id": "5144091",
+                        "displayName": "Jeremiah Fears"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "30 PTS, 10 REB",
+                      "value": 47.900001525878906,
+                      "athlete": {
+                        "id": "4397136",
+                        "displayName": "Saddiq Bey"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "homeAway": "away",
+              "score": "142",
+              "linescores": [
+                {
+                  "value": 35.0,
+                  "displayValue": "35",
+                  "period": 1
+                },
+                {
+                  "value": 35.0,
+                  "displayValue": "35",
+                  "period": 2
+                },
+                {
+                  "value": 35.0,
+                  "displayValue": "35",
+                  "period": 3
+                },
+                {
+                  "value": 37.0,
+                  "displayValue": "37",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "29",
+                "displayName": "Memphis Grizzlies",
+                "abbreviation": "MEM"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "22",
+                      "value": 22.0,
+                      "athlete": {
+                        "id": "2991070",
+                        "displayName": "Jerami Grant"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "12",
+                      "value": 12.0,
+                      "athlete": {
+                        "id": "4684806",
+                        "displayName": "Taylor Hendricks"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "9",
+                      "value": 9.0,
+                      "athlete": {
+                        "id": "4065733",
+                        "displayName": "Ty Jerome"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "22 PTS",
+                      "value": 31.049999237060547,
+                      "athlete": {
+                        "id": "2991070",
+                        "displayName": "Jerami Grant"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401909301",
+      "date": "2026-11-14T01:30Z",
+      "status": {
+        "clock": 720.0,
+        "displayClock": "12:00",
+        "period": 4,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "125",
+              "linescores": [
+                {
+                  "value": 27.0,
+                  "displayValue": "27",
+                  "period": 1
+                },
+                {
+                  "value": 36.0,
+                  "displayValue": "36",
+                  "period": 2
+                },
+                {
+                  "value": 29.0,
+                  "displayValue": "29",
+                  "period": 3
+                },
+                {
+                  "value": 33.0,
+                  "displayValue": "33",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "10",
+                "displayName": "Houston Rockets",
+                "abbreviation": "HOU"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "43",
+                      "value": 43.0,
+                      "athlete": {
+                        "id": "4871144",
+                        "displayName": "Alperen Sengun"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "12",
+                      "value": 12.0,
+                      "athlete": {
+                        "id": "4871144",
+                        "displayName": "Alperen Sengun"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "6",
+                      "value": 6.0,
+                      "athlete": {
+                        "id": "3202",
+                        "displayName": "Kevin Durant"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "43 PTS, 12 REB",
+                      "value": 74.4000015258789,
+                      "athlete": {
+                        "id": "4871144",
+                        "displayName": "Alperen Sengun"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "homeAway": "away",
+              "score": "118",
+              "linescores": [
+                {
+                  "value": 27.0,
+                  "displayValue": "27",
+                  "period": 1
+                },
+                {
+                  "value": 26.0,
+                  "displayValue": "26",
+                  "period": 2
+                },
+                {
+                  "value": 36.0,
+                  "displayValue": "36",
+                  "period": 3
+                },
+                {
+                  "value": 29.0,
+                  "displayValue": "29",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "26",
+                "displayName": "Utah Jazz",
+                "abbreviation": "UTAH"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "28",
+                      "value": 28.0,
+                      "athlete": {
+                        "id": "5041955",
+                        "displayName": "Darryn Peterson"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "9",
+                      "value": 9.0,
+                      "athlete": {
+                        "id": "4277919",
+                        "displayName": "Mo Bamba"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "7",
+                      "value": 7.0,
+                      "athlete": {
+                        "id": "4433627",
+                        "displayName": "Keyonte George"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "28 PTS, 7 REB",
+                      "value": 42.70000076293945,
+                      "athlete": {
+                        "id": "5041955",
+                        "displayName": "Darryn Peterson"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401909302",
+      "date": "2026-11-14T02:30Z",
+      "status": {
+        "clock": 720.0,
+        "displayClock": "12:00",
+        "period": 4,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "123",
+              "linescores": [
+                {
+                  "value": 38.0,
+                  "displayValue": "38",
+                  "period": 1
+                },
+                {
+                  "value": 25.0,
+                  "displayValue": "25",
+                  "period": 2
+                },
+                {
+                  "value": 34.0,
+                  "displayValue": "34",
+                  "period": 3
+                },
+                {
+                  "value": 26.0,
+                  "displayValue": "26",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "24",
+                "displayName": "San Antonio Spurs",
+                "abbreviation": "SA"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "32",
+                      "value": 32.0,
+                      "athlete": {
+                        "id": "4845367",
+                        "displayName": "Stephon Castle"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "12",
+                      "value": 12.0,
+                      "athlete": {
+                        "id": "5104157",
+                        "displayName": "Victor Wembanyama"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "6",
+                      "value": 6.0,
+                      "athlete": {
+                        "id": "4845367",
+                        "displayName": "Stephon Castle"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "32 PTS, 6 AST",
+                      "value": 56.54999923706055,
+                      "athlete": {
+                        "id": "4845367",
+                        "displayName": "Stephon Castle"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "homeAway": "away",
+              "score": "85",
+              "linescores": [
+                {
+                  "value": 14.0,
+                  "displayValue": "14",
+                  "period": 1
+                },
+                {
+                  "value": 19.0,
+                  "displayValue": "19",
+                  "period": 2
+                },
+                {
+                  "value": 27.0,
+                  "displayValue": "27",
+                  "period": 3
+                },
+                {
+                  "value": 25.0,
+                  "displayValue": "25",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "9",
+                "displayName": "Golden State Warriors",
+                "abbreviation": "GS"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "20",
+                      "value": 20.0,
+                      "athlete": {
+                        "id": "4433149",
+                        "displayName": "LJ Cryer"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "7",
+                      "value": 7.0,
+                      "athlete": {
+                        "id": "5175737",
+                        "displayName": "Yaxel Lendeborg"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "6",
+                      "value": 6.0,
+                      "athlete": {
+                        "id": "4433149",
+                        "displayName": "LJ Cryer"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "20 PTS, 6 AST",
+                      "value": 33.400001525878906,
+                      "athlete": {
+                        "id": "4433149",
+                        "displayName": "LJ Cryer"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401909303",
+      "date": "2026-11-14T03:00Z",
+      "status": {
+        "clock": 720.0,
+        "displayClock": "12:00",
+        "period": 4,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "107",
+              "linescores": [
+                {
+                  "value": 25.0,
+                  "displayValue": "25",
+                  "period": 1
+                },
+                {
+                  "value": 28.0,
+                  "displayValue": "28",
+                  "period": 2
+                },
+                {
+                  "value": 25.0,
+                  "displayValue": "25",
+                  "period": 3
+                },
+                {
+                  "value": 29.0,
+                  "displayValue": "29",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "23",
+                "displayName": "Sacramento Kings",
+                "abbreviation": "SAC"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "24",
+                      "value": 24.0,
+                      "athlete": {
+                        "id": "4065732",
+                        "displayName": "De'Andre Hunter"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "12",
+                      "value": 12.0,
+                      "athlete": {
+                        "id": "3155942",
+                        "displayName": "Domantas Sabonis"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "6",
+                      "value": 6.0,
+                      "athlete": {
+                        "id": "5142620",
+                        "displayName": "Darius Acuff Jr."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "21 PTS, 12 REB",
+                      "value": 43.70000076293945,
+                      "athlete": {
+                        "id": "3155942",
+                        "displayName": "Domantas Sabonis"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "homeAway": "away",
+              "score": "120",
+              "linescores": [
+                {
+                  "value": 34.0,
+                  "displayValue": "34",
+                  "period": 1
+                },
+                {
+                  "value": 30.0,
+                  "displayValue": "30",
+                  "period": 2
+                },
+                {
+                  "value": 29.0,
+                  "displayValue": "29",
+                  "period": 3
+                },
+                {
+                  "value": 27.0,
+                  "displayValue": "27",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "22",
+                "displayName": "Portland Trail Blazers",
+                "abbreviation": "POR"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "34",
+                      "value": 34.0,
+                      "athlete": {
+                        "id": "4683021",
+                        "displayName": "Deni Avdija"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "11",
+                      "value": 11.0,
+                      "athlete": {
+                        "id": "5105565",
+                        "displayName": "Donovan Clingan"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "6",
+                      "value": 6.0,
+                      "athlete": {
+                        "id": "6606",
+                        "displayName": "Damian Lillard"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "34 PTS, 6 REB",
+                      "value": 58.04999923706055,
+                      "athlete": {
+                        "id": "4683021",
+                        "displayName": "Deni Avdija"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401909304",
+      "date": "2026-11-14T03:30Z",
+      "status": {
+        "clock": 720.0,
+        "displayClock": "12:00",
+        "period": 4,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "113",
+              "linescores": [
+                {
+                  "value": 33.0,
+                  "displayValue": "33",
+                  "period": 1
+                },
+                {
+                  "value": 24.0,
+                  "displayValue": "24",
+                  "period": 2
+                },
+                {
+                  "value": 25.0,
+                  "displayValue": "25",
+                  "period": 3
+                },
+                {
+                  "value": 31.0,
+                  "displayValue": "31",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "12",
+                "displayName": "LA Clippers",
+                "abbreviation": "LAC"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "26",
+                      "value": 26.0,
+                      "athlete": {
+                        "id": "3448",
+                        "displayName": "Brook Lopez"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "11",
+                      "value": 11.0,
+                      "athlete": {
+                        "id": "4066648",
+                        "displayName": "Rui Hachimura"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "7",
+                      "value": 7.0,
+                      "athlete": {
+                        "id": "4396907",
+                        "displayName": "Darius Garland"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "26 PTS, 7 REB",
+                      "value": 44.25,
+                      "athlete": {
+                        "id": "3448",
+                        "displayName": "Brook Lopez"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "homeAway": "away",
+              "score": "112",
+              "linescores": [
+                {
+                  "value": 27.0,
+                  "displayValue": "27",
+                  "period": 1
+                },
+                {
+                  "value": 17.0,
+                  "displayValue": "17",
+                  "period": 2
+                },
+                {
+                  "value": 40.0,
+                  "displayValue": "40",
+                  "period": 3
+                },
+                {
+                  "value": 28.0,
+                  "displayValue": "28",
+                  "period": 4
+                }
+              ],
+              "team": {
+                "id": "25",
+                "displayName": "Oklahoma City Thunder",
+                "abbreviation": "OKC"
+              },
+              "leaders": [
+                {
+                  "name": "points",
+                  "leaders": [
+                    {
+                      "displayValue": "40",
+                      "value": 40.0,
+                      "athlete": {
+                        "id": "4278073",
+                        "displayName": "Shai Gilgeous-Alexander"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rebounds",
+                  "leaders": [
+                    {
+                      "displayValue": "16",
+                      "value": 16.0,
+                      "athlete": {
+                        "id": "4222252",
+                        "displayName": "Isaiah Hartenstein"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "assists",
+                  "leaders": [
+                    {
+                      "displayValue": "6",
+                      "value": 6.0,
+                      "athlete": {
+                        "id": "4222252",
+                        "displayName": "Isaiah Hartenstein"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "rating",
+                  "leaders": [
+                    {
+                      "displayValue": "40 PTS",
+                      "value": 56.70000076293945,
+                      "athlete": {
+                        "id": "4278073",
+                        "displayName": "Shai Gilgeous-Alexander"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

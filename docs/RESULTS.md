@@ -69,6 +69,8 @@ The source is isolated behind `app/results/providers/`:
 
 `euroleague.EuroLeagueProvider` (issue #519) supports official EuroLeague and
 EuroCup results and detail. It is opt-in; see the activation example below.
+`espn_nba.ESPNNBAProvider` (issue #520) supports NBA scores, upcoming games and
+detail via ESPN; opt-in activation and source limits are in section 13.
 
 `providers.get_provider()` selects by `RESULTS_PROVIDER` from `providers.REGISTRY`
 (name -> constructor; a new provider is one line there).
@@ -307,6 +309,11 @@ surface available (safe with an empty corpus). Rollback = flip
   games only, never re-fetched, the per-run cap, providers without detail, per-game
   and whole-call failures that leave the scores sync untouched, provider-identity
   scoping, and both rate-limit paths.
+- Backend `tests/test_results_espn_nba_520.py`: saved ESPN scoreboards and summaries,
+  US-date/DST boundaries, statuses, October season rollover, player stat strings,
+  leaders, quarters, DNP, retries, pacing, 429 stops, malformed games, routing and
+  isolated DB syncs proving stored boxes are never requested again. All HTTP uses
+  `httpx.MockTransport`, with real transports blocked.
 - Backend `tests/test_results_euroleague_519.py`: saved EuroLeague/EuroCup
   payloads, UTC dates, upcoming games, season rollover, complete season coverage,
   sponsored-name resolution, box scores/leaders/DNP, ranks, auth failures,
@@ -341,8 +348,9 @@ surface available (safe with an empty corpus). Rollback = flip
 
 **Status:** implemented behind `RESULTS_DETAIL_ENABLED` (default **false** in code and
 `.env.example`). The Ligat Winner provider (section 12, #518), the official
-`euroleague` provider (section 3, #519) and `RESULTS_PROVIDER=fake` return detail.
-Other real providers are added by #520 and #521. `/api/me/results` does not expose it yet
+`euroleague` provider (section 3, #519), `espn_nba` (section 13, #520) and
+`RESULTS_PROVIDER=fake` return detail. Another real provider is added by #521.
+`/api/me/results` does not expose it yet
 (#523). `game_results` is unchanged, so the page keeps working with scores only when a
 detail source fails or has nothing.
 
@@ -485,3 +493,73 @@ window; check for duplicate Ligat Winner games after switching.
 exactly; it does not follow the taxonomy `parent`. A profile that follows `comp:ibl` is
 therefore **not** shown `comp:winner_cup` or `comp:il_super_cup` games between unfollowed
 clubs (only the games of a followed team). Not changed in #518.
+
+## 13. NBA via ESPN (issue #520, opt-in)
+
+**Status:** implemented as `espn_nba.ESPNNBAProvider`, registered as `espn_nba`,
+serving only `comp:nba`. Existing defaults remain TheSportsDB, empty routes and
+detail off. No UI, API output, Hebrew player mapping or taxonomy aliases change.
+
+**Activation** (owner opt-in; production activation requires the duplicate-free
+read rule from #532, section 3, now implemented):
+
+```dotenv
+RESULTS_PROVIDER_ROUTES=comp:nba=espn_nba
+RESULTS_DETAIL_ENABLED=true
+```
+
+Combine these entries with any existing routes. The existing scheduler/manual
+sync populates data; reading results sends no requests. Clear the NBA route to
+roll back to the default provider's stored rows; no rows are deleted.
+
+**Source and dates.** ESPN's public, unofficial and undocumented endpoints need
+no key. Scoreboards use
+`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=YYYYMMDD`.
+There is one request per date from `RESULTS_ESPN_DAYS_BACK` (default 1, at most
+14) days before today through `RESULTS_ESPN_DAYS_AHEAD` (default 3, at most 7)
+days after today, inclusive. Today is the **America/New_York** calendar date,
+with DST, rather than the worker's or Israel's date. Tip-off always comes from
+`events[].date`, converted to UTC: the 13 November US Portland/Sacramento game
+starts `2026-11-14T03:00:00+00:00`, on 14 November in Israel. Season labels
+roll over in October (`2026-2027`); identity is ESPN's event id, scoped to the
+provider. TheSportsDB's season settings and game cap do not truncate this short
+date window.
+
+`post` plus `completed=true` means `final`, `pre` means `scheduled`, and `in`
+means `live`; explicit postponed/cancelled statuses are retained. Scores are set
+only for final games with both scores readable. Home/away comes from `homeAway`,
+never array order. The existing competition-scoped resolver knows the NBA team
+display names; an unresolved name remains the source name with a null team id.
+
+**Detail.** One
+`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=<id>`
+request per final candidate. Source player ids and English names are kept;
+`MIN` becomes decimal minutes, and `stats` retains label-keyed strings (including
+`FG="11-13"`, `FT="9-9"`, `+/-="+11"`) plus integer `points`, `rebounds`,
+`assists` and a `starter` boolean. Players with `didNotPlay=true` are skipped;
+an otherwise present `DNP` minute string becomes null. Points/rebounds/assists
+leaders are derived with `leaders_from_lines`, preserving ties, with scoreboard
+leaders available as fallback. Native team stats are keyed by their ESPN names;
+each side's `quarters` includes overtime periods. Scoreboard quarters are carried
+into detail during the same provider run; for older stored games they come from
+the summary header. Venue and attendance come from `gameInfo`.
+
+The existing stage (section 11) caps detail requests and **never re-fetches stored
+detail**, including across provider instances and process restarts. Daily
+scoreboards are still refreshed to discover schedule/status changes. An empty
+or unfinished box stays pending. A mismatched or malformed box, including
+incomplete team lines, is a per-game error and remains retryable on the next
+sync; scores are preserved. Malformed optional scoreboard detail leaves scores
+available. No NBA CDN or stats.nba.com endpoints are used.
+
+**Reliability.** HTTPX accepts gzip/deflate, with shared timeout
+`RESULTS_HTTP_TIMEOUT_SECONDS` and bounded transient retries
+(`RESULTS_HTTP_MAX_RETRIES`). All ESPN calls, including retries, share
+`RESULTS_ESPN_MIN_INTERVAL_SECONDS` (default 2 seconds; courtesy spacing, no
+published limit), and send `User-Agent: signal-sports-results/1.0`. Permanent
+HTTP failures and malformed JSON are not retried in the same call. A 429 is
+never retried: it stops scoreboards (`comp:nba` is `not_checked`) or marks the
+remaining detail games `not_checked`, with Retry-After (seconds or HTTP date;
+60 seconds if absent/invalid). Existing provider-specific sync blocks apply.
+Error strings are short and URL-free. A source change can therefore leave
+scores usable while detail fails; no LLM or paid source is involved.

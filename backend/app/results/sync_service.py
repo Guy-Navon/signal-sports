@@ -6,7 +6,9 @@ both throttles the scheduler stage (so opening the page never triggers provider
 calls and cycles don't hammer the API) and records the last outcome for ops.
 ``results_sync_lease`` keeps the worker and a manual sync from overlapping (#197).
 With ``RESULTS_DETAIL_ENABLED`` on, the per-game detail stage (``detail_sync``,
-#517) runs after the scores are committed, under the same lease.
+#517) runs after the scores are committed, under the same lease. Per-provider
+health (#522, ``app.results.health``) is recorded after the scores are committed,
+in its own commit, so it can never fail the sync.
 """
 from __future__ import annotations
 
@@ -20,10 +22,10 @@ from sqlalchemy.orm import Session
 
 from app.db.orm_models import ResultsSyncStateRow
 from app.repositories import game_result_repository
-from app.results import settings
+from app.results import health, settings
 from app.results.detail_sync import sync_details
 from app.results.providers import ResultsProvider, configured_provider_names, get_provider
-from app.results.providers.base import FetchOutcome
+from app.results.providers.base import FetchOutcome, ProviderRun
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +96,28 @@ def _limited_providers(outcome: FetchOutcome, plain_name: str, routed: bool) -> 
     if outcome.retry_after_seconds is not None or outcome.not_checked:
         return {plain_name: outcome.retry_after_seconds}
     return {}
+
+
+def _provider_runs(provider: ResultsProvider, outcome: FetchOutcome, comps: list[str],
+                   raised: Optional[str]) -> dict[str, ProviderRun]:
+    """Per-provider runs for health. The routing provider reports its own; a
+    plain provider was asked for every competition (unless it was blocked, in
+    which case the sync was skipped before getting here)."""
+    if getattr(provider, "provider_names", None):
+        return dict(outcome.provider_runs)
+    name = getattr(provider, "name", "unknown")
+    if raised is not None:
+        return {name: ProviderRun(list(comps), raised=raised)}
+    return {name: ProviderRun(list(comps), outcome)}
+
+
+def _backup_comps(provider: ResultsProvider, comps: list[str]) -> list[str]:
+    """Competitions the default provider fetched as backup (#522), in order."""
+    default = getattr(provider, "default_name", None)
+    provider_for = getattr(provider, "provider_for", None)
+    if not default or not callable(provider_for):
+        return []
+    return [c for c in comps if provider_for(c) != default]
 
 
 def _lease_time(moment: datetime) -> str:
@@ -211,6 +235,7 @@ def _sync_holding_lease(
     _state(session).last_attempt_at = now_iso
     session.commit()
 
+    fetch_raised: Optional[str] = None
     try:
         provider = provider or get_provider()
         set_blocked = getattr(provider, "set_blocked", None)
@@ -222,7 +247,21 @@ def _sync_holding_lease(
         # the API key: it gets the class name, the details go to the log.
         logger.exception("results sync: provider failed unexpectedly")
         outcome = FetchOutcome(errors={"provider": type(exc).__name__})
+        fetch_raised = type(exc).__name__
     counts = game_result_repository.upsert_many(session, outcome.games)
+
+    # Per-provider health (#522), after the scores are committed. Its own commit:
+    # a failure here rolls back only the health rows, never the scores sync.
+    health_error: Optional[str] = None
+    if provider is not None:
+        try:
+            health.record_fetch_health(
+                session, _provider_runs(provider, outcome, comps, fetch_raised), now_iso)
+            session.commit()
+        except Exception as exc:
+            session.rollback()
+            logger.exception("results sync: recording provider health failed")
+            health_error = type(exc).__name__
 
     if outcome.errors and not outcome.games:
         status = "error"
@@ -283,8 +322,18 @@ def _sync_holding_lease(
         "rate_limited_until_by_provider": until_by_provider,
         "synced_at": now_iso,
     }
+    if outcome.backup is not None:
+        summary["backup"] = {
+            "provider": getattr(provider, "default_name", None) or "unknown",
+            "competitions": _backup_comps(provider, comps),
+            "fetched_counts": outcome.backup.fetched_counts,
+            "errors": outcome.backup.errors,
+            "not_checked": outcome.backup.not_checked,
+        }
     if detail_summary is not None:
         summary["detail"] = detail_summary
+    if health_error is not None:
+        summary["health_error"] = health_error
 
     row = _state(session)
     row.last_status = status

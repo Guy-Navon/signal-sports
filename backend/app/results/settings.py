@@ -66,6 +66,27 @@ def provider_routes_raw() -> str:
     return os.environ.get("RESULTS_PROVIDER_ROUTES", "").strip()
 
 
+def provider_disabled_raw() -> str:
+    """``RESULTS_PROVIDER_DISABLED``: comma-separated provider names to switch off
+    (#522). A disabled provider is never called; its routed competitions are
+    synced and read through ``RESULTS_PROVIDER``. Empty (default) = none."""
+    return os.environ.get("RESULTS_PROVIDER_DISABLED", "").strip()
+
+
+def provider_stale_hours() -> int:
+    """``RESULTS_PROVIDER_STALE_HOURS`` (#522, default 6): a routed competition
+    whose provider has not succeeded for it within this many hours is read from
+    the default provider. 0 turns the staleness fallback off."""
+    return _int("RESULTS_PROVIDER_STALE_HOURS", 6, minimum=0)
+
+
+def provider_backup_sync_enabled() -> bool:
+    """``RESULTS_PROVIDER_BACKUP_SYNC`` (#522, default on): with routes set, the
+    default provider also fetches the routed competitions so the read-time
+    fallback has fresh rows. No effect without routes."""
+    return _bool("RESULTS_PROVIDER_BACKUP_SYNC", True)
+
+
 def thesportsdb_key() -> str:
     # "123" is TheSportsDB's documented PUBLIC test key — not a secret. The old
     # "3" was permanently disabled (403) by October 2026.

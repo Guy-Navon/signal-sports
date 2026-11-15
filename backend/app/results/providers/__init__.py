@@ -67,41 +67,85 @@ def configured_routes() -> dict[str, str]:
                         known_providers=REGISTRY, known_competitions=COMPETITIONS)
 
 
-def active_provider_map() -> tuple[dict[str, str], str]:
-    """``(routes, default)`` for the READ path. A bad route config must not break
-    reads: fall back to no routes (everything on the default provider) and log."""
+def configured_disabled() -> frozenset[str]:
+    """The validated ``RESULTS_PROVIDER_DISABLED`` set (#522; empty by default).
+    Raises ``ValueError`` for an unknown name (a typo must not leave a broken
+    source switched on) or for the default provider, which is the fallback for
+    everything and cannot be switched off this way."""
+    names = frozenset(n.strip().lower() for n in settings.provider_disabled_raw().split(",")
+                      if n.strip())
+    unknown = names - set(REGISTRY)
+    if unknown:
+        raise ValueError(f"RESULTS_PROVIDER_DISABLED: unknown provider(s) {sorted(unknown)} "
+                         f"(known: {sorted(REGISTRY)})")
+    if default_provider_name() in names:
+        raise ValueError("RESULTS_PROVIDER_DISABLED: the default provider "
+                         f"{default_provider_name()!r} cannot be disabled")
+    return names
+
+
+def effective_routes() -> dict[str, str]:
+    """The routes the SYNC uses: configured routes minus disabled providers, whose
+    competitions fall back to the default. Raises ``ValueError`` like its parts."""
+    disabled = configured_disabled()
+    return {c: p for c, p in configured_routes().items() if p not in disabled}
+
+
+def active_provider_map(session=None, *, now=None) -> tuple[dict[str, str], str]:
+    """``(routes, default)`` for the READ path: per competition, the one provider
+    whose rows are served.
+
+    A route is dropped (the competition reads the default provider) when its
+    provider is disabled or, given a ``session``, when the provider has not
+    succeeded for that competition within ``RESULTS_PROVIDER_STALE_HOURS`` at
+    ``now`` (#522). Without a session only the switch applies (the #532 rule).
+    A bad config must not break reads: fall back to no routes and log."""
     default = default_provider_name()
     try:
-        return configured_routes(), default
+        routes = configured_routes()
+        disabled = configured_disabled()
     except ValueError as exc:
-        log.warning("invalid RESULTS_PROVIDER_ROUTES, reading default provider only: %s", exc)
+        log.warning("invalid RESULTS_PROVIDER_ROUTES/RESULTS_PROVIDER_DISABLED, "
+                    "reading default provider only: %s", exc)
+        return {}, default
+    if session is None:
+        return {c: p for c, p in routes.items() if p not in disabled}, default
+    from app.results import health
+    try:
+        return health.serving_routes(session, routes, default, disabled, now), default
+    except Exception:
+        # Health unreadable: the default provider always has a row set to serve.
+        log.exception("results health unreadable, reading default provider only")
+        session.rollback()
         return {}, default
 
 
-def active_provider_for(competition_id: str) -> str:
-    """The provider this competition is currently routed to (#532): the route,
-    else the default. Reads show only that provider's rows."""
-    routes, default = active_provider_map()
+def active_provider_for(competition_id: str, session=None, *, now=None) -> str:
+    """The provider whose rows are served for this competition (#532, #522): the
+    serving route, else the default."""
+    routes, default = active_provider_map(session, now=now)
     return routes.get(competition_id, default)
 
 
 def configured_provider_names() -> list[str]:
-    """Provider names the configuration uses, without constructing anything."""
-    return sorted({default_provider_name(), *configured_routes().values()})
+    """Provider names the sync calls, without constructing anything."""
+    return sorted({default_provider_name(), *effective_routes().values()})
 
 
 def get_provider() -> ResultsProvider:
-    """Construct the configured provider. With no routes this is the plain
-    default provider (exactly the single-provider behaviour); with routes it is a
-    ``RoutingProvider`` over the providers in use."""
+    """Construct the configured provider. With no (enabled) routes this is the
+    plain default provider (exactly the single-provider behaviour); with routes it
+    is a ``RoutingProvider`` over the providers in use, with the default's backup
+    sync on unless ``RESULTS_PROVIDER_BACKUP_SYNC=false`` (#522)."""
     default = default_provider_name()
-    routes = configured_routes()
+    routes = effective_routes()
     if not routes:
         return REGISTRY[default]()
     names = {default, *routes.values()}
-    return RoutingProvider({n: REGISTRY[n]() for n in names}, routes, default)
+    return RoutingProvider({n: REGISTRY[n]() for n in names}, routes, default,
+                           backup=settings.provider_backup_sync_enabled())
 
 
 __all__ = ["ResultsProvider", "RoutingProvider", "REGISTRY", "get_provider",
-           "configured_provider_names", "configured_routes", "active_provider_map",
-           "active_provider_for"]
+           "configured_provider_names", "configured_routes", "configured_disabled",
+           "effective_routes", "active_provider_map", "active_provider_for"]

@@ -500,6 +500,8 @@ def test_routing_uses_bamboo_only_for_ligat_haal_with_fake_default(make_provider
     monkeypatch.setitem(providers.REGISTRY, "bamboo", lambda: make_provider())
     monkeypatch.setenv("RESULTS_PROVIDER", "fake")
     monkeypatch.setenv("RESULTS_PROVIDER_ROUTES", "comp:ligat_haal=bamboo")
+    # The default's backup copy of Ligat ha'Al (#522) is tested in test_results_health_522.
+    monkeypatch.setenv("RESULTS_PROVIDER_BACKUP_SYNC", "false")
     router = providers.get_provider()
     out = router.fetch([COMP, "comp:nba"])
     assert not out.errors
@@ -571,6 +573,7 @@ def test_full_sync_isolated_db_persists_detail_and_never_refetches_it(
     monkeypatch.setitem(providers.REGISTRY, "bamboo", lambda: make_provider(handler))
     monkeypatch.setenv("RESULTS_PROVIDER", "fake")
     monkeypatch.setenv("RESULTS_PROVIDER_ROUTES", "comp:ligat_haal=bamboo")
+    monkeypatch.setenv("RESULTS_PROVIDER_BACKUP_SYNC", "false")  # Bamboo rows only (#522 backup off)
     try:
         with Session(engine) as session:
             first = sync_results(session, provider=providers.get_provider(), competition_ids=[COMP])

@@ -668,6 +668,29 @@ class ResultsSyncStateRow(Base):
     last_summary = Column(JSON, nullable=True)
 
 
+class ResultsProviderHealthRow(Base):
+    """Per-provider results health (issue #522), written by every sync.
+
+    One row per (provider, competition) the provider was asked for, plus one
+    provider-level row with ``competition_id = "*"``. Read by the read-time
+    fallback (a routed competition whose provider has not succeeded for it within
+    ``RESULTS_PROVIDER_STALE_HOURS`` is served by the default provider) and by
+    the admin sync-state view. The current 429 block is not stored here: it is
+    ``rate_limited_until_by_provider`` in ``results_sync_state.last_summary``.
+    """
+    __tablename__ = "results_provider_health"
+
+    provider = Column(String, primary_key=True)
+    competition_id = Column(String, primary_key=True)   # "*" = the provider as a whole
+    last_attempt_at = Column(String, nullable=True)     # ISO UTC, a request was sent
+    last_success_at = Column(String, nullable=True)
+    last_status = Column(String, nullable=True)         # ok | partial | error | rate_limited
+    last_error = Column(String, nullable=True)          # short, URL-free
+    last_error_at = Column(String, nullable=True)
+    consecutive_failures = Column(Integer, nullable=False, default=0)
+    shape_failures = Column(Integer, nullable=False, default=0)   # cumulative
+
+
 class ResultsSyncLeaseRow(Base):
     """Single-flight guard for results sync (#197), id always 1.
 

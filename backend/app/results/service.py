@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Iterable, Optional
 
 from sqlalchemy.orm import Session
 
@@ -18,7 +18,7 @@ from app.results import settings, status as st
 from app.results.models import GameResult, TeamSide
 from app.results.providers import active_provider_map
 from app.results.relevance import FollowedTargets, followed_targets, relevance_reason
-from app.repositories import game_result_repository
+from app.repositories import game_detail_repository, game_result_repository
 from app.taxonomy.competitions import COMPETITIONS
 from app.taxonomy.entities import entity_by_id
 
@@ -71,18 +71,19 @@ def _to_result(row: GameResultRow, followed: FollowedTargets) -> GameResult:
 
 
 def personalized_results(
-    session: Session, profile: UserProfile, *, limit: Optional[int] = None
+    session: Session, profile: UserProfile, *, limit: Optional[int] = None,
+    now: Optional[datetime] = None,
 ) -> PersonalizedResults:
-    """Relevant games for a profile, newest-first."""
+    """Relevant games for a profile, newest-first. Per competition, only the rows
+    of the provider serving it now (#532, with the #522 health fallback)."""
     followed = followed_targets(profile)
     if followed.is_empty:
         return PersonalizedResults(games=[], has_preferences=False)
 
-    since = (
-        datetime.now(tz=timezone.utc) - timedelta(days=settings.read_window_days())
-    ).isoformat()
+    now = now or datetime.now(tz=timezone.utc)
+    since = (now - timedelta(days=settings.read_window_days())).isoformat()
     rows = game_result_repository.list_games(
-        session, since_iso=since, active_providers=active_provider_map())
+        session, since_iso=since, active_providers=active_provider_map(session, now=now))
 
     results: list[GameResult] = []
     for row in rows:
@@ -94,3 +95,18 @@ def personalized_results(
             break
 
     return PersonalizedResults(games=results, has_preferences=True)
+
+
+def visible_details(session: Session, game_ids: Iterable[str], *,
+                    now: Optional[datetime] = None) -> dict:
+    """Stored detail for these games, only for games of the provider serving their
+    competition now: the same decision as ``personalized_results`` (#522), so a
+    detail never comes from the provider whose scores are hidden. For #523."""
+    ids = list(dict.fromkeys(game_ids))
+    if not ids:
+        return {}
+    routes, default = active_provider_map(session, now=now or datetime.now(tz=timezone.utc))
+    shown = [gid for gid in ids
+             if (row := game_result_repository.get_by_id(session, gid)) is not None
+             and row.provider == routes.get(row.competition_id, default)]
+    return game_detail_repository.get_details(session, shown)

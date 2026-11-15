@@ -136,7 +136,7 @@ side effect.
 `scheduler_lease`, `worker_status`, `story_clusters`, `cluster_edges`, `notification_events`,
 `notification_story_members`, `notification_watermarks`, `game_results`,
 `game_details`, `game_player_lines` (per-game results detail, #517),
-`results_sync_state`, `results_sync_lease`. Startup creates missing tables, applies additive column migrations
+`results_sync_state`, `results_sync_lease`, `results_provider_health` (#522). Startup creates missing tables, applies additive column migrations
 (fail-loud), seeds empty tables, and creates credential-less demo `users` rows.
 
 **API surface** (the exact inventory is OpenAPI `/docs`; an authz test derives it from the routes):
@@ -164,6 +164,7 @@ untracked `backend/.env`):
 | `TELEGRAM_NOTIFICATIONS_ENABLED` | false | **false since 2026-09-13** (was true from 2026-07-18) |
 | `RESULTS_ENABLED` / `RESULTS_SYNC_ENABLED` | true / false | true / true |
 | `RESULTS_DETAIL_ENABLED` (+ `RESULTS_DETAIL_MAX_PER_RUN`, #517) | false (10) | not opted in (new flag) |
+| `RESULTS_PROVIDER_DISABLED` / `RESULTS_PROVIDER_STALE_HOURS` / `RESULTS_PROVIDER_BACKUP_SYNC` (#522; no effect without routes) | empty / 6 / true | not set (new flags) |
 | `RETENTION_CLEANUP_ENABLED` | false | false (keep off at least until `protect_rated_articles.py --apply` has run on the live corpus, #255; see §10) |
 | `TRANSLATION_PROVIDER` | disabled | disabled |
 | `ALLOW_DEV_RESET` / `ALLOW_CORPUS_DB_RESET` / `ALLOW_INSECURE_AUTH_BYPASS` | false | false |

@@ -16,6 +16,7 @@ from app.db.orm_models import GameResultRow
 from app.models.profile import UserProfile
 from app.results import settings, status as st
 from app.results.models import GameResult, TeamSide
+from app.results.providers import active_provider_map
 from app.results.relevance import FollowedTargets, followed_targets, relevance_reason
 from app.repositories import game_result_repository
 from app.taxonomy.competitions import COMPETITIONS
@@ -80,7 +81,8 @@ def personalized_results(
     since = (
         datetime.now(tz=timezone.utc) - timedelta(days=settings.read_window_days())
     ).isoformat()
-    rows = game_result_repository.list_games(session, since_iso=since)
+    rows = game_result_repository.list_games(
+        session, since_iso=since, active_providers=active_provider_map())
 
     results: list[GameResult] = []
     for row in rows:

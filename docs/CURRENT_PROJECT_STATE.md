@@ -137,6 +137,7 @@ side effect.
 `notification_story_members`, `notification_watermarks`, `game_results`,
 `game_details`, `game_player_lines` (per-game results detail, #517),
 `results_player_mappings` (provider-local exact player identity and Hebrew display, #525),
+`results_chosen_players` (session-owned result-line choices, separate from feed follows, #524),
 `results_sync_state`, `results_sync_lease`, `results_provider_health` (#522). Startup creates missing tables, applies additive column migrations
 (fail-loud), seeds empty tables, and creates credential-less demo `users` rows.
 

@@ -26,8 +26,9 @@ grouping, rendering) is sport-agnostic — adding a sport is a config + id-mappi
 change, not new logic. Draws are a first-class outcome (no false winner emphasis).
 
 Relevance is derived from the **same ProfileV2 affinity model as the feed**
-(`docs/PREFERENCE_MODEL_V2.md`, `docs/RELEVANCE_CONTRACT.md`). There is no
-results-specific preference system.
+(`docs/PREFERENCE_MODEL_V2.md`, `docs/RELEVANCE_CONTRACT.md`). The separate
+chosen-player setting below controls extra result lines only, never game relevance
+or feed decisions.
 
 ## 2. Relevance rules (server-side, authoritative)
 
@@ -262,6 +263,9 @@ created by `create_all`.
 | Method | Route | Auth | Notes |
 |---|---|---|---|
 | GET | `/api/me/results` | session (`require_user`) | consumer surface; identity from session |
+| GET | `/api/me/results/players` | session | own chosen players, Hebrew names |
+| GET | `/api/me/results/players/catalog` | session | all taxonomy players for the results picker (names and aliases) |
+| PUT | `/api/me/results/players` | session + normal CSRF checks | replace own choices; no feed mutation |
 | GET | `/api/results/{user_id}` | admin (`require_admin`) | ops view-as, parity handler |
 | POST | `/api/results/sync` | admin | manual sync (force) |
 | GET | `/api/results/sync/state` | admin | last sync outcome, plus `health` (§15) |
@@ -271,6 +275,23 @@ distinguishes the "no follows" state from "no relevant results". Each
 `GameResult` carries `competition_he/en`, `status`, `start_time` (UTC ISO),
 `home`/`away` (`id`, `name` = taxonomy Hebrew when resolved else provider name,
 `name_provider`, `score`, `is_winner`), `winner`, and `relevance_reason`.
+
+2026-11-15 — #524: choices live in `results_chosen_players`, composite primary key
+`(user_id, entity_id)` plus UTC `created_at`, created by `create_all`. Account
+deletion cascades to these choices. GET and PUT return
+`{"players": [{"entity_id": "player:deni_avdija", "name": "דני אבדיה"}]}`.
+PUT accepts `{"entity_ids": ["player:deni_avdija"]}` (full replacement, at most
+200 ids; duplicates collapse). Empty clears choices. Every id must identify a
+taxonomy player; otherwise 422 before any write. Extra fields, including identity,
+are forbidden. Unchanged choices retain their timestamps on retries. Session
+identity is authoritative for every role. This API neither reads nor changes
+ProfileV2, affinities, feed decisions or results relevance. No admin privileges
+are required. The public demo has no API client or write surface; its bundle
+guard continues to enforce that boundary. UI placement remains Guy's decision.
+The read-only `/players/catalog` returns `players` with `entity_id`, Hebrew `name`,
+`name_en` and `aliases`, including roster players whose feed mentions imply their
+team. It is derived directly from taxonomy players. The shared feed catalog and
+classification policy remain unchanged; result choices are not feed follows.
 
 ## 7. Frontend
 

@@ -40,7 +40,9 @@ def test_cli_results_match_the_session_users_api_finals_and_leave_db_unchanged(r
     with sessionmaker(bind=engine)() as session:
         served = me_get_results(user=session.get(UserRow, "guy"), session=session).model_dump(mode="json")
     engine.dispose()
-    assert exported == {**served, "games": [game for game in served["games"] if game["status"] == "final"]}
+    assert exported == {"has_preferences": served["has_preferences"],
+                        "games": [exporter._public_game(game) for game in served["games"]
+                                  if game["status"] == "final"]}
     assert exported["games"]
     assert len(exported["games"]) < len(FAKE_GAMES)  # no unrelated or non-final games
     maccabi = next(game for game in exported["games"] if game["home"]["id"] == "team:maccabi_tlv_bb")
@@ -76,3 +78,46 @@ def test_results_failure_preserves_the_whole_previous_snapshot(results_db, tmp_p
         exporter.export_demo_snapshot(results_db, out)
     assert {path.name: path.read_bytes() for path in out.iterdir()} == previous
     assert sorted(path.name for path in tmp_path.iterdir()) == ["corpus.db", "out"]
+
+
+class _Payload:
+    def __init__(self, data):
+        self._data = data
+
+    def model_dump(self, mode="json"):
+        return json.loads(json.dumps(self._data))
+
+
+def _detailed_game():
+    side = {"id": "team:maccabi_tlv_bb", "name": "מכבי תל אביב", "name_provider": "Maccabi",
+            "score": 77, "is_winner": False, "rank": 17}
+    return {
+        "id": "game_1", "competition_id": "comp:ibl", "competition_he": "ליגת ווינר סל",
+        "competition_en": "Israeli Basketball League", "sport": "basketball", "season": "2026-2027",
+        "stage": "6", "status": "final", "start_time": "2026-11-14T18:55:00+00:00",
+        "local_date": "2026-11-14", "winner": "away", "relevance_reason": "followed_team:team:maccabi_tlv_bb",
+        "home": side, "away": {**side, "id": "team:hapoel_jlm_bb", "name": "הפועל ירושלים",
+                               "score": 82, "is_winner": True, "rank": 3},
+        "leaders": [{"side": "home", "name": "ים מדר", "stat": "points", "value": 25}],
+        "chosen_player_lines": [{"side": "home", "name": "ים מדר", "stats": {"points": 25}}],
+        "venue": "היכל מנורה", "attendance": 8314, "detail_available": True,
+    }
+
+
+def test_results_snapshot_is_scores_only_even_when_detail_is_served(results_db, monkeypatch):
+    """With RESULTS_DETAIL_ENABLED the API serves leaders, lines, venue and ranks;
+    the public demo must still get scores only (#526, leak of 2026-11-16)."""
+    from app.api import routes_results
+
+    monkeypatch.setattr(routes_results, "get_results_for_user",
+                        lambda **kwargs: _Payload({"has_preferences": True, "games": [_detailed_game()]}))
+    snapshot = exporter.build_results_snapshot(results_db)
+    game = snapshot["games"][0]
+    assert set(game) == {"id", "competition_id", "competition_he", "competition_en", "sport", "season",
+                         "stage", "status", "start_time", "local_date", "winner", "relevance_reason",
+                         "home", "away"}
+    assert set(game["home"]) == {"id", "name", "name_provider", "score", "is_winner"}
+    assert game["home"]["score"] == 77 and game["away"]["score"] == 82
+    raw = json.dumps(snapshot, ensure_ascii=False)
+    for private in ("ים מדר", "היכל מנורה", "8314", "leaders", "rank", "venue"):
+        assert private not in raw

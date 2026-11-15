@@ -330,14 +330,23 @@ classification policy remain unchanged; result choices are not feed follows.
 
 ## 7. Frontend
 
-**Public demo boundary (#526, 2026-11-15).** The backend demo exporter still
-exports only `feed.json` and `meta.json`: it does not read results, even when
-scores and box scores exist. Before replacing either file it recursively rejects
-results detail/stat keys (including leaders, chosen lines, players, team stats,
-rank, venue and attendance). A violation fails the export and preserves the
-previous snapshot. No source calls, data deletion or demo deployment are added.
-Frontend optional score-strip input remains a separate static-file concern;
-the stats bundle guard is the UI part of #526 on `ui/next`.
+**Public demo boundary (#526, 2026-11-15; results export fixed 2026-11-16).**
+The demo exporter writes `feed.json`, `meta.json` and `results.json`.
+`results.json` contains the demo profile's final games, projected onto an
+explicit allowlist: the game identity, competition, sport, season, stage,
+status, times, winner and relevance reason, plus each side's id, names, score
+and winner flag. Leaders, chosen lines, venue, attendance, ranks and every
+box-score field are dropped, whatever the results API serves. All three files
+are then checked recursively against the results detail/stat keys (including
+leaders, chosen lines, players, team stats, rank, venue and attendance). A
+violation fails the export and preserves the previous snapshot. The stats bundle
+guard (`npm run check:demo-bundle`) is the UI part of #526.
+
+Before the fix, the results export bypassed that check. On 2026-11-16, from
+01:10 to about 01:20, the public `results.json` carried leaders, venue,
+attendance and ranks for 39 games. This followed `RESULTS_DETAIL_ENABLED` going
+on in production the evening before. The file was stripped and redeployed, and
+the hourly publish task was paused until this fix.
 
 `/results` (product route, RTL). Data flows through `AppContext`
 (`resultsGames` / `resultsHasPreferences` / `resultsLoading` / `resultsError`),

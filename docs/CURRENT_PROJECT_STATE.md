@@ -174,6 +174,12 @@ untracked `backend/.env`):
 | `GOOGLE_OAUTH_CLIENT_ID` / `_CLIENT_SECRET` / `_REDIRECT_URI` | unset = Google sign-in off | unset |
 | `MAIL_BACKEND` (+ `SMTP_*`, `MAIL_FROM`, `APP_PUBLIC_URL`) | unset = no mailer (signup 503); `console` = explicit dev opt-in that logs the link | unset. A host needs `smtp` |
 
+Results providers include opt-in NBA scores, upcoming games and box scores via
+`espn_nba` (#520), using a paced US-date window. Defaults remain unchanged;
+activation uses `RESULTS_PROVIDER_ROUTES=comp:nba=espn_nba` and
+`RESULTS_DETAIL_ENABLED=true`. Production activation requires #532's routed
+read rule. See [RESULTS.md section 13](RESULTS.md#13-nba-via-espn-issue-520-opt-in).
+
 Authentication: email/password (Argon2), HttpOnly cookie sessions, origin/fetch-metadata CSRF,
 and admin role gating ([USER_PLATFORM.md](USER_PLATFORM.md)). A password signup is only a
 pending registration until the emailed link is confirmed with the password; accounts created

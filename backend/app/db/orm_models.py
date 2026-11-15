@@ -606,6 +606,50 @@ class GameResultRow(Base):
     )
 
 
+class GameDetailRow(Base):
+    """Per-game detail for a finished game (issue #517), one row per game.
+
+    Keyed by the SAME id as ``game_results`` (``game_`` + sha1(provider|external_id)),
+    so a detail always belongs to the game with that provider identity. No foreign
+    key, like the rest of the results tables; rows are only written for stored
+    games. A row's presence means "fetched": the sync never asks the provider for
+    this game again (docs/RESULTS.md §11).
+    """
+    __tablename__ = "game_details"
+
+    game_id = Column(String, primary_key=True)        # == game_results.id
+    provider = Column(String, nullable=False)
+    external_id = Column(String, nullable=False)
+    # [{"side", "stat", "value", "source_player_id", "name", "name_he"}]
+    leaders = Column(JSON, nullable=False)
+    team_stats = Column(JSON, nullable=True)          # {"home": {...}, "away": {...}}
+    venue = Column(String, nullable=True)
+    attendance = Column(Integer, nullable=True)
+    fetched_at = Column(String, nullable=False)       # ISO-8601 UTC, refreshed on upsert
+
+    __table_args__ = (
+        UniqueConstraint("provider", "external_id", name="uq_game_detail_identity"),
+    )
+
+
+class GamePlayerLineRow(Base):
+    """One player's box-score line in one game (issue #517). Optional: a source
+    with leaders only stores none. Replaced as a set whenever the game's detail
+    is upserted, so a repeat never duplicates lines. ``stats`` carries the
+    source's own fields per sport. Player identity is the source's id; mapping to
+    taxonomy players is #525."""
+    __tablename__ = "game_player_lines"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    game_id = Column(String, nullable=False, index=True)   # == game_details.game_id
+    side = Column(String, nullable=False)                  # "home" | "away"
+    source_player_id = Column(String, nullable=True, index=True)
+    name = Column(String, nullable=True)
+    name_he = Column(String, nullable=True)
+    minutes = Column(Float, nullable=True)
+    stats = Column(JSON, nullable=False)
+
+
 class ResultsSyncStateRow(Base):
     """Single-row results-sync bookkeeping (issue #178), id always 1.
 

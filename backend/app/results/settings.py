@@ -59,6 +59,13 @@ def provider_name() -> str:
     return os.environ.get("RESULTS_PROVIDER", "thesportsdb").strip().lower()
 
 
+def provider_routes_raw() -> str:
+    """``RESULTS_PROVIDER_ROUTES``: ``"comp:ibl=winner,comp:euroleague=euroleague"``.
+    Empty (default) = every competition goes to ``RESULTS_PROVIDER``. Parsed and
+    validated in ``app.results.providers``."""
+    return os.environ.get("RESULTS_PROVIDER_ROUTES", "").strip()
+
+
 def thesportsdb_key() -> str:
     # "123" is TheSportsDB's documented PUBLIC test key — not a secret. The old
     # "3" was permanently disabled (403) by October 2026.

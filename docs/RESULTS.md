@@ -67,7 +67,30 @@ The source is isolated behind `app/results/providers/`:
   `RESULTS_PROVIDER=fake` (no network). It also implements the optional detail
   capability (§11).
 
-`providers.get_provider()` selects by `RESULTS_PROVIDER`.
+`providers.get_provider()` selects by `RESULTS_PROVIDER` from `providers.REGISTRY`
+(name -> constructor; a new provider is one line there).
+
+**Routing (#529).** `RESULTS_PROVIDER_ROUTES="comp:ibl=winner,comp:euroleague=euroleague"`
+sends each listed competition to its provider; every other competition goes to
+`RESULTS_PROVIDER`. Empty (the default) means no routing: `get_provider()` returns the
+plain provider and the requests are exactly the single-provider ones. With routes it
+returns `routing.RoutingProvider`, which splits `fetch(competition_ids)` per provider and
+merges the `FetchOutcome`s (games, errors, fetched counts, `not_checked`), and sends
+`fetch_details(games)` to the provider named in `game.provider`, only if it
+`supports_details`. The config is validated at API startup (and on every sync): a
+malformed entry, an unknown provider, an unknown competition (not in the taxonomy) or a
+competition listed twice raises `ValueError`; nothing is dropped silently. One provider
+raising does not lose the others (its competitions get the exception class name in
+`errors`).
+
+**Rate limits are per provider.** A 429 puts only that provider's competitions in
+`not_checked`; the others sync. The block is stored in the sync summary as
+`rate_limited_until_by_provider` (`{name: ISO time}`); `rate_limited_until` stays as the
+latest of them for ops readers. The next sync skips only providers still blocked (their
+competitions are `not_checked` without a request) and is skipped entirely (`rate_limited`)
+only when every provider it would call is blocked. The detail stage likewise skips only
+the limited or blocked providers. A summary written before #529 (only
+`rate_limited_until`) blocks every provider until it passes.
 
 ### Tracked competitions → provider league ids (verified live 2026-07)
 
@@ -160,7 +183,7 @@ way by `create_all`.
   (skips if the last attempt is newer), failure-degrading the cycle like the
   notification/retention stages (never blocks ingestion, its own session); and
   (b) via the manual admin `POST /api/results/sync` (bypasses the throttle, not the
-  lease or a provider block).
+  lease or a provider block; blocks are per provider, �3).
 
 ## 6. API
 

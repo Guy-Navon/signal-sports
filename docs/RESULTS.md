@@ -5,6 +5,11 @@
 This is the authoritative contract for the Results feature; where another doc
 disagrees, this wins for results behavior.
 
+2026-11-15 — issue #517: per-game detail storage (`game_details`,
+`game_player_lines`), an optional provider detail capability and a sync stage,
+behind `RESULTS_DETAIL_ENABLED` (default off). See §11. No API or UI change yet
+(#523, #513).
+
 ## 1. What it is
 
 A **preference-filtered history of real game results** — scores, competition,
@@ -59,7 +64,8 @@ The source is isolated behind `app/results/providers/`:
   canonical taxonomy ids by `team_resolver.resolve_team()` (competition-scoped,
   so shared football/basketball aliases pick the right sport).
 - `fake.FakeResultsProvider` — deterministic offline games for tests and
-  `RESULTS_PROVIDER=fake` (no network).
+  `RESULTS_PROVIDER=fake` (no network). It also implements the optional detail
+  capability (§11).
 
 `providers.get_provider()` selects by `RESULTS_PROVIDER`.
 
@@ -143,6 +149,9 @@ row. A sync that finds it held returns `{"skipped": "in_progress"}` without call
 provider. It has no heartbeat: a crashed holder blocks syncs until the lease is an hour
 old, then the next sync takes over.
 
+`game_details` and `game_player_lines` hold per-game detail (§11), created the same
+way by `create_all`.
+
 ## 5. Sync & scheduling
 
 - **The read path never calls the provider** — `GET` reads the DB only.
@@ -190,7 +199,8 @@ See `backend/.env.example` (`RESULTS_*`, `THESPORTSDB_*`). Activation pattern
 matches CLUSTERING/TELEGRAM: `RESULTS_SYNC_ENABLED` defaults false in the example
 and is opted into in the live `.env`. `RESULTS_ENABLED=true` keeps the read
 surface available (safe with an empty corpus). Rollback = flip
-`RESULTS_SYNC_ENABLED=false` (no data touched).
+`RESULTS_SYNC_ENABLED=false` (no data touched). `RESULTS_DETAIL_ENABLED` and
+`RESULTS_DETAIL_MAX_PER_RUN` control the detail stage (§11).
 
 ## 9. Tests
 
@@ -207,6 +217,11 @@ surface available (safe with an empty corpus). Rollback = flip
   stored Retry-After block. `tests/test_results_coverage.py`: the per-day
   requests (UTC dates, request count per competition, `RESULTS_RECENT_DAYS=0`)
   and the `idLeague` guard. Both use `httpx.MockTransport`, never the network.
+- Backend `tests/test_results_detail_517.py`: detail upsert idempotency and the
+  read function, leaders from box-score lines, flag off = no detail calls, final
+  games only, never re-fetched, the per-run cap, providers without detail, per-game
+  and whole-call failures that leave the scores sync untouched, provider-identity
+  scoping, and both rate-limit paths.
 - Frontend `src/components/results/*.test.js` (26): normalization, timezone/day
   formatting, grouping, and relevance/isolation (deriveFollows, filter,
   preference-change).
@@ -230,3 +245,85 @@ surface available (safe with an empty corpus). Rollback = flip
   via a followed competition.
 - Live in-play score streaming is out of scope (status supports `live` but sync
   is periodic, not a stream).
+
+## 11. Per-game detail (issue #517)
+
+**Status:** implemented behind `RESULTS_DETAIL_ENABLED` (default **false** in code and
+`.env.example`). No real provider has the capability yet (#518–#521 add them), so today
+only `RESULTS_PROVIDER=fake` returns detail. `/api/me/results` does not expose it yet
+(#523). `game_results` is unchanged, so the page keeps working with scores only when a
+detail source fails or has nothing.
+
+### Storage
+
+Two tables, both new and created by `create_all` (no `ALTER`):
+
+- `game_details`, one row per game. Primary key `game_id` = the `game_results` id
+  (`game_` + sha1(provider|external_id)); `provider` and `external_id` are unique
+  together. Columns: `leaders` (JSON list of `{side, stat, value, source_player_id,
+  name, name_he}`; at least the top scorer of each team, `stat` = `points` for
+  basketball and `goals` for football, ties give one entry per tied player),
+  `team_stats` (JSON `{"home": {...}, "away": {...}}`), `venue`, `attendance`,
+  `fetched_at` (ISO UTC).
+- `game_player_lines`, optional box-score rows: `game_id`, `side` (`home`/`away`),
+  `source_player_id`, `name`, `name_he` (when the source has Hebrew), `minutes`
+  (decimal minutes), `stats` (JSON with the source's own fields, so each sport and
+  source can carry what it has: points, rebounds, goals, cards, ...).
+
+Player identity is the **source's** player id and name; mapping to taxonomy players is
+#525. A name may be missing when the source has the id but no name record: the line
+or leader is kept, not dropped.
+
+`game_detail_repository.upsert` writes one game's detail and **replaces** its player
+lines as a set, so the same detail written twice leaves one row set (updated, not
+duplicated); the caller commits. `get_details(session, game_ids)` is the read function
+(`{game_id: StoredGameDetail}`, ids without detail absent) for #523.
+
+### Provider contract
+
+`fetch(competition_ids) -> FetchOutcome` is unchanged. A provider may additionally
+define `fetch_details(games: list[NormalizedGame]) -> DetailOutcome`
+(`providers/base.DetailProvider`; detected with `supports_details`). Providers without
+detail (TheSportsDB) just don't define it. `DetailOutcome` mirrors `FetchOutcome`:
+
+- `details`: `NormalizedGameDetail` per game (leaders, players, team_stats, venue,
+  attendance; identity = the game's `(provider, external_id)`);
+- `errors`: game id → short error string (stored and served, so no URLs or keys);
+- `not_checked`: game ids not requested because of a 429, plus
+  `retry_after_seconds`;
+- a requested game in none of these has no detail yet (for example, the box score is
+  not published) and stays a candidate.
+
+`models.leaders_from_lines(lines, stat)` derives per-team leaders from box-score lines
+for sources that give a box score but no leaders (a side whose best value is not
+positive, such as a football team that did not score, has no leader).
+
+### Sync
+
+With the flag on, `sync_results` runs `detail_sync.sync_details` after the scores are
+upserted and committed, under the same lease:
+
+1. Candidates are the provider's **own** games (`game_results.provider` = the
+   provider's name) with status `final` and no `game_details` row, newest first, at
+   most `RESULTS_DETAIL_MAX_PER_RUN` (default 10; 0 = no detail requests). The read
+   transaction is closed before any request is sent.
+2. **A stored detail is never fetched again**: a `game_details` row removes the game
+   from the candidates for good. A game that errored or came back empty is asked
+   again on a later run (still within the cap).
+3. Details for games that were not requested (or duplicates) are ignored and
+   counted.
+4. Detail failures **never fail or roll back the scores sync** and never change its
+   status: a raised exception, a per-game error or a database error ends up in the
+   summary under `detail`: `{status, requested, stored, ignored, errors, not_checked,
+   pending}`, where `status` is `ok`, `partial`, `error`, `rate_limited`,
+   `unsupported` (provider has no detail capability) or `skipped_rate_limited` (the
+   scores fetch was rate-limited, so no detail request is sent), and `pending` is
+   how many candidates remain.
+5. A detail `retry_after_seconds` sets `rate_limited_until` exactly like a scores 429,
+   so the next sync of any caller waits.
+
+With the flag off the stage does not run, the summary has no `detail` key, and the
+sync sends exactly the requests it sent before.
+
+The lease (stale after an hour) also covers the detail requests: each provider paces
+them, and the per-run cap keeps one sync well inside that hour.

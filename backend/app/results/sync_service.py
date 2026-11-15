@@ -5,6 +5,8 @@ them idempotently. Bookkeeping lives in ``results_sync_state`` (one row) which
 both throttles the scheduler stage (so opening the page never triggers provider
 calls and cycles don't hammer the API) and records the last outcome for ops.
 ``results_sync_lease`` keeps the worker and a manual sync from overlapping (#197).
+With ``RESULTS_DETAIL_ENABLED`` on, the per-game detail stage (``detail_sync``,
+#517) runs after the scores are committed, under the same lease.
 """
 from __future__ import annotations
 
@@ -19,6 +21,7 @@ from sqlalchemy.orm import Session
 from app.db.orm_models import ResultsSyncStateRow
 from app.repositories import game_result_repository
 from app.results import settings
+from app.results.detail_sync import sync_details
 from app.results.providers import ResultsProvider, get_provider
 from app.results.providers.base import FetchOutcome
 
@@ -181,9 +184,29 @@ def _sync_holding_lease(
         status = "partial"
     else:
         status = "ok"
+
+    # Per-game detail (#517): never changes the scores status above. Skipped
+    # while the provider is rate-limiting us, so a 429 stops every request.
+    detail_summary: Optional[dict] = None
+    retry_after = outcome.retry_after_seconds
+    if settings.detail_enabled() and provider is not None:
+        if outcome.retry_after_seconds is not None or outcome.not_checked:
+            detail_summary = {"status": "skipped_rate_limited"}
+        else:
+            try:
+                stage = sync_details(session, provider)
+                detail_summary = stage.summary
+                retry_after = stage.retry_after_seconds
+            except Exception as exc:
+                # Last line of defence: the scores summary below must still be
+                # written whatever a provider's detail payload looks like.
+                session.rollback()
+                logger.exception("results sync: detail stage failed unexpectedly")
+                detail_summary = {"status": "error", "errors": {"detail_stage": type(exc).__name__}}
+
     rate_limited_until = (
-        (_now() + timedelta(seconds=outcome.retry_after_seconds)).isoformat()
-        if outcome.retry_after_seconds is not None else None
+        (_now() + timedelta(seconds=retry_after)).isoformat()
+        if retry_after is not None else None
     )
 
     summary = {
@@ -199,6 +222,8 @@ def _sync_holding_lease(
         "rate_limited_until": rate_limited_until,
         "synced_at": now_iso,
     }
+    if detail_summary is not None:
+        summary["detail"] = detail_summary
 
     row = _state(session)
     row.last_status = status

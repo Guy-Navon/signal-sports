@@ -1,6 +1,6 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-11-11** (public read-only demo of guy's feed, #458: built, not yet deployed; 2026-11-06: `title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
+**Last updated: 2026-11-15** (per-game results detail storage behind a flag, #517; 2026-11-11: public read-only demo of guy's feed, #458: built, not yet deployed; 2026-11-06: `title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
 for any agent or human picking the project up with no conversation history. Present-tense
 statements were checked against the code and the owner's local runtime on that date. History
 is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
@@ -135,6 +135,7 @@ side effect.
 `sources`, `source_overrides`, `ingestion_runs` (incl. the `metrics` JSON), `scheduler_cycles`,
 `scheduler_lease`, `worker_status`, `story_clusters`, `cluster_edges`, `notification_events`,
 `notification_story_members`, `notification_watermarks`, `game_results`,
+`game_details`, `game_player_lines` (per-game results detail, #517),
 `results_sync_state`, `results_sync_lease`. Startup creates missing tables, applies additive column migrations
 (fail-loud), seeds empty tables, and creates credential-less demo `users` rows.
 
@@ -162,6 +163,7 @@ untracked `backend/.env`):
 | `FEED_FRESHNESS_ENABLED` / `FEED_MAX_AGE_HOURS` | false / 36 | true / 36 |
 | `TELEGRAM_NOTIFICATIONS_ENABLED` | false | **false since 2026-09-13** (was true from 2026-07-18) |
 | `RESULTS_ENABLED` / `RESULTS_SYNC_ENABLED` | true / false | true / true |
+| `RESULTS_DETAIL_ENABLED` (+ `RESULTS_DETAIL_MAX_PER_RUN`, #517) | false (10) | not opted in (new flag) |
 | `RETENTION_CLEANUP_ENABLED` | false | false (keep off at least until `protect_rated_articles.py --apply` has run on the live corpus, #255; see §10) |
 | `TRANSLATION_PROVIDER` | disabled | disabled |
 | `ALLOW_DEV_RESET` / `ALLOW_CORPUS_DB_RESET` / `ALLOW_INSECURE_AUTH_BYPASS` | false | false |

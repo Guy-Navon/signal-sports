@@ -1,0 +1,20 @@
+{
+  "data": {
+    "457299": {
+      "id": 457299,
+      "name": "José Ricardo Cortés",
+      "firstName": "חוסה",
+      "lastName": "קורטס",
+      "shirtNumber": "77",
+      "position": "mid-fielder",
+      "teamId": {
+        "id": 15006,
+        "name": "Maccabi Petach Tikva",
+        "hebrewName": "מכבי פ\"ת"
+      }
+    }
+  },
+  "meta": {
+    "total": 1
+  }
+}

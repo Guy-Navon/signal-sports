@@ -1,0 +1,20 @@
+{
+  "data": {
+    "13251": {
+      "id": 13251,
+      "name": "Eitan Tibi",
+      "firstName": "איתן",
+      "lastName": "טיבי",
+      "shirtNumber": "18",
+      "position": "defenseman",
+      "teamId": {
+        "id": 15006,
+        "name": "Maccabi Petach Tikva",
+        "hebrewName": "מכבי פ\"ת"
+      }
+    }
+  },
+  "meta": {
+    "total": 1
+  }
+}

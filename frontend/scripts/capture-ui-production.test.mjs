@@ -1,15 +1,35 @@
 import http from "node:http";
 import net from "node:net";
+import { EventEmitter } from "node:events";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   ensurePortAvailable,
   isReducedMotionFallback,
   reserveEphemeralPort,
   resolveHarnessPort,
+  stopProcess,
 } from "./capture-ui-production.mjs";
 
 const HOST = "127.0.0.1";
 const opened = [];
+
+it("waits for an owned child's actual exit before removing its profile", async () => {
+  const child = new EventEmitter();
+  child.exitCode = null;
+  child.kill = () => { setTimeout(() => { child.exitCode = 0; child.emit("exit", 0); }, 350); };
+  await stopProcess(child);
+  expect(child.exitCode).toBe(0);
+});
+
+it("recognizes a child that already exited via a signal", async () => {
+  const child = new EventEmitter();
+  child.exitCode = null;
+  child.signalCode = "SIGTERM";
+  let kills = 0;
+  child.kill = () => { kills += 1; queueMicrotask(() => child.emit("exit", null, "SIGTERM")); };
+  await stopProcess(child);
+  expect(kills).toBe(0);
+});
 
 function listen(server, port) {
   return new Promise((resolve, reject) => {

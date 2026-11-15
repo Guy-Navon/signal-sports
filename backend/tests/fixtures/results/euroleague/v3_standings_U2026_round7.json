@@ -1,0 +1,1157 @@
+{
+  "winner": null,
+  "teams": [
+    {
+      "position": 1,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 6,
+      "gamesLost": 1,
+      "qualified": false,
+      "club": {
+        "code": "BAH",
+        "name": "Bahcesehir College Istanbul",
+        "abbreviatedName": "Bahcesehir",
+        "editorialName": "Bahcesehir",
+        "tvCode": "BKS",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.incrowdsports.com/1d3274d8-da86-4d21-9e97-6810ab88babe.png"
+        }
+      },
+      "winPercentage": "85.7%",
+      "pointsDifference": "+110",
+      "pointsFor": 647,
+      "pointsAgainst": 537,
+      "homeRecord": "4-0",
+      "awayRecord": "2-1",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "6-1",
+      "groupName": "D",
+      "last5Form": [
+        "W",
+        "L",
+        "W",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 1,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 7,
+      "gamesLost": 0,
+      "qualified": false,
+      "club": {
+        "code": "JER",
+        "name": "Hapoel Midtown Jerusalem",
+        "abbreviatedName": "Hapoel JLM",
+        "editorialName": "Jerusalem",
+        "tvCode": "JLM",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCiezvp/6d6e8da8-550f-4d1f-8a06-4611227e0c31.png"
+        }
+      },
+      "winPercentage": "100%",
+      "pointsDifference": "+101",
+      "pointsFor": 619,
+      "pointsAgainst": 518,
+      "homeRecord": "3-0",
+      "awayRecord": "4-0",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "7-0",
+      "groupName": "A",
+      "last5Form": [
+        "W",
+        "W",
+        "W",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 1,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 6,
+      "gamesLost": 1,
+      "qualified": false,
+      "club": {
+        "code": "TNF",
+        "name": "La Laguna Tenerife",
+        "abbreviatedName": "LL Tenerife",
+        "editorialName": "La Laguna Tenerife",
+        "tvCode": "LLT",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/59bf7582-6c0b-4e14-bce6-1380aad90f34.png"
+        }
+      },
+      "winPercentage": "85.7%",
+      "pointsDifference": "+87",
+      "pointsFor": 640,
+      "pointsAgainst": 553,
+      "homeRecord": "4-0",
+      "awayRecord": "2-1",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "6-1",
+      "groupName": "B",
+      "last5Form": [
+        "W",
+        "W",
+        "W",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 1,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 7,
+      "gamesLost": 0,
+      "qualified": false,
+      "club": {
+        "code": "NAP",
+        "name": "Napoli Basketball",
+        "abbreviatedName": "Napoli",
+        "editorialName": "Napoli",
+        "tvCode": "NAP",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/c2de1d20-72f4-4453-95de-b4534db6d57f.png"
+        }
+      },
+      "winPercentage": "100%",
+      "pointsDifference": "+72",
+      "pointsFor": 652,
+      "pointsAgainst": 580,
+      "homeRecord": "3-0",
+      "awayRecord": "4-0",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "1-0",
+      "lastTenRecord": "7-0",
+      "groupName": "C",
+      "last5Form": [
+        "W",
+        "W",
+        "W",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 2,
+      "positionChange": "Up",
+      "gamesPlayed": 7,
+      "gamesWon": 5,
+      "gamesLost": 2,
+      "qualified": false,
+      "club": {
+        "code": "PAO",
+        "name": "PAOK Thessaloniki",
+        "abbreviatedName": "PAOK",
+        "editorialName": "PAOK",
+        "tvCode": "PBC",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjChWbHH/0506e7c4-ec4b-460a-bc59-b033ad9e336c.png"
+        }
+      },
+      "winPercentage": "71.4%",
+      "pointsDifference": "+40",
+      "pointsFor": 614,
+      "pointsAgainst": 574,
+      "homeRecord": "3-0",
+      "awayRecord": "2-2",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "5-2",
+      "groupName": "D",
+      "last5Form": [
+        "L",
+        "W",
+        "L",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 2,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 6,
+      "gamesLost": 1,
+      "qualified": false,
+      "club": {
+        "code": "ARI",
+        "name": "Aris Thessaloniki",
+        "abbreviatedName": "Aris",
+        "editorialName": "Aris",
+        "tvCode": "ARI",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjHGF4tl/056002af-8da9-4134-b3b6-8d3ac5e8945b.png"
+        }
+      },
+      "winPercentage": "85.7%",
+      "pointsDifference": "+95",
+      "pointsFor": 634,
+      "pointsAgainst": 539,
+      "homeRecord": "4-0",
+      "awayRecord": "2-1",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "6-1",
+      "groupName": "A",
+      "last5Form": [
+        "W",
+        "W",
+        "W",
+        "L",
+        "W"
+      ]
+    },
+    {
+      "position": 2,
+      "positionChange": "Up",
+      "gamesPlayed": 7,
+      "gamesWon": 4,
+      "gamesLost": 3,
+      "qualified": false,
+      "club": {
+        "code": "LLI",
+        "name": "London Lions",
+        "abbreviatedName": "London",
+        "editorialName": "London",
+        "tvCode": "LDN",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/102de468-9e41-4b8e-b44d-23bebb9e916f.png"
+        }
+      },
+      "winPercentage": "57.1%",
+      "pointsDifference": "+43",
+      "pointsFor": 560,
+      "pointsAgainst": 517,
+      "homeRecord": "3-1",
+      "awayRecord": "1-2",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-1",
+      "lastTenRecord": "4-3",
+      "groupName": "B",
+      "last5Form": [
+        "L",
+        "W",
+        "W",
+        "L",
+        "W"
+      ]
+    },
+    {
+      "position": 2,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 6,
+      "gamesLost": 1,
+      "qualified": false,
+      "club": {
+        "code": "BUR",
+        "name": "Tofas Bursa",
+        "abbreviatedName": "Tofas Bursa",
+        "editorialName": "Tofas",
+        "tvCode": "TOF",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjChWbHH/72e5c4e0-abe1-43ce-bfb7-dcb025bb4adc.png"
+        }
+      },
+      "winPercentage": "85.7%",
+      "pointsDifference": "+66",
+      "pointsFor": 634,
+      "pointsAgainst": 568,
+      "homeRecord": "3-0",
+      "awayRecord": "3-1",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-1",
+      "lastTenRecord": "6-1",
+      "groupName": "C",
+      "last5Form": [
+        "W",
+        "L",
+        "W",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 3,
+      "positionChange": "Up",
+      "gamesPlayed": 7,
+      "gamesWon": 4,
+      "gamesLost": 3,
+      "qualified": false,
+      "club": {
+        "code": "MRO",
+        "name": "Maxima Roma",
+        "abbreviatedName": "Maxima Roma",
+        "editorialName": "Maxima Roma",
+        "tvCode": "RMA",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjChWbHH/f1547a87-c0bf-41ab-bf7e-a0001649430d.png"
+        }
+      },
+      "winPercentage": "57.1%",
+      "pointsDifference": "+24",
+      "pointsFor": 609,
+      "pointsAgainst": 585,
+      "homeRecord": "3-0",
+      "awayRecord": "1-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "1-0",
+      "lastTenRecord": "4-3",
+      "groupName": "B",
+      "last5Form": [
+        "L",
+        "W",
+        "L",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 3,
+      "positionChange": "Down",
+      "gamesPlayed": 7,
+      "gamesWon": 5,
+      "gamesLost": 2,
+      "qualified": false,
+      "club": {
+        "code": "MAN",
+        "name": "Kids&Us Manresa",
+        "abbreviatedName": "K&U Manresa",
+        "editorialName": "Manresa",
+        "tvCode": "MAN",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/06792bed-0383-4de2-80b9-95ecca3fd973.png"
+        }
+      },
+      "winPercentage": "71.4%",
+      "pointsDifference": "+34",
+      "pointsFor": 617,
+      "pointsAgainst": 583,
+      "homeRecord": "3-0",
+      "awayRecord": "2-2",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "5-2",
+      "groupName": "D",
+      "last5Form": [
+        "L",
+        "W",
+        "W",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 3,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 4,
+      "gamesLost": 3,
+      "qualified": false,
+      "club": {
+        "code": "LEM",
+        "name": "Le Mans Sarthe Basket",
+        "abbreviatedName": "Le Mans Sarthe",
+        "editorialName": "Le Mans Sarthe",
+        "tvCode": "MSB",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/b8ec3298-5030-4865-8469-722a21b471c3.png"
+        }
+      },
+      "winPercentage": "57.1%",
+      "pointsDifference": "+18",
+      "pointsFor": 565,
+      "pointsAgainst": 547,
+      "homeRecord": "2-2",
+      "awayRecord": "2-1",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "4-3",
+      "groupName": "A",
+      "last5Form": [
+        "W",
+        "W",
+        "L",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 3,
+      "positionChange": "Up",
+      "gamesPlayed": 7,
+      "gamesWon": 4,
+      "gamesLost": 3,
+      "qualified": false,
+      "club": {
+        "code": "BUD",
+        "name": "Buducnost VOLI Podgorica",
+        "abbreviatedName": "Buducnost VOLI",
+        "editorialName": "Buducnost",
+        "tvCode": "BUD",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.incrowdsports.com/47161285-94b3-4266-9d23-b722e8600945.png"
+        }
+      },
+      "winPercentage": "57.1%",
+      "pointsDifference": "+28",
+      "pointsFor": 619,
+      "pointsAgainst": 591,
+      "homeRecord": "2-1",
+      "awayRecord": "2-2",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "4-3",
+      "groupName": "C",
+      "last5Form": [
+        "L",
+        "W",
+        "L",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 4,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 3,
+      "gamesLost": 4,
+      "qualified": false,
+      "club": {
+        "code": "TRT",
+        "name": "Baglietto Derthona Tortona",
+        "abbreviatedName": "Derthona",
+        "editorialName": "Derthona",
+        "tvCode": "DER",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCjnONv/4976fa46-8eb4-471c-b6dd-4704866c5769.png"
+        }
+      },
+      "winPercentage": "42.9%",
+      "pointsDifference": "-17",
+      "pointsFor": 558,
+      "pointsAgainst": 575,
+      "homeRecord": "3-1",
+      "awayRecord": "0-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-1",
+      "lastTenRecord": "3-4",
+      "groupName": "A",
+      "last5Form": [
+        "L",
+        "W",
+        "W",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "position": 4,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 3,
+      "gamesLost": 4,
+      "qualified": false,
+      "club": {
+        "code": "ULM",
+        "name": "ratiopharm ulm",
+        "abbreviatedName": "Ulm",
+        "editorialName": "Ulm",
+        "tvCode": "ULM",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/5750bc8b-dd63-48e4-8586-10d4e5e2b4e2.png"
+        }
+      },
+      "winPercentage": "42.9%",
+      "pointsDifference": "+1",
+      "pointsFor": 613,
+      "pointsAgainst": 612,
+      "homeRecord": "2-1",
+      "awayRecord": "1-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "3-4",
+      "groupName": "D",
+      "last5Form": [
+        "W",
+        "L",
+        "W",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "position": 4,
+      "positionChange": "Down",
+      "gamesPlayed": 7,
+      "gamesWon": 4,
+      "gamesLost": 3,
+      "qualified": false,
+      "club": {
+        "code": "NIN",
+        "name": "NINERS Chemnitz",
+        "abbreviatedName": "Chemnitz",
+        "editorialName": "Chemnitz",
+        "tvCode": "CHE",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/75ae96be-69f9-4e48-b5bd-b1056842db57.png"
+        }
+      },
+      "winPercentage": "57.1%",
+      "pointsDifference": "+17",
+      "pointsFor": 615,
+      "pointsAgainst": 598,
+      "homeRecord": "3-1",
+      "awayRecord": "1-2",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "4-3",
+      "groupName": "C",
+      "last5Form": [
+        "W",
+        "W",
+        "W",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "position": 4,
+      "positionChange": "Down",
+      "gamesPlayed": 7,
+      "gamesWon": 3,
+      "gamesLost": 4,
+      "qualified": false,
+      "club": {
+        "code": "VNC",
+        "name": "Umana Reyer Venice",
+        "abbreviatedName": "Reyer Venice",
+        "editorialName": "Reyer Venice",
+        "tvCode": "URV",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.incrowdsports.com/104f5074-9f23-47da-a21f-f2078db8244c.png"
+        }
+      },
+      "winPercentage": "42.9%",
+      "pointsDifference": "+40",
+      "pointsFor": 604,
+      "pointsAgainst": 564,
+      "homeRecord": "3-0",
+      "awayRecord": "0-4",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "3-4",
+      "groupName": "B",
+      "last5Form": [
+        "W",
+        "L",
+        "L",
+        "W",
+        "L"
+      ]
+    },
+    {
+      "position": 5,
+      "positionChange": "Up",
+      "gamesPlayed": 7,
+      "gamesWon": 3,
+      "gamesLost": 4,
+      "qualified": false,
+      "club": {
+        "code": "TTK",
+        "name": "Turk Telekom Ankara",
+        "abbreviatedName": "Turk Telekom",
+        "editorialName": "Turk Telekom",
+        "tvCode": "TTA",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.incrowdsports.com/4ba35608-54ca-4800-a59c-f2571e6f8e13.png"
+        }
+      },
+      "winPercentage": "42.9%",
+      "pointsDifference": "-2",
+      "pointsFor": 564,
+      "pointsAgainst": 566,
+      "homeRecord": "2-1",
+      "awayRecord": "1-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "3-4",
+      "groupName": "B",
+      "last5Form": [
+        "L",
+        "L",
+        "L",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 5,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 3,
+      "gamesLost": 4,
+      "qualified": false,
+      "club": {
+        "code": "RIG",
+        "name": "Riga Zelli",
+        "abbreviatedName": "Riga Zelli",
+        "editorialName": "Riga Zelli",
+        "tvCode": "RIG",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/0ab8fe2a-5972-48c5-bdff-f5159ca0abe7.png"
+        }
+      },
+      "winPercentage": "42.9%",
+      "pointsDifference": "-47",
+      "pointsFor": 550,
+      "pointsAgainst": 597,
+      "homeRecord": "2-1",
+      "awayRecord": "1-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "3-4",
+      "groupName": "A",
+      "last5Form": [
+        "W",
+        "L",
+        "W",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "position": 5,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 2,
+      "gamesLost": 5,
+      "qualified": false,
+      "club": {
+        "code": "BOU",
+        "name": "Cosea JL Bourg-en-Bresse",
+        "abbreviatedName": "Cosea JL Bourg",
+        "editorialName": "Bourg",
+        "tvCode": "JLB",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.incrowdsports.com/d4225e1b-7c1b-4382-98d4-ca8511c64441.png"
+        }
+      },
+      "winPercentage": "28.6%",
+      "pointsDifference": "-25",
+      "pointsFor": 568,
+      "pointsAgainst": 593,
+      "homeRecord": "1-2",
+      "awayRecord": "1-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "2-5",
+      "groupName": "C",
+      "last5Form": [
+        "L",
+        "W",
+        "L",
+        "W",
+        "L"
+      ]
+    },
+    {
+      "position": 5,
+      "positionChange": "Up",
+      "gamesPlayed": 7,
+      "gamesWon": 3,
+      "gamesLost": 4,
+      "qualified": false,
+      "club": {
+        "code": "BCR",
+        "name": "Roma Basketball",
+        "abbreviatedName": "Roma",
+        "editorialName": "Roma",
+        "tvCode": "ROM",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCjnOS1/1e9e0379-db30-4234-89b0-19576709c285.png"
+        }
+      },
+      "winPercentage": "42.9%",
+      "pointsDifference": "-30",
+      "pointsFor": 601,
+      "pointsAgainst": 631,
+      "homeRecord": "3-1",
+      "awayRecord": "0-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "1-0",
+      "lastTenRecord": "3-4",
+      "groupName": "D",
+      "last5Form": [
+        "W",
+        "L",
+        "L",
+        "L",
+        "W"
+      ]
+    },
+    {
+      "position": 6,
+      "positionChange": "Up",
+      "gamesPlayed": 7,
+      "gamesWon": 2,
+      "gamesLost": 5,
+      "qualified": false,
+      "club": {
+        "code": "LJU",
+        "name": "Cedevita Olimpija Ljubljana",
+        "abbreviatedName": "Cedevita Olimp",
+        "editorialName": "Cedevita Olimpija",
+        "tvCode": "COL",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.incrowdsports.com/73b33d13-570e-4e49-a9cb-fe806831eaa7.png"
+        }
+      },
+      "winPercentage": "28.6%",
+      "pointsDifference": "-31",
+      "pointsFor": 516,
+      "pointsAgainst": 547,
+      "homeRecord": "1-2",
+      "awayRecord": "1-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "1-0",
+      "lastTenRecord": "2-5",
+      "groupName": "A",
+      "last5Form": [
+        "L",
+        "L",
+        "L",
+        "W",
+        "W"
+      ]
+    },
+    {
+      "position": 6,
+      "positionChange": "Down",
+      "gamesPlayed": 7,
+      "gamesWon": 3,
+      "gamesLost": 4,
+      "qualified": false,
+      "club": {
+        "code": "SIA",
+        "name": "Siauliai Basketball",
+        "abbreviatedName": "Siauliai ",
+        "editorialName": "Siauliai ",
+        "tvCode": "SIA",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/55a49aa3-e91f-45cc-88d0-670896ce5825.png"
+        }
+      },
+      "winPercentage": "42.9%",
+      "pointsDifference": "-45",
+      "pointsFor": 560,
+      "pointsAgainst": 605,
+      "homeRecord": "2-2",
+      "awayRecord": "1-2",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "3-4",
+      "groupName": "B",
+      "last5Form": [
+        "L",
+        "W",
+        "W",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "position": 6,
+      "positionChange": "Down",
+      "gamesPlayed": 7,
+      "gamesWon": 3,
+      "gamesLost": 4,
+      "qualified": false,
+      "club": {
+        "code": "LKB",
+        "name": "Lietkabelis Panevezys",
+        "abbreviatedName": "Lietkabelis",
+        "editorialName": "Lietkabelis",
+        "tvCode": "LIE",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/ffcb6e37-31f4-48f6-91c2-a8c9a6f791a9.png"
+        }
+      },
+      "winPercentage": "42.9%",
+      "pointsDifference": "-56",
+      "pointsFor": 516,
+      "pointsAgainst": 572,
+      "homeRecord": "2-2",
+      "awayRecord": "1-2",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "3-4",
+      "groupName": "D",
+      "last5Form": [
+        "W",
+        "W",
+        "L",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "position": 6,
+      "positionChange": "Up",
+      "gamesPlayed": 7,
+      "gamesWon": 2,
+      "gamesLost": 5,
+      "qualified": false,
+      "club": {
+        "code": "KLA",
+        "name": "Neptunas Klaipeda",
+        "abbreviatedName": "Neptunas",
+        "editorialName": "Neptunas",
+        "tvCode": "NEP",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/ed0df5cd-c9e4-4387-bcd4-3606270cd255.png"
+        }
+      },
+      "winPercentage": "28.6%",
+      "pointsDifference": "-39",
+      "pointsFor": 593,
+      "pointsAgainst": 632,
+      "homeRecord": "2-2",
+      "awayRecord": "0-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "2-5",
+      "groupName": "C",
+      "last5Form": [
+        "W",
+        "L",
+        "L",
+        "L",
+        "W"
+      ]
+    },
+    {
+      "position": 7,
+      "positionChange": "Down",
+      "gamesPlayed": 7,
+      "gamesWon": 2,
+      "gamesLost": 5,
+      "qualified": false,
+      "club": {
+        "code": "TRN",
+        "name": "Dolomiti Energia Trento",
+        "abbreviatedName": "Trento",
+        "editorialName": "Trento",
+        "tvCode": "TRE",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCcz1CG/e4ce6137-6d3f-4072-9480-c0b9a9cd617d.png"
+        }
+      },
+      "winPercentage": "28.6%",
+      "pointsDifference": "-48",
+      "pointsFor": 575,
+      "pointsAgainst": 623,
+      "homeRecord": "1-3",
+      "awayRecord": "1-2",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "2-5",
+      "groupName": "C",
+      "last5Form": [
+        "L",
+        "L",
+        "W",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "position": 7,
+      "positionChange": "Down",
+      "gamesPlayed": 7,
+      "gamesWon": 2,
+      "gamesLost": 5,
+      "qualified": false,
+      "club": {
+        "code": "BOS",
+        "name": "BOSNA BH Telecom Sarajevo",
+        "abbreviatedName": "BOSNA",
+        "editorialName": "BOSNA",
+        "tvCode": "BOS",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCjnOJl/0024f0d4-55d9-4ed0-be41-68c0e90c41d5.png"
+        }
+      },
+      "winPercentage": "28.6%",
+      "pointsDifference": "-14",
+      "pointsFor": 559,
+      "pointsAgainst": 573,
+      "homeRecord": "1-2",
+      "awayRecord": "1-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "2-5",
+      "groupName": "D",
+      "last5Form": [
+        "L",
+        "W",
+        "W",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "position": 7,
+      "positionChange": "Down",
+      "gamesPlayed": 7,
+      "gamesWon": 3,
+      "gamesLost": 4,
+      "qualified": false,
+      "club": {
+        "code": "FRA",
+        "name": "Skyliners Frankfurt",
+        "abbreviatedName": "Skyliners",
+        "editorialName": "Skyliners",
+        "tvCode": "SKY",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/6afb32b8-e6dc-4f79-b14a-2d99fdb34cde.png"
+        }
+      },
+      "winPercentage": "42.9%",
+      "pointsDifference": "-57",
+      "pointsFor": 606,
+      "pointsAgainst": 663,
+      "homeRecord": "2-2",
+      "awayRecord": "1-2",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "3-4",
+      "groupName": "B",
+      "last5Form": [
+        "W",
+        "L",
+        "W",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "position": 7,
+      "positionChange": "Down",
+      "gamesPlayed": 7,
+      "gamesWon": 2,
+      "gamesLost": 5,
+      "qualified": false,
+      "club": {
+        "code": "RTK",
+        "name": "Rostock Seawolves",
+        "abbreviatedName": " Rostock",
+        "editorialName": " Rostock",
+        "tvCode": "ROS",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/de14cdb9-c0f7-485f-84ac-f305ace44723.png"
+        }
+      },
+      "winPercentage": "28.6%",
+      "pointsDifference": "-56",
+      "pointsFor": 549,
+      "pointsAgainst": 605,
+      "homeRecord": "1-2",
+      "awayRecord": "1-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "2-5",
+      "groupName": "A",
+      "last5Form": [
+        "L",
+        "L",
+        "L",
+        "W",
+        "L"
+      ]
+    },
+    {
+      "position": 8,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 1,
+      "gamesLost": 6,
+      "qualified": false,
+      "club": {
+        "code": "BLK",
+        "name": "Balkan Botevgrad",
+        "abbreviatedName": "Balkan",
+        "editorialName": "Balkan",
+        "tvCode": "BLK",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCpC/ba6e2d99-3ea9-4730-a0ce-830cccca4657.png"
+        }
+      },
+      "winPercentage": "14.3%",
+      "pointsDifference": "-85",
+      "pointsFor": 470,
+      "pointsAgainst": 555,
+      "homeRecord": "0-4",
+      "awayRecord": "1-2",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-1",
+      "lastTenRecord": "1-6",
+      "groupName": "D",
+      "last5Form": [
+        "L",
+        "L",
+        "L",
+        "W",
+        "L"
+      ]
+    },
+    {
+      "position": 8,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 2,
+      "gamesLost": 5,
+      "qualified": false,
+      "club": {
+        "code": "CLU",
+        "name": "U-BT Cluj-Napoca",
+        "abbreviatedName": "U-BT Cluj",
+        "editorialName": "Cluj",
+        "tvCode": "UBT",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.incrowdsports.com/ae3e2844-0615-41bb-a788-a4f0d54b8d5e.png"
+        }
+      },
+      "winPercentage": "28.6%",
+      "pointsDifference": "-90",
+      "pointsFor": 570,
+      "pointsAgainst": 660,
+      "homeRecord": "1-2",
+      "awayRecord": "1-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "2-5",
+      "groupName": "B",
+      "last5Form": [
+        "W",
+        "L",
+        "L",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "position": 8,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 1,
+      "gamesLost": 6,
+      "qualified": false,
+      "club": {
+        "code": "BGS",
+        "name": "Recoletas Salud San Pablo Burgos",
+        "abbreviatedName": "Burgos",
+        "editorialName": "Burgos",
+        "tvCode": "BUR",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.cortextech.io/1dU3kpCqReRp93/1BSdBWIjCgOCxM/40c97670-177e-4c74-9f5f-76b528a0da86.png"
+        }
+      },
+      "winPercentage": "14.3%",
+      "pointsDifference": "-63",
+      "pointsFor": 538,
+      "pointsAgainst": 601,
+      "homeRecord": "1-3",
+      "awayRecord": "0-3",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "1-6",
+      "groupName": "A",
+      "last5Form": [
+        "L",
+        "L",
+        "L",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "position": 8,
+      "positionChange": "Equal",
+      "gamesPlayed": 7,
+      "gamesWon": 1,
+      "gamesLost": 6,
+      "qualified": false,
+      "club": {
+        "code": "WRO",
+        "name": "Slask Wroclaw",
+        "abbreviatedName": "Slask",
+        "editorialName": "Slask",
+        "tvCode": "WKS",
+        "isVirtual": false,
+        "images": {
+          "crest": "https://media-cdn.incrowdsports.com/0415061b-5374-4a0d-bc04-8fcbc8ad0bb3.png"
+        }
+      },
+      "winPercentage": "14.3%",
+      "pointsDifference": "-71",
+      "pointsFor": 558,
+      "pointsAgainst": 629,
+      "homeRecord": "0-4",
+      "awayRecord": "1-2",
+      "neutralRecord": "0-0",
+      "overtimeRecord": "0-0",
+      "lastTenRecord": "1-6",
+      "groupName": "C",
+      "last5Form": [
+        "L",
+        "L",
+        "L",
+        "L",
+        "L"
+      ]
+    }
+  ]
+}

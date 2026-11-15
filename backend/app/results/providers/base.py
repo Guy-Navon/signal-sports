@@ -5,13 +5,16 @@ NORMALIZED games plus a per-competition error map. Normalization (including
 taxonomy team resolution) happens inside the provider so nothing downstream —
 repository, service, API — ever sees provider field names. Partial failure is
 first-class: one competition erroring must not lose the others.
+
+A provider may also offer per-game detail for finished games through the
+optional ``fetch_details`` (``DetailProvider``, issue #517).
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Optional, Protocol
 
-from app.results.models import NormalizedGame
+from app.results.models import NormalizedGame, NormalizedGameDetail
 
 
 @dataclass
@@ -26,6 +29,26 @@ class FetchOutcome:
     not_checked: list[str] = field(default_factory=list)
     # The provider's Retry-After when a 429 stopped the fetch; None otherwise.
     retry_after_seconds: Optional[float] = None
+    # Set by the routing provider (#529): provider name -> its Retry-After (None
+    # when it limited us without saying for how long). Empty for a plain provider.
+    provider_retry_after: dict[str, Optional[float]] = field(default_factory=dict)
+    # Set by the routing provider: provider name -> what it was asked and what it
+    # returned, for per-provider health (#522). Providers that were blocked (not
+    # called) are absent. Empty for a plain provider (the sync builds it).
+    provider_runs: dict[str, "ProviderRun"] = field(default_factory=dict)
+    # Backup sync (#522): what the default provider returned for competitions
+    # routed to another provider. ``errors``/``fetched_counts``/``not_checked``
+    # above stay the routed (serving) view. None when there is no backup.
+    backup: Optional["FetchOutcome"] = None
+
+
+@dataclass
+class ProviderRun:
+    """What one provider was asked for in one sync and what it returned (#522).
+    ``outcome`` is None when the call raised (``raised`` = class name only)."""
+    competitions: list[str]
+    outcome: Optional[FetchOutcome] = None
+    raised: Optional[str] = None
 
 
 class ResultsProvider(Protocol):
@@ -34,3 +57,40 @@ class ResultsProvider(Protocol):
     def fetch(self, competition_ids: list[str]) -> FetchOutcome:
         """Fetch and normalize recent games for the given competitions."""
         ...
+
+
+# ── Optional detail capability (issue #517) ───────────────────────────────────
+
+@dataclass
+class DetailOutcome:
+    """What ``fetch_details`` returns. Partial failure is first-class, as in
+    ``FetchOutcome``: one game erroring must not lose the others.
+
+    A requested game that is in none of ``details``, ``errors`` or
+    ``not_checked`` simply has no detail yet (for example, the box score is not
+    published); it stays a candidate for a later run.
+    """
+    details: list[NormalizedGameDetail] = field(default_factory=list)
+    # game id -> short error string (no URLs or keys: it is stored and served)
+    errors: dict[str, str] = field(default_factory=dict)
+    # Game ids not requested because the provider rate-limited us (429).
+    not_checked: list[str] = field(default_factory=list)
+    # The provider's Retry-After when a 429 stopped the fetch; None otherwise.
+    retry_after_seconds: Optional[float] = None
+    # As on ``FetchOutcome``: filled by the routing provider (#529).
+    provider_retry_after: dict[str, Optional[float]] = field(default_factory=dict)
+
+
+class DetailProvider(Protocol):
+    """A provider that can also return per-game detail. Optional: providers
+    without detail (TheSportsDB) just don't define ``fetch_details``."""
+    name: str
+
+    def fetch_details(self, games: list[NormalizedGame]) -> DetailOutcome:
+        """Fetch detail for these finished games, all of them this provider's
+        own (same ``provider`` name). Pace requests like ``fetch`` does."""
+        ...
+
+
+def supports_details(provider: object) -> bool:
+    return callable(getattr(provider, "fetch_details", None))

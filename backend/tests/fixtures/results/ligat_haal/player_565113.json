@@ -1,0 +1,20 @@
+{
+  "data": {
+    "565113": {
+      "id": 565113,
+      "name": "Ester Sokler",
+      "firstName": "אסטר",
+      "lastName": "סוקלר",
+      "shirtNumber": "9",
+      "position": "forward",
+      "teamId": {
+        "id": 4536,
+        "name": "Maccabi Tel Aviv",
+        "hebrewName": "מכבי ת\"א"
+      }
+    }
+  },
+  "meta": {
+    "total": 1
+  }
+}

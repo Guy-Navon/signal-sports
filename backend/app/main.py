@@ -69,6 +69,9 @@ def create_app() -> FastAPI:
 
         validate_deploy_startup_config()
         validate_auth_startup_config()
+        from app.results.providers import configured_disabled, configured_routes
+        configured_routes()  # RESULTS_PROVIDER_ROUTES typo: fail at startup (#529)
+        configured_disabled()  # RESULTS_PROVIDER_DISABLED typo: fail at startup (#522)
         _ensure_db_dir(settings.database_url)
         init_db()
 

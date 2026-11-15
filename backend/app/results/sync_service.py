@@ -22,7 +22,7 @@ from app.db.orm_models import ResultsSyncStateRow
 from app.repositories import game_result_repository
 from app.results import settings
 from app.results.detail_sync import sync_details
-from app.results.providers import ResultsProvider, get_provider
+from app.results.providers import ResultsProvider, configured_provider_names, get_provider
 from app.results.providers.base import FetchOutcome
 
 logger = logging.getLogger(__name__)
@@ -47,13 +47,53 @@ def _state(session: Session) -> ResultsSyncStateRow:
     return row
 
 
-def _rate_limited_until(session: Session) -> Optional[datetime]:
-    summary = _state(session).last_summary or {}
-    value = summary.get("rate_limited_until") if isinstance(summary, dict) else None
-    try:
-        return datetime.fromisoformat(value) if value else None
-    except ValueError:
-        return None
+def _active_blocks(session: Session) -> dict[str, datetime]:
+    """Unexpired provider blocks, name -> until. The key ``"*"`` is a block from a
+    summary written before per-provider limits (#529): it covers every provider."""
+    summary = _state(session).last_summary
+    if not isinstance(summary, dict):
+        return {}
+    raw: dict = {}
+    by_provider = summary.get("rate_limited_until_by_provider")
+    if isinstance(by_provider, dict):
+        raw.update(by_provider)
+    elif summary.get("rate_limited_until"):
+        raw["*"] = summary["rate_limited_until"]
+    now = _now()
+    blocks: dict[str, datetime] = {}
+    for name, value in raw.items():
+        try:
+            until = datetime.fromisoformat(value) if value else None
+        except (ValueError, TypeError):
+            until = None
+        if until is not None and now < until:
+            blocks[str(name)] = until
+    return blocks
+
+
+def _blocked_names(blocks: dict[str, datetime], names: list[str]) -> set[str]:
+    return set(names) if "*" in blocks else {n for n in names if n in blocks}
+
+
+def _provider_names(provider: Optional[ResultsProvider]) -> list[str]:
+    if provider is None:
+        try:
+            return configured_provider_names()
+        except ValueError:
+            # A bad RESULTS_PROVIDER_ROUTES: get_provider() raises the same error
+            # below, inside the try, so the sync records it instead of raising.
+            return []
+    names = getattr(provider, "provider_names", None)
+    return list(names) if names else [getattr(provider, "name", "unknown")]
+
+
+def _limited_providers(outcome: FetchOutcome, plain_name: str, routed: bool) -> dict:
+    """Providers that rate-limited this fetch, name -> Retry-After (or None)."""
+    if routed:
+        return dict(outcome.provider_retry_after)
+    if outcome.retry_after_seconds is not None or outcome.not_checked:
+        return {plain_name: outcome.retry_after_seconds}
+    return {}
 
 
 def _lease_time(moment: datetime) -> str:
@@ -155,9 +195,14 @@ def _sync_holding_lease(
         return {"skipped": "throttled", **state}
     # A provider block applies to every caller, the worker and the admin
     # endpoint alike; it lives in the DB so separate processes share it.
-    blocked_until = _rate_limited_until(session)
-    if blocked_until is not None and _now() < blocked_until:
-        return {"skipped": "rate_limited", "rate_limited_until": blocked_until.isoformat()}
+    # The block is per provider (#529): the sync is skipped only when every
+    # provider it would call is blocked; otherwise the blocked ones are skipped.
+    blocks = _active_blocks(session)
+    names = _provider_names(provider)
+    blocked = _blocked_names(blocks, names)
+    if blocked and len(blocked) == len(names):
+        until = max(blocks.values())
+        return {"skipped": "rate_limited", "rate_limited_until": until.isoformat()}
 
     comps = competition_ids or settings.tracked_competitions()
     now_iso = _now().isoformat()
@@ -168,6 +213,9 @@ def _sync_holding_lease(
 
     try:
         provider = provider or get_provider()
+        set_blocked = getattr(provider, "set_blocked", None)
+        if callable(set_blocked):
+            set_blocked(blocked)
         outcome = provider.fetch(comps)
     except Exception as exc:
         # The summary is stored and served, and a message can carry a URL with
@@ -188,15 +236,23 @@ def _sync_holding_lease(
     # Per-game detail (#517): never changes the scores status above. Skipped
     # while the provider is rate-limiting us, so a 429 stops every request.
     detail_summary: Optional[dict] = None
-    retry_after = outcome.retry_after_seconds
+    routed = bool(getattr(provider, "provider_names", None))
+    plain_name = getattr(provider, "name", "unknown")
+    limited = _limited_providers(outcome, plain_name, routed)
+    new_retry: dict[str, float] = {n: r for n, r in limited.items() if r is not None}
     if settings.detail_enabled() and provider is not None:
-        if outcome.retry_after_seconds is not None or outcome.not_checked:
+        skip = frozenset(limited) | frozenset(blocked)
+        if not routed and skip:
             detail_summary = {"status": "skipped_rate_limited"}
         else:
             try:
-                stage = sync_details(session, provider)
+                stage = sync_details(session, provider, skip)
                 detail_summary = stage.summary
-                retry_after = stage.retry_after_seconds
+                if stage.provider_retry_after is not None:
+                    new_retry.update({n: r for n, r in stage.provider_retry_after.items()
+                                      if r is not None})
+                elif stage.retry_after_seconds is not None:
+                    new_retry[plain_name] = stage.retry_after_seconds
             except Exception as exc:
                 # Last line of defence: the scores summary below must still be
                 # written whatever a provider's detail payload looks like.
@@ -204,10 +260,14 @@ def _sync_holding_lease(
                 logger.exception("results sync: detail stage failed unexpectedly")
                 detail_summary = {"status": "error", "errors": {"detail_stage": type(exc).__name__}}
 
-    rate_limited_until = (
-        (_now() + timedelta(seconds=retry_after)).isoformat()
-        if retry_after is not None else None
-    )
+    # Per-provider blocks: keep those still running (a skipped provider was not
+    # called, so it earned no new Retry-After), add this run's.
+    until_by_provider = {n: u.isoformat() for n, u in blocks.items()
+                         if n != "*" and n in names}
+    for n, seconds in new_retry.items():
+        until_by_provider[n] = (_now() + timedelta(seconds=seconds)).isoformat()
+    # The single field stays for ops readers: the latest block of any provider.
+    rate_limited_until = max(until_by_provider.values()) if until_by_provider else None
 
     summary = {
         "status": status,
@@ -220,6 +280,7 @@ def _sync_holding_lease(
         "errors": outcome.errors,
         "not_checked": outcome.not_checked,
         "rate_limited_until": rate_limited_until,
+        "rate_limited_until_by_provider": until_by_provider,
         "synced_at": now_iso,
     }
     if detail_summary is not None:

@@ -30,6 +30,8 @@ _MAX_ERROR_LEN = 200
 class DetailStageResult:
     summary: dict
     retry_after_seconds: Optional[float] = None
+    # Routing (#529): provider name -> Retry-After (None = limited, no duration).
+    provider_retry_after: Optional[dict] = None
 
 
 def _as_game(row: GameResultRow) -> NormalizedGame:
@@ -43,6 +45,11 @@ def _as_game(row: GameResultRow) -> NormalizedGame:
     )
 
 
+def _neg(value: Optional[str]) -> tuple:
+    # Descending by start_time with a plain ascending sort key.
+    return tuple(-ord(c) for c in (value or ""))
+
+
 def _summary(status: str, **extra) -> dict:
     base = {"status": status, "requested": 0, "stored": 0, "ignored": 0,
             "errors": {}, "not_checked": [], "pending": None}
@@ -50,17 +57,29 @@ def _summary(status: str, **extra) -> dict:
     return base
 
 
-def sync_details(session: Session, provider: object) -> DetailStageResult:
-    """Fetch and store detail for this provider's final games that lack it."""
+def sync_details(session: Session, provider: object,
+                 skip_providers: frozenset = frozenset()) -> DetailStageResult:
+    """Fetch and store detail for this provider's final games that lack it.
+
+    A routing provider (#529) names the providers behind it; candidates are the
+    games of those that can give detail, minus ``skip_providers`` (rate-limited),
+    newest first across all of them within the one per-run cap."""
     if not supports_details(provider):
         return DetailStageResult(_summary("unsupported"))
 
-    name = getattr(provider, "name", "unknown")
+    detail_names = getattr(provider, "detail_provider_names", None)
+    names = list(detail_names()) if callable(detail_names) else [getattr(provider, "name", "unknown")]
+    names = [n for n in names if n not in skip_providers]
+    if not names:
+        return DetailStageResult(_summary("skipped_rate_limited"))
     try:
         cap = settings.detail_max_per_run()
-        rows = game_detail_repository.games_missing_detail(session, name, limit=cap) if cap else []
-        games = [_as_game(row) for row in rows]
-        pending_before = game_detail_repository.count_missing_detail(session, name)
+        rows = []
+        for n in names:
+            rows.extend(game_detail_repository.games_missing_detail(session, n, limit=cap) if cap else [])
+        rows.sort(key=lambda r: (r.start_time is None, _neg(r.start_time), r.id))
+        games = [_as_game(row) for row in rows[:cap]]
+        pending_before = sum(game_detail_repository.count_missing_detail(session, n) for n in names)
         # End the read transaction: no DB transaction stays open across requests.
         session.commit()
     except Exception as exc:
@@ -108,7 +127,7 @@ def sync_details(session: Session, provider: object) -> DetailStageResult:
         return DetailStageResult(
             _summary("error", requested=len(games), errors={"database": type(exc).__name__},
                      pending=pending_before),
-            outcome.retry_after_seconds,
+            outcome.retry_after_seconds, outcome.provider_retry_after or None,
         )
 
     errors = {str(k): str(v)[:_MAX_ERROR_LEN] for k, v in outcome.errors.items()}
@@ -128,5 +147,5 @@ def sync_details(session: Session, provider: object) -> DetailStageResult:
         _summary(status, requested=len(games), stored=stored, ignored=ignored,
                  errors=errors, not_checked=list(outcome.not_checked),
                  pending=pending_before - stored),
-        outcome.retry_after_seconds,
+        outcome.retry_after_seconds, outcome.provider_retry_after or None,
     )

@@ -29,6 +29,9 @@ class FetchOutcome:
     not_checked: list[str] = field(default_factory=list)
     # The provider's Retry-After when a 429 stopped the fetch; None otherwise.
     retry_after_seconds: Optional[float] = None
+    # Set by the routing provider (#529): provider name -> its Retry-After (None
+    # when it limited us without saying for how long). Empty for a plain provider.
+    provider_retry_after: dict[str, Optional[float]] = field(default_factory=dict)
 
 
 class ResultsProvider(Protocol):
@@ -57,6 +60,8 @@ class DetailOutcome:
     not_checked: list[str] = field(default_factory=list)
     # The provider's Retry-After when a 429 stopped the fetch; None otherwise.
     retry_after_seconds: Optional[float] = None
+    # As on ``FetchOutcome``: filled by the routing provider (#529).
+    provider_retry_after: dict[str, Optional[float]] = field(default_factory=dict)
 
 
 class DetailProvider(Protocol):

@@ -195,6 +195,11 @@ def me_get_feed_freshness(
 
 # ── Results (issue #178) ──────────────────────────────────────────────────────
 
+@router.get("/results/players/catalog", response_model=chosen_players.PlayerCatalog)
+def me_results_player_catalog(user: UserRow = Depends(require_user)):
+    return chosen_players.catalog()
+
+
 @router.get("/results/players", response_model=chosen_players.PlayerChoices)
 def me_results_players(user: UserRow = Depends(require_user),
                        session: Session = Depends(get_session)):

@@ -6,7 +6,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.db.orm_models import ResultsChosenPlayerRow
-from app.taxonomy.entities import entity_by_id
+from app.taxonomy.entities import ENTITIES, entity_by_id
 
 
 class PlayerSelection(BaseModel):
@@ -30,6 +30,22 @@ class ChosenPlayer(BaseModel):
 
 class PlayerChoices(BaseModel):
     players: list[ChosenPlayer]
+
+
+class CatalogPlayer(ChosenPlayer):
+    name_en: str
+    aliases: list[str]
+
+
+class PlayerCatalog(BaseModel):
+    players: list[CatalogPlayer]
+
+
+def catalog() -> PlayerCatalog:
+    """Results choices include roster players excluded from the feed picker."""
+    return PlayerCatalog(players=[CatalogPlayer(entity_id=e.id, name=e.display_he,
+        name_en=e.display_en, aliases=list(e.aliases))
+        for e in sorted(ENTITIES.values(), key=lambda e: e.id) if e.kind == "player"])
 
 
 def chosen_ids(session: Session, user_id: str) -> set[str]:

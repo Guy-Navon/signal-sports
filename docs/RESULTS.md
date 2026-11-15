@@ -264,6 +264,7 @@ created by `create_all`.
 |---|---|---|---|
 | GET | `/api/me/results` | session (`require_user`) | consumer surface; identity from session |
 | GET | `/api/me/results/players` | session | own chosen players, Hebrew names |
+| GET | `/api/me/results/players/catalog` | session | all taxonomy players for the results picker (names and aliases) |
 | PUT | `/api/me/results/players` | session + normal CSRF checks | replace own choices; no feed mutation |
 | GET | `/api/results/{user_id}` | admin (`require_admin`) | ops view-as, parity handler |
 | POST | `/api/results/sync` | admin | manual sync (force) |
@@ -287,6 +288,10 @@ identity is authoritative for every role. This API neither reads nor changes
 ProfileV2, affinities, feed decisions or results relevance. No admin privileges
 are required. The public demo has no API client or write surface; its bundle
 guard continues to enforce that boundary. UI placement remains Guy's decision.
+The read-only `/players/catalog` returns `players` with `entity_id`, Hebrew `name`,
+`name_en` and `aliases`, including roster players whose feed mentions imply their
+team. It is derived directly from taxonomy players. The shared feed catalog and
+classification policy remain unchanged; result choices are not feed follows.
 
 ## 7. Frontend
 

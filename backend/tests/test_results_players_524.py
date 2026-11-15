@@ -28,6 +28,19 @@ def test_own_empty_list_and_hebrew_names(user_client):
     assert user_client.get(URL).json() == saved.json()
 
 
+def test_result_picker_catalog_includes_roster_players_without_changing_feed_catalog(user_client, client):
+    assert client.get(f"{URL}/catalog").status_code == 401
+    catalog = user_client.get(f"{URL}/catalog")
+    assert catalog.status_code == 200
+    players = {p["entity_id"]: p for p in catalog.json()["players"]}
+    assert players[DENI]["name"] == "דני אבדיה"
+    assert players[DENI]["name_en"] == "Deni Avdija"
+    assert "player:roman_sorkin" in players
+    assert all(eid.startswith("player:") for eid in players)
+    feed_catalog = user_client.get("/api/taxonomy/catalog").json()
+    assert not any(p["id"] == "player:roman_sorkin" for p in feed_catalog["people"])
+
+
 def test_full_replace_dedup_idempotency_and_timestamp(user_client):
     uid = user_client.identity_user_id
     payload = {"entity_ids": [DENI, DENI, "player:lebron_james"]}

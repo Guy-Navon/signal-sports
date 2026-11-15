@@ -63,6 +63,10 @@ export function getResults(userId) {
   return apiFetch(`/api/results/${encodeURIComponent(userId)}`);
 }
 
+export function getResultsSyncState() {
+  return apiFetch("/api/results/sync/state");
+}
+
 export function submitFeedback(payload) {
   return apiFetch("/api/feedback", {
     method: "POST",

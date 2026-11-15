@@ -8,6 +8,28 @@
   outline-offset: 2px;
 }
 
+/* Scores-only results (#553): no leaders column, no side column, rows and tiles
+   are plain (not buttons). The stream panel takes the full width. */
+.sr-board--demo .sr-row {
+  grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr);
+}
+
+.sr-board--demo .sr-cols--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 899px) {
+  /* The product's desktop "align-items: start" would shrink the panel to its
+     content in the phone's flex column. */
+  .sr-board--demo .sr-cols--single {
+    align-items: stretch;
+  }
+
+  .sr-board--demo .sr-row {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+}
+
 /* The static demo has no full results page. Keep the shared strip's games. */
 .sg-demo .sg-results__link {
   display: none;

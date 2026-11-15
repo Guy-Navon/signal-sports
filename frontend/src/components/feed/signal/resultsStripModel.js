@@ -19,7 +19,7 @@ export function latestFinals(games = [], nowMs = Date.now()) {
     .slice(0, RESULTS_STRIP_LIMIT);
 }
 
-/** Match ResultCard: the backend's declared winner is authoritative. */
+/** Same rule as the results page tiles and rows: the backend's declared winner is authoritative. */
 export function resultWinner(game) {
   return isCompleted(game.status) && hasScore(game) &&
     (game.winner === "home" || game.winner === "away") ? game.winner : null;

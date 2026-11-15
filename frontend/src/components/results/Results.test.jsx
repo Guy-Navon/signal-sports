@@ -44,19 +44,19 @@ it("announces initial backend loading before the empty and error branches", () =
   expect(view.root.findAllByType("button")).toHaveLength(0);
 });
 
-it("keeps Jerusalem day groups and ascending scheduled times during background refresh", () => {
+it("keeps Jerusalem day groups, newest first within a day, undated last, during background refresh", () => {
   const game = (id, startTime) => ({
-    id, startTime, competitionId: "comp:nba", sport: "basketball", competitionHe: "NBA", status: "scheduled",
-    home: { name: "בית", score: null }, away: { name: "חוץ", score: null },
+    id, startTime, competitionId: "comp:nba", sport: "basketball", competitionHe: "NBA", status: "final", localDate: null,
+    home: { name: "בית", score: 1 }, away: { name: "חוץ", score: 0 }, leaders: [], chosenPlayerLines: [], detailAvailable: false,
   });
   render({ resultsLoading: true, resultsGames: [
     game("undated", null), game("older", "2026-04-08T18:00:00Z"),
     game("newer", "2026-04-09T22:30:00Z"), game("same-day", "2026-04-10T10:00:00Z"),
   ] });
   expect(view.root.findAllByType(ResultRow).map((node) => node.props.game.id)).toEqual([
-    "newer", "same-day", "older", "undated",
+    "same-day", "newer", "older", "undated",
   ]);
-  expect(view.root.findAllByType("h2").map((node) => node.children[0])).toEqual([
-    expect.stringContaining("10"), expect.stringContaining("8"), "ללא תאריך",
-  ]);
+  const heads = view.root.findAll((node) => node.props.className === "sr-day__head" && typeof node.type === "string");
+  expect(heads).toHaveLength(3);
+  expect(heads.at(-1).findByType("span").children).toEqual(["ללא תאריך"]);
 });

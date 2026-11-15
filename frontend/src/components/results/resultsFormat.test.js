@@ -44,3 +44,11 @@ describe("formatDayHeading", () => {
     expect(formatDayHeading(null)).toBe("ללא תאריך");
   });
 });
+
+it("formats long and chip day labels without the year or the word 'יום'", async () => {
+  const { formatDayLong, formatDayChip, formatWeekday } = await import("./resultsFormat");
+  expect(formatDayLong("2026-11-14")).toBe("שבת, 14 בנובמבר");
+  expect(formatDayChip("2026-11-12")).toBe("חמישי 12.11");
+  expect(formatWeekday("2026-11-12")).toBe("חמישי");
+  expect(formatDayLong(null)).toBe("");
+});

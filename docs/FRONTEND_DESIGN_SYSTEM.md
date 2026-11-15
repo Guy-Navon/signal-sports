@@ -1,6 +1,6 @@
 # Signal Sports — Frontend Design System
 
-Last updated: 2026-11-15 (#513 grouped results, private popup and coded alternatives;
+Last updated: 2026-11-15 (#513 results page direction C and the new game popup;
 #524 separate player choices; #526 demo statistics guard; #538 results health in the existing ops surface;
 #491 navigation, #473 cleanup; first written 2026-11-13, #461).
 This file has two parts:
@@ -230,10 +230,17 @@ header when the feed was ready (the old flake). A production build has none (0 i
 anything still running after that, fallback or not, fails as before.
 The harness keeps every existing browser assertion through the #473 rename to `capture:ui`.
 The #513 extension (`scripts/capture-results.mjs`) uses the real results board and
-saved-provider lab fixtures at 1440/390/320: every scorer, the chosen-player line,
-no inline quarters, RTL, overflow, 44px targets, Enter, modal Tab/Shift+Tab, Escape
-and opener restoration. It checks both row layouts and popup styles, intentional
-states, soft/dark grounds, local-only player search/add/remove/save, and the actual
+saved-provider lab fixtures at 1440/390/320: RTL, no page overflow, the summary line,
+tiles with verdict chips and followed-team dots, short NBA names, the leaders text
+order, the sticky date bar and side column on a desktop, the tonight box above the
+stream and scroll-snap tiles on a phone, and the 44px targets. A tile and a row each
+open the popup (800px centred dialog, or a bottom sheet with a grab handle and a
+sticky player column on a phone) and are checked for the quarter table, team facts,
+tabs, starters/bench, the `--sg-tint` top-scorer row, modal Tab/Shift+Tab, arrow keys
+between tabs, Escape and opener restoration. The collapse button
+(`עוד N משחקי <league>`, `aria-expanded`, focus to the first revealed row) is checked
+with the lab's synthetic `fillers=1` games. It also checks intentional states,
+soft/dark grounds, local-only player search/add/remove/save, and the actual
 read-only ops health renderer. Existing feed assertions remain in place.
 The owned browser blocks root `/api*` and `/health*` requests before Vite can
 proxy them; an unexpected attempt fails the capture. Temporary health-review
@@ -749,26 +756,61 @@ new stories.
   their own `.signal-ui` scope, so they match the ground (re-verified on all three in #504).
 - **Preferences, interests, calibration** (#470): the same tokens and type. Calibration headline
   cards read like stream rows, so the user rates what they will see. No behaviour change.
-- **Results page (#513, 2026-11-15):** a compact private board, separate from the
-  scores-only strip. Dates are today, future days ascending, past days descending,
-  then undated; inside each date: sport, then league. Only finals and scheduled
-  games render. The default two-line row shows each team with its rank in brackets,
-  score (or local start time), every API-supplied scorer and only explicit results
-  choices' player lines. The server owns relevance, names, leaders and choices;
-  the page adds none. Winners use weight only; draws emphasize neither side.
-  Forty rows mount initially; "הצג משחקים נוספים" reveals forty and focuses the
-  first new row. Loading, retryable error, no-preferences CTA, no games today and
-  scores-only source-unavailable states have explicit copy.
-  Enter or click on an available final opens a native modal with box scores,
-  extra native player/team stats, venue and attendance. Ranks remain in name
-  brackets. Focus starts on the 44px close button, wraps in both directions,
-  Escape closes the dialog before restoring its opener, and body scrolling is
-  locked until close. On phones both popup styles are bottom sheets; wide tables
-  scroll inside their labelled keyboard-focusable regions, never the page.
-  `lab.html?page=results` codes the default and a one-line row alternative, plus
-  a desktop side-panel alternative (`&layout=one-line&popup=side`). Saved real
-  provider fixtures are documented in `frontend/src/lab/RESULTS_FIXTURES.md`;
-  labs make no user-API requests. Guy retains the final design choice (#513).
+- **Results page (#513, direction C, 2026-11-15):** Guy chose direction C and the new
+  popup from coded boards on real data. It is a private board, separate from the
+  scores-only strip (B9). The server owns relevance, names, leaders and chosen
+  players; the page adds none and never invents a tile, fact or column. Order:
+  today first, then past days descending. Upcoming games are not in the stream.
+  - **Top (desktop, 900px and up):** "תוצאות" and a summary line from real data,
+    "**N** משחקים ב-48 השעות האחרונות · **M** הערב" (a zero part is dropped). Then
+    "הקבוצות שלך": up to four tiles in one row, the most recent finals with a
+    followed team or a chosen-player line (none qualifying means no row). A tile has
+    league · day, a verdict chip ("ניצחון" in `--sg-tint`/`--sg-acc`, "הפסד" and
+    "תיקו" neutral, none when both sides are followed), two team rows with large
+    scores (winner 800/ink, loser 600/dim), the rank in brackets, the chosen-player
+    strip and a leaders line. The whole tile opens the popup.
+  - **Followed teams** come from the profile's team affinities of level 1 and up (an
+    explicit entry beats calibrated beats learned, as `results/relevance.py` does),
+    plus any `followed_team:<id>` the server reports in `relevance_reason`. A team in
+    scope only through a followed player is not a followed team; such a game becomes
+    a tile through its chosen-player line. Followed teams carry a small `--sg-acc`
+    dot. Frontend only, in `resultsLayoutModel.js`.
+  - **Sticky date bar** (היום, אתמול, then weekday and date): chips anchor-scroll to the
+    day sections and never filter. Hidden on a phone.
+  - **Band** (`--sg-band`, B5 grid `minmax(0, 1fr) 330px`): a white stream panel with
+    the day heading over a 2px ink rule, league sub-headings and one-line rows:
+    home | score – away score | away | leaders text behind a `border-inline-start`
+    divider. Leaders put the home side first; an English name shows its surname, a
+    mapped Hebrew name shows in full. Rows and tiles use short NBA names from an
+    explicit tested map of the 30 team ids (`resultsTeamNames.js`; other teams keep
+    the API name). A league with more than five games on a day shows four (followed
+    and chosen games first) and a "עוד N משחקי <league>" button that focuses the first
+    revealed row; the old "reveal 40" is gone.
+  - **Side column** (sticky): "הערב" lists today's scheduled games, or "הקרוב" with day
+    and time when there are none today, or no box. "השחקנים שלך" lists each chosen
+    line in the window (name, basic stats, then day · score · minutes) and links to the
+    results-players setting; with no chosen players it is the link only.
+  - **Phone (under 900px):** tiles become a scroll-snap row of 262px tiles, then the
+    tonight box, then the stream with two-line rows (home | score | away, leaders
+    centred below). No side column and no date bar. 320px has no page overflow.
+  - **Popup:** a native modal, an 800px centred dialog on a desktop and a bottom sheet
+    with a grab handle on a phone (under 700px). Header: league · date · time · venue
+    and attendance, and a 44px close button. Scoreboard with each side's top scorer
+    and a 48px (36px) score and "סיום". Quarter table only when both teams have every
+    period (numbered from 1, overtime after four). Up to four team facts the provider
+    has (bench points, points in the paint, biggest lead, lead changes, then fast
+    break and similar), missing ones skipped. Team tabs (`role="tablist"`, arrow
+    keys) then the box score: starters and bench, only the columns the data has
+    (min, pts, reb, ast, 2PT, 3PT, FT made/attempted, +/-), the top scorer row on
+    `--sg-tint`; on a phone the table scrolls inside itself with the player column
+    sticky. Football shows scorers and cards and skips the basketball parts. The
+    popup keeps full team names. Focus starts on the close button, wraps both ways,
+    Escape restores the opener and body scroll is locked until close.
+  - Loading, retryable error, no-preferences call to action, no games and
+    scores-only (no game data) states have explicit copy.
+  - `lab.html?page=results` codes this page on the saved real provider fixtures
+    (`frontend/src/lab/RESULTS_FIXTURES.md`), with a 390px phone frame and an optional
+    synthetic NBA filler for the collapse. Labs make no user-API requests.
 - **Account, auth, welcome, 404** (#472) and the **public demo** (#469): the new shell and
   feed. The demo stays feed-only and read-only.
 - **Images** (#474): open owner decision, ingestion work before design work. Every layout here

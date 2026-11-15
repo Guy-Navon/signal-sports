@@ -69,7 +69,7 @@ src/
 │   ├── interests/    InterestPicker, InterestsManager, CatalogSearch, FollowChip, EventPresetControls
 │   ├── preferences/  PersonalizationLayout, TopicCard, LearnedAdjustmentsPanel, preferencesRoutes
 │   │                 (/preferences/:tab? with four tabs; /interests and /calibration redirect)
-│   ├── results/      ResultCard, DayHeading, grouping/format/relevance models
+│   ├── results/      board, tiles, rows, popup, layout/format/relevance models
 │   ├── debug/        DebugArticleCard, FactsTracePanel, ReasoningTrace, ClusterEvidence, ShadowComparisonPanel
 │   ├── ops/          IngestionPanel, SchedulerPanel, NotificationsPanel, SourceToggleCard, HealthCard, BenchmarkPanel
 │   ├── shell/        ProductShell, ProductHeader (navy header + slim bar), AccountMenu, MastheadSlot,

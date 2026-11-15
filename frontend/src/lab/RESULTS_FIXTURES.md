@@ -19,7 +19,11 @@ It is imported only by the private design lab, never the public demo.
 - The upcoming Winner game is the saved season's Segev id 452 on 15 November.
   The lab clock is fixed to `2026-11-15T12:00:00Z`; original dates/times are retained.
 
-Rows and popup alternatives: `npm run lab`, then
-`http://127.0.0.1:5182/lab.html?page=results`. Query parameters `layout=one-line`
-and `popup=side` link directly to the alternatives. `state` selects loading,
-error, preferences, empty or unavailable examples.
+Direction C (the chosen design): `npm run lab`, then
+`http://127.0.0.1:5182/lab.html?page=results`. The lab profile follows both Maccabi
+Tel Aviv clubs, so their games become tiles; Deni's line makes the Portland game a tile
+through the chosen-player rule. `state` selects loading, error, preferences, empty or
+unavailable examples. `fillers=1` adds six **synthetic** NBA finals on 14 November
+(lab-only, invented scores, no game detail) so the "עוד N משחקי NBA" collapse can be
+seen; they never come from a provider and are not used by any test of real data.
+The phone button shows the page in a 390px frame (`embed=1`).

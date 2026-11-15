@@ -717,6 +717,14 @@ new stories.
 
 ## B13. Other consumer screens and images
 
+- **Results player choices (#524, 2026-11-15):** default placement is Preferences →
+  "מה אני עוקב" → "שחקנים בתוצאות". A bounded Hebrew/English/alias search, removable
+  chips and explicit save use only the session-owned results API and its separate
+  player catalog; saving refreshes results, never feed preferences. Targets are
+  at least 44px, removal returns focus to search, and load/save failures offer retry.
+  Local mode explains that an account is required. A calibration-style alternative
+  is coded at `lab.html?page=resultsplayers`; Guy retains the placement decision.
+
 - **Grounds** (#468): `AccountMenu` in the consumer header selects white, soft or dark.
   `GroundProvider` persists the choice per device in `localStorage` (`signal.ground`), falls
   back to white if storage is unavailable, and applies no ground to Ops. The demo stays white.

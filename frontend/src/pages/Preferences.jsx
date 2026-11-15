@@ -12,6 +12,7 @@ import LazyBoundary from "@/components/shell/LazyBoundary";
 import { PREFERENCE_TABS, adjacentTab, preferenceTab } from "@/components/preferences/preferencesRoutes";
 import { PersonalizationHeader as PageHeader } from "@/components/preferences/PersonalizationLayout";
 import "@/components/preferences/preferences.css";
+import ResultsPlayersSetting from "@/components/results/ResultsPlayersSetting";
 
 const Calibration = lazy(() => import("@/pages/Calibration"));
 
@@ -19,6 +20,7 @@ export default function Preferences() {
   const {
     activeProfile, activeProfileId, updateProfile,
     consumerSession, refreshProfiles, refreshFeed,
+    isBackendMode, refreshResults,
   } = useApp();
   const auth = useAuth();
   const location = useLocation();
@@ -91,7 +93,7 @@ export default function Preferences() {
             מושתקים
           </>
         )}
-        . שינויים כאן נכנסים לתוקף מיד בפיד.
+        . שינויים בתחומי העניין נכנסים לתוקף מיד בפיד.
       </p>
 
       {/* Tabs */}
@@ -124,6 +126,8 @@ export default function Preferences() {
 
       <div id="sg-preferences-content" className="sg-preferences__panel" role="tabpanel" tabIndex={0} aria-labelledby={`sg-preferences-tab-${activeTab}`}>
       {activeTab === "following" && inOnboarding && <InterestSelection embedded />}
+      {activeTab === "following" && !inOnboarding && <ResultsPlayersSetting
+        enabled={isBackendMode && consumerSession} onSaved={refreshResults} />}
       {activeTab === "following" && consumerSession && !inOnboarding && (
         <InterestsManager
           onSaved={() => {

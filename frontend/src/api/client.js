@@ -67,6 +67,21 @@ export function getResultsSyncState() {
   return apiFetch("/api/results/sync/state");
 }
 
+export function getMeResultsPlayers() {
+  return apiFetch("/api/me/results/players");
+}
+
+export function getResultsPlayersCatalog() {
+  return apiFetch("/api/me/results/players/catalog");
+}
+
+export function putMeResultsPlayers(entityIds) {
+  return apiFetch("/api/me/results/players", {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entity_ids: entityIds }),
+  });
+}
+
 export function submitFeedback(payload) {
   return apiFetch("/api/feedback", {
     method: "POST",

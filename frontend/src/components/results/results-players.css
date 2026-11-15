@@ -1,0 +1,19 @@
+.sg-results-players { color: var(--sg-ink); min-inline-size: 0; }
+.sg-results-players fieldset { border: 0; padding: 0; margin: 0; min-inline-size: 0; }
+.sg-results-players label { display: block; font-weight: 700; margin-block-end: 6px; }
+.sg-results-players input { inline-size: 100%; max-inline-size: 420px; min-block-size: 44px; padding: 8px 12px; border: 1px solid var(--sg-line); border-radius: 4px; color: var(--sg-ink); background: var(--sg-card); }
+.sg-results-players__chips, .sg-results-players__matches { list-style: none; padding: 0; margin-block: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.sg-results-players__chips li { display: inline-flex; align-items: center; padding-inline-start: 10px; border: 1px solid var(--sg-line); border-radius: 4px; background: var(--sg-tint); min-inline-size: 0; overflow-wrap: anywhere; }
+.sg-results-players button { min-block-size: 44px; min-inline-size: 44px; touch-action: manipulation; }
+.sg-results-players__chips button { color: var(--sg-ink); font-size: 22px; }
+.sg-results-players__matches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-inline-size: 680px; }
+.sg-results-players__matches button { display: flex; align-items: center; justify-content: space-between; gap: 12px; inline-size: 100%; padding: 8px 10px; text-align: start; border-block-end: 1px solid var(--sg-line); }
+.sg-results-players__matches bdi { min-inline-size: 0; overflow-wrap: anywhere; }
+.sg-results-players__matches span { color: var(--sg-acc); flex-shrink: 0; font-size: 14px; }
+.sg-results-players__save { padding: 8px 18px; border: 1px solid var(--sg-ink); border-radius: 4px; font-weight: 700; margin-block-start: 8px; }
+.sg-results-players button:hover { background: var(--sg-tint); }
+.sg-results-players button:focus-visible, .sg-results-players input:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.sg-results-players button:disabled { opacity: .6; cursor: wait; }
+.sg-results-players__error { font-weight: 700; color: var(--sg-ink); margin-block-start: 8px; }
+.sg-results-players--calibration { border-block-start: 3px solid var(--sg-acc); max-inline-size: 720px; }
+@media (max-width: 600px) { .sg-results-players__matches { grid-template-columns: minmax(0, 1fr); } }

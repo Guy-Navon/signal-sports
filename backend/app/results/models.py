@@ -97,6 +97,8 @@ class TeamLeader(BaseModel):
     source_player_id: Optional[str] = None
     name: Optional[str] = None                  # source name (usually English)
     name_he: Optional[str] = None               # when the source carries Hebrew
+    entity_id: Optional[str] = None             # read-side results mapping (#525)
+    display_name: Optional[str] = None
 
 
 class PlayerLine(BaseModel):
@@ -108,6 +110,8 @@ class PlayerLine(BaseModel):
     source_player_id: Optional[str] = None
     name: Optional[str] = None
     name_he: Optional[str] = None
+    entity_id: Optional[str] = None
+    display_name: Optional[str] = None
     minutes: Optional[float] = None
     stats: dict = Field(default_factory=dict)
 

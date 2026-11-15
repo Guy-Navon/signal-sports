@@ -606,6 +606,15 @@ class GameResultRow(Base):
     )
 
 
+class ResultsPlayerMappingRow(Base):
+    """Results-only exact identity; no taxonomy/classification aliases are changed."""
+    __tablename__ = "results_player_mappings"
+
+    provider = Column(String, primary_key=True)
+    source_player_id = Column(String, primary_key=True)
+    entity_id = Column(String, nullable=False)
+
+
 class GameDetailRow(Base):
     """Per-game detail for a finished game (issue #517), one row per game.
 

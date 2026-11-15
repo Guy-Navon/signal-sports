@@ -389,9 +389,21 @@ Two tables, both new and created by `create_all` (no `ALTER`):
   (decimal minutes), `stats` (JSON with the source's own fields, so each sport and
   source can carry what it has: points, rebounds, goals, cards, ...).
 
-Player identity is the **source's** player id and name; mapping to taxonomy players is
-#525. A name may be missing when the source has the id but no name record: the line
-or leader is kept, not dropped.
+2026-11-15 — #525: `results_player_mappings` maps `(provider, source_player_id)`
+to a taxonomy **player** id, created by `create_all`. Detail upserts populate it in
+the same transaction. `results/player_mapping.py` matches English/Hebrew display
+names and aliases by unique exact normalized equality (Unicode normalization,
+case, whitespace/punctuation and `LAST, FIRST` order). Ambiguous or unknown names
+stay unmapped; no fuzzy matching or transliteration. Verified manual fixes belong
+only in the provider-local `OVERRIDES` dict (currently empty).
+
+Stored source names remain unchanged. `get_details` adds `entity_id` and
+`display_name` to leaders and player lines: taxonomy Hebrew when mapped, otherwise
+source Hebrew if present, otherwise the source name. Older cached details resolve
+on read without writes or provider requests. A missing name remains missing; the
+line/leader is kept. The optional pure resolver's team constraint is not applied
+automatically, because current taxonomy rosters can differ from historical games.
+No classification alias, feed decision, route or activation default changes.
 
 `game_detail_repository.upsert` writes one game's detail and **replaces** its player
 lines as a set, so the same detail written twice leaves one row set (updated, not

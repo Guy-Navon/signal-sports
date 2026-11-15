@@ -55,6 +55,32 @@ class TeamSide(BaseModel):
     name_provider: str                          # raw provider name (audit / fallback)
     score: Optional[int] = None
     is_winner: bool = False
+    rank: Optional[int] = None
+
+
+class ResultLeader(BaseModel):
+    side: Literal["home", "away"]
+    name: Optional[str] = None
+    entity_id: Optional[str] = None
+    stat: str
+    value: int
+
+
+class ResultPlayerLine(BaseModel):
+    side: Literal["home", "away"]
+    name: Optional[str] = None
+    entity_id: Optional[str] = None
+    source_player_id: Optional[str] = None
+    minutes: Optional[float] = None
+    stats: dict = Field(default_factory=dict)
+
+
+class GameDetailResponse(BaseModel):
+    game_id: str
+    players: list[ResultPlayerLine]
+    team_stats: dict = Field(default_factory=dict)
+    venue: Optional[str] = None
+    attendance: Optional[int] = None
 
 
 class GameResult(BaseModel):
@@ -73,6 +99,12 @@ class GameResult(BaseModel):
     winner: Optional[str] = None                # "home" | "away" | "draw" | None
     # Why this game is relevant to the requesting profile (server-side proof).
     relevance_reason: str = Field(default="")
+    local_date: Optional[str] = None            # Asia/Jerusalem calendar day
+    leaders: list[ResultLeader] = Field(default_factory=list)
+    chosen_player_lines: list[ResultPlayerLine] = Field(default_factory=list)
+    venue: Optional[str] = None
+    attendance: Optional[int] = None
+    detail_available: bool = False
 
 
 # ── Per-game detail (issue #517) ──────────────────────────────────────────────

@@ -21,8 +21,8 @@ from app.db.database import get_session
 from app.models.profile import UserProfile
 from app.repositories import profile_repository
 from app.results import health as results_health, settings
-from app.results.models import GameResult
-from app.results.service import personalized_results
+from app.results.models import GameResult, GameDetailResponse
+from app.results.service import personalized_results, personalized_detail
 from app.results.sync_service import get_sync_state, sync_results
 
 logger = logging.getLogger(__name__)
@@ -53,6 +53,22 @@ def get_results_for_user(user_id: str, session: Session, limit: Optional[int]) -
     if not profile:
         raise HTTPException(status_code=404, detail=f"Profile '{user_id}' not found")
     return get_results_for_profile(profile, session, limit)
+
+
+def get_detail_for_user(user_id: str, game_id: str, session: Session) -> GameDetailResponse:
+    profile = profile_repository.get_by_id(session, user_id)
+    if not settings.results_enabled() or profile is None:
+        raise HTTPException(status_code=404, detail="Game detail not found")
+    result = personalized_detail(session, profile, game_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Game detail not found")
+    return result
+
+
+@router.get("/results/{user_id}/games/{game_id}/detail", response_model=GameDetailResponse,
+            dependencies=[Depends(require_admin)])
+def results_game_detail(user_id: str, game_id: str, session: Session = Depends(get_session)):
+    return get_detail_for_user(user_id, game_id, session)
 
 
 @router.get("/results/sync/state", dependencies=[Depends(require_admin)])

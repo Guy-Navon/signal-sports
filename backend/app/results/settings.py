@@ -53,6 +53,11 @@ def detail_max_per_run() -> int:
     return _int("RESULTS_DETAIL_MAX_PER_RUN", 10, minimum=0)
 
 
+def upcoming_days() -> int:
+    """Read window for scheduled games when detail is enabled; no extra fetches."""
+    return _int("RESULTS_UPCOMING_DAYS", 7, minimum=0)
+
+
 # ── Provider ──────────────────────────────────────────────────────────────────
 
 def provider_name() -> str:

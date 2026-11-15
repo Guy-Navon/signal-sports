@@ -141,6 +141,12 @@ side effect.
 `results_sync_state`, `results_sync_lease`, `results_provider_health` (#522). Startup creates missing tables, applies additive column migrations
 (fail-loud), seeds empty tables, and creates credential-less demo `users` rows.
 
+With `RESULTS_DETAIL_ENABLED` opted in, results lists add top scorers, ranks,
+chosen-player lines and a Jerusalem date; relevant final-game box scores have
+session/admin view-as detail endpoints. Stored scheduled games through
+`RESULTS_UPCOMING_DAYS=7` are included and live games omitted. With the flag off,
+legacy result fields and game selection remain unchanged ([RESULTS.md](RESULTS.md) §6).
+
 **API surface** (the exact inventory is OpenAPI `/docs`; an authz test derives it from the routes):
 
 | Surface | Access |

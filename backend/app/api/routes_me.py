@@ -42,7 +42,8 @@ from app.api.routes_learning import (
     reset_learning,
 )
 from app.api.routes_profiles import get_profile, put_profile
-from app.api.routes_results import ResultsResponse, get_results_for_user
+from app.api.routes_results import ResultsResponse, get_results_for_user, get_detail_for_user
+from app.results.models import GameDetailResponse
 from app.core.security_deps import require_user
 from app.db.database import get_session
 from app.db.orm_models import UserRow
@@ -212,6 +213,12 @@ def me_replace_results_players(payload: chosen_players.PlayerSelection,
                                session: Session = Depends(get_session)):
     chosen_players.replace_choices(session, user.id, payload)
     return chosen_players.document(session, user.id)
+
+
+@router.get("/results/games/{game_id}/detail", response_model=GameDetailResponse)
+def me_results_detail(game_id: str, user: UserRow = Depends(require_user),
+                      session: Session = Depends(get_session)):
+    return get_detail_for_user(user.id, game_id, session)
 
 
 @router.get("/results", response_model=ResultsResponse)

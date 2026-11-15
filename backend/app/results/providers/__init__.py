@@ -23,11 +23,17 @@ def _winner():
     return WinnerProvider()
 
 
+def _euroleague():
+    from app.results.providers.euroleague import EuroLeagueProvider
+    return EuroLeagueProvider()
+
+
 # Provider name -> constructor. Adding a provider is one line here.
 REGISTRY: dict[str, Callable[[], ResultsProvider]] = {
     "fake": _fake,
     "thesportsdb": _thesportsdb,
     "winner": _winner,
+    "euroleague": _euroleague,
 }
 
 

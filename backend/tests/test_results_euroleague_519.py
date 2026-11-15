@@ -22,9 +22,12 @@ def payload(filename):
 
 def reply(request):
     if request.url.path.endswith("basicstandings"):
-        return httpx.Response(200, json=payload("v3_standings_E2026_round11.json"))
+        name = ("v3_standings_U2026_round7.json" if "/competitions/U/" in request.url.path
+                else "v3_standings_E2026_round11.json")
+        return httpx.Response(200, json=payload(name))
     if request.url.path.endswith("Boxscore"):
-        return httpx.Response(200, json=payload("live_boxscore_E2026_103.json"))
+        code = request.url.params.get("seasoncode", "E")[0]
+        return httpx.Response(200, json=payload(f"live_boxscore_{code}2026_103.json"))
     code = "U" if "/competitions/U/" in request.url.path else "E"
     return httpx.Response(200, json=payload(f"v2_games_{code}2026.json"))
 
@@ -124,6 +127,44 @@ def test_eurocup_uses_its_own_season_and_game_identity(make_provider):
     assert {g.status for g in out.games} == {"final", "scheduled"}
     assert all(g.external_id.startswith("U2026_") and
                g.competition_id == "comp:eurocup" for g in out.games)
+
+
+def test_saved_eurocup_boxscore_and_group_standings(make_provider):
+    p = make_provider()
+    g = next(g for g in p.fetch(["comp:eurocup"]).games if g.status == "final")
+    out = p.fetch_details([g])
+    assert not out.errors and len(out.details) == 1
+    d = out.details[0]
+    assert d.external_id == "U2026_103" and d.game_id == g.id
+    assert (d.team_stats["home"]["Points"], d.team_stats["away"]["Points"]) == (89, 113)
+    standings = payload("v3_standings_U2026_round7.json")["teams"]
+    for side, name in (("home", g.home_team_name), ("away", g.away_team_name)):
+        rank = next(t["position"] for t in standings if t["club"]["name"] == name)
+        assert d.team_stats[side]["rank"] == rank
+        assert d.team_stats[side]["standings_round"] == 7
+    assert d.attendance == 1666
+    assert {(l.side, l.name, l.value) for l in d.leaders} == {
+        ("home", "MINTZ, JUDAH", 23), ("away", "MOON, XAVIER", 19)}
+
+
+def test_eurocup_jerusalem_sponsored_name_resolves_via_taxonomy(make_provider):
+    data = payload("v2_games_U2026.json")
+    jerusalem = next(t["club"] for t in payload("v3_standings_U2026_round7.json")["teams"]
+                     if t["club"]["code"] == "JER")
+    data["data"][0]["local"]["club"] = jerusalem
+    out = make_provider(lambda r: httpx.Response(200, json=data)).fetch(["comp:eurocup"])
+    assert out.games[0].home_team_id == "team:hapoel_jlm_bb"
+
+
+def test_malformed_optional_standings_still_preserve_boxscore(make_provider):
+    def handler(request):
+        if request.url.path.endswith("basicstandings"):
+            return httpx.Response(200, json={"teams": [None, {"club": "bad"}]})
+        return reply(request)
+    p = make_provider(handler)
+    out = p.fetch_details([final_game(p)])
+    assert len(out.details) == 1 and not out.errors
+    assert "rank" not in out.details[0].team_stats["home"]
 
 
 def test_full_season_is_not_truncated_at_thesportsdb_cap(make_provider, monkeypatch):
@@ -260,7 +301,7 @@ def test_details_can_be_fetched_by_a_fresh_provider_and_old_season(make_provider
     out = make_provider(handler).fetch_details([game])
     assert not out.errors and len(out.details) == 1
     box = next(r for r in sent if r.url.path.endswith("Boxscore"))
-    assert box.url.params == {"gamecode": "103", "seasoncode": "E2025"}
+    assert dict(box.url.params) == {"gamecode": "103", "seasoncode": "E2025"}
     assert any("/seasons/E2025/rounds/11/" in r.url.path for r in sent)
 
 
@@ -406,3 +447,50 @@ def test_defaults_unchanged_and_detail_capability_registered(make_provider, monk
     assert settings.detail_enabled() is False
     monkeypatch.setenv("RESULTS_PROVIDER", "fake")
     assert isinstance(providers.get_provider(), FakeResultsProvider)
+
+
+@pytest.mark.parametrize("detail_enabled", [False, True])
+def test_sync_persists_official_details_and_never_refetches_stored_games(
+        make_provider, monkeypatch, detail_enabled):
+    from sqlalchemy import create_engine, func, select
+    from sqlalchemy.orm import Session
+    from app.db.orm_models import Base, GamePlayerLineRow, GameResultRow
+    from app.repositories.game_detail_repository import get_details
+    from app.results.sync_service import sync_results
+
+    # A separate in-memory database; no app DB or existing corpus is opened.
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("RESULTS_DETAIL_ENABLED", str(detail_enabled).lower())
+    sent = []
+    def handler(request):
+        sent.append(request)
+        if request.url.path.endswith("/games"):
+            data = payload("v2_games_E2026.json")
+            data["data"] = [data["data"][0], data["data"][2]]
+            return httpx.Response(200, json=data)
+        return reply(request)
+    try:
+        with Session(engine) as session:
+            first = sync_results(session, provider=make_provider(handler),
+                                 competition_ids=["comp:euroleague"])
+            assert first["status"] == "ok"
+            assert session.scalar(select(func.count()).select_from(GameResultRow)) == 2
+            if detail_enabled:
+                assert first["detail"]["stored"] == 1
+                game = final_game(make_provider())
+                stored = get_details(session, [game.id])[game.id]
+                assert stored.team_stats["home"]["rank"] == 17
+                assert stored.team_stats["away"]["rank"] == 10
+                assert stored.attendance == 1212 and len(stored.leaders) == 3
+                assert session.scalar(select(func.count()).select_from(GamePlayerLineRow)) == 24
+            else:
+                assert "detail" not in first
+            before = len(sent)
+            second = sync_results(session, provider=make_provider(handler),
+                                  competition_ids=["comp:euroleague"])
+            assert second["status"] == "ok"
+            assert len(sent) == before + 1  # only the season; persisted detail is never fetched again
+            assert session.scalar(select(func.count()).select_from(GameResultRow)) == 2
+    finally:
+        engine.dispose()

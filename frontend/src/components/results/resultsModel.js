@@ -47,6 +47,7 @@ export function normalizeResultFromApi(raw) {
     nameProvider: s?.name_provider ?? s?.name ?? "",
     score: s?.score ?? null,
     isWinner: Boolean(s?.is_winner),
+    rank: s?.rank ?? null,
   });
   return {
     id: raw.id,
@@ -62,6 +63,12 @@ export function normalizeResultFromApi(raw) {
     away: side(raw.away),
     winner: raw.winner ?? null,
     relevanceReason: raw.relevance_reason ?? "",
+    localDate: raw.local_date ?? null,
+    leaders: Array.isArray(raw.leaders) ? raw.leaders : [],
+    chosenPlayerLines: Array.isArray(raw.chosen_player_lines) ? raw.chosen_player_lines : [],
+    detailAvailable: Boolean(raw.detail_available),
+    venue: raw.venue ?? null,
+    attendance: raw.attendance ?? null,
   };
 }
 

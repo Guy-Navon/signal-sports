@@ -33,19 +33,21 @@ export function onboardingState(view) {
 export function onboardingRedirect(view, pathname) {
   if (view.user?.role === "admin") return null; // ops identity, not the consumer funnel
   const state = onboardingState(view);
-  const inFunnelEntrance = ["/welcome", "/interests", "/calibration"].includes(pathname);
+  const inInterests = ["/preferences", "/preferences/", "/interests"].includes(pathname);
+  const inCalibration = ["/preferences/calibration", "/preferences/calibration/", "/calibration"].includes(pathname);
+  const inFunnelEntrance = pathname === "/welcome" || inInterests || inCalibration;
   if (state === "NEEDS_ONBOARDING") {
     // Welcome first; entering anywhere in the funnel is fine too.
     return inFunnelEntrance ? null : "/welcome";
   }
   if (state === "SELECTING_INTERESTS") {
-    return inFunnelEntrance ? null : "/interests";
+    return inFunnelEntrance ? null : "/preferences";
   }
   if (state === "CALIBRATING") {
     // Resume at calibration; revisiting interests mid-flow stays allowed.
-    return pathname === "/calibration" || pathname === "/interests"
+    return inCalibration || inInterests
       ? null
-      : "/calibration";
+      : "/preferences/calibration";
   }
   return null; // ACTIVE / UNAUTHENTICATED (handled elsewhere)
 }

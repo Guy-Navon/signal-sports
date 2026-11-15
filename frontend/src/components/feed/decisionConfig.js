@@ -1,24 +1,9 @@
 import { Zap, TrendingUp, Radio, Waves, EyeOff } from "lucide-react";
 
-// The signal system: each decision level is a "signal strength". Relevance is
-// encoded as light intensity (rail + glow), not colored card borders.
+// Shared decision levels, labels and strengths drive the consumer signal mark
+// and Ops badges. The rail/glow classes below remain part of the Ops look.
 // Hebrew labels MUST stay in sync with DECISION_LABELS_HE in src/api/normalizers.js
 // (locked by decisionConfig.test.js).
-//
-// `orbit` is the Orbit feed's presentation contract for a decision. It lives here
-// rather than in the Orbit components so that ranking is declared once, in the same
-// object as the label and strength, and can be locked by tests:
-//
-//   queueScale   type scale rank in the queue (4 loudest .. 0 quietest)
-//   queueDensity how much supporting content a card carries
-//                  full     kicker + subtitle + source meta
-//                  standard kicker + one-line subtitle + source meta
-//                  compact  title + source meta only
-//   queueRail    signal rail on the card's inline-start edge (push only)
-//   queueMuted   title drops to secondary ink
-//
-// Ranking must be legible from scale/density/ink alone — the label is confirmation,
-// never the only cue. See orbit.css `.orbit-queue-story--<tone>`.
 export const DECISION_CONFIG = {
   push: {
     label: "דורש תשומת לב",
@@ -32,7 +17,6 @@ export const DECISION_CONFIG = {
     title: "text-foreground",
     // signal strength 0..4 for the strength meter
     strength: 4,
-    orbit: { queueScale: 4, queueDensity: "full", queueRail: true, queueMuted: false },
   },
   high_feed: {
     label: "חשוב",
@@ -44,7 +28,6 @@ export const DECISION_CONFIG = {
     dot: "bg-signal-high",
     title: "text-foreground",
     strength: 3,
-    orbit: { queueScale: 3, queueDensity: "full", queueRail: false, queueMuted: false },
   },
   feed: {
     label: "רגיל",
@@ -56,7 +39,6 @@ export const DECISION_CONFIG = {
     dot: "bg-signal-feed",
     title: "text-foreground",
     strength: 2,
-    orbit: { queueScale: 2, queueDensity: "standard", queueRail: false, queueMuted: false },
   },
   low_feed: {
     label: "נמוך",
@@ -68,7 +50,6 @@ export const DECISION_CONFIG = {
     dot: "bg-signal-low",
     title: "text-text-secondary",
     strength: 1,
-    orbit: { queueScale: 1, queueDensity: "compact", queueRail: false, queueMuted: true },
   },
   hidden: {
     label: "מוסתר",
@@ -80,7 +61,6 @@ export const DECISION_CONFIG = {
     dot: "bg-signal-hidden",
     title: "text-text-dim",
     strength: 0,
-    orbit: { queueScale: 0, queueDensity: "compact", queueRail: false, queueMuted: true },
   },
 };
 

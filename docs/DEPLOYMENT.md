@@ -683,8 +683,8 @@ above: nothing on the PC is exposed, there is no API, signup or login, and the p
 is unaffected. **Status: built and tested in the repository. The first deploy and the scheduled
 task are owner steps; the PR deployed nothing.**
 
-**What it shows.** The Orbit feed and its reader explanations (`reason_he`), with clusters and
-links to the original articles. Nothing else: no results, preferences, interests, calibration,
+**What it shows.** The feed (Signal UI on `ui/next`; Orbit on main until the merge) and its reader explanations (`reason_he`), with clusters and
+links to the original articles, plus a results strip from a snapshot file on `ui/next` (#485). Nothing else: no preferences, interests, calibration,
 onboarding, feedback, account or ops screens, and no engine trace. The bundle has no router,
 `AuthProvider`, `AppProvider` or API client, so no code path in it can write anything. CI locks
 this: the frontend job runs `npm run build:demo` and then `npm run check:demo-bundle`

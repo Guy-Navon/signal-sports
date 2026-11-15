@@ -59,8 +59,35 @@ export function getMeResults() {
   return apiFetch("/api/me/results");
 }
 
+export function getMeResultsGameDetail(gameId) {
+  return apiFetch(`/api/me/results/games/${encodeURIComponent(gameId)}/detail`);
+}
+
+export function getResultsGameDetail(userId, gameId) {
+  return apiFetch(`/api/results/${encodeURIComponent(userId)}/games/${encodeURIComponent(gameId)}/detail`);
+}
+
 export function getResults(userId) {
   return apiFetch(`/api/results/${encodeURIComponent(userId)}`);
+}
+
+export function getResultsSyncState() {
+  return apiFetch("/api/results/sync/state");
+}
+
+export function getMeResultsPlayers() {
+  return apiFetch("/api/me/results/players");
+}
+
+export function getResultsPlayersCatalog() {
+  return apiFetch("/api/me/results/players/catalog");
+}
+
+export function putMeResultsPlayers(entityIds) {
+  return apiFetch("/api/me/results/players", {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entity_ids: entityIds }),
+  });
 }
 
 export function submitFeedback(payload) {

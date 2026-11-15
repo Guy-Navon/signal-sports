@@ -19,7 +19,7 @@ Apache License 2.0 — full text in [LICENSE.txt](LICENSE.txt). Per §4(b), `SKI
 
 ## Local modifications
 
-- Added a **Signal Sports adaptation** section after the title (it takes precedence over the upstream text where they differ) and replaced the frontmatter `description` with narrower, project-specific triggers. The adaptation makes the existing `npm run capture:orbit` harness the first choice and keeps Playwright out of the repo's dependencies.
+- Added a **Signal Sports adaptation** section after the title (it takes precedence over the upstream text where they differ) and replaced the frontmatter `description` with narrower, project-specific triggers. The adaptation makes the existing `npm run capture:ui` harness the first choice and keeps Playwright out of the repo's dependencies.
 
 Reproduce the exact diff: `git clone https://github.com/anthropics/skills`, check out `dbd4588f9e1033efb41dad4bef2f7947c8993d44`, and compare `skills/webapp-testing` with this
 directory.

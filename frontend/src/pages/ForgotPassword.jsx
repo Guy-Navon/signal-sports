@@ -1,8 +1,6 @@
 import React, { useState } from "react";
+import { Button, Input, Label } from "@/pages/AuthControls";
 import { Link, Navigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { authForgotPassword } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { authPagesRedundant } from "@/context/authView";
@@ -45,20 +43,20 @@ export default function ForgotPassword() {
   return (
     <AuthScene kicker="החדר האישי" title="איפוס סיסמה">
       {sent ? (
-        <p role="status" className="text-sm text-text-secondary text-center">
+        <p role="status" className="text-sm sg-auth-muted text-center">
           {FORGOT_SENT_MESSAGE}
           <br />
           לא מוצאים? בדקו גם בתיקיית הספאם.
         </p>
       ) : (
-        <form onSubmit={onSubmit} noValidate className="space-y-4">
-          <p className="text-sm text-text-secondary text-center">
+        <form onSubmit={onSubmit} noValidate className="sg-auth-stack">
+          <p className="text-sm sg-auth-muted text-center">
             הזינו את כתובת האימייל של החשבון ונשלח קישור לבחירת סיסמה חדשה.
           </p>
           {error && (
-            <p role="alert" className="text-sm text-signal-hidden text-center">{error}</p>
+            <p role="alert" className="text-sm sg-auth-error text-center">{error}</p>
           )}
-          <div className="space-y-1.5">
+          <div className="sg-auth-field">
             <Label htmlFor="forgot-email">אימייל</Label>
             <Input id="forgot-email" type="email" dir="ltr" autoComplete="email"
               value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }} />
@@ -68,8 +66,8 @@ export default function ForgotPassword() {
           </Button>
         </form>
       )}
-      <p className="mt-6 text-sm text-text-secondary text-center">
-        <Link to="/login" className="text-foreground underline underline-offset-4">
+      <p className="mt-6 text-sm sg-auth-muted text-center">
+        <Link to="/login" className="sg-auth-ink underline underline-offset-4">
           חזרה להתחברות
         </Link>
       </p>

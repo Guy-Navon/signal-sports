@@ -25,6 +25,8 @@ dist
 dist-ssr
 # Public demo build (#458) and the Firebase CLI's deploy cache.
 dist-demo
+# Dev-only design lab build (#462).
+dist-lab
 .firebase/
 *.local
 

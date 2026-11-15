@@ -1,0 +1,270 @@
+/* Signal UI (#462): tokens, type and marks of the consumer look Guy approved on
+   2026-11-13 (milestone 15). Source of truth for the values: the approved mock,
+   `.t-light` / `.t-soft` / `.t-dark`.
+
+   Scoped: nothing here touches `:root`, so Ops (/debug, /sources, /llm-qa)
+   keeps its base tokens. A screen opts in
+   by importing this file and setting `.signal-ui` on its root, plus
+   `data-ground="soft"` or `data-ground="dark"` on the same element; white is
+   the default ground. Token names carry an `--sg-` prefix so they can never
+   shadow the shadcn/base names (`--card`, `--border`, ...) of components
+   rendered inside the scope.
+
+   Fonts load the way index.css loads Ops Heebo: self-hosted
+   @fontsource faces, each subset gated by unicode-range. Declaring a face only
+   costs a download when text actually uses it. */
+@import "@fontsource-variable/assistant";
+/* Karantina is the lead headline face only; 700 is the only weight used. */
+@import "@fontsource/karantina/700.css";
+
+/* Metric-matched fallbacks (#504). Both faces load with font-display: swap,
+   so text first paints in a local font and reflows when the web font
+   arrives. These local Arial faces are scaled to Assistant's and Karantina's
+   advance widths (measured over the feed's own Hebrew headlines, per used
+   weight) and given their ascent/descent, so the swap keeps line breaks and
+   line boxes: with fonts held back 1.5s, the feed's font-load layout shift
+   went from 0.03–0.09 to at most 0.0003. The overrides are divided by
+   size-adjust because the browser scales them by it. Where Arial is not
+   installed the face is skipped and the stack continues as before. */
+@font-face {
+  font-family: "Assistant Fallback";
+  src: local("Arial"), local("ArialMT");
+  font-weight: 100 449;
+  size-adjust: 92.97%;
+  ascent-override: 109.71%;
+  descent-override: 31.19%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Assistant Fallback";
+  src: local("Arial"), local("ArialMT");
+  font-weight: 450 549;
+  size-adjust: 94.26%;
+  ascent-override: 108.21%;
+  descent-override: 30.77%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Assistant Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  font-weight: 550 649;
+  size-adjust: 90.92%;
+  ascent-override: 112.19%;
+  descent-override: 31.9%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Assistant Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  font-weight: 650 749;
+  size-adjust: 94.02%;
+  ascent-override: 108.49%;
+  descent-override: 30.84%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Assistant Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  font-weight: 750 1000;
+  size-adjust: 97.05%;
+  ascent-override: 105.1%;
+  descent-override: 29.88%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Karantina Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  font-weight: 700;
+  size-adjust: 66.01%;
+  ascent-override: 130.28%;
+  descent-override: 22.72%;
+  line-gap-override: 0%;
+}
+
+.signal-ui {
+  /* grounds: white (default) */
+  --sg-bg: #ffffff;
+  --sg-band: #f3f5f9;
+  --sg-card: #ffffff;
+  --sg-ink: #1c2230;
+  --sg-dim: #636d82;
+  --sg-line: #e2e6ee;
+  --sg-acc: #2446e8;
+  --sg-tint: #edf1ff;
+  --sg-top: #142a66;
+  --sg-top-fg: #ffffff;
+  --sg-top-dim: #b9c4e6;
+  --sg-top-logo-a: #6a95d8;
+  --sg-top-logo-b: #1fc77c;
+  --sg-logo-a: #3a6fc9;
+  --sg-logo-b: #11995f;
+  --sg-top-hover: rgb(255 255 255 / 0.12);
+  --sg-top-shadow: 0 6px 22px rgb(20 42 102 / 0.2);
+  --sg-slab: #2446e8;
+  --sg-slab-fg: #ffffff;
+  --sg-slab-dim: #d5dcff;
+  --sg-hot: #d51b55;
+  --sg-hot-fg: #ffffff;
+  --sg-off: #cfd6e4;
+  --sg-t1: #e3ecff;
+  --sg-t2: #ffe9dc;
+  --sg-t3: #dff5ea;
+  --sg-t4: #efe6ff;
+
+  /* type. Fallbacks: the metric-matched local face above, then Heebo (already
+     loaded by the app), then system Hebrew. */
+  --sg-font-text: "Assistant Variable", "Assistant", "Assistant Fallback", "Heebo Variable", "Heebo", "Noto Sans Hebrew", Arial, sans-serif;
+  --sg-font-lead: "Karantina", "Karantina Fallback", var(--sg-font-text);
+
+  /* motion */
+  --sg-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --sg-skew: -18deg;
+
+  color-scheme: light;
+  background: var(--sg-bg);
+  color: var(--sg-ink);
+  font-family: var(--sg-font-text);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.signal-ui[data-ground="soft"] {
+  --sg-bg: #e8ecf2;
+  --sg-band: #dde2ea;
+  --sg-card: #f3f5f9;
+  --sg-ink: #1c2230;
+  --sg-dim: #566072;
+  --sg-line: #c9d0dc;
+  --sg-acc: #2446e8;
+  --sg-tint: #d8e0f8;
+  --sg-top: #142a66;
+  --sg-top-fg: #ffffff;
+  --sg-top-dim: #b9c4e6;
+  --sg-top-logo-a: #6a95d8;
+  --sg-top-logo-b: #1fc77c;
+  --sg-logo-a: #3a6fc9;
+  --sg-logo-b: #0e8753;
+  --sg-slab: #2446e8;
+  --sg-slab-fg: #ffffff;
+  --sg-slab-dim: #d5dcff;
+  --sg-hot: #bf174b;
+  --sg-hot-fg: #ffffff;
+  --sg-off: #b4bdcd;
+  --sg-t1: #cfdcfa;
+  --sg-t2: #f6d9c8;
+  --sg-t3: #c9e9d8;
+  --sg-t4: #ddd2f5;
+}
+
+.signal-ui[data-ground="dark"] {
+  --sg-bg: #1a2030;
+  --sg-band: #141927;
+  --sg-card: #212839;
+  --sg-ink: #eef1f7;
+  --sg-dim: #a3adc0;
+  --sg-line: #353e55;
+  --sg-acc: #3cffd0;
+  --sg-tint: #25304a;
+  --sg-top: #0f1422;
+  --sg-top-fg: #eef1f7;
+  --sg-top-dim: #a3adc0;
+  --sg-top-logo-a: #6a95d8;
+  --sg-top-logo-b: #1fc77c;
+  --sg-logo-a: #6a95d8;
+  --sg-logo-b: #1fc77c;
+  --sg-top-shadow: 0 6px 22px rgb(0 0 0 / 0.45);
+  --sg-slab: #3cffd0;
+  --sg-slab-fg: #07130f;
+  --sg-slab-dim: #0d4a3b;
+  --sg-hot: #ff6a94;
+  --sg-hot-fg: #07130f;
+  --sg-off: #465069;
+  --sg-t1: #27365c;
+  --sg-t2: #4a3528;
+  --sg-t3: #1f4034;
+  --sg-t4: #3a2f57;
+  color-scheme: dark;
+}
+
+/* Lead headline: the only Karantina surface. */
+.signal-ui .sg-lead-title {
+  font-family: var(--sg-font-lead);
+  font-weight: 700;
+  line-height: 0.88;
+}
+
+/* Logo lockup (#491): the app icon's three rounded bars (short blue, tall
+   green, medium blue, as in public/favicon.svg), then "סיגנל". Sized in em so
+   the lockup scales with the font size it is given. The bars keep the icon's
+   left-to-right order in RTL. On a white or soft ground they take the darker
+   --sg-logo-* pair (3:1 against the ground); inside .sg-on-top (the navy
+   header) they take the app icon's own colours, which pass on navy. */
+.signal-ui .sg-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.signal-ui .sg-wordmark__bars {
+  display: inline-flex;
+  direction: ltr;
+  flex: none;
+  align-items: flex-end;
+  gap: 0.09em;
+  block-size: 0.78em;
+}
+
+.signal-ui .sg-wordmark__bars > i {
+  display: block;
+  inline-size: 0.15em;
+  border-radius: 999px;
+  background: var(--sg-logo-a);
+}
+
+.signal-ui .sg-wordmark__bars > i:nth-child(1) { block-size: 52%; }
+.signal-ui .sg-wordmark__bars > i:nth-child(2) { block-size: 100%; background: var(--sg-logo-b); }
+.signal-ui .sg-wordmark__bars > i:nth-child(3) { block-size: 76%; }
+
+.signal-ui .sg-on-top {
+  --sg-logo-a: var(--sg-top-logo-a);
+  --sg-logo-b: var(--sg-top-logo-b);
+}
+
+/* Signal strength mark: three slanted strokes, ascending. Filled strokes take
+   the accent; push fills all three in the alert colour. */
+.signal-ui .sg-strength {
+  display: inline-flex;
+  flex: none;
+  align-items: flex-end;
+  gap: 3px;
+  padding-inline: 3px;
+}
+
+.signal-ui .sg-strength__stroke {
+  display: block;
+  inline-size: 4px;
+  background: var(--sg-off);
+  transform: skewX(var(--sg-skew));
+  transform-origin: bottom;
+  animation: sg-rise 0.5s var(--sg-ease) both;
+}
+
+.signal-ui .sg-strength__stroke:nth-child(1) { block-size: 7px; }
+.signal-ui .sg-strength__stroke:nth-child(2) { block-size: 11px; animation-delay: 0.06s; }
+.signal-ui .sg-strength__stroke:nth-child(3) { block-size: 15px; animation-delay: 0.12s; }
+
+.signal-ui .sg-strength__stroke[data-filled] { background: var(--sg-acc); }
+.signal-ui .sg-strength[data-alert] .sg-strength__stroke { background: var(--sg-hot); }
+
+@keyframes sg-rise {
+  from { transform: skewX(var(--sg-skew)) scaleY(0); }
+  to { transform: skewX(var(--sg-skew)) scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-ui .sg-strength__stroke { animation: none; }
+}

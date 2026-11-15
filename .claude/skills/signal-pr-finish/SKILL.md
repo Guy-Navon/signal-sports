@@ -52,7 +52,7 @@ document (see `signal-handoff`) and not a commit/push action.
 8. **For UI changes, give manual verification steps** (`npm run dev`, which route, which data
    mode — `local` vs `backend` — and what to look for) rather than asserting visual correctness
    from code alone. Where automation reaches, gather browser evidence with `webapp-testing`
-   (`npm run capture:orbit` first) and review findings with `web-design-guidelines`. Product
+   (`npm run capture:ui` first) and review findings with `web-design-guidelines`. Product
    pages and the ops console have different shells — check the right one.
 9. **Summarize**: what changed, tests run + results, artifacts/contracts verified, docs touched,
    known risks/remaining limitations. Keep it short. Report every check as passed, failed,

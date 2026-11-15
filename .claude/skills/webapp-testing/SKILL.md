@@ -1,6 +1,6 @@
 ---
 name: webapp-testing
-description: Use when a Signal Sports frontend change must be seen or checked in a real browser - rendered layout, RTL, focus, overflow, console errors, screenshots. Start with the existing hermetic harness (npm run capture:orbit in frontend/); ad-hoc Playwright scripts are scratchpad-only exploration and never a committed or competing test suite.
+description: Use when a Signal Sports frontend change must be seen or checked in a real browser - rendered layout, RTL, focus, overflow, console errors, screenshots. Start with the existing hermetic harness (npm run capture:ui in frontend/); ad-hoc Playwright scripts are scratchpad-only exploration and never a committed or competing test suite.
 license: Complete terms in LICENSE.txt
 ---
 
@@ -13,11 +13,11 @@ file was changed for Signal Sports on 2026-10-17 (new frontmatter description an
 section); the rest of the directory is unmodified. Provenance in [UPSTREAM.md](UPSTREAM.md).
 
 **Reuse before you build — in this order:**
-1. **`npm run capture:orbit`** (in `frontend/`) — the existing hermetic harness
-   (`frontend/scripts/capture-orbit-production.mjs`). It starts its own Vite on a free port in
+1. **`npm run capture:ui`** (in `frontend/`) — the existing hermetic harness
+   (`frontend/scripts/capture-ui-production.mjs`). It starts its own Vite on a free port in
    local-data mode, proves it is talking to that instance, drives headless Chrome over CDP and
    asserts what the browser paints: RTL, horizontal overflow at desktop and mobile viewports, focus
-   transitions under both motion preferences, dock occlusion, typography, filter latency, queue
+   transitions under both motion preferences, fixed-header occlusion, typography, filter latency, queue
    paging. It writes review PNGs to a temp directory. If your change touches something it checks,
    run it. If a new *guarantee* deserves automation, extend this harness (and its `.test.mjs`) as
    a normal product change through `signal-pr-open` — don't start a second suite.
@@ -29,7 +29,7 @@ section); the rest of the directory is unmodified. Provenance in [UPSTREAM.md](U
    (`python -m venv <scratch>\pw`, then `<scratch>\pw\Scripts\pip install playwright` and
    `<scratch>\pw\Scripts\python -m playwright install chromium`) and say that you did. Never add
    Playwright, jsdom or a component-testing stack to `frontend/package.json` or
-   `backend/requirements*` — the repo deliberately has none (docs/FRONTEND_DESIGN_SYSTEM.md §10).
+   `backend/requirements*` — the repo deliberately has none (docs/FRONTEND_DESIGN_SYSTEM.md §A7).
 
 **Signal specifics for any browser check**
 - Default to local-data mode (`npm run dev`). Backend mode needs the API on 127.0.0.1:8000 pointed

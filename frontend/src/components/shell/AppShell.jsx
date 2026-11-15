@@ -4,52 +4,45 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import Masthead from "@/components/shell/Masthead";
 import MobileNav from "@/components/shell/MobileNav";
-import Atmosphere from "@/components/shell/Atmosphere";
 import OpsGrid from "@/components/shell/OpsGrid";
 import ProductNav from "@/components/shell/ProductNav";
 import OpsNav from "@/components/shell/OpsNav";
+import ProductShell from "@/components/shell/ProductShell";
 import ErrorState from "@/components/shared/ErrorState";
 import { connectionErrorStrip } from "@/components/feed/feedLoadModel";
 
-// Product routes live inside Orbit's ambient intelligence canvas — no sidebar;
-// the masthead carries navigation and the feed gets the full width. Ops keeps
-// its console rail and flat instrument-panel backdrop: two worlds, one shell.
+// Two worlds, one entry point. The consumer product renders the new shell
+// (#463, ProductShell). The Ops console keeps its console rail, flat
+// instrument-panel backdrop and existing look, unchanged by milestone 15.
 export default function AppShell({ area = "product" }) {
+  if (area === "product") return <ProductShell />;
+  return <OpsShell />;
+}
+
+function OpsShell() {
   const { isBackendMode, isLoading, apiError, refreshFeed } = useApp();
   const location = useLocation();
   const reduce = useReducedMotion();
 
   return (
-    <div
-      className={
-        area === "product"
-          ? "orbit-product min-h-screen flex flex-col relative"
-          : "min-h-screen flex flex-col relative"
-      }
-    >
-      {area === "product" ? <Atmosphere /> : <OpsGrid />}
+    <div className="min-h-screen flex flex-col relative">
+      <OpsGrid />
 
-      <Masthead area={area} isBackendMode={isBackendMode} isLoading={isLoading} />
+      <Masthead isBackendMode={isBackendMode} isLoading={isLoading} />
 
       {isBackendMode && apiError && (
         <ErrorState
           variant="strip"
-          {...connectionErrorStrip({ area, message: apiError })}
+          {...connectionErrorStrip({ area: "ops", message: apiError })}
           onRetry={refreshFeed}
         />
       )}
 
       <div className="flex-1 flex w-full max-w-screen-2xl mx-auto">
-        {area === "ops" && <ProductNav isBackendMode={isBackendMode} />}
+        <ProductNav isBackendMode={isBackendMode} />
         <main className="flex-1 min-w-0">
-          <div
-            className={
-              area === "product"
-                ? "w-full px-4 pt-5 pb-28 md:px-5 md:pt-6 md:pb-12"
-                : "mx-auto w-full max-w-7xl px-4 py-6 pb-24 md:pb-10"
-            }
-          >
-            {area === "ops" && <OpsNav isBackendMode={isBackendMode} />}
+          <div className="mx-auto w-full max-w-7xl px-4 py-6 pb-24 md:pb-10">
+            <OpsNav isBackendMode={isBackendMode} />
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={location.pathname}
@@ -65,7 +58,7 @@ export default function AppShell({ area = "product" }) {
         </main>
       </div>
 
-      <MobileNav area={area} isBackendMode={isBackendMode} />
+      <MobileNav isBackendMode={isBackendMode} />
     </div>
   );
 }

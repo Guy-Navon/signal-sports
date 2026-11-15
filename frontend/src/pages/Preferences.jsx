@@ -1,35 +1,38 @@
-import React, { useState } from "react";
+import React, { lazy, useEffect, useRef } from "react";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
+import { onboardingState } from "@/context/onboardingFlow";
 import { Settings, User, VolumeX } from "lucide-react";
-import { cn } from "@/lib/utils";
 import TopicCard from "@/components/preferences/TopicCard";
 import LearnedAdjustmentsPanel from "@/components/preferences/LearnedAdjustmentsPanel";
 import InterestsManager from "@/components/interests/InterestsManager";
-import PageHeader from "@/components/shared/PageHeader";
-import DeskIntro from "@/components/shared/DeskIntro";
+import InterestSelection from "@/pages/InterestSelection";
+import LazyBoundary from "@/components/shell/LazyBoundary";
+import { PREFERENCE_TABS, adjacentTab, preferenceTab } from "@/components/preferences/preferencesRoutes";
+import { PersonalizationHeader as PageHeader } from "@/components/preferences/PersonalizationLayout";
+import "@/components/preferences/preferences.css";
+import ResultsPlayersSetting from "@/components/results/ResultsPlayersSetting";
 
-// Consumer sessions manage explicit interests (issue #83) and no longer see
-// the legacy topics tab (that model stays for ops/local demo contexts).
-const CONSUMER_TABS = [
-  { id: "interests", label: "תחומי עניין" },
-  { id: "muted", label: "מושתק" },
-  { id: "learned", label: "נלמד" },
-];
-
-const LEGACY_TABS = [
-  { id: "topics", label: "נושאים ועדיפויות" },
-  { id: "entities", label: "ישויות במעקב" },
-  { id: "muted", label: "מושתק" },
-  { id: "learned", label: "נלמד" },
-];
+const Calibration = lazy(() => import("@/pages/Calibration"));
 
 export default function Preferences() {
   const {
     activeProfile, activeProfileId, updateProfile,
     consumerSession, refreshProfiles, refreshFeed,
+    isBackendMode, refreshResults,
   } = useApp();
-  const tabs = consumerSession ? CONSUMER_TABS : LEGACY_TABS;
-  const [activeTab, setActiveTab] = useState(tabs[0].id);
+  const auth = useAuth();
+  const location = useLocation();
+  const tabRefs = useRef({});
+  const activeTab = preferenceTab(location.pathname);
+  const inOnboarding = consumerSession && onboardingState(auth) !== "ACTIVE";
+
+  useEffect(() => {
+    tabRefs.current[activeTab]?.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" });
+  }, [activeTab]);
+
+  if (!activeTab) return <Navigate replace to={`/preferences${location.search}${location.hash}`} />;
 
   const handleMuteSource = (sourceId) => {
     const updated = {
@@ -61,57 +64,71 @@ export default function Preferences() {
     (activeProfile?.mutedTopics?.length || 0) + (activeProfile?.mutedSources?.length || 0);
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="sg-personalization sg-preferences">
       <PageHeader
         title="העדפות"
         icon={Settings}
         subtitle={
           <>
-            פרופיל: <span className="text-signal-high">{activeProfile?.displayName}</span> · סוג: {activeProfile?.profileType}
+            פרופיל: <bdi dir="auto">{activeProfile?.displayName}</bdi> · סוג: <bdi dir="auto">{activeProfile?.profileType}</bdi>
           </>
         }
       />
 
-      <DeskIntro kicker="מה המערכת יודעת">
+      <p className="sg-form-note">
         {consumerSession ? (
           <>
-            הפרופיל שלך בנוי מ־<span className="text-foreground font-medium">{topicCount}</span>{" "}
+            הפרופיל שלך בנוי מ־<span className="sg-preferences__count">{topicCount}</span>{" "}
             תחומי עניין במעקב
           </>
         ) : (
           <>
-            הפרופיל שלך בנוי מ־<span className="text-foreground font-medium">{topicCount}</span> נושאים
-            במעקב, <span className="text-foreground font-medium">{entityCount}</span> ישויות ספציפיות
+            הפרופיל שלך בנוי מ־<span className="sg-preferences__count">{topicCount}</span> נושאים
+            במעקב, <span className="sg-preferences__count">{entityCount}</span> ישויות ספציפיות
           </>
         )}
         {mutedCount > 0 && (
           <>
-            , ו־<span className="text-foreground font-medium">{mutedCount}</span> נושאים ומקורות
+            , ו־<span className="sg-preferences__count">{mutedCount}</span> נושאים ומקורות
             מושתקים
           </>
         )}
-        . שינויים כאן נכנסים לתוקף מיד בפיד.
-      </DeskIntro>
+        . שינויים בתחומי העניין נכנסים לתוקף מיד בפיד.
+      </p>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border">
-        {tabs.map((tab) => (
-          <button
+      <div className="sg-preferences__tabs" role="tablist" aria-label="סוגי העדפות" aria-orientation="horizontal">
+        {PREFERENCE_TABS.map((tab) => (
+          <Link
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
-              activeTab === tab.id
-                ? "text-signal-high border-signal-high"
-                : "text-text-dim border-transparent hover:text-text-secondary"
-            )}
+            ref={(node) => { tabRefs.current[tab.id] = node; }}
+            id={`sg-preferences-tab-${tab.id}`}
+            to={`${tab.path}${location.search}`}
+            role="tab"
+            tabIndex={activeTab === tab.id ? 0 : -1}
+            aria-selected={activeTab === tab.id}
+            aria-controls="sg-preferences-content"
+            onKeyDown={(event) => {
+              const next = adjacentTab(tab.id, event.key);
+              if (next) {
+                event.preventDefault();
+                tabRefs.current[next]?.focus();
+              } else if (event.key === " ") {
+                event.preventDefault();
+                event.currentTarget.click();
+              }
+            }}
           >
             {tab.label}
-          </button>
+          </Link>
         ))}
       </div>
 
-      {activeTab === "interests" && consumerSession && (
+      <div id="sg-preferences-content" className="sg-preferences__panel" role="tabpanel" tabIndex={0} aria-labelledby={`sg-preferences-tab-${activeTab}`}>
+      {activeTab === "following" && inOnboarding && <InterestSelection embedded />}
+      {activeTab === "following" && !inOnboarding && <ResultsPlayersSetting
+        enabled={isBackendMode && consumerSession} onSaved={refreshResults} />}
+      {activeTab === "following" && consumerSession && !inOnboarding && (
         <InterestsManager
           onSaved={() => {
             refreshProfiles?.();
@@ -120,41 +137,42 @@ export default function Preferences() {
         />
       )}
 
-      {activeTab === "topics" && (
+      {activeTab === "following" && !consumerSession && (
         <div>
+          {!activeProfile?.topics?.length && <p className="sg-form-empty">אין עדיין העדפות. בחירת תחומי עניין מחכה לכם במסך תחומי העניין.</p>}
           {activeProfile?.topics?.map((topic) => (
             <TopicCard key={topic.topicId} topic={topic} />
           ))}
         </div>
       )}
 
-      {activeTab === "entities" && (
+      {activeTab === "following" && !consumerSession && (
         <div className="space-y-4">
           <div>
-            <p className="text-xs text-text-dim mb-3 flex items-center gap-1">
+            <p className="sg-form-heading">
               <User size={11} /> ישויות שאני עוקב אחריהן (שחקנים, קבוצות, אנשים)
             </p>
             {activeProfile?.followedEntities?.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="sg-form-list">
                 {activeProfile.followedEntities.map((entity) => (
                   <div
                     key={entity}
-                    className="flex items-center gap-2 bg-signal-high/10 border border-signal-high/30 rounded-full px-3 py-1.5"
+                    className="sg-preferences__entity"
                   >
-                    <span className="text-sm text-signal-high">{entity}</span>
+                    <bdi dir="auto">{entity}</bdi>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-text-dim">לא מוגדרות ישויות</p>
+              <p className="sg-form-empty">לא מוגדרות ישויות</p>
             )}
           </div>
 
-          <p className="text-xs text-text-secondary leading-relaxed border-s-2 border-signal-ai/30 ps-3">
-            <span className="text-signal-ai/90 font-medium">הבדל חשוב: </span>
-            כשנושא במצב <span className="text-foreground">followed_entities_only</span>, רק כתבות
+          <p className="sg-form-note">
+            <span className="sg-preferences__count">הבדל חשוב: </span>
+            כשנושא במצב <span dir="ltr">followed_entities_only</span>, רק כתבות
             שמכילות ישויות אלה יוצגו. לעומת זאת, כשנושא במצב{" "}
-            <span className="text-foreground">all</span>, הישויות הן בונוס אך לא תנאי הכרחי.
+            <span dir="ltr">all</span>, הישויות הן בונוס אך לא תנאי הכרחי.
           </p>
         </div>
       )}
@@ -179,6 +197,8 @@ export default function Preferences() {
       {activeTab === "learned" && (
         <LearnedAdjustmentsPanel />
       )}
+      {activeTab === "calibration" && <LazyBoundary><Calibration embedded /></LazyBoundary>}
+      </div>
     </div>
   );
 }
@@ -186,24 +206,24 @@ export default function Preferences() {
 function MutedList({ title, items, emptyLabel, onToggle }) {
   return (
     <div>
-      <p className="text-sm font-medium text-text-secondary mb-2 flex items-center gap-1">
+      <p className="sg-form-heading">
         <VolumeX size={14} /> {title}
       </p>
       {items?.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="sg-form-list">
           {items.map((item) => (
             <button
               key={item}
               onClick={() => onToggle(item)}
-              className="flex items-center gap-1.5 bg-signal-hidden/10 border border-signal-hidden/25 rounded-full px-3 py-1.5 text-xs text-signal-hidden hover:bg-signal-hidden/20 transition-colors"
+              className="sg-form-button"
             >
               <VolumeX size={11} />
-              {item}
+              <bdi dir="auto">{item}</bdi>
             </button>
           ))}
         </div>
       ) : (
-        <p className="text-xs text-text-dim">{emptyLabel}</p>
+        <p className="sg-form-empty">{emptyLabel}</p>
       )}
     </div>
   );

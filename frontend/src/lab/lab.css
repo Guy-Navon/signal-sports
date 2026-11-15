@@ -1,0 +1,318 @@
+/* Layout of the dev-only design lab (#462). Specimen chrome only; every colour
+   comes from the --sg- tokens of the ground it sits in. */
+.lab-page {
+  display: grid;
+  gap: 0;
+}
+
+.lab-ground-control {
+  display: flex;
+  gap: 16px;
+  padding-block: 10px;
+  padding-inline: 16px;
+  border-block-end: 1px solid var(--sg-line);
+}
+
+.lab-ground-control label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lab-ground-control :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.lab-dialog-trigger {
+  color: var(--sg-acc);
+  text-decoration: underline;
+}
+
+.lab-ground {
+  padding-block: 28px 36px;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px));
+}
+
+.lab-ground__head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding-block-end: 16px;
+  border-block-end: 1px solid var(--sg-line);
+}
+
+.lab-wordmark { font-size: 44px; }
+
+.lab-h {
+  margin-block: 24px 10px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.lab-dim { color: var(--sg-dim); }
+
+.lab-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.lab-swatches li {
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+}
+
+.lab-swatch {
+  block-size: 40px;
+  border: 1px solid var(--sg-line);
+}
+
+.lab-slab {
+  background: var(--sg-slab);
+  color: var(--sg-slab-fg);
+  padding: 20px 24px;
+  margin-block-end: 14px;
+}
+
+.lab-lead { font-size: clamp(54px, 10.2vw, 120px); }
+
+.lab-note {
+  margin-block-start: 10px;
+  font-size: 14px;
+  color: var(--sg-slab-dim);
+}
+
+.lab-type { margin-block: 6px; }
+
+.lab-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+}
+
+.lab-feed-note { padding: 24px 16px; font-size: 15px; }
+
+/* Lab fixture banner inside the feed's status slot: plainly not product UI. */
+.lab-feed-fixture {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px dashed currentColor;
+  font-size: 13px;
+}
+
+.lab-marks li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--sg-tint);
+  color: var(--sg-acc);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+/* Motion lab (#467): a toolbar above the feed. Sticky so the controls stay in
+   reach while watching the stream. */
+.lab-motion__bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 16px;
+  background: #1c2230;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.lab-motion__bar button {
+  padding: 4px 12px;
+  border: 1px solid #ffffff;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+}
+
+.lab-motion__bar button[aria-pressed="true"] { background: #ffffff; color: #1c2230; }
+.lab-motion__bar button:disabled { opacity: 0.5; }
+.lab-motion__bar a { color: inherit; text-decoration: underline; }
+.lab-motion__bar .lab-dim { color: #cfd6e4; }
+.lab-motion__toggle { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Simulated reduced motion: the same rule the feed applies under
+   prefers-reduced-motion (signal-feed.css), switched by a class. */
+.lab-reduce .sg-feed *,
+.lab-reduce .sg-feed *::before,
+.lab-reduce .sg-feed *::after { animation: none !important; transition: none !important; }
+
+/* Navigation lab (#491), lab.html?page=nav. */
+.lab-nav {
+  /* One column no wider than the page: an auto track would grow to the
+     min-content of the 320px bar copies inside the cards (#504). */
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  min-block-size: 100vh;
+  gap: 28px;
+  padding-block: 24px 48px;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+}
+
+.lab-nav__intro h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.lab-nav__intro p {
+  max-inline-size: 70ch;
+  margin-block: 6px 0;
+}
+
+.lab-nav__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 20px;
+}
+
+.lab-nav__card {
+  display: grid;
+  gap: 12px;
+  /* Same inside the card, whose bar copy is 320px wide (max 100%). */
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--sg-line);
+  background: var(--sg-card);
+}
+
+.lab-nav__card figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lab-nav__default {
+  padding-inline: 8px;
+  background: var(--sg-acc);
+  color: var(--sg-slab-fg);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* A 320px-wide copy of the phone's compact bar. */
+.lab-navbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  inline-size: 320px;
+  max-inline-size: 100%;
+  block-size: 56px;
+  padding-inline: 8px;
+  background: var(--sg-top);
+  color: var(--sg-top-fg);
+}
+
+.lab-navbar__brand {
+  font-size: 19px;
+}
+
+.lab-navbar__tabs {
+  display: flex;
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-inline-size: 0;
+}
+
+.lab-navbar__tab {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--sg-top-dim);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lab-navbar__tab[data-current] {
+  color: var(--sg-top-fg);
+}
+
+.lab-navbar__avatar {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 999px;
+  background: var(--sg-top-hover);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.lab-nav__sizes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 18px;
+}
+
+.lab-nav__size {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: var(--sg-ink);
+}
+
+.lab-nav__size--navy {
+  padding: 8px;
+  background: var(--sg-top);
+  color: var(--sg-top-fg);
+}
+
+.lab-nav__set ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lab-nav__set li {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.lab-nav__logos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.lab-nav__logo {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 18px 24px;
+  border: 1px solid var(--sg-line);
+  font-size: 40px;
+}
+
+.lab-nav__logo small {
+  font-size: 13px;
+}
+
+.lab-nav__logo--navy {
+  background: var(--sg-top);
+  color: var(--sg-top-fg);
+}

@@ -1,0 +1,3 @@
+/* Variant C uses the shipped feed component and styles. A/B retired. */
+.lab-filters { min-block-size: 100vh; background: var(--sg-bg); color: var(--sg-ink); }
+.lab-filters :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }

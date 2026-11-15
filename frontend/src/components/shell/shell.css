@@ -1,0 +1,515 @@
+/* Consumer product shell (#463, navigation #491, Part B §B5–B6). Every colour
+   is an --sg-* token from signal-ui.css, so the chrome follows the ground set
+   on its `.signal-ui` scope. Ops (AppShell area="ops") never renders these
+   classes. Logical properties only (FRONTEND_DESIGN_SYSTEM §A2). */
+
+.sg-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Height of the slim bar shown on scroll (#491), only where there is one (not
+   the demo). The feed's sticky side column sits beneath it. useCollapsedBar
+   reads the bar's real height; this value only has to match .sg-bar__inner
+   (72px, 64px on a phone; the harness checks they agree). */
+.sg-shell:has(> .sg-bar) {
+  --sg-bar-h: 72px;
+}
+
+/* Page gutter and content column, shared by the chrome and by rebuilt pages:
+   wrap a full-width band in .sg-gutter and its content in .sg-container. */
+.sg-gutter {
+  padding-inline: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+}
+
+.sg-container {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+}
+
+/* §A6: visible focus in currentColor, 2px, offset 2px, on every ground. */
+.sg-head :focus-visible,
+.sg-bar :focus-visible,
+.sg-body--signal :focus-visible,
+.sg-skip:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 0;
+}
+
+.sg-skip {
+  position: absolute;
+  z-index: 60;
+  inset-inline-start: 8px;
+  inset-block-start: 8px;
+  padding: 8px 14px;
+  background: var(--sg-card);
+  color: var(--sg-ink);
+  border: 1px solid var(--sg-line);
+  font-weight: 700;
+  font-size: 15px;
+  transform: translateY(-200%);
+}
+
+.sg-skip:focus {
+  transform: none;
+}
+
+/* The page body takes the remaining height. */
+.sg-body {
+  flex: 1 0 auto;
+  min-inline-size: 0;
+  outline: none;
+}
+
+/* Anything scrolled into view by focus or an anchor stops below the slim bar
+   (WCAG 2.4.11). Only the consumer shell renders .sg-bar; Ops is untouched. */
+html:has(.sg-bar) {
+  scroll-padding-block-start: calc(72px + 8px);
+}
+
+/* ── Header: expanded masthead (#491) ────────────────────────────────────── */
+
+.sg-head {
+  position: relative;
+  background: var(--sg-top);
+  color: var(--sg-top-fg);
+}
+
+.sg-head__inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-block-start: 16px;
+}
+
+.sg-head__brand {
+  color: inherit;
+  font-size: 46px;
+  text-decoration: none;
+}
+
+.sg-head__date {
+  margin: 0;
+  color: var(--sg-top-dim);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.sg-head__end {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 10px;
+}
+
+/* Logo only (the public demo): no tabs under it. */
+.sg-head--brand-only .sg-head__inner {
+  padding-block: 18px 16px;
+}
+
+/* ── Tabs, shared by the masthead and the bar ────────────────────────────── */
+/* Present, not whispered (Guy, 2026-11-14): 19px 800 words on a 60px row in
+   the masthead, 18px in the 72px slim bar, a 4px active underline. */
+
+.sg-tabs {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  block-size: 60px;
+}
+
+.sg-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-inline: 22px;
+  color: var(--sg-top-dim);
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: color 0.2s var(--sg-ease);
+}
+
+.sg-tab:hover,
+.sg-tab[aria-current="page"] {
+  color: var(--sg-top-fg);
+}
+
+/* The active tab: a 4px underline rounded at the top, in the header's text
+   colour, on the header's bottom edge. */
+.sg-tab[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 18px;
+  inset-block-end: 0;
+  block-size: 4px;
+  border-radius: 4px 4px 0 0;
+  background: currentColor;
+}
+
+.sg-head .sg-tab:focus-visible,
+.sg-bar .sg-tab:focus-visible {
+  outline-offset: -3px;
+}
+
+/* Icons belong to the phone's compact bar only. */
+.sg-tab__icon {
+  display: none;
+  flex: none;
+}
+
+/* ── Account trigger (avatar) ────────────────────────────────────────────── */
+
+.sg-avatar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sg-avatar-btn__face {
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: 999px;
+  background: var(--sg-top-hover);
+  color: var(--sg-top-fg);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  transition: box-shadow 0.15s var(--sg-ease);
+}
+
+.sg-avatar-btn:hover .sg-avatar-btn__face,
+.sg-avatar-btn[data-state="open"] .sg-avatar-btn__face {
+  box-shadow: 0 0 0 2px var(--sg-top-dim);
+}
+
+.sg-head .sg-avatar-btn:focus-visible,
+.sg-bar .sg-avatar-btn:focus-visible {
+  border-radius: 999px;
+}
+
+/* ── Slim bar shown on scroll (#491) ─────────────────────────────────────── */
+/* Fixed, so it never takes space: showing it cannot shift the content. It
+   fades in with a small slide (420ms, --sg-ease) and its logo settles from a
+   slightly larger size, as if it travelled up from the masthead. Hidden, it is
+   invisible and inert (useCollapsedBar). */
+
+.sg-bar {
+  position: fixed;
+  z-index: 40;
+  inset-inline: 0;
+  inset-block-start: 0;
+  background: var(--sg-top);
+  color: var(--sg-top-fg);
+  box-shadow: var(--sg-top-shadow);
+  opacity: 0;
+  transform: translateY(-12px);
+  visibility: hidden;
+  transition:
+    opacity 360ms var(--sg-ease),
+    transform 360ms var(--sg-ease),
+    visibility 0s linear 360ms;
+}
+
+.sg-bar[data-shown] {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition:
+    opacity 420ms var(--sg-ease),
+    transform 420ms var(--sg-ease),
+    visibility 0s;
+}
+
+.sg-bar__gutter {
+  padding-inline: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+}
+
+.sg-bar__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  block-size: 72px;
+}
+
+.sg-bar__brand {
+  justify-self: start;
+  color: inherit;
+  font-size: 30px;
+  text-decoration: none;
+  opacity: 0;
+  transform: scale(1.18);
+  transition:
+    opacity 450ms var(--sg-ease),
+    transform 450ms var(--sg-ease);
+}
+
+.sg-bar[data-shown] .sg-bar__brand {
+  opacity: 1;
+  transform: none;
+}
+
+.sg-bar .sg-tabs {
+  block-size: 72px;
+}
+
+.sg-bar .sg-tab {
+  padding-inline: 20px;
+  font-size: 18px;
+}
+
+.sg-bar__end {
+  justify-self: end;
+}
+
+/* ── Loading line ────────────────────────────────────────────────────────── */
+
+.sg-progress {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  block-size: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sg-progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--sg-top-logo-b);
+  transform-origin: center;
+  animation: sg-progress 1.4s var(--sg-ease) infinite;
+}
+
+@keyframes sg-progress {
+  from { transform: scaleX(0); opacity: 1; }
+  to { transform: scaleX(1); opacity: 0; }
+}
+
+/* ── Page slot under the header ──────────────────────────────────────────── */
+
+/* Page content rendered through <MastheadSlot>, in the page flow directly
+   under the header (never in the sticky bar); full width so a row inside it
+   (the league pills) can scroll on its own, collapsed when empty. */
+.sg-masthead__slot {
+  min-inline-size: 0;
+  padding-block-start: 22px;
+}
+
+.sg-masthead__slot:empty {
+  display: none;
+}
+
+/* ── Connection-error strip (ConnectionStrip) ────────────────────────────── */
+/* Text in --sg-ink / --sg-dim (small --sg-hot text fails contrast, B2); the
+   alert colour marks the inline-start edge and the icon only. */
+
+.sg-conn {
+  border-block-end: 1px solid var(--sg-line);
+  border-inline-start: 4px solid var(--sg-hot);
+  background: var(--sg-card);
+  color: var(--sg-ink);
+}
+
+.sg-conn__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding-block: 8px;
+}
+
+.sg-conn__icon {
+  flex: none;
+  color: var(--sg-hot);
+}
+
+.sg-conn__text {
+  flex: 1 1 16em;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.sg-conn__msg {
+  color: var(--sg-dim);
+}
+
+.sg-conn__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 32px;
+  padding-inline: 12px;
+  border: 1.5px solid var(--sg-acc);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sg-acc);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sg-conn__retry:hover {
+  background: var(--sg-tint);
+}
+
+/* ── Account menu additions (portal, see ground-portals.css) ─────────────── */
+
+.sg-consumer-menu .sg-menu-label--sub {
+  padding-block-start: 2px;
+  font-size: 13px;
+}
+
+.sg-consumer-menu .sg-menu-note {
+  margin: 0;
+  padding-block: 6px 4px;
+  padding-inline: 8px;
+  color: var(--sg-dim);
+  font-size: 13px;
+}
+
+/* ── Phone ───────────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .sg-shell:has(> .sg-bar) {
+    --sg-bar-h: 64px;
+  }
+
+  html:has(.sg-bar) {
+    scroll-padding-block-start: calc(64px + 8px);
+  }
+
+  .sg-head__inner {
+    gap: 2px;
+    padding-block-start: 12px;
+  }
+
+  .sg-head__brand {
+    font-size: 34px;
+  }
+
+  .sg-head__date {
+    display: none;
+  }
+
+  .sg-head__end {
+    inset-block-start: 4px;
+    inset-inline-end: -8px;
+  }
+
+  .sg-head .sg-tabs {
+    align-self: stretch;
+    gap: 0;
+    block-size: 52px;
+  }
+
+  .sg-head .sg-tab {
+    padding-inline: 12px;
+    font-size: 17px;
+  }
+
+  .sg-head .sg-tab[aria-current="page"]::after {
+    inset-inline: 10px;
+  }
+
+  /* Touch targets on a phone. */
+  .sg-avatar-btn,
+  .sg-conn__retry {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+
+  .sg-bar__gutter {
+    padding-inline: max(8px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  }
+
+  .sg-bar__inner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 4px;
+    block-size: 64px;
+  }
+
+  .sg-bar .sg-tabs {
+    block-size: 64px;
+  }
+
+  .sg-bar__brand {
+    font-size: 23px;
+  }
+
+  /* Compact bar: each tab a 24px icon over a 13px label, the three sharing the
+     middle column, each at least 44px wide. */
+  .sg-tabs--compact {
+    gap: 0;
+  }
+
+  .sg-tabs--compact .sg-tab {
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 3px;
+    min-inline-size: 44px;
+    padding-inline: 2px;
+    font-size: 13px;
+    line-height: 1.15;
+  }
+
+  .sg-tabs--compact .sg-tab__icon {
+    display: block;
+  }
+
+  .sg-tabs--compact .sg-tab[aria-current="page"]::after {
+    inset-inline: 8px;
+  }
+}
+
+/* Under 360px the bar's logo keeps its bars only, so the tabs and the account
+   always fit at 44px or more; the link keeps its accessible name. */
+@media (max-width: 359px) {
+  .sg-bar__brand .sg-wordmark {
+    gap: 0;
+    font-size: 0;
+  }
+
+  .sg-bar__brand .sg-wordmark__bars {
+    font-size: 26px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sg-bar,
+  .sg-bar[data-shown],
+  .sg-bar__brand,
+  .sg-tab,
+  .sg-avatar-btn__face {
+    transition: none;
+  }
+
+  .sg-progress::before {
+    animation: none;
+    opacity: 0.7;
+  }
+}

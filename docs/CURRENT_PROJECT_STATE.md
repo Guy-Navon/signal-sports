@@ -1,9 +1,17 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-11-15** (per-game results detail storage behind a flag, #517; 2026-11-11: public read-only demo of guy's feed, #458: built, not yet deployed; 2026-11-06: `title_win` needs a title won by the subject, #403; #365 RSS fetch failures in the run record; 2026-11-01: milestone 12 merged and applied live, ONE enabled; census gate #254; truth sweep 2026-10-12; milestones 10–12 filed 2026-10-13). This is the cold-start orientation
+**Last updated: 2026-11-15** (results backend from `main`: detail storage/providers, health,
+exact player mapping, separate player choices, enriched API and demo export guard, all
+activation defaults unchanged; grouped results/popup and coded alternatives #513,
+separate results player setting #524, demo statistics guard #526 and read-only ops
+provider health #538 on `ui/next`; frontend truth sweep after #491–#505:
+header, filters, merged preferences, cluster list, reader-only why line; Orbit cleanup
+#473. Runtime facts retain their dated verification: public read-only demo of guy's
+feed, #458, recorded live since 2026-11-11 from main; ONE enabled on 2026-11-01.
+This integration performs no deployment or production switch-on.) This is the cold-start orientation
 for any agent or human picking the project up with no conversation history. Present-tense
-statements were checked against the code and the owner's local runtime on that date. History
-is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
+frontend statements describe this `ui/next` checkout; runtime statements retain their dated
+verification below. History is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
 `docs/` on 2026-10-12; `git log --diff-filter=D --name-only -- docs/` lists them, and the
 issue numbers in §14 lead to their evidence.
 
@@ -85,8 +93,8 @@ visible members). Details: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md).
 
 **Public demo (#458).** `backend/scripts/export_demo_snapshot.py` builds guy's consumer feed
 through the same handler as `/api/me/feed`, from a read-only connection, into static JSON;
-`scripts/demo-publish.ps1` deploys it with a feed-only frontend bundle to Firebase Hosting, hourly
-through a Windows scheduled task. Not deployed or scheduled yet (owner steps).
+`scripts/demo-publish.ps1` deploys it with a frontend bundle (feed and results strip, read-only) to Firebase Hosting, hourly
+through a Windows scheduled task. Live since 2026-11-11 at signal-sports-demo.web.app from main (Orbit), hourly task `SignalSportsDemoPublish`; the `ui/next` demo is deployed only after the merge (#475).
 [DEPLOYMENT.md](DEPLOYMENT.md) §17.
 
 | Layer | Where |
@@ -205,23 +213,68 @@ origin), with a test that fails if they diverge (#196).
 
 ## 6. Frontend
 
-**Orbit** (shipped 2026-07-31) has one story at the centre with its sources in orbit and a
-ranked queue behind it. The design contract is [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md),
-and shipped-state screenshots are in `docs/frontend-concepts/orbit/`.
+**Signal UI on `ui/next`.** Every consumer route, utility screen and the public demo use the
+direction approved on 2026-11-13: white/soft/dark grounds, a lead block only for a push,
+compact stream rows, a sticky side column and a results strip. The demo shares the product's
+`SignalFeedView`, read-only. #473 removes unused Orbit views, CSS and Frank Ruhl Libre;
+shared story, queue and focus models and their tests now live under neutral names in
+`components/feed/`. Ops keeps its existing shell, base `:root` tokens, Heebo and logo.
+
+What the consumer UI does on `ui/next` (results updated 2026-11-15;
+the #491–#505 shell verified against the code on 2026-11-14):
+
+- **Header (#491, #493, #499).** One navy sticky header (`shell/ProductHeader.jsx`): a large
+  centred logo, the date and the tabs הפיד שלי · תוצאות · העדפות at the top of the page; on scroll it
+  collapses to a slim fixed bar (logo, tabs, account). On a phone each tab is an icon over a
+  label. There is no bottom dock. The account menu holds "החשבון שלי", the ground switch
+  (לבן / רך / כהה, persisted per device), and for admins the console entry and QA view-as.
+- **Filters (#483, #496, #498).** One "סינון" button with removable chips. It opens a horizontal
+  panel on desktop and a bottom sheet on a phone, with importance (each level its own checkbox, several are OR: דורש תשומת לב · חשוב · רגיל · נמוך; "הכול" clears only importance, #510), leagues and sources. A story matches a source if any visible member
+  matches. Filters apply live and are not remembered (undecided, #496).
+- **Several sources (#501, #503).** The "N מקורות" badge opens the list of reports on the lead,
+  important row, stream and "בקצרה" alike (not in "אחרונים").
+- **Why line (#497, #505).** "למה אצלך:" shows `reason_he` for every consumer role, or nothing;
+  never an engine trace. It is rendered by `WhyLine` in `SignalFeedView` through
+  `deskVoiceModel`; the `DeskVoice.jsx` component is no longer imported anywhere.
+- **Preferences (#492, #495, #500, #502).** One destination `/preferences/:tab?` with four tabs:
+  מה אני עוקב · כיוונון · מה המערכת למדה · מושתק. `/interests` and `/calibration` redirect
+  to it (`LegacyPreferencesRedirect`). The Ops rail keeps its own כיוונון link.
+- **Results (#513, #524, #526, #538).** The private page groups today, upcoming
+  days ascending and past days descending, then sport and league. Compact rows
+  show finals/scheduled games, bracketed ranks, API scorers and explicit chosen
+  player lines; available finals open an accessible box-score dialog (phone
+  bottom sheet). Preferences → מה אני עוקב → שחקנים בתוצאות uses separate
+  session-owned choices and never changes feed affinities. Coded row/popup and
+  placement alternatives are in `lab.html?page=results` and `?page=resultsplayers`;
+  Guy retains those choices. The demo strip stays scores-only with a calibrated
+  statistics marker guard. Admin Sources shows the provider health block read-only
+  in the existing console style. These are `ui/next` code, not production activation.
+Milestone 15 (#461–#475) lands on `ui/next`; merging to main and deploying the demo still
+need the owner's approval (#475). This is a branch-code statement, not a deployment claim.
+[FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) holds the engineering rules (Part A)
+and visual contract (Part B). The reference mock is in `docs/design/2026-11-13-feed-direction/`;
+`docs/frontend-concepts/orbit/` is a historical screenshot record only.
 
 | Route | Page | Area |
 |---|---|---|
 | `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | auth (emailed links land on `/verify-email` and `/reset-password`) | public |
 | `/welcome` | onboarding (interests → calibration → feed) | session |
-| `/` | Feed (Orbit) | product |
-| `/preferences`, `/interests`, `/calibration`, `/results`, `/account` | product pages | product |
+| `/` | Feed (Signal UI) | product |
+| `/preferences[/calibration\|learned\|muted]`, `/results`, `/account` | product pages (`/interests` and `/calibration` redirect into `/preferences`) | product |
 | `/sources`, `/debug`, `/llm-qa` | ops console (ingestion, scheduler, notifications, debug traces, LLM QA) | admin only |
 
 **Public demo entry (#458).** A second Vite entry (`frontend/demo.html` → `src/demo/`, built by
-`npm run build:demo` into `frontend/dist-demo/`) renders only the Orbit feed from two static JSON
-files, with `OrbitFeedView readOnly` (no feedback controls, no engine trace). It mounts no router
+`npm run build:demo` into `frontend/dist-demo/`) renders the Signal feed from static snapshot
+JSON (feed and metadata, plus optional results for the strip, #485), with
+`SignalFeedView readOnly` (no feedback controls, no engine trace). It is always on the white
+ground, with the navy header showing the logo only. It mounts no router
 and no auth or app provider; the hooks feed components need live in `src/context/appContextCore.js`
 so the provider and API client stay out of that bundle. [DEPLOYMENT.md](DEPLOYMENT.md) §17.
+
+**Browser verification.** `npm run capture:ui` runs the hermetic local-data harness on its own
+free port. `SIGNAL_UI_REVIEW_PORT` optionally selects a free port; `SIGNAL_CHROME_PATH` selects
+Chrome. Placement, typography, RTL, focus, motion, filter latency and fixed-header occlusion assertions
+are retained. `npm run check:demo-bundle` guards the demo's read-only boundary.
 
 **Data modes** (`VITE_DATA_MODE`): `local` is the default and needs no backend. It renders mock
 data through the **frozen** legacy JS engine (`src/engine/relevanceEngine.js`), which gets no new
@@ -531,6 +584,13 @@ milestone 11's gate.
 Deliberately not in these milestones: platform hardening (#198–#200), which matters
 before wider access or a split deployment.
 
+**Milestone 15, "A face of its own — new consumer UI" (filed 2026-11-13).** It replaces
+Orbit's look on the consumer screens and the public demo with the direction Guy approved on
+2026-11-13 ([FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) Part B). The Ops console
+does not change. The work lands on `ui/next`. The open owner items are #474 (article images),
+#475 (phone acceptance, then the merge to main and the demo deploy; checklist posted 2026-11-14, #506)
+and #484 (read state, dismissing, or a shorter window).
+
 ---
 
 ## 12. How to run locally
@@ -659,7 +719,9 @@ review intake, security diff review, UI and React review, browser checks, Python
 | 6 | Feed De-duplication & Clustering Activation | 2026-07-18 | Validated story anchors, intra-source republish, claim compatibility, activation with 0 over-merges | CLUSTERING |
 | 7 | Automated Live Ingestion & Telegram Push Pilot | 2026-07-18 | Dedicated worker, durable lease, notification identity, outbox, Telegram delivery, a 44.8h soak | SCHEDULER, NOTIFICATIONS |
 | — | Feed freshness (36h window) | 2026-07-18 | One shared freshness predicate for feed, cluster canonical choice and push | FEED_FRESHNESS |
-| — | Orbit frontend | 2026-07-31 | The current consumer UI | FRONTEND_DESIGN_SYSTEM |
+| — | Orbit frontend | 2026-07-31 | Historical consumer UI; replaced on `ui/next` by milestone 15 | frontend-concepts/orbit/README |
+| — | Orbit cleanup (#473) | 2026-11-14 | `ui/next`: unused views/CSS/serif removed, shared models and harness renamed; Ops retained | FRONTEND_DESIGN_SYSTEM |
+| 15 | New consumer UI (#461–#506), on `ui/next` only | 2026-11-14 | Navy header, filters, merged preferences, cluster list, reader-only why line; not merged to main (owner acceptance, #475) | FRONTEND_DESIGN_SYSTEM |
 | — | Personalized results (#178) | 2026-08-23 | Results page from the same follows; TheSportsDB sync | RESULTS |
 | — | Repository audit (#186) | 2026-09-05 | Reliability fixes F01–F13 and R01–R07; open debt filed as #196–#200 | audits/2026-09-05 |
 | 8 | Feed Quality — Recall & Push (N05) | 2026-09-16 | The 282-rating ground truth and gate; former-affiliation fix; Israeli clubs; push 41%→100%; LLM cost −45% (#217); live scoreline (#218); census tool and census #1 | qa/N05_*, LLM_CLASSIFICATION |

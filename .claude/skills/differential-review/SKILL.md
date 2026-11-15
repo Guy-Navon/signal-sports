@@ -19,7 +19,7 @@ these adaptations, is distributed under that license (see [LICENSE](LICENSE) and
 | MEDIUM | parsing untrusted input: source adapters (RSS/HTML/JSON), `ingestion/subtitle.py`, LLM output handling and prompt construction from article text (`app/classification/validation.py`, `merge.py`, `prompt.py`), request-body models; outbound requests built from data (source URLs, provider base URLs); new public routes; account lifecycle; rate limits |
 | LOW / skip | docs-only, styling, tests-only, copy — normal review instead |
 
-Classify by risk, not size: a one-line change to `require_admin` is HIGH; a 500-line Orbit CSS
+Classify by risk, not size: a one-line change to `require_admin` is HIGH; a 500-line consumer CSS
 change needs no security review.
 
 **Local adjustments to the workflow below**

@@ -1,5 +1,7 @@
 import React from "react";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
+import ResultsHealthPanel from "@/components/ops/ResultsHealthPanel";
 import { Database } from "lucide-react";
 import IngestionPanel from "@/components/ops/IngestionPanel";
 import NotificationsPanel from "@/components/ops/NotificationsPanel";
@@ -11,6 +13,7 @@ import PageHeader from "@/components/shared/PageHeader";
 
 export default function Sources() {
   const { sources, toggleSource, isBackendMode, refreshFeed } = useApp();
+  const auth = useAuth();
 
   const enabledCount = sources.filter((s) => s.enabled).length;
   const rssCount = sources.filter((s) => s.sourceType === "rss").length;
@@ -30,6 +33,7 @@ export default function Sources() {
 
       {/* Ops panels (backend mode surfaces live data; local shows the explanation) */}
       <SchedulerPanel isBackendMode={isBackendMode} onFeedRefresh={refreshFeed} />
+      <ResultsHealthPanel isBackendMode={isBackendMode} isAdmin={auth.user?.role === "admin"} />
       <NotificationsPanel isBackendMode={isBackendMode} />
       <IngestionPanel isBackendMode={isBackendMode} onFeedRefresh={refreshFeed} />
       <BenchmarkPanel isBackendMode={isBackendMode} />

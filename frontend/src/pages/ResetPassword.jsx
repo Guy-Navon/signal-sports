@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Button, Input, Label } from "@/pages/AuthControls";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { authResetPassword, authResetPeek } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import AuthScene from "@/pages/AuthScene";
@@ -81,7 +79,7 @@ export default function ResetPassword() {
   if (state === "checking") {
     return (
       <AuthScene kicker="איפוס סיסמה" title="בודקים את הקישור…">
-        <p role="status" className="text-sm text-text-secondary text-center">רגע אחד.</p>
+        <p role="status" className="text-sm sg-auth-muted text-center">רגע אחד.</p>
       </AuthScene>
     );
   }
@@ -89,11 +87,11 @@ export default function ResetPassword() {
   if (state === "invalid") {
     return (
       <AuthScene kicker="איפוס סיסמה" title="הקישור לא בתוקף">
-        <p role="alert" className="text-sm text-text-secondary text-center">
+        <p role="alert" className="text-sm sg-auth-muted text-center">
           {notice || "הקישור חסר, פג תוקפו או שכבר השתמשו בו."}
         </p>
-        <p className="mt-6 text-sm text-text-secondary text-center">
-          <Link to="/forgot-password" className="text-foreground underline underline-offset-4">
+        <p className="mt-6 text-sm sg-auth-muted text-center">
+          <Link to="/forgot-password" className="sg-auth-ink underline underline-offset-4">
             בקשת קישור חדש
           </Link>
         </p>
@@ -103,16 +101,16 @@ export default function ResetPassword() {
 
   return (
     <AuthScene kicker="איפוס סיסמה" title="בחירת סיסמה חדשה">
-      <form onSubmit={onSubmit} noValidate className="space-y-4">
-        <p className="text-sm text-text-secondary text-center">
+      <form onSubmit={onSubmit} noValidate className="sg-auth-stack">
+        <p className="text-sm sg-auth-muted text-center">
           סיסמה חדשה לחשבון{" "}
-          <bdi dir="ltr" className="text-foreground">{maskedEmail}</bdi>. אחרי השמירה
+          <bdi dir="ltr" className="sg-auth-ink">{maskedEmail}</bdi>. אחרי השמירה
           כל ההתחברויות הקיימות ינותקו.
         </p>
         {notice && (
-          <p role="alert" className="text-sm text-signal-hidden text-center">{notice}</p>
+          <p role="alert" className="text-sm sg-auth-error text-center">{notice}</p>
         )}
-        <div className="space-y-1.5">
+        <div className="sg-auth-field">
           <Label htmlFor="reset-password">סיסמה חדשה (לפחות 8 תווים)</Label>
           <Input id="reset-password" type="password" dir="ltr" autoComplete="new-password"
             value={password} onChange={(e) => { setPassword(e.target.value); setNotice(null); }} />

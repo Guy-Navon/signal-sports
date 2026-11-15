@@ -1,0 +1,904 @@
+/* The new consumer feed (#464). Values from docs/FRONTEND_DESIGN_SYSTEM.md Part B
+   and the approved mock (docs/design/2026-11-13-feed-direction/). Every colour is
+   a --sg- token from signal-ui.css; logical properties only (A2).
+
+   Alert colour: --sg-hot is 3.57:1 on white, too low for small text (B2, the
+   token itself is #468). It is used here only for non-text marks (the push
+   strokes, the dot in the lead label), never as small text or as the ground of
+   small text. */
+
+/* The feed opens its own .signal-ui scope so it renders on its own. Inside a
+   parent scope (the shell, #463) a nested scope without its own ground follows
+   the parent's ground instead of resetting to white. */
+.signal-ui .signal-ui.sg-feed:not([data-ground]) {
+  --sg-bg: inherit; --sg-band: inherit; --sg-card: inherit; --sg-ink: inherit;
+  --sg-dim: inherit; --sg-line: inherit; --sg-acc: inherit; --sg-tint: inherit;
+  --sg-top: inherit; --sg-top-fg: inherit; --sg-slab: inherit; --sg-slab-fg: inherit;
+  --sg-slab-dim: inherit; --sg-hot: inherit; --sg-hot-fg: inherit; --sg-off: inherit;
+  --sg-t1: inherit; --sg-t2: inherit; --sg-t3: inherit; --sg-t4: inherit;
+  color-scheme: inherit;
+}
+
+.sg-feed {
+  /* The page gutter, as the shell's .sg-gutter. */
+  --sg-feed-gutter: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  /* Where a growing underline starts: the inline start of the text. */
+  --sg-start-x: 0%;
+  overflow-wrap: anywhere;
+}
+
+.sg-feed:dir(rtl) { --sg-start-x: 100%; }
+
+.sg-feed .sg-in {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+  padding-inline: var(--sg-feed-gutter);
+  box-sizing: content-box;
+}
+
+.sg-feed .sg-num,
+.sg-feed__head .sg-num { font-variant-numeric: tabular-nums; }
+
+.sg-feed h1, .sg-feed h2, .sg-feed h3 { text-wrap: balance; }
+
+.sg-feed a { color: inherit; text-decoration: none; }
+
+.sg-feed :focus-visible,
+.sg-feed__head :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* ── head: summary line + league pills (B6) ─────────────────────────────── */
+
+.sg-feed__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding-block: 20px 30px;
+}
+
+/* Rendered through the shell's masthead slot (#463): the masthead already
+   gives the column, gutter and spacing above. */
+.sg-feed__head--slot { padding-block: 0 10px; }
+
+/* The status slot (FeedFreshness, the demo banner): quiet, in the feed's ink.
+   In the slot it sits outside .sg-feed, hence both ancestors; two classes
+   outrank FeedFreshness's own utility classes. */
+:is(.sg-feed, .sg-feed__head) .sg-status { align-self: stretch; text-align: center; }
+:is(.sg-feed, .sg-feed__head) .sg-status > * { justify-content: center; margin: 0; color: var(--sg-dim); }
+:is(.sg-feed, .sg-feed__head) .sg-status span { color: inherit; }
+:is(.sg-feed, .sg-feed__head) .sg-status svg { color: var(--sg-dim); }
+:is(.sg-feed, .sg-feed__head) .sg-status .font-medium { color: var(--sg-ink); font-weight: 700; }
+:is(.sg-feed, .sg-feed__head) .sg-status:empty { display: none; }
+
+.sg-summary {
+  font-size: 14px;
+  color: var(--sg-dim);
+  text-align: center;
+}
+
+.sg-summary b { color: var(--sg-ink); font-weight: 700; }
+
+.sg-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-inline-size: 100%;
+}
+
+.sg-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  min-block-size: 36px;
+  padding: 6px 16px;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  background: var(--sg-t1);
+  color: var(--sg-ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.sg-pill b { font-weight: 700; }
+.sg-pill[data-tint="2"] { background: var(--sg-t2); }
+.sg-pill[data-tint="3"] { background: var(--sg-t3); }
+.sg-pill[data-tint="4"] { background: var(--sg-t4); }
+.sg-pill--all { background: transparent; border-color: var(--sg-line); }
+.sg-pill:hover { border-color: var(--sg-acc); }
+
+/* Selected: the accent ground with its own text colour (the slab pair, 6.7:1
+   or better in every ground) plus a slanted stroke, so colour is not the only
+   cue. aria-pressed carries it to assistive technology. */
+.sg-pill__mark {
+  display: none;
+  inline-size: 4px;
+  block-size: 14px;
+  background: currentColor;
+  transform: skewX(var(--sg-skew));
+}
+
+.sg-pill[aria-pressed="true"] {
+  background: var(--sg-slab);
+  border-color: var(--sg-slab);
+  color: var(--sg-slab-fg);
+}
+
+.sg-pill[aria-pressed="true"] .sg-pill__mark { display: block; }
+
+/* ── lead block: only with a push (B7) ──────────────────────────────────── */
+
+.sg-lead {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-block-end: 40px;
+  padding: 26px 34px;
+  background: var(--sg-slab);
+  color: var(--sg-slab-fg);
+}
+
+.sg-lead > * { position: relative; }
+
+.sg-lead__deco {
+  position: absolute;
+  inset-block: -20px;
+  inset-inline-end: -30px;
+  display: flex;
+  gap: 26px;
+  pointer-events: none;
+}
+
+.sg-lead__deco i {
+  display: block;
+  inline-size: 74px;
+  background: var(--sg-slab-dim);
+  opacity: 0.16;
+  transform: skewX(var(--sg-skew));
+  transform-origin: bottom;
+  animation: sg-rise 0.7s var(--sg-ease) both;
+}
+
+.sg-lead__deco i:nth-child(1) { margin-block-start: 58%; }
+.sg-lead__deco i:nth-child(2) { margin-block-start: 30%; animation-delay: 0.08s; }
+.sg-lead__deco i:nth-child(3) { animation-delay: 0.16s; }
+
+/* The push label: slab-fg ground with slab text (6.7:1 white, 14.8:1 dark);
+   the alert colour is only the dot, a non-text mark (3.57:1 on white). */
+.sg-lead__label {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 9px;
+  background: var(--sg-slab-fg);
+  color: var(--sg-slab);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sg-lead__dot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--sg-hot);
+  flex: none;
+  animation: sg-pulse 1.8s infinite;
+}
+
+.sg-lead__title {
+  font-size: clamp(54px, 10.2vw, 150px);
+  animation: sg-up 0.6s var(--sg-ease) both;
+}
+
+.sg-lead__row {
+  display: grid;
+  grid-template-columns: 1.3fr 1.3fr auto;
+  gap: 8px 36px;
+  align-items: start;
+  padding-block-start: 14px;
+  border-block-start: 3px solid var(--sg-slab-fg);
+}
+
+.sg-lead__dek { font-size: 19px; line-height: 1.4; font-weight: 600; }
+.sg-lead .sg-lead__why { font-size: 16px; color: inherit; }
+.sg-lead .sg-lead__why b { color: inherit; font-weight: 800; }
+
+.sg-lead__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.sg-lead__go {
+  border: 1.5px solid var(--sg-slab-fg);
+  border-radius: 999px;
+  padding: 4px 16px;
+  font-weight: 700;
+}
+
+.sg-lead__go:hover { background: var(--sg-slab-fg); color: var(--sg-slab); }
+
+/* ── important row (B8) ─────────────────────────────────────────────────── */
+
+.sg-important {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding-block-end: 44px;
+}
+
+.sg-important__item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-inline-size: 0;
+  padding-inline: 20px;
+  border-inline-start: 1px solid var(--sg-line);
+}
+
+.sg-important__item:first-child { border-inline-start: 0; padding-inline-start: 0; }
+
+.sg-tag {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 8px;
+  background: var(--sg-tint);
+  color: var(--sg-acc);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sg-important__title { font-size: 21px; font-weight: 500; line-height: 1.3; }
+.sg-meta { font-size: 14px; color: var(--sg-dim); }
+
+/* ── band, stream and "in brief" (B5, B10) ──────────────────────────────── */
+
+.sg-band {
+  margin-block-start: 0;
+  padding-block: 36px 60px;
+  background: var(--sg-band);
+}
+
+/* Stream + the 330px side column (B5, B11). One column under 900px, where the
+   side column follows the stream (#465). */
+.sg-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+@media (min-width: 901px) {
+  .sg-cols:has(> .sg-main):has(> .sg-side) { grid-template-columns: minmax(0, 1fr) 330px; }
+
+  /* Sticky 14px below the consumer shell's slim bar (#491: --sg-bar-h, 0 where
+     there is no bar, as in the demo), plus the safe area. A column taller than
+     the screen is capped at the viewport and scrolls inside, so its end is
+     reachable at any scroll position instead of only once the stream ended. */
+  .sg-side {
+    position: sticky;
+    inset-block-start: calc(var(--sg-bar-h, 0px) + 14px + env(safe-area-inset-top, 0px));
+    max-block-size: calc(100vh - var(--sg-bar-h, 0px) - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    max-block-size: calc(100dvh - var(--sg-bar-h, 0px) - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* The inner scroll stays out of sight (Guy, 2026-11-14): a thin gutter is
+       reserved, so nothing reflows, and its thumb is transparent until the
+       pointer or keyboard focus is in the column. A fade pinned to the bottom
+       edge shows there is more; scrolled to the end it sits below the last
+       item, over the empty band, and focus never lands under it. */
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+    scrollbar-color: transparent transparent;
+    scroll-padding-block: 8px 48px;
+  }
+
+  .sg-side:hover,
+  .sg-side:focus-within {
+    scrollbar-color: var(--sg-off) transparent;
+  }
+
+  .sg-side::after {
+    content: "";
+    position: sticky;
+    inset-block-end: 0;
+    flex: none;
+    block-size: 40px;
+    margin-block-start: -22px;
+    background: linear-gradient(to bottom, transparent, var(--sg-band));
+    pointer-events: none;
+  }
+}
+
+.sg-side { display: flex; flex-direction: column; gap: 22px; min-inline-size: 0; }
+
+.sg-main { display: flex; flex-direction: column; gap: 36px; min-inline-size: 0; }
+
+.sg-sech {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-block-end: 12px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.sg-sech span { font-size: 14px; font-weight: 400; color: var(--sg-dim); }
+.sg-sech .sg-sech__count { margin-inline-start: auto; font-weight: 700; color: var(--sg-ink); }
+
+.sg-stream {
+  background: var(--sg-card);
+  border: 1px solid var(--sg-line);
+}
+
+/* Three lines: meta (with the actions at its inline end), headline, why. On a
+   phone the actions move below the why line instead of hiding (#464). */
+.sg-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "by acts"
+    "title title"
+    "why why"
+    "members members";
+  align-items: center;
+  gap: 5px 12px;
+  padding: 18px 26px;
+  border-block-end: 1px solid var(--sg-line);
+  transition: background-color 0.15s;
+}
+
+.sg-row:last-child { border-block-end: 0; }
+
+/* Hover: tint ground and a 4px accent edge on the inline start. */
+.sg-row::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 4px;
+  background: var(--sg-acc);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.sg-row:hover { background: var(--sg-tint); }
+.sg-row:hover::before { opacity: 1; }
+
+.sg-row__by {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 13.5px;
+  color: var(--sg-dim);
+}
+
+.sg-row__src { min-inline-size: 0; }
+.sg-row__by { grid-area: by; min-inline-size: 0; }
+.sg-feed .sg-row__acts { grid-area: acts; }
+.sg-row__why { grid-area: why; }
+.sg-row .sg-members { grid-area: members; }
+
+.sg-row__title { grid-area: title; font-size: 21px; font-weight: 600; line-height: 1.3; }
+
+.sg-why { font-size: 14.5px; color: var(--sg-dim); }
+.sg-why b { color: var(--sg-ink); font-weight: 700; }
+
+/* Headline underline grows from the inline start (2px accent). */
+.sg-headline-link {
+  background: linear-gradient(var(--sg-acc), var(--sg-acc)) no-repeat;
+  background-position: var(--sg-start-x) 100%;
+  background-size: 0 2px;
+  transition: background-size 0.25s var(--sg-ease);
+}
+
+.sg-headline-link:hover,
+.sg-headline-link:focus-visible { background-size: 100% 2px; }
+
+.sg-lead .sg-headline-link { background-image: linear-gradient(var(--sg-slab-fg), var(--sg-slab-fg)); }
+
+/* Cluster badge: ink ground, card text; the one button that opens a
+   multi-source story, wherever it is placed (#501). */
+.sg-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-end: 6px;
+  padding: 1px 7px;
+  border: 0;
+  background: var(--sg-ink);
+  color: var(--sg-card);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.6;
+  vertical-align: 1px;
+  cursor: pointer;
+}
+
+.sg-badge__chev { transition: transform 0.15s; }
+.sg-badge[aria-expanded="true"] .sg-badge__chev { transform: rotate(180deg); }
+.sg-badge:focus-visible { outline-color: var(--sg-ink); }
+.sg-badge:hover { background: var(--sg-acc); }
+
+/* On the lead's slab the badge inverts: slab-fg ground, slab text. */
+.sg-lead .sg-badge { background: var(--sg-slab-fg); color: var(--sg-slab); }
+.sg-lead .sg-badge:focus-visible { outline-color: var(--sg-slab-fg); }
+
+/* The opened story (#501): one entry per visible report, divided by rules,
+   hanging off a 2px rule at the inline start. Each entry is one link. */
+.sg-members {
+  margin-block-start: 4px;
+  padding-inline-start: 12px;
+  border-inline-start: 2px solid var(--sg-line);
+}
+
+.sg-members ul { display: flex; flex-direction: column; }
+.sg-members li + li { border-block-start: 1px solid var(--sg-line); }
+
+.sg-members__cap { padding-block-start: 6px; font-size: 12.5px; color: var(--sg-dim); }
+
+.sg-members__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding-block: 9px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--sg-dim);
+}
+
+.sg-members__by { display: block; }
+.sg-members__item b { color: var(--sg-ink); font-weight: 700; }
+
+.sg-members__mark {
+  display: inline-block;
+  margin-inline-start: 8px;
+  padding: 0 6px;
+  background: var(--sg-tint);
+  color: var(--sg-acc);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sg-members__title {
+  color: var(--sg-ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.sg-members__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--sg-acc);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-decoration-color: var(--sg-acc); text-underline-offset: 3px; }
+
+/* In the lead the list spans the slab beneath its row, in columns on a wide
+   screen, in the slab's own colours. */
+.sg-lead__members {
+  grid-column: 1 / -1;
+  margin-block-start: 10px;
+  border-inline-start-color: var(--sg-slab-dim);
+}
+
+.sg-lead__members ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  column-gap: 28px;
+}
+
+.sg-lead__members li + li { border-block-start: 0; }
+.sg-lead__members li { border-block-end: 1px solid var(--sg-slab-dim); }
+
+.sg-lead .sg-members :is(.sg-members__item, .sg-members__item b, .sg-members__title, .sg-members__go, .sg-members__cap) { color: inherit; }
+.sg-lead .sg-members__title { font-size: 17px; }
+.sg-lead .sg-members__mark { background: var(--sg-slab-fg); color: var(--sg-slab); }
+.sg-lead a.sg-members__item:hover .sg-members__title { text-decoration-color: currentColor; }
+
+.sg-more {
+  display: block;
+  margin-inline: auto;
+  margin-block-start: 18px;
+  padding: 8px 18px;
+  border: 1px solid var(--sg-line);
+  border-radius: 999px;
+  background: var(--sg-card);
+  color: var(--sg-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sg-more:hover { border-color: var(--sg-acc); color: var(--sg-acc); }
+
+/* Side column boxes (B11): "אחרונים" and "בקצרה". */
+.sg-box {
+  padding: 18px 22px 8px;
+  background: var(--sg-card);
+  border: 1px solid var(--sg-line);
+  border-block-start: 3px solid var(--sg-acc);
+}
+
+.sg-box__heading { margin-block-end: 6px; font-size: 16px; font-weight: 800; }
+
+.sg-box__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-block: 11px;
+  border-block-start: 1px solid var(--sg-line);
+}
+
+.sg-box__title { font-size: 15.5px; font-weight: 600; line-height: 1.35; }
+
+.sg-box__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 4px;
+  font-size: 12.5px;
+  color: var(--sg-dim);
+}
+
+.sg-latest .sg-box__meta { gap: 0 6px; }
+.sg-latest__fresh { color: var(--sg-ink); font-weight: 800; }
+
+/* Fresh marker: the dot is --hot (a mark, not text) and pulses; the pulse
+   stops under reduced motion (the rule at the end of the motion section). */
+.sg-fresh-dot {
+  inline-size: 8px;
+  block-size: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--sg-hot);
+  animation: sg-pulse 1.8s infinite;
+}
+
+.sg-brief .sg-more { margin-block: 10px; }
+
+.sg-filter-empty {
+  padding-block: 24px 60px;
+  text-align: center;
+  color: var(--sg-dim);
+}
+
+/* ── feedback actions (FeedbackControls, restyled in place) ─────────────────
+   Always visible, at every width: the mock hid them under 900px, which was not
+   approved (#464). The selectors outrank the component's utility classes. */
+
+.sg-feed .sg-acts {
+  margin-inline-start: auto;
+  display: inline-flex;
+}
+
+.sg-feed .sg-acts > div { gap: 2px; }
+
+.sg-feed .sg-acts button {
+  min-block-size: 28px;
+  padding: 2px 6px;
+  border-radius: 0;
+  background: none;
+  color: var(--sg-acc);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.sg-feed .sg-acts button:hover { background: var(--sg-tint); color: var(--sg-acc); }
+.sg-feed .sg-acts span[aria-hidden] { color: var(--sg-dim); }
+.sg-feed .sg-acts [role="status"],
+.sg-feed .sg-acts [role="alert"] { color: var(--sg-dim); font-size: 13px; }
+.sg-feed .sg-acts svg { color: var(--sg-acc); }
+
+.sg-feed .sg-acts [role="menu"] {
+  background: var(--sg-card);
+  border: 1px solid var(--sg-line);
+  border-radius: 0;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+
+.sg-feed .sg-acts [role="menu"] button {
+  color: var(--sg-ink);
+  font-weight: 500;
+  text-align: start;
+}
+
+.sg-feed .sg-acts--quiet { margin-inline-start: 0; }
+.sg-feed .sg-acts--quiet button { color: var(--sg-dim); font-weight: 600; padding-inline: 0 8px; }
+.sg-feed .sg-acts--quiet button:hover { color: var(--sg-acc); background: none; }
+.sg-brief__meta .sg-acts--quiet { margin-inline-start: auto; }
+
+.sg-feed .sg-acts--slab { margin-inline-start: 0; }
+.sg-feed .sg-acts--slab button,
+.sg-feed .sg-acts--slab span[aria-hidden],
+.sg-feed .sg-acts--slab [role="status"],
+.sg-feed .sg-acts--slab [role="alert"],
+.sg-feed .sg-acts--slab svg { color: var(--sg-slab-fg); }
+.sg-feed .sg-acts--slab button:hover { background: none; text-decoration: underline; color: var(--sg-slab-fg); }
+.sg-feed .sg-acts--slab [role="menu"] button { color: var(--sg-ink); }
+
+/* ── loading / empty / error (feedBodyState) ─────────────────────────────── */
+
+.sg-state {
+  padding-block: 48px 72px;
+  text-align: center;
+}
+
+.sg-state h2 { font-size: 22px; font-weight: 800; }
+.sg-state p { max-inline-size: 34em; margin-inline: auto; margin-block-start: 8px; color: var(--sg-dim); }
+.sg-state .sg-more { margin-block-start: 20px; }
+.sg-state a.sg-more { display: inline-block; }
+
+.sg-skeleton { display: flex; flex-direction: column; gap: 14px; padding-block: 20px 60px; }
+/* Static on purpose: nothing loops for decoration (B12). */
+.sg-skeleton i {
+  display: block;
+  block-size: 18px;
+  background: var(--sg-band);
+}
+.sg-skeleton i:nth-child(1) { inline-size: 40%; margin-inline: auto; }
+.sg-skeleton i:nth-child(2) { inline-size: 60%; margin-inline: auto; block-size: 30px; }
+.sg-skeleton i:nth-child(n + 3) { block-size: 74px; }
+
+/* ── motion (B12, #467) ──────────────────────────────────────────────────────
+   Every effect carries meaning: something arrived, changed, was acknowledged,
+   or has focus. Only the fresh-story pulse loops. Transform and opacity only
+   (the arrival glow is the one paint-only effect, on a few rows at most), so
+   nothing shifts layout. Delays come from feedMotionModel as
+   --sg-enter-delay: capped stagger (A5), the first-load sequence, then 0.
+   Entrances use `backwards` fill, never `both`: a filled transform would make
+   every row a stacking context and trap the feedback menu under the next row.
+   Removal is never animated. All of it is off under reduced motion (the block
+   at the end of this section). */
+
+.sg-feed,
+.sg-feed__head {
+  --sg-enter-dur: 360ms;
+}
+
+/* Entrance: the page builds top to bottom on load; later, whatever newly
+   appears (a filter change, "show more", a refresh) enters the same way. */
+:is(.sg-feed, .sg-feed__head) :is(.sg-summary, .sg-pill, .sg-seg, .sg-filter-result[data-active]),
+.sg-feed :is(
+  .sg-important__item,
+  .sg-sech,
+  .sg-row,
+  .sg-box,
+  .sg-box__item,
+  .sg-result,
+  .sg-results__heading,
+  .sg-members li,
+  .sg-more,
+  .sg-filter-empty
+) {
+  animation: sg-enter var(--sg-enter-dur) var(--sg-ease) backwards;
+  animation-delay: var(--sg-enter-delay, 0ms);
+}
+
+/* Signal marks grow once their row has started to enter. */
+.sg-feed .sg-strength__stroke:nth-child(1) { animation-delay: calc(var(--sg-enter-delay, 0ms) + 120ms); }
+.sg-feed .sg-strength__stroke:nth-child(2) { animation-delay: calc(var(--sg-enter-delay, 0ms) + 180ms); }
+.sg-feed .sg-strength__stroke:nth-child(3) { animation-delay: calc(var(--sg-enter-delay, 0ms) + 240ms); }
+
+/* Lead: the slab fades in, the strokes rise, the label pops, the headline
+   comes up, then the row beneath it. */
+.sg-feed .sg-lead { animation: sg-fade 300ms var(--sg-ease) var(--sg-enter-delay, 0ms) backwards; }
+.sg-feed .sg-lead__deco i:nth-child(1) { animation-delay: var(--sg-enter-delay, 0ms); }
+.sg-feed .sg-lead__deco i:nth-child(2) { animation-delay: calc(var(--sg-enter-delay, 0ms) + 80ms); }
+.sg-feed .sg-lead__deco i:nth-child(3) { animation-delay: calc(var(--sg-enter-delay, 0ms) + 160ms); }
+.sg-feed .sg-lead__label { animation: sg-pop 300ms var(--sg-ease) calc(var(--sg-enter-delay, 0ms) + 60ms) backwards; }
+.sg-feed .sg-lead__title { animation: sg-up 600ms var(--sg-ease) calc(var(--sg-enter-delay, 0ms) + 100ms) backwards; }
+.sg-feed .sg-lead__row { animation: sg-enter 450ms var(--sg-ease) calc(var(--sg-enter-delay, 0ms) + 260ms) backwards; }
+
+/* A changed number (summary, pill counts, a score) ticks in. Keyed by value
+   in the markup, so only a number that changed plays it. */
+.sg-tick {
+  display: inline-block;
+  animation: sg-tick 280ms var(--sg-ease) var(--sg-enter-delay, 0ms) backwards;
+}
+
+/* League pills: pressing gives way under the finger; the selected stroke
+   rises; the slab ground eases in. */
+.sg-pill {
+  transition:
+    background-color 0.2s var(--sg-ease),
+    color 0.2s var(--sg-ease),
+    border-color 0.2s var(--sg-ease),
+    transform 0.12s var(--sg-ease);
+}
+.sg-pill:active { transform: scale(0.96); }
+.sg-pill[aria-pressed="true"] .sg-pill__mark { animation: sg-mark 280ms var(--sg-ease) 60ms backwards; }
+
+/* New after a refresh: a word (the meaning, A6) that pops in, and a glow that
+   settles. Rows already on screen do not move; nothing re-sorts under the
+   reader beyond the insertion itself (browser scroll anchoring keeps the
+   viewport in place when it lands above). */
+.sg-new {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  background: var(--sg-slab);
+  color: var(--sg-slab-fg);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.6;
+  animation: sg-pop 300ms var(--sg-ease) calc(var(--sg-enter-delay, 0ms) + 120ms) backwards;
+}
+
+.sg-important__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.sg-feed :is(.sg-row, .sg-important__item, .sg-box__item)[data-arrived] {
+  animation:
+    sg-enter var(--sg-enter-dur) var(--sg-ease) var(--sg-enter-delay, 0ms) backwards,
+    sg-glow 1.6s var(--sg-ease) var(--sg-enter-delay, 0ms) backwards;
+}
+
+/* Hover and keyboard focus: the accent edge grows in from the middle; a row
+   holding keyboard focus reads like a hovered one. */
+.sg-row::before {
+  transform: scaleY(0.4);
+  transition: opacity 0.15s var(--sg-ease), transform 0.2s var(--sg-ease);
+}
+.sg-row:hover::before,
+.sg-row:has(:focus-visible)::before { opacity: 1; transform: none; }
+.sg-row:has(:focus-visible) { background: var(--sg-tint); }
+
+/* Feedback acknowledges itself: the status word and its check pop in, and on
+   a stream row the accent edge flashes once when the save is confirmed. */
+.sg-feed .sg-acts :is([role="status"], [role="alert"]) { animation: sg-pop 220ms var(--sg-ease) backwards; }
+.sg-feed .sg-acts [role="status"] svg { animation: sg-pop 320ms var(--sg-ease) 60ms backwards; }
+.sg-feed .sg-acts [role="menu"] {
+  transform-origin: top;
+  animation: sg-drop 180ms var(--sg-ease) backwards;
+}
+.sg-row:has(.sg-acts [role="status"]:not([aria-busy]))::before { animation: sg-ack 900ms var(--sg-ease); }
+
+/* Cluster badge: the chevron turns, the member list drops open and its items
+   follow (capped). Closing is immediate. */
+.sg-badge__chev { transition: transform 0.2s var(--sg-ease); }
+.sg-feed .sg-members { animation: sg-drop 200ms var(--sg-ease) backwards; }
+
+@keyframes sg-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sg-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sg-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sg-pop {
+  from { opacity: 0; transform: scale(0.82); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sg-drop {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sg-tick {
+  from { opacity: 0; transform: translateY(0.45em); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sg-mark {
+  from { transform: skewX(var(--sg-skew)) scaleY(0); }
+  to { transform: skewX(var(--sg-skew)) scaleY(1); }
+}
+
+@keyframes sg-glow {
+  0%, 35% { background-color: var(--sg-tint); }
+  100% { background-color: transparent; }
+}
+
+@keyframes sg-ack {
+  0% { opacity: 0; transform: scaleY(0.2); }
+  25% { opacity: 1; transform: none; }
+  70% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
+}
+
+@keyframes sg-pulse {
+  0% { box-shadow: 0 0 0 0 var(--sg-hot); }
+  70% { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Reduced motion: no animation and no transition anywhere in the feed,
+   including the head rendered in the shell's masthead slot. The pulse stops
+   (not merely shortens). Everything is at its final state; "חדש" still marks
+   a new story. */
+@media (prefers-reduced-motion: reduce) {
+  .sg-feed *,
+  .sg-feed *::before,
+  .sg-feed *::after,
+  .sg-feed__head *,
+  .sg-feed__head *::before,
+  .sg-feed__head *::after { animation: none !important; transition: none !important; }
+}
+
+/* ── narrow (the mock's 900px breakpoint; phone layout unverified per #475) ── */
+
+@media (max-width: 900px) {
+  .sg-feed__head { align-items: stretch; padding-block: 16px 22px; }
+  .sg-pills {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    /* room for the focus outline inside the scroller */
+    padding: 3px;
+    margin: -3px;
+  }
+  .sg-pills::-webkit-scrollbar { display: none; }
+
+  /* Stacked: the threshold spans the width in equal parts ("הכול" sized to
+     its words); the pills scroll inside their own row below it. */
+
+
+  .sg-lead { padding: 20px; }
+  .sg-lead__row { grid-template-columns: minmax(0, 1fr); }
+  .sg-lead__row > span:empty { display: none; }
+  .sg-lead__deco i { inline-size: 40px; }
+
+  .sg-important { grid-template-columns: minmax(0, 1fr); padding-block-end: 28px; }
+  .sg-important__item,
+  .sg-important__item:first-child {
+    padding-inline: 0;
+    padding-block: 16px;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--sg-line);
+  }
+
+  .sg-band { padding-block: 24px 40px; }
+  .sg-row {
+    padding: 16px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "by" "title" "why" "members" "acts";
+  }
+  .sg-feed .sg-row__acts { justify-self: end; margin-block-start: -2px; }
+  .sg-row__title { font-size: 19px; }
+  .sg-feed .sg-acts button { min-block-size: 32px; }
+
+  /* The badge stays small but its hit area reaches 32px, like the actions. */
+  .sg-badge::after { content: ""; position: absolute; inset: -7px -4px; }
+  .sg-members__item { padding-block: 11px; }
+}

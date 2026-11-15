@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/pages/AuthControls";
 import { authVerificationResend } from "@/api/client";
 import {
   resendSecondsLeft,
@@ -57,7 +57,7 @@ export default function ResendVerification({ email, password, initialSentAt = nu
             : "שליחת הקישור שוב"}
       </Button>
       {notice && (
-        <p role="status" className="text-sm text-text-secondary">
+        <p role="status" className="text-sm sg-auth-muted">
           {notice}
         </p>
       )}

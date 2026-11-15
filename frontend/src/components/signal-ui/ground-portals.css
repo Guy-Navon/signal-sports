@@ -1,0 +1,101 @@
+/* Radix mounts these menus under body. Each consumer menu opens its own
+   Signal scope; the default Ops menu never receives this class. */
+.signal-ui.sg-consumer-menu {
+  min-inline-size: 200px;
+  max-inline-size: calc(100vw - 32px);
+  background: var(--sg-card);
+  color: var(--sg-ink);
+  border-color: var(--sg-line);
+  font-size: 15px;
+}
+
+.sg-consumer-menu .sg-menu-label {
+  color: var(--sg-dim);
+  font-weight: 400;
+}
+
+.sg-consumer-menu [role="separator"] {
+  background: var(--sg-line);
+}
+
+.sg-consumer-menu [role^="menuitem"] {
+  color: var(--sg-ink);
+  min-block-size: 36px;
+  font-size: 15px;
+}
+
+.sg-consumer-menu [role^="menuitem"][data-highlighted] {
+  background: var(--sg-tint);
+  color: var(--sg-acc);
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.sg-ground-choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 6px;
+  padding-inline: 8px;
+  cursor: pointer;
+}
+
+.sg-ground-choice__indicator {
+  display: inline-flex;
+  inline-size: 14px;
+  color: var(--sg-acc);
+}
+
+.sg-menu-badge {
+  padding-inline: 6px;
+  background: var(--sg-tint);
+  color: var(--sg-acc);
+  font-size: 12px;
+}
+
+.signal-ui.sg-consumer-overlay {
+  background: var(--sg-top);
+  opacity: 0.7;
+}
+
+.signal-ui.sg-consumer-dialog {
+  inset-inline: 16px;
+  inset-block-start: 50%;
+  inline-size: calc(100% - 32px);
+  max-inline-size: 512px;
+  margin-inline: auto;
+  transform: translateY(-50%);
+  background: var(--sg-card);
+  color: var(--sg-ink);
+  border-color: var(--sg-line);
+}
+
+.sg-consumer-dialog .sg-dialog-description {
+  color: var(--sg-dim);
+}
+
+.sg-consumer-dialog :is(input, .sg-dialog-cancel) {
+  background: var(--sg-card);
+  color: var(--sg-ink);
+  border-color: var(--sg-line);
+}
+
+.sg-consumer-dialog .sg-dialog-action {
+  background: var(--sg-hot);
+  color: var(--sg-hot-fg);
+}
+
+.sg-consumer-dialog .sg-dialog-cancel:hover {
+  background: var(--sg-tint);
+  color: var(--sg-acc);
+}
+
+.sg-consumer-dialog [role="alert"] {
+  color: var(--sg-hot);
+}
+
+.sg-consumer-dialog :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  box-shadow: none;
+}

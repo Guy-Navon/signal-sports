@@ -8,3 +8,5 @@
 .sr-lab-controls button[aria-pressed="true"] { color: var(--sg-top-fg); background: var(--sg-top); }
 .sr-lab-controls p { flex-basis: 100%; font-size: 14px; color: var(--sg-dim); }
 .sr-lab-controls :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.sr-lab-phone { display: flex; justify-content: center; padding-block: 16px 40px; background: var(--sg-band); }
+.sr-lab-phone iframe { border: 1px solid var(--sg-line); border-radius: 12px; background: var(--sg-bg); max-inline-size: 100%; }

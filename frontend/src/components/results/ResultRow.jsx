@@ -1,29 +1,36 @@
 import React from "react";
-import { chosenLineText } from "./resultsPageModel";
-import { formatGameTime } from "./resultsFormat";
+import { leadersText } from "./resultsLayoutModel";
+import { shortTeamName } from "./resultsTeamNames";
 import { RESULTS_STATS_MARKER } from "./resultsStatsBoundary";
 
-export default function ResultRow({ game, onOpen, rowRef = null, layout = "two-line" }) {
-  const scheduled = game.status === "scheduled";
-  const openable = !scheduled && game.detailAvailable;
+export function FollowDot() {
+  return <span className="sr-dot" role="img" aria-label="קבוצה שאתה עוקב אחריה" />;
+}
+
+const winnerOf = (game) => game.status === "final" ? (game.winner ?? (game.home.isWinner ? "home" : game.away.isWinner ? "away" : null)) : null;
+
+// One line on a desktop, two on a phone: home | score | away, then the leaders.
+// The row opens the game popup when the provider has game data.
+export default function ResultRow({ game, followed, onOpen, rowRef = null }) {
+  const openable = game.detailAvailable;
   const Row = openable ? "button" : "div";
-  return <Row ref={rowRef} type={openable ? "button" : undefined} className={`sr-row sr-row--${layout}`}
+  const winner = winnerOf(game);
+  const leaders = leadersText(game);
+  const side = (key) => <span className={`sr-team sr-team--${key}`} data-winner={winner === key || undefined}>
+    {followed.has(game[key].id) && key === "home" && <FollowDot />}
+    <bdi dir="auto">{shortTeamName(game[key])}</bdi>
+    {followed.has(game[key].id) && key === "away" && <FollowDot />}
+  </span>;
+  return <Row ref={rowRef} type={openable ? "button" : undefined} className="sr-row"
     data-game-id={game.id} data-results-statistics={RESULTS_STATS_MARKER} tabIndex={openable ? undefined : -1}
     onClick={openable ? onOpen : undefined} aria-haspopup={openable ? "dialog" : undefined}>
-    {scheduled && <span className="sr-kickoff">המשחק הבא · <time dateTime={game.startTime}>{formatGameTime(game.startTime) || "שעה תפורסם בהמשך"}</time></span>}
-    <span className="sr-sides">
-      {["home", "away"].map(side => <span key={side} className="sr-side" data-winner={game.status === "final" && (game.winner ? game.winner === side : game[side].isWinner) || undefined}>
-        <span className="sr-team"><bdi dir="auto">{game[side].name}</bdi>{game[side].rank != null && <span className="sr-rank"> [{game[side].rank}]</span>}</span>
-        <span className="sr-score" dir="ltr">{scheduled ? "—" : game[side].score ?? "—"}</span>
-        {!scheduled && <span className="sr-leaders">{(game.leaders || []).filter(p => p.side === side).map((p, i) => <React.Fragment key={`${p.entity_id || p.name}-${i}`}>
-          {i > 0 && " · "}<bdi dir="auto">{p.name || "שחקן לא מזוהה"}</bdi> <span className="sr-num" dir="ltr">{p.value}</span> {p.stat === "goals" ? (p.value === 1 ? "שער" : "שערים") : "נק׳"}
-        </React.Fragment>)}</span>}
-      </span>)}
+    {side("home")}
+    <span className="sr-score">
+      <span className="sr-pts" data-winner={winner === "home" || undefined}>{game.home.score ?? "—"}</span>
+      <span className="sr-dash" aria-hidden="true">–</span>
+      <span className="sr-pts" data-winner={winner === "away" || undefined}>{game.away.score ?? "—"}</span>
     </span>
-    {(game.chosenPlayerLines || []).map((p, i) => <span className="sr-chosen-line" key={`${p.entity_id}-${i}`}>
-      <bdi dir="auto">{p.name}</bdi><span>{chosenLineText(p, game.sport)}</span>
-    </span>)}
-    {!scheduled && !game.detailAvailable && <span className="sr-source-note">תוצאה בלבד · נתוני המשחק לא זמינים</span>}
-    {openable && <span className="sr-open-hint">פרטי המשחק</span>}
+    {side("away")}
+    <span className="sr-leaders">{leaders ? <bdi dir="auto">{leaders}</bdi> : !openable && <span title="נתוני המשחק לא זמינים">תוצאה בלבד</span>}</span>
   </Row>;
 }

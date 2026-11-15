@@ -6,6 +6,18 @@ import { fileURLToPath } from "node:url";
 
 const frontend = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+// Stop unexpected requests before Vite can proxy them to a running backend.
+export async function blockCaptureProxies(client, origin, report) {
+  client.on("Fetch.requestPaused", async event => {
+    report(`Unexpected backend-proxy request blocked: ${event.request.url}`);
+    await client.send("Fetch.failRequest", { requestId: event.requestId, errorReason: "BlockedByClient" });
+  });
+  await client.send("Fetch.enable", { patterns: [
+    { urlPattern: `${origin}/api*`, requestStage: "Request" },
+    { urlPattern: `${origin}/health*`, requestStage: "Request" },
+  ] });
+}
+
 export async function auditResultsPages({ client, origin, configureViewport, evaluate, capture, outputDirectory }) {
   const fixture = JSON.parse(await readFile(path.join(frontend, "src/lab/resultsFixtures.json"), "utf8"));
   const nba = fixture.games.find(g => g.competition_id === "comp:nba");
@@ -155,7 +167,7 @@ async function auditAdminHealth({ client, origin, configureViewport, evaluate, c
   } finally { await server.close(); }
   const directory = await mkdtemp(path.join(frontend, "results-health-review-"));
   try {
-    await writeFile(path.join(directory, "index.html"), `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script type="module">import "/src/index.css";</script></head><body><main style="max-inline-size:900px;margin-inline:auto;padding:16px"><h1>בריאות מקורות התוצאות</h1>${markup}</main></body></html>`);
+    await writeFile(path.join(directory, "index.html"), `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="viewport" content="width=device-width,initial-scale=1"><title>בריאות מקורות התוצאות · בדיקת תצוגה</title><script type="module">import "/src/index.css";</script></head><body><main style="max-inline-size:900px;margin-inline:auto;padding:16px"><h1>בריאות מקורות התוצאות</h1>${markup}</main></body></html>`);
     for (const [width, height] of [[1440, 1000], [390, 844], [320, 640]]) {
       await configureViewport(client, width, height, width < 700, true);
       await load(`/${path.basename(directory)}/index.html`, "h4");

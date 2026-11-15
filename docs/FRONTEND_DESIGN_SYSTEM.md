@@ -235,6 +235,9 @@ no inline quarters, RTL, overflow, 44px targets, Enter, modal Tab/Shift+Tab, Esc
 and opener restoration. It checks both row layouts and popup styles, intentional
 states, soft/dark grounds, local-only player search/add/remove/save, and the actual
 read-only ops health renderer. Existing feed assertions remain in place.
+The owned browser blocks root `/api*` and `/health*` requests before Vite can
+proxy them; an unexpected attempt fails the capture. Temporary health-review
+HTML uses an unproxied path and the app's existing favicon.
 
 **Demo bundle guard.** `npm run build`, `npm run build:demo`, then `npm run check:demo-bundle`.
 It fails if the demo bundle holds the API client, router, auth, app provider, a non-feed page

@@ -93,6 +93,17 @@ def http_min_interval_seconds() -> float:
         return 7.0
 
 
+def winner_min_interval_seconds() -> float:
+    """Gap between requests to the Ligat Winner sources (basket.co.il and Segev,
+    #518). Those are the league's own public endpoints with no published limit, so
+    the spacing is a courtesy, much shorter than TheSportsDB's."""
+    try:
+        v = float(os.environ.get("RESULTS_WINNER_MIN_INTERVAL_SECONDS", "2"))
+        return v if v >= 0 else 2.0
+    except ValueError:
+        return 2.0
+
+
 def http_max_retries() -> int:
     return _int("RESULTS_HTTP_MAX_RETRIES", 2, minimum=0)
 

@@ -18,10 +18,16 @@ def _thesportsdb():
     return TheSportsDBProvider()
 
 
+def _winner():
+    from app.results.providers.winner import WinnerProvider
+    return WinnerProvider()
+
+
 # Provider name -> constructor. Adding a provider is one line here.
 REGISTRY: dict[str, Callable[[], ResultsProvider]] = {
     "fake": _fake,
     "thesportsdb": _thesportsdb,
+    "winner": _winner,
 }
 
 

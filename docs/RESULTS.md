@@ -71,6 +71,8 @@ The source is isolated behind `app/results/providers/`:
 EuroCup results and detail. It is opt-in; see the activation example below.
 `espn_nba.ESPNNBAProvider` (issue #520) supports NBA scores, upcoming games and
 detail via ESPN; opt-in activation and source limits are in section 13.
+`bamboo.BambooFootballProvider` (issue #521) supports Israeli Premier League
+football results and detail (section 14), also opt-in.
 
 `providers.get_provider()` selects by `RESULTS_PROVIDER` from `providers.REGISTRY`
 (name -> constructor; a new provider is one line there).
@@ -348,8 +350,8 @@ surface available (safe with an empty corpus). Rollback = flip
 
 **Status:** implemented behind `RESULTS_DETAIL_ENABLED` (default **false** in code and
 `.env.example`). The Ligat Winner provider (section 12, #518), the official
-`euroleague` provider (section 3, #519), `espn_nba` (section 13, #520) and
-`RESULTS_PROVIDER=fake` return detail. Another real provider is added by #521.
+`euroleague` provider (section 3, #519), `espn_nba` (section 13, #520), the
+`bamboo` football provider (section 14, #521) and `RESULTS_PROVIDER=fake` return detail.
 `/api/me/results` does not expose it yet
 (#523). `game_results` is unchanged, so the page keeps working with scores only when a
 detail source fails or has nothing.
@@ -563,3 +565,92 @@ remaining detail games `not_checked`, with Retry-After (seconds or HTTP date;
 60 seconds if absent/invalid). Existing provider-specific sync blocks apply.
 Error strings are short and URL-free. A source change can therefore leave
 scores usable while detail fails; no LLM or paid source is involved.
+
+## 14. Israeli Premier League via Bamboo (issue #521)
+
+2026-11-15 — implemented as `BambooFootballProvider`, registered as `bamboo`.
+Only `comp:ligat_haal` is supported; other competitions get an error entry.
+Routes remain empty and detail remains off by default. To opt in, keep the
+default provider for other competitions and set:
+
+```dotenv
+RESULTS_PROVIDER_ROUTES=comp:ligat_haal=bamboo
+RESULTS_DETAIL_ENABLED=true
+```
+
+Combine this route with any existing entries in the same comma-separated value.
+Production activation requires #532's provider filtering to be deployed: reads
+then show only the currently routed provider's games, preserving old TheSportsDB
+rows without showing duplicates. This change does not enable any live flags.
+Rollback removes the Bamboo route; disabling detail stops all detail requests.
+
+**Source and scores.** The public football.co.il Bamboo CDN, no key:
+`https://cdnapi.bamboo-cloud.com/api/football/{game|team|stats|player|standings}`,
+always with `format=json&iid=573881b7181f46ae4c8b4567`. One `game` request per
+sync; one `team` request per provider instance, shared with detail. The source
+returns its current season, not an archive selected by `RESULTS_SEASONS`.
+`external_id` is the source game id; `26/27` becomes `2026-2027`, `stage` is the
+round. `date.sec` supplies the UTC timestamp even when `stringDate` is a range
+and `hour` is absent; that timestamp does not establish a confirmed kickoff for
+an upcoming fixture. Status 3 is final (including 0–0), 2 live, 4 postponed/to
+be decided, null with a future date scheduled; other cases are unknown. Only
+final/live games retain scores. Bad rows do not lose other games. The existing
+`RESULTS_MAX_GAMES_PER_COMPETITION` cap applies: up to a quarter goes to the
+nearest upcoming games and the rest to the newest results, as for Winner.
+
+**Teams.** Display names prefer `hebrewName`; ids use `resolve_team` scoped to
+`comp:ligat_haal`, Hebrew then English. In the saved 14-club season, nine clubs
+resolve. Five have no taxonomy entity: Kiryat Shmona, Bnei Sakhnin, Hapoel Ramat
+Gan, Hapoel Petah Tikva and Ironi Tiberias. They retain Hebrew names and null
+canonical ids, so they remain relevant through a competition follow. No new
+taxonomy entities or aliases were added; article classification is unchanged.
+
+**Detail.** One `stats?filter={"gameId":N}` request per finished candidate,
+plus one `player?filter={"id":N}` lookup per new player id, cached for the
+provider instance (including missing/failed names). Player lines retain Hebrew
+first/last names, Latin name, minutes, `goals`, `assists`, `yellow_cards`,
+`red_cards`, `own_goals` and `xg`. Side comes from the stats key's team id,
+never a player's current profile team. A missing or failed player lookup keeps
+the line without a name and does not prevent storage.
+
+The saved real payload corrects an assumption in the implementation brief:
+**`playerId=-1` rows repeat each team's totals**, including goals, cards and xG.
+They are stored once in `team_stats.home` / `.away`, not added as player goals.
+Any positive gap between those totals and named player counts becomes an unnamed
+line (and an unnamed scorer for a goal gap). No player lookup is made for -1.
+For saved game 310793, the four scorers are Sokler and Jehezkel for Maccabi Tel
+Aviv, Tibi and Hadida for Petah Tikva, matching the 2–2 result. This handling and
+the five unresolved clubs were confirmed by Guy during implementation.
+Leaders include **every** player with a positive goal count, even when another
+player scored more, plus unnamed goal gaps. No goal minutes are invented, and
+no licensed Opta widgets or endpoints are used.
+
+Team red-card counts use the totals once (or the sum of player rows if no total
+exists). A single optional `standings` lookup per provider instance stores
+`position` as each side's `rank`; this is the source's current table, not a
+historical round rank. Venue matches the game's `stadiumId` against expanded
+team stadiums, preferring Hebrew. A fresh detail-only provider loads one season
+response and teams for metadata if needed. Empty stats or a game no longer final
+remain pending. Malformed stats are per-game errors; later games still proceed.
+
+**Reliability and request volume.** All endpoints and retries share the same
+httpx client within a call, timeout (`RESULTS_HTTP_TIMEOUT_SECONDS`), honest
+`signal-sports-results/1.0` User-Agent and pacing
+(`RESULTS_BAMBOO_MIN_INTERVAL_SECONDS`, default 2). Transient HTTP failures and
+timeouts retry at most `RESULTS_HTTP_MAX_RETRIES`; permanent HTTP errors do not
+retry and report short, URL-free messages. A 429 is never retried: it stops all
+further requests, propagates `not_checked` and Retry-After (60 seconds if absent
+or invalid), and uses the existing provider-specific sync block. If optional
+standings is rate-limited, already completed player detail is kept without rank.
+Other standings failures are cached without losing detail. The existing detail
+stage caps work with `RESULTS_DETAIL_MAX_PER_RUN` and never re-fetches a stored
+finished detail; the season list continues to refresh scores and schedules.
+
+**Tests.** `tests/test_results_bamboo_521.py` uses trimmed saved payloads under
+`tests/fixtures/results/ligat_haal`, `httpx.MockTransport` and a real-transport
+block. It covers normalization, all 14 club names, scorer/totals/gap semantics,
+team-from-key transfers, missing names, cards, ranks, venue, retries, pacing,
+429 isolation, malformed games, routing, client ownership, and isolated DB
+syncs with detail on/off. A second sync requests only scores/teams, never stored
+detail or player names. No API output (#523), UI, health UI (#522), player mapping
+(#525), LLM or feed-policy changes are included.

@@ -1,0 +1,20 @@
+{
+  "data": {
+    "472347": {
+      "id": 472347,
+      "name": "Dor Hevron",
+      "firstName": "דור",
+      "lastName": "חברון",
+      "shirtNumber": "1",
+      "position": "goalie",
+      "teamId": {
+        "id": 15006,
+        "name": "Maccabi Petach Tikva",
+        "hebrewName": "מכבי פ\"ת"
+      }
+    }
+  },
+  "meta": {
+    "total": 1
+  }
+}

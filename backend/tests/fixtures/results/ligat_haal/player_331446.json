@@ -1,0 +1,20 @@
+{
+  "data": {
+    "331446": {
+      "id": 331446,
+      "name": "Guy Hadida",
+      "firstName": "גיא",
+      "lastName": "חדידה",
+      "shirtNumber": "23",
+      "position": "mid-fielder",
+      "teamId": {
+        "id": 15006,
+        "name": "Maccabi Petach Tikva",
+        "hebrewName": "מכבי פ\"ת"
+      }
+    }
+  },
+  "meta": {
+    "total": 1
+  }
+}

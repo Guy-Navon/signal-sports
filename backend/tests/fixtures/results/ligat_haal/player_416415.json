@@ -1,0 +1,20 @@
+{
+  "data": {
+    "416415": {
+      "id": 416415,
+      "name": "Raz Shlomo",
+      "firstName": "רז",
+      "lastName": "שלמה",
+      "shirtNumber": "13",
+      "position": "defenseman",
+      "teamId": {
+        "id": 4536,
+        "name": "Maccabi Tel Aviv",
+        "hebrewName": "מכבי ת\"א"
+      }
+    }
+  },
+  "meta": {
+    "total": 1
+  }
+}

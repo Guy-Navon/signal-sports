@@ -1,0 +1,143 @@
+{
+  "data": {
+    "4539": {
+      "id": 4539,
+      "name": "Maccabi Haifa",
+      "hebrewName": "מכבי חיפה",
+      "stadiumId": {
+        "id": 7284,
+        "name": "Sammi Ofer",
+        "hebrewName": "סמי עופר"
+      }
+    },
+    "4530": {
+      "id": 4530,
+      "name": "Hapoel Tel Aviv",
+      "hebrewName": "הפועל ת\"א",
+      "stadiumId": {
+        "id": 1536,
+        "name": "Bloomfield Stadium",
+        "hebrewName": "בלומפילד"
+      }
+    },
+    "4536": {
+      "id": 4536,
+      "name": "Maccabi Tel Aviv",
+      "hebrewName": "מכבי ת\"א",
+      "stadiumId": {
+        "id": 1536,
+        "name": "Bloomfield Stadium",
+        "hebrewName": "בלומפילד"
+      }
+    },
+    "15006": {
+      "id": 15006,
+      "name": "Maccabi Petach Tikva",
+      "hebrewName": "מכבי פ\"ת",
+      "stadiumId": {
+        "id": 8529,
+        "name": "Shlomo Bituach",
+        "hebrewName": "שלמה ביטוח"
+      }
+    },
+    "4524": {
+      "id": 4524,
+      "name": "Beitar Jerusalem",
+      "hebrewName": "בית\"ר ירושלים",
+      "stadiumId": {
+        "id": 2493,
+        "name": "Teddi",
+        "hebrewName": "טדי"
+      }
+    },
+    "4554": {
+      "id": 4554,
+      "name": "Hapoel Beer Sheva",
+      "hebrewName": "הפועל ב\"ש",
+      "stadiumId": {
+        "id": 11556,
+        "name": "Turner Toto",
+        "hebrewName": "טוטו טרנר"
+      }
+    },
+    "14316": {
+      "id": 14316,
+      "name": "Hapoel Haifa",
+      "hebrewName": "הפועל חיפה",
+      "stadiumId": {
+        "id": 7284,
+        "name": "Sammi Ofer",
+        "hebrewName": "סמי עופר"
+      }
+    },
+    "4563": {
+      "id": 4563,
+      "name": "Ironi Kiryat Shmona",
+      "hebrewName": "הפועל ק\"ש",
+      "stadiumId": {
+        "id": 9921,
+        "name": "Kiryat Shmona",
+        "hebrewName": "קרית שמונה"
+      }
+    },
+    "15960": {
+      "id": 15960,
+      "name": "Bnei Sakhnin",
+      "hebrewName": "בני סכנין",
+      "stadiumId": {
+        "id": 9393,
+        "name": "Doha",
+        "hebrewName": "דוחא"
+      }
+    },
+    "4545": {
+      "id": 4545,
+      "name": "Maccabi Netanya",
+      "hebrewName": "מכבי נתניה",
+      "stadiumId": {
+        "id": 4608,
+        "name": "Miriam Netanya",
+        "hebrewName": "מרים נתניה"
+      }
+    },
+    "4551": {
+      "id": 4551,
+      "name": "Hapoel Ramat Gan",
+      "hebrewName": "הפועל ר\"ג",
+      "stadiumId": {
+        "hebrewName": ""
+      }
+    },
+    "4542": {
+      "id": 4542,
+      "name": "Hapoel Petach Tikva",
+      "hebrewName": "הפועל פ\"ת",
+      "stadiumId": {
+        "hebrewName": ""
+      }
+    },
+    "7020": {
+      "id": 7020,
+      "name": "Hapoel Jerusalem",
+      "hebrewName": "הפועל ירושלים",
+      "stadiumId": {
+        "id": 67428,
+        "name": "Rehovot",
+        "hebrewName": "רחובות"
+      }
+    },
+    "12039": {
+      "id": 12039,
+      "name": "Ironi Tveria",
+      "hebrewName": "עירוני טבריה",
+      "stadiumId": {
+        "id": 0,
+        "name": "N/A",
+        "hebrewName": ""
+      }
+    }
+  },
+  "meta": {
+    "total": 14
+  }
+}

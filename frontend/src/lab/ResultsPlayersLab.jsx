@@ -14,7 +14,7 @@ export default function ResultsPlayersLab() {
   const { ground } = useGround();
   const [selected, setSelected] = useState(["player:deni_avdija"]);
   const [saved, setSaved] = useState(false);
-  return <main className="signal-ui sg-personalization sg-gutter" data-ground={ground} style={{ paddingBlock: 24 }}>
+  return <main className="signal-ui sg-personalization sg-gutter" data-ground={ground} style={{ paddingBlock: 24, minBlockSize: "100dvh" }}>
     <div className="sg-container"><h1>שחקנים בתוצאות — חלופת כיוונון</h1>
       <p className="sg-form-note">דוגמה לבחירת המיקום. הבחירה כאן נשארת במעבדה.</p>
       <ResultsPlayersEditor catalog={PLAYERS} selected={selected} onChange={(ids) => { setSelected(ids); setSaved(false); }}

@@ -7,8 +7,8 @@ disagrees, this wins for results behavior.
 
 2026-11-15 — issue #517: per-game detail storage (`game_details`,
 `game_player_lines`), an optional provider detail capability and a sync stage,
-behind `RESULTS_DETAIL_ENABLED` (default off). See §11. No API or UI change yet
-(#523, #513).
+behind `RESULTS_DETAIL_ENABLED` (default off). See §11; #523 exposes stored detail
+through the opt-in API described in §6. The new page is built separately on `ui/next`.
 
 2026-11-15 — issue #522: per-provider health (`results_provider_health`), a
 per-provider switch (`RESULTS_PROVIDER_DISABLED`), a read-time fallback to the
@@ -266,6 +266,8 @@ created by `create_all`.
 | GET | `/api/me/results/players` | session | own chosen players, Hebrew names |
 | GET | `/api/me/results/players/catalog` | session | all taxonomy players for the results picker (names and aliases) |
 | PUT | `/api/me/results/players` | session + normal CSRF checks | replace own choices; no feed mutation |
+| GET | `/api/me/results/games/{game_id}/detail` | session | relevant final game's serving-provider box score, else 404 |
+| GET | `/api/results/{user_id}/games/{game_id}/detail` | admin | identical view-as handler |
 | GET | `/api/results/{user_id}` | admin (`require_admin`) | ops view-as, parity handler |
 | POST | `/api/results/sync` | admin | manual sync (force) |
 | GET | `/api/results/sync/state` | admin | last sync outcome, plus `health` (§15) |
@@ -275,6 +277,39 @@ distinguishes the "no follows" state from "no relevant results". Each
 `GameResult` carries `competition_he/en`, `status`, `start_time` (UTC ISO),
 `home`/`away` (`id`, `name` = taxonomy Hebrew when resolved else provider name,
 `name_provider`, `score`, `is_winner`), `winner`, and `relevance_reason`.
+
+2026-11-15 — #523: every old field retains its meaning. Additive fields are:
+
+- `local_date`: Asia/Jerusalem calendar date (`YYYY-MM-DD`, null without a usable start).
+  Together with existing `sport` and `competition_id`, this supports date → sport → league.
+- `home.rank` / `away.rank`: positive integer from `detail.team_stats.<side>.rank`, else null.
+- `leaders`: `[{side, name, entity_id, stat, value}]`. Basketball includes points leaders
+  (and all tied scorers), never rebounds/assists leaders; football includes every scorer.
+  Names follow §11's mapping/source fallback rule. No quarter scores in the list.
+- `chosen_player_lines`: only the session/view-as user's explicit choices that played.
+  Each has `side`, `entity_id`, `name`, `minutes` and `stats`: basketball points/rebounds/assists;
+  football goals/assists/yellow_cards/red_cards. Native EuroLeague rebounds/assists are
+  normalized here. DNP/zero-minute zero-stat lines are omitted; missing stats are not invented.
+- `venue`, `attendance` (null when unknown), and `detail_available` (bool).
+
+**Opt-in boundary:** `RESULTS_DETAIL_ENABLED=false` retains the legacy game set, order,
+status behavior and all old field values, including with no routes; new detail fields
+are empty/null/false. The flag also gates the detail endpoint (404 while off). With
+it on, list reads show finals in the existing history window plus scheduled relevant
+games from now through `RESULTS_UPCOMING_DAYS` days ahead, inclusive (default 7).
+Live, postponed, cancelled and unknown games are **omitted**; no in-play state is
+invented. The upcoming window reads stored rows only, without new provider calls or
+changing provider fetch windows. Results-only competition expansion makes a follow
+of `comp:ibl` also cover `comp:winner_cup` and `comp:il_super_cup` while opted in.
+Neither this expansion nor chosen players change feed relevance or classification.
+
+The popup response is `{game_id, players, team_stats, venue, attendance}`. Each player
+has side, source_player_id, entity_id, display `name`, minutes and complete native
+`stats` (box scores may include players not selected for an inline line). It uses
+`service.visible_details` and the same relevance, history window and #522 serving
+decision as the list; invisible, wrong-provider, missing-detail and missing games
+all answer 404. Consumer identity comes only from the session. Admin view-as reads
+the target user's choices, never the admin's. Reads never fetch providers.
 
 2026-11-15 — #524: choices live in `results_chosen_players`, composite primary key
 `(user_id, entity_id)` plus UTC `created_at`, created by `create_all`. Account
@@ -308,6 +343,11 @@ Local data mode (offline demo / tests) runs the identical
 normalize → relevance → group path over `src/data/mockResults.js` with
 client-side relevance (`resultsRelevance.js`); in backend mode the server is the
 sole relevance authority.
+
+The #523 additive API supports the forthcoming `ui/next` page: the client groups by
+`local_date`, then `sport`, then `competition_id`, and loads the popup separately.
+The existing main UI continues to read its original fields. Scores remain usable
+when a serving source has no detail; `detail_available=false` and leaders/lines empty.
 
 ## 8. Configuration
 
@@ -390,8 +430,8 @@ fallback and backup sync (§15).
 `.env.example`). The Ligat Winner provider (section 12, #518), the official
 `euroleague` provider (section 3, #519), `espn_nba` (section 13, #520), the
 `bamboo` football provider (section 14, #521) and `RESULTS_PROVIDER=fake` return detail.
-`/api/me/results` does not expose it yet
-(#523). `game_results` is unchanged, so the page keeps working with scores only when a
+`/api/me/results` exposes it only with the flag on (§6, #523).
+`game_results` is unchanged, so the page keeps working with scores only when a
 detail source fails or has nothing.
 
 ### Storage
@@ -541,10 +581,10 @@ Games already stored for `comp:ibl` by TheSportsDB stay as rows of that provider
 different identity), so the page can show both until the old rows age out of the read
 window; check for duplicate Ligat Winner games after switching.
 
-**Relevance of the cups.** Results relevance (`relevance.py`) matches the competition
-exactly; it does not follow the taxonomy `parent`. A profile that follows `comp:ibl` is
-therefore **not** shown `comp:winner_cup` or `comp:il_super_cup` games between unfollowed
-clubs (only the games of a followed team). Not changed in #518.
+**Relevance of the cups.** With detail enabled, #523's read service expands an IBL
+competition follow to Winner Cup and Supercup (§6), including games between clubs
+not followed individually. The feed taxonomy/classifier and affinities are unchanged.
+With the flag off the legacy exact competition rule remains.
 
 ## 13. NBA via ESPN (issue #520, opt-in)
 

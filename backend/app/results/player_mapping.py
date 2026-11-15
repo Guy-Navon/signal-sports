@@ -61,10 +61,15 @@ def remember_player(session: Session, provider: str, source_player_id: str | Non
 
 
 def display_player(session: Session, provider: str, source_player_id: str | None,
-                   name: str | None = None, name_he: str | None = None) -> tuple[str | None, str | None]:
+                   name: str | None = None, name_he: str | None = None, *,
+                   mappings: dict[tuple[str, str], str] | None = None) -> tuple[str | None, str | None]:
     """Read without writing; old cached detail can resolve without a re-fetch."""
-    row = session.get(ResultsPlayerMappingRow, (provider, source_player_id)) if source_player_id else None
-    eid = row.entity_id if row else resolve_player(provider, source_player_id, name, name_he)
+    if mappings is not None:
+        eid = mappings.get((provider, source_player_id))
+    else:
+        row = session.get(ResultsPlayerMappingRow, (provider, source_player_id)) if source_player_id else None
+        eid = row.entity_id if row else None
+    eid = eid or resolve_player(provider, source_player_id, name, name_he)
     entity = entity_by_id(eid) if eid else None
     if entity and entity.kind == "player":
         return entity.id, entity.display_he

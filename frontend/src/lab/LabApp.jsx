@@ -9,6 +9,7 @@ import MotionLab from "./MotionLab";
 import NavLab from "./NavLab";
 import FilterLab from "./FilterLab";
 import ResultsPlayersLab from "./ResultsPlayersLab";
+import ResultsLab from "./ResultsLab";
 import { GROUNDS } from "@/components/signal-ui/ground";
 import { GroundProvider } from "@/components/signal-ui/useGround";
 
@@ -97,6 +98,7 @@ export default function LabApp() {
   if (page === "filters") return <GroundProvider initialGround={initialGround}><FilterLab /></GroundProvider>;
   if (page === "nav") return <GroundProvider initialGround={initialGround}><NavLab /></GroundProvider>;
   if (page === "resultsplayers") return <GroundProvider initialGround={initialGround}><ResultsPlayersLab /></GroundProvider>;
+  if (page === "results") return <GroundProvider initialGround={initialGround}><ResultsLab /></GroundProvider>;
   return (
     <main className="lab-page">
       {GROUNDS.map((ground) => (

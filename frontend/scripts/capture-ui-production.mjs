@@ -20,6 +20,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { auditResultsPages, blockCaptureProxies } from "./capture-results.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const frontendDirectory = path.resolve(scriptDirectory, "..");
@@ -2803,6 +2804,7 @@ async function main() {
     await client.send("Page.enable");
     await client.send("Runtime.enable");
     await client.send("Log.enable");
+    await blockCaptureProxies(client, origin, message => browserErrors.push(message));
     client.on("Runtime.exceptionThrown", (event) => {
       browserErrors.push(event.exceptionDetails?.exception?.description
         ?? event.exceptionDetails?.text ?? "Runtime exception");
@@ -3000,6 +3002,7 @@ async function main() {
       }
     }
 
+    const resultsPageAudits = await auditResultsPages({ client, origin, configureViewport, evaluate, capture, outputDirectory });
     if (browserErrors.length) {
       throw new Error(`Browser errors:\n${browserErrors.join("\n")}`);
     }
@@ -3077,6 +3080,7 @@ async function main() {
           },
           narrowViewports,
           resultsAudits,
+          resultsPageAudits,
           regressions: {
             reducedMotion: summarise(reducedMotionRegressions),
             normalMotion: summarise(normalMotionRegressions),

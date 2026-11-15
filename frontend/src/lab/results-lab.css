@@ -1,0 +1,10 @@
+.sr-results-lab { min-block-size: 100dvh; }
+.sr-lab-head { padding-block: 20px; padding-inline: 16px; background: var(--sg-top); color: var(--sg-top-fg); }
+.sr-lab-head .sg-wordmark { font-size: 32px; }
+.sr-lab-head p { font-size: 14px; margin-block-start: 6px; }
+.sr-lab-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-block: 20px; }
+.sr-lab-controls [role="group"] { display: flex; flex-wrap: wrap; gap: 6px; }
+.sr-lab-controls button, .sr-lab-controls select { min-block-size: 44px; padding: 8px 12px; border: 1px solid var(--sg-line); border-radius: 4px; color: var(--sg-ink); background: var(--sg-card); font-size: 14px; }
+.sr-lab-controls button[aria-pressed="true"] { color: var(--sg-top-fg); background: var(--sg-top); }
+.sr-lab-controls p { flex-basis: 100%; font-size: 14px; color: var(--sg-dim); }
+.sr-lab-controls :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }

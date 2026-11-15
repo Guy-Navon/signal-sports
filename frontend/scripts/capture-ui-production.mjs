@@ -2742,7 +2742,7 @@ async function auditFeedRegressions(client, label) {
 }
 
 export async function stopProcess(child, { graceful = false } = {}) {
-  if (!child || child.exitCode !== null) return;
+  if (!child || child.exitCode !== null || child.signalCode) return;
   await new Promise((resolve, reject) => {
     let killTimer;
     const cleanup = () => {

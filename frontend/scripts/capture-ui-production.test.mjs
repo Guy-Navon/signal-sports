@@ -21,6 +21,16 @@ it("waits for an owned child's actual exit before removing its profile", async (
   expect(child.exitCode).toBe(0);
 });
 
+it("recognizes a child that already exited via a signal", async () => {
+  const child = new EventEmitter();
+  child.exitCode = null;
+  child.signalCode = "SIGTERM";
+  let kills = 0;
+  child.kill = () => { kills += 1; queueMicrotask(() => child.emit("exit", null, "SIGTERM")); };
+  await stopProcess(child);
+  expect(kills).toBe(0);
+});
+
 function listen(server, port) {
   return new Promise((resolve, reject) => {
     server.once("error", reject);

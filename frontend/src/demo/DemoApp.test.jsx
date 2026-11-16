@@ -157,3 +157,21 @@ it("shows an honest note when there are no results, and does not invent games", 
   expect(root.findAllByProps({ className: "sr-row" })).toHaveLength(0);
   expect(root.findAllByProps({ className: "sr-tile" })).toHaveLength(0);
 });
+
+it("marks leagues with 4+ games, or alone in their day, as wide so small leagues can pack side by side", async () => {
+  withHash("#results");
+  const many = [1, 2, 3, 4].map((n) => finalGame(`n${n}`));
+  const few = finalGame("s1", { competitionId: "comp:ucl", competitionHe: "ליגת האלופות" });
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results: [...many, few] });
+  const root = await render();
+  const leagues = root.findAll((n) => n.type === "section" && /\bsr-league\b/.test(n.props.className || ""));
+  expect(leagues.map((n) => /sr-league--wide/.test(n.props.className))).toEqual([true, false]);
+});
+
+it("makes a lone league span the day even when it is small", async () => {
+  withHash("#results");
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results: [finalGame("a1")] });
+  const root = await render();
+  const [league] = root.findAll((n) => n.type === "section" && /\bsr-league\b/.test(n.props.className || ""));
+  expect(league.props.className).toContain("sr-league--wide");
+});

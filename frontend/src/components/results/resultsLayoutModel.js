@@ -7,7 +7,8 @@ import { shortTeamName } from "./resultsTeamNames";
 
 export const COLLAPSE_OVER = 5;
 export const COLLAPSE_SHOW = 4;
-export const TILE_LIMIT = 4;
+export const TILE_LIMIT = 8;
+export const TEAM_TILE_LIMIT = 4;
 const SOURCE_AUTHORITY = { explicit: 3, learned: 2, calibration: 1 };
 const FOLLOW_THRESHOLD = 1;
 const WINDOW_MS = 48 * 60 * 60 * 1000;
@@ -63,10 +64,20 @@ export function tileVerdict(game, followed) {
   return null;
 }
 
-// The most recent finals involving a followed team or carrying a chosen-player line.
+// Latest finals for followed teams, independent of the stream's age limit.
+// A derby appears once and counts toward both followed teams' quotas.
 export function tileEntries(games, followed, limit = TILE_LIMIT) {
-  return finals(games).filter(g => isPriorityGame(g, followed)).sort(byStart).slice(0, limit)
-    .map(game => ({ game, verdict: tileVerdict(game, followed), chosen: (game.chosenPlayerLines || [])[0] || null }));
+  const entries = [], seen = new Set(), counts = new Map();
+  const maximum = Math.min(Math.max(0, limit), TILE_LIMIT);
+  for (const game of finals(games).sort(byStart)) {
+    if (entries.length >= maximum) break;
+    const teams = [...new Set([game.home?.id, game.away?.id])].filter(id => followed.has(id));
+    if (!teams.length || seen.has(game.id) || teams.some(id => (counts.get(id) || 0) >= TEAM_TILE_LIMIT)) continue;
+    entries.push({ game, verdict: tileVerdict(game, followed), chosen: (game.chosenPlayerLines || [])[0] || null });
+    seen.add(game.id);
+    for (const id of teams) counts.set(id, (counts.get(id) || 0) + 1);
+  }
+  return entries;
 }
 
 const HEBREW = /[֐-׿]/;

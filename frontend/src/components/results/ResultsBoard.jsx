@@ -14,17 +14,18 @@ const MESSAGES = { preferences: "עדיין לא בחרת מה מעניין או
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 export default function ResultsBoard({ games: allGames = [], profile = null, hasPreferences = false, loading = false, error = null,
-  onRetry = () => {}, getDetail, nowMs = Date.now(), readOnly = false }) {
+  onRetry = () => {}, getDetail, nowMs = Date.now(), readOnly = false, teamGames = null, followedTeamIds: followedIds = [] }) {
   const [selected, setSelected] = useState(null), [expanded, setExpanded] = useState(() => new Set());
   const opener = useRef(null), heading = useRef(null), rows = useRef(new Map()), pendingFocus = useRef(null);
   const now = useMemo(() => new Date(nowMs), [nowMs]);
   const games = useMemo(() => recentResults(allGames, nowMs), [allGames, nowMs]);
-  const state = pageState({ loading, error, hasPreferences, games });
-  const followed = useMemo(() => followedTeamIds(profile, games), [profile, games]);
+  const followed = useMemo(() => new Set([...followedTeamIds(profile, [...allGames, ...(teamGames || [])]), ...followedIds]),
+    [profile, allGames, teamGames, followedIds]);
   const model = useMemo(() => ({
-    summary: summaryParts(games, now), tiles: tileEntries(games, followed), chips: dateChips(games, now),
+    summary: summaryParts(games, now), tiles: tileEntries(teamGames ?? allGames, followed), chips: dateChips(games, now),
     days: streamDays(games, followed, now), tonight: sideBoxes(games, now).tonight, players: playerLines(games, now),
-  }), [games, followed, now]);
+  }), [games, teamGames, allGames, followed, now]);
+  const state = pageState({ loading, error, hasPreferences, games: [...games, ...model.tiles.map(entry => entry.game)] });
   useEffect(() => {
     if (pendingFocus.current) rows.current.get(pendingFocus.current)?.focus();
     pendingFocus.current = null;
@@ -90,6 +91,7 @@ export default function ResultsBoard({ games: allGames = [], profile = null, has
         </aside>
       </div></div></div>
     </>}
-    {selected && games.some(game => game.id === selected.id) && <GameDetailDialog key={selected.id} game={selected} getDetail={getDetail} onClose={close} />}
+    {selected && (games.some(game => game.id === selected.id) || model.tiles.some(entry => entry.game.id === selected.id)) &&
+      <GameDetailDialog key={selected.id} game={selected} getDetail={getDetail} onClose={close} />}
   </div>;
 }

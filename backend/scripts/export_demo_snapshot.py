@@ -54,26 +54,34 @@ def _resolve_db(explicit: pathlib.Path | None) -> pathlib.Path:
 def build_results_snapshot(db_path: pathlib.Path) -> dict:
     """The demo profile's results, upcoming games and available stored details.
 
-    Read the same personalized API handlers without providers or database writes.
+    Use the exporter's read-only engine: no sync, provider requests or writes.
+    Keep the API wire shape so the demo uses the product's result normalizer.
     """
     from sqlalchemy.orm import sessionmaker
+
     from fastapi import HTTPException
+
     from app.api.routes_results import get_detail_for_user, get_results_for_user
     from app.ops.demo_snapshot import DEMO_USER_ID, readonly_engine
     from app.results.settings import results_enabled
     from app.results.status import FINAL, SCHEDULED
 
     if not results_enabled():
-        return {"has_preferences": False, "games": [], "details": {}}
+        return {"has_preferences": False, "games": [], "team_games": [], "followed_team_ids": [], "details": {}}
+
     engine = readonly_engine(db_path)
     try:
         with sessionmaker(bind=engine, autoflush=False)() as session:
-            payload = get_results_for_user(user_id=DEMO_USER_ID, session=session, limit=200).model_dump(mode="json")
+            response = get_results_for_user(user_id=DEMO_USER_ID, session=session, limit=200)
+            payload = response.model_dump(mode="json")
             games = [_public_game(game) for game in payload["games"] if game["status"] in (FINAL, SCHEDULED)]
+            team_games = [_public_game(game) for game in payload.get("team_games", []) if game["status"] == FINAL]
             details = {}
-            for game in games:
+            for game in [*games, *team_games]:
                 if game["status"] != FINAL or not game["detail_available"]:
                     game["detail_available"] = False
+                    continue
+                if game["id"] in details:
                     continue
                 try:
                     detail = get_detail_for_user(DEMO_USER_ID, game["id"], session)
@@ -86,7 +94,8 @@ def build_results_snapshot(db_path: pathlib.Path) -> dict:
             session.rollback()
     finally:
         engine.dispose()
-    return {"has_preferences": bool(payload.get("has_preferences")), "games": games, "details": details}
+    return {"has_preferences": bool(payload.get("has_preferences")), "games": games,
+            "team_games": team_games, "followed_team_ids": payload.get("followed_team_ids", []), "details": details}
 
 
 # Public sports data only. New API fields stay private until explicitly added.

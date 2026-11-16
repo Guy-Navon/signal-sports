@@ -91,5 +91,7 @@ export function normalizeResultsResponse(raw) {
   return {
     hasPreferences: Boolean(raw?.has_preferences),
     games: Array.isArray(raw?.games) ? raw.games.map(normalizeResultFromApi) : [],
+    teamGames: Array.isArray(raw?.team_games) ? raw.team_games.map(normalizeResultFromApi) : null,
+    followedTeamIds: Array.isArray(raw?.followed_team_ids) ? raw.followed_team_ids : [],
   };
 }

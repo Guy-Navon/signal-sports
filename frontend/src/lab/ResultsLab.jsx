@@ -6,8 +6,8 @@ import { useGround } from "@/components/signal-ui/useGround";
 import fixture from "./resultsFixtures.json";
 import "./results-lab.css";
 
-// Lab-only profile: follows both Maccabi Tel Aviv clubs, as the real fixture games imply.
-const profile = { profileV2: { scope_affinities: ["team:maccabi_tlv_bb", "team:maccabi_tlv_fc"]
+// Lab-only profile: follows both Maccabi clubs and Portland, including old team cards.
+const profile = { profileV2: { scope_affinities: ["team:maccabi_tlv_bb", "team:maccabi_tlv_fc", "team:portland_blazers"]
   .map(target_id => ({ scope: "team", target_id, level: 2, source: "explicit" })) } };
 
 // Synthetic filler (documented in RESULTS_FIXTURES.md): extra NBA finals so a league

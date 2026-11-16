@@ -37,7 +37,7 @@ const BACKEND_VALID_ACTIONS = new Set([
 ]);
 
 const NO_LOCAL_FEED = { scoredArticles: [], feedItems: [], debugItems: [] };
-const NO_RESULTS = { hasPreferences: false, games: [] };
+const NO_RESULTS = { hasPreferences: false, games: [], teamGames: null, followedTeamIds: [] };
 
 function reloadPage() {
   window.location.reload();
@@ -135,7 +135,7 @@ function AppStateProvider({ children, localDemo }) {
   const [feedRefreshTick, setFeedRefreshTick] = useState(0);
 
   // ── Results (issue #178) ──────────────────────────────────────────────────
-  const [backendResults, setBackendResults] = useState({ hasPreferences: false, games: [] });
+  const [backendResults, setBackendResults] = useState(NO_RESULTS);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [resultsError, setResultsError] = useState(null);
   const [resultsRefreshTick, setResultsRefreshTick] = useState(0);
@@ -437,6 +437,8 @@ function AppStateProvider({ children, localDemo }) {
 
     // Results (issue #178)
     resultsGames: resultsData.games,
+    resultsTeamGames: resultsData.teamGames,
+    resultsFollowedTeamIds: resultsData.followedTeamIds,
     resultsHasPreferences: resultsData.hasPreferences,
     resultsLoading,
     resultsError,

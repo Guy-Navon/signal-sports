@@ -21,7 +21,8 @@ export async function blockCaptureProxies(client, origin, report) {
 export async function auditResultsPages({ client, origin, configureViewport, evaluate, capture, outputDirectory }) {
   const fixture = JSON.parse(await readFile(path.join(frontend, "src/lab/resultsFixtures.json"), "utf8"));
   const nba = fixture.games.find(g => g.competition_id === "comp:nba");
-  const finals = fixture.games.filter(g => g.status === "final" && Date.parse(g.start_time) >= Date.parse(fixture.as_of) - 72 * 3600000);
+  const teamFinals = fixture.games.filter(g => g.status === "final");
+  const finals = teamFinals.filter(g => Date.parse(g.start_time) >= Date.parse(fixture.as_of) - 72 * 3600000);
   const calls = [];
   await client.send("Network.enable");
   client.on("Network.requestWillBeSent", e => { if (new URL(e.request.url).pathname.startsWith("/api/")) calls.push(e.request.url); });
@@ -68,7 +69,7 @@ export async function auditResultsPages({ client, origin, configureViewport, eva
     assert.match(value.heading, /תוצאות/, `${label}: title`);
     assert.match(value.heading, /משחק ב-48 השעות האחרונות/, `${label}: summary from real data`);
     assert.match(value.heading, /1 הערב/, `${label}: tonight count`);
-    assert.equal(value.tiles.length, finals.length, `${label}: tiles for followed and chosen games`);
+    assert.equal(value.tiles.length, teamFinals.length, `${label}: followed-team cards include historical games`);
     assert.ok(value.verdicts.includes("ניצחון") && value.verdicts.includes("הפסד") && value.verdicts.includes("תיקו"), `${label}: verdict chips ${value.verdicts}`);
     assert.ok(value.dots >= 4, `${label}: followed-team dots`);
     for (const game of finals) {

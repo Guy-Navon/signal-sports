@@ -51,7 +51,7 @@ describe("tileVerdict", () => {
 });
 
 describe("tileEntries", () => {
-  it("takes the four most recent finals with a followed team or a chosen-player line, never inventing tiles", () => {
+  it("takes the four latest finals per followed team, including old games, excluding player-only games", () => {
     const games = [
       game("old", "2026-11-01", { home: team("team:m", 1) }),
       game("m1", "2026-11-12", { home: team("team:m", 80) }),
@@ -62,10 +62,32 @@ describe("tileEntries", () => {
       game("m3", "2026-11-10", { home: team("team:m", 70) }),
     ];
     const tiles = tileEntries(games, fol("m"));
-    expect(tiles.map(t => t.game.id)).toEqual(["deni", "m2", "m1", "m3"]);
-    expect(tiles[0].chosen.name).toBe("דני אבדיה");
+    expect(tiles.map(t => t.game.id)).toEqual(["m2", "m1", "m3", "old"]);
     expect(tileEntries([game("x", "2026-11-14")], fol("m"))).toEqual([]);
     expect(tileEntries([], fol("m"))).toEqual([]);
+  });
+  it.each([[1, 4], [2, 8], [3, 8], [4, 8]])("caps %i followed teams at %i total games", (teams, expected) => {
+    const ids = Array.from({ length: teams }, (_, i) => `t${i}`);
+    const games = ids.flatMap((id, i) => Array.from({ length: 5 }, (_, round) => game(`${id}-${round}`, "2025-01-01", {
+      home: team(`team:${id}`, 80), away: team("team:other", 70),
+      startTime: new Date(Date.UTC(2025, 0, 30 - round, i)).toISOString(),
+    })));
+    const entries = tileEntries(games, fol(...ids));
+    expect(entries).toHaveLength(expected);
+    for (const id of ids) expect(entries.filter(e => e.game.home.id === `team:${id}`).length).toBeLessThanOrEqual(4);
+    const times = entries.map(e => e.game.startTime);
+    expect(times).toEqual([...times].sort().reverse());
+  });
+  it("deduplicates a derby and counts it toward both teams", () => {
+    const derby = game("derby", "2026-11-15");
+    const games = [derby, derby, ...["a", "b"].flatMap(id => [1, 2, 3].map(i => game(`${id}-${i}`, `2026-11-0${i}`, {
+      home: team(`team:${id}`, 80), away: team("team:other", 70),
+    })))];
+    const entries = tileEntries(games, fol("a", "b"));
+    expect(entries).toHaveLength(7);
+    expect(entries.filter(entry => entry.game.id === "derby")).toHaveLength(1);
+    for (const id of ["team:a", "team:b"])
+      expect(entries.filter(e => [e.game.home.id, e.game.away.id].includes(id))).toHaveLength(4);
   });
 });
 

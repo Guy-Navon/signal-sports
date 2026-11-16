@@ -30,6 +30,43 @@ from app.taxonomy.entities import entity_by_id
 class PersonalizedResults:
     games: list[GameResult] = field(default_factory=list)
     has_preferences: bool = False
+    team_games: list[GameResult] = field(default_factory=list)
+    followed_team_ids: list[str] = field(default_factory=list)
+
+
+TEAM_GAMES_PER_TEAM = 4
+TEAM_GAMES_TOTAL = 8
+
+
+def _direct_team_ids(followed: FollowedTargets) -> frozenset[str]:
+    return followed.team_ids.difference(followed.team_via_player)
+
+
+def _team_game_rows(session: Session, followed: FollowedTargets, active_providers: tuple) -> list[GameResultRow]:
+    """Latest finals for directly followed teams, independent of the history window.
+    Each SQL query returns at most four rows; derby games occur only once and
+    count against both teams' quotas. Only the currently serving provider counts.
+    """
+    teams = _direct_team_ids(followed)
+    candidates = {}
+    for team_id in sorted(teams):
+        for row in game_result_repository.list_games(session, team_ids=[team_id], statuses=[st.FINAL],
+                limit=TEAM_GAMES_PER_TEAM, active_providers=active_providers):
+            candidates[row.id] = row
+    ordered = sorted(candidates.values(), key=lambda row: row.id)
+    ordered.sort(key=lambda row: row.start_time or "", reverse=True)
+    counts = dict.fromkeys(teams, 0)
+    selected = []
+    for row in ordered:
+        involved = teams.intersection((row.home_team_id, row.away_team_id))
+        if any(counts[team] >= TEAM_GAMES_PER_TEAM for team in involved):
+            continue
+        selected.append(row)
+        for team in involved:
+            counts[team] += 1
+        if len(selected) == TEAM_GAMES_TOTAL:
+            break
+    return selected
 
 
 def _team_display(team_id: Optional[str], provider_name: str) -> str:
@@ -149,8 +186,10 @@ def personalized_results(
 
     now = now or datetime.now(tz=timezone.utc)
     since = (now - timedelta(days=settings.read_window_days())).isoformat()
+    active_providers = active_provider_map(session, now=now)
     rows = game_result_repository.list_games(
-        session, since_iso=since, active_providers=active_provider_map(session, now=now))
+        session, since_iso=since, active_providers=active_providers)
+    team_rows = _team_game_rows(session, followed, active_providers)
 
     results: list[GameResult] = []
     for row in rows:
@@ -161,10 +200,12 @@ def personalized_results(
         if limit is not None and len(results) >= limit:
             break
 
-    stored = visible_details(session, [r.id for r in results if r.status == st.FINAL], now=now) if settings.detail_enabled() else {}
+    stored = visible_details(session, [r.id for r in [*results, *team_rows] if r.status == st.FINAL], now=now) if settings.detail_enabled() else {}
     chosen = chosen_ids(session, profile.user_id) if settings.detail_enabled() else set()
     return PersonalizedResults(games=[_to_result(r, followed, stored.get(r.id), chosen)
-                                      for r in results], has_preferences=True)
+                                      for r in results], has_preferences=True,
+                               team_games=[_to_result(r, followed, stored.get(r.id), chosen) for r in team_rows],
+                               followed_team_ids=sorted(_direct_team_ids(followed)))
 
 
 def personalized_detail(session: Session, profile: UserProfile, game_id: str, *,
@@ -174,11 +215,14 @@ def personalized_detail(session: Session, profile: UserProfile, game_id: str, *,
         return None
     now = now or datetime.now(timezone.utc)
     row = game_result_repository.get_by_id(session, game_id)
-    if (row is None or row.status != st.FINAL or not relevance_reason(row, _read_targets(profile))):
+    followed = _read_targets(profile)
+    if (row is None or row.status != st.FINAL or not relevance_reason(row, followed)):
         return None
     start = _timestamp(row.start_time)
     if start is None or start < now - timedelta(days=settings.read_window_days()):
-        return None
+        featured = _team_game_rows(session, followed, active_provider_map(session, now=now))
+        if game_id not in {game.id for game in featured}:
+            return None
     detail = visible_details(session, [game_id], now=now).get(game_id)
     if detail is None:
         return None

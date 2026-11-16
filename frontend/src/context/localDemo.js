@@ -39,11 +39,13 @@ export function computeLocalFeed(profile, disabledSourceIds) {
 }
 
 export function computeLocalResults(profile) {
-  if (!profile) return { hasPreferences: false, games: [] };
+  if (!profile) return { hasPreferences: false, games: [], teamGames: null, followedTeamIds: [] };
   const follows = deriveFollows(profile);
   return {
     hasPreferences: hasAnyFollows(follows),
     games: filterRelevant(mockResults.map(normalizeResultFromApi), follows),
+    teamGames: null,
+    followedTeamIds: [],
   };
 }
 

@@ -12,7 +12,7 @@ const game = { id: "g1", localDate: "2026-11-14", startTime: "2026-11-14T03:00:0
   sport: "basketball", competitionId: "comp:nba", competitionHe: "NBA", home: side("team:portland_blazers", "פורטלנד בלייזרס", 121, { rank: 5, isWinner: true }),
   away: side("team:sacramento_kings", "סקרמנטו קינגס", 118, { rank: 9 }), leaders: [{ side: "home", name: "דני אבדיה", value: 34, stat: "points" }],
   chosenPlayerLines: [{ side: "home", name: "דני אבדיה", entity_id: "player:deni_avdija", minutes: 35, stats: { points: 34, rebounds: 6, assists: 4 } }],
-  relevanceReason: "", detailAvailable: true };
+  relevanceReason: "followed_team:team:portland_blazers", detailAvailable: true };
 const detail = { venue: "Moda Center", attendance: 19000, team_stats: { home: { quarters: [30, 30, 30, 31] }, away: { quarters: [30, 30, 30, 28] } },
   players: [{ side: "home", name: "דני אבדיה", minutes: 35.5, stats: { points: 34, rebounds: 6, assists: 4, FG: "11-13", "3PT": "2-4", FT: "10-10", starter: true } }] };
 let view;
@@ -24,16 +24,42 @@ const labelOf = node => node.findAll(() => true).flatMap(n => n.children.filter(
 const buttons = label => view.root.findAllByType("button").filter(b => labelOf(b).includes(label));
 const dialogNodes = element => element.type === "dialog" ? { showModal() {}, close() {} } : { focus() {} };
 
-it("renders a tile for a chosen-player game, the stream row, the players box and no invented tiles", () => {
+it("renders followed-team tiles, stream rows and chosen-player lines without inventing team follows", () => {
   render();
   expect(view.root.findAllByType(ResultTile)).toHaveLength(1);
   expect(view.root.findAllByType(ResultRow)).toHaveLength(1);
   for (const s of ["הקבוצות שלך", "השחקנים שלך", "פורטלנד", "סקרמנטו", "34 נק׳ · 6 ריב׳ · 4 אס׳", "בחירת שחקנים לתוצאות"]) expect(text()).toContain(s);
   expect(text()).not.toContain("הערב");
   act(() => view.unmount());
-  render({ games: [{ ...game, chosenPlayerLines: [] }] });
+  render({ games: [{ ...game, chosenPlayerLines: [], relevanceReason: "followed_competition:comp:nba" }] });
   expect(view.root.findAllByType(ResultTile)).toHaveLength(0);
   expect(text()).not.toContain("הקבוצות שלך");
+});
+it("limits the stream, date chips, player lines and non-featured popups to three days", async () => {
+  const old = { ...game, id: "old", localDate: "2026-11-11", startTime: "2026-11-11T03:00:00Z",
+    leaders: [{ side: "home", name: "Old Leader", value: 20 }],
+    chosenPlayerLines: [{ side: "home", name: "Old Player", stats: { points: 20 } }] };
+  render({ games: [old, game], teamGames: [] }, { createNodeMock: dialogNodes });
+  expect(view.root.findAllByType(ResultRow).map(row => row.props.game.id)).toEqual([game.id]);
+  expect(view.root.findAllByType(ResultTile)).toHaveLength(0);
+  expect(text()).not.toContain("Old Leader");
+  expect(text()).not.toContain("Old Player");
+  expect(text()).not.toContain("sr-day-2026-11-11");
+  await act(async () => view.root.findByType(ResultRow).findByType("button").props.onClick({ currentTarget: { focus() {} } }));
+  expect(view.root.findAllByType(GameDetailDialog)).toHaveLength(1);
+  act(() => view.update(<ResultsBoard games={[old, game]} teamGames={[]} hasPreferences nowMs={NOW + 3 * 86400000} getDetail={async () => detail} />));
+  expect(view.root.findAllByType(ResultRow)).toHaveLength(0);
+  expect(view.root.findAllByType(GameDetailDialog)).toHaveLength(0);
+});
+it("shows old team cards and opens their box scores even when the recent stream is empty", async () => {
+  const old = { ...game, localDate: "2026-10-01", startTime: "2026-10-01T03:00:00Z" };
+  render({ games: [], teamGames: [old], followedTeamIds: [old.home.id], readOnly: true }, { createNodeMock: dialogNodes });
+  expect(view.root.findAllByType(ResultTile)).toHaveLength(1);
+  expect(view.root.findAllByType(ResultRow)).toHaveLength(0);
+  expect(text()).not.toContain("אין תוצאות להצגה כרגע");
+  expect(text()).not.toContain("sr-day-2026-10-01");
+  await act(async () => view.root.findByType(ResultTile).findByType("button").props.onClick({ currentTarget: { focus() {} } }));
+  expect(view.root.findAllByType(GameDetailDialog)).toHaveLength(1);
 });
 it("shows the followed-team dot on a followed team and the tile verdict", () => {
   render({ games: [{ ...game, chosenPlayerLines: [] }], profile: { profileV2: { scope_affinities: [{ scope: "team", target_id: "team:portland_blazers", level: 1, source: "explicit" }] } } });
@@ -134,21 +160,4 @@ it("explicitly wraps Tab and Shift+Tab between the close button and the last foc
   expect(last.focus).toHaveBeenCalledTimes(1);
   act(() => view.root.findByType("dialog").props.onKeyDown({ key: "Tab", shiftKey: false, target: last, preventDefault }));
   expect(first.focus).toHaveBeenCalledTimes(1); expect(preventDefault).toHaveBeenCalledTimes(2);
-});
-
-it("limits the stream, date chips, player lines and non-featured popups to three days", async () => {
-  const old = { ...game, id: "old", localDate: "2026-11-11", startTime: "2026-11-11T03:00:00Z",
-    leaders: [{ side: "home", name: "Old Leader", value: 20 }],
-    chosenPlayerLines: [{ side: "home", name: "Old Player", stats: { points: 20 } }] };
-  render({ games: [old, game] }, { createNodeMock: dialogNodes });
-  expect(view.root.findAllByType(ResultRow).map(row => row.props.game.id)).toEqual([game.id]);
-  expect(view.root.findAllByType(ResultTile).map(tile => tile.props.entry.game.id)).toEqual([game.id]);
-  expect(text()).not.toContain("Old Leader");
-  expect(text()).not.toContain("Old Player");
-  expect(text()).not.toContain("sr-day-2026-11-11");
-  await act(async () => view.root.findByType(ResultRow).findByType("button").props.onClick({ currentTarget: { focus() {} } }));
-  expect(view.root.findAllByType(GameDetailDialog)).toHaveLength(1);
-  act(() => view.update(<ResultsBoard games={[old, game]} hasPreferences nowMs={NOW + 3 * 86400000} getDetail={async () => detail} />));
-  expect(view.root.findAllByType(ResultRow)).toHaveLength(0);
-  expect(view.root.findAllByType(GameDetailDialog)).toHaveLength(0);
 });

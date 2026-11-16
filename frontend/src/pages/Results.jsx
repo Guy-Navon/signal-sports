@@ -4,7 +4,7 @@ import { getMeResultsGameDetail, getResultsGameDetail } from "@/api/client";
 import ResultsBoard from "@/components/results/ResultsBoard";
 
 export default function Results() {
-  const { resultsGames, resultsHasPreferences, resultsLoading, resultsError, refreshResults,
+  const { resultsGames, resultsTeamGames, resultsFollowedTeamIds, resultsHasPreferences, resultsLoading, resultsError, refreshResults,
     isBackendMode, consumerSession, qaSurfaceAllowed, activeProfileId, activeProfile } = useApp();
   const detail = useCallback((gameId) => {
     if (!isBackendMode) return Promise.reject(new Error("detail unavailable offline"));
@@ -12,5 +12,6 @@ export default function Results() {
   }, [isBackendMode, consumerSession, qaSurfaceAllowed, activeProfileId]);
   // A QA identity change unmounts its popup, so another profile cannot retain it.
   return <ResultsBoard key={activeProfileId} profile={activeProfile} games={resultsGames || []} hasPreferences={resultsHasPreferences}
+    teamGames={resultsTeamGames} followedTeamIds={resultsFollowedTeamIds}
     loading={resultsLoading} error={resultsError} onRetry={refreshResults} getDetail={detail} />;
 }

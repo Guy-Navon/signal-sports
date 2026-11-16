@@ -83,6 +83,7 @@ function FootballEvents({ events, game }) {
 
 export default function GameDetailDialog({ game, getDetail, onClose }) {
   const dialogRef = useRef(null), closeRef = useRef(null), tabRefs = useRef({});
+  const pointerStartedOutside = useRef(false);
   const titleId = useId(), baseId = useId();
   const [detail, setDetail] = useState(null), [error, setError] = useState(false), [retry, setRetry] = useState(0);
   const [side, setSide] = useState((game.chosenPlayerLines || [])[0]?.side === "away" ? "away" : "home");
@@ -103,6 +104,19 @@ export default function GameDetailDialog({ game, getDetail, onClose }) {
     return () => { active = false; };
   }, [game.id, getDetail, retry]);
   const close = () => { dialogRef.current?.close(); onClose(); };
+  const outsideDialog = event => {
+    if (event.target !== event.currentTarget) return false;
+    const rect = event.currentTarget.getBoundingClientRect();
+    return event.clientX < rect.left || event.clientX >= rect.right
+      || event.clientY < rect.top || event.clientY >= rect.bottom;
+  };
+  const dismissBackdrop = event => {
+    // Both ends must be outside: selecting text or dragging out of the table
+    // must not dismiss the dialog. Native backdrop events target the dialog.
+    const dismiss = pointerStartedOutside.current && outsideDialog(event);
+    pointerStartedOutside.current = false;
+    if (dismiss) close();
+  };
   // Wrap Tab and Shift+Tab between the close button and the last focusable control.
   const trapFocus = event => {
     if (event.key !== "Tab") return;
@@ -116,7 +130,9 @@ export default function GameDetailDialog({ game, getDetail, onClose }) {
   const facts = detail ? teamFacts(detail, game.sport) : [];
   const box = detail && basketball ? boxScore(detail, side, game.sport) : null;
   return <dialog ref={dialogRef} className="sr-dialog" aria-labelledby={titleId} aria-modal="true"
-    data-results-statistics={RESULTS_STATS_MARKER} onKeyDown={trapFocus} onCancel={event => { event.preventDefault(); close(); }}>
+    data-results-statistics={RESULTS_STATS_MARKER} onKeyDown={trapFocus} onCancel={event => { event.preventDefault(); close(); }}
+    onPointerDown={event => { pointerStartedOutside.current = outsideDialog(event); }}
+    onPointerCancel={() => { pointerStartedOutside.current = false; }} onClick={dismissBackdrop}>
     <div className="sr-grab" aria-hidden="true" />
     <h2 id={titleId} className="sr-vh"><bdi dir="auto">{game.home.name}</bdi> — <bdi dir="auto">{game.away.name}</bdi></h2>
     <header className="sr-dialog-head"><p className="sr-dialog-meta"><bdi dir="auto">{popupHeader(game, detail)}</bdi></p>

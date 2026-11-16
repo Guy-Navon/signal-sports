@@ -3,8 +3,7 @@ import {
   DEMO_STALE_AFTER_MINUTES,
   demoBanner,
   demoDecisionCounts,
-  demoResultsView,
-  scoresOnlyGame,
+  normalizeDemoResults,
   tabFromHash,
   loadDemoSnapshot,
 } from "./demoModel";
@@ -177,14 +176,6 @@ describe("demoDecisionCounts", () => {
   });
 });
 
-const wire = (id, extra = {}) => ({
-  id, competitionId: "comp:nba", competitionHe: "NBA", sport: "basketball", status: "final",
-  startTime: "2026-11-14T03:00:00Z", localDate: "2026-11-14", winner: "home", relevanceReason: "",
-  home: { id: "team:a", name: "A", score: 100, isWinner: true },
-  away: { id: "team:b", name: "B", score: 90, isWinner: false }, ...extra,
-});
-const NOW = new Date("2026-11-14T12:00:00Z");
-
 describe("tabFromHash", () => {
   it("is results only for #results; the feed otherwise", () => {
     expect(tabFromHash("#results")).toBe("results");
@@ -192,51 +183,30 @@ describe("tabFromHash", () => {
   });
 });
 
-describe("scoresOnlyGame", () => {
-  it("drops leaders, chosen lines, ranks, venue, attendance and detail even if present", () => {
-    const rich = { ...wire("g"), leaders: [{ name: "X", value: 30 }], chosenPlayerLines: [{ name: "Y" }], venue: "Arena",
-      attendance: 100, detailAvailable: true, home: { ...wire("g").home, rank: 3 } };
-    const game = scoresOnlyGame(rich);
-    expect(game.leaders).toEqual([]);
-    expect(game.chosenPlayerLines).toEqual([]);
-    expect(game.detailAvailable).toBe(false);
-    expect(game.home.rank).toBeNull();
-    expect(game).not.toHaveProperty("venue");
-    expect(game).not.toHaveProperty("attendance");
-    expect(game.home.score).toBe(100);
+describe("normalizeDemoResults", () => {
+  const detail = { game_id: RESULT.id, players: [{ side: "home", name: "שחקן", stats: { points: 30 } }] };
+  it("keeps exported statistics and opens only matching, available final-game details", () => {
+    const rich = { ...RESULT, detail_available: true, venue: "Arena", attendance: 100,
+      leaders: [{ name: "שחקן", value: 30 }], chosen_player_lines: detail.players,
+      home: { ...RESULT.home, rank: 3 } };
+    const result = normalizeDemoResults({ games: [rich], details: { [RESULT.id]: detail, unrelated: detail } });
+    expect(result.games[0]).toMatchObject({ detailAvailable: true, venue: "Arena", attendance: 100,
+      home: { rank: 3 }, leaders: rich.leaders, chosenPlayerLines: detail.players });
+    expect(result.details).toEqual({ [RESULT.id]: detail });
   });
-  it("copes with absent optional fields", () => {
-    expect(() => scoresOnlyGame({ id: "g", status: "final", home: {}, away: undefined })).not.toThrow();
-  });
-});
-
-describe("demoResultsView", () => {
-  it("picks tiles only from followed_team reasons, newest first, at most four", () => {
-    const games = [
-      ...[1, 2, 3, 4, 5].map((n) => wire(`f${n}`, { relevanceReason: "followed_team:team:a", startTime: `2026-11-14T0${n}:00:00Z` })),
-      wire("plain", { relevanceReason: "followed_competition:comp:nba", startTime: "2026-11-14T09:00:00Z" }),
-    ].map(scoresOnlyGame);
-    const view = demoResultsView(games, NOW);
-    expect(view.tiles.map((t) => t.game.id)).toEqual(["f5", "f4", "f3", "f2"]);
-    expect(view.tiles[0].verdict.kind).toBe("win");
-    expect(view.tiles.every((t) => t.chosen === null)).toBe(true);
-  });
-  it("shows a loss verdict from the followed side", () => {
-    const [tile] = demoResultsView([scoresOnlyGame(wire("g", { winner: "away", relevanceReason: "followed_team:team:a" }))], NOW).tiles;
-    expect(tile.verdict.kind).toBe("loss");
-  });
-  it("has no tiles when nothing is followed, and stays ready", () => {
-    const view = demoResultsView([scoresOnlyGame(wire("g"))], NOW);
-    expect(view.state).toBe("ready");
-    expect(view.tiles).toEqual([]);
-    expect(view.days).toHaveLength(1);
-  });
-  it("is empty with no games or no finals", () => {
-    expect(demoResultsView([], NOW).state).toBe("empty");
-    expect(demoResultsView([scoresOnlyGame(wire("g", { status: "scheduled" }))], NOW).state).toBe("empty");
-  });
-  it("summarises finals of the last 48 hours from the data", () => {
-    const view = demoResultsView([scoresOnlyGame(wire("a")), scoresOnlyGame(wire("b"))], NOW);
-    expect(view.summary).toEqual([{ n: 2, label: "משחקים ב-48 השעות האחרונות" }]);
+  it.each([undefined, {}, { game_id: "wrong", players: [] }, { game_id: RESULT.id, players: "broken" }])(
+    "keeps scores usable when optional detail is missing or malformed (%j)", detail => {
+      const result = normalizeDemoResults({ games: [{ ...RESULT, detail_available: true }], details: { [RESULT.id]: detail } });
+      expect(result.games[0].detailAvailable).toBe(false);
+      expect(result.games[0].home.score).toBe(90);
+      expect(result.details).toEqual({});
+    });
+  it("supports older snapshots and includes upcoming games without allowing them to open a final-game popup", () => {
+    expect(normalizeDemoResults({ games: [RESULT] }).games[0].detailAvailable).toBe(false);
+    const result = normalizeDemoResults({ games: [{ ...RESULT, status: "scheduled", detail_available: true },
+      { ...RESULT, id: "live", status: "live" }], details: { [RESULT.id]: detail } });
+    expect(result.games).toHaveLength(1);
+    expect(result.games[0]).toMatchObject({ status: "scheduled", detailAvailable: false });
+    expect(result.details).toEqual({});
   });
 });

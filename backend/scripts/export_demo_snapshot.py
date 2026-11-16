@@ -52,53 +52,100 @@ def _resolve_db(explicit: pathlib.Path | None) -> pathlib.Path:
 
 
 def build_results_snapshot(db_path: pathlib.Path) -> dict:
-    """The same personalized read path as /api/me/results, final games only.
+    """The demo profile's results, upcoming games and available stored details.
 
-    Use the exporter's read-only engine: no sync, provider requests or writes.
-    Keep the API wire shape so the demo uses the product's result normalizer.
+    Read the same personalized API handlers without providers or database writes.
     """
     from sqlalchemy.orm import sessionmaker
-
-    from app.api.routes_results import get_results_for_user
+    from fastapi import HTTPException
+    from app.api.routes_results import get_detail_for_user, get_results_for_user
     from app.ops.demo_snapshot import DEMO_USER_ID, readonly_engine
     from app.results.settings import results_enabled
-    from app.results.status import COMPLETED
+    from app.results.status import FINAL, SCHEDULED
 
     if not results_enabled():
-        return {"has_preferences": False, "games": []}
-
+        return {"has_preferences": False, "games": [], "details": {}}
     engine = readonly_engine(db_path)
     try:
         with sessionmaker(bind=engine, autoflush=False)() as session:
-            response = get_results_for_user(user_id=DEMO_USER_ID, session=session, limit=200)
-            payload = response.model_dump(mode="json")
+            payload = get_results_for_user(user_id=DEMO_USER_ID, session=session, limit=200).model_dump(mode="json")
+            games = [_public_game(game) for game in payload["games"] if game["status"] in (FINAL, SCHEDULED)]
+            details = {}
+            for game in games:
+                if game["status"] != FINAL or not game["detail_available"]:
+                    game["detail_available"] = False
+                    continue
+                try:
+                    detail = get_detail_for_user(DEMO_USER_ID, game["id"], session)
+                except HTTPException as exc:
+                    if exc.status_code != 404:
+                        raise
+                    game["detail_available"] = False
+                    continue
+                details[game["id"]] = _public_detail(detail.model_dump(mode="json"))
             session.rollback()
     finally:
         engine.dispose()
-    games = [_public_game(game) for game in payload["games"] if game["status"] in COMPLETED]
-    snapshot = {"has_preferences": bool(payload.get("has_preferences")), "games": games}
-    _assert_scores_only(snapshot)
-    return snapshot
+    return {"has_preferences": bool(payload.get("has_preferences")), "games": games, "details": details}
 
 
-# The public demo is scores-only (#526): an allowlist, so a field the results API
-# gains later (leaders, lines, venue, ranks, box scores) never reaches it by default.
+# Public sports data only. New API fields stay private until explicitly added.
 _PUBLIC_GAME_FIELDS = ("id", "competition_id", "competition_he", "competition_en", "sport",
                        "season", "stage", "status", "start_time", "local_date", "winner",
-                       "relevance_reason")
-_PUBLIC_SIDE_FIELDS = ("id", "name", "name_provider", "score", "is_winner")
+                       "relevance_reason", "venue", "attendance")
+_PUBLIC_SIDE_FIELDS = ("id", "name", "name_provider", "score", "is_winner", "rank")
+_PUBLIC_PLAYER_FIELDS = ("side", "name", "entity_id", "source_player_id", "minutes")
+_PUBLIC_PLAYER_STATS = (
+    "points", "Points", "PTS", "rebounds", "TotalRebounds", "REB", "assists", "Assistances", "AST",
+    "plus_minus", "Plusminus", "+/-", "starter", "IsStarter", "FG", "3PT", "FT",
+    "fg2_made", "fg2_missed", "fg3_made", "fg3_missed", "ft_made", "ft_missed",
+    "FieldGoalsMade2", "FieldGoalsAttempted2", "FieldGoalsMade3", "FieldGoalsAttempted3",
+    "FreeThrowsMade", "FreeThrowsAttempted", "goals", "yellow_cards", "red_cards",
+)
+_PUBLIC_TEAM_STATS = (
+    "rank", "bench_points", "benchPoints", "pts_in_the_paint", "pointsInPaint",
+    "biggest_lead", "largestLead", "lead_changes", "leadChanges", "fastBreakPoints",
+    "pts_from_turnovers", "turnoverPoints", "second_chance_pts",
+)
+
+
+def _pick(data: dict, fields: tuple) -> dict:
+    return {key: data[key] for key in fields if key in data}
+
+
+def _public_player(player: dict) -> dict:
+    return {**_pick(player, _PUBLIC_PLAYER_FIELDS),
+            "stats": _pick(player.get("stats") or {}, _PUBLIC_PLAYER_STATS)}
 
 
 def _public_game(game: dict) -> dict:
-    public = {key: game.get(key) for key in _PUBLIC_GAME_FIELDS}
+    public = _pick(game, _PUBLIC_GAME_FIELDS)
     for side in ("home", "away"):
-        public[side] = {key: (game.get(side) or {}).get(key) for key in _PUBLIC_SIDE_FIELDS}
+        public[side] = _pick(game.get(side) or {}, _PUBLIC_SIDE_FIELDS)
+    public["leaders"] = [_pick(leader, ("side", "name", "entity_id", "stat", "value"))
+                         for leader in game.get("leaders", [])]
+    public["chosen_player_lines"] = [_public_player(player) for player in game.get("chosen_player_lines", [])]
+    public["detail_available"] = bool(game.get("detail_available"))
     return public
 
 
-def _assert_scores_only(snapshot: dict) -> None:
-    from app.ops.demo_snapshot import _assert_scores_only as assert_scores_only
-    assert_scores_only(snapshot)
+def _public_detail(detail: dict) -> dict:
+    team_stats = {}
+    for side in ("home", "away"):
+        raw = (detail.get("team_stats") or {}).get(side) or {}
+        stats = _pick(raw, _PUBLIC_TEAM_STATS)
+        for key in ("quarters", "quarter_scores"):
+            periods = raw.get(key)
+            if isinstance(periods, list):
+                stats[key] = [value if type(value) in (int, float, str) else None for value in periods]
+            elif isinstance(periods, dict):
+                stats[key] = {name: value for name, value in periods.items()
+                              if name.lower().startswith(("q", "ot")) and name[-1:].isdigit()
+                              and type(value) in (int, float, str)}
+        team_stats[side] = stats
+    return {**_pick(detail, ("game_id", "venue", "attendance")),
+            "players": [_public_player(player) for player in detail.get("players", [])],
+            "team_stats": team_stats}
 
 
 def export_demo_snapshot(db_path: pathlib.Path, out_dir: pathlib.Path, *, allow_empty: bool = False) -> dict:

@@ -45,12 +45,14 @@ afterEach(() => {
 });
 
 async function render() {
-  await act(async () => { renderer = create(<DemoApp />); });
+  await act(async () => { renderer = create(<DemoApp />, {
+    createNodeMock: element => element.type === "dialog" ? { showModal() {}, close() {} } : { focus() {} },
+  }); });
   return renderer.root;
 }
 
 it("renders the shared feed read-only without providers, with one banner and only the feed and results tabs", async () => {
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results });
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results, resultDetails: {} });
   const root = await render();
   expect(root.findAllByType(SignalWordmark)).toHaveLength(1);
   expect(root.findByType(SignalFeedView).props.readOnly).toBe(true);
@@ -74,7 +76,7 @@ it("renders the shared feed read-only without providers, with one banner and onl
 });
 
 it("announces only the staleness warning, not the minute-by-minute update time", async () => {
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results });
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results, resultDetails: {} });
   const root = await render();
   const banner = root.findByProps({ className: "sg-demo-banner" });
   expect(banner.props.role).toBeUndefined();
@@ -98,7 +100,7 @@ it("keeps the loading and empty states", async () => {
 
 it("keeps the error state and retries the snapshot", async () => {
   vi.mocked(loadDemoSnapshot).mockRejectedValueOnce(new Error("offline"))
-    .mockResolvedValueOnce({ items, meta, results: [] });
+    .mockResolvedValueOnce({ items, meta, results: [], resultDetails: {} });
   const root = await render();
   expect(root.findByProps({ role: "alert" }).findByType("h2").children).toEqual(["לא הצלחנו לטעון את ההדגמה"]);
   await act(async () => { root.findByType("button").props.onClick(); });
@@ -121,24 +123,51 @@ function withHash(hash) {
   return () => listeners.forEach((fn) => fn());
 }
 
-it("opens on the results tab from #results, read-only: no buttons on rows or tiles, no popup", async () => {
+it("opens exported box scores from the results tab without API calls or preference links", async () => {
   withHash("#results");
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results: [finalGame("g1", { relevanceReason: "followed_team:team:a" })] });
+  const detail = { game_id: "g1", venue: "Moda Center", team_stats: {
+    home: { quarters: [30, 30, 30, 31] }, away: { quarters: [30, 30, 30, 28] },
+  }, players: [{ side: "home", name: "דני אבדיה", minutes: 35,
+    stats: { points: 34, rebounds: 6, assists: 4, starter: true } }] };
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta,
+    results: [finalGame("g1", { relevanceReason: "followed_team:team:a", detailAvailable: true,
+      leaders: [{ side: "home", name: "דני אבדיה", stat: "points", value: 34 }],
+      chosenPlayerLines: detail.players,
+    })], resultDetails: { g1: detail } });
   const root = await render();
   expect(root.findAllByType(SignalFeedView)).toHaveLength(0);
   expect(root.findAllByProps({ "aria-current": "page" })[0].props.href).toBe("#results");
   expect(root.findAllByProps({ className: "sr-tile" })).toHaveLength(1);
   expect(root.findAllByProps({ className: "sr-row" })).toHaveLength(1);
   const interactive = root.findAll((n) => n.type === "button" && /sr-(row|tile)/.test(n.props.className || ""));
-  expect(interactive).toHaveLength(0);
-  expect(root.findAll((n) => n.props["aria-haspopup"] || n.type === "dialog")).toHaveLength(0);
-  expect(root.findAll((n) => n.props.className === "sg-container sr-cols sr-cols--single")).toHaveLength(1);
-  expect(root.findAllByProps({ className: "sr-side" })).toHaveLength(0);
+  expect(interactive).toHaveLength(2);
+  expect(root.findAllByType("a").some(a => a.props.href === "/preferences")).toBe(false);
+  expect(root.findAllByProps({ className: "sr-side" })).toHaveLength(1);
+  await act(async () => interactive[0].props.onClick({ currentTarget: { focus() {} } }));
+  expect(root.findAllByType("dialog")).toHaveLength(1);
+  for (const value of ["Moda Center", "רבע ", "דני אבדיה", "חמישייה", "34"])
+    expect(JSON.stringify(renderer.toJSON())).toContain(value);
+  expect(window.fetch).not.toHaveBeenCalled();
+  act(() => root.findByProps({ "aria-label": "סגירת פרטי המשחק" }).props.onClick());
+  expect(root.findAllByType("dialog")).toHaveLength(0);
+});
+
+it("shows upcoming games even with no completed games, with no account or preferences links", async () => {
+  withHash("#results");
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, resultDetails: {}, results: [finalGame("next", {
+    status: "scheduled", winner: null, localDate: "2026-11-15", startTime: "2026-11-15T18:00:00Z",
+    home: { name: "מכבי תל אביב", score: null }, away: { name: "הפועל ירושלים", score: null },
+  })] });
+  const root = await render();
+  expect(JSON.stringify(renderer.toJSON())).toContain("הקרוב");
+  expect(JSON.stringify(renderer.toJSON())).toContain("מכבי תל אביב");
+  expect(root.findAllByProps({ className: "sr-row" })).toHaveLength(0);
+  expect(root.findAllByType("a").some(a => a.props.href?.startsWith("/"))).toBe(false);
 });
 
 it("switches tabs when the hash changes", async () => {
   const fire = withHash("");
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results: [finalGame("g1")] });
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, resultDetails: {}, results: [finalGame("g1")] });
   const root = await render();
   expect(root.findAllByType(SignalFeedView)).toHaveLength(1);
   window.location.hash = "#results";
@@ -151,7 +180,7 @@ it("switches tabs when the hash changes", async () => {
 
 it("shows an honest note when there are no results, and does not invent games", async () => {
   withHash("#results");
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results: [] });
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, resultDetails: {}, results: [] });
   const root = await render();
   expect(JSON.stringify(renderer.toJSON())).toContain("אין תוצאות להצגה כרגע");
   expect(root.findAllByProps({ className: "sr-row" })).toHaveLength(0);

@@ -10,7 +10,7 @@ import { DEMO_TABS, demoBanner, loadDemoSnapshot, tabFromHash } from "./demoMode
 import DemoResults from "./DemoResults";
 import "./demo.css";
 
-// The public read-only demo (#458). The feed and its explanations only: no
+// The public read-only demo (#458). Feed, results and stored game details: no
 // router, no auth, no app provider, no API. It reads static snapshot files only.
 
 const PROFILE_NAME = "גיא";
@@ -63,18 +63,18 @@ function DemoTabs({ tab }) {
 
 export default function DemoApp() {
   const [tab, setTab] = useState(currentTab);
-  const [snapshot, setSnapshot] = useState({ status: "loading", items: [], results: [], meta: null });
+  const [snapshot, setSnapshot] = useState({ status: "loading", items: [], results: [], resultDetails: {}, meta: null });
   const [now, setNow] = useState(() => Date.now());
   const [activeFilters, setActiveFilters] = useState(new Set(["all"]));
 
   const load = useCallback(() => {
     setSnapshot((current) => ({ ...current, status: "loading" }));
     loadDemoSnapshot(window.fetch.bind(window), import.meta.env.BASE_URL)
-      .then(({ items, meta, results }) => {
-        setSnapshot({ status: "ready", items, meta, results });
+      .then(({ items, meta, results, resultDetails }) => {
+        setSnapshot({ status: "ready", items, meta, results, resultDetails });
         setNow(Date.now());
       })
-      .catch(() => setSnapshot({ status: "error", items: [], results: [], meta: null }));
+      .catch(() => setSnapshot({ status: "error", items: [], results: [], resultDetails: {}, meta: null }));
   }, []);
 
   useEffect(() => {
@@ -92,7 +92,7 @@ export default function DemoApp() {
     return () => window.removeEventListener?.("hashchange", sync);
   }, []);
 
-  const { items, meta, results, status } = snapshot;
+  const { items, meta, results, resultDetails, status } = snapshot;
   const bodyState = feedBodyState({
     isBackendMode: true,
     isLoading: status === "loading",
@@ -126,7 +126,7 @@ export default function DemoApp() {
                 <button type="button" className="sg-more" onClick={load}>נסו שוב</button>
               </div>
             ) : (
-              <DemoResults games={results} nowMs={now} />
+              <DemoResults games={results} details={resultDetails} nowMs={now} />
             )}
           </>
         ) : (<>

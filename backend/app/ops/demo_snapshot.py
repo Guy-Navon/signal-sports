@@ -63,8 +63,8 @@ MEMBER_FIELDS = (
     "published_at", "decision",
 )
 
-# The exporter currently reads feed only. Fail closed if a later export path or
-# nested field introduces results detail; the public demo is scores-only (#526).
+# Keep game statistics out of feed/meta files. The separate results snapshot
+# explicitly projects public sports data, including box scores and upcoming games.
 _RESULT_STAT_KEYS = frozenset({
     "leaders", "chosen_player_lines", "players", "player_lines", "team_stats",
     "box_score", "stats", "detail", "detail_available", "rank", "venue", "attendance",

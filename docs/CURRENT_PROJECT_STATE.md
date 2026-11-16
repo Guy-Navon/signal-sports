@@ -93,7 +93,7 @@ visible members). Details: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md).
 
 **Public demo (#458).** `backend/scripts/export_demo_snapshot.py` builds guy's consumer feed
 through the same handler as `/api/me/feed`, from a read-only connection, into static JSON;
-`scripts/demo-publish.ps1` deploys it with a frontend bundle (feed, results strip and scores-only results page, read-only) to Firebase Hosting, hourly
+`scripts/demo-publish.ps1` deploys it with a frontend bundle (feed, results strip, shared read-only board and static box scores) to Firebase Hosting, hourly
 through a Windows scheduled task. Live since 2026-11-11 at signal-sports-demo.web.app from main (Orbit), hourly task `SignalSportsDemoPublish`; the `ui/next` demo is deployed only after the merge (#475).
 [DEPLOYMENT.md](DEPLOYMENT.md) §17.
 
@@ -246,8 +246,7 @@ the #491–#505 shell verified against the code on 2026-11-14):
   bottom sheet). Preferences → מה אני עוקב → שחקנים בתוצאות uses separate
   session-owned choices and never changes feed affinities. Coded row/popup and
   placement alternatives are in `lab.html?page=results` and `?page=resultsplayers`;
-  Guy retains those choices. The demo strip stays scores-only with a calibrated
-  statistics marker guard. Admin Sources shows the provider health block read-only
+  Guy retains those choices. The demo strip stays scores-only; the read-only results page supports static details. Its guard still excludes APIs, auth and writes. Admin Sources shows the provider health block read-only
   in the existing console style. These are `ui/next` code, not production activation.
 Milestone 15 (#461–#475) lands on `ui/next`; merging to main and deploying the demo still
 need the owner's approval (#475). This is a branch-code statement, not a deployment claim.
@@ -267,7 +266,9 @@ and visual contract (Part B). The reference mock is in `docs/design/2026-11-13-f
 `npm run build:demo` into `frontend/dist-demo/`) renders the Signal feed from static snapshot
 JSON (feed and metadata, plus optional results for the strip, #485), with
 `SignalFeedView readOnly` (no feedback controls, no engine trace). It is always on the white
-ground, with the navy header showing the logo and two tabs, feed and scores-only results (`#results`, #553; no account, no preferences). The results page is a separate demo composition (`src/demo/DemoResults.jsx`, model in `demoModel.js`) that never imports the product's row, tile, board or popup, and `scoresOnlyGame` drops leaders, chosen lines, ranks, venue and attendance even from a richer file. It mounts no router
+ground, with the navy header showing feed and results tabs. `DemoResults.jsx`
+renders the shared board and available static game details in read-only mode,
+with upcoming games, public statistics and no account/preferences links. It mounts no router
 and no auth or app provider; the hooks feed components need live in `src/context/appContextCore.js`
 so the provider and API client stay out of that bundle. [DEPLOYMENT.md](DEPLOYMENT.md) §17.
 

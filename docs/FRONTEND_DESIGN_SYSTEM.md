@@ -247,16 +247,14 @@ proxy them; an unexpected attempt fails the capture. Temporary health-review
 HTML uses an unproxied path and the app's existing favicon.
 
 **Demo bundle guard.** `npm run build`, `npm run build:demo`, then `npm run check:demo-bundle`.
-It fails if the demo bundle holds the API client, router, auth, app provider, a non-feed page
-or a write request method. Its markers are confirmed present in the main bundle, so a stale
-marker fails loudly.
-The results-statistics boundary (#526) adds `private-results-statistics` as a
-forbidden demo marker, calibrated in the main Results page. Private rows/dialogs
-reuse that marker; the shared scores-only strip never imports the boundary.
-Guard tests cover accidental stat rendering with no API/write import, a stale
-marker, and a clean score-only demo. #553 adds two calibrated markers, the popup's close label and the
-chosen-players box title, because the demo now has a results page: it must stay free of the popup and
-statistics renderers. No demo deployment is part of this change.
+It rejects API clients, routers, auth/app providers, account/preferences/ops pages
+and write requests. Forbidden markers are calibrated against the main bundle so
+renaming one cannot silently weaken the guard. At the owner's request, shared
+read-only result statistics, static box-score popups and chosen-player lines are
+allowed in the public demo. The lightweight score strip remains independent.
+Guard tests cover permitted static results, rejected API/auth/write imports and
+marker calibration. A repository change and an actual deployment are separate
+steps; delivery reports must state which has occurred.
 
 **Ops unchanged.** Any change to shared CSS or tokens verifies that the computed styles of
 `/debug`, `/sources` and `/llm-qa` did not change (#462).
@@ -586,10 +584,9 @@ Between the important row and the band. A 1px `--line` rule above and below, pad
 - **Data**: the session user's most recent finals (`/api/me/results`). The mock shows the ten
   latest finals before the snapshot time. The public demo reads optional `results.json` from
   its static snapshot, with no API request. No results means no strip. The same file feeds the
-  demo's scores-only results page (#553): direction C without popup, leaders, chosen lines, ranks
-  or side column; tiles from `followed_team:` reasons only; rows and tiles are not interactive.
-  It is a demo-only composition (`src/demo/DemoResults.jsx`) so the private renderers stay out of
-  the bundle.
+  demo's shared read-only results board, including leaders, ranks, upcoming games
+  and available static box scores. Account/preferences and write paths remain
+  excluded from its bundle.
 - Team names come from the taxonomy's Hebrew names. Some EuroCup teams have none and render in
   English (#466 lists them for the taxonomy workflow), wrapped per A2.
 
@@ -818,7 +815,7 @@ new stories.
     (`frontend/src/lab/RESULTS_FIXTURES.md`), with a 390px phone frame and an optional
     synthetic NBA filler for the collapse. Labs make no user-API requests.
 - **Account, auth, welcome, 404** (#472) and the **public demo** (#469): the new shell and
-  feed. The demo is read-only: the feed plus a scores-only results page (#553).
+  feed. The demo reads static feed/results snapshots and available box scores without API or write paths.
 - **Images** (#474): open owner decision, ingestion work before design work. Every layout here
   works without an image and must keep working when a story has none.
 

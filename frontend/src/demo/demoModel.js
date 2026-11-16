@@ -6,7 +6,6 @@ import { getVisibleItems } from "@/components/feed/feedFilters";
 import { formatUpdatedAgo } from "@/components/feed/feedFreshnessModel";
 import { prepareFeedItems } from "@/components/feed/storyModel";
 import { normalizeResultsResponse } from "@/components/results/resultsModel";
-import { dateChips, followedTeamIds, streamDays, summaryParts, tileVerdict, TILE_LIMIT } from "@/components/results/resultsLayoutModel";
 
 // The worker runs every few minutes and the export every hour, so anything
 // older than this means the pipeline or the owner's PC has stopped.
@@ -34,14 +33,15 @@ export async function loadDemoSnapshot(fetchImpl, base = "/") {
     fetchJson(fetchImpl, `${base}demo-data/feed.json`),
     fetchJson(fetchImpl, `${base}demo-data/meta.json`),
     fetchJson(fetchImpl, `${base}demo-data/results.json`)
-      .then((raw) => normalizeResultsResponse(raw).games.map(scoresOnlyGame))
-      .catch(() => []),
+      .then(normalizeDemoResults)
+      .catch(() => ({ games: [], details: {} })),
   ]);
   if (!Array.isArray(feed)) throw new Error("demo feed is not a list");
   const visible = getVisibleItems(feed.map(normalizeScoredArticleFromApi));
   return {
     meta,
-    results,
+    results: results.games,
+    resultDetails: results.details,
     items: prepareFeedItems(visible, { isBackendMode: true, localScoredArticles: [] }),
   };
 }
@@ -73,7 +73,7 @@ export function demoDecisionCounts(items) {
   return counts;
 }
 
-// ---- Tabs (#553): the feed and the scores-only results, switched by the hash.
+// ---- Tabs (#553): the feed and the results, switched by the hash.
 
 export const DEMO_TABS = [
   { id: "feed", label: "פיד", hash: "" },
@@ -85,60 +85,17 @@ export function tabFromHash(hash) {
   return hash === "#results" ? "results" : "feed";
 }
 
-// ---- Results, scores only (#526, #553).
-
-/**
- * The only fields of a game the public demo keeps. The exporter already
- * projects onto this allowlist; this is the second line of defence, so even a
- * richer file can never put leaders, chosen-player lines, ranks, venue or
- * attendance on the page.
- */
-export function scoresOnlyGame(game) {
-  const side = (s) => ({ id: s?.id ?? null, name: s?.name ?? "", nameProvider: s?.name ?? "", score: s?.score ?? null, isWinner: Boolean(s?.isWinner), rank: null });
-  return {
-    id: game.id,
-    competitionId: game.competitionId,
-    competitionHe: game.competitionHe,
-    competitionEn: game.competitionEn,
-    sport: game.sport,
-    status: game.status,
-    startTime: game.startTime,
-    localDate: game.localDate,
-    winner: game.winner,
-    relevanceReason: game.relevanceReason || "",
-    home: side(game.home),
-    away: side(game.away),
-    leaders: [],
-    chosenPlayerLines: [],
-    detailAvailable: false,
-  };
-}
-
-const FOLLOWED_REASON = /^followed_team:(team:.+)$/;
-const startMs = (game) => Date.parse(game.startTime) || 0;
-
-/**
- * Everything the demo results view renders, from the exported games. Tiles are
- * the newest finals whose relevance_reason is followed_team:<id>, at most four.
- * Upcoming games are not exported, so there is no tonight box.
- * @param {any[]} games  scoresOnlyGame output
- * @param {Date} now
- */
-export function demoResultsView(games, now = new Date()) {
-  const finals = (games || []).filter((game) => game.status === "final");
-  if (finals.length === 0) return { state: "empty", summary: [], tiles: [], chips: [], days: [], followed: new Set() };
-  const followed = followedTeamIds(null, finals);
-  const tiles = finals
-    .filter((game) => FOLLOWED_REASON.test(game.relevanceReason))
-    .sort((a, b) => startMs(b) - startMs(a) || a.id.localeCompare(b.id))
-    .slice(0, TILE_LIMIT)
-    .map((game) => ({ game, verdict: tileVerdict(game, followed), chosen: null }));
-  return {
-    state: "ready",
-    followed,
-    tiles,
-    summary: summaryParts(finals, now),
-    chips: dateChips(finals, now),
-    days: streamDays(finals, followed, now),
-  };
+// Only exported, matching final-game details open a popup; no API calls.
+export function normalizeDemoResults(raw) {
+  const details = {};
+  const games = normalizeResultsResponse(raw).games
+    .filter(game => game.status === "final" || game.status === "scheduled")
+    .map(game => {
+      const detail = Object.hasOwn(raw?.details || {}, game.id) ? raw.details[game.id] : null;
+      const available = game.status === "final" && game.detailAvailable
+        && detail?.game_id === game.id && Array.isArray(detail?.players);
+      if (available) details[game.id] = detail;
+      return { ...game, detailAvailable: Boolean(available) };
+    });
+  return { games, details };
 }

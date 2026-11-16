@@ -1,6 +1,14 @@
 # Signal Sports — Current Project State
 
-**Last updated: 2026-11-15** (results backend from `main`: detail storage/providers, health,
+**Delivery update: 2026-11-16.** The results/demo changes are now committed and
+pushed as one feature per PR, [#557–#561 and their delivery record](FEATURE_DELIVERY_2026-11-16.md).
+The initial stack was based on current main at merged PR #556. All five feature
+PRs passed repository/image CI and were merged into main separately; the last
+feature merge is `f4f9df12f5ba84fd2eb9beed5684f83e11a0ab93`. This repository delivery
+does not deploy the authenticated site. The Firebase demo was already published earlier on this date.
+[AGENTS.md](../AGENTS.md) records the owner's standing branch/commit/push/PR workflow.
+
+**Previous orientation snapshot: 2026-11-15** (results backend from `main`: detail storage/providers, health,
 exact player mapping, separate player choices, enriched API and demo export guard, all
 activation defaults unchanged; grouped results/popup and coded alternatives #513,
 separate results player setting #524, demo statistics guard #526 and read-only ops

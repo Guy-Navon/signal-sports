@@ -122,7 +122,7 @@ export default function DemoResults({ games = [], nowMs = Date.now() }) {
                     const open = expanded.has(key);
                     const shown = open ? [...league.visible, ...league.hidden] : league.visible;
                     return (
-                      <section key={league.competitionId} className={`sr-league${day.leagues.length === 1 || league.visible.length + league.hidden.length >= 4 ? " sr-league--wide" : ""}`} aria-label={league.label}>
+                      <section key={league.competitionId} className="sr-league" aria-label={league.label}>
                         <h3 className="sr-league__head"><bdi dir="auto">{league.label}</bdi></h3>
                         {shown.map((game) => (
                           <Row key={game.id} game={game} followed={view.followed}

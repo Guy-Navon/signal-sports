@@ -9,40 +9,24 @@
 }
 
 /* Scores-only results (#553): no leaders column, no side column, rows and tiles
-   are plain (not buttons). On desktop leagues pack two per row; big ones span both. */
+   are plain (not buttons). One column of centred scorelines per league: each
+   name hugs its score, so the row reads as one compact line. */
 .sr-board--demo .sr-row {
-  grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  column-gap: 12px;
 }
+
+.sr-board--demo .sr-team--home { text-align: end; }
+.sr-board--demo .sr-team--away { text-align: start; }
 
 .sr-board--demo .sr-cols--single {
   grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 900px) {
-  /* Leagues pack two to a row; a league with 4+ games spans both columns and
-     lays its own rows in two. DOM order stays day, league, games. */
-  .sr-board--demo .sr-day {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-flow: row dense;
-    column-gap: 40px;
-    align-items: start;
-  }
-
-  .sr-board--demo .sr-day__head {
-    grid-column: 1 / -1;
-  }
-
-  .sr-board--demo .sr-league--wide {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 40px;
-  }
-
-  .sr-board--demo .sr-league--wide .sr-league__head,
-  .sr-board--demo .sr-league--wide .sr-more {
-    grid-column: 1 / -1;
+  .sr-board--demo .sr-league {
+    max-inline-size: 720px;
+    margin-inline: auto;
   }
 }
 

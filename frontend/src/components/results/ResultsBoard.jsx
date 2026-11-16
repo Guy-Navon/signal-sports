@@ -13,7 +13,7 @@ const MESSAGES = { preferences: "עדיין לא בחרת מה מעניין או
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 export default function ResultsBoard({ games = [], profile = null, hasPreferences = false, loading = false, error = null,
-  onRetry = () => {}, getDetail, nowMs = Date.now() }) {
+  onRetry = () => {}, getDetail, nowMs = Date.now(), readOnly = false }) {
   const [selected, setSelected] = useState(null), [expanded, setExpanded] = useState(() => new Set());
   const opener = useRef(null), heading = useRef(null), rows = useRef(new Map()), pendingFocus = useRef(null);
   const now = useMemo(() => new Date(nowMs), [nowMs]);
@@ -49,9 +49,9 @@ export default function ResultsBoard({ games = [], profile = null, hasPreference
           {i > 0 && " · "}<b>{part.n}</b> {part.label}</React.Fragment>)}</p>}
       </header>
       {state === "loading" && <p className="sr-message" role="status">טוען תוצאות…</p>}
-      {!ready && state !== "loading" && <div className="sr-message" role={state === "error" ? "alert" : undefined}><h2>{MESSAGES[state]}</h2>
+      {!ready && state !== "loading" && <div className="sr-message" role={state === "error" ? "alert" : undefined}><h2>{readOnly && state === "empty" ? "אין תוצאות להצגה כרגע" : MESSAGES[state]}</h2>
         {state === "error" && <button type="button" onClick={onRetry}>נסה שוב</button>}
-        {state === "preferences" && <a href="/preferences">בחירת העדפות</a>}
+        {state === "preferences" && !readOnly && <a href="/preferences">בחירת העדפות</a>}
         {state === "empty" && <p>משחקים קרובים ותוצאות חדשות יופיעו כאן כשיהיו זמינים.</p>}
       </div>}
       {ready && model.tiles.length > 0 && <section className="sr-teams" aria-labelledby="sr-teams-title">
@@ -84,7 +84,7 @@ export default function ResultsBoard({ games = [], profile = null, hasPreference
         </div>
         <aside className="sr-side" aria-label="מידע נוסף">
           <TonightBox tonight={model.tonight} />
-          <PlayersBox lines={model.players} />
+          {(!readOnly || model.players.length > 0) && <PlayersBox lines={model.players} readOnly={readOnly} />}
         </aside>
       </div></div></div>
     </>}

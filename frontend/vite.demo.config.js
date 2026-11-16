@@ -3,8 +3,8 @@ import { defineConfig } from 'vite';
 import path from 'path';
 
 // The public read-only demo (#458): its own entry (demo.html → src/demo/main.jsx)
-// and its own out dir, so the bundle holds the feed view only: no router, auth,
-// app provider, preferences, results or ops pages. Firebase Hosting serves
+// and its own out dir: feed/results views with static details, no router, auth,
+// app provider, preferences or ops pages. Firebase Hosting serves
 // dist-demo/ (firebase.json at the repo root); scripts/demo-publish.ps1 writes
 // the snapshot into dist-demo/demo-data/ before each deploy.
 export default defineConfig({

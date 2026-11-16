@@ -684,13 +684,18 @@ is unaffected. **Status: built and tested in the repository. The first deploy an
 task are owner steps; the PR deployed nothing.**
 
 **What it shows.** The feed (Signal UI on `ui/next`; Orbit on main until the merge) and its reader explanations (`reason_he`), with clusters and
-links to the original articles, plus a results strip and, since #553, a **scores-only results page** (`#results`, a second header tab next to the feed) from `results.json`. The page has the summary line, the "הקבוצות שלך" tiles (finals whose `relevance_reason` is `followed_team:<id>`, newest four), the date bar and stream rows with the long-league collapse. Scores only (#526): no leaders, chosen-player lines, ranks, venue or attendance, rows and tiles are not interactive, and there is no popup, box score, "הערב" box or players box (upcoming games and chosen lines are not exported). Nothing else: no preferences, interests, calibration,
+links to original articles, a results strip and the shared read-only results
+board (`#results`). At the owner's request, the static snapshot includes public
+leaders, chosen-player lines, ranks, upcoming games and available box scores in
+a `details` map. Popups read that map without an API request. Field allowlists
+exclude account data and raw provider payloads. Account/preferences links and
+empty player boxes are hidden. No preferences, interests, calibration,
 onboarding, feedback, account or ops screens, and no engine trace. The bundle has no router,
 `AuthProvider`, `AppProvider` or API client, so no code path in it can write anything. CI locks
 this: the frontend job runs `npm run build:demo` and then `npm run check:demo-bundle`
 (`frontend/scripts/check-demo-bundle.mjs`), which fails when `dist-demo` contains the API client's
 `/api/` paths, react-router, the route table, the auth or app provider, or a string unique to the
-preferences, results, calibration, login or ops pages. Each marker is also confirmed present in the
+preferences, calibration, login or ops pages. Read-only results components are allowed. Each marker is also confirmed present in the
 main bundle, so a renamed string fails the check instead of silently weakening it.
 
 | Piece | What it does |

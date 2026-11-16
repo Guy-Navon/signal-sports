@@ -36,6 +36,9 @@ os.environ["FEED_FRESHNESS_ENABLED"] = "false"
 # the scheduler sync stage off, so no test can reach TheSportsDB over the
 # network. Tests inject a FakeResultsProvider explicitly where they sync.
 os.environ["RESULTS_PROVIDER"] = "fake"
+# Routing tests opt in explicitly; live .env routes must not select real sources.
+os.environ["RESULTS_PROVIDER_ROUTES"] = ""
+os.environ["RESULTS_PROVIDER_DISABLED"] = ""
 os.environ["RESULTS_SYNC_ENABLED"] = "false"
 # Per-game detail (#517) off unless a test enables it.
 os.environ["RESULTS_DETAIL_ENABLED"] = "false"

@@ -15,13 +15,13 @@ export function TonightBox({ tonight }) {
   </section>;
 }
 
-export function PlayersBox({ lines }) {
+export function PlayersBox({ lines, readOnly = false }) {
   return <section className="sr-box sr-box--players" aria-labelledby="sr-players-title">
     <h3 id="sr-players-title">השחקנים שלך</h3>
     {lines.length > 0 && <ul>{lines.map(line => <li key={line.key} className="sr-box__item sr-box__item--stack">
       <span className="sr-box__main"><span><bdi dir="auto">{line.name}</bdi>{line.stats && <> · <span className="sr-num">{line.stats}</span></>}</span>
         <span className="sr-box__meta">{line.day}{line.score && <> · <bdi dir="auto">{line.score}</bdi></>}{line.minutes && <> · {line.minutes}</>}</span></span>
     </li>)}</ul>}
-    <a className="sr-box__link" href="/preferences">בחירת שחקנים לתוצאות ›</a>
+    {!readOnly && <a className="sr-box__link" href="/preferences">בחירת שחקנים לתוצאות ›</a>}
   </section>;
 }

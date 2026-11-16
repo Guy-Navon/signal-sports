@@ -3,10 +3,10 @@
 /**
  * Guard for the public read-only demo bundle (#458, review of PR #459).
  *
- * The owner's hard requirement: the public demo shows the feed and scores-only results (#553) and has no
+ * The public demo shows the feed, results and static game details and has no
  * code path that can write. `npm run build:demo` must therefore produce a
  * bundle without the API client, the router, auth, the app provider or any
- * page other than the feed. One stray import (e.g. `@/api/client` or
+ * account, preferences or ops page. One stray import (e.g. `@/api/client` or
  * `@/context/AppContext`) would pull all of that back in while lint, typecheck,
  * tests and the main build stay green.
  *
@@ -48,14 +48,9 @@ const FORBIDDEN = [
   // `useApp must be used within AppProvider` error from appContextCore.js, so
   // these are strings only the provider module holds.
   ["AppProvider (sandbox profile id)", /calibrated_sandbox/],
-  ["AppProvider (local demo loader)", /local demo failed to load/],
-  // Pages other than the feed (titles from src/pages/*.jsx).
+  ["AppProvider (bootstrap error)", /לא הצלחנו לטעון את מצב ההדגמה/],
+  // Account, preferences and ops pages (titles from src/pages/*.jsx).
   ["Preferences page", /נושאים מושתקים/],
-  ["Results page", /לא הצלחנו לטעון את התוצאות/],
-  ["results statistics UI", /private-results-statistics/],
-  // Scores-only results (#553): the box score popup and the chosen-players box.
-  ["results game popup", /סגירת פרטי המשחק/],
-  ["results chosen-players box", /השחקנים שלך/],
   ["Calibration page", /כיול העדפות/],
   ["Login page", /החדר האישי/],
   ["Debug page", /פאנל דיבאג/],
@@ -119,7 +114,7 @@ async function main() {
   if (problems.length > 0) {
     for (const problem of problems) console.error(problem);
     console.error(
-      "check-demo-bundle: FAILED. The public demo must stay feed-only with no write path (#458).",
+      "check-demo-bundle: FAILED. The public demo must read static snapshots with no API or write path.",
     );
     return 1;
   }

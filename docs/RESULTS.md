@@ -330,23 +330,19 @@ classification policy remain unchanged; result choices are not feed follows.
 
 ## 7. Frontend
 
-**Public demo boundary (#526, 2026-11-15; results export fixed 2026-11-16).**
-The demo exporter writes `feed.json`, `meta.json` and `results.json`.
-`results.json` contains the demo profile's final games, projected onto an
-explicit allowlist: the game identity, competition, sport, season, stage,
-status, times, winner and relevance reason, plus each side's id, names, score
-and winner flag. Leaders, chosen lines, venue, attendance, ranks and every
-box-score field are dropped, whatever the results API serves. All three files
-are then checked recursively against the results detail/stat keys (including
-leaders, chosen lines, players, team stats, rank, venue and attendance). A
-violation fails the export and preserves the previous snapshot. The stats bundle
-guard (`npm run check:demo-bundle`) is the UI part of #526.
+**Public demo boundary (expanded at the owner's request, 2026-11-16).**
+The exporter writes feed/meta plus `results.json`, containing personalized final
+and scheduled games and a `details` map of available final-game box scores.
+Both reads use the same product handlers and read-only database connection.
+Explicit public game/player/stat allowlists exclude account data and raw provider
+payloads. Missing detail leaves a score-only row; unexpected failures preserve
+the previous snapshot. Feed/meta retain their separate statistics guard.
 
-Before the fix, the results export bypassed that check. On 2026-11-16, from
-01:10 to about 01:20, the public `results.json` carried leaders, venue,
-attendance and ranks for 39 games. This followed `RESULTS_DETAIL_ENABLED` going
-on in production the evening before. The file was stripped and redeployed, and
-the hourly publish task was paused until this fix.
+The demo uses the shared `ResultsBoard` in read-only mode: upcoming games,
+leaders, ranks and static box-score popups are available, without account or
+preferences links. The bundle guard permits those renderers while continuing
+to exclude API clients, auth, writes, the router and account/preferences/ops pages.
+Older score-only snapshots remain usable.
 
 `/results` (product route, RTL). Data flows through `AppContext`
 (`resultsGames` / `resultsHasPreferences` / `resultsLoading` / `resultsError`),

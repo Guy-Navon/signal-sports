@@ -194,3 +194,20 @@ def test_detail_failure_keeps_the_previous_snapshot(results_db, tmp_path, monkey
     with pytest.raises(RuntimeError, match="detail read failed"):
         exporter.export_demo_snapshot(results_db, out)
     assert {path.name: path.read_bytes() for path in out.iterdir()} == previous
+
+
+def test_demo_exports_no_games_or_box_scores_older_than_three_days(results_db):
+    old = FAKE_GAMES[0].model_copy(update={"external_id": "expired-demo-game",
+        "start_time": (datetime.now(timezone.utc) - timedelta(days=4)).isoformat()})
+    engine = create_engine(f"sqlite:///{results_db}")
+    with sessionmaker(bind=engine)() as session:
+        game_result_repository.upsert(session, old)
+        game_detail_repository.upsert(session, fake_detail(old))
+        session.commit()
+    engine.dispose()
+    before = _digest(results_db)
+    snapshot = exporter.build_results_snapshot(results_db)
+    assert old.id not in {game["id"] for game in snapshot["games"]}
+    assert old.id not in snapshot["details"]
+    assert any(game["status"] == "scheduled" for game in snapshot["games"])
+    assert _digest(results_db) == before

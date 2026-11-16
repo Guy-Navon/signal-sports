@@ -729,3 +729,5 @@ review intake, security diff review, UI and React review, browser checks, Python
 | 9 | Census #2 & Classification Truth | 2026-10-10 | Census #2 (804); title-local trade and schedule; Israeli cups; executives; `club_governance` | qa/CENSUS_2026-10, RSS_QUALITY_GUARDRAILS §13–§17 |
 | — | First census calibration (#237) + QA tooling | 2026-10-12 | Live-profile calibration with a held-out check; `worker.ps1`, `corpus_rerun_diff.py`, census review/merge-review | PREFERENCE_MODEL_V2 |
 | — | Hapoel TLV basketball for Guy (#257) | 2026-10-30 | Owner decision as a profile entry (medium follow plus scoped deltas). Membership-ceiling backing now needs level ≥ +1 | PREFERENCE_MODEL_V2, RELEVANCE_VISIBILITY_CONTRACT |
+
+Past results and their box scores use a rolling 72-hour window in the product and demo; upcoming games retain their independent future window.

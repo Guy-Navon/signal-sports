@@ -133,6 +133,51 @@ def test_no_routes_and_flag_off_preserve_old_fields_and_statuses(session,monkeyp
         assert row.home.model_dump(exclude={"rank"}) == {"id":"team:portland_blazers","name":"פורטלנד בלייזרס","name_provider":"Portland","score":121,"is_winner":row.status=="final"}
 
 
+@pytest.mark.parametrize("enabled", ["true", "false"])
+def test_history_is_at_most_72_hours_with_upcoming_games_unchanged(session, monkeypatch, enabled):
+    monkeypatch.setenv("RESULTS_DETAIL_ENABLED", enabled)
+    # A legacy configuration cannot make old results visible again.
+    monkeypatch.setenv("RESULTS_WINDOW_DAYS", "400")
+    cutoff = NOW - timedelta(days=3)
+    recent = game(ext="recent", start_time=(NOW - timedelta(hours=1)).isoformat())
+    boundary = game(ext="boundary", start_time=cutoff.isoformat())
+    old = game(ext="old", start_time=(cutoff - timedelta(microseconds=1)).isoformat())
+    upcoming = game(ext="upcoming", status="scheduled", start_time=(NOW + timedelta(days=6)).isoformat())
+    for g in (recent, boundary, old):
+        seed_detail(session, g)
+    games.upsert(session, upcoming)
+    session.commit()
+    visible = service.personalized_results(session, profile(), now=NOW).games
+    assert {g.id for g in visible} == {recent.id, boundary.id, upcoming.id}
+    assert service.personalized_detail(session, profile(), old.id, now=NOW) is None
+    if enabled == "true":
+        assert service.personalized_detail(session, profile(), boundary.id, now=NOW) is not None
+        assert service.personalized_detail(session, profile(), boundary.id,
+                                          now=NOW + timedelta(microseconds=1)) is None
+    # Hiding history never deletes its stored games or box scores.
+    assert games.get_by_id(session, old.id) is not None
+    assert old.id in details.get_details(session, [old.id])
+
+
+@pytest.mark.parametrize("configured,expected", [(None, 3), ("400", 3), ("3", 3), ("1", 1),
+                                                 ("0", 3), ("-1", 3), ("invalid", 3)])
+def test_history_configuration_cannot_exceed_three_days(monkeypatch, configured, expected):
+    from app.results.settings import read_window_days
+    if configured is None:
+        monkeypatch.delenv("RESULTS_WINDOW_DAYS", raising=False)
+    else:
+        monkeypatch.setenv("RESULTS_WINDOW_DAYS", configured)
+    assert read_window_days() == expected
+
+
+
+
+
+
+
+
+
+
 def test_detail_relevance_and_serving_provider(session,monkeypatch):
     from app.results.service import personalized_detail
     g=game();seed_detail(session,g)

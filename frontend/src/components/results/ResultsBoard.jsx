@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { pageState } from "./resultsPageModel";
+import { recentResults } from "./resultsModel";
 import { dateChips, followedTeamIds, playerLines, sideBoxes, streamDays, summaryParts, tileEntries } from "./resultsLayoutModel";
 import { formatDayHeading, jerusalemDayKey } from "./resultsFormat";
 import ResultRow from "./ResultRow";
@@ -12,11 +13,12 @@ import "./results-board.css";
 const MESSAGES = { preferences: "עדיין לא בחרת מה מעניין אותך", empty: "אין משחקים להיום", error: "לא הצלחנו לטעון את התוצאות" };
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-export default function ResultsBoard({ games = [], profile = null, hasPreferences = false, loading = false, error = null,
+export default function ResultsBoard({ games: allGames = [], profile = null, hasPreferences = false, loading = false, error = null,
   onRetry = () => {}, getDetail, nowMs = Date.now(), readOnly = false }) {
   const [selected, setSelected] = useState(null), [expanded, setExpanded] = useState(() => new Set());
   const opener = useRef(null), heading = useRef(null), rows = useRef(new Map()), pendingFocus = useRef(null);
   const now = useMemo(() => new Date(nowMs), [nowMs]);
+  const games = useMemo(() => recentResults(allGames, nowMs), [allGames, nowMs]);
   const state = pageState({ loading, error, hasPreferences, games });
   const followed = useMemo(() => followedTeamIds(profile, games), [profile, games]);
   const model = useMemo(() => ({
@@ -88,6 +90,6 @@ export default function ResultsBoard({ games = [], profile = null, hasPreference
         </aside>
       </div></div></div>
     </>}
-    {selected && <GameDetailDialog key={selected.id} game={selected} getDetail={getDetail} onClose={close} />}
+    {selected && games.some(game => game.id === selected.id) && <GameDetailDialog key={selected.id} game={selected} getDetail={getDetail} onClose={close} />}
   </div>;
 }

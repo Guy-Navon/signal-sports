@@ -6,6 +6,7 @@ import {
   isCompleted,
   hasScore,
   RESULT_STATUS,
+  recentResults,
 } from "./resultsModel";
 
 const RAW = {
@@ -77,5 +78,21 @@ describe("status helpers", () => {
     expect(hasScore(normalizeResultFromApi(RAW))).toBe(true);
     const sched = normalizeResultFromApi({ ...RAW, home: { score: null }, away: { score: null } });
     expect(hasScore(sched)).toBe(false);
+  });
+});
+
+describe("recentResults", () => {
+  const now = Date.parse("2026-11-16T10:00:00Z");
+  const cutoff = now - 72 * 60 * 60 * 1000;
+  const game = (id, startTime, status = "final") => ({ id, startTime, status });
+  it("keeps the exact 72-hour boundary and upcoming games, dropping older and undated finals", () => {
+    const boundary = game("boundary", new Date(cutoff).toISOString());
+    const recent = game("recent", new Date(now - 1000).toISOString());
+    const upcoming = game("upcoming", "2026-11-22T18:00:00Z", "scheduled");
+    const input = Object.freeze([game("old", new Date(cutoff - 1).toISOString()),
+      boundary, recent, upcoming, game("missing", null), game("invalid", "broken")]);
+    expect(recentResults(input, now)).toEqual([boundary, recent, upcoming]);
+    expect(recentResults(input, now + 1)).toEqual([recent, upcoming]);
+    expect(input).toHaveLength(6);
   });
 });

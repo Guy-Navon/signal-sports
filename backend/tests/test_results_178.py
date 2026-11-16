@@ -6,7 +6,7 @@ followed-player-team relevance, exclusion of unrelated games, profile
 isolation, chronological ordering, sync bookkeeping/throttle, and the API
 authorization + response contract.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -34,6 +34,12 @@ def seeded(client):
 
 
 def _sync_fake(session, games=None):
+    # Test relevance against recent games; historical provider fixtures must not
+    # disappear from these tests as the production three-day clock advances.
+    if games is None:
+        now = datetime.now(timezone.utc)
+        games = [game.model_copy(update={"start_time": (now - timedelta(hours=i + 1)).isoformat()})
+                 for i, game in enumerate(FAKE_GAMES)]
     provider = FakeResultsProvider(games=games)
     return sync_results(session, provider=provider, force=True)
 

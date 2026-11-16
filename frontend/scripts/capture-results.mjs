@@ -21,7 +21,7 @@ export async function blockCaptureProxies(client, origin, report) {
 export async function auditResultsPages({ client, origin, configureViewport, evaluate, capture, outputDirectory }) {
   const fixture = JSON.parse(await readFile(path.join(frontend, "src/lab/resultsFixtures.json"), "utf8"));
   const nba = fixture.games.find(g => g.competition_id === "comp:nba");
-  const finals = fixture.games.filter(g => g.status === "final");
+  const finals = fixture.games.filter(g => g.status === "final" && Date.parse(g.start_time) >= Date.parse(fixture.as_of) - 72 * 3600000);
   const calls = [];
   await client.send("Network.enable");
   client.on("Network.requestWillBeSent", e => { if (new URL(e.request.url).pathname.startsWith("/api/")) calls.push(e.request.url); });

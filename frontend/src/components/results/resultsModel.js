@@ -12,6 +12,21 @@ export const RESULT_STATUS = {
 // A completed game whose score is meaningful.
 export const COMPLETED_STATUSES = new Set([RESULT_STATUS.FINAL]);
 
+export const RESULTS_HISTORY_DAYS = 3;
+
+/** Shared by the product board, public demo and feed strip. Apply at render time
+ * too: a cached response must not keep old finals visible as the clock advances.
+ * @param {readonly any[]} games
+ */
+export function recentResults(games = [], nowMs = Date.now()) {
+  const since = nowMs - RESULTS_HISTORY_DAYS * 24 * 60 * 60 * 1000;
+  return games.filter(game => {
+    if (!isCompleted(game.status)) return true;
+    const start = game.startTime ? Date.parse(game.startTime) : NaN;
+    return Number.isFinite(start) && start >= since;
+  });
+}
+
 // Hebrew status labels for the status chip.
 const STATUS_LABELS = {
   [RESULT_STATUS.FINAL]: "תוצאה סופית",

@@ -152,7 +152,7 @@ export async function auditResultsPages({ client, origin, configureViewport, eva
       assert.ok(info.scrollerScrolls, `${label}: the table scrolls inside itself`);
       assert.equal(info.bigSize, 36, `${label}: phone score size`);
     } else {
-      assert.ok(Math.abs(info.box[2] - 800) <= 2 && Math.abs(info.box[0] + info.box[2] / 2 - info.viewport[0] / 2) <= 12, `${label}: centred 800px dialog ${info.box}`);
+      assert.ok(Math.abs(info.box[2] - 1040) <= 2 && Math.abs(info.box[0] + info.box[2] / 2 - info.viewport[0] / 2) <= 12, `${label}: centred 1040px dialog ${info.box}`);
       assert.equal(info.grab, "none", `${label}: no grab handle on a desktop`);
       assert.equal(info.bigSize, 48, `${label}: desktop score size`);
     }

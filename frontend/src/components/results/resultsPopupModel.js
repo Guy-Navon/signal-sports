@@ -33,6 +33,7 @@ export function periodTable(detail, game) {
   return { labels, rows: SIDES.map((side, i) => ({ side, name: game[side].name, values: values[i], total: game[side].score })) };
 }
 
+/** @type {Array<[string, string[]]>} */
 const FACTS = [
   ["נקודות מהספסל", ["bench_points", "benchPoints"]],
   ["נקודות בצבע", ["pts_in_the_paint", "pointsInPaint"]],
@@ -59,49 +60,129 @@ const splitShot = (value) => {
   return m ? [Number(m[1]), Number(m[2])] : null;
 };
 
-function shooting(stats) {
+function shotLines(stats) {
   const made = (a, b) => num(stats[a]) != null && num(stats[b]) != null ? [num(stats[a]), num(stats[a]) + num(stats[b])] : null;
   const att = (m, a) => num(stats[m]) != null && num(stats[a]) != null ? [num(stats[m]), num(stats[a])] : null;
   let two = made("fg2_made", "fg2_missed") || att("FieldGoalsMade2", "FieldGoalsAttempted2");
   let three = made("fg3_made", "fg3_missed") || att("FieldGoalsMade3", "FieldGoalsAttempted3");
   let ft = made("ft_made", "ft_missed") || att("FreeThrowsMade", "FreeThrowsAttempted");
-  if (!two && !three && stats.FG != null) {
-    // ESPN gives total field goals and threes; the two-point line is the difference.
-    const total = splitShot(stats.FG), threes = splitShot(stats["3PT"]);
-    three = threes;
-    if (total && threes) two = [total[0] - threes[0], total[1] - threes[1]];
-  }
-  if (!ft && stats.FT != null) ft = splitShot(stats.FT);
-  return { fg2: two && pair(...two), fg3: three && pair(...three), ft: ft && pair(...ft) };
+  const valid = p => p && p.every(n => n >= 0) && p[0] <= p[1] ? p : null;
+  three ||= splitShot(stats["3PT"] ?? stats["threePointFieldGoalsMade-threePointFieldGoalsAttempted"]);
+  ft ||= splitShot(stats.FT ?? stats["freeThrowsMade-freeThrowsAttempted"]);
+  let fg = splitShot(stats.FG ?? stats["fieldGoalsMade-fieldGoalsAttempted"]);
+  if (!two && fg && three) two = valid([fg[0] - three[0], fg[1] - three[1]]);
+  if (!fg && two && three) fg = [two[0] + three[0], two[1] + three[1]];
+  return { fg: valid(fg), fg2: valid(two), fg3: valid(three), ft: valid(ft) };
 }
+
+const percent = shot => shot?.[1] > 0 ? Math.round(shot[0] / shot[1] * 1000) / 10 : null;
+const percentText = shot => percent(shot) == null ? null : `${percent(shot)}%`;
+const STAT_KEYS = {
+  pts: ["points", "Points", "PTS"], reb: ["rebounds", "TotalRebounds", "REB", "totalRebounds"],
+  ast: ["assists", "Assistances", "AST"], stl: ["steals", "Steals", "STL"],
+  blk: ["blocks", "BlocksFavour", "BLK"], tov: ["totalTurnovers", "turnovers", "Turnovers", "TO"],
+  pf: ["fouls", "FoulsCommited", "PF"], oreb: ["rebounds_offensive", "OffensiveRebounds", "OREB", "offensiveRebounds"],
+  dreb: ["rebounds_defensive", "DefensiveRebounds", "DREB", "defensiveRebounds"],
+  pm: ["plus_minus", "Plusminus", "+/-"], rating: ["rate", "Valuation", "valuation"],
+};
 
 function playerRow(p, i) {
   const s = p.stats || {};
   const minutes = num(p.minutes);
+  const shots = shotLines(s);
+  const { pts, reb, ast, stl, blk, tov, pf, oreb, dreb, pm, rating } =
+    Object.fromEntries(Object.entries(STAT_KEYS).map(([key, aliases]) => [key, first(s, aliases)]));
   return {
     key: p.source_player_id || p.entity_id || `${p.name}-${i}`, name: p.name || "שחקן לא מזוהה",
     min: minutes == null ? null : Math.round(minutes),
-    pts: first(s, ["points", "Points", "PTS"]), reb: first(s, ["rebounds", "TotalRebounds", "REB"]),
-    ast: first(s, ["assists", "Assistances", "AST"]), pm: first(s, ["plus_minus", "Plusminus", "+/-"]),
-    ...shooting(s), starter: Boolean(s.starter ?? s.IsStarter),
+    pts, reb, ast, stl, blk, tov, pf, oreb, dreb, pm, rating,
+    ...Object.fromEntries(Object.entries(shots).map(([key, value]) => [key, value && pair(...value)])),
+    fgpct: percentText(shots.fg), fg3pct: percentText(shots.fg3), ftpct: percentText(shots.ft),
+    shots, starter: Boolean(s.starter ?? s.IsStarter),
   };
 }
 
-const played = (row) => (row.min != null && row.min > 0) || (row.pts != null && row.pts > 0);
-export const BOX_COLUMNS = ["min", "pts", "reb", "ast", "fg2", "fg3", "ft", "pm"];
+const played = (row) => (row.min != null && row.min > 0) || ["pts", "reb", "ast", "stl", "blk"].some(key => row[key] > 0);
+export const BOX_COLUMNS = ["min", "pts", "reb", "ast", "stl", "blk", "tov", "pf", "fg2", "fg3", "ft", "pm"];
+export const EXPANDED_BOX_COLUMNS = ["min", "pts", "reb", "oreb", "dreb", "ast", "stl", "blk", "tov", "pf",
+  "fg", "fgpct", "fg2", "fg3", "fg3pct", "ft", "ftpct", "pm", "rating"];
+
+function summedShots(rows, key) {
+  if (!rows.length || rows.some(row => !row.shots[key])) return null;
+  return rows.reduce((sum, row) => [sum[0] + row.shots[key][0], sum[1] + row.shots[key][1]], [0, 0]);
+}
+
+function playerTotals(rows) {
+  const totals = {};
+  for (const key of ["pts", "reb", "oreb", "dreb", "ast", "stl", "blk", "tov", "pf"]) {
+    totals[key] = rows.length && rows.every(row => row[key] != null) ? rows.reduce((sum, row) => sum + row[key], 0) : null;
+  }
+  for (const key of ["fg", "fg2", "fg3", "ft"]) {
+    const shot = summedShots(rows, key);
+    totals[key] = shot && pair(...shot);
+    if (key !== "fg2") totals[`${key}pct`] = percentText(shot);
+  }
+  return totals;
+}
 
 // The box score of one side: starters then bench, only the columns the data has,
 // and the top scorer flagged.
-export function boxScore(detail, side, sport) {
+export function boxScore(detail, side, sport, expanded = false) {
   if (sport !== "basketball") return { columns: [], groups: [] };
   const rows = (detail?.players || []).filter(p => p.side === side).map(playerRow).filter(played);
-  const columns = BOX_COLUMNS.filter(col => rows.some(r => r[col] != null));
+  const columns = (expanded ? EXPANDED_BOX_COLUMNS : BOX_COLUMNS).filter(col => rows.some(r => r[col] != null));
   const top = rows.reduce((best, r) => r.pts != null && r.pts > 0 && (!best || r.pts > best.pts) ? r : best, null);
   const marked = rows.map(r => ({ ...r, top: r === top }));
   const hasStarters = marked.some(r => r.starter);
   const groups = hasStarters ? [{ key: "starters", label: "חמישייה", rows: marked.filter(r => r.starter) },
     { key: "bench", label: "ספסל", rows: marked.filter(r => !r.starter) }] : [{ key: "players", label: "", rows: marked }];
-  return { columns, groups: groups.filter(g => g.rows.length) };
+  return { columns, groups: groups.filter(g => g.rows.length), totals: playerTotals(rows) };
+}
+
+export function gameLeaders(detail, sport) {
+  if (sport !== "basketball") return [];
+  const rows = (detail?.players || []).map(playerRow).filter(played);
+  return [["pts", "נקודות"], ["reb", "ריבאונדים"], ["ast", "אסיסטים"]].flatMap(([key, label]) => {
+    const value = Math.max(0, ...rows.map(row => row[key] ?? 0));
+    return value > 0 ? [{ key, label, value, names: rows.filter(row => row[key] === value).map(row => row.name).join(" · ") }] : [];
+  });
+}
+
+// Prefer official team totals. Sum player lines only when their points account
+// for the complete final score; an incomplete box must not become a team total.
+export function teamComparison(detail, game) {
+  const stats = detail?.team_stats || {};
+  const rowsBySide = Object.fromEntries(SIDES.map(side => [side,
+    (detail?.players || []).filter(p => p.side === side).map(playerRow).filter(played)]));
+  const complete = side => rowsBySide[side].length > 0 && rowsBySide[side].every(row => row.pts != null)
+    && rowsBySide[side].reduce((sum, row) => sum + row.pts, 0) === game[side]?.score;
+  const count = (side, key) => {
+    const official = first(stats[side], STAT_KEYS[key]);
+    return official ?? (complete(side) ? playerTotals(rowsBySide[side])[key] : null);
+  };
+  /** @type {Array<[string, string, string[] | null]>} */
+  const definitions = game.sport === "football" ? [
+    ["goals", "שערים", ["goals"]], ["assists", "בישולים", ["assists"]], ["xg", "שערים צפויים", ["xg"]],
+    ["yellow", "כרטיסים צהובים", ["yellow_cards"]], ["red", "כרטיסים אדומים", ["red_cards"]],
+  ] : [
+    ["reb", "ריבאונדים", null], ["ast", "אסיסטים", null], ["stl", "חטיפות", null], ["blk", "חסימות", null],
+    ["tov", "איבודים", null], ["oreb", "ריבאונד התקפה", null], ["dreb", "ריבאונד הגנה", null], ["pf", "עבירות", null],
+    ...FACTS.map(([label, keys], i) => /** @type {[string, string, string[]]} */ ([`fact-${i}`, label, keys])),
+  ];
+  const rows = definitions.flatMap(([key, label, aliases]) => {
+    const [home, away] = SIDES.map(side => aliases ? first(stats[side], aliases) : count(side, key));
+    if (home == null || away == null || home < 0 || away < 0) return [];
+    return [{ key, label, home, away, lowerBetter: ["tov", "pf", "yellow", "red"].includes(key),
+      homeShare: home + away > 0 ? home / (home + away) * 100 : 50 }];
+  });
+  const shooting = game.sport !== "basketball" ? [] : [["fg", "מהשדה"], ["fg3", "לשלוש"], ["ft", "מהעונשין"]].flatMap(([key, label]) => {
+    const values = SIDES.map(side => shotLines(stats[side] || {})[key]
+      || (complete(side) ? summedShots(rowsBySide[side], key) : null));
+    if (values.some(value => !value)) return [];
+    return [{ key, label, home: { line: pair(...values[0]), percent: percent(values[0]) },
+      away: { line: pair(...values[1]), percent: percent(values[1]) } }];
+  });
+  return { rows, shooting };
 }
 
 // Named scorers and cards for a football game; unnamed players are skipped.

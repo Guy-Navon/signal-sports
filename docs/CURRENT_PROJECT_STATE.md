@@ -93,8 +93,15 @@ visible members). Details: [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md).
 
 **Public demo (#458).** `backend/scripts/export_demo_snapshot.py` builds guy's consumer feed
 through the same handler as `/api/me/feed`, from a read-only connection, into static JSON;
-`scripts/demo-publish.ps1` deploys it with a frontend bundle (feed, results strip, shared read-only board and static box scores) to Firebase Hosting, hourly
-through a Windows scheduled task. Live since 2026-11-11 at signal-sports-demo.web.app from main (Orbit), hourly task `SignalSportsDemoPublish`; the `ui/next` demo is deployed only after the merge (#475).
+`scripts/demo-publish.ps1` deploys it with a read-only frontend bundle (feed, results strip,
+shared results board, static box scores and upcoming games) to Firebase Hosting, hourly
+through a Windows scheduled task. Live since 2026-11-11 at signal-sports-demo.web.app,
+hourly task `SignalSportsDemoPublish`. The Signal UI demo with static box scores,
+public statistics and upcoming games was deployed and browser-verified on 2026-11-16.
+The general stream and feed strip are capped at the last 72 hours in the product
+and demo; the upcoming-games window is independent. "הקבוצות שלך" instead shows
+up to four latest finals per directly followed team, eight total, regardless of
+age; their available box scores remain accessible.
 [DEPLOYMENT.md](DEPLOYMENT.md) §17.
 
 | Layer | Where |
@@ -246,7 +253,10 @@ the #491–#505 shell verified against the code on 2026-11-14):
   bottom sheet). Preferences → מה אני עוקב → שחקנים בתוצאות uses separate
   session-owned choices and never changes feed affinities. Coded row/popup and
   placement alternatives are in `lab.html?page=results` and `?page=resultsplayers`;
-  Guy retains those choices. The demo strip stays scores-only; the read-only results page supports static details. Its guard still excludes APIs, auth and writes. Admin Sources shows the provider health block read-only
+  Guy retains those choices. At his request (2026-11-16), the demo results page
+  also reads public statistics, static box scores and scheduled games from its
+  allowlisted snapshot; its bundle guard still excludes APIs, auth and writes.
+  The demo strip stays scores-only. Admin Sources shows the provider health block read-only
   in the existing console style. These are `ui/next` code, not production activation.
 Milestone 15 (#461–#475) lands on `ui/next`; merging to main and deploying the demo still
 need the owner's approval (#475). This is a branch-code statement, not a deployment claim.
@@ -266,9 +276,7 @@ and visual contract (Part B). The reference mock is in `docs/design/2026-11-13-f
 `npm run build:demo` into `frontend/dist-demo/`) renders the Signal feed from static snapshot
 JSON (feed and metadata, plus optional results for the strip, #485), with
 `SignalFeedView readOnly` (no feedback controls, no engine trace). It is always on the white
-ground, with the navy header showing feed and results tabs. `DemoResults.jsx`
-renders the shared board and available static game details in read-only mode,
-with upcoming games, public statistics and no account/preferences links. It mounts no router
+ground, with the navy header showing the logo and two tabs, feed and results (`#results`; no account, no preferences). At the owner's request (2026-11-16), `DemoResults.jsx` renders the shared product board, rows, tiles and box-score dialog in read-only mode. The results snapshot contains allowlisted public statistics, scheduled games and a game-id-keyed detail map. Popups read that map locally; unavailable detail leaves a scores-only row. It mounts no router
 and no auth or app provider; the hooks feed components need live in `src/context/appContextCore.js`
 so the provider and API client stay out of that bundle. [DEPLOYMENT.md](DEPLOYMENT.md) §17.
 
@@ -729,5 +737,3 @@ review intake, security diff review, UI and React review, browser checks, Python
 | 9 | Census #2 & Classification Truth | 2026-10-10 | Census #2 (804); title-local trade and schedule; Israeli cups; executives; `club_governance` | qa/CENSUS_2026-10, RSS_QUALITY_GUARDRAILS §13–§17 |
 | — | First census calibration (#237) + QA tooling | 2026-10-12 | Live-profile calibration with a held-out check; `worker.ps1`, `corpus_rerun_diff.py`, census review/merge-review | PREFERENCE_MODEL_V2 |
 | — | Hapoel TLV basketball for Guy (#257) | 2026-10-30 | Owner decision as a profile entry (medium follow plus scoped deltas). Membership-ceiling backing now needs level ≥ +1 | PREFERENCE_MODEL_V2, RELEVANCE_VISIBILITY_CONTRACT |
-
-Past results and their box scores use a rolling 72-hour window in the product and demo; upcoming games retain their independent future window.

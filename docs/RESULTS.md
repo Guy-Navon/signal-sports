@@ -218,11 +218,20 @@ reach are recorded as `not_checked` (not as errors), status `rate_limited` or `p
 and `rate_limited_until` (from Retry-After, default 60 s) is stored in
 `results_sync_state`, so no caller, worker or admin endpoint, sends a request before it
 passes. A 429 never blocks ingestion. The read path
-shows past games within `RESULTS_WINDOW_DAYS` (default and maximum three days,
-a rolling 72-hour window). Wider legacy settings are capped. The same limit
-applies to game details and public demo exports. The shared board and feed strip
-also discard expired finals from cached responses when rendering. Upcoming games
-retain their separate `RESULTS_UPCOMING_DAYS` window; stored history is not deleted.
+shows past games within `RESULTS_WINDOW_DAYS` (default and maximum 3 days,
+a rolling 72-hour window). Wider legacy settings are capped at three days.
+The shared general stream and feed strip also drop expired finals from cached
+responses at render time. Scheduled games retain their independent
+`RESULTS_UPCOMING_DAYS` window. Stored history is retained; this is a display/read limit.
+
+The "הקבוצות שלך" cards are a separate `team_games` list: up to four latest
+finals per directly followed team and eight total, newest first, without an age
+limit. The server selects from the currently serving providers, filters each
+team in SQL before limiting, and deduplicates shared games (counting them against
+both teams' quotas). `followed_team_ids` carries the direct follows, including
+both sides of a derby. These cards do not enter the recent stream or its date
+chips, summary or players box. Detail reads allow an older game only while it
+is in that reader's selected team cards; older competition-only games stay unavailable.
 
 ## 4. Persistence & idempotency
 
@@ -333,19 +342,39 @@ classification policy remain unchanged; result choices are not feed follows.
 
 ## 7. Frontend
 
-**Public demo boundary (expanded at the owner's request, 2026-11-16).**
-The exporter writes feed/meta plus `results.json`, containing personalized final
-and scheduled games and a `details` map of available final-game box scores.
-Both reads use the same product handlers and read-only database connection.
-Explicit public game/player/stat allowlists exclude account data and raw provider
-payloads. Missing detail leaves a score-only row; unexpected failures preserve
-the previous snapshot. Feed/meta retain their separate statistics guard.
+**Public demo boundary (updated 2026-11-16 at the owner's request).**
+The demo exporter writes `feed.json`, `meta.json` and `results.json`.
+`results.json` contains the demo profile's personalized final and scheduled games,
+with public leaders, chosen-player lines, venue, attendance and ranks. Its `details`
+map holds available final-game box scores, keyed by game id. Both reads use the
+same personalized API handlers and read-only database connection: relevance,
+provider routing and feature flags match the product. No provider requests or
+usage writes occur during export. Explicit field and stat allowlists exclude
+account data, raw provider payloads and future unapproved API fields. Missing
+detail becomes a scores-only game; unexpected read failures preserve the previous
+snapshot. Feed/meta files retain their separate guard against embedded game stats.
 
-The demo uses the shared `ResultsBoard` in read-only mode: upcoming games,
-leaders, ranks and static box-score popups are available, without account or
-preferences links. The bundle guard permits those renderers while continuing
-to exclude API clients, auth, writes, the router and account/preferences/ops pages.
-Older score-only snapshots remain usable.
+The demo renders the shared `ResultsBoard` with details read from that snapshot,
+including the upcoming-games box and existing chosen-player lines. `team_games`
+and `followed_team_ids` preserve the same count-limited team-card history and its
+available box scores outside the stream's three-day window. Account and
+preferences links are hidden. `npm run check:demo-bundle` permits these read-only
+results components while still excluding API clients, auth, writes, the router,
+account/preferences and ops pages. Older scores-only snapshots remain usable.
+
+The shared game dialog now includes basic and expanded player statistics,
+weighted shooting percentages and player totals, game leaders, and a dedicated
+team-comparison view. Winner, EuroLeague and ESPN stat aliases are normalized in
+`resultsPopupModel.js`; missing statistics are omitted. Official team totals take
+priority; player-derived team totals require a complete scoring box. Public demo
+stat allowlists include the additional counts, rebounds, source ratings and team
+shooting pairs needed by the same UI. Account and raw provider fields stay excluded.
+
+Before this explicit expansion, the results export bypassed the scores-only check. On 2026-11-16, from
+01:10 to about 01:20, the public `results.json` carried leaders, venue,
+attendance and ranks for 39 games. This followed `RESULTS_DETAIL_ENABLED` going
+on in production the evening before. The file was stripped and redeployed, and
+the hourly publish task was paused until this fix.
 
 `/results` (product route, RTL). Data flows through `AppContext`
 (`resultsGames` / `resultsHasPreferences` / `resultsLoading` / `resultsError`),
@@ -885,11 +914,3 @@ rule 5. `RESULTS_PROVIDER_BACKUP_SYNC=false` turns the backup off.
 `reason` is `default` (not routed), `routed`, `disabled`, `never_succeeded`, `stale` or
 `stale_no_fallback`. No frontend page reads this endpoint today; the ops UI that shows
 it follows on `ui/next`.
-
-The "הקבוצות שלך" cards are a separate `team_games` list: the latest four finals
-per directly followed team, eight total, newest first, without an age limit.
-`followed_team_ids` identifies the direct follows. Shared games occur once and
-count against both teams' quotas. Queries filter each team before limiting and
-respect serving-provider routing. These cards and their static box scores are
-also exported to the demo. An older detail is readable only while the game is
-among that reader's selected cards; the general stream keeps its 72-hour window.

@@ -8,6 +8,41 @@
   outline-offset: 2px;
 }
 
+.sg-demo-theme {
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-end: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--sg-top-dim);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--sg-top-fg);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sg-demo-theme:hover {
+  background: var(--sg-top-hover);
+}
+
+.sg-demo[data-ground="dark"] .sr-dialog-head {
+  background: var(--sg-top);
+  color: var(--sg-top-fg);
+}
+
+@media (max-width: 599px) {
+  .sg-demo-theme { padding: 10px; }
+  .sg-demo-theme__label { display: none; }
+}
+
 /* The feed strip's product URL is replaced by the demo's results tab. */
 .sg-demo .sg-results__link {
   display: none;

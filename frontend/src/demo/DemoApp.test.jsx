@@ -5,6 +5,7 @@ import { normalizeScoredArticleFromApi } from "@/api/normalizers";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import SignalFeedView from "@/components/feed/signal/SignalFeedView";
 import SignalWordmark from "@/components/signal-ui/SignalWordmark";
+import { GROUND_STORAGE_KEY } from "@/components/signal-ui/ground";
 import DemoApp from "./DemoApp";
 import { loadDemoSnapshot } from "./demoModel";
 
@@ -104,7 +105,7 @@ it("keeps the error state and retries the snapshot", async () => {
     .mockResolvedValueOnce({ ...TEAM_RESULTS, items, meta, results: [], resultDetails: {} });
   const root = await render();
   expect(root.findByProps({ role: "alert" }).findByType("h2").children).toEqual(["לא הצלחנו לטעון את ההדגמה"]);
-  await act(async () => { root.findByType("button").props.onClick(); });
+  await act(async () => { root.findByProps({ role: "alert" }).findByType("button").props.onClick(); });
   expect(root.findByType(SignalFeedView).props.items).toBe(items);
   expect(loadDemoSnapshot).toHaveBeenCalledTimes(2);
 });
@@ -123,6 +124,46 @@ function withHash(hash) {
   window.removeEventListener = () => {};
   return () => listeners.forEach((fn) => fn());
 }
+
+it("keeps the selected ground across feed/results navigation and restores it on remount", async () => {
+  const values = new Map();
+  window.localStorage = {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: key => values.delete(key),
+    clear: () => values.clear(),
+    key: index => [...values.keys()][index] ?? null,
+    get length() { return values.size; },
+  };
+  const syncHash = withHash("");
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ ...TEAM_RESULTS, items, meta, results, resultDetails: {} });
+  let root = await render();
+  const shell = () => root.findByProps({ className: "signal-ui sg-shell sg-demo" });
+  expect(shell().props["data-ground"]).toBe("light");
+  act(() => root.findByProps({ "aria-label": "מעבר למצב כהה" }).props.onClick());
+  expect(shell().props["data-ground"]).toBe("dark");
+  expect(root.findByType(SignalFeedView).props.ground).toBe("dark");
+  expect(values.get(GROUND_STORAGE_KEY)).toBe("dark");
+  act(() => { window.location.hash = "#results"; syncHash(); });
+  expect(shell().props["data-ground"]).toBe("dark");
+  expect(root.findAllByProps({ className: "sr-board" })).toHaveLength(1);
+  act(() => renderer.unmount()); renderer = null;
+  root = await render();
+  expect(shell().props["data-ground"]).toBe("dark");
+  act(() => root.findByProps({ "aria-label": "מעבר למצב בהיר" }).props.onClick());
+  expect(shell().props["data-ground"]).toBe("light");
+  expect(values.get(GROUND_STORAGE_KEY)).toBe("light");
+});
+
+it("still switches grounds when the browser blocks local storage", async () => {
+  Object.defineProperty(window, "localStorage", { get() { throw new Error("SecurityError"); } });
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ ...TEAM_RESULTS, items, meta, results, resultDetails: {} });
+  const root = await render();
+  act(() => root.findByProps({ "aria-label": "מעבר למצב כהה" }).props.onClick());
+  expect(root.findByType(SignalFeedView).props.ground).toBe("dark");
+  act(() => root.findByProps({ "aria-label": "מעבר למצב בהיר" }).props.onClick());
+  expect(root.findByProps({ className: "signal-ui sg-shell sg-demo" }).props["data-ground"]).toBe("light");
+});
 
 it("opens exported box scores from the results tab without API calls or preference links", async () => {
   withHash("#results");

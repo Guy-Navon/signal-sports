@@ -692,7 +692,11 @@ Upcoming games retain their separate future window.
 **What it shows.** The Signal feed and its reader explanations (`reason_he`), with clusters and
 links to the original articles, plus a results strip and a **read-only results page** (`#results`, a second header tab next to the feed) from `results.json`. At the owner's request (2026-11-16), the page shares the product's `ResultsBoard`: summary, followed/chosen-player tiles, date bar, stream rows, leaders, ranks, upcoming games and available box scores. The snapshot's `details` map supplies the popup locally; no API is called. Public game/player/stat fields are explicitly allowlisted; account data and raw provider payloads are excluded. Account/preferences links and empty player boxes are hidden. Nothing else: no preferences, interests, calibration,
 onboarding, feedback, account or ops screens, and no engine trace. The bundle has no router,
-`AuthProvider`, `AppProvider` or API client, so no code path in it can write anything. CI locks
+`AuthProvider`, `AppProvider` or API client, so it cannot write account/profile data or call server mutations.
+Its header dark/light button saves only the device's visual preference in `localStorage`
+(`signal.ground`), restores it on first render and applies it to both tabs and box scores.
+White is the default; switching still works for the current visit if storage is blocked.
+CI locks
 this: the frontend job runs `npm run build:demo` and then `npm run check:demo-bundle`
 (`frontend/scripts/check-demo-bundle.mjs`), which fails when `dist-demo` contains the API client's
 `/api/` paths, react-router, the route table, the auth or app provider, or a string unique to the

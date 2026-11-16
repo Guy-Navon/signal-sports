@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Clock } from "lucide-react";
+import { AlertTriangle, Clock, Moon, Sun } from "lucide-react";
 import SignalWordmark from "@/components/signal-ui/SignalWordmark";
-import { DEFAULT_GROUND } from "@/components/signal-ui/ground";
+import { readGround, saveGround } from "@/components/signal-ui/ground";
 import { feedBodyState } from "@/components/feed/feedLoadModel";
 import { toggleFilterSet } from "@/components/feed/feedFilters";
 import SignalFeedView from "@/components/feed/signal/SignalFeedView";
@@ -15,6 +15,7 @@ import "./demo.css";
 
 const PROFILE_NAME = "גיא";
 const TICK_MS = 60_000;
+const deviceStorage = () => window.localStorage;
 
 function DemoBanner({ meta, now }) {
   const view = meta ? demoBanner(meta, now) : null;
@@ -63,6 +64,7 @@ function DemoTabs({ tab }) {
 
 export default function DemoApp() {
   const [tab, setTab] = useState(currentTab);
+  const [ground, setGround] = useState(() => readGround(deviceStorage));
   const [snapshot, setSnapshot] = useState({ status: "loading", items: [], results: [], resultDetails: {},
     resultTeamGames: null, resultFollowedTeamIds: [], meta: null });
   const [now, setNow] = useState(() => Date.now());
@@ -94,6 +96,28 @@ export default function DemoApp() {
     return () => window.removeEventListener?.("hashchange", sync);
   }, []);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const previous = document.body.getAttribute("data-ground");
+    const scheme = document.documentElement.style.colorScheme;
+    document.body.setAttribute("data-ground", ground);
+    document.documentElement.style.colorScheme = ground === "dark" ? "dark" : "light";
+    return () => {
+      if (previous === null) document.body.removeAttribute("data-ground");
+      else document.body.setAttribute("data-ground", previous);
+      document.documentElement.style.colorScheme = scheme;
+    };
+  }, [ground]);
+
+  const dark = ground === "dark";
+  const themeLabel = dark ? "מעבר למצב בהיר" : "מעבר למצב כהה";
+  const toggleGround = () => {
+    const next = dark ? "light" : "dark";
+    saveGround(next, deviceStorage);
+    // The choice still takes effect when device storage is blocked.
+    setGround(next);
+  };
+
   const { items, meta, results, resultDetails, resultTeamGames, resultFollowedTeamIds, status } = snapshot;
   const bodyState = feedBodyState({
     isBackendMode: true,
@@ -103,12 +127,16 @@ export default function DemoApp() {
   });
 
   return (
-    <div className="signal-ui sg-shell sg-demo" data-ground={DEFAULT_GROUND}>
+    <div className="signal-ui sg-shell sg-demo" data-ground={ground}>
       {/* The consumer header's expanded masthead (#491): logo and the two demo
           tabs, feed and results (#553). No account, no preferences. */}
       <header className="sg-on-top sg-head">
         <div className="sg-gutter">
           <div className="sg-container sg-head__inner">
+            <button type="button" className="sg-demo-theme" onClick={toggleGround} aria-label={themeLabel} title={themeLabel}>
+              {dark ? <Sun size={20} aria-hidden="true" /> : <Moon size={20} aria-hidden="true" />}
+              <span className="sg-demo-theme__label">{dark ? "מצב בהיר" : "מצב כהה"}</span>
+            </button>
             <SignalWordmark className="sg-head__brand" />
             <DemoTabs tab={tab} />
           </div>
@@ -158,6 +186,7 @@ export default function DemoApp() {
         ) : (
           <SignalFeedView
             readOnly
+            ground={ground === "light" ? undefined : ground}
             items={items}
             results={results}
             localScoredArticles={[]}

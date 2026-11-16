@@ -753,7 +753,11 @@ new stories.
 
 - **Grounds** (#468): `AccountMenu` in the consumer header selects white, soft or dark.
   `GroundProvider` persists the choice per device in `localStorage` (`signal.ground`), falls
-  back to white if storage is unavailable, and applies no ground to Ops. The demo stays white.
+  back to white if storage is unavailable, and applies no ground to Ops. The public demo
+  defaults to white and has a header button for dark/light mode (2026-11-16). It reuses
+  the same tokens and device-storage key without mounting the account/provider stack.
+  Its selected ground covers the feed, results, native box-score dialog and page canvas;
+  navigation and reload preserve it. Blocked storage still allows switching in memory.
   Login, signup and the rest of the auth family (`AuthScene`), the 404 and the welcome screen open
   their own `GroundProvider` and follow the stored ground; with nothing stored they stay white
   (#504). The account menu and dialogs are portals that read the ground from context and open

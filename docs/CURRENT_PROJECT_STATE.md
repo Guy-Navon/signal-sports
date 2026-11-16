@@ -283,8 +283,11 @@ and visual contract (Part B). The reference mock is in `docs/design/2026-11-13-f
 **Public demo entry (#458).** A second Vite entry (`frontend/demo.html` → `src/demo/`, built by
 `npm run build:demo` into `frontend/dist-demo/`) renders the Signal feed from static snapshot
 JSON (feed and metadata, plus optional results for the strip, #485), with
-`SignalFeedView readOnly` (no feedback controls, no engine trace). It is always on the white
-ground, with the navy header showing the logo and two tabs, feed and results (`#results`; no account, no preferences). At the owner's request (2026-11-16), `DemoResults.jsx` renders the shared product board, rows, tiles and box-score dialog in read-only mode. The results snapshot contains allowlisted public statistics, scheduled games and a game-id-keyed detail map. Popups read that map locally; unavailable detail leaves a scores-only row. It mounts no router
+`SignalFeedView readOnly` (no feedback controls, no engine trace). It defaults to white,
+with a header button to switch between dark and light mode. The device preference
+(`signal.ground`) is restored on first render and applies to feed, results and box scores;
+switching still works in memory when storage is blocked. The header shows the logo and
+two tabs, feed and results (`#results`; no account or profile-preferences pages). At the owner's request (2026-11-16), `DemoResults.jsx` renders the shared product board, rows, tiles and box-score dialog in read-only mode. The results snapshot contains allowlisted public statistics, scheduled games and a game-id-keyed detail map. Popups read that map locally; unavailable detail leaves a scores-only row. It mounts no router
 and no auth or app provider; the hooks feed components need live in `src/context/appContextCore.js`
 so the provider and API client stay out of that bundle. [DEPLOYMENT.md](DEPLOYMENT.md) §17.
 

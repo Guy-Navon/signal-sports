@@ -93,8 +93,9 @@ The scorer never cares WHO wrote an entry — provenance is data. Writers:
 Layered, monotonic by construction; every step emits a structured
 contribution `{step, scope, effect, detail}` plus a Hebrew reasoning line:
 
-1. **Hard constraints** — disabled/muted sources, legacy muted_topics,
-   `mute`/`never_show` overrides. Absolute.
+1. **Hard constraints** — disabled/muted sources, live in-game score updates
+   (`live_score_update`, `app/classification/live_score.py`; owner rule
+   2026-11-16), legacy muted_topics, `mute`/`never_show` overrides. Absolute.
 2. **Base visibility** — best matching followed scope. Matching **reuses the
    visibility layer** instead of re-deriving it: competition scopes call
    `relevance_engine.match_competition_names()` (the four-tier #29/#40

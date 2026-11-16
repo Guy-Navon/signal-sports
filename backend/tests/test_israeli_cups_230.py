@@ -104,7 +104,10 @@ class TestCupFacts:
         assert a.sport == "basketball"
         assert "comp:il_super_cup" in a.article_competitions
         assert "team:maccabi_tlv_bb" in a.entity_ids
-        assert score_article_v2(a, PROFILES["guy"]).decision != "hidden"
+        # This headline is a live in-game update; since 2026-11-16 those never reach the
+        # feed (owner rule), whatever the classification resolves.
+        result = score_article_v2(a, PROFILES["guy"])
+        assert (result.decision, result.matched_event_rule) == ("hidden", "live_score_update")
 
     def test_winner_sal_cup_is_the_cup_not_the_league(self):
         # corpus: "גביע ווינר סל" used to match the IBL keyword "ווינר סל"

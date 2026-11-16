@@ -518,3 +518,61 @@ it("caps the stream's entrance stagger, whatever the page length", () => {
   expect(delays.slice(6).every((value) => value === max)).toBe(true);
   expect(new Set(delays).size).toBe(7);
 });
+
+// Subtitle on demand (2026-11-16): clicking the card (not the headline) or the chevron
+// opens the story's subtitle in place; the headline link still opens the article.
+function withSubtitle(item, subtitle) {
+  item.subtitle = subtitle;
+  return item;
+}
+const plainClick = { target: { closest: () => null } };
+const linkClick = { target: { closest: () => ({ tagName: "A" }) } };
+
+it("a stream row opens and closes its subtitle from the chevron and from the card", () => {
+  const view = render([story("lead", "push"), withSubtitle(story("s", "feed"), "כותרת משנה של s")]);
+  const row = byClass(view.root, "sg-row")[0];
+  expect(byClass(row, "sg-dek")).toHaveLength(0);
+
+  const toggle = byClass(row, "sg-dek-toggle")[0];
+  expect(toggle.props["aria-expanded"]).toBe(false);
+  act(() => toggle.props.onClick());
+  expect(byClass(row, "sg-dek")[0].props.children).toBe("כותרת משנה של s");
+  expect(byClass(row, "sg-dek-toggle")[0].props["aria-expanded"]).toBe(true);
+
+  act(() => row.props.onClick(plainClick));
+  expect(byClass(row, "sg-dek")).toHaveLength(0);
+  act(() => row.props.onClick(plainClick));
+  expect(byClass(row, "sg-dek")).toHaveLength(1);
+});
+
+it("a click on the headline link (or any control) does not toggle the subtitle", () => {
+  const view = render([story("lead", "push"), withSubtitle(story("s", "feed"), "כותרת משנה")]);
+  const row = byClass(view.root, "sg-row")[0];
+  act(() => row.props.onClick(linkClick));
+  expect(byClass(row, "sg-dek")).toHaveLength(0);
+  const link = row.findAll((n) => n.type === "a" && n.props.href === "https://example.test/s");
+  expect(link.length).toBeGreaterThan(0);
+});
+
+it("a story without a subtitle has no chevron and the card click does nothing", () => {
+  const view = render([story("lead", "push"), story("s", "feed")]);
+  const row = byClass(view.root, "sg-row")[0];
+  expect(byClass(row, "sg-dek-toggle")).toHaveLength(0);
+  act(() => row.props.onClick?.(plainClick));
+  expect(byClass(row, "sg-dek")).toHaveLength(0);
+});
+
+it("important, brief and latest items offer the subtitle too", () => {
+  const items = [
+    story("lead", "push"),
+    withSubtitle(story("imp", "high_feed"), "משנה imp"),
+    withSubtitle(story("brief", "low_feed"), "משנה brief"),
+  ];
+  const view = render(items);
+  for (const cls of ["sg-important__item", "sg-brief__item", "sg-latest__item"]) {
+    const cards = byClass(view.root, cls).filter((c) => byClass(c, "sg-dek-toggle").length > 0);
+    expect(cards.length, cls).toBeGreaterThan(0);
+    act(() => byClass(cards[0], "sg-dek-toggle")[0].props.onClick());
+    expect(byClass(cards[0], "sg-dek"), cls).toHaveLength(1);
+  }
+});

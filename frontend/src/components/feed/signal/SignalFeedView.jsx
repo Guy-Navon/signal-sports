@@ -195,6 +195,61 @@ function useDisclosure() {
   return { open, id, toggle: () => setOpen((value) => !value) };
 }
 
+/**
+ * Subtitle on demand (2026-11-16): a headline that caught the reader's eye can show
+ * its subtitle in place, without leaving the feed. The chevron is the accessible
+ * control; a click anywhere on the card that is not a link or a control is the
+ * mouse/touch shortcut. The headline itself still opens the article.
+ */
+const INTERACTIVE = "a, button, input, select, textarea, label, [role='button']";
+
+function useDek(item) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const text = (item.subtitle ?? "").trim() || null;
+  const toggle = () => setOpen((value) => !value);
+  const onCardClick = (event) => {
+    if (!text) return;
+    if (event?.target?.closest?.(INTERACTIVE)) return;
+    // Selecting text to copy it is not a request to open the subtitle.
+    if (typeof window !== "undefined" && String(window.getSelection?.() ?? "")) return;
+    toggle();
+  };
+  return {
+    text,
+    open: Boolean(text) && open,
+    id,
+    toggle,
+    cardProps: text ? { onClick: onCardClick, "data-dek": open ? "open" : "closed" } : {},
+  };
+}
+
+function DekToggle({ dek }) {
+  if (!dek.text) return null;
+  return (
+    <button
+      type="button"
+      className="sg-dek-toggle"
+      aria-expanded={dek.open}
+      aria-controls={dek.open ? dek.id : undefined}
+      aria-label={dek.open ? "הסתר כותרת משנה" : "הצג כותרת משנה"}
+      title={dek.open ? "הסתר כותרת משנה" : "הצג כותרת משנה"}
+      onClick={dek.toggle}
+    >
+      <ChevronDown size={16} aria-hidden="true" />
+    </button>
+  );
+}
+
+function Dek({ dek, className = "" }) {
+  if (!dek.open) return null;
+  return (
+    <p id={dek.id} className={cn("sg-dek", className)} dir="auto">
+      {dek.text}
+    </p>
+  );
+}
+
 /** The one control that opens a multi-source story. Focus stays on it. */
 function SourcesBadge({ story, disclosure }) {
   if (!story.members.canOpen) return null;
@@ -333,6 +388,7 @@ function ImportantStory({ item, localScoredArticles, now, readOnly, league, arri
   const story = useStory(item, localScoredArticles);
   const surface = useSurface(readOnly);
   const disclosure = useDisclosure();
+  const dek = useDek(item);
   return (
     <article
       className="sg-important__item"
@@ -341,6 +397,7 @@ function ImportantStory({ item, localScoredArticles, now, readOnly, league, arri
       data-sources={JSON.stringify(itemSourceFilterIds(item))}
       data-arrived={arrived || undefined}
       style={style}
+      {...dek.cardProps}
     >
       <span className="sg-important__tags">
         <span className="sg-tag">
@@ -350,10 +407,12 @@ function ImportantStory({ item, localScoredArticles, now, readOnly, league, arri
         <NewMark show={arrived} />
       </span>
       <Headline story={story} className="sg-important__title" />
+      <Dek dek={dek} />
       <p className="sg-meta">
         <SourceNames story={story} disclosure={disclosure} />
         {story.timestamp && <Dot />}
         <Time value={story.timestamp} now={now} />
+        <DekToggle dek={dek} />
       </p>
       <ClusterMembers story={story} now={now} disclosure={disclosure} />
       <Feedback story={story} surface={surface} className="sg-acts--quiet" />
@@ -441,6 +500,7 @@ function StreamRow({
   const story = useStory(item, localScoredArticles);
   const surface = useSurface(readOnly);
   const disclosure = useDisclosure();
+  const dek = useDek(item);
   const headlineRef = useRef(null);
 
   // Ref-based focus from inside the row that owns the element (A6): after
@@ -459,6 +519,7 @@ function StreamRow({
       data-sources={JSON.stringify(itemSourceFilterIds(item))}
       data-arrived={arrived || undefined}
       style={style}
+      {...dek.cardProps}
     >
       <div className="sg-row__by">
         <NewMark show={arrived} />
@@ -474,9 +535,11 @@ function StreamRow({
             </>
           )}
         </span>
+        <DekToggle dek={dek} />
       </div>
       <Feedback story={story} surface={surface} className="sg-row__acts" />
       <Headline story={story} className="sg-row__title" linkRef={headlineRef} />
+      <Dek dek={dek} className="sg-row__dek" />
       <WhyLine item={item} showTrace={surface.showTrace} className="sg-row__why">
         <SourcesBadge story={story} disclosure={disclosure} />
       </WhyLine>
@@ -566,6 +629,7 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
   const story = useStory(item, localScoredArticles);
   const surface = useSurface(readOnly);
   const disclosure = useDisclosure();
+  const dek = useDek(item);
   const headlineRef = useRef(null);
   useEffect(() => {
     if (!focusOnMount) return;
@@ -579,13 +643,16 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
       data-league={leagueFilterId(item)}
       data-sources={JSON.stringify(itemSourceFilterIds(item))}
       style={style}
+      {...dek.cardProps}
     >
       <Headline story={story} className="sg-box__title sg-brief__title" linkRef={headlineRef} />
+      <Dek dek={dek} className="sg-box__dek" />
       <div className="sg-box__meta sg-brief__meta">
         <span>
           <Time value={story.timestamp} now={now} />
           {story.timestamp && <Dot />}
           <SourceNames story={story} disclosure={disclosure} />
+          <DekToggle dek={dek} />
         </span>
         <Feedback story={story} surface={surface} className="sg-acts--quiet" />
       </div>
@@ -597,6 +664,7 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
 function LatestRow({ item, localScoredArticles, now, arrived, style }) {
   const story = useStory(item, localScoredArticles);
   const fresh = isFreshStory(story.timestamp, now);
+  const dek = useDek(item);
   return (
     <li
       className="sg-box__item sg-latest__item"
@@ -606,8 +674,10 @@ function LatestRow({ item, localScoredArticles, now, arrived, style }) {
       data-fresh={fresh || undefined}
       data-arrived={arrived || undefined}
       style={style}
+      {...dek.cardProps}
     >
       <Headline story={story} className="sg-box__title" />
+      <Dek dek={dek} className="sg-box__dek" />
       <span className="sg-box__meta">
         <SignalStrength decision={story.decision} />
         {/* Under an hour old: a pulsing --hot dot (a non-text mark) and the time
@@ -618,6 +688,7 @@ function LatestRow({ item, localScoredArticles, now, arrived, style }) {
         </span>
         <Dot />
         <bdi dir="auto">{story.source}</bdi>
+        <DekToggle dek={dek} />
       </span>
     </li>
   );

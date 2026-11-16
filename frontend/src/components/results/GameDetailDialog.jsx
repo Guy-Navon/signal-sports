@@ -3,6 +3,8 @@ import { RESULTS_STATS_MARKER } from "./resultsStatsBoundary";
 import { boxScore, footballEvents, gameLeaders, periodTable, popupHeader, scoreboard, teamComparison, teamFacts } from "./resultsPopupModel";
 import { BoxScore, GameLeaders, TeamComparison } from "./GameStats";
 import Rank from "./Rank";
+import { horizontalScroller, useMouseDragScroll } from "@/components/shared/useMouseDragScroll";
+import { pointIsOnText } from "@/components/shared/pointerText";
 
 const FOCUSABLE = 'button:not([disabled]), a[href], summary, [tabindex="0"]';
 
@@ -83,6 +85,15 @@ export default function GameDetailDialog({ game, getDetail, onClose }) {
       .catch(() => { if (active) setError(true); });
     return () => { active = false; };
   }, [game.id, getDetail, retry]);
+  // Mouse drag over empty space scrolls the sheet (and a wide table sideways); a
+  // press on text is left alone so selecting and copying keep working.
+  const drag = useMouseDragScroll(true, {
+    shouldStart: event => !pointIsOnText(event.currentTarget.ownerDocument, event.clientX, event.clientY, event.target),
+    axes: event => ({
+      x: horizontalScroller(event.target, event.currentTarget),
+      y: event.currentTarget.scrollHeight > event.currentTarget.clientHeight ? event.currentTarget : null,
+    }),
+  });
   const close = () => { dialogRef.current?.close(); onClose(); };
   const outsideDialog = event => {
     if (event.target !== event.currentTarget) return false;
@@ -111,9 +122,10 @@ export default function GameDetailDialog({ game, getDetail, onClose }) {
   const box = detail && basketball ? boxScore(detail, side, game.sport, expanded) : null;
   const leaders = detail ? gameLeaders(detail, game.sport) : [];
   const comparison = detail ? teamComparison(detail, game) : null;
-  return <dialog ref={dialogRef} className="sr-dialog" aria-labelledby={titleId} aria-modal="true"
+  return <dialog ref={dialogRef} className={`sr-dialog${drag.dragging ? " sr-dialog--dragging" : ""}`} aria-labelledby={titleId} aria-modal="true"
     data-results-statistics={RESULTS_STATS_MARKER} onKeyDown={trapFocus} onCancel={event => { event.preventDefault(); close(); }}
-    onPointerDown={event => { pointerStartedOutside.current = outsideDialog(event); }}
+    onPointerDown={event => { pointerStartedOutside.current = outsideDialog(event); drag.onPointerDown(event); }}
+    onClickCapture={drag.onClickCapture}
     onPointerCancel={() => { pointerStartedOutside.current = false; }} onClick={dismissBackdrop}>
     <div className="sr-grab" aria-hidden="true" />
     <h2 id={titleId} className="sr-vh"><bdi dir="auto">{game.home.name}</bdi> — <bdi dir="auto">{game.away.name}</bdi></h2>

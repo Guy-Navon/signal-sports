@@ -279,3 +279,4 @@ button.sr-row:hover, button.sr-row:focus-visible { background: var(--sg-tint); }
   .sr-source { padding: 12px 16px 24px; font-size: 12.5px; }
   .sr-dialog > .sr-message { padding-inline: 16px; }
 }
+.sr-dialog--dragging { user-select: none; cursor: grabbing; }

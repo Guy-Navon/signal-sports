@@ -684,7 +684,7 @@ is unaffected. **Status: built and tested in the repository. The first deploy an
 task are owner steps; the PR deployed nothing.**
 
 **What it shows.** The feed (Signal UI on `ui/next`; Orbit on main until the merge) and its reader explanations (`reason_he`), with clusters and
-links to the original articles, plus a results strip from a snapshot file on `ui/next` (#485). Nothing else: no preferences, interests, calibration,
+links to the original articles, plus a results strip and, since #553, a **scores-only results page** (`#results`, a second header tab next to the feed) from `results.json`. The page has the summary line, the "הקבוצות שלך" tiles (finals whose `relevance_reason` is `followed_team:<id>`, newest four), the date bar and stream rows with the long-league collapse. Scores only (#526): no leaders, chosen-player lines, ranks, venue or attendance, rows and tiles are not interactive, and there is no popup, box score, "הערב" box or players box (upcoming games and chosen lines are not exported). Nothing else: no preferences, interests, calibration,
 onboarding, feedback, account or ops screens, and no engine trace. The bundle has no router,
 `AuthProvider`, `AppProvider` or API client, so no code path in it can write anything. CI locks
 this: the frontend job runs `npm run build:demo` and then `npm run check:demo-bundle`

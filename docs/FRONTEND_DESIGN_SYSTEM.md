@@ -254,7 +254,9 @@ The results-statistics boundary (#526) adds `private-results-statistics` as a
 forbidden demo marker, calibrated in the main Results page. Private rows/dialogs
 reuse that marker; the shared scores-only strip never imports the boundary.
 Guard tests cover accidental stat rendering with no API/write import, a stale
-marker, and a clean score-only demo. No demo deployment is part of this change.
+marker, and a clean score-only demo. #553 adds two calibrated markers, the popup's close label and the
+chosen-players box title, because the demo now has a results page: it must stay free of the popup and
+statistics renderers. No demo deployment is part of this change.
 
 **Ops unchanged.** Any change to shared CSS or tokens verifies that the computed styles of
 `/debug`, `/sources` and `/llm-qa` did not change (#462).
@@ -499,8 +501,8 @@ header ground, a logo-colour stripe, a segmented pill nav, a side rail, a result
   `<MastheadSlot>`, which portals into a `.signal-ui` band in the page flow directly beneath the
   header, never inside the slim bar, and collapses when empty. `.sg-gutter` / `.sg-container`
   give the side gutter and the 1180px column.
-- **Public demo**: the expanded navy header with the logo only (no tabs, no account), then its
-  banner.
+- **Public demo**: the expanded navy header with the logo and two tabs, פיד and תוצאות (hash
+  `#results`; no account, no preferences), then its banner.
 - **Summary line**, 22px under the header: **"N סיפורים עברו את הסינון שלך · M חשובים"**. N is the number
   of visible stories, M the number of push + high_feed stories, both from the real feed.
 - **Filter area — Guy's choice, 2026-11-14 (#483).** Variant C replaces A from #496:
@@ -583,7 +585,11 @@ Between the important row and the band. A 1px `--line` rule above and below, pad
   team, name and score. The winner's row is `--ink` 800, the loser's `--dim`.
 - **Data**: the session user's most recent finals (`/api/me/results`). The mock shows the ten
   latest finals before the snapshot time. The public demo reads optional `results.json` from
-  its static snapshot, with no API request. No results means no strip.
+  its static snapshot, with no API request. No results means no strip. The same file feeds the
+  demo's scores-only results page (#553): direction C without popup, leaders, chosen lines, ranks
+  or side column; tiles from `followed_team:` reasons only; rows and tiles are not interactive.
+  It is a demo-only composition (`src/demo/DemoResults.jsx`) so the private renderers stay out of
+  the bundle.
 - Team names come from the taxonomy's Hebrew names. Some EuroCup teams have none and render in
   English (#466 lists them for the taxonomy workflow), wrapped per A2.
 
@@ -812,7 +818,7 @@ new stories.
     (`frontend/src/lab/RESULTS_FIXTURES.md`), with a 390px phone frame and an optional
     synthetic NBA filler for the collapse. Labs make no user-API requests.
 - **Account, auth, welcome, 404** (#472) and the **public demo** (#469): the new shell and
-  feed. The demo stays feed-only and read-only.
+  feed. The demo is read-only: the feed plus a scores-only results page (#553).
 - **Images** (#474): open owner decision, ingestion work before design work. Every layout here
   works without an image and must keep working when a story has none.
 

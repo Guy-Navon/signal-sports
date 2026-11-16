@@ -3,7 +3,7 @@
 /**
  * Guard for the public read-only demo bundle (#458, review of PR #459).
  *
- * The owner's hard requirement: the public demo shows the feed only and has no
+ * The owner's hard requirement: the public demo shows the feed and scores-only results (#553) and has no
  * code path that can write. `npm run build:demo` must therefore produce a
  * bundle without the API client, the router, auth, the app provider or any
  * page other than the feed. One stray import (e.g. `@/api/client` or
@@ -53,6 +53,9 @@ const FORBIDDEN = [
   ["Preferences page", /נושאים מושתקים/],
   ["Results page", /לא הצלחנו לטעון את התוצאות/],
   ["results statistics UI", /private-results-statistics/],
+  // Scores-only results (#553): the box score popup and the chosen-players box.
+  ["results game popup", /סגירת פרטי המשחק/],
+  ["results chosen-players box", /השחקנים שלך/],
   ["Calibration page", /כיול העדפות/],
   ["Login page", /החדר האישי/],
   ["Debug page", /פאנל דיבאג/],

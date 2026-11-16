@@ -6,7 +6,8 @@ import { feedBodyState } from "@/components/feed/feedLoadModel";
 import { toggleFilterSet } from "@/components/feed/feedFilters";
 import SignalFeedView from "@/components/feed/signal/SignalFeedView";
 import "@/components/shell/shell.css";
-import { demoBanner, loadDemoSnapshot } from "./demoModel";
+import { DEMO_TABS, demoBanner, loadDemoSnapshot, tabFromHash } from "./demoModel";
+import DemoResults from "./DemoResults";
 import "./demo.css";
 
 // The public read-only demo (#458). The feed and its explanations only: no
@@ -46,7 +47,22 @@ function DemoBanner({ meta, now }) {
   );
 }
 
+const currentTab = () => tabFromHash(typeof window !== "undefined" ? window.location?.hash : "");
+
+function DemoTabs({ tab }) {
+  return (
+    <nav aria-label="ניווט ראשי" className="sg-tabs">
+      {DEMO_TABS.map((item) => (
+        <a key={item.id} href={item.hash || "#"} className="sg-tab" aria-current={tab === item.id ? "page" : undefined}>
+          <span className="sg-tab__label">{item.label}</span>
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 export default function DemoApp() {
+  const [tab, setTab] = useState(currentTab);
   const [snapshot, setSnapshot] = useState({ status: "loading", items: [], results: [], meta: null });
   const [now, setNow] = useState(() => Date.now());
   const [activeFilters, setActiveFilters] = useState(new Set(["all"]));
@@ -70,6 +86,12 @@ export default function DemoApp() {
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    const sync = () => setTab(currentTab());
+    window.addEventListener?.("hashchange", sync);
+    return () => window.removeEventListener?.("hashchange", sync);
+  }, []);
+
   const { items, meta, results, status } = snapshot;
   const bodyState = feedBodyState({
     isBackendMode: true,
@@ -80,17 +102,34 @@ export default function DemoApp() {
 
   return (
     <div className="signal-ui sg-shell sg-demo" data-ground={DEFAULT_GROUND}>
-      {/* The consumer header's expanded masthead (#491), logo only: the demo
-          has no destinations and no account. */}
-      <header className="sg-on-top sg-head sg-head--brand-only">
+      {/* The consumer header's expanded masthead (#491): logo and the two demo
+          tabs, feed and results (#553). No account, no preferences. */}
+      <header className="sg-on-top sg-head">
         <div className="sg-gutter">
           <div className="sg-container sg-head__inner">
             <SignalWordmark className="sg-head__brand" />
+            <DemoTabs tab={tab} />
           </div>
         </div>
       </header>
 
       <main className="sg-body">
+        {tab === "results" ? (
+          <>
+            <div className="sg-gutter"><div className="sg-container"><DemoBanner meta={meta} now={now} /></div></div>
+            {status === "loading" ? (
+              <p className="sg-gutter sg-state" role="status">טוען תוצאות…</p>
+            ) : status === "error" ? (
+              <div className="sg-gutter sg-state" role="alert">
+                <h2>לא הצלחנו לטעון את ההדגמה</h2>
+                <p>הנתונים לא נטענו. נסו שוב בעוד רגע.</p>
+                <button type="button" className="sg-more" onClick={load}>נסו שוב</button>
+              </div>
+            ) : (
+              <DemoResults games={results} nowMs={now} />
+            )}
+          </>
+        ) : (<>
         {bodyState !== "items" && (
           <div className="sg-gutter">
             <div className="sg-container"><DemoBanner meta={meta} now={now} /></div>
@@ -125,6 +164,7 @@ export default function DemoApp() {
             onResetFilters={() => setActiveFilters(new Set(["all"]))}
           />
         )}
+        </>)}
       </main>
     </div>
   );

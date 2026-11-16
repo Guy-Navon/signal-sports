@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useRef } from "react";
 
 const COLUMNS = {
   min: ["דק׳", "דקות"], pts: ["נק׳", "נקודות"], reb: ["ריב׳", "ריבאונדים"], ast: ["אס׳", "אסיסטים"],
@@ -24,6 +24,17 @@ export function GameLeaders({ leaders }) {
 }
 
 export function BoxScore({ box, labelledBy, expanded, onExpandedChange }) {
+  const scrollRef = useRef(null);
+  // Switching density changes the table width. In RTL, iOS Safari keeps a stale offset and
+  // lands at the far end (players clipped on the left) until the next touch, so start over.
+  useLayoutEffect(() => {
+    const scroller = scrollRef.current;
+    if (!scroller) return undefined;
+    scroller.scrollLeft = 0;
+    if (typeof requestAnimationFrame !== "function") return undefined;
+    const frame = requestAnimationFrame(() => { scroller.scrollLeft = 0; });
+    return () => cancelAnimationFrame(frame);
+  }, [expanded]);
   if (!box.groups.length) return <p className="sr-note">אין נתוני שחקנים למשחק הזה.</p>;
   return <>
     <div className="sr-box-toolbar">
@@ -34,7 +45,7 @@ export function BoxScore({ box, labelledBy, expanded, onExpandedChange }) {
       </div>
     </div>
     <p className="sr-box-hint">קליעות/ניסיונות · גללו אופקית לעוד נתונים</p>
-    <div className="sr-box-scroll" tabIndex={0}>
+    <div className="sr-box-scroll" tabIndex={0} ref={scrollRef}>
       <table className="sr-box-table" aria-labelledby={labelledBy}>
         <thead><tr><th scope="col" className="sr-p">שחקן</th>{box.columns.map(col => <th key={col} scope="col" title={COLUMNS[col][1]} aria-label={COLUMNS[col][1]}>{COLUMNS[col][0]}</th>)}</tr></thead>
         {box.groups.map(group => <tbody key={group.key}>

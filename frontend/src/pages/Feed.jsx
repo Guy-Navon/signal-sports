@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { getMeResultsGameDetail, getResultsGameDetail } from "@/api/client";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { showCalibrateEmptyState } from "@/context/onboardingFlow";
@@ -24,10 +25,17 @@ export default function Feed() {
     isLoading,
     feedLoadFailed,
     refreshFeed,
+    consumerSession,
+    qaSurfaceAllowed,
   } = useApp();
   const auth = useAuth();
   const reduce = useReducedMotion();
   const [activeFilters, setActiveFilters] = useState(new Set(["all"]));
+  // The same detail reads as the results page.
+  const getResultDetail = useCallback((gameId) => {
+    if (!isBackendMode) return Promise.reject(new Error("detail unavailable offline"));
+    return consumerSession && !qaSurfaceAllowed ? getMeResultsGameDetail(gameId) : getResultsGameDetail(activeProfileId, gameId);
+  }, [isBackendMode, consumerSession, qaSurfaceAllowed, activeProfileId]);
 
   const visibleItems = useMemo(() => getVisibleItems(feedItems), [feedItems]);
   // Backend clusters are authoritative; local/mock clusters need hydrating.
@@ -73,6 +81,7 @@ export default function Feed() {
         <SignalFeedView
           items={storyItems}
           results={resultsGames}
+          getResultDetail={isBackendMode ? getResultDetail : null}
           localScoredArticles={isBackendMode ? [] : scoredArticles}
           activeFilters={activeFilters}
           onToggleFilter={toggleFilter}

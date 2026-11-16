@@ -118,3 +118,18 @@
   .signal-ui .sg-result:first-child { border: 0; padding-inline-start: 0; }
   .signal-ui .sg-results .sg-results__link::after { inset-block: -14px; }
 }
+
+/* A game with a box score is a button: same look as the article, reset chrome. */
+.signal-ui .sg-result--open {
+  appearance: none;
+  background: none;
+  border-block: 0;
+  border-inline-end: 0;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.signal-ui .sg-result--open:hover .sg-result__team--winner,
+.signal-ui .sg-result--open:hover .sg-result__meta { color: var(--sg-acc); }

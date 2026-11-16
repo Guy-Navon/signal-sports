@@ -95,6 +95,11 @@ export default function DemoApp() {
   }, []);
 
   const { items, meta, results, resultDetails, resultTeamGames, resultFollowedTeamIds, status } = snapshot;
+  // Stored snapshot only, like the results tab.
+  const getResultDetail = useCallback(async (gameId) => {
+    if (!Object.hasOwn(resultDetails || {}, gameId)) throw new Error("Game detail unavailable");
+    return resultDetails[gameId];
+  }, [resultDetails]);
   const bodyState = feedBodyState({
     isBackendMode: true,
     isLoading: status === "loading",
@@ -160,6 +165,7 @@ export default function DemoApp() {
             readOnly
             items={items}
             results={results}
+            getResultDetail={getResultDetail}
             localScoredArticles={[]}
             status={<DemoBanner meta={meta} now={now} />}
             activeFilters={activeFilters}

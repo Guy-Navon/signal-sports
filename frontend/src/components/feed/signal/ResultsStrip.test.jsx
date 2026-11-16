@@ -4,6 +4,10 @@ import { afterEach, expect, it, vi } from "vitest";
 import ResultsStrip from "./ResultsStrip";
 import SignalFeedView from "./SignalFeedView";
 
+vi.mock("./StripGameDetail", () => ({
+  default: ({ game, onClose }) => <div data-testid="box" data-game={game.id} onClick={onClose} />,
+}));
+
 const NOW = Date.parse("2026-11-14T12:00:00Z");
 const final = {
   id: "final", status: "final", startTime: "2026-11-14T10:00:00Z",
@@ -205,4 +209,26 @@ it("the read-only feed accepts optional results and places them between importan
   expect(markup.indexOf('"sg-results"')).toBeLessThan(markup.indexOf('"sg-band"'));
   act(() => view.update(<SignalFeedView {...props} results={[]} />));
   expect(JSON.stringify(view.toJSON())).not.toContain('"sg-results"');
+});
+
+it("opens the box score from a plain click on a game with stored details, via a real button", async () => {
+  const getDetail = vi.fn();
+  render(<ResultsStrip results={[{ ...final, detailAvailable: true }]} nowMs={NOW} getDetail={getDetail} />);
+  const item = view.root.findByType("button");
+  expect(item.props.type).toBe("button");
+  expect(item.props["aria-haspopup"]).toBe("dialog");
+  expect(view.root.findAllByType("article")).toHaveLength(0);
+  const focus = vi.fn();
+  await act(async () => item.props.onClick({ currentTarget: { focus } }));
+  expect(view.root.findByProps({ "data-testid": "box" }).props["data-game"]).toBe("final");
+  await act(async () => view.root.findByProps({ "data-testid": "box" }).props.onClick());
+  expect(view.root.findAllByProps({ "data-testid": "box" })).toHaveLength(0);
+  expect(focus).toHaveBeenCalled();
+});
+
+it("keeps a game without stored details, or a strip without a detail reader, non-interactive", () => {
+  render(<ResultsStrip results={[final]} nowMs={NOW} getDetail={() => {}} />);
+  expect(view.root.findAllByType("button")).toHaveLength(0);
+  act(() => view.update(<ResultsStrip results={[{ ...final, detailAvailable: true }]} nowMs={NOW} />));
+  expect(view.root.findAllByType("button")).toHaveLength(0);
 });

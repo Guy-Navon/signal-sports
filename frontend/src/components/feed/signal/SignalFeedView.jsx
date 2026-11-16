@@ -772,6 +772,7 @@ const defaultFilterBar = (bar) => <FeedFilterBar {...bar} />;
  *   readOnly?: boolean,
  *   status?: React.ReactNode,
  *   nowMs?: number,
+ *   getResultDetail?: (gameId: string) => Promise<any>,
  *   ground?: "soft" | "dark",
  *   filterBar?: (bar: any) => React.ReactNode,
  * }} props
@@ -786,6 +787,7 @@ export default function SignalFeedView({
   readOnly = false,
   status = null,
   nowMs,
+  getResultDetail = null,
   ground,
   filterBar = undefined,
 }) {
@@ -878,7 +880,7 @@ export default function SignalFeedView({
               </section>
             )}
 
-            <ResultsStrip results={results} nowMs={now} enterBaseMs={sequence.results} />
+            <ResultsStrip results={results} nowMs={now} enterBaseMs={sequence.results} getDetail={getResultDetail} />
           </div>
 
           {(sections.stream.length > 0 || sections.brief.length > 0 || latest.length > 0) && (

@@ -22,8 +22,9 @@ branch so its diff includes only that feature. Merge in the listed order; after
 each dependency lands, retarget its successor to main and inspect the diff/checks.
 A regular merge preserves shared commit ancestry. If using squash or rebase,
 update dependent branches to avoid presenting already merged feature changes again.
-The workflow documentation is delivered separately on `codex/feature-pr-workflow`,
-initially based on the last feature branch.
+The workflow documentation is delivered separately in
+[#562](https://github.com/Guy-Navon/signal-sports/pull/562) on
+`codex/feature-pr-workflow`, initially based on the last feature branch.
 
 ## Validation
 
@@ -52,7 +53,23 @@ browser error, API request or write request.
 
 At preparation, all five feature PRs were pushed and open. Main still pointed to
 #556; opening these PRs did not merge them or deploy the authenticated application.
-Use the live PR states and merge commits to determine subsequent integration.
+After each feature's repository and image/smoke CI passed, all five were merged
+into main on 2026-11-16 through their individual PRs:
+
+| PR | Main merge commit |
+| --- | --- |
+| #557 | `4cd0f1b3eb13797f79c3fe747f59ff28cd22480f` |
+| #558 | `24b02b6ab5c8f01099050603793d4bcb7d318a2f` |
+| #559 | `6091a25bbd43601cde585f4fe4031aa7d66bee0b` |
+| #560 | `c8f86e052242465a2b442513f2fa5878c8bcbce5` |
+| #561 | `f4f9df12f5ba84fd2eb9beed5684f83e11a0ab93` |
+
+Each successor was retargeted to main after its predecessor landed. Before every
+merge, its feature-only diff was checked and Git's computed merged tree matched
+the tested feature head's tree exactly. The combined code is therefore on main,
+with each original feature commit and its separate PR preserved. #562 adds this
+delivery record and the standing workflow; its live state identifies whether
+that documentation has also landed. No authenticated-site deployment was run.
 
 The public Firebase demo had already been manually published and verified earlier
 on 2026-11-16. Its hourly Windows task reads files/build artifacts from the primary

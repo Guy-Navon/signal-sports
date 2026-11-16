@@ -14,6 +14,7 @@ Push requires an explicit eventRules or entityEventRules declaration.
 """
 from typing import Optional, Set
 
+from app.classification.live_score import is_live_score_update
 from app.models.article import Article
 from app.models.profile import UserProfile, TopicPreference
 from app.models.scoring import DecisionResult
@@ -104,6 +105,11 @@ def score_article(
     if article.source in (profile.muted_sources or []):
         reasoning.append(f"מקור מושתק: {article.source}")
         return _build_result("hidden", reasoning, None, "muted_source")
+
+    # Step 1c: live in-game score update (owner rule, 2026-11-16)
+    if is_live_score_update(article.original_title or article.title):
+        reasoning.append("עדכון תוצאה חי מתוך משחק → מוסתר")
+        return _build_result("hidden", reasoning, None, "live_score_update")
 
     # Step 2: muted topics (by sport or league)
     if profile.muted_topics:

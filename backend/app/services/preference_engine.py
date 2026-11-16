@@ -42,6 +42,7 @@ Debug. Python-only: the JS engine is frozen and receives no port (#32).
 """
 from typing import List, Optional, Set
 
+from app.classification.live_score import is_live_score_update
 from app.models.article import Article
 from app.models.profile import UserProfile
 from app.models.profile_v2 import (
@@ -240,6 +241,12 @@ def _score_v2(
         reasoning.append(f"מקור מושתק: {article.source}")
         _contribute("hard_constraint", None, "hidden", f"muted_source: {article.source}")
         return _result("hidden", None, "muted_source")
+
+    # Live in-game score updates never reach the feed (owner rule, 2026-11-16).
+    if is_live_score_update(article.original_title or article.title):
+        reasoning.append("עדכון תוצאה חי מתוך משחק → מוסתר")
+        _contribute("hard_constraint", None, "hidden", "live_score_update")
+        return _result("hidden", None, "live_score_update")
 
     if profile.muted_topics:
         for tid in (article.sport, article.league):

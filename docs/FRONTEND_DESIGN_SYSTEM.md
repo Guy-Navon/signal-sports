@@ -808,7 +808,7 @@ new stories.
     `--sg-tint`; on a phone the table scrolls inside itself with the player column
     sticky. Football shows scorers and cards and skips the basketball parts. The
     popup keeps full team names. Focus starts on the close button, wraps both ways,
-    Escape restores the opener and body scroll is locked until close.
+    Escape or a click/tap starting and ending outside the popup restores the opener. Drags starting inside do not dismiss it. Body scroll stays locked until close.
   - Loading, retryable error, no-preferences call to action, no games and
     scores-only (no game data) states have explicit copy.
   - `lab.html?page=results` codes this page on the saved real provider fixtures

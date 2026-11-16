@@ -1,8 +1,13 @@
 import { expect, it, vi } from "vitest";
 import { pointIsOnText } from "./pointerText";
 
+// Node tests implement only the DOM members exercised by the hit test.
+// Keep that partial-fixture assertion here; production still requires Document.
+/** @param {object} shape */
+const documentStub = shape => /** @type {Document} */ (/** @type {unknown} */ (shape));
+
 const text = (value = "שלום") => ({ nodeType: 3, nodeValue: value });
-const rectDoc = (node, rects, api = "caretPositionFromPoint") => ({
+const rectDoc = (node, rects, api = "caretPositionFromPoint") => documentStub({
   [api]: () => (api === "caretPositionFromPoint" ? { offsetNode: node } : { startContainer: node }),
   createRange: () => ({ selectNodeContents: vi.fn(), getClientRects: () => rects }),
 });
@@ -24,12 +29,12 @@ it("checks every line box of wrapped text", () => {
 it("treats whitespace-only and non-text nodes as empty", () => {
   expect(pointIsOnText(rectDoc(text("  \n "), [box]), 30, 17)).toBe(false);
   expect(pointIsOnText(rectDoc({ nodeType: 1 }, [box]), 30, 17)).toBe(false);
-  expect(pointIsOnText({ caretPositionFromPoint: () => null }, 30, 17)).toBe(false);
+  expect(pointIsOnText(documentStub({ caretPositionFromPoint: () => null }), 30, 17)).toBe(false);
 });
 
 it("falls back to text when unsure: no API, thrown error, bad point, form field", () => {
-  expect(pointIsOnText({}, 30, 17)).toBe(true);
-  expect(pointIsOnText({ caretPositionFromPoint: () => { throw new Error("x"); } }, 30, 17)).toBe(true);
+  expect(pointIsOnText(documentStub({}), 30, 17)).toBe(true);
+  expect(pointIsOnText(documentStub({ caretPositionFromPoint: () => { throw new Error("x"); } }), 30, 17)).toBe(true);
   expect(pointIsOnText(rectDoc(text(), [box]), NaN, 17)).toBe(true);
-  expect(pointIsOnText(rectDoc(text(), []), 30, 17, { tagName: "INPUT" })).toBe(true);
+  expect(pointIsOnText(rectDoc(text(), []), 30, 17, /** @type {Element} */ ({ tagName: "INPUT" }))).toBe(true);
 });

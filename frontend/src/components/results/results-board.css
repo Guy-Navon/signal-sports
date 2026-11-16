@@ -164,7 +164,7 @@ button.sr-row:hover, button.sr-row:focus-visible { background: var(--sg-tint); }
   .sr-datebar { display: none; }
   /* tonight box first, then the stream; the players box has no phone column */
   .sr-band { padding-block: 0 40px; background: var(--sg-bg); }
-  .sr-cols { display: flex; flex-direction: column; gap: 0; }
+  .sr-cols { display: flex; flex-direction: column; gap: 0; align-items: stretch; }
   .sr-side { display: contents; position: static; }
   .sr-box--players { display: none; }
   .sr-box--tonight { order: -1; margin-block-start: 16px; padding: 12px 14px; border: 0; border-radius: 10px; background: var(--sg-band); }

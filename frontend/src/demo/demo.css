@@ -9,7 +9,8 @@
 }
 
 /* Scores-only results (#553): no leaders column, no side column, rows and tiles
-   are plain (not buttons). The stream panel takes the full width. */
+   are plain (not buttons). On desktop each league lays its rows in two columns
+   so name, score and name stay compact. */
 .sr-board--demo .sr-row {
   grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr);
 }
@@ -18,15 +19,16 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (max-width: 899px) {
-  /* The product's desktop "align-items: start" would shrink the panel to its
-     content in the phone's flex column. */
-  .sr-board--demo .sr-cols--single {
-    align-items: stretch;
+@media (min-width: 900px) {
+  .sr-board--demo .sr-league {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 40px;
   }
 
-  .sr-board--demo .sr-row {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  .sr-board--demo .sr-league__head,
+  .sr-board--demo .sr-more {
+    grid-column: 1 / -1;
   }
 }
 

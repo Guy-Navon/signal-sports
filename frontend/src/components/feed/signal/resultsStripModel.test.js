@@ -15,6 +15,12 @@ const game = (id, over = {}) => ({
 });
 
 describe("latestFinals", () => {
+  it("shows no final older than three days, including from an older cached snapshot", () => {
+    const boundary = game("boundary", { startTime: new Date(NOW - 72 * 3_600_000).toISOString() });
+    const old = game("old", { startTime: new Date(NOW - 72 * 3_600_000 - 1).toISOString() });
+    expect(latestFinals([old, boundary], NOW)).toEqual([boundary]);
+    expect(latestFinals([old, boundary], NOW + 1)).toEqual([]);
+  });
   it("selects only completed games with both finite scores, including zero", () => {
     const final = game("final");
     const draw = game("draw", { home: { name: "בית", score: 0 }, away: { name: "חוץ", score: 0 }, winner: "draw" });

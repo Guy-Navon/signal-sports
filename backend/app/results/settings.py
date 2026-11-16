@@ -238,6 +238,5 @@ def max_games_per_competition() -> int:
 # ── Read-path window ──────────────────────────────────────────────────────────
 
 def read_window_days() -> int:
-    """How far back the personalized read path looks. Bounded recent history;
-    the frontend can page older date-groups client-side within this window."""
-    return _int("RESULTS_WINDOW_DAYS", 400, minimum=1)
+    """At most three rolling days of results and details, even with legacy settings."""
+    return min(_int("RESULTS_WINDOW_DAYS", 3, minimum=1), 3)

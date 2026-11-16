@@ -1,4 +1,4 @@
-import { hasScore, isCompleted, statusLabel } from "@/components/results/resultsModel";
+import { hasScore, isCompleted, recentResults, statusLabel } from "@/components/results/resultsModel";
 import { relativeTimeHe } from "./signalStoryModel";
 
 export const RESULTS_STRIP_LIMIT = 10;
@@ -8,7 +8,7 @@ export const RESULTS_STRIP_LIMIT = 10;
  * @param {readonly any[]} games
  */
 export function latestFinals(games = [], nowMs = Date.now()) {
-  return games
+  return recentResults(games, nowMs)
     .filter((game) => {
       const at = game.startTime ? Date.parse(game.startTime) : NaN;
       return isCompleted(game.status) && hasScore(game) &&

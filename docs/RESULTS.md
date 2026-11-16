@@ -218,8 +218,11 @@ reach are recorded as `not_checked` (not as errors), status `rate_limited` or `p
 and `rate_limited_until` (from Retry-After, default 60 s) is stored in
 `results_sync_state`, so no caller, worker or admin endpoint, sends a request before it
 passes. A 429 never blocks ingestion. The read path
-shows games within `RESULTS_WINDOW_DAYS` (default 400 — a recent-history window,
-**not** the 36h feed horizon, because results are a history, not a live feed).
+shows past games within `RESULTS_WINDOW_DAYS` (default and maximum three days,
+a rolling 72-hour window). Wider legacy settings are capped. The same limit
+applies to game details and public demo exports. The shared board and feed strip
+also discard expired finals from cached responses when rendering. Upcoming games
+retain their separate `RESULTS_UPCOMING_DAYS` window; stored history is not deleted.
 
 ## 4. Persistence & idempotency
 

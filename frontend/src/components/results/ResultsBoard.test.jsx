@@ -135,3 +135,20 @@ it("explicitly wraps Tab and Shift+Tab between the close button and the last foc
   act(() => view.root.findByType("dialog").props.onKeyDown({ key: "Tab", shiftKey: false, target: last, preventDefault }));
   expect(first.focus).toHaveBeenCalledTimes(1); expect(preventDefault).toHaveBeenCalledTimes(2);
 });
+
+it("limits the stream, date chips, player lines and non-featured popups to three days", async () => {
+  const old = { ...game, id: "old", localDate: "2026-11-11", startTime: "2026-11-11T03:00:00Z",
+    leaders: [{ side: "home", name: "Old Leader", value: 20 }],
+    chosenPlayerLines: [{ side: "home", name: "Old Player", stats: { points: 20 } }] };
+  render({ games: [old, game] }, { createNodeMock: dialogNodes });
+  expect(view.root.findAllByType(ResultRow).map(row => row.props.game.id)).toEqual([game.id]);
+  expect(view.root.findAllByType(ResultTile).map(tile => tile.props.entry.game.id)).toEqual([game.id]);
+  expect(text()).not.toContain("Old Leader");
+  expect(text()).not.toContain("Old Player");
+  expect(text()).not.toContain("sr-day-2026-11-11");
+  await act(async () => view.root.findByType(ResultRow).findByType("button").props.onClick({ currentTarget: { focus() {} } }));
+  expect(view.root.findAllByType(GameDetailDialog)).toHaveLength(1);
+  act(() => view.update(<ResultsBoard games={[old, game]} hasPreferences nowMs={NOW + 3 * 86400000} getDetail={async () => detail} />));
+  expect(view.root.findAllByType(ResultRow)).toHaveLength(0);
+  expect(view.root.findAllByType(GameDetailDialog)).toHaveLength(0);
+});

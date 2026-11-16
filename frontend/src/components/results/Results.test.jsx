@@ -13,8 +13,10 @@ beforeEach(() => {
     resultsGames: [], resultsHasPreferences: true, resultsLoading: false,
     resultsError: null, refreshResults: vi.fn(), isBackendMode: true,
   };
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-04-10T12:00:00Z"));
 });
-afterEach(() => { if (view) act(() => view.unmount()); });
+afterEach(() => { if (view) act(() => view.unmount()); vi.useRealTimers(); });
 const render = (overrides = {}) => {
   Object.assign(app.current, overrides);
   act(() => { view = create(<MemoryRouter><Results /></MemoryRouter>); });
@@ -44,7 +46,7 @@ it("announces initial backend loading before the empty and error branches", () =
   expect(view.root.findAllByType("button")).toHaveLength(0);
 });
 
-it("keeps Jerusalem day groups, newest first within a day, undated last, during background refresh", () => {
+it("keeps recent Jerusalem day groups during background refresh and excludes undated finals", () => {
   const game = (id, startTime) => ({
     id, startTime, competitionId: "comp:nba", sport: "basketball", competitionHe: "NBA", status: "final", localDate: null,
     home: { name: "בית", score: 1 }, away: { name: "חוץ", score: 0 }, leaders: [], chosenPlayerLines: [], detailAvailable: false,
@@ -54,9 +56,8 @@ it("keeps Jerusalem day groups, newest first within a day, undated last, during 
     game("newer", "2026-04-09T22:30:00Z"), game("same-day", "2026-04-10T10:00:00Z"),
   ] });
   expect(view.root.findAllByType(ResultRow).map((node) => node.props.game.id)).toEqual([
-    "same-day", "newer", "older", "undated",
+    "same-day", "newer", "older",
   ]);
   const heads = view.root.findAll((node) => node.props.className === "sr-day__head" && typeof node.type === "string");
-  expect(heads).toHaveLength(3);
-  expect(heads.at(-1).findByType("span").children).toEqual(["ללא תאריך"]);
+  expect(heads).toHaveLength(2);
 });

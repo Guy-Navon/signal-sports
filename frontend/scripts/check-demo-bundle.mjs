@@ -4,7 +4,8 @@
  * Guard for the public read-only demo bundle (#458, review of PR #459).
  *
  * The public demo shows the feed, results and static game details and has no
- * code path that can write. `npm run build:demo` must therefore produce a
+ * server write path. Local visual preferences may use device storage.
+ * `npm run build:demo` must therefore produce a
  * bundle without the API client, the router, auth, the app provider or any
  * account, preferences or ops page. One stray import (e.g. `@/api/client` or
  * `@/context/AppContext`) would pull all of that back in while lint, typecheck,

@@ -110,11 +110,18 @@ _PUBLIC_PLAYER_STATS = (
     "fg2_made", "fg2_missed", "fg3_made", "fg3_missed", "ft_made", "ft_missed",
     "FieldGoalsMade2", "FieldGoalsAttempted2", "FieldGoalsMade3", "FieldGoalsAttempted3",
     "FreeThrowsMade", "FreeThrowsAttempted", "goals", "yellow_cards", "red_cards",
+    "steals", "Steals", "STL", "blocks", "BlocksFavour", "BLK", "turnovers", "Turnovers", "TO",
+    "fouls", "FoulsCommited", "PF", "rebounds_offensive", "OffensiveRebounds", "OREB",
+    "rebounds_defensive", "DefensiveRebounds", "DREB", "rate", "Valuation", "valuation", "xg",
 )
 _PUBLIC_TEAM_STATS = (
+    *_PUBLIC_PLAYER_STATS,
     "rank", "bench_points", "benchPoints", "pts_in_the_paint", "pointsInPaint",
     "biggest_lead", "largestLead", "lead_changes", "leadChanges", "fastBreakPoints",
     "pts_from_turnovers", "turnoverPoints", "second_chance_pts",
+    "totalRebounds", "offensiveRebounds", "defensiveRebounds", "totalTurnovers",
+    "fieldGoalsMade-fieldGoalsAttempted", "threePointFieldGoalsMade-threePointFieldGoalsAttempted",
+    "freeThrowsMade-freeThrowsAttempted",
 )
 
 

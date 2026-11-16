@@ -680,30 +680,31 @@ evaluation and switch (#262), the cutover (#269) and the 7-day observation (HOST
 A static copy of the live feed of profile `guy` on Firebase Hosting (project
 `signal-sports-demo`, `https://signal-sports-demo.web.app`). It is separate from the hosted stack
 above: nothing on the PC is exposed, there is no API, signup or login, and the private beta (#200)
-is unaffected. **Status: built and tested in the repository. The first deploy and the scheduled
-task are owner steps; the PR deployed nothing.**
+is unaffected. **Status: live. Public statistics, static box scores and upcoming games were
+deployed and verified on desktop and mobile on 2026-11-16 at the owner's request.
+The hourly `SignalSportsDemoPublish` task is enabled on the owner's workstation.**
 
-**What it shows.** The feed (Signal UI on `ui/next`; Orbit on main until the merge) and its reader explanations (`reason_he`), with clusters and
-links to original articles, a results strip and the shared read-only results
-board (`#results`). At the owner's request, the static snapshot includes public
-leaders, chosen-player lines, ranks, upcoming games and available box scores in
-a `details` map. Popups read that map without an API request. Field allowlists
-exclude account data and raw provider payloads. Account/preferences links and
-empty player boxes are hidden. No preferences, interests, calibration,
+The general results stream is limited to the last 72 hours, matching the product.
+The separate `team_games` cards show up to four latest finals per followed team,
+eight total, regardless of age; their available box scores are also exported.
+Upcoming games retain their separate future window.
+
+**What it shows.** The Signal feed and its reader explanations (`reason_he`), with clusters and
+links to the original articles, plus a results strip and a **read-only results page** (`#results`, a second header tab next to the feed) from `results.json`. At the owner's request (2026-11-16), the page shares the product's `ResultsBoard`: summary, followed/chosen-player tiles, date bar, stream rows, leaders, ranks, upcoming games and available box scores. The snapshot's `details` map supplies the popup locally; no API is called. Public game/player/stat fields are explicitly allowlisted; account data and raw provider payloads are excluded. Account/preferences links and empty player boxes are hidden. Nothing else: no preferences, interests, calibration,
 onboarding, feedback, account or ops screens, and no engine trace. The bundle has no router,
 `AuthProvider`, `AppProvider` or API client, so no code path in it can write anything. CI locks
 this: the frontend job runs `npm run build:demo` and then `npm run check:demo-bundle`
 (`frontend/scripts/check-demo-bundle.mjs`), which fails when `dist-demo` contains the API client's
 `/api/` paths, react-router, the route table, the auth or app provider, or a string unique to the
-preferences, calibration, login or ops pages. Read-only results components are allowed. Each marker is also confirmed present in the
+preferences, calibration, login or ops pages. Results components are explicitly allowed. Each forbidden marker is also confirmed present in the
 main bundle, so a renamed string fails the check instead of silently weakening it.
 
 | Piece | What it does |
 |---|---|
-| `backend/scripts/export_demo_snapshot.py` (logic in `app/ops/demo_snapshot.py`) | Loads `backend/.env` like the API (`override=False`), opens the SQLite file read-only (`mode=ro`, `query_only`, one read transaction), builds guy's feed through `routes_feed.get_feed` (the handler `/api/me/feed` uses) without recording usage, keeps an allowlist of rendered fields, and writes `feed.json` + `meta.json` atomically. Exit 0 written; 1 failed; 3 empty feed (nothing written, so the site keeps its last real snapshot) |
+| `backend/scripts/export_demo_snapshot.py` (feed logic in `app/ops/demo_snapshot.py`) | Loads `backend/.env` like the API (`override=False`), opens SQLite read-only (`mode=ro`, `query_only`, consistent read transactions), builds guy's feed and personalized final/scheduled games plus available details through the same product handlers, without recording usage or calling providers. Keeps explicit public-field allowlists and stages all three files before replacement, meta last. Exit 0 written; 1 failed; 3 empty feed (previous snapshot retained) |
 | `frontend/demo.html`, `frontend/src/demo/`, `frontend/vite.demo.config.js` | The demo entry. `npm run build:demo` → `frontend/dist-demo/`; `npm run preview:demo` serves it on 127.0.0.1:4174 (open `/demo.html`) |
 | `firebase.json`, `.firebaserc` | Hosting from `frontend/dist-demo`, every path rewritten to `/demo.html`, `no-cache` on `demo-data/**`, HTML, `/` and every extensionless path (they are served the rewritten page), immutable `assets/**`, a CSP limited to the site's own origin |
-| `scripts/demo-publish.ps1` | From the main checkout: build when `dist-demo` is missing or `-Build` is given, export into `dist-demo/demo-data/`, then `firebase deploy --only hosting --project signal-sports-demo --non-interactive`. An export failure or an empty feed skips the deploy. Logs to `backend/data/demo-publish.log`. `-NoDeploy` and `-Db <path>` exist for checks |
+| `scripts/demo-publish.ps1` | From the primary checkout: build when `dist-demo` is missing or `-Build` is given, export into `dist-demo/demo-data/`, then `firebase deploy --only hosting --project signal-sports-demo --non-interactive`. It uses the files and existing build in that checkout; it does not fetch, merge or automatically switch to main. An export failure or an empty feed skips the deploy. Logs to `backend/data/demo-publish.log`. `-NoDeploy` and `-Db <path>` exist for checks |
 | `scripts/demo-schedule.ps1` | Registers (or `-Unregister`, `-Status`) the hourly task `SignalSportsDemoPublish` for the current user: hidden window, runs only while that user is logged on, no stored password, no overlapping runs |
 
 **Owner steps after merge** (from the main checkout, after `git pull`):

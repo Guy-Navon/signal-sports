@@ -134,6 +134,25 @@ it("popup switches team tabs and moves with arrow keys", async () => {
   expect(preventDefault).toHaveBeenCalled();
   expect(tabs()[0].props["aria-selected"]).toBe(true);
 });
+it("switches between expanded player statistics and real team comparisons", async () => {
+  const rich = { ...detail, team_stats: { home: { totalRebounds: 45, assists: 25, FG: "40-80" },
+    away: { totalRebounds: 40, assists: 20, FG: "35-75" } }, players: [{ ...detail.players[0],
+    stats: { ...detail.players[0].stats, steals: 2, turnovers: 3, rebounds_offensive: 1, rebounds_defensive: 5, rate: 28 } }] };
+  await act(async () => { view = create(<GameDetailDialog game={game} onClose={() => {}} getDetail={async () => rich} />,
+    { createNodeMock: dialogNodes }); });
+  act(() => view.root.findAllByType("button").find(b => b.props.children === "מורחב").props.onClick());
+  expect(text()).toContain("אחוז שדה");
+  expect(text()).toContain("ריב׳ התק׳");
+  expect(text()).toContain("מדד");
+  expect(text()).toContain("סך שחקנים");
+  act(() => view.root.findAllByType("button").find(b => b.props.children === "השוואת קבוצות").props.onClick());
+  expect(view.root.findAllByProps({ className: "sr-compare-row" })).toHaveLength(2);
+  expect(view.root.findAllByProps({ className: "sr-shoot-card" })).toHaveLength(1);
+  expect(text()).toContain("50%");
+  expect(text()).toContain("45");
+  act(() => view.root.findAllByType("button").find(b => b.props.children === "שחקנים").props.onClick());
+  expect(text()).toContain("אחוז שדה");
+});
 it("popup shows football scorers and skips the basketball parts", async () => {
   const football = { ...game, sport: "football", competitionHe: "ליגת העל", chosenPlayerLines: [], leaders: [] };
   await act(async () => { view = create(<GameDetailDialog game={football} onClose={() => {}} getDetail={async () => ({ team_stats: {}, players: [

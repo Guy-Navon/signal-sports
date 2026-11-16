@@ -1,15 +1,10 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import { RESULTS_STATS_MARKER } from "./resultsStatsBoundary";
-import { boxScore, footballEvents, periodTable, popupHeader, scoreboard, teamFacts } from "./resultsPopupModel";
+import { boxScore, footballEvents, gameLeaders, periodTable, popupHeader, scoreboard, teamComparison, teamFacts } from "./resultsPopupModel";
+import { BoxScore, GameLeaders, TeamComparison } from "./GameStats";
 import Rank from "./Rank";
 
-const COLUMN_LABELS = { min: "דק׳", pts: "נק׳", reb: "ריב׳", ast: "אס׳", fg2: "2 נק׳", fg3: "3 נק׳", ft: "עונשין", pm: "+/-" };
 const FOCUSABLE = 'button:not([disabled]), a[href], summary, [tabindex="0"]';
-const cell = (row, col) => {
-  const v = row[col];
-  if (v == null) return "—";
-  return col === "pm" && v > 0 ? `+${v}` : v;
-};
 
 function Scoreboard({ game }) {
   const board = scoreboard(game);
@@ -43,22 +38,6 @@ function Facts({ facts, game }) {
     <dd><span><span className="sr-vh">{game.home.name} </span>{fact.home}</span><span><span className="sr-vh">{game.away.name} </span>{fact.away}</span></dd></div>)}</dl>;
 }
 
-function BoxScore({ box, labelledBy }) {
-  if (!box.groups.length) return <p className="sr-note">אין נתוני שחקנים למשחק הזה.</p>;
-  return <div className="sr-box-scroll" tabIndex={0}>
-    <table className="sr-box-table" aria-labelledby={labelledBy}>
-      <thead><tr><th scope="col" className="sr-p">שחקן</th>{box.columns.map(col => <th key={col} scope="col">{COLUMN_LABELS[col]}</th>)}</tr></thead>
-      {box.groups.map(group => <tbody key={group.key}>
-        {group.label && <tr className="sr-box-grp"><th scope="rowgroup" colSpan={box.columns.length + 1}>{group.label}</th></tr>}
-        {group.rows.map(row => <tr key={row.key} data-top={row.top || undefined}>
-          <th scope="row" className="sr-p"><bdi dir="auto">{row.name}</bdi></th>
-          {box.columns.map(col => <td key={col} dir="ltr" className={col === "pts" ? "sr-pts-col" : undefined}>{cell(row, col)}</td>)}
-        </tr>)}
-      </tbody>)}
-    </table>
-  </div>;
-}
-
 function Tabs({ game, active, onPick, tabRefs, baseId }) {
   const onKeyDown = (event, key) => {
     const next = { ArrowLeft: key === "home" ? "away" : "home", ArrowRight: key === "home" ? "away" : "home", Home: "home", End: "away" }[event.key];
@@ -87,6 +66,7 @@ export default function GameDetailDialog({ game, getDetail, onClose }) {
   const titleId = useId(), baseId = useId();
   const [detail, setDetail] = useState(null), [error, setError] = useState(false), [retry, setRetry] = useState(0);
   const [side, setSide] = useState((game.chosenPlayerLines || [])[0]?.side === "away" ? "away" : "home");
+  const [view, setView] = useState("players"), [expanded, setExpanded] = useState(false);
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
@@ -128,31 +108,41 @@ export default function GameDetailDialog({ game, getDetail, onClose }) {
   const basketball = game.sport === "basketball", football = game.sport === "football";
   const table = detail && basketball ? periodTable(detail, game) : null;
   const facts = detail ? teamFacts(detail, game.sport) : [];
-  const box = detail && basketball ? boxScore(detail, side, game.sport) : null;
+  const box = detail && basketball ? boxScore(detail, side, game.sport, expanded) : null;
+  const leaders = detail ? gameLeaders(detail, game.sport) : [];
+  const comparison = detail ? teamComparison(detail, game) : null;
   return <dialog ref={dialogRef} className="sr-dialog" aria-labelledby={titleId} aria-modal="true"
     data-results-statistics={RESULTS_STATS_MARKER} onKeyDown={trapFocus} onCancel={event => { event.preventDefault(); close(); }}
     onPointerDown={event => { pointerStartedOutside.current = outsideDialog(event); }}
     onPointerCancel={() => { pointerStartedOutside.current = false; }} onClick={dismissBackdrop}>
     <div className="sr-grab" aria-hidden="true" />
     <h2 id={titleId} className="sr-vh"><bdi dir="auto">{game.home.name}</bdi> — <bdi dir="auto">{game.away.name}</bdi></h2>
-    <header className="sr-dialog-head"><p className="sr-dialog-meta"><bdi dir="auto">{popupHeader(game, detail)}</bdi></p>
+    <header className="sr-dialog-head"><div><span className="sr-dialog-eyebrow">נתוני המשחק</span>
+      <p className="sr-dialog-meta"><bdi dir="auto">{popupHeader(game, detail)}</bdi></p></div>
       <button ref={closeRef} type="button" onClick={close} aria-label="סגירת פרטי המשחק">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
       </button></header>
-    <Scoreboard game={game} />
+    <div className="sr-match-summary"><Scoreboard game={game} />{table && <PeriodTable table={table} />}</div>
     {error ? <div className="sr-message" role="alert"><p>לא הצלחנו לטעון את פרטי המשחק.</p>
         <button type="button" onClick={() => { closeRef.current?.focus(); setRetry(n => n + 1); }}>נסה שוב</button></div>
       : !detail ? <p className="sr-message" role="status">טוען את פרטי המשחק…</p>
       : <div className="sr-dialog-body">
-        {table && <PeriodTable table={table} />}
-        {facts.length > 0 && <Facts facts={facts} game={game} />}
         {basketball && <>
-          <Tabs game={game} active={side} onPick={setSide} tabRefs={tabRefs} baseId={baseId} />
-          <div id={`${baseId}-panel`} role="tabpanel" aria-labelledby={`${baseId}-${side}`}>
-            <BoxScore box={box} labelledBy={`${baseId}-${side}`} />
+          <GameLeaders leaders={leaders} />
+          <div className="sr-view-tabs" role="group" aria-label="תצוגת נתוני המשחק">
+            <button type="button" aria-pressed={view === "players"} onClick={() => setView("players")}>שחקנים</button>
+            <button type="button" aria-pressed={view === "teams"} onClick={() => setView("teams")}>השוואת קבוצות</button>
           </div>
+          {view === "teams" ? <TeamComparison comparison={comparison} game={game} /> : <>
+            {facts.length > 0 && <Facts facts={facts} game={game} />}
+            <Tabs game={game} active={side} onPick={setSide} tabRefs={tabRefs} baseId={baseId} />
+            <div id={`${baseId}-panel`} role="tabpanel" aria-labelledby={`${baseId}-${side}`}>
+              <BoxScore box={box} labelledBy={`${baseId}-${side}`} expanded={expanded} onExpandedChange={setExpanded} />
+            </div>
+          </>}
         </>}
-        {football && <FootballEvents events={footballEvents(detail)} game={game} />}
+        {football && <><TeamComparison comparison={comparison} game={game} />
+          <FootballEvents events={footballEvents(detail)} game={game} /></>}
         <p className="sr-source"><span>נתוני המשחק מגיעים מספק תוצאות חיצוני.</span>
           {basketball && <span>2 נק׳ / 3 נק׳ / עונשין: קליעות/ניסיונות</span>}</p>
       </div>}

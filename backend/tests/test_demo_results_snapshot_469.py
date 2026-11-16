@@ -140,9 +140,11 @@ def test_results_snapshot_exports_public_stats_but_drops_unapproved_fields(resul
     detail = {"game_id": game["id"], "venue": game["venue"], "attendance": game["attendance"],
               "players": [{"side": "home", "name": "ים מדר", "minutes": 32,
                            "email": GUY_EMAIL, "stats": {"points": 25, "FG": "8-12", "starter": True,
+                           "steals": 2, "turnovers": 3, "OffensiveRebounds": 4, "Valuation": 21,
                            "provider_payload": "private-provider-payload"}}],
               "team_stats": {"home": {"quarters": {"Q1": 20, "Q2": 18, "Q3": 20, "Q4": 19},
-                                     "bench_points": 24, "email": GUY_EMAIL},
+                                     "bench_points": 24, "totalRebounds": "40", "totalTurnovers": "11",
+                                     "fieldGoalsMade-fieldGoalsAttempted": "30-60", "email": GUY_EMAIL},
                              "away": {"quarter_scores": [20, 20, 20, 22], "bench_points": 30}},
               "user_id": "private-user-id"}
     monkeypatch.setattr(routes_results, "get_results_for_user",
@@ -156,7 +158,10 @@ def test_results_snapshot_exports_public_stats_but_drops_unapproved_fields(resul
     assert game["chosen_player_lines"][0]["stats"]["points"] == 25
     assert game["home"]["score"] == 77 and game["away"]["score"] == 82
     public_detail = snapshot["details"][game["id"]]
-    assert public_detail["players"][0]["stats"] == {"points": 25, "FG": "8-12", "starter": True}
+    assert public_detail["players"][0]["stats"] == {"points": 25, "FG": "8-12", "starter": True,
+        "steals": 2, "turnovers": 3, "OffensiveRebounds": 4, "Valuation": 21}
+    assert public_detail["team_stats"]["home"]["totalRebounds"] == "40"
+    assert public_detail["team_stats"]["home"]["fieldGoalsMade-fieldGoalsAttempted"] == "30-60"
     assert public_detail["team_stats"]["home"]["quarters"]["Q4"] == 19
     assert public_detail["team_stats"]["away"]["quarter_scores"] == [20, 20, 20, 22]
     assert public_detail["venue"] == "היכל מנורה"

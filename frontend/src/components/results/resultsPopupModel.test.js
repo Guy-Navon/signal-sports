@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boxScore, footballEvents, periodTable, popupHeader, scoreboard, teamFacts } from "./resultsPopupModel";
+import { boxScore, footballEvents, gameLeaders, periodTable, popupHeader, scoreboard, teamComparison, teamFacts } from "./resultsPopupModel";
 import fixture from "../../lab/resultsFixtures.json";
 
 const game = (id) => {
@@ -54,7 +54,7 @@ describe("teamFacts", () => {
 describe("boxScore", () => {
   it("groups starters and bench and shows only the columns the data has (winner)", () => {
     const box = boxScore(fixture.details[ibl], "home", "basketball");
-    expect(box.columns).toEqual(["min", "pts", "reb", "ast", "fg2", "fg3", "ft", "pm"]);
+    expect(box.columns).toEqual(["min", "pts", "reb", "ast", "stl", "blk", "tov", "pf", "fg2", "fg3", "ft", "pm"]);
     const all = box.groups.flatMap(g => g.rows);
     expect(box.groups.map(g => g.key)).toEqual(["starters", "bench"]);
     expect(box.groups[0].rows.length).toBe(5);
@@ -84,6 +84,61 @@ describe("boxScore", () => {
   it("returns an empty box for no players", () => {
     expect(boxScore({ players: [] }, "home", "basketball").groups).toEqual([]);
     expect(boxScore(null, "home", "basketball").groups).toEqual([]);
+  });
+  it("reads the additional player statistics from every supported basketball provider", () => {
+    const winner = boxScore(fixture.details[ibl], "home", "basketball", true);
+    const hoard = winner.groups.flatMap(g => g.rows).find(r => r.name === "ג'יילן הורד");
+    expect(hoard).toMatchObject({ oreb: 4, dreb: 5, stl: 0, blk: 1, tov: 0, pf: 2, rating: 7 });
+    expect(winner.columns).toEqual(expect.arrayContaining(["fg", "fgpct", "fg3pct", "ftpct", "oreb", "dreb", "rating"]));
+    const euro = boxScore(fixture.details[el], "home", "basketball", true).groups.flatMap(g => g.rows)[0];
+    expect(euro).toMatchObject({ stl: 1, tov: 0, pf: 4, rating: 7 });
+    const espn = boxScore(fixture.details[nba], "away", "basketball", true).groups.flatMap(g => g.rows).find(r => r.name === "Toumani Camara");
+    expect(espn).toMatchObject({ stl: 2, blk: 1, tov: 2, pf: 2, oreb: 0, dreb: 2 });
+  });
+  it("weights total shooting percentages by attempts, and keeps missing values unknown", () => {
+    const detail = { players: [
+      { side: "home", name: "A", minutes: 20, stats: { points: 3, FG: "1-1", "3PT": "1-1", FT: "0-0", steals: 1 } },
+      { side: "home", name: "B", minutes: 20, stats: { points: 2, FG: "1-9", "3PT": "0-4", FT: "0-0" } },
+    ] };
+    const box = boxScore(detail, "home", "basketball", true);
+    expect(box.totals).toMatchObject({ pts: 5, fg: "2/10", fgpct: "20%", fg3: "1/5", fg3pct: "20%", ftpct: null, stl: null });
+    expect(box.totals.pm).toBeUndefined();
+    expect(box.groups[0].rows[0].ftpct).toBeNull();
+  });
+  it("keeps a scoreless player whose actual rebounds are available even without minutes", () => {
+    const box = boxScore({ players: [{ side: "home", name: "A", minutes: null, stats: { points: 0, rebounds: 4 } }] }, "home", "basketball");
+    expect(box.groups[0].rows[0]).toMatchObject({ pts: 0, reb: 4 });
+  });
+});
+
+describe("teamComparison and gameLeaders", () => {
+  it("reads official EuroLeague and ESPN totals, including team turnovers and shooting", () => {
+    const euro = teamComparison(fixture.details[el], game(el));
+    expect(euro.rows.find(r => r.key === "reb").home).toBe(35);
+    expect(euro.shooting.find(r => r.key === "fg").home).toEqual({ line: "30/71", percent: 42.3 });
+    const espn = teamComparison(fixture.details[nba], game(nba));
+    expect(espn.rows.find(r => r.key === "tov")).toMatchObject({ home: 13, lowerBetter: true });
+    expect(espn.shooting.find(r => r.key === "fg3").home.line).toBe("11/34");
+  });
+  it("derives team counts only from a complete scoring box and prefers official counts", () => {
+    const detail = { players: [
+      { side: "home", name: "A", minutes: 20, stats: { points: 5, rebounds: 3 } },
+      { side: "away", name: "B", minutes: 20, stats: { points: 4, rebounds: 2 } },
+    ], team_stats: {} };
+    const g = { sport: "basketball", home: { score: 5 }, away: { score: 4 } };
+    expect(teamComparison(detail, g).rows.find(r => r.key === "reb")).toMatchObject({ home: 3, away: 2 });
+    expect(teamComparison(detail, { ...g, home: { score: 6 } }).rows).toEqual([]);
+    detail.team_stats = { home: { totalRebounds: 7 }, away: { totalRebounds: 8 } };
+    expect(teamComparison(detail, g).rows.find(r => r.key === "reb")).toMatchObject({ home: 7, away: 8 });
+  });
+  it("names tied leaders and omits statistics that have no positive recorded value", () => {
+    const leaders = gameLeaders({ players: [
+      { name: "A", minutes: 20, stats: { PTS: "10", REB: "4" } },
+      { name: "B", minutes: 20, stats: { Points: 10, TotalRebounds: 6, Assistances: 0 } },
+    ] }, "basketball");
+    expect(leaders).toEqual([{ key: "pts", label: "נקודות", value: 10, names: "A · B" },
+      { key: "reb", label: "ריבאונדים", value: 6, names: "B" }]);
+    expect(gameLeaders(null, "basketball")).toEqual([]);
   });
 });
 

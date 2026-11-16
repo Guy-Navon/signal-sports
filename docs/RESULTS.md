@@ -885,3 +885,11 @@ rule 5. `RESULTS_PROVIDER_BACKUP_SYNC=false` turns the backup off.
 `reason` is `default` (not routed), `routed`, `disabled`, `never_succeeded`, `stale` or
 `stale_no_fallback`. No frontend page reads this endpoint today; the ops UI that shows
 it follows on `ui/next`.
+
+The "הקבוצות שלך" cards are a separate `team_games` list: the latest four finals
+per directly followed team, eight total, newest first, without an age limit.
+`followed_team_ids` identifies the direct follows. Shared games occur once and
+count against both teams' quotas. Queries filter each team before limiting and
+respect serving-provider routing. These cards and their static box scores are
+also exported to the demo. An older detail is readable only while the game is
+among that reader's selected cards; the general stream keeps its 72-hour window.

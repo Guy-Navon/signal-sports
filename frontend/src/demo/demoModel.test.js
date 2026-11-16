@@ -185,6 +185,15 @@ describe("tabFromHash", () => {
 
 describe("normalizeDemoResults", () => {
   const detail = { game_id: RESULT.id, players: [{ side: "home", name: "שחקן", stats: { points: 30 } }] };
+  it("normalizes separate team history and retains its available details", () => {
+    const old = { ...RESULT, detail_available: true, start_time: "2025-01-01T18:00:00Z" };
+    const result = normalizeDemoResults({ games: [], team_games: [old], followed_team_ids: ["team:a"],
+      details: { [RESULT.id]: detail } });
+    expect(result.games).toEqual([]);
+    expect(result.teamGames[0]).toMatchObject({ id: RESULT.id, detailAvailable: true, startTime: old.start_time });
+    expect(result.followedTeamIds).toEqual(["team:a"]);
+    expect(result.details).toEqual({ [RESULT.id]: detail });
+  });
   it("keeps exported statistics and opens only matching, available final-game details", () => {
     const rich = { ...RESULT, detail_available: true, venue: "Arena", attendance: 100,
       leaders: [{ name: "שחקן", value: 30 }], chosen_player_lines: detail.players,

@@ -766,8 +766,9 @@ new stories.
   today first, then past days descending. Upcoming games are not in the stream.
   - **Top (desktop, 900px and up):** "תוצאות" and a summary line from real data,
     "**N** משחקים ב-48 השעות האחרונות · **M** הערב" (a zero part is dropped). Then
-    "הקבוצות שלך": up to four tiles in one row, the most recent finals with a
-    followed team or a chosen-player line (none qualifying means no row). A tile has
+    "הקבוצות שלך": up to four latest finals per directly followed team, eight total,
+    newest first without an age limit. A shared game appears once and counts toward
+    both teams. No qualifying games means no tiles. A tile has
     league · day, a verdict chip ("ניצחון" in `--sg-tint`/`--sg-acc`, "הפסד" and
     "תיקו" neutral, none when both sides are followed), two team rows with large
     scores (winner 800/ink, loser 600/dim), the rank in brackets, the chosen-player
@@ -775,8 +776,7 @@ new stories.
   - **Followed teams** come from the profile's team affinities of level 1 and up (an
     explicit entry beats calibrated beats learned, as `results/relevance.py` does),
     plus any `followed_team:<id>` the server reports in `relevance_reason`. A team in
-    scope only through a followed player is not a followed team; such a game becomes
-    a tile through its chosen-player line. Followed teams carry a small `--sg-acc`
+    scope only through a followed player is not a followed team. Chosen-player lines remain in the players box and qualifying team cards. Followed teams carry a small `--sg-acc`
     dot. Frontend only, in `resultsLayoutModel.js`.
   - **Sticky date bar** (היום, אתמול, then weekday and date): chips anchor-scroll to the
     day sections and never filter. Hidden on a phone.

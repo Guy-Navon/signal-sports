@@ -59,11 +59,13 @@ def test_cli_results_match_the_session_users_api_and_leave_db_unchanged(results_
         served = me_get_results(user=session.get(UserRow, "guy"), session=session).model_dump(mode="json")
         details = {game["id"]: exporter._public_detail(
             get_detail_for_user("guy", game["id"], session).model_dump(mode="json"))
-            for game in served["games"] if game["detail_available"]}
+            for game in [*served["games"], *served["team_games"]] if game["detail_available"]}
     engine.dispose()
     assert exported == {"has_preferences": served["has_preferences"],
                         "games": [exporter._public_game(game) for game in served["games"]
-                                  if game["status"] in ("final", "scheduled")], "details": details}
+                                  if game["status"] in ("final", "scheduled")], "details": details,
+                        "team_games": [exporter._public_game(game) for game in served["team_games"]],
+                        "followed_team_ids": served["followed_team_ids"]}
     assert exported["games"]
     assert len(exported["games"]) < len(FAKE_GAMES)  # no unrelated games
     assert any(game["status"] == "scheduled" for game in exported["games"])
@@ -176,8 +178,46 @@ def test_unavailable_detail_leaves_a_score_only_game(results_db, monkeypatch):
     assert all(not game["detail_available"] for game in snapshot["games"])
 
 
+def test_demo_exports_no_games_or_box_scores_older_than_three_days(results_db):
+    old = FAKE_GAMES[0].model_copy(update={"external_id": "expired-demo-game",
+        "start_time": (datetime.now(timezone.utc) - timedelta(days=4)).isoformat()})
+    engine = create_engine(f"sqlite:///{results_db}")
+    with sessionmaker(bind=engine)() as session:
+        game_result_repository.upsert(session, old)
+        game_detail_repository.upsert(session, fake_detail(old))
+        session.commit()
+    engine.dispose()
+    before = _digest(results_db)
+    snapshot = exporter.build_results_snapshot(results_db)
+    assert old.id not in {game["id"] for game in snapshot["games"]}
+    assert old.id not in snapshot["details"]
+    assert any(game["status"] == "scheduled" for game in snapshot["games"])
+    assert _digest(results_db) == before
 
 
+def test_demo_keeps_older_team_cards_and_their_box_scores_separate_from_the_stream(results_db):
+    old = FAKE_GAMES[0].model_copy(update={"external_id": "old-followed-team",
+        "home_team_id": "team:maccabi_tlv_bb", "away_team_id": "team:opponent",
+        "start_time": (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()})
+    engine = create_engine(f"sqlite:///{results_db}")
+    with sessionmaker(bind=engine)() as session:
+        # Replace current matches for this followed team, so the old game is
+        # genuinely among its latest four stored finals.
+        from app.db.orm_models import GameResultRow
+        from sqlalchemy import or_
+        session.query(GameResultRow).filter(or_(GameResultRow.home_team_id == "team:maccabi_tlv_bb",
+                                                GameResultRow.away_team_id == "team:maccabi_tlv_bb")).delete()
+        game_result_repository.upsert(session, old)
+        game_detail_repository.upsert(session, fake_detail(old))
+        session.commit()
+    engine.dispose()
+    before = _digest(results_db)
+    snapshot = exporter.build_results_snapshot(results_db)
+    assert old.id not in {game["id"] for game in snapshot["games"]}
+    assert old.id in {game["id"] for game in snapshot["team_games"]}
+    assert old.id in snapshot["details"]
+    assert "team:maccabi_tlv_bb" in snapshot["followed_team_ids"]
+    assert _digest(results_db) == before
 
 
 def test_detail_failure_keeps_the_previous_snapshot(results_db, tmp_path, monkeypatch):
@@ -194,20 +234,3 @@ def test_detail_failure_keeps_the_previous_snapshot(results_db, tmp_path, monkey
     with pytest.raises(RuntimeError, match="detail read failed"):
         exporter.export_demo_snapshot(results_db, out)
     assert {path.name: path.read_bytes() for path in out.iterdir()} == previous
-
-
-def test_demo_exports_no_games_or_box_scores_older_than_three_days(results_db):
-    old = FAKE_GAMES[0].model_copy(update={"external_id": "expired-demo-game",
-        "start_time": (datetime.now(timezone.utc) - timedelta(days=4)).isoformat()})
-    engine = create_engine(f"sqlite:///{results_db}")
-    with sessionmaker(bind=engine)() as session:
-        game_result_repository.upsert(session, old)
-        game_detail_repository.upsert(session, fake_detail(old))
-        session.commit()
-    engine.dispose()
-    before = _digest(results_db)
-    snapshot = exporter.build_results_snapshot(results_db)
-    assert old.id not in {game["id"] for game in snapshot["games"]}
-    assert old.id not in snapshot["details"]
-    assert any(game["status"] == "scheduled" for game in snapshot["games"])
-    assert _digest(results_db) == before

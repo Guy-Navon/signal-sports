@@ -57,7 +57,7 @@ describe("normalizeResultsResponse", () => {
   });
 
   it("is defensive against missing fields", () => {
-    expect(normalizeResultsResponse(undefined)).toEqual({ hasPreferences: false, games: [] });
+    expect(normalizeResultsResponse(undefined)).toEqual({ hasPreferences: false, games: [], teamGames: null, followedTeamIds: [] });
     expect(normalizeResultsResponse({}).games).toEqual([]);
   });
 });

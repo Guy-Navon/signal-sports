@@ -12,7 +12,7 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.deploy_mode import provider_call_refusal
@@ -37,6 +37,8 @@ class ResultsResponse(BaseModel):
     # distinct "no preferences" state instead of "no relevant results".
     has_preferences: bool
     games: List[GameResult]
+    team_games: List[GameResult] = Field(default_factory=list)
+    followed_team_ids: List[str] = Field(default_factory=list)
 
 
 def get_results_for_profile(
@@ -45,7 +47,8 @@ def get_results_for_profile(
     if not settings.results_enabled():
         raise HTTPException(status_code=404, detail="Results feature is disabled")
     result = personalized_results(session, profile, limit=limit)
-    return ResultsResponse(has_preferences=result.has_preferences, games=result.games)
+    return ResultsResponse(has_preferences=result.has_preferences, games=result.games,
+                           team_games=result.team_games, followed_team_ids=result.followed_team_ids)
 
 
 def get_results_for_user(user_id: str, session: Session, limit: Optional[int]) -> ResultsResponse:

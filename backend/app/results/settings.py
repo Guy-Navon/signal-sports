@@ -238,5 +238,7 @@ def max_games_per_competition() -> int:
 # ── Read-path window ──────────────────────────────────────────────────────────
 
 def read_window_days() -> int:
-    """At most three rolling days of results and details, even with legacy settings."""
+    """At most three days of results, even with an older, wider configuration.
+    The general stream and its details use this window. Followed-team cards
+    have their own count limit, and upcoming games have a separate window."""
     return min(_int("RESULTS_WINDOW_DAYS", 3, minimum=1), 3)

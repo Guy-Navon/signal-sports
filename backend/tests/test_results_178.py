@@ -444,7 +444,7 @@ class TestResultsApi:
     def test_response_contract(self, admin_client):
         _seed_results_for_api()
         body = admin_client.get("/api/results/guy").json()
-        assert set(body) == {"has_preferences", "games"}
+        assert set(body) == {"has_preferences", "games", "team_games", "followed_team_ids"}
         game = body["games"][0]
         for key in ("id", "competition_id", "competition_he", "status",
                     "start_time", "home", "away", "winner"):

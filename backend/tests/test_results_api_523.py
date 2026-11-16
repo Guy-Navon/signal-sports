@@ -170,12 +170,64 @@ def test_history_configuration_cannot_exceed_three_days(monkeypatch, configured,
     assert read_window_days() == expected
 
 
+def team_profile(team_ids):
+    return UserProfile(user_id="team-reader", display_name="Teams", language="he", profile_type="new", topics=[],
+        profile_v2=ProfileV2(scope_affinities=[ScopeAffinity(scope="team", target_id=team_id, level=1)
+                                             for team_id in team_ids]))
 
 
+@pytest.mark.parametrize("team_count,expected", [(1, 4), (2, 8), (3, 8), (4, 8)])
+def test_team_cards_have_per_team_and_total_limits_without_an_age_limit(session, team_count, expected):
+    from collections import Counter
+    teams = [f"team:test_{i}" for i in range(team_count)]
+    for i, team in enumerate(teams):
+        for round_ in range(5):
+            seed_detail(session, game(ext=f"team-{i}-{round_}", home_team_id=team, away_team_id="team:opponent",
+                start_time=(NOW - timedelta(days=4 + round_ * 7, hours=i)).isoformat()))
+    result = service.personalized_results(session, team_profile(teams), now=NOW)
+    assert result.games == []  # The general stream still has only the last 72 hours.
+    assert len(result.team_games) == expected
+    assert result.followed_team_ids == sorted(teams)
+    counts = Counter(g.home.id for g in result.team_games)
+    assert max(counts.values()) <= 4
+    if team_count <= 2:
+        assert set(counts.values()) == {4}
+    times = [g.start_time for g in result.team_games]
+    assert times == sorted(times, reverse=True)
+    assert all(g.detail_available for g in result.team_games)
 
 
+def test_shared_team_game_is_unique_and_counts_against_both_teams(session):
+    teams = ["team:test_a", "team:test_b"]
+    derby = game(ext="derby", home_team_id=teams[0], away_team_id=teams[1])
+    seed_detail(session, derby)
+    for i, team in enumerate(teams):
+        for round_ in range(4):
+            seed_detail(session, game(ext=f"solo-{i}-{round_}", home_team_id=team, away_team_id="team:opponent",
+                start_time=(NOW - timedelta(days=7 + round_, hours=i)).isoformat()))
+    result = service.personalized_results(session, team_profile(teams), now=NOW)
+    assert len(result.team_games) == 7
+    assert sum(g.id == derby.id for g in result.team_games) == 1
+    for team in teams:
+        assert sum(team in (g.home.id, g.away.id) for g in result.team_games) == 4
 
 
+def test_old_box_scores_are_available_only_for_the_readers_selected_team_cards(session, monkeypatch):
+    team = "team:test_a"
+    stored = [game(ext=f"old-{i}", home_team_id=team, away_team_id="team:opponent",
+                  start_time=(NOW - timedelta(days=10 + i)).isoformat()) for i in range(5)]
+    for g in stored:
+        seed_detail(session, g)
+    reader = team_profile([team])
+    assert service.personalized_detail(session, reader, stored[0].id, now=NOW) is not None
+    assert service.personalized_detail(session, reader, stored[3].id, now=NOW) is not None
+    assert service.personalized_detail(session, reader, stored[4].id, now=NOW) is None
+    assert service.personalized_detail(session, profile(), stored[0].id, now=NOW) is None
+    assert service.personalized_results(session, profile(), now=NOW).team_games == []
+    monkeypatch.setenv("RESULTS_PROVIDER_ROUTES", "comp:nba=espn_nba")
+    monkeypatch.setenv("RESULTS_PROVIDER_STALE_HOURS", "0")
+    assert service.personalized_results(session, reader, now=NOW).team_games == []
+    assert service.personalized_detail(session, reader, stored[0].id, now=NOW) is None
 
 
 def test_detail_relevance_and_serving_provider(session,monkeypatch):

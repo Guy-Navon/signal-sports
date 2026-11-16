@@ -34,7 +34,7 @@ export async function loadDemoSnapshot(fetchImpl, base = "/") {
     fetchJson(fetchImpl, `${base}demo-data/meta.json`),
     fetchJson(fetchImpl, `${base}demo-data/results.json`)
       .then(normalizeDemoResults)
-      .catch(() => ({ games: [], details: {} })),
+      .catch(() => ({ games: [], teamGames: null, followedTeamIds: [], details: {} })),
   ]);
   if (!Array.isArray(feed)) throw new Error("demo feed is not a list");
   const visible = getVisibleItems(feed.map(normalizeScoredArticleFromApi));
@@ -42,6 +42,8 @@ export async function loadDemoSnapshot(fetchImpl, base = "/") {
     meta,
     results: results.games,
     resultDetails: results.details,
+    resultTeamGames: results.teamGames,
+    resultFollowedTeamIds: results.followedTeamIds,
     items: prepareFeedItems(visible, { isBackendMode: true, localScoredArticles: [] }),
   };
 }
@@ -73,7 +75,7 @@ export function demoDecisionCounts(items) {
   return counts;
 }
 
-// ---- Tabs (#553): the feed and the results, switched by the hash.
+// ---- Tabs: the feed and the results, switched by the hash.
 
 export const DEMO_TABS = [
   { id: "feed", label: "פיד", hash: "" },
@@ -85,17 +87,19 @@ export function tabFromHash(hash) {
   return hash === "#results" ? "results" : "feed";
 }
 
-// Only exported, matching final-game details open a popup; no API calls.
+// Older snapshots still render scores. Only exported, matching final-game
+// details can open a popup; loading or viewing one never calls an API.
 export function normalizeDemoResults(raw) {
   const details = {};
-  const games = normalizeResultsResponse(raw).games
-    .filter(game => game.status === "final" || game.status === "scheduled")
-    .map(game => {
+  const normalized = normalizeResultsResponse(raw);
+  const withDetail = game => {
       const detail = Object.hasOwn(raw?.details || {}, game.id) ? raw.details[game.id] : null;
       const available = game.status === "final" && game.detailAvailable
         && detail?.game_id === game.id && Array.isArray(detail?.players);
       if (available) details[game.id] = detail;
       return { ...game, detailAvailable: Boolean(available) };
-    });
-  return { games, details };
+  };
+  const games = normalized.games.filter(game => game.status === "final" || game.status === "scheduled").map(withDetail);
+  const teamGames = normalized.teamGames?.filter(game => game.status === "final").map(withDetail) ?? null;
+  return { games, teamGames, followedTeamIds: normalized.followedTeamIds, details };
 }

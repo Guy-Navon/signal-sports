@@ -99,6 +99,9 @@ def list_games(
     conds = []
     if competition_ids is not None:
         conds.append(GameResultRow.competition_id.in_(list(competition_ids)))
+    if team_ids is not None:
+        teams = list(team_ids)
+        conds.append(or_(GameResultRow.home_team_id.in_(teams), GameResultRow.away_team_id.in_(teams)))
     if statuses is not None:
         conds.append(GameResultRow.status.in_(list(statuses)))
     if since_iso is not None:
@@ -115,14 +118,10 @@ def list_games(
     if conds:
         stmt = stmt.where(and_(*conds))
     # NULL start_time sorts last; SQLite orders NULLs first on DESC, so coalesce.
-    stmt = stmt.order_by(GameResultRow.start_time.is_(None), GameResultRow.start_time.desc())
+    stmt = stmt.order_by(GameResultRow.start_time.is_(None), GameResultRow.start_time.desc(), GameResultRow.id)
     if limit is not None:
         stmt = stmt.limit(limit)
-    rows = list(session.execute(stmt).scalars().all())
-    if team_ids is not None:
-        team_set = set(team_ids)
-        rows = [r for r in rows if r.home_team_id in team_set or r.away_team_id in team_set]
-    return rows
+    return list(session.execute(stmt).scalars().all())
 
 
 def count(session: Session) -> int:

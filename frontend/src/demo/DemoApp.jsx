@@ -63,18 +63,20 @@ function DemoTabs({ tab }) {
 
 export default function DemoApp() {
   const [tab, setTab] = useState(currentTab);
-  const [snapshot, setSnapshot] = useState({ status: "loading", items: [], results: [], resultDetails: {}, meta: null });
+  const [snapshot, setSnapshot] = useState({ status: "loading", items: [], results: [], resultDetails: {},
+    resultTeamGames: null, resultFollowedTeamIds: [], meta: null });
   const [now, setNow] = useState(() => Date.now());
   const [activeFilters, setActiveFilters] = useState(new Set(["all"]));
 
   const load = useCallback(() => {
     setSnapshot((current) => ({ ...current, status: "loading" }));
     loadDemoSnapshot(window.fetch.bind(window), import.meta.env.BASE_URL)
-      .then(({ items, meta, results, resultDetails }) => {
-        setSnapshot({ status: "ready", items, meta, results, resultDetails });
+      .then(({ items, meta, results, resultDetails, resultTeamGames, resultFollowedTeamIds }) => {
+        setSnapshot({ status: "ready", items, meta, results, resultDetails, resultTeamGames, resultFollowedTeamIds });
         setNow(Date.now());
       })
-      .catch(() => setSnapshot({ status: "error", items: [], results: [], resultDetails: {}, meta: null }));
+      .catch(() => setSnapshot({ status: "error", items: [], results: [], resultDetails: {},
+        resultTeamGames: null, resultFollowedTeamIds: [], meta: null }));
   }, []);
 
   useEffect(() => {
@@ -92,7 +94,7 @@ export default function DemoApp() {
     return () => window.removeEventListener?.("hashchange", sync);
   }, []);
 
-  const { items, meta, results, resultDetails, status } = snapshot;
+  const { items, meta, results, resultDetails, resultTeamGames, resultFollowedTeamIds, status } = snapshot;
   const bodyState = feedBodyState({
     isBackendMode: true,
     isLoading: status === "loading",
@@ -126,7 +128,8 @@ export default function DemoApp() {
                 <button type="button" className="sg-more" onClick={load}>נסו שוב</button>
               </div>
             ) : (
-              <DemoResults games={results} details={resultDetails} nowMs={now} />
+              <DemoResults games={results} teamGames={resultTeamGames} followedTeamIds={resultFollowedTeamIds}
+                details={resultDetails} nowMs={now} />
             )}
           </>
         ) : (<>

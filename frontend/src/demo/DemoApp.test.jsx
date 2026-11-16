@@ -15,6 +15,7 @@ vi.mock("./demoModel", async (importOriginal) => ({
 
 const NOW = Date.parse("2026-11-14T10:00:00Z");
 const meta = { generated_at: new Date(NOW).toISOString() };
+const TEAM_RESULTS = { resultTeamGames: null, resultFollowedTeamIds: [] };
 const results = [{
   id: "game-1", competitionHe: "יורוליג", status: "final",
   startTime: "2026-11-14T09:00:00Z", winner: "home",
@@ -52,7 +53,7 @@ async function render() {
 }
 
 it("renders the shared feed read-only without providers, with one banner and only the feed and results tabs", async () => {
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results, resultDetails: {} });
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ ...TEAM_RESULTS, items, meta, results, resultDetails: {} });
   const root = await render();
   expect(root.findAllByType(SignalWordmark)).toHaveLength(1);
   expect(root.findByType(SignalFeedView).props.readOnly).toBe(true);
@@ -76,7 +77,7 @@ it("renders the shared feed read-only without providers, with one banner and onl
 });
 
 it("announces only the staleness warning, not the minute-by-minute update time", async () => {
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results, resultDetails: {} });
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ ...TEAM_RESULTS, items, meta, results, resultDetails: {} });
   const root = await render();
   const banner = root.findByProps({ className: "sg-demo-banner" });
   expect(banner.props.role).toBeUndefined();
@@ -100,7 +101,7 @@ it("keeps the loading and empty states", async () => {
 
 it("keeps the error state and retries the snapshot", async () => {
   vi.mocked(loadDemoSnapshot).mockRejectedValueOnce(new Error("offline"))
-    .mockResolvedValueOnce({ items, meta, results: [], resultDetails: {} });
+    .mockResolvedValueOnce({ ...TEAM_RESULTS, items, meta, results: [], resultDetails: {} });
   const root = await render();
   expect(root.findByProps({ role: "alert" }).findByType("h2").children).toEqual(["לא הצלחנו לטעון את ההדגמה"]);
   await act(async () => { root.findByType("button").props.onClick(); });
@@ -129,7 +130,7 @@ it("opens exported box scores from the results tab without API calls or preferen
     home: { quarters: [30, 30, 30, 31] }, away: { quarters: [30, 30, 30, 28] },
   }, players: [{ side: "home", name: "דני אבדיה", minutes: 35,
     stats: { points: 34, rebounds: 6, assists: 4, starter: true } }] };
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta,
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ ...TEAM_RESULTS, items, meta,
     results: [finalGame("g1", { relevanceReason: "followed_team:team:a", detailAvailable: true,
       leaders: [{ side: "home", name: "דני אבדיה", stat: "points", value: 34 }],
       chosenPlayerLines: detail.players,
@@ -154,7 +155,7 @@ it("opens exported box scores from the results tab without API calls or preferen
 
 it("shows upcoming games even with no completed games, with no account or preferences links", async () => {
   withHash("#results");
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, resultDetails: {}, results: [finalGame("next", {
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ ...TEAM_RESULTS, items, meta, resultDetails: {}, results: [finalGame("next", {
     status: "scheduled", winner: null, localDate: "2026-11-15", startTime: "2026-11-15T18:00:00Z",
     home: { name: "מכבי תל אביב", score: null }, away: { name: "הפועל ירושלים", score: null },
   })] });
@@ -167,7 +168,7 @@ it("shows upcoming games even with no completed games, with no account or prefer
 
 it("switches tabs when the hash changes", async () => {
   const fire = withHash("");
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, resultDetails: {}, results: [finalGame("g1")] });
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ ...TEAM_RESULTS, items, meta, resultDetails: {}, results: [finalGame("g1")] });
   const root = await render();
   expect(root.findAllByType(SignalFeedView)).toHaveLength(1);
   window.location.hash = "#results";
@@ -180,9 +181,24 @@ it("switches tabs when the hash changes", async () => {
 
 it("shows an honest note when there are no results, and does not invent games", async () => {
   withHash("#results");
-  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, resultDetails: {}, results: [] });
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ ...TEAM_RESULTS, items, meta, resultDetails: {}, results: [] });
   const root = await render();
   expect(JSON.stringify(renderer.toJSON())).toContain("אין תוצאות להצגה כרגע");
   expect(root.findAllByProps({ className: "sr-row" })).toHaveLength(0);
   expect(root.findAllByProps({ className: "sr-tile" })).toHaveLength(0);
+});
+
+it("keeps old followed-team cards and their exported box scores outside the three-day stream", async () => {
+  withHash("#results");
+  const old = finalGame("old", { startTime: "2026-10-01T18:00:00Z", localDate: "2026-10-01", detailAvailable: true });
+  const detail = { game_id: old.id, venue: "Old Arena", players: [] };
+  vi.mocked(loadDemoSnapshot).mockResolvedValue({ items, meta, results: [], resultTeamGames: [old],
+    resultFollowedTeamIds: [old.home.id], resultDetails: { [old.id]: detail } });
+  const root = await render();
+  expect(root.findAllByProps({ className: "sr-tile" })).toHaveLength(1);
+  expect(root.findAllByProps({ className: "sr-row" })).toHaveLength(0);
+  await act(async () => root.findByProps({ className: "sr-tile" }).props.onClick({ currentTarget: { focus() {} } }));
+  expect(root.findAllByType("dialog")).toHaveLength(1);
+  expect(JSON.stringify(renderer.toJSON())).toContain("Old Arena");
+  expect(window.fetch).not.toHaveBeenCalled();
 });

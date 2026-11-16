@@ -39,7 +39,7 @@ describe("the local demo (#199)", () => {
   });
 
   it("no profile means no local results rather than a crash", () => {
-    expect(computeLocalResults(undefined)).toEqual({ hasPreferences: false, games: [] });
+    expect(computeLocalResults(undefined)).toEqual({ hasPreferences: false, games: [], teamGames: null, followedTeamIds: [] });
     expect(computeLocalResults(userProfiles.guy).hasPreferences).toBe(true);
   });
 });

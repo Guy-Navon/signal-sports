@@ -37,6 +37,15 @@ decision**, so overlapping skills supply evidence to one owner instead of compet
 | Handoff note | `signal-handoff` | |
 | Docs after a behavior change | `signal-doc-truth` | |
 
+### Fast path: what to load
+
+Load only the skills a task needs; most are long. For a small fix: the area skill (to find the
+files and tests) → `test-driven-development` → `signal-pr-finish` → `signal-pr-open`. Imported
+skills (`*-patterns`, `fastapi-templates`, `llm-evaluation`, `vercel-react-best-practices`) are
+references — open them only when the diff touches their area. File locations and repo traps
+(vitest drive letter, no branch protection, files too large to read whole) are in the
+"Gotchas" and "Where to look first" sections of [CLAUDE.md](../../CLAUDE.md).
+
 Built-in commands such as `/code-review` and `/security-review` run only when invoked. Treat their
 output like any reviewer's (`receiving-code-review`); they don't replace the owners above.
 

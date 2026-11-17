@@ -15,12 +15,17 @@ document (see `signal-handoff`) and not a commit/push action.
    `signal-pr-open` §5 (passes A–D and the final-diff questions) has not already been run on this
    exact diff, run it now; otherwise reuse it rather than repeating the review.
 3. **Backend tests if `backend/` changed**:
-   `cd backend && .venv\Scripts\python.exe -m pytest tests/ -v` (hermetic; no Ollama/API key).
+   `cd backend && .venv\Scripts\python.exe -m pytest tests -q` (hermetic; no Ollama/API key).
+   Use `-q`; `-v` floods the context. Iterate with one file or `-k` first, full suite last.
    Do NOT trust hard-coded suite counts in docs — they drift. The gates are: zero failures, and
    the collected count did not *decrease* versus the base branch (a decrease means tests were
    deleted or stopped being collected — explain it or fix it).
 4. **Frontend checks if `frontend/` changed**:
-   `cd frontend && npm run test && npm run lint && npm run typecheck && npm run build`.
+   `cd frontend && npm run test && npm run lint && npm run typecheck && npm run build`,
+   plus `npm run build:demo && npm run check:demo-bundle` (CI gates `scripts\check.ps1` also runs).
+   Start from an upper-case drive (`C:\...\frontend`): from a lowercase `c:\` cwd vitest fails
+   every file with "failed to find the runner" — that is the shell, not the change.
+   One-command local equivalent of CI (minus the lock check): `powershell -File scripts\check.ps1`.
 5. **Contract & artifact gates** (run the ones the diff makes relevant):
    - Touched `backend/app/taxonomy/` → the generated artifact
      `frontend/src/data/taxonomyReach.generated.json` must be regenerated and committed

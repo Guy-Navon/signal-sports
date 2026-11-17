@@ -26,6 +26,12 @@ classifier.py (deterministic rules, always runs)
 Umbrella map: `docs/RELEVANCE_CONTRACT.md`. Layer contracts: `docs/ARTICLE_FACTS.md`,
 `docs/LLM_CLASSIFICATION.md`, `docs/RSS_QUALITY_GUARDRAILS.md`, `docs/TAXONOMY.md`.
 
+**Navigate, don't read whole.** `classifier.py` (~1.3k lines), `event_evidence.py` (~1k),
+`test_llm_classification.py` (~1.3k) and `RSS_QUALITY_GUARDRAILS.md` (~1.4k) are too large to
+open end to end: `Grep` for the keyword, rule name or function, then read only that range. When
+you change one of these files, extract the touched rule family into its own module with its
+tests (audit L8: incremental, no big-bang refactor).
+
 ## Invariants that bind every change here
 
 1. **THE LLM REDUCES UNCERTAINTY; IT DOES NOT DEFINE TRUTH.** The LLM is the *lowest-weight*
@@ -80,7 +86,7 @@ Umbrella map: `docs/RELEVANCE_CONTRACT.md`. Layer contracts: `docs/ARTICLE_FACTS
    must NOT change) in the closest existing file: `test_ingestion_classifier.py`,
    `test_quality_regressions.py`, `test_event_evidence.py`, `test_article_facts.py`,
    `test_llm_gating.py`, `test_llm_classification.py`, `test_entity_resolver.py`.
-6. **Run:** `cd backend && .venv\Scripts\python.exe -m pytest tests/ -v` (hermetic — conftest
+6. **Run:** `cd backend && .venv\Scripts\python.exe -m pytest tests -q` (hermetic — conftest
    forces `CLASSIFICATION_PROVIDER=disabled`; no Ollama/API key needed).
 7. **Stored articles don't reclassify themselves.** A classifier change affects only future
    ingestion; existing rows keep their old facts. If the change should apply to the real DB,

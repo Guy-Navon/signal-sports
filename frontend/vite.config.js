@@ -32,5 +32,14 @@ export default defineConfig({
     // session-bootstrap tests reached CI green locally and red on GitHub.
     // Tests that need a mode declare it themselves via vi.stubEnv.
     env: { VITE_DATA_MODE: '' },
+    // Several suites `await import()` the app's module graph inside the first
+    // test (after vi.resetModules, so the env stub takes effect). That cold
+    // transform is paid by whichever test runs first: ~2 s on an idle 4-core
+    // machine, measured 4.0–4.8 s with three suites running at once — right at
+    // Vitest's 5 s default, so a busy CI runner or a parallel local run could
+    // fail a test that is functionally green. The ceiling only bounds hangs; it
+    // changes no assertion, and genuinely stuck tests still fail.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
   },
 });

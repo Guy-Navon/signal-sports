@@ -164,7 +164,8 @@ gate on every route):
 
 Auth details (pending registrations, Google auto-link to existing accounts, limits, the shared
 CSRF/CORS origin list): [USER_PLATFORM.md](USER_PLATFORM.md). Known weaknesses: in-process rate
-limiters and one global login bucket ([../AUDIT_REPORT.md](../AUDIT_REPORT.md) H1, M4; #200).
+limiters ([../AUDIT_REPORT.md](../AUDIT_REPORT.md) M4; #200); login is limited per account, per
+client IP and globally (H1 resolved), but hosted clients still share nginx's IP bucket.
 
 ---
 

@@ -353,16 +353,15 @@ def pending_password_matches(session: Session, *, email: str, password: str) -> 
     return _matching_pending(session, email, password, dummy_when_absent=False) is not None
 
 
-def resend(session: Session, *, email: str, password: str) -> SendOutcome:
+def resend(
+    session: Session, *, email: str, password: str, client_ip: Optional[str] = None,
+) -> SendOutcome:
     """Rotate the link of the caller's own pending registration and resend.
     Cooldown and cap live on the row, so they survive restarts."""
     send_with = _require_mailer()
     # Resend verifies a password, so it shares login's guessing budget.
     normalized = normalize_email(email)
-    if not auth_service._global_login_limiter.check("global"):
-        raise auth_service.RateLimitExceeded("too many attempts")
-    if not auth_service._account_login_limiter.check(normalized):
-        raise auth_service.RateLimitExceeded("too many attempts")
+    auth_service.check_password_attempt_budget(normalized, client_ip)
     row = _matching_pending(session, normalized, password)
     if row is None:
         raise auth_service.InvalidCredentialsError("invalid email or password")

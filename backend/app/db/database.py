@@ -104,7 +104,19 @@ def _apply_migrations(eng) -> None:
                 continue
             conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
             columns[table].add(col)
+        # Additive, idempotent indexes for databases created before the ORM
+        # declared them (AUDIT_REPORT M3). Names match SQLAlchemy's index=True.
+        for name, table, col in _SOFT_INDEXES:
+            conn.execute(text(f"CREATE INDEX IF NOT EXISTS {name} ON {table} ({col})"))
         conn.commit()
+
+
+# (index name, table, column). The freshness prefilter, the clustering
+# candidate window and cluster-membership hydration filter on these columns.
+_SOFT_INDEXES = [
+    ("ix_articles_published_at", "articles", "published_at"),
+    ("ix_articles_cluster_id",   "articles", "cluster_id"),
+]
 
 
 def init_db() -> None:

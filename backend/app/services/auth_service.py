@@ -20,8 +20,13 @@ logger = logging.getLogger(__name__)
 SESSION_TOKEN_BYTES = 32
 SESSION_DAYS = 30
 SESSION_LAST_SEEN_THROTTLE_SECONDS = 3600
+# Password-guessing budgets per LOGIN_WINDOW_SECONDS (AUDIT_REPORT H1):
+# per account, per client IP, and a global circuit breaker. The global
+# ceiling sits far above any one client's budget so a single noisy client
+# throttles only itself instead of locking every password user out.
 LOGIN_ACCOUNT_LIMIT = 10
-LOGIN_GLOBAL_LIMIT = 100
+LOGIN_CLIENT_LIMIT = 100
+LOGIN_GLOBAL_LIMIT = 1000
 LOGIN_WINDOW_SECONDS = 300
 
 _password_hasher = PasswordHasher()
@@ -128,12 +133,34 @@ class FixedWindowLimiter:
 
 
 _account_login_limiter = FixedWindowLimiter(LOGIN_ACCOUNT_LIMIT, LOGIN_WINDOW_SECONDS)
+_client_login_limiter = FixedWindowLimiter(LOGIN_CLIENT_LIMIT, LOGIN_WINDOW_SECONDS)
 _global_login_limiter = FixedWindowLimiter(LOGIN_GLOBAL_LIMIT, LOGIN_WINDOW_SECONDS)
+
+UNKNOWN_CLIENT = "unknown"
 
 
 def reset_rate_limiters() -> None:
     _account_login_limiter.reset()
+    _client_login_limiter.reset()
     _global_login_limiter.reset()
+
+
+def check_password_attempt_budget(normalized_email: str, client_ip: Optional[str]) -> None:
+    """Spend one password-guessing attempt; raise RateLimitExceeded when over.
+
+    Shared by login and verification resend (both verify a password).
+    ``client_ip`` is the peer address the ASGI server reports
+    (``request.client.host``). Behind a reverse proxy, run uvicorn with
+    ``--proxy-headers --forwarded-allow-ips=<proxy>`` so that address is the
+    real client; X-Forwarded-For is never parsed here because a client can
+    forge it. A missing address shares one ``"unknown"`` bucket.
+    """
+    if not _global_login_limiter.check("global"):
+        raise RateLimitExceeded("too many login attempts")
+    if not _client_login_limiter.check(client_ip or UNKNOWN_CLIENT):
+        raise RateLimitExceeded("too many login attempts")
+    if not _account_login_limiter.check(normalized_email):
+        raise RateLimitExceeded("too many login attempts")
 
 
 def utc_now() -> datetime:
@@ -334,12 +361,10 @@ def login(
     email: str,
     password: str,
     user_agent: Optional[str] = None,
+    client_ip: Optional[str] = None,
 ) -> tuple[UserRow, str, AuthSessionRow]:
     normalized = normalize_email(email)
-    if not _global_login_limiter.check("global"):
-        raise RateLimitExceeded("too many login attempts")
-    if not _account_login_limiter.check(normalized):
-        raise RateLimitExceeded("too many login attempts")
+    check_password_attempt_budget(normalized, client_ip)
 
     user = get_user_by_email(session, normalized)
     if user is None or not user.password_hash:

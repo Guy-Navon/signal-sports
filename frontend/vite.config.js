@@ -15,8 +15,11 @@ export default defineConfig({
     strictPort: true, // Tailscale Serve points at 5173; fail loudly instead of drifting to 5174
     // SIGNAL_API_PROXY lets scripts/preview.ps1 run a second copy next to the live
     // stack (its own API port); unset, the proxy targets the live API as before.
+    // xfwd appends X-Forwarded-For so the API's per-client login limiter sees the
+    // real client, not this proxy (AUDIT_REPORT H1). uvicorn trusts the header only
+    // from 127.0.0.1 and reads it right to left, so a client cannot forge its address.
     proxy: {
-      '/api': process.env.SIGNAL_API_PROXY || 'http://127.0.0.1:8000',
+      '/api': { target: process.env.SIGNAL_API_PROXY || 'http://127.0.0.1:8000', xfwd: true },
       '/health': process.env.SIGNAL_API_PROXY || 'http://127.0.0.1:8000',
     },
   },

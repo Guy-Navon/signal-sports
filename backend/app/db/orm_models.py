@@ -20,7 +20,7 @@ class ArticleRow(Base):
     translated_title = Column(String, nullable=True)
     language = Column(String, nullable=False, default="he")
     # Stored as ISO-8601 string for reliable round-trip with timezone info
-    published_at = Column(String, nullable=False)
+    published_at = Column(String, nullable=False, index=True)
     # Timestamp provenance audit (M8-4, #174) — soft migration; NULL means
     # source-provided (and is all pre-M8 rows can honestly claim).
     published_at_meta = Column(JSON, nullable=True)
@@ -32,7 +32,7 @@ class ArticleRow(Base):
     importance = Column(String, nullable=False)
     confidence = Column(Float, nullable=False, default=0.85)
     tags = Column(JSON, nullable=False)
-    cluster_id = Column(String, nullable=True)
+    cluster_id = Column(String, nullable=True, index=True)
     # Subtitle/description from RSS feed — added via soft migration; nullable for existing rows
     subtitle = Column(Text, nullable=True)
     # LLM classification metadata — added via soft migration; nullable for existing rows

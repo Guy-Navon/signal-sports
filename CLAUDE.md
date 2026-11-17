@@ -89,7 +89,7 @@ backend/app/
   main.py, worker.py          API factory (routers, CORS+CSRF) · scheduler worker
   api/routes_*.py             HTTP routes (ops routers admin-gated in main.py)
   core/                       config, csrf, deploy_mode (DEPLOY_ENV local|dev|hosted), security deps
-  ingestion/                  sources config, adapters (RSS, Sport5 HTML, ONE JSON), classifier.py (rules), orchestration
+  ingestion/                  sources config, adapters (RSS, Sport5 HTML, ONE JSON), classifier.py (`classify()`) + classifier_rules/ (sport, league, entities, events, scoring), orchestration
   classification/             LLM gate/providers (disabled|fake|gemini|ollama|openai_compat), merge, facts, event evidence
   taxonomy/                   canonical entities, competitions, resolver — the single source of entity truth
   services/                   preference_engine (V2, default), relevance_engine (visibility; legacy rollback), feed, learning, calibration, auth
@@ -159,7 +159,7 @@ Use `-q`, not `-v`: the full suite prints thousands of lines under `-v`.
   Wait for checks yourself: `gh pr checks <n> --watch` (CI takes ~4 min), then
   `gh pr merge <n> --squash --delete-branch --match-head-commit <sha>`. History is squash-merged.
 - **Large files: never read whole.** `Grep` for the symbol, then `Read` with `offset`/`limit`:
-  `backend/app/ingestion/classifier.py` (~1.3k lines), `classification/event_evidence.py` (~1k),
+  `classification/event_evidence.py` (~1k),
   `ingestion/ingestion_service.py` (~800), `frontend/src/components/feed/signal/SignalFeedView.jsx`
   (~930), `backend/tests/test_llm_classification.py` (~1.3k), `backend/scripts/feed_ground_truth.py`
   (~950), `docs/RSS_QUALITY_GUARDRAILS.md` / `HOSTING_PLAN.md` / `LLM_CLASSIFICATION.md` /
@@ -184,7 +184,7 @@ Use `-q`, not `-v`: the full suite prints thousands of lines under `-v`.
 
 | Task | Start at | Tests to extend | Skill |
 |---|---|---|---|
-| Headline misclassified (sport/entity/event) | `classification/facts.py`, `ingestion/classifier.py`, `classification/event_evidence.py` | `test_article_facts.py`, `test_ingestion_classifier.py`, `test_event_evidence.py`, `test_quality_regressions.py` | `signal-classification-change` |
+| Headline misclassified (sport/entity/event) | `classification/facts.py`, `ingestion/classifier.py` (`classify()`), `ingestion/classifier_rules/` (`sport`, `league`, `entities`, `events`, `scoring`), `classification/event_evidence.py` | `test_article_facts.py`, `test_ingestion_classifier.py`, `test_event_evidence.py`, `test_quality_regressions.py` | `signal-classification-change` |
 | LLM gate / merge / provider | `classification/gating.py`, `merge.py`, `providers.py` | `test_llm_gating.py`, `test_llm_classification.py` | `signal-classification-change` |
 | Missing club/player/competition | `taxonomy/entities.py`, `taxonomy/competitions.py` | `test_taxonomy_integrity.py`, `test_entity_resolver.py` | `signal-taxonomy-change` |
 | Wrong feed decision for a user | `services/preference_engine.py`, `relevance_engine.py` (`match_competition_names`) | `test_preference_engine_v2.py`, `test_relevance_visibility_contract.py` | `signal-feed-audit` → `signal-relevance-change` |

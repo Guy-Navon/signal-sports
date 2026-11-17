@@ -1,6 +1,6 @@
 ---
 name: signal-classification-change
-description: Use when changing how Signal Sports determines what an article IS — entity detection, sport/league inference, event-type detection, importance, LLM gating/merge/guardrails, ArticleFacts validation, or event semantic evidence. Triggers on edits to backend/app/ingestion/classifier.py or backend/app/classification/*, or on "this headline is misclassified". NOT for feed-decision changes (visibility/preference/learning — use signal-relevance-change) and NOT for adding registry entities/competitions (use signal-taxonomy-change).
+description: Use when changing how Signal Sports determines what an article IS — entity detection, sport/league inference, event-type detection, importance, LLM gating/merge/guardrails, ArticleFacts validation, or event semantic evidence. Triggers on edits to backend/app/ingestion/classifier.py, backend/app/ingestion/classifier_rules/* or backend/app/classification/*, or on "this headline is misclassified". NOT for feed-decision changes (visibility/preference/learning — use signal-relevance-change) and NOT for adding registry entities/competitions (use signal-taxonomy-change).
 ---
 
 Classification answers "what is this article about"; it must never encode "does a user care"
@@ -13,7 +13,7 @@ For investigating an unclear complaint from scratch, run `signal-feed-audit` fir
 ## The pipeline (own this whole chain — a fix belongs at exactly one stage)
 
 ```
-classifier.py (deterministic rules, always runs)
+classifier.py + classifier_rules/ (deterministic rules, always runs)
   → gating.py (should_call_llm_for_article — call LLM only on residual ambiguity)
   → providers.py + prompt.py + validation.py (LLM proposal, strict enums, conf ≥ 0.65)
   → merge.py (7 deterministic guardrails; see docs/LLM_CLASSIFICATION.md "Merge Strategy")
@@ -26,11 +26,15 @@ classifier.py (deterministic rules, always runs)
 Umbrella map: `docs/RELEVANCE_CONTRACT.md`. Layer contracts: `docs/ARTICLE_FACTS.md`,
 `docs/LLM_CLASSIFICATION.md`, `docs/RSS_QUALITY_GUARDRAILS.md`, `docs/TAXONOMY.md`.
 
-**Navigate, don't read whole.** `classifier.py` (~1.3k lines), `event_evidence.py` (~1k),
+**Navigate, don't read whole.** `event_evidence.py` (~1k),
 `test_llm_classification.py` (~1.3k) and `RSS_QUALITY_GUARDRAILS.md` (~1.4k) are too large to
 open end to end: `Grep` for the keyword, rule name or function, then read only that range. When
 you change one of these files, extract the touched rule family into its own module with its
-tests (audit L8: incremental, no big-bang refactor).
+tests (audit L8: incremental, no big-bang refactor). The rules classifier is already split:
+`classifier.py` keeps `ClassificationResult` and `classify()`; each rule family lives in
+`ingestion/classifier_rules/` (`matching`, `sport`, `league`, `entities`, `events`, `scoring`).
+Edit a rule in its family module; `classifier.py` re-exports every name, so imports from
+`app.ingestion.classifier` keep working, but a new name must be added to its re-export list.
 
 ## Invariants that bind every change here
 

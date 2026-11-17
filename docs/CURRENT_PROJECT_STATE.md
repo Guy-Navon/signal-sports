@@ -83,7 +83,7 @@ overrides) → per-user cluster collapse (card decision = max over visible membe
 | API + worker | FastAPI, Python 3.13, `backend/app/main.py`, `worker.py` | [SCHEDULER.md](SCHEDULER.md) |
 | Persistence | SQLite via SQLAlchemy 2, the only database the app can use; additive soft migrations at startup. An unused Postgres Compose service is groundwork only | [DEPLOYMENT.md](DEPLOYMENT.md) §15 |
 | Sources & adapters | `app/ingestion/` | [RSS_INGESTION.md](RSS_INGESTION.md) |
-| Classification | `app/ingestion/classifier.py` (rules), `app/classification/` | [ARTICLE_FACTS.md](ARTICLE_FACTS.md), [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md), [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) |
+| Classification | `app/ingestion/classifier.py` (`classify()`) + `app/ingestion/classifier_rules/` (rule families), `app/classification/` | [ARTICLE_FACTS.md](ARTICLE_FACTS.md), [LLM_CLASSIFICATION.md](LLM_CLASSIFICATION.md), [RSS_QUALITY_GUARDRAILS.md](RSS_QUALITY_GUARDRAILS.md) |
 | Taxonomy | `app/taxonomy/` — 117 entities (79 teams, 31 players, 2 coaches, 5 executives), 23 competitions | [TAXONOMY.md](TAXONOMY.md) |
 | Relevance | `app/services/preference_engine.py` (V2, default), `relevance_engine.py` (visibility; legacy engine = rollback) | [RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md), [RELEVANCE_VISIBILITY_CONTRACT.md](RELEVANCE_VISIBILITY_CONTRACT.md), [PREFERENCE_MODEL_V2.md](PREFERENCE_MODEL_V2.md) |
 | Profile acquisition | interests, calibration, feedback learning | [INTERESTS.md](INTERESTS.md), [CALIBRATION_V2.md](CALIBRATION_V2.md), [FEEDBACK_LEARNING.md](FEEDBACK_LEARNING.md) |

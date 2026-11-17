@@ -3,7 +3,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { canEnterOpsShell } from "@/context/dataRouting";
 
-const DATA_MODE = /** @type {any} */ (import.meta).env?.VITE_DATA_MODE || "local";
+const DATA_MODE = import.meta.env.VITE_DATA_MODE || "local";
 
 // Ops-shell role boundary (#54 review, MEDIUM). Under a consumer session only
 // admins may enter the console; non-admins are routed back to the product.

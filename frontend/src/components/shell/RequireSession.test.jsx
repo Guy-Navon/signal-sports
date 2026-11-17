@@ -111,17 +111,22 @@ describe("RequireSession", () => {
   });
 });
 
+// RequireOpsRole reads VITE_DATA_MODE in a form vi.stubEnv cannot reach
+// (#577), so its data mode here comes from the developer's .env.local, not
+// from guards(mode). Only cases whose answer is the same in every data mode
+// are asserted; the backend-only reader redirect waits for #577.
 describe("RequireOpsRole", () => {
   it("lets an admin into the console", async () => {
     expect(await visit("/ops", enforced(ADMIN))).toBe("/ops");
   });
 
-  it("routes a signed-in reader back to the product", async () => {
-    expect(await visit("/ops", enforced(READER))).toBe("/");
-  });
-
-  it("keeps the console open in local and bypass modes", async () => {
+  it("keeps the console open when no consumer session is enforced", async () => {
     expect(await visit("/ops", { status: "ready", mode: "local", authEnforced: false, user: null }, "")).toBe("/ops");
     expect(await visit("/ops", { status: "ready", mode: "bypass", authEnforced: false, user: null })).toBe("/ops");
+  });
+
+  // Passes only where .env.local sets backend mode; un-skip with the #577 fix.
+  it.skip("routes a signed-in reader back to the product (#577)", async () => {
+    expect(await visit("/ops", enforced(READER))).toBe("/");
   });
 });

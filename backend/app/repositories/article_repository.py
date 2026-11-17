@@ -3,7 +3,7 @@ from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.orm_models import ArticleRow
+from app.db.orm_models import ArticleRow, ProtectedArticleRow
 from app.models.article import Article
 
 
@@ -204,6 +204,83 @@ def update_full_classification(
     row.classification_trace = classification_trace
     row.taxonomy_version = taxonomy_version
     session.commit()
+
+
+def is_protected(session: Session, article_id: str) -> bool:
+    """True when the row is human-rated ground truth (#255) and must never change."""
+    return session.get(ProtectedArticleRow, article_id) is not None
+
+
+def refresh_from_source(
+    session: Session,
+    article_id: str,
+    article: Article,
+    *,
+    reason: str,
+    refreshed_at: Optional[datetime] = None,
+) -> bool:
+    """Overwrite a stored row with a fresh normalisation of the same URL (#579).
+
+    Used when a source rewrote a live blog into the final report at the same URL.
+    Keeps id, url and source (the row's identity, which ratings and clusters point
+    at). Replaces the title fields and every classification/facts field, the same
+    set ``update_full_classification`` writes. ``published_at`` moves forward only,
+    so the final report sorts by its real time but a source clock never drags a row
+    back. Story anchors are cleared so the anchor stage recomputes them for the new
+    title. The previous title, event type and time are kept in
+    ``classification_trace["refreshed_from"]``. One commit.
+
+    Returns False when the row no longer exists.
+    """
+    row = session.get(ArticleRow, article_id)
+    if row is None:
+        return False
+    now = refreshed_at or datetime.now(tz=timezone.utc)
+    previous = {
+        "previous_title": row.original_title or row.title,
+        "previous_event_type": row.event_type,
+        "previous_published_at": row.published_at,
+        "refreshed_at": now.isoformat(),
+        "reason": reason,
+    }
+
+    row.title = article.title
+    row.original_title = article.original_title
+    row.translated_title = article.translated_title
+    row.language = article.language
+    row.subtitle = article.subtitle
+
+    stored_published = datetime.fromisoformat(row.published_at)
+    if stored_published.tzinfo is None:
+        stored_published = stored_published.replace(tzinfo=timezone.utc)
+    if article.published_at > stored_published:
+        row.published_at = article.published_at.isoformat()
+        row.published_at_meta = article.published_at_meta
+
+    row.sport = article.sport
+    row.league = article.league
+    row.entities = list(article.entities)
+    row.event_type = article.event_type
+    row.event_certainty = article.event_certainty
+    row.importance = article.importance
+    row.confidence = article.confidence
+    row.tags = list(article.tags)
+    row.classified_by = article.classified_by
+    row.classification_provider = article.classification_provider
+    row.classification_reason = article.classification_reason
+    row.classification_confidence = article.classification_confidence
+    row.primary_competition = article.primary_competition
+    row.article_competitions = list(article.article_competitions)
+    row.entity_ids = list(article.entity_ids)
+    row.taxonomy_version = article.taxonomy_version
+    trace = dict(article.classification_trace or {})
+    trace["refreshed_from"] = previous
+    row.classification_trace = trace
+
+    row.story_anchors = None
+    row.anchor_validator_version = None
+    session.commit()
+    return True
 
 
 def get_articles_for_classification_backfill(

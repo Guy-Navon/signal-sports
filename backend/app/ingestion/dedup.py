@@ -24,3 +24,12 @@ def article_id_from_url(url: str) -> str:
 def url_already_exists(session: Session, url: str) -> bool:
     """Return True if any article with this URL exists in the DB."""
     return session.query(ArticleRow).filter_by(url=url).first() is not None
+
+
+def get_existing_by_url(session: Session, url: str) -> ArticleRow | None:
+    """Return the stored row for this URL, or None (#579).
+
+    Ingestion needs the row, not just a yes/no, to tell a stale live-ticker row
+    that came back rewritten as the final report from an ordinary duplicate.
+    """
+    return session.query(ArticleRow).filter_by(url=url).first()

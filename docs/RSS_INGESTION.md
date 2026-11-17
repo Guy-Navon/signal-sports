@@ -152,8 +152,9 @@ Every trigger (worker tick, startup catch-up, `POST /api/ingest/run`,
 ```
 adapter.fetch()                       adapters/factory.py → rss | sport5 | one; a raise fails this source only (§4)
   → _should_filter()                  blocked_url_patterns → allowed_url_patterns → allowed_languages
-  → URL dedup                         article id = rss_<sha1(url)[:20]>; existing URL → skipped_duplicate
-  → _normalise()                      new items only:
+  → URL dedup                         article id = rss_<sha1(url)[:20]>; existing URL → skipped_duplicate,
+                                      except a stale live-ticker row rewritten as the final report → refresh (#579)
+  → _normalise()                      new items and refreshed rows:
       language detection              (URL path → Unicode script → Italian heuristic → source default)
       translation                     disabled in the MVP; Hebrew never translates
       published_at normalisation      missing → bounded ingest-time fallback; >15 min future → clamped (#174)
@@ -163,7 +164,7 @@ adapter.fetch()                       adapters/factory.py → rss | sport5 | one
       league/sport normalisation, basketball entity enrichment
       build_article_facts()           evidence-weighted sport, explicit competitions, entity_ids, trace
       post-facts event re-validation  event semantic evidence; unsupported → news (+ abstention reason)
-  → insert (articles)
+  → insert (articles)                 or refresh_from_source() for a refreshed row (#579)
   → story-anchor enrichment           always on, deterministic (#141)
   → clustering stage                  CLUSTERING_ENABLED; failure leaves articles unclustered
 ```
@@ -174,8 +175,8 @@ enabled), then the results sync (when enabled and not throttled), then retention
 never invalidates the ingestion. See [SCHEDULER.md](SCHEDULER.md) and
 [NOTIFICATIONS.md](NOTIFICATIONS.md).
 
-**Stored rows are never reclassified by ingestion.** A classifier change reaches only newly
-ingested articles. Correcting stored rows is a separate, explicit decision: a targeted, reviewed
+**Stored rows are never reclassified by ingestion**, with one narrow exception (the stale
+live-ticker refresh below). A classifier change reaches only newly ingested articles. Correcting stored rows is a separate, explicit decision: a targeted, reviewed
 correction script, or `POST /api/classify/backfill`. Never run a blanket rules-only backfill. It
 destroys LLM-assisted facts (F-N05-6 in [qa/N05_FEED_GROUND_TRUTH.md](qa/N05_FEED_GROUND_TRUTH.md)).
 
@@ -201,13 +202,38 @@ independent of **story clustering**, which groups different URLs that report one
 story, cross-source and intra-source. Clustering is active in production and documented in
 [CLUSTERING.md](CLUSTERING.md). The two mechanisms never share state.
 
+### Stale live-ticker refresh (#579)
+
+ONE, ynet and Walla rewrite a live blog ("רבע 1, 05:12: מכבי תל אביב - אולימפיאקוס 5:2")
+into the final report **at the same URL**. Plain URL dedup kept the ticker title, and the
+live-score hide rule ([RELEVANCE_CONTRACT.md](RELEVANCE_CONTRACT.md), owner rule 2026-11-16)
+kept the story out of every feed. `_known_url_action()` in `ingestion_service.py` now decides
+what a known URL means:
+
+| Stored title | Fetched title | Action |
+|---|---|---|
+| live ticker (`is_live_score_update`) | not a ticker, different text | **refresh** the row in place |
+| live ticker | another ticker | duplicate: the row stays hidden; refreshing would churn every cycle |
+| not a ticker | different text | duplicate, counted as `known_url_title_changed` (measurement only) |
+| any | same text (ignoring outer whitespace) | duplicate |
+
+A refresh runs the normal `_normalise()` path (language, rules, LLM gate, merge, ArticleFacts)
+and `article_repository.refresh_from_source()` overwrites the title and classification fields
+while keeping `id`, `url` and `source`. `published_at` moves forward only. Story anchors are
+cleared and the row goes through anchor enrichment and clustering with the cycle's new rows, so
+`reconcile_scope` moves it out of the ticker cluster. The previous title, event type and time
+are kept in `classification_trace.refreshed_from` (`reason: live_ticker_rewritten`). A row in
+`protected_articles` (human-rated ground truth) is never refreshed; it is counted as
+`refresh_skipped_protected`. The three counters are in the run `metrics` JSON, and
+`refreshed` is also on `SourceIngestResult` and the cycle summaries.
+
 ---
 
 ## 3. Run results and persistence
 
 `POST /api/ingest/run` returns one `SourceIngestResult` per source (`app/models/ingestion.py`):
 
-- **counts:** `fetched`, `inserted`, `skipped_filtered`, `skipped_duplicate`, `failed`, `errors`
+- **counts:** `fetched`, `inserted`, `refreshed` (#579), `skipped_filtered`, `skipped_duplicate`, `failed`, `errors`
 - **timing and LLM:** `fetch_ms`, `total_ms`, `llm_attempts`, `llm_successes`, typed
   fallbacks (`connect_error`, `timeout`, `http_error`, `bad_response_shape`, `unparseable_json`,
   `low_confidence`, plus the legacy `timeout_or_parse` sum), `llm_avg_ms`, `llm_p95_ms`,

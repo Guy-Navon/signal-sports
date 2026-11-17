@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.orm_models import ArticleRow, Base
-from app.ingestion.dedup import article_id_from_url, url_already_exists
+from app.ingestion.dedup import article_id_from_url, get_existing_by_url, url_already_exists
 
 
 @pytest.fixture
@@ -46,3 +46,16 @@ def test_only_exact_url_matches(session):
     session.add(_row("https://site.com/1"))
     session.commit()
     assert url_already_exists(session, "https://site.com/2") is False
+
+
+def test_get_existing_by_url_returns_the_row(session):
+    session.add(_row("https://site.com/1"))
+    session.commit()
+    row = get_existing_by_url(session, "https://site.com/1")
+    assert row is not None and row.id == article_id_from_url("https://site.com/1")
+
+
+def test_get_existing_by_url_absent_is_none(session):
+    session.add(_row("https://site.com/1"))
+    session.commit()
+    assert get_existing_by_url(session, "https://site.com/2") is None

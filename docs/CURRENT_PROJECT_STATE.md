@@ -134,6 +134,12 @@ A failed RSS fetch is recorded as a failure (#365). Sport5 and ONE still log and
 errors, so their runs read "fetched 0, no errors" during an outage (#439). Contract, URL hints,
 probe history: [RSS_INGESTION.md](RSS_INGESTION.md).
 
+URL dedup has one exception (#579, 2026-11-18): when a source rewrites a live blog into the
+final report at the same URL, the stored live-ticker row is refreshed in place (title, facts,
+anchors, cluster) so the report can reach the feed. Ticker-to-ticker updates and protected rows
+are never refreshed; other title changes on a known URL are only counted
+(`known_url_title_changed` in the run metrics). Details: RSS_INGESTION.md §2.
+
 ---
 
 ## 5. Backend

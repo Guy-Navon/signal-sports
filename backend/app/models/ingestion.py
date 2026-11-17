@@ -10,6 +10,9 @@ class SourceIngestResult(BaseModel):
     skipped_filtered: int = 0   # items dropped by source-level URL/language filters
     skipped_duplicate: int
     failed: int
+    # Stored live-ticker rows refreshed in place because the source rewrote the live
+    # blog into a final report at the same URL (#579). Not counted as inserted.
+    refreshed: int = 0
     errors: List[str] = Field(default_factory=list)
     # Timing fields (live response only — not persisted to DB)
     fetch_ms: Optional[float] = None

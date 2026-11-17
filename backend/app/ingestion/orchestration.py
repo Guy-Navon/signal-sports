@@ -284,6 +284,7 @@ def _summarize(results) -> list[dict[str, Any]]:
             "source_id": r.source_id,
             "fetched": r.fetched,
             "inserted": r.inserted,
+            "refreshed": getattr(r, "refreshed", 0),
             "skipped_duplicate": r.skipped_duplicate,
             "skipped_filtered": r.skipped_filtered,
             "failed": r.failed,

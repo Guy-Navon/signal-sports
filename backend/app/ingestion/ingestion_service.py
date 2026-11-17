@@ -46,7 +46,8 @@ from app.ingestion.classifier import (
 )
 from app.ingestion.config import RSSSourceConfig, get_source_config
 from app.ingestion.source_state import get_effective_enabled_sources
-from app.ingestion.dedup import article_id_from_url, url_already_exists
+from app.classification.live_score import is_live_score_update
+from app.ingestion.dedup import article_id_from_url, get_existing_by_url
 from app.models.article import Article
 from app.ingestion.run_metrics import ArticleQualityCounters, compute_run_metrics
 from app.models.ingestion import IngestionRunRecord, SourceIngestResult
@@ -421,6 +422,37 @@ def _normalise(
     return article, llm_ms, gate
 
 
+# ── Known-URL refresh (#579) ──────────────────────────────────────────────────
+
+KNOWN_URL_DUPLICATE = "duplicate"
+KNOWN_URL_REFRESH = "refresh"
+KNOWN_URL_TITLE_CHANGED = "title_changed"
+REFRESH_REASON_LIVE_TICKER = "live_ticker_rewritten"
+
+
+def _known_url_action(stored_title: Optional[str], new_title: Optional[str]) -> str:
+    """What to do with a fetched item whose URL is already stored (#579).
+
+    ONE, ynet and Walla rewrite a live blog into the final report at the same URL.
+    Only that case refreshes the row: the stored title is a live ticker line and the
+    new one is not. A ticker that is still live (the score ticking each minute) stays
+    a plain duplicate: the row is hidden anyway, and refreshing it would reclassify and
+    re-cluster every cycle. Any other title change is only counted, so we can measure
+    whether a broader refresh is worth it.
+    """
+    old = (stored_title or "").strip()
+    new = (new_title or "").strip()
+    if not new or new == old:
+        return KNOWN_URL_DUPLICATE
+    old_live = is_live_score_update(old)
+    new_live = is_live_score_update(new)
+    if old_live and not new_live:
+        return KNOWN_URL_REFRESH
+    if old_live and new_live:
+        return KNOWN_URL_DUPLICATE
+    return KNOWN_URL_TITLE_CHANGED
+
+
 # ── Per-source run ────────────────────────────────────────────────────────────
 
 def _run_source(
@@ -437,6 +469,11 @@ def _run_source(
     skipped_filtered = 0
     skipped_duplicate = 0
     inserted_ids: list[str] = []
+    # Known-URL refresh (#579): stale live-ticker rows rewritten into a final report.
+    refreshed = 0
+    refreshed_ids: list[str] = []
+    refresh_skipped_protected = 0
+    known_url_title_changed = 0
     failed = 0
     errors: list[str] = []
 
@@ -493,10 +530,26 @@ def _run_source(
                 logger.debug("Filtered %s (%s)", item.url, cfg.source_id)
                 continue
 
-            # URL dedup before translation to avoid paying for duplicate articles
-            if url_already_exists(session, item.url):
-                skipped_duplicate += 1
-                continue
+            # URL dedup before translation to avoid paying for duplicate articles.
+            # A known URL is normally a duplicate; the one exception is a stored
+            # live-ticker row that came back as the final report (#579).
+            refresh_row_id: Optional[str] = None
+            existing = get_existing_by_url(session, item.url)
+            if existing is not None:
+                action = _known_url_action(
+                    existing.original_title or existing.title, item.title
+                )
+                if action == KNOWN_URL_REFRESH and article_repository.is_protected(
+                    session, existing.id
+                ):
+                    refresh_skipped_protected += 1
+                    action = KNOWN_URL_DUPLICATE
+                elif action == KNOWN_URL_TITLE_CHANGED:
+                    known_url_title_changed += 1
+                if action != KNOWN_URL_REFRESH:
+                    skipped_duplicate += 1
+                    continue
+                refresh_row_id = existing.id
 
             article, llm_ms, gate = _normalise(
                 item, cfg,
@@ -574,6 +627,16 @@ def _run_source(
                     cfg.source_id,
                 )
 
+            if refresh_row_id is not None:
+                if article_repository.refresh_from_source(
+                    session, refresh_row_id, article, reason=REFRESH_REASON_LIVE_TICKER,
+                ):
+                    refreshed += 1
+                    refreshed_ids.append(refresh_row_id)
+                    logger.info("Refreshed live-ticker row %s (%s): %r",
+                                refresh_row_id, cfg.source_id, article.title[:80])
+                continue
+
             article_repository.insert(session, article)
             inserted += 1
             inserted_ids.append(article.id)
@@ -601,17 +664,21 @@ def _run_source(
     # Validated-anchor enrichment (#141) runs FIRST and ALWAYS: it persists article
     # facts (story_anchors) that pair evaluation only ever reads. Deterministic and
     # offline; fails safe like the clustering stage below.
-    anchor_stage = run_anchor_enrichment_stage(session, inserted_ids)
+    # Refreshed rows (#579) go through both stages like new ones: their anchors were
+    # cleared, and clustering re-evaluates their membership (reconcile_scope moves a
+    # row out of the ticker cluster it held).
+    staged_ids = inserted_ids + refreshed_ids
+    anchor_stage = run_anchor_enrichment_stage(session, staged_ids)
     if anchor_stage.failed:
         errors.append(f"Anchor enrichment stage failed: {anchor_stage.error}")
 
-    cluster_stage = run_clustering_stage(session, inserted_ids)
+    cluster_stage = run_clustering_stage(session, staged_ids)
     if cluster_stage.failed:
         errors.append(f"Clustering stage failed: {cluster_stage.error}")
 
     finished_at = datetime.now(tz=timezone.utc)
     total_ms = (time.perf_counter() - _run_t0) * 1000
-    status = "error" if errors and inserted == 0 else "ok"
+    status = "error" if errors and inserted == 0 and refreshed == 0 else "ok"
 
     # Compute LLM latency stats from local accumulators.
     llm_avg_ms: Optional[float] = None
@@ -683,6 +750,10 @@ def _run_source(
         rate_limit_wait_ms=rate_limit_wait_ms,
         unknown_sport_fallbacks=unknown_sport_fallbacks,
     )
+    # Known-URL refresh counters (#579) ride in the metrics JSON (no migration).
+    run_metrics["refreshed"] = refreshed
+    run_metrics["refresh_skipped_protected"] = refresh_skipped_protected
+    run_metrics["known_url_title_changed"] = known_url_title_changed
 
     # skipped_filtered is intentionally NOT stored in the run log — the DB schema
     # does not have that column and adding it would require a migration.  It is
@@ -709,6 +780,7 @@ def _run_source(
         skipped_filtered=skipped_filtered,
         skipped_duplicate=skipped_duplicate,
         failed=failed,
+        refreshed=refreshed,
         errors=errors,
         clustering_ran=cluster_stage.ran,
         clusters_created=cluster_stage.clusters_created,

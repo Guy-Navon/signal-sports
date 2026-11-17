@@ -166,7 +166,7 @@ def get_scheduler_status(session: Session = Depends(get_session)):
             # A cycle can carry JSON-null source_results (json.loads -> None);
             # guard like /api/scheduler/health does, never iterate None.
             summary = [{k: s.get(k) for k in ("source_id", "fetched", "inserted",
-                                              "skipped_duplicate", "skipped_filtered",
+                                              "refreshed", "skipped_duplicate", "skipped_filtered",
                                               "failed")} for s in (parsed or [])]
 
     return SchedulerStatusResponse(
@@ -208,6 +208,7 @@ def scheduler_run_now():
                 "source_id": r.source_id,
                 "fetched": r.fetched,
                 "inserted": r.inserted,
+                "refreshed": getattr(r, "refreshed", 0),
                 "skipped_duplicate": r.skipped_duplicate,
                 "skipped_filtered": r.skipped_filtered,
                 "failed": r.failed,

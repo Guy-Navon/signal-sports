@@ -144,8 +144,15 @@ RSS_SOURCES: list[RSSSourceConfig] = [
     # can change without notice) and the ingestion scheduler would hit it every
     # interval. Run manually with POST /api/ingest/run?source_id=sport5_sport,
     # or set enabled=True here to include it in scheduled/all-source runs.
-    # Pilot scope: the basketball category page only (verified server-rendered
-    # static HTML; article anchors /articles.aspx?FolderID=274&docID=...).
+    # Scope: basketball category pages (verified server-rendered static HTML;
+    # article anchors /articles.aspx?FolderID=<article folder>&docID=...). The
+    # adapter dedups a story listed on more than one page.
+    # - 273: Israeli basketball (articles in folder 274)
+    # - 404: EuroLeague (articles in folder 405). Added for #580: the Maccabi Tel
+    #   Aviv vs Olympiacos story of 2026-11-17 was listed only here. Verified
+    #   2026-11-18 by a read-only GET: 10 editorial items plus the folder-413
+    #   Terms-of-Use footer link, which blocked_url_patterns below already drops.
+    # EuroCup (1419) and Israelis-in-NBA (5991) are not verified yet (#580).
     RSSSourceConfig(
         source_id="sport5_sport",
         display_name="ערוץ הספורט",
@@ -155,7 +162,8 @@ RSS_SOURCES: list[RSSSourceConfig] = [
         allowed_languages=("he",),
         source_type="html_scrape",
         category_urls=(
-            "https://www.sport5.co.il/liga.aspx?FolderID=273",  # basketball category
+            "https://www.sport5.co.il/liga.aspx?FolderID=273",  # Israeli basketball
+            "https://www.sport5.co.il/liga.aspx?FolderID=404",  # EuroLeague (#580)
         ),
         # FolderID=413 is Sport5's non-editorial "כללי" (General) folder — Terms of
         # Use / Privacy Policy and other legal/utility pages. Those footer links use

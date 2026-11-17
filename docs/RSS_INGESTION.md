@@ -27,7 +27,7 @@ and source health.
 | `walla_sport` | וואלה ספורט | rss | enabled | enabled | `https://rss.walla.co.il/feed/7` |
 | `israel_hayom_sport` | ישראל היום ספורט | rss + `/sport/` allowlist | enabled | enabled | `https://www.israelhayom.co.il/rss.xml` |
 | `ynet_sport` | ynet ספורט | rss | enabled | enabled | `https://www.ynet.co.il/Integration/StoryRss3.xml` |
-| `sport5_sport` | ערוץ הספורט | html_scrape (pilot) | **disabled** | **enabled by override** | `https://www.sport5.co.il/liga.aspx?FolderID=273` |
+| `sport5_sport` | ערוץ הספורט | html_scrape (pilot) | **disabled** | **enabled by override** | `https://www.sport5.co.il/liga.aspx?FolderID=273` (Israeli basketball), `…?FolderID=404` (EuroLeague, #580) |
 | `one_sport` | ONE ספורט | html_scrape (public JSON) | enabled | **enabled by override (2026-11-01)** | `https://api.one.co.il/JSON/v6/Articles/Category/{1,2,3,5,7,155}` |
 | `eurohoops` | Eurohoops | rss (English) | disabled | disabled | `https://www.eurohoops.net/feed/` |
 | `sportando` | Sportando | rss (English/Italian) | disabled | disabled (override) | `https://sportando.basketball/feed/` |
@@ -97,8 +97,11 @@ preserved but disabled ([TITLE_TRANSLATION.md](TITLE_TRANSLATION.md)).
 - **Ynet Sport.** Official RSS 2.0, about 30 items per fetch. `description` holds a thumbnail
   block plus a teaser, and the subtitle cleaner keeps the teaser. The non-standard `tags`
   element is not stored.
-- **Sport5.** It has no public RSS. The adapter scrapes the basketball category page, a static
-  server-rendered page of about 8–12 cards. Article anchors are selected by URL shape
+- **Sport5.** It has no public RSS. The adapter scrapes two basketball category pages, Israeli
+  basketball (`FolderID=273`) and EuroLeague (`FolderID=404`, added for #580 after a
+  EuroLeague-only story was missed on 2026-11-17). Each is a static server-rendered page of about
+  8–12 cards; a story listed on both pages is fetched once. EuroCup (`1419`) and Israelis in the
+  NBA (`5991`) are not verified yet. Article anchors are selected by URL shape
   (`articles.aspx` + `docID=`), not CSS class. Card subtitles and `DD.MM.YY - HH:MM`
   timestamps are parsed, with Israel time converted to UTC. The footer legal folder is blocked
   with `blocked_url_patterns=("folderid=413&",)` (#97). A site redesign degrades the source to 0

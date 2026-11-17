@@ -1,5 +1,4 @@
 """Feed/meta files stay separate from the public results detail snapshot."""
-import json
 import httpx
 import pytest
 

@@ -25,6 +25,7 @@ rarity-over-the-corpus model failed.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from functools import lru_cache
@@ -38,6 +39,11 @@ from app.clustering.anchor_contract import (
     ValidationDecision,
 )
 from app.clustering.anchors import _candidate_forms
+
+logger = logging.getLogger(__name__)
+
+# Set once the missing-wordfreq warning has been logged (one line per process).
+_lexical_unavailable_logged = False
 
 _HEB = re.compile(r"^[֐-׿׳״'\"-]+$")
 
@@ -171,7 +177,14 @@ class LexicalFrequencyValidator:
             self._zipf = wordfreq.zipf_frequency
             self._version = f"wordfreq-{importlib.metadata.version('wordfreq')}+subject-v2"
         except Exception:
-            pass
+            # Abstaining changes clustering behavior, so say so once per process
+            # (AUDIT_REPORT L5). wordfreq is pinned; this means a broken environment.
+            global _lexical_unavailable_logged
+            if not _lexical_unavailable_logged:
+                _lexical_unavailable_logged = True
+                logger.warning(
+                    "Lexical anchor validator unavailable: wordfreq could not be loaded; "
+                    "it will abstain on every candidate", exc_info=True)
 
     @property
     def validator_version(self) -> str:  # type: ignore[override]

@@ -3,6 +3,7 @@ import {
   getHealth, getFeed, getDebugFeed, getProfiles, submitFeedback,
   getIngestSources, runIngestion, getIngestRuns, getIngestQuality,
   getClassifyStatus, classifyBackfill, resetRssData,
+  runLlmGatingBenchmark, API_TIMEOUT_MS,
 } from "./client";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ describe("API_BASE_URL", () => {
     const { getProfiles } = await import("./client");
     await getProfiles();
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/profiles", { credentials: "include" });
+    expect(mockFetch).toHaveBeenCalledWith("/api/profiles", expect.objectContaining({ credentials: "include" }));
   });
 
   it("uses the explicit override when VITE_API_BASE_URL is set", async () => {
@@ -61,7 +62,7 @@ describe("API_BASE_URL", () => {
     const { getProfiles } = await import("./client");
     await getProfiles();
 
-    expect(mockFetch).toHaveBeenCalledWith("http://127.0.0.1:8000/api/profiles", { credentials: "include" });
+    expect(mockFetch).toHaveBeenCalledWith("http://127.0.0.1:8000/api/profiles", expect.objectContaining({ credentials: "include" }));
   });
 });
 
@@ -696,5 +697,64 @@ describe("account lifecycle endpoints", () => {
     expect(url).toContain("/api/me/account");
     expect(options.method).toBe("DELETE");
     expect(JSON.parse(options.body)).toEqual({ current_password: "old pass" });
+  });
+});
+
+// ── Request timeout and empty bodies (AUDIT_REPORT L2) ─────────────────────────
+
+/** A fetch that never answers until its signal aborts, like a hung backend. */
+function hangingFetch() {
+  return vi.fn((_url, opts) => new Promise((_resolve, reject) => {
+    opts?.signal?.addEventListener("abort", () => {
+      reject(new DOMException("The operation was aborted.", "AbortError"));
+    });
+  }));
+}
+
+describe("apiFetch timeout", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("aborts a hung request after the default timeout with a clear error", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", hangingFetch());
+    const pending = getProfiles();
+    const assertion = expect(pending).rejects.toThrow(/timed out after 15s/);
+    await vi.advanceTimersByTimeAsync(API_TIMEOUT_MS);
+    await assertion;
+  });
+
+  it("does not abort a request that answers in time", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", mockFetchSuccess([{ id: "guy" }]));
+    await expect(getProfiles()).resolves.toEqual([{ id: "guy" }]);
+    await vi.advanceTimersByTimeAsync(API_TIMEOUT_MS * 2);
+  });
+
+  it.each([
+    ["runIngestion", () => runIngestion()],
+    ["classifyBackfill", () => classifyBackfill()],
+    ["resetRssData", () => resetRssData()],
+    ["runSchedulerNow", () => runSchedulerNow()],
+    ["runLlmGatingBenchmark", () => runLlmGatingBenchmark()],
+  ])("%s, a long-running ops action, has no timeout", async (_name, call) => {
+    const fetchMock = mockFetchSuccess({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+    await call();
+    expect(fetchMock.mock.calls[0][1].signal).toBeUndefined();
+  });
+});
+
+describe("apiFetch empty bodies", () => {
+  it("returns null for 204 No Content", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
+    await expect(getHealth()).resolves.toBeNull();
+  });
+
+  it("returns null for an empty 200 body", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response("", { status: 200, headers: { "content-length": "0" } })));
+    await expect(getHealth()).resolves.toBeNull();
   });
 });

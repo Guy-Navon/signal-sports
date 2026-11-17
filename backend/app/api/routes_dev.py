@@ -111,7 +111,6 @@ def _count_sport_unknown(session: Session, source_ids: list[str]) -> dict[str, i
 def _build_source_stats(
     ingest_result,
     sport_unknown: int,
-    gating_enabled: bool,
 ) -> SourceBenchmarkStats:
     """Convert a SourceIngestResult into a SourceBenchmarkStats for the benchmark response."""
     total_eligible = ingest_result.llm_attempts + ingest_result.llm_skipped
@@ -244,7 +243,7 @@ def run_llm_gating_benchmark(session: Session = Depends(get_session)) -> LLMGati
         results = run_ingestion(session, source_id=src_id, llm_gating_enabled_override=False)
         if results:
             sport_unk = _count_sport_unknown(session, [src_id]).get(src_id, 0)
-            baseline_source_stats[src_id] = _build_source_stats(results[0], sport_unk, gating_enabled=False)
+            baseline_source_stats[src_id] = _build_source_stats(results[0], sport_unk)
 
     # ── Phase 2: gated — gating enabled ────────────────────────────────────────
     logger.info("Benchmark phase 2: resetting RSS data for gated run")
@@ -256,7 +255,7 @@ def run_llm_gating_benchmark(session: Session = Depends(get_session)) -> LLMGati
         results = run_ingestion(session, source_id=src_id, llm_gating_enabled_override=True)
         if results:
             sport_unk = _count_sport_unknown(session, [src_id]).get(src_id, 0)
-            gated_source_stats[src_id] = _build_source_stats(results[0], sport_unk, gating_enabled=True)
+            gated_source_stats[src_id] = _build_source_stats(results[0], sport_unk)
 
     # ── Compute comparison ─────────────────────────────────────────────────────
     comparison: dict[str, SourceComparison] = {}

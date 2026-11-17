@@ -14,27 +14,70 @@ function emitAuthExpired(path) {
   window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail: { path } }));
 }
 
-async function apiFetch(path, options = {}) {
-  let res;
+// Every request gets a deadline (AUDIT_REPORT L2): a backend that accepts the
+// connection and then hangs (a long SQLite write lock, a stalled tunnel) would
+// otherwise leave screens spinning forever. Long-running ops actions pass
+// `{ timeoutMs: null }` because they legitimately run for minutes.
+export const API_TIMEOUT_MS = 15000;
+const NO_TIMEOUT = { timeoutMs: null };
+
+/**
+ * @param {string} path
+ * @param {RequestInit} [options]
+ * @param {{ timeoutMs?: number | null }} [config]
+ */
+async function apiFetch(path, options = {}, { timeoutMs = API_TIMEOUT_MS } = {}) {
+  const url = `${API_BASE_URL}${path}`;
+  const method = options.method || "GET";
+  /** @type {RequestInit} */
+  let fetchOptions = { credentials: "include", ...options };
+  let timer;
+  let timedOut = false;
+  if (timeoutMs) {
+    const controller = new AbortController();
+    const callerSignal = options.signal;
+    if (callerSignal?.aborted) controller.abort(callerSignal.reason);
+    callerSignal?.addEventListener("abort", () => controller.abort(callerSignal.reason), { once: true });
+    timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+    fetchOptions = { ...fetchOptions, signal: controller.signal };
+  }
+  const timeoutError = () => new Error(`API ${method} ${path} timed out after ${timeoutMs / 1000}s`);
+
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, { credentials: "include", ...options });
-  } catch (err) {
-    throw new Error(`Cannot reach backend at ${API_BASE_URL}${path}: ${err.message}`);
-  }
-  if (res.status === 401) {
-    emitAuthExpired(path);
-  }
-  if (!res.ok) {
-    let detail = "";
+    let res;
     try {
-      const body = await res.clone().json();
-      detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail ?? body);
-    } catch {
-      detail = await res.text().catch(() => "");
+      res = await fetch(url, fetchOptions);
+    } catch (err) {
+      if (timedOut) throw timeoutError();
+      if (err?.name === "AbortError") throw err;
+      throw new Error(`Cannot reach backend at ${url}: ${err.message}`);
     }
-    throw new Error(`API ${options.method || "GET"} ${path} failed (${res.status}): ${detail}`);
+    if (res.status === 401) {
+      emitAuthExpired(path);
+    }
+    if (!res.ok) {
+      let detail = "";
+      try {
+        const body = await res.clone().json();
+        detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail ?? body);
+      } catch {
+        detail = await res.text().catch(() => "");
+      }
+      throw new Error(`API ${method} ${path} failed (${res.status}): ${detail}`);
+    }
+    if (res.status === 204 || res.headers?.get("content-length") === "0") {
+      return null;
+    }
+    return await res.json();
+  } catch (err) {
+    if (timedOut) throw timeoutError();
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  return res.json();
 }
 
 export function getHealth() {
@@ -106,7 +149,7 @@ export function runIngestion(sourceId) {
   const path = sourceId
     ? `/api/ingest/run?source_id=${encodeURIComponent(sourceId)}`
     : "/api/ingest/run";
-  return apiFetch(path, { method: "POST" });
+  return apiFetch(path, { method: "POST" }, NO_TIMEOUT);
 }
 
 export function getIngestRuns(limit = 5) {
@@ -180,15 +223,15 @@ export function classifyBackfill({ sourceId, limit, dryRun = false, force = fals
   if (dryRun) params.set("dry_run", "true");
   if (force) params.set("force", "true");
   const qs = params.toString();
-  return apiFetch(`/api/classify/backfill${qs ? `?${qs}` : ""}`, { method: "POST" });
+  return apiFetch(`/api/classify/backfill${qs ? `?${qs}` : ""}`, { method: "POST" }, NO_TIMEOUT);
 }
 
 export function resetRssData() {
-  return apiFetch("/api/dev/reset-rss-data", { method: "POST" });
+  return apiFetch("/api/dev/reset-rss-data", { method: "POST" }, NO_TIMEOUT);
 }
 
 export function runLlmGatingBenchmark() {
-  return apiFetch("/api/dev/benchmark/llm-gating", { method: "POST" });
+  return apiFetch("/api/dev/benchmark/llm-gating", { method: "POST" }, NO_TIMEOUT);
 }
 
 export function getSchedulerStatus() {
@@ -196,7 +239,7 @@ export function getSchedulerStatus() {
 }
 
 export function runSchedulerNow() {
-  return apiFetch("/api/ingest/scheduler/run-now", { method: "POST" });
+  return apiFetch("/api/ingest/scheduler/run-now", { method: "POST" }, NO_TIMEOUT);
 }
 
 export function getSourceHealth() {

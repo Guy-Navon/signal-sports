@@ -24,7 +24,7 @@ from __future__ import annotations
 import html
 import logging
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Callable, Optional
 from zoneinfo import ZoneInfo
 

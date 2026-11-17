@@ -159,10 +159,35 @@ def _hosted_checks() -> tuple[list[str], list[str]]:
         warnings.append("CSRF_ALLOWED_ORIGINS is unset; only the localhost defaults are accepted")
     if _truthy("RETENTION_CLEANUP_ENABLED"):
         warnings.append("RETENTION_CLEANUP_ENABLED=true deletes old articles, including rated ones (#255)")
+    _hosted_worker_checks(errors)
     _hosted_mail_checks(errors, warnings)
     _hosted_google_checks(errors, warnings)
     _hosted_llm_checks(errors)
     return errors, warnings
+
+
+def _hosted_worker_checks(errors: list[str]) -> None:
+    """One uvicorn worker only (AUDIT_REPORT M4).
+
+    The login, signup and confirmation rate limiters (FixedWindowLimiter in
+    services/auth_service.py) live in process memory. Each extra worker would
+    get its own budget and multiply every limit. uvicorn reads WEB_CONCURRENCY
+    as its default worker count; the images and deploy/compose.yaml pass no
+    --workers flag.
+    """
+    raw = os.environ.get("WEB_CONCURRENCY", "").strip()
+    if not raw:
+        return
+    try:
+        workers = int(raw)
+    except ValueError:
+        errors.append(f"WEB_CONCURRENCY={raw!r} is not a number; the API must run one worker")
+        return
+    if workers > 1:
+        errors.append(
+            f"WEB_CONCURRENCY={workers}: the API must run one worker, because its rate "
+            "limiters are per process"
+        )
 
 
 def _only_loopback_origins() -> bool:

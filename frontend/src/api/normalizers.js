@@ -209,6 +209,18 @@ export function formatDuration(ms) {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
+/** Short Hebrew date-time for ops panels ("17.11, 11:05"); "—" when missing. */
+export function formatDateTime(isoStr) {
+  if (!isoStr) return "—";
+  try {
+    return new Date(isoStr).toLocaleString("he-IL", {
+      day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+}
+
 // ── Scheduler + source-health normalizers (PR 13) ─────────────────────────────
 
 export function normalizeSchedulerStatusFromApi(s) {

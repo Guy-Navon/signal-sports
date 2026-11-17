@@ -13,20 +13,10 @@ import { consoleButton, consoleAlert } from "@/components/ops/consoleStyles";
 // SchedulerPanel's convention).
 import {
   NOTIFICATION_STATUS_LABELS as STATUS_LABELS,
+  formatDateTime,
   manualReviewEvents,
   notificationsStateLabel,
 } from "@/api/normalizers";
-
-function formatDateTime(isoStr) {
-  if (!isoStr) return "—";
-  try {
-    return new Date(isoStr).toLocaleString("he-IL", {
-      day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
-}
 
 export default function NotificationsPanel({ isBackendMode }) {
   const [health, setHealth] = useState(null);

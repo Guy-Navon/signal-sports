@@ -1,20 +1,8 @@
 import React from "react";
 import { RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { freshnessBadge, sourceTypeLabel } from "@/api/normalizers";
+import { formatDateTime, freshnessBadge, sourceTypeLabel } from "@/api/normalizers";
 import MonoValue from "@/components/shared/MonoValue";
-
-function formatDateTime(isoStr) {
-  if (!isoStr) return "—";
-  try {
-    return new Date(isoStr).toLocaleString("he-IL", {
-      day: "2-digit", month: "2-digit",
-      hour: "2-digit", minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
-}
 
 // Per-source health tile: freshness, type, pilot state, run counters + toggle.
 export default function HealthCard({ health, onToggle, isToggling }) {

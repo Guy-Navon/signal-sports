@@ -71,6 +71,11 @@ class FixedWindowLimiter:
     accepted cost of a bound — and the process-wide limiters (single key,
     never evicted under the cap) still cap the total. Single-process only;
     durable multi-process limiting is #200's open part.
+
+    Invariant: the API runs exactly one uvicorn worker, and state resets on
+    restart. Hosted startup refuses WEB_CONCURRENCY > 1
+    (core/deploy_mode.py::_hosted_worker_checks, AUDIT_REPORT M4). If more
+    workers are ever needed, move the buckets into an SQLite table first.
     """
 
     DEFAULT_MAX_KEYS = 10_000

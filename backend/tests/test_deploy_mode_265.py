@@ -29,7 +29,7 @@ _GUARDED_ENV = (
     "CSRF_ALLOWED_ORIGINS", "RETENTION_CLEANUP_ENABLED", "TELEGRAM_NOTIFICATIONS_ENABLED",
     "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "SCHEDULER_ENABLED", "SIGNAL_PROD_DATA_DIRS",
     "MAIL_BACKEND", "APP_PUBLIC_URL", "SMTP_HOST", "MAIL_FROM", "AUTH_SIGNUP_ALLOWED_EMAILS",
-    "ALLOW_UNSAFE_LOCAL_CORPUS",
+    "ALLOW_UNSAFE_LOCAL_CORPUS", "WEB_CONCURRENCY",
 )
 
 
@@ -143,6 +143,30 @@ def test_hosted_refuses_fake_classifier(env):
     _hosted_ok(env)
     env.setenv("CLASSIFICATION_PROVIDER", "fake")
     with pytest.raises(UnsafeDeployConfig, match="CLASSIFICATION_PROVIDER=fake"):
+        validate_deploy_startup_config()
+
+
+@pytest.mark.parametrize("value", ["2", "4", " 8 "])
+def test_hosted_refuses_more_than_one_uvicorn_worker(env, value):
+    # The login/signup rate limiters live in process memory (AUDIT_REPORT M4):
+    # each extra worker would get its own budget and multiply the limits.
+    _hosted_ok(env)
+    env.setenv("WEB_CONCURRENCY", value)
+    with pytest.raises(UnsafeDeployConfig, match="WEB_CONCURRENCY"):
+        validate_deploy_startup_config()
+
+
+@pytest.mark.parametrize("value", ["", "1", " 1 "])
+def test_hosted_allows_a_single_uvicorn_worker(env, value):
+    _hosted_ok(env)
+    env.setenv("WEB_CONCURRENCY", value)
+    assert validate_deploy_startup_config() == []
+
+
+def test_hosted_refuses_an_unreadable_worker_count(env):
+    _hosted_ok(env)
+    env.setenv("WEB_CONCURRENCY", "many")
+    with pytest.raises(UnsafeDeployConfig, match="WEB_CONCURRENCY"):
         validate_deploy_startup_config()
 
 

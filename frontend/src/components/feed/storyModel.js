@@ -1,5 +1,3 @@
-import { getDecisionConfig } from "@/components/feed/decisionConfig";
-
 const SOURCE_FALLBACK = "מקור לא ידוע";
 
 export function storyId(item) {
@@ -187,17 +185,6 @@ export function storyTimestamp(item, reports = []) {
     item.firstSeenAt ??
     null
   );
-}
-
-export function storyState(item) {
-  const decision = item?.score?.decision ?? "feed";
-  const config = getDecisionConfig(decision);
-  return {
-    decision,
-    label: config.label,
-    strength: config.strength,
-    tone: config.tone,
-  };
 }
 
 export function sourceInitial(sourceName) {

@@ -6,6 +6,7 @@ import {
   normalizeIngestResultFromApi,
   formatMs,
   formatDuration,
+  formatDateTime,
 } from "./normalizers";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -398,3 +399,18 @@ describe("formatDuration", () => {
   });
 });
 
+
+// ── formatDateTime (shared by the ops panels) ─────────────────────────────────
+
+describe("formatDateTime", () => {
+  it.each([null, undefined, ""])("renders a dash for a missing time (%s)", (value) => {
+    expect(formatDateTime(value)).toBe("—");
+  });
+
+  it("renders day, month, hour and minute in Hebrew locale", () => {
+    const text = formatDateTime("2026-11-17T09:05:00Z");
+    expect(text).toMatch(/\d{2}[./]\d{2}/);
+    expect(text).toMatch(/\d{2}:\d{2}/);
+    expect(text).not.toMatch(/2026/);
+  });
+});

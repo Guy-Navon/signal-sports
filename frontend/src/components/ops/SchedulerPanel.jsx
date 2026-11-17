@@ -8,24 +8,13 @@ import {
   isIngestionBusyError,
 } from "@/api/client";
 import {
+  formatDateTime,
   normalizeSchedulerStatusFromApi,
   normalizeSourceHealthFromApi,
 } from "@/api/normalizers";
 import SectionCard from "@/components/shared/SectionCard";
 import HealthCard from "@/components/ops/HealthCard";
 import { consoleButton, consoleAlert } from "@/components/ops/consoleStyles";
-
-function formatDateTime(isoStr) {
-  if (!isoStr) return "—";
-  try {
-    return new Date(isoStr).toLocaleString("he-IL", {
-      day: "2-digit", month: "2-digit",
-      hour: "2-digit", minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
-}
 
 const LAST_STATUS_LABELS = {
   ok: { label: "הצליח", className: "text-signal-high" },

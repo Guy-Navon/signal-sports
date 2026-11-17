@@ -17,6 +17,10 @@ active defects. There are no Critical findings.
 | Medium | 5 |
 | Low | 9 |
 
+**Status (2026-11-17, end of day):** H1, H2, M1–M4, L2–L5 resolved. Open: M5 (owner
+action), L1 (deferred), L6 (local housekeeping), L7 (owner decision), L8 (incremental),
+L9 (needs a design choice). Each finding carries its own status line.
+
 ---
 
 ## High
@@ -91,6 +95,7 @@ active defects. There are no Critical findings.
   `index=True` on the ORM columns. Both are additive and safe on the corpus.
 
 ### M4. Rate limiters live in process memory
+- **Status: resolved 2026-11-17** (`chore: remove dead code and resolve remaining audit items`). The single-worker invariant is documented on `FixedWindowLimiter`, and hosted startup refuses `WEB_CONCURRENCY` > 1 or a non-numeric value (`deploy_mode._hosted_worker_checks`). uvicorn reads `WEB_CONCURRENCY` as its default worker count; the images and `deploy/compose.yaml` pass no `--workers` flag, so an explicit `--workers N` added to a command line is not detected. Restart still resets the budgets; durable buckets stay #200's open part. Tests: `backend/tests/test_deploy_mode_265.py`.
 - **Where:** `FixedWindowLimiter` in [backend/app/services/auth_service.py:59-130](backend/app/services/auth_service.py#L59-L130), [backend/app/services/email_verification.py:61-66](backend/app/services/email_verification.py#L61-L66).
 - **Problem:** Every API restart resets all login, signup and confirmation budgets, and so
   would a crash loop under Compose's `restart: unless-stopped`. If the API ever runs more than
@@ -102,6 +107,7 @@ active defects. There are no Critical findings.
   buckets into an SQLite table.
 
 ### M5. Plaintext `.env` backups and old runtime logs sit in the working tree
+- **Status: open (owner action).** Untracked local files only; no code change can fix this. Rotating keys and deleting the backups is left to the owner.
 - **Where (untracked, ignored):** `backend/.env.backup-20260913-preCodex`, `backend/.env.bak-20261115T204639Z`, `backend/.env.bak.pre106`; root `worker_stdout.log` (3.5 MB, July), `worker_stderr.log`, `api_stdout.log`, `frontend_dev.log`, 18 `audit-*.log` files (2026-09-05).
 - **Problem:** Git ignores these files (`.env.*`, `*.log`), so they can't be committed. But
   they are extra plaintext copies of credentials and old logs. The backups set non-empty
@@ -115,6 +121,7 @@ active defects. There are no Critical findings.
 ## Low
 
 ### L1. The RSS fetch timeout changes a process-wide default
+- **Status: deferred 2026-11-17.** Not a safe drop-in change: 139 test call sites patch `feedparser.parse(url)`, and `_raise_if_failed` (#365) reads feedparser's own HTTP status/redirect semantics, which would change when feedparser gets bytes instead of a URL (encoding detection from response headers too). Still harmless today because every httpx call passes an explicit timeout. Do it as its own source-adapter change with real-feed checks (skill `signal-source-onboarding`).
 - **Where:** [backend/app/ingestion/adapters/rss_adapter.py:37-45](backend/app/ingestion/adapters/rss_adapter.py#L37-L45).
 - **Problem:** `socket.setdefaulttimeout()` affects every thread in the process. Manual runs
   call `orchestrate_cycle` inside the API's request threadpool
@@ -124,6 +131,7 @@ active defects. There are no Critical findings.
   same way as the other adapters.
 
 ### L2. Frontend requests have no timeout
+- **Status: resolved 2026-11-17** (`chore: remove dead code and resolve remaining audit items`). `apiFetch` aborts after `API_TIMEOUT_MS` (15 s) with a "timed out" error, chains any caller `signal`, and returns `null` for 204 and `content-length: 0`. Long-running ops actions (ingest run, scheduler run-now, classify backfill, RSS reset, LLM-gating benchmark) opt out with no timeout. Implemented with `AbortController` + `setTimeout` rather than `AbortSignal.timeout/any`, for older iOS Safari. Tests: `frontend/src/api/client.test.js`.
 - **Where:** [frontend/src/api/client.js:17-38](frontend/src/api/client.js#L17-L38).
 - **Problem:** `apiFetch` has no `AbortController`. If the backend accepts the connection and
   then hangs (for example a long SQLite write lock during a cycle, or a stalled tunnel), screens
@@ -133,6 +141,7 @@ active defects. There are no Critical findings.
   return `null` for 204 and for `content-length: 0`.
 
 ### L3. `scripts/check.ps1` says it mirrors CI, but it skips two CI gates
+- **Status: resolved 2026-11-17** (`chore: remove dead code and resolve remaining audit items`). `check.ps1` now runs `build:demo` and `check:demo-bundle`, and the header says the lock drift check is CI-only. It also upper-cases a lowercase drive letter, because vitest fails every file ("failed to find the runner") when started from a `c:\` working directory, as VS Code terminals do.
 - **Where:** [scripts/check.ps1](scripts/check.ps1) (header: "Runs the same checks as CI").
 - **Problem:** It doesn't run the `requirements.lock` drift check, `npm run build:demo` or
   `npm run check:demo-bundle`. A change can pass locally and still fail the demo-bundle guard in CI.
@@ -140,6 +149,7 @@ active defects. There are no Critical findings.
   correct the header.
 
 ### L4. A docstring points to the wrong env template
+- **Status: resolved 2026-11-17** (`chore: remove dead code and resolve remaining audit items`).
 - **Where:** [backend/app/core/security_deps.py:25](backend/app/core/security_deps.py#L25).
 - **Problem:** It says hosted sets `AUTH_SIGNUP_ENABLED=false` in "deploy/.env.example".
   The setting is in `deploy/signal.env.example:19`; `deploy/.env.example` holds Compose
@@ -147,6 +157,7 @@ active defects. There are no Critical findings.
 - **Fix:** Change the docstring reference to `deploy/signal.env.example`.
 
 ### L5. The optional lexical validator turns itself off silently
+- **Status: resolved 2026-11-17** (`chore: remove dead code and resolve remaining audit items`). One `WARNING` per process, with traceback, when `wordfreq` cannot be loaded. Tests: `backend/tests/test_lexical_validator_unavailable.py`.
 - **Where:** [backend/app/clustering/anchor_validators.py:167-174](backend/app/clustering/anchor_validators.py#L167-L174).
 - **Problem:** If `wordfreq` fails to import, the validator records `"unavailable"` and is
   skipped with no log line, which changes clustering behavior. `wordfreq` is pinned, so the risk
@@ -154,6 +165,7 @@ active defects. There are no Critical findings.
 - **Fix:** Log a single warning when the validator is unavailable.
 
 ### L6. Many stale git worktrees and branches remain locally
+- **Status: open (local housekeeping).** Not a repository change; worktrees may hold uncommitted work or back a running preview, so they were left for the owner to prune.
 - **Where:** `git worktree list` shows 43 extra worktrees: 13 under `.claude/worktrees/` (three
   locked) and 30 sibling directories (`../signal-sports-46x`, `../sig-wt/*`,
   `../preview-overnight`, …). Many are on branches that are already merged.
@@ -163,6 +175,7 @@ active defects. There are no Critical findings.
   and `git branch -d`. Keep any worktree a running preview depends on.
 
 ### L7. The frontend still carries a second, frozen relevance engine and mock data
+- **Status: open (owner decision).** Unchanged; local mode is still reachable through `VITE_DATA_MODE` unset/local.
 - **Where:** [frontend/src/engine/relevanceEngine.js](frontend/src/engine/relevanceEngine.js) (684 lines), [frontend/src/data/mockArticles.js](frontend/src/data/mockArticles.js) (1,529 lines), loaded only through [frontend/src/context/localDemo.js](frontend/src/context/localDemo.js).
 - **Problem:** Local mode scores in the browser with a legacy engine that no longer matches
   backend Preference V2. The README already calls it "not a parity implementation". It costs
@@ -173,6 +186,7 @@ active defects. There are no Critical findings.
   `VITE_DATA_MODE=backend` the default.
 
 ### L8. Very large modules concentrate risk
+- **Status: open by design** (extract incrementally when a file is next changed).
 - **Where:** [backend/app/ingestion/classifier.py](backend/app/ingestion/classifier.py) (1,266 lines), [backend/app/classification/event_evidence.py](backend/app/classification/event_evidence.py) (1,030), [backend/app/ingestion/ingestion_service.py](backend/app/ingestion/ingestion_service.py) (795), [frontend/src/components/feed/signal/SignalFeedView.jsx](frontend/src/components/feed/signal/SignalFeedView.jsx) (932).
 - **Problem:** Classification rules, guardrails and event logic are hard to review in diffs of
   this size. Most recent classification fixes (#403, #406, #407, #413) touched these files.
@@ -180,6 +194,7 @@ active defects. There are no Critical findings.
   rule family into its own module, with its tests moved alongside.
 
 ### L9. The FastAPI version cap is deliberate debt
+- **Status: open — needs a design choice.** Checked against FastAPI 0.141.1 (scratch install): `app.routes` holds starlette `Route`s for the docs plus one private `fastapi.routing._IncludedRouter` per `include_router` call. The wrapped routes and the include-level dependencies (the admin gate set in `main.py`, which the test must verify) are reachable only through private attributes (`original_router`, `include_context`). A durable fix is a public registry of router includes in `main.py` that the test walks, or a behavioral 401/403 sweep; either is its own PR, followed by the lock refresh.
 - **Where:** [backend/requirements.txt](backend/requirements.txt) (`fastapi>=0.100.0,<0.137`).
 - **Problem:** The authz inventory test walks `app.routes`, and that broke in FastAPI 0.141.
   The cap blocks security updates to FastAPI/Starlette.

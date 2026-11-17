@@ -9,7 +9,6 @@ from app.db.orm_models import Base
 from app.db.database import SessionLocal
 from app.repositories import game_result_repository as games, game_detail_repository as details, profile_repository
 from app.results import service
-from app.results.chosen_players import PlayerSelection, replace_choices
 from app.results.models import NormalizedGame, NormalizedGameDetail, PlayerLine, TeamLeader
 from app.models.profile_v2 import ProfileV2, ScopeAffinity
 from app.models.profile import UserProfile

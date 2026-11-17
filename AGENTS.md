@@ -25,4 +25,4 @@ delivery or production deployment.
   its diff and checks still represent only its intended change.
 
 Results/demo delivery history and the initial feature stack are documented in
-[docs/FEATURE_DELIVERY_2026-11-16.md](docs/FEATURE_DELIVERY_2026-11-16.md).
+[docs/archive/FEATURE_DELIVERY_2026-11-16.md](docs/archive/FEATURE_DELIVERY_2026-11-16.md).

@@ -16,9 +16,9 @@ demo use Part B's Signal UI. The feed lives in `components/feed/signal/`; the de
 same `SignalFeedView` read-only. #473 removes the unused Orbit views, CSS and serif font,
 and moves the shared story, queue and focus models to neutral names under `components/feed/`.
 Ops retains its existing shell, base tokens, Heebo and signal-bars logo. Milestone 15,
-"A face of its own — new consumer UI" (#461–#475), remains on the integration branch
-`ui/next`: merging it to main and deploying the demo need Guy's explicit approval (#475).
-This describes the branch's code, not a deployment claim.
+"A face of its own — new consumer UI" (#461–#475), was developed on `ui/next` and merged to
+`main` on 2026-11-15 (PR #551) after Guy's acceptance; the public demo runs it. Statements
+below that say "on `ui/next`" describe where the work was built; the code is now on `main`.
 
 The reference mock is committed in
 [`design/2026-11-13-feed-direction/`](./design/2026-11-13-feed-direction/README.md): the
@@ -324,13 +324,13 @@ Decided by Guy on 2026-11-13, from the coded mock on his real feed:
 | 9 | **More motion than the mock**, carrying meaning, off under reduced motion. Guy approves the set | #467 |
 | 10 | **Article images: open owner decision.** The design must work without them | #474 |
 | 11 | **Scope**: feed, preferences, interests, calibration, results, account, auth screens, welcome, 404, public demo. Ops keeps its look | #463–#472 |
-| 12 | **Process**: work lands on `ui/next`. Merge to main and demo deploy need Guy's approval. The mock was reviewed on desktop only, so phone layout is unverified | #475 |
+| 12 | **Process**: work landed on `ui/next` and was merged to main with Guy's approval on 2026-11-15 (PR #551); new work goes through a branch and PR per feature off `main` | #475 |
 
 **Superseded.** Orbit's palette (near-black canvas, mineral signals, aqua/violet/salmon), its
 type (Heebo with Frank Ruhl Libre display), its story field with orbiting satellites, its signal
 rail and its queue type-scale ladder are all retired as direction. Do not port them, blend them
 or treat them as a fallback. #473 removes the unused consumer implementation; the
-[historical screenshots](frontend-concepts/orbit/README.md) are not an implementation reference.
+[historical screenshots](archive/frontend-concepts/orbit/README.md) are not an implementation reference.
 
 ## B2. Grounds and tokens
 

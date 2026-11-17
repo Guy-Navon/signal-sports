@@ -77,6 +77,6 @@ checkout; it does not fetch or merge GitHub branches. A live demo therefore cann
 prove that its source has reached main or the authenticated website. Future
 deployment reports must identify the target and revision separately from PR status.
 
-The standing workflow is in [AGENTS.md](../AGENTS.md). Functional contracts remain
-in [RESULTS.md](RESULTS.md); demo publishing is described in
-[DEPLOYMENT.md](DEPLOYMENT.md#17-public-read-only-demo-458).
+The standing workflow is in [AGENTS.md](../../AGENTS.md). Functional contracts remain
+in [RESULTS.md](../RESULTS.md); demo publishing is described in
+[DEPLOYMENT.md](../DEPLOYMENT.md#17-public-read-only-demo-458).

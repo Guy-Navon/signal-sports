@@ -202,4 +202,4 @@ These checks do not establish live provider availability or deploy production.
 - [Sources and ingestion](../docs/RSS_INGESTION.md), [LLM classification](../docs/LLM_CLASSIFICATION.md)
 - [Clustering](../docs/CLUSTERING.md), [freshness](../docs/FEED_FRESHNESS.md)
 - [Frontend design system](../docs/FRONTEND_DESIGN_SYSTEM.md)
-- [Feature delivery workflow](../AGENTS.md) and [results/demo delivery record](../docs/FEATURE_DELIVERY_2026-11-16.md)
+- [Feature delivery workflow](../AGENTS.md) and [results/demo delivery record](../docs/archive/FEATURE_DELIVERY_2026-11-16.md)

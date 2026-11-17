@@ -1,6 +1,9 @@
 """Complete, route-derived authorization inventory (#54 — review HIGH-2).
 
-Three layers of proof over the ACTUAL registered FastAPI route table:
+Three layers of proof over the routes the app registers. Routes are read from
+the public router registry ``create_app`` records (``app.main.router_includes``),
+cross-checked against the served OpenAPI schema, never from FastAPI's private
+route internals (audit L9):
 
 1. **Coverage guard** — every registered route must be classified in the
    POLICY inventory below. A new route added without an authorization
@@ -159,42 +162,76 @@ _PARAM_FILL = {
 }
 
 
-def _registered_routes(application):
-    """Every APIRoute on the app, as ("METHOD /path", route) pairs.
+_SECURITY_CALLS = (
+    security_deps.require_admin,
+    security_deps.require_session,
+    security_deps.require_user,
+)
 
-    This walks FastAPI internals, so a FastAPI release can change the shape of
-    ``application.routes`` and quietly return nothing here — which would make
-    all three proof layers below pass while testing NOTHING. That is not
-    hypothetical: 0.141 stopped flattening ``include_router`` into APIRoute
-    objects and appends a single ``_IncludedRouter`` instead. Callers must go
-    through _registered_routes_checked so an empty walk fails loudly.
+
+def _registered_routes(application):
+    """Every route the app registers, as ("METHOD /path", security_deps) pairs.
+
+    Walks the public router registry that ``create_app`` records on
+    ``app.state.router_includes`` (see ``app.main.RouterInclude``), not
+    FastAPI's internal ``app.routes`` table. FastAPI 0.141 stopped flattening
+    ``include_router`` into APIRoute objects there (audit L9), so the old walk
+    depended on private ``_IncludedRouter`` attributes. Each entry carries the
+    include-level dependencies main.py passed, which are merged with the
+    route's own dependant tree here.
+
+    Completeness is not taken on trust: _registered_routes_checked compares
+    the result with the app's OpenAPI schema, and the behavioral matrix below
+    proves over HTTP that the declared gates actually hold.
     """
     from fastapi.routing import APIRoute
     out = []
-    for route in application.routes:
-        if not isinstance(route, APIRoute):
-            continue
-        for method in sorted(route.methods - {"HEAD", "OPTIONS"}):
-            out.append((f"{method} {route.path}", route))
+    for inc in application.state.router_includes:
+        include_deps = {
+            dep.dependency.__name__
+            for dep in inc.dependencies
+            if getattr(dep, "dependency", None) in _SECURITY_CALLS
+        }
+        for route in inc.router.routes:
+            assert isinstance(route, APIRoute), (
+                f"Router included at prefix {inc.prefix!r} holds a "
+                f"{type(route).__name__}; nested routers or non-API routes are "
+                "not covered by this inventory — extend _registered_routes."
+            )
+            deps = include_deps | _security_deps_on(route)
+            for method in sorted(route.methods - {"HEAD", "OPTIONS"}):
+                out.append((f"{method} {inc.prefix}{route.path}", deps))
     return out
 
 
+def _openapi_operations(application):
+    """Public view of what FastAPI actually serves, independent of the registry."""
+    methods = {"get", "put", "post", "delete", "patch"}
+    return {
+        f"{method.upper()} {path}"
+        for path, item in application.openapi()["paths"].items()
+        for method in item
+        if method in methods
+    }
+
+
 def _registered_routes_checked(application):
-    """_registered_routes, but an empty result is a failure, never a pass."""
+    """_registered_routes, but an empty or incomplete result is a failure."""
     routes = _registered_routes(application)
     assert routes, (
         "Route introspection returned NOTHING, so the authorization inventory "
-        "would pass vacuously. The installed FastAPI "
-        f"({_fastapi_version()}) exposes app.routes as "
-        f"{sorted({type(r).__name__ for r in application.routes})}. Fix "
-        "_registered_routes for this version before trusting this suite."
+        "would pass vacuously."
+    )
+    walked = {key for key, _ in routes}
+    served = _openapi_operations(application)
+    assert walked == served, (
+        "The router registry and the served OpenAPI schema disagree, so a route "
+        "is registered outside app.main.router_includes() (or hidden from the "
+        "schema). Register every router through router_includes(). "
+        f"Not in registry: {sorted(served - walked)}; "
+        f"not served: {sorted(walked - served)}"
     )
     return routes
-
-
-def _fastapi_version():
-    import fastapi
-    return getattr(fastapi, "__version__", "unknown")
 
 
 def _security_deps_on(route):
@@ -207,8 +244,7 @@ def _security_deps_on(route):
             return
         seen.add(id(dep))
         call = getattr(dep, "call", None)
-        if call in (security_deps.require_admin, security_deps.require_session,
-                    security_deps.require_user):
+        if call in _SECURITY_CALLS:
             found.add(call.__name__)
         for sub in getattr(dep, "dependencies", []):
             walk(sub)
@@ -266,9 +302,8 @@ def test_every_classified_route_is_registered(client, _application):
 
 def test_attached_security_dependency_matches_declared_class(client, _application):
     mismatches = []
-    for key, route in _registered_routes_checked(_application):
+    for key, actual in _registered_routes_checked(_application):
         expected = _EXPECTED_DEP[INVENTORY[key]]
-        actual = _security_deps_on(route)
         if actual != expected:
             mismatches.append(f"{key}: declared={expected or '{}'} attached={actual or '{}'}")
     assert mismatches == [], "\n".join(mismatches)
@@ -278,7 +313,7 @@ def test_attached_security_dependency_matches_declared_class(client, _applicatio
 
 def _gated_routes(_application):
     return [
-        (key, route) for key, route in _registered_routes_checked(_application)
+        (key, deps) for key, deps in _registered_routes_checked(_application)
         if INVENTORY[key] in ("me", "session", "admin", "admin+env")
     ]
 

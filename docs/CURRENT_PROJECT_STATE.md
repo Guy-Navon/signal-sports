@@ -290,7 +290,7 @@ reviewed, backed-up correction scripts. Skills: `signal-real-data-qa`, `signal-q
 - **Recall:** roughly one wanted story in four is still hidden (census gate feed+ recall ≈ 74%);
   push recall is low (mostly institutional Maccabi news).
 - **Platform debt:** no migration history (#198); signup/login abuse protection is a gate before
-  widening access (#200); FastAPI capped `<0.137` and React 18 (#428). See
+  widening access (#200); React 18 (#428; the FastAPI cap was lifted 2026-11-17, audit L9). See
   [../AUDIT_REPORT.md](../AUDIT_REPORT.md) for the 2026-11-17 audit.
 - **Local worktree sprawl** on the owner's PC (40+ old worktrees) — housekeeping, not product.
 

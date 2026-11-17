@@ -26,7 +26,8 @@ _load_dotenv()
 # ── All remaining imports come AFTER dotenv is loaded ─────────────────────────
 
 from contextlib import asynccontextmanager
-from fastapi import Depends, FastAPI
+from dataclasses import dataclass, field
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.csrf import CSRFMiddleware
 from app.core.config import settings
@@ -49,6 +50,54 @@ from app.api import (
     routes_classify,
     routes_dev,
 )
+
+
+@dataclass(frozen=True)
+class RouterInclude:
+    """One ``include_router`` call, recorded so it can be inspected publicly.
+
+    ``create_app`` registers routers ONLY through ``router_includes()``, and
+    stores the list on ``app.state.router_includes``. The authorization
+    inventory (tests/test_authz_inventory.py) walks this registry instead of
+    FastAPI's internal route table, whose shape changed in FastAPI 0.141
+    (audit L9). The test cross-checks the registry against the app's OpenAPI
+    schema, so a router registered any other way fails the suite.
+    """
+
+    router: APIRouter
+    prefix: str = ""
+    tags: tuple[str, ...] = ()
+    dependencies: tuple = field(default_factory=tuple)
+
+
+def router_includes() -> list[RouterInclude]:
+    # Results (issue #178): per-route auth like the feed router — the read
+    # routes self-gate (require_admin / require_user via /me), the sync route
+    # is admin-only. Registered without a router-level dependency.
+    #
+    # Ops surface (User Platform PR 5, #53): admin-gated at the router level,
+    # fail-closed by default; ALLOW_INSECURE_AUTH_BYPASS restores the open
+    # behavior for local development. /api/dev/* keeps its ALLOW_DEV_RESET env
+    # gate INSIDE the routes — a deliberate double gate.
+    admin = (Depends(require_admin),)
+    return [
+        RouterInclude(routes_health.router, tags=("health",)),
+        RouterInclude(routes_auth.router, "/api", ("auth",)),
+        RouterInclude(routes_me.router, "/api", ("me",)),
+        RouterInclude(routes_profiles.router, "/api", ("profiles",)),
+        RouterInclude(routes_articles.router, "/api", ("articles",)),
+        RouterInclude(routes_feed.router, "/api", ("feed",)),
+        RouterInclude(routes_results.router, "/api", ("results",)),
+        RouterInclude(routes_feedback.router, "/api", ("feedback",)),
+        RouterInclude(routes_learning.router, "/api", ("learning",)),
+        RouterInclude(routes_calibration.router, "/api", ("calibration",)),
+        RouterInclude(routes_taxonomy.router, "/api", ("taxonomy",)),
+        RouterInclude(routes_ingest.router, "/api", ("ingest",), admin),
+        RouterInclude(routes_scheduler.router, "/api", ("scheduler",), admin),
+        RouterInclude(routes_translation.router, "/api", ("translation",), admin),
+        RouterInclude(routes_classify.router, "/api", ("classify",), admin),
+        RouterInclude(routes_dev.router, "/api", ("dev",), admin),
+    ]
 
 
 def _ensure_db_dir(database_url: str) -> None:
@@ -117,30 +166,15 @@ def create_app() -> FastAPI:
     )
     application.add_middleware(CSRFMiddleware)
 
-    application.include_router(routes_health.router, tags=["health"])
-    application.include_router(routes_auth.router, prefix="/api", tags=["auth"])
-    application.include_router(routes_me.router, prefix="/api", tags=["me"])
-    application.include_router(routes_profiles.router, prefix="/api", tags=["profiles"])
-    application.include_router(routes_articles.router, prefix="/api", tags=["articles"])
-    application.include_router(routes_feed.router, prefix="/api", tags=["feed"])
-    # Results (issue #178): per-route auth like the feed router — the read
-    # routes self-gate (require_admin / require_user via /me), the sync route
-    # is admin-only. Registered without a router-level dependency.
-    application.include_router(routes_results.router, prefix="/api", tags=["results"])
-    application.include_router(routes_feedback.router, prefix="/api", tags=["feedback"])
-    application.include_router(routes_learning.router, prefix="/api", tags=["learning"])
-    application.include_router(routes_calibration.router, prefix="/api", tags=["calibration"])
-    application.include_router(routes_taxonomy.router, prefix="/api", tags=["taxonomy"])
-    # Ops surface (User Platform PR 5, #53): admin-gated at the router level,
-    # fail-closed by default; ALLOW_INSECURE_AUTH_BYPASS restores the open
-    # behavior for local development. /api/dev/* keeps its ALLOW_DEV_RESET env
-    # gate INSIDE the routes — a deliberate double gate.
-    _admin_dep = [Depends(require_admin)]
-    application.include_router(routes_ingest.router, prefix="/api", tags=["ingest"], dependencies=_admin_dep)
-    application.include_router(routes_scheduler.router, prefix="/api", tags=["scheduler"], dependencies=_admin_dep)
-    application.include_router(routes_translation.router, prefix="/api", tags=["translation"], dependencies=_admin_dep)
-    application.include_router(routes_classify.router, prefix="/api", tags=["classify"], dependencies=_admin_dep)
-    application.include_router(routes_dev.router, prefix="/api", tags=["dev"], dependencies=_admin_dep)
+    includes = router_includes()
+    for inc in includes:
+        application.include_router(
+            inc.router,
+            prefix=inc.prefix,
+            tags=list(inc.tags),
+            dependencies=list(inc.dependencies),
+        )
+    application.state.router_includes = tuple(includes)
 
     return application
 

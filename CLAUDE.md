@@ -77,7 +77,7 @@ Phone/desktop ── Vite dev server :5173 (React; proxies /api, /health)
 
 | Layer | Tech / location |
 |---|---|
-| Backend | Python 3.13, FastAPI (pinned `<0.137`, see `backend/requirements.txt`), SQLAlchemy 2 (sync), SQLite only; additive soft migrations at startup. Cookie sessions (argon2), CSRF middleware, Google sign-in |
+| Backend | Python 3.13, FastAPI, SQLAlchemy 2 (sync), SQLite only; additive soft migrations at startup. Cookie sessions (argon2), CSRF middleware, Google sign-in |
 | Frontend | React 18, Vite 6, React Router 6, TanStack Query 5, Tailwind 3, Radix primitives, framer-motion; JS with `jsconfig` type-checking (no TS sources) |
 | Tests | pytest (`backend/tests`, ~180 files), Vitest 4 (co-located `*.test.js(x)`), Chrome capture harness (`npm run capture:ui`) |
 | CI | `.github/workflows/checks.yml` (backend lock check + pytest; frontend lint, typecheck, test, build, demo build + bundle guard), `images.yml`, `publish-images.yml`, `lock-refresh.yml`, `devcontainer.yml` |

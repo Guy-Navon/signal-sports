@@ -11,6 +11,9 @@ deploy/data/
 deploy/postgres.env
 deploy/pgdata/
 
+# Scratch plan written by the /new-feature command (Phase 1); never committed.
+/FEATURE_PLAN.md
+
 # Logs
 /logs
 *.log

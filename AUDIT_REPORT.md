@@ -17,8 +17,8 @@ active defects. There are no Critical findings.
 | Medium | 5 |
 | Low | 9 |
 
-**Status (2026-11-17, end of day):** H1, H2, M1–M4, L2–L5, L9 resolved. Open: M5 (owner
-action), L1 (deferred), L6 (local housekeeping), L7 (owner decision), L8 (incremental).
+**Status (2026-11-17, end of day):** H1, H2, M1–M5, L2–L5, L9 resolved. Open: L1 (deferred),
+L6 (local housekeeping, partly done), L7 (owner decision), L8 (incremental).
 Each finding carries its own status line.
 
 ---
@@ -107,7 +107,7 @@ Each finding carries its own status line.
   buckets into an SQLite table.
 
 ### M5. Plaintext `.env` backups and old runtime logs sit in the working tree
-- **Status: open (owner action).** Untracked local files only; no code change can fix this. Rotating keys and deleting the backups is left to the owner.
+- **Status: resolved 2026-11-17 (local maintenance).** The backups were compared key by key against the live `backend/.env` (values never printed) and none was ever committed. Every non-empty secret in the newest backup equals the live value. The two older backups held only superseded `CLASSIFICATION_API_KEY` values and, in one, an older `THESPORTSDB_API_KEY`; every other secret in them matches the live file. The three backups were deleted. The 21 root `*.log` files were moved outside the repo to `%USERPROFILE%\Documents\signal-sports-preserved\2026-11-17\root-logs`. Remaining owner action: revoke the superseded `CLASSIFICATION_API_KEY` and `THESPORTSDB_API_KEY` at their providers if they are still active.
 - **Where (untracked, ignored):** `backend/.env.backup-20260913-preCodex`, `backend/.env.bak-20261115T204639Z`, `backend/.env.bak.pre106`; root `worker_stdout.log` (3.5 MB, July), `worker_stderr.log`, `api_stdout.log`, `frontend_dev.log`, 18 `audit-*.log` files (2026-09-05).
 - **Problem:** Git ignores these files (`.env.*`, `*.log`), so they can't be committed. But
   they are extra plaintext copies of credentials and old logs. The backups set non-empty
@@ -165,7 +165,7 @@ Each finding carries its own status line.
 - **Fix:** Log a single warning when the validator is unavailable.
 
 ### L6. Many stale git worktrees and branches remain locally
-- **Status: open (local housekeeping).** Not a repository change; worktrees may hold uncommitted work or back a running preview, so they were left for the owner to prune.
+- **Status: open (local housekeeping, partly done 2026-11-17).** Not a repository change. `git worktree prune` ran; the two locked `.claude/worktrees` registrations whose directories no longer existed were unlocked and pruned (41 extra worktrees remain), and no orphaned directories exist under `.claude/worktrees/`. The rest were left because several still back running dev servers or previews (`sig-wt/467-motion`, `sig-wt/513-c`, `sig-wt/553-demo`, `.claude/worktrees/agent-a0a6f20…`) and others may hold uncommitted work; remove them one by one after checking `git status` in each.
 - **Where:** `git worktree list` shows 43 extra worktrees: 13 under `.claude/worktrees/` (three
   locked) and 30 sibling directories (`../signal-sports-46x`, `../sig-wt/*`,
   `../preview-overnight`, …). Many are on branches that are already merged.

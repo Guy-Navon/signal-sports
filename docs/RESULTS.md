@@ -8,12 +8,14 @@ disagrees, this wins for results behavior.
 2026-11-15 — issue #517: per-game detail storage (`game_details`,
 `game_player_lines`), an optional provider detail capability and a sync stage,
 behind `RESULTS_DETAIL_ENABLED` (default off). See §11; #523 exposes stored detail
-through the opt-in API described in §6. The new page is built separately on `ui/next`.
+through the opt-in API described in §6. The results page that reads it shipped with milestone 15 (on `main` since 2026-11-15).
 
 2026-11-15 — issue #522: per-provider health (`results_provider_health`), a
 per-provider switch (`RESULTS_PROVIDER_DISABLED`), a read-time fallback to the
 default provider (`RESULTS_PROVIDER_STALE_HOURS`) and a backup sync. See §15. No
-effect while no route is set (production today).
+effect while no route is set. **Production (verified 2026-11-17)** sets
+`RESULTS_PROVIDER_ROUTES` for NBA (espn_nba), EuroLeague/EuroCup (euroleague), the Israeli
+league and cups (winner) and Ligat Ha'Al (bamboo), with `RESULTS_DETAIL_ENABLED=true`.
 
 ## 1. What it is
 
@@ -390,7 +392,7 @@ normalize → relevance → group path over `src/data/mockResults.js` with
 client-side relevance (`resultsRelevance.js`); in backend mode the server is the
 sole relevance authority.
 
-The #523 additive API supports the forthcoming `ui/next` page: the client groups by
+The #523 additive API supports the milestone-15 results page: the client groups by
 `local_date`, then `sport`, then `competition_id`, and loads the popup separately.
 The existing main UI continues to read its original fields. Scores remain usable
 when a serving source has no detail; `detail_available=false` and leaders/lines empty.
@@ -912,5 +914,4 @@ rule 5. `RESULTS_PROVIDER_BACKUP_SYNC=false` turns the backup off.
 ```
 
 `reason` is `default` (not routed), `routed`, `disabled`, `never_succeeded`, `stale` or
-`stale_no_fallback`. No frontend page reads this endpoint today; the ops UI that shows
-it follows on `ui/next`.
+`stale_no_fallback`. The admin Sources page shows it read-only (#538).

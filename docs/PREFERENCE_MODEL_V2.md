@@ -15,7 +15,8 @@ to `high_feed`, and the owner rated most of them `feed`. A related engine change
 backing now needs level ≥ +1, the same threshold as the boost (step 6). Otherwise the medium follow
 would have lifted the ceiling on 14 Hapoel transfer stories, golden C9 among them, which the owner
 pinned at `feed`. Real-corpus diff (3,785 articles): Guy 46 hidden → `feed` and 1 → `high_feed`.
-Push 16 → 16. Every other profile has 0 flips. Persist with `scripts/apply_257_hapoel_profile.py`.
+Push 16 → 16. Every other profile has 0 flips. Persisted with `scripts/apply_257_hapoel_profile.py`
+(applied to the live `guy` row; verified 2026-11-17: Hapoel follow present, 69 event affinities).
 Legacy topics are unchanged, so the `PREFERENCE_ENGINE=legacy` rollback does not include #257.
 An interests-page save that leaves the Hapoel follow as shown keeps its medium level
 ([INTERESTS.md](INTERESTS.md), off-tier managed levels).

@@ -10,7 +10,7 @@ worth *their* attention. North star:
 A beautiful generic feed is a failure; a rough feed that filters correctly is closer to success.
 
 **Where the truth lives.** This file is a map, not a status report.
-- Current behavior, runtime state and history: [docs/CURRENT_PROJECT_STATE.md](docs/CURRENT_PROJECT_STATE.md)
+- Current behavior, runtime state and history: [docs/CURRENT_PROJECT_STATE.md](docs/CURRENT_PROJECT_STATE.md); doc index: [docs/README.md](docs/README.md)
 - Product vision: [docs/PRODUCT_UNDERSTANDING.md](docs/PRODUCT_UNDERSTANDING.md)
 - Delivery workflow (branch + PR per feature): [AGENTS.md](AGENTS.md)
 - Latest repository audit findings: [AUDIT_REPORT.md](AUDIT_REPORT.md) (2026-11-17); older: [docs/audits/2026-09-05.md](docs/audits/2026-09-05.md)
@@ -110,7 +110,7 @@ frontend/src/
   engine/, data/              legacy JS relevance engine + mocks — local mode only, not product logic
 deploy/                       Compose stack, backup/restore, rehearsal scripts, systemd units
 scripts/                      check.ps1 (local CI), worker.ps1, preview.ps1, demo-publish.ps1, dev.sh
-docs/                         living contracts (see below); docs/qa = rating evidence (never delete)
+docs/                         contracts (index: docs/README.md); docs/qa = rating evidence (never move/delete); docs/archive = history
 .claude/skills/               project skills — prefer them for matching tasks
 ```
 
@@ -160,19 +160,18 @@ Dependencies: `requirements.txt` holds ranges; installs use the hash-pinned `req
 - Delivery: one branch + one PR per feature off current `origin/main`; report actual check
   results; opening a PR is not deploying (see [AGENTS.md](AGENTS.md)).
 
-## Living docs by subsystem
+## Docs
 
-Ingestion [RSS_INGESTION](docs/RSS_INGESTION.md) · guardrails [RSS_QUALITY_GUARDRAILS](docs/RSS_QUALITY_GUARDRAILS.md) ·
-LLM [LLM_CLASSIFICATION](docs/LLM_CLASSIFICATION.md) · facts [ARTICLE_FACTS](docs/ARTICLE_FACTS.md) ·
-taxonomy [TAXONOMY](docs/TAXONOMY.md) · relevance [RELEVANCE_CONTRACT](docs/RELEVANCE_CONTRACT.md),
-[RELEVANCE_VISIBILITY_CONTRACT](docs/RELEVANCE_VISIBILITY_CONTRACT.md), [PREFERENCE_MODEL_V2](docs/PREFERENCE_MODEL_V2.md) ·
-learning [FEEDBACK_LEARNING](docs/FEEDBACK_LEARNING.md) · calibration [CALIBRATION_V2](docs/CALIBRATION_V2.md) ·
-interests [INTERESTS](docs/INTERESTS.md) · clustering [CLUSTERING](docs/CLUSTERING.md) ·
-freshness [FEED_FRESHNESS](docs/FEED_FRESHNESS.md) · scheduler [SCHEDULER](docs/SCHEDULER.md) ·
-notifications [NOTIFICATIONS](docs/NOTIFICATIONS.md) · results [RESULTS](docs/RESULTS.md) ·
-users/auth [USER_PLATFORM](docs/USER_PLATFORM.md) · translation [TITLE_TRANSLATION](docs/TITLE_TRANSLATION.md) ·
-deploy [DEPLOYMENT](docs/DEPLOYMENT.md), [HOSTING_PLAN](docs/HOSTING_PLAN.md) (proposal), [MOBILE_REMOTE_ACCESS](docs/MOBILE_REMOTE_ACCESS.md) ·
-frontend [FRONTEND_DESIGN_SYSTEM](docs/FRONTEND_DESIGN_SYSTEM.md).
+[docs/README.md](docs/README.md) is the single index: one authoritative contract per subsystem,
+plus evidence (`docs/qa/`, `docs/fixtures/` — read by tests and scripts, never move them) and the
+archive ([docs/archive/](docs/archive/README.md), historical only). Start with
+[docs/CURRENT_PROJECT_STATE.md](docs/CURRENT_PROJECT_STATE.md). Frequently needed contracts:
+[RELEVANCE_CONTRACT](docs/RELEVANCE_CONTRACT.md) · [RSS_INGESTION](docs/RSS_INGESTION.md) ·
+[LLM_CLASSIFICATION](docs/LLM_CLASSIFICATION.md) · [CLUSTERING](docs/CLUSTERING.md) ·
+[RESULTS](docs/RESULTS.md) · [USER_PLATFORM](docs/USER_PLATFORM.md) ·
+[FRONTEND_DESIGN_SYSTEM](docs/FRONTEND_DESIGN_SYSTEM.md) · [DEPLOYMENT](docs/DEPLOYMENT.md).
 
+Source comments cite many docs by path, so keep active docs at their paths; when a doc is
+superseded, move it to `docs/archive/` only if nothing in code references it.
 `docs/IMPLEMENTATION_AUDIT.md` was retired on 2026-10-12 (it audited the pre-backend Base44
 prototype); do not recreate it.

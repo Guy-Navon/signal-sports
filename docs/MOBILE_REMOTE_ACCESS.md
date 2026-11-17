@@ -2,7 +2,7 @@
 
 Part of the Private Mobile Access initiative (#16). This is the first working remote-access
 setup: the owner's phone reaches the exact same dev-machine app — real backend, real SQLite
-data, real local Ollama — over a private connection, from anywhere. It is **not** a production
+data, the same configured LLM provider — over a private connection, from anywhere. It is **not** a production
 deployment and does not add hosting, authentication, or public exposure of any kind.
 
 ## Architecture
@@ -14,7 +14,7 @@ Phone (Tailscale app)
       → Vite dev server (127.0.0.1:5173, fixed port, strictPort)
         → Vite proxy for /api and /health   ← shipped in #17
           → FastAPI/uvicorn (127.0.0.1:8000)
-            → SQLite + local Ollama (localhost:11434)
+            → SQLite (+ the configured LLM provider; Groq since 2026-10-25, formerly local Ollama)
 ```
 
 This works only because of the same-origin foundation from #17: the browser talks to one
@@ -36,7 +36,7 @@ detail into a committed file or a GitHub issue/PR.
 - The Tailscale app installed on the Windows PC and on the phone, both signed into the **same**
   tailnet.
 - The backend and frontend already runnable as documented in
-  [`CURRENT_PROJECT_STATE.md` §12](CURRENT_PROJECT_STATE.md#12-how-to-run-locally) — this guide
+  [`CURRENT_PROJECT_STATE.md` §12](CURRENT_PROJECT_STATE.md#12-running-and-checking) — this guide
   assumes that part already works on `localhost`.
 
 ---
@@ -129,7 +129,7 @@ desktop dev — no Tailscale reconfiguration needed:
    once so you don't have to remember or retype the hostname.
 
 That's it — desktop `localhost:5173` and phone `https://<machine>.<tailnet>.ts.net` are now two
-windows onto the exact same running dev servers, same SQLite data, same Ollama instance.
+windows onto the exact same running dev servers, same SQLite data, same backend configuration.
 
 ---
 

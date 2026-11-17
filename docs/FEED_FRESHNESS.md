@@ -152,7 +152,8 @@ outage instead of reading "updated just now" over a feed that received nothing.
   `retention.py` and `.env.example`.
 - **Human-rated articles are guarded once the backfill has run on a database** (#255).
   `retention.py` never deletes an id in `protected_articles` and reports those as
-  `protected_rated`, dry run included. On the live corpus that table is still empty (below).
+  `protected_rated`, dry run included. The live backfill has been applied: on 2026-11-17 the live
+  `protected_articles` table held 1,549 ids (verified read-only).
   - *Fail closed* (owner decision 2026-11-02): while `protected_articles` is empty, a real
     retention run deletes nothing. It logs a WARNING and records
     `skipped_reason: "protected_articles empty"` in the cleanup summary (stored in
@@ -187,8 +188,9 @@ outage instead of reading "updated just now" over a feed that received nothing.
       rated or correction-log ids were deleted.** `integrity_check` ok, no FK violations.
     - The issue's ≥ 285 was the 2026-10-12 count. The cutoff has moved about three weeks since,
       so 717 of census #2's 804 have aged out (29 then).
-  - **The live backfill is still the owner's step.** Retention stays off until the owner decides
-    otherwise; with the table empty it would now skip itself anyway. Runbook, from `backend\`,
+  - **The live backfill has run** (table populated, 1,549 ids on 2026-11-17). Retention still
+    stays off until the owner decides otherwise. The runbook below remains the procedure for
+    re-running the backfill after new rating files land. Runbook, from `backend\`,
     with the worker running or stopped: the worker never writes `protected_articles`, the insert
     is one short transaction that waits on WAL's busy timeout, and `backup_db.py` copies through
     the SQLite backup API.

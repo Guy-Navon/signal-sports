@@ -1,8 +1,11 @@
 # LLM Classification — Providers, Gating, Merge Guardrails & Run Metrics
 
-**Status: living contract** for the optional LLM overlay. Production runs Ollama with
-`qwen2.5:3b-instruct` (`CLASSIFICATION_TIMEOUT_SECONDS=30`). `CLASSIFICATION_PROVIDER=disabled`
-is the code default and a first-class path. Changelog entries are newest first, and the
+**Status: living contract** for the optional LLM overlay. Production runs
+`CLASSIFICATION_PROVIDER=openai_compat` against Groq with `openai/gpt-oss-20b` (since
+2026-10-25, an interim choice pending #262; [qa/LLM_BAKEOFF_2026-10-25.md](qa/LLM_BAKEOFF_2026-10-25.md)).
+Before that it ran Ollama with `qwen2.5:3b-instruct`; the Ollama provider remains supported, and
+older sections and changelog entries that cite Ollama latency or behavior describe that era.
+`CLASSIFICATION_PROVIDER=disabled` is the code default and a first-class path. Changelog entries are newest first, and the
 sections below them describe the current mechanism.
 
 **2026-11-06 - A rejected championship event takes its importance with it (#403).** The two

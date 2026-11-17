@@ -37,6 +37,7 @@ active defects. There are no Critical findings.
   client's valid login.
 
 ### H2. `docs/CURRENT_PROJECT_STATE.md` — the cold-start doc — has a stale status table and architecture diagram
+- **Status: resolved 2026-11-17** (`docs: refresh CURRENT_PROJECT_STATE and consolidate docs/`). The file was rewritten from verified runtime facts. The previous version is archived at `docs/archive/CURRENT_PROJECT_STATE_2026-11-16.md`, and `docs/README.md` is now the doc index.
 - **Where:** [docs/CURRENT_PROJECT_STATE.md](docs/CURRENT_PROJECT_STATE.md) §0 "Status at a glance" (dated 2026-10-12) and the §3 process diagram.
 - **Problem:** This is the document every new agent session is told to read first.
   - §0 still says milestone 13 is the top priority and that the API and Vite are not running.

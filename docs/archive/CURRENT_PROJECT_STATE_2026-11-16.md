@@ -1,0 +1,750 @@
+# Signal Sports — Current Project State
+
+**Delivery update: 2026-11-16.** The results/demo changes are now committed and
+pushed as one feature per PR, [#557–#561 and their delivery record](FEATURE_DELIVERY_2026-11-16.md).
+The initial stack was based on current main at merged PR #556. All five feature
+PRs passed repository/image CI and were merged into main separately; the last
+feature merge is `f4f9df12f5ba84fd2eb9beed5684f83e11a0ab93`. This repository delivery
+does not deploy the authenticated site. The Firebase demo was already published earlier on this date.
+[AGENTS.md](../../AGENTS.md) records the owner's standing branch/commit/push/PR workflow.
+
+**Previous orientation snapshot: 2026-11-15** (results backend from `main`: detail storage/providers, health,
+exact player mapping, separate player choices, enriched API and demo export guard, all
+activation defaults unchanged; grouped results/popup and coded alternatives #513,
+separate results player setting #524, demo statistics guard #526 and read-only ops
+provider health #538 on `ui/next`; frontend truth sweep after #491–#505:
+header, filters, merged preferences, cluster list, reader-only why line; Orbit cleanup
+#473. Runtime facts retain their dated verification: public read-only demo of guy's
+feed, #458, recorded live since 2026-11-11 from main; ONE enabled on 2026-11-01.
+This integration performs no deployment or production switch-on.) This is the cold-start orientation
+for any agent or human picking the project up with no conversation history. Present-tense
+frontend statements describe this `ui/next` checkout; runtime statements retain their dated
+verification below. History is condensed in §14. Closed-milestone QA reports and delivered task briefs were removed from
+`docs/` on 2026-10-12; `git log --diff-filter=D --name-only -- docs/` lists them, and the
+issue numbers in §14 lead to their evidence.
+
+---
+
+## 0. Status at a glance
+
+| Area | State (2026-10-12) |
+|---|---|
+| Milestones | 1–9 **closed**. **13 is the top priority: Off the owner's machine (hosted model, backend, frontend).** Then 10–12: Live Pilot, Census #3 & gate, Israeli-basketball recall (see §11). Outside them: #198–#200 (audit debt) |
+| Runtime (owner's Windows PC) | Scheduler worker **running** (`scripts\worker.ps1 -Status`). **The API and Vite were not running on 2026-10-12, so the app was unreachable from the phone.** LLM: `openai/gpt-oss-20b` on Groq since 2026-10-25, an interim choice ([qa/LLM_BAKEOFF_2026-10-25.md](../qa/LLM_BAKEOFF_2026-10-25.md), Decision); before that, Ollama `qwen2.5:3b-instruct`. Clustering on, 36h freshness on, results sync on. **Telegram push OFF since 2026-09-13** |
+| Live sources | Walla, Israel Hayom, Ynet, **Sport5** (a code-default "pilot", enabled by runtime override). **ONE** (enabled by runtime override on 2026-11-01 after the #258 probe; first cycle inserted 50 articles, [RSS_INGESTION.md](../RSS_INGESTION.md) §1) |
+| Corpus | 2,715 RSS articles published 2026-07-10 → today. 340 were published after the milestone-9 worker restart (2026-10-10 14:23 UTC) |
+| Feed quality (fresh cohort) | Census #2 (804 articles, owner-rated): shown precision 92–95% after the owner's blind re-review. **Feed+ recall 66%** when rated, before milestone 9: about one wanted story in three was hidden. Push recall 1/8, and 2/8 on the rerun after #229 |
+| Regression gates | Two, run both. **Census gate** (#254, census #2, 804 ratings, baselines 2026-11-01 on main's engine at `a0c3477`). On stored facts, Guy has shown precision 95.9%, feed+ recall 73.9%, push 1/3 precise and 1/7 recalled, 48 gaps of ≥2 notches. On a rules-only rerun (`--facts rerun`, for classifier changes) he has 94.0%, 89.1%, push 3/4 and 3/7, 26 gaps (brought forward after #398's reviewed delta). Deni drift 0. **N05** frozen-corpus gate (282 ratings): Guy 98.3% shown / 18.0% false hide / push 7/7. Deni 91.7% / 0.8% / 1/1 |
+| **Real usage** | **8 feedback events ever, all in July. No login session since 2026-09-16. 14 Telegram pushes, the last on 2026-07-24.** The learning loop has never run on real usage |
+| Next | §11: milestone 13 first. The repository preparation is done and CI-validated ([DEPLOYMENT.md](../DEPLOYMENT.md)); what remains needs the owner: the decisions in [HOSTING_PLAN.md](../HOSTING_PLAN.md) §18 (LLM path and key, GitHub plan and budget, topology A or B, backup target and offline key), then the hosted-LLM evaluation (#262), the host (#268) and the cutover (#269). Nothing is chosen, bought or deployed. Then milestone 10, with #241 in parallel |
+
+---
+
+## 1. Product in one paragraph
+
+Signal Sports is a personalized, Hebrew-first sports news intelligence feed. It ingests Hebrew
+sports news, works out what each article is about (sport, competition, teams, players, event
+type, importance), and shows each user only what is worth *their* attention: `hidden`,
+`low_feed`, `feed`, `high_feed` or `push`. The same article can be `push` for one user and
+`hidden` for another. Push stories reach the owner's phone through a private Telegram pilot.
+The north star is in `CLAUDE.md`: *"What sports news is actually worth this user's attention
+right now?"* The product vision is in `docs/PRODUCT_UNDERSTANDING.md`.
+
+## 2. Product principles (current)
+
+- **Personalized relevance, not a generic feed.** Article facts are user-independent;
+  decisions are per user. Facts ≠ personalization.
+- **Abstention beats guessing.** An unsure classifier says `sport=unknown`, no entity, or `news`.
+  A false fact is worse than a missed one, because it reaches the feed as truth.
+- **Push is rare and explicit.** Push comes only from an explicit `always_push` override, behind
+  a factual severity gate. A boost or importance never produces push.
+- **Measure against human ground truth.** Unit tests prove the engine does what it was told.
+  Owner ratings (the N05 gate and the censuses) prove whether it was told the right thing. Read
+  precision and recall separately, never one accuracy number.
+- **The corpus is evidence.** `backend/data/signal_sports.db` is not in git, cannot be
+  recreated, and carries the human ratings' article ids. It is never reset, and it never gets a
+  blanket rules-only backfill.
+- **Hebrew UI, English code.** All user-visible strings are Hebrew/RTL; identifiers and comments
+  are English.
+- **The LLM is optional.** The `CLASSIFICATION_PROVIDER=disabled` path is first-class.
+
+---
+
+## 3. Architecture
+
+**Processes.** Everything runs on one Windows machine.
+
+```
+Phone ──Tailscale Serve (HTTPS)──┐
+Desktop browser ─────────────────┤
+                                 ▼
+             Vite dev server :5173 (React app; proxies /api and /health)
+                                 ▼
+             API  uvicorn app.main:app :8000      (serves requests; NO scheduler)
+                                 │ shared SQLite (WAL) backend/data/signal_sports.db
+             Worker  python -m app.worker         (5-min cycles behind a durable lease)
+                                 │
+             Ollama :11434 (qwen2.5:3b-instruct)   TheSportsDB (results)   Telegram Bot API
+```
+
+**One ingestion cycle** (`app/ingestion/orchestration.py::orchestrate_cycle`): acquire the
+single-flight lease → for each enabled source, fetch → filter → URL-dedup → classify (rules →
+LLM gate → merge guardrails → ArticleFacts → event re-validation) → insert → story anchors →
+clustering. The cycle then runs notification planning, then dispatch, then the results sync,
+then retention (currently disabled), and releases the lease. Details:
+[RSS_INGESTION.md](../RSS_INGESTION.md), [SCHEDULER.md](../SCHEDULER.md).
+
+**One feed request** (`app/services/feed_service.py`): freshness window (36h, consumer feeds
+only) → per-article Preference V2 scoring (visibility tiers → affinity layers → learned
+adjustments → overrides) → user-specific cluster collapse (card decision = the maximum over
+visible members). Details: [RELEVANCE_CONTRACT.md](../RELEVANCE_CONTRACT.md).
+
+**Public demo (#458).** `backend/scripts/export_demo_snapshot.py` builds guy's consumer feed
+through the same handler as `/api/me/feed`, from a read-only connection, into static JSON;
+`scripts/demo-publish.ps1` deploys it with a read-only frontend bundle (feed, results strip,
+shared results board, static box scores and upcoming games) to Firebase Hosting, hourly
+through a Windows scheduled task. Live since 2026-11-11 at signal-sports-demo.web.app,
+hourly task `SignalSportsDemoPublish`. The Signal UI demo with static box scores,
+public statistics and upcoming games was deployed and browser-verified on 2026-11-16.
+The general stream and feed strip are capped at the last 72 hours in the product
+and demo; the upcoming-games window is independent. "הקבוצות שלך" instead shows
+up to four latest finals per directly followed team, eight total, regardless of
+age; their available box scores remain accessible.
+[DEPLOYMENT.md](../DEPLOYMENT.md) §17.
+
+| Layer | Where |
+|---|---|
+| Frontend | React 18 + Vite 6, `frontend/src/` ([FRONTEND_DESIGN_SYSTEM.md](../FRONTEND_DESIGN_SYSTEM.md)) |
+| API + worker | FastAPI, Python 3.13, `backend/app/` (`main.py`, `worker.py`) |
+| Persistence | SQLite via SQLAlchemy 2.0, the only database the app can use. Additive soft migrations at startup. An unused Postgres `db` Compose service exists as groundwork only ([DEPLOYMENT.md](../DEPLOYMENT.md) §15) |
+| Sources & adapters | `app/ingestion/` (feedparser, httpx + BeautifulSoup, ONE JSON) |
+| Classification | `app/ingestion/classifier.py` (rules), `app/classification/` (gate, providers, merge, facts, event evidence) |
+| Taxonomy | `app/taxonomy/` (the single source of entity truth) |
+| Relevance | `app/services/preference_engine.py` (v2, default), `relevance_engine.py` (visibility tiers; the legacy engine is the rollback path) |
+| Clustering | `app/clustering/` (deterministic; no LLM or embeddings) |
+| Notifications | `app/notifications/` (planner, outbox, dispatcher, Telegram) |
+| Results | `app/results/` (TheSportsDB default; opt-in Winner, EuroLeague/EuroCup and Bamboo football providers, plus fake; [contract and activation](../RESULTS.md)) |
+| QA tooling | `app/qa/`, `backend/scripts/` (gate, census, rerun-diff, probes, reviewed correction scripts) |
+
+---
+
+## 4. Sources
+
+| Source | Type | Live state | Notes |
+|---|---|---|---|
+| `walla_sport` | RSS | on | No URL category, so sport comes from keywords, entities and the LLM |
+| `israel_hayom_sport` | RSS + `/sport/` allowlist | on | A general 100-item feed, about 21 of them sport |
+| `ynet_sport` | RSS | on | URL hints for basketball, football and tennis |
+| `sport5_sport` | html_scrape | **on (runtime override)** | The code default says "pilot, disabled", but it has run every cycle since July (30 days to 2026-10-29: 0 errors, about 3 new articles a day; 214 of its 216 articles basketball). It stays enabled; removing the code-default "pilot" label is a separate follow-up (#395) |
+| `one_sport` | html_scrape (public JSON) | **on (runtime override, 2026-11-01, owner decision #258)** | Disabled from before 2026-07-10 (reason never recorded) until 2026-11-01; its first cycle inserted 50 articles. The #258 probe (2026-10-30, `scripts/one_sport_probe.py`) found the adapter working: 48 Hebrew items, about 68 a day, 27% from the basketball lists, none already stored. Owner decision: enable |
+| `eurohoops`, `sportando` | RSS, English | off | Post-MVP, together with translation ([TITLE_TRANSLATION.md](../TITLE_TRANSLATION.md)) |
+
+A failed RSS fetch is recorded as a failure (#365): the source's run is `error` with `failed = 1`
+and a short reason, the cycle degrades (`failed` if no source got anything), and a healthy empty feed
+stays a success. Stored runs from before this change cannot be told apart from quiet days. Sport5
+and ONE still log and swallow their fetch errors, so their "0 errors" above says nothing about
+outages. The running worker has this only after a restart on a checkout that contains it.
+
+Full contract, URL hints and probe history: [RSS_INGESTION.md](../RSS_INGESTION.md). The product is
+Hebrew-only. Re-enabling English sources or translation is post-MVP and must not happen as a
+side effect.
+
+---
+
+## 5. Backend
+
+**Tables:** `articles`, `profiles` (incl. the `profile_v2` JSON), `users`, `auth_sessions`,
+`feedback_events`, `calibration_responses`, `calibration_headlines` (legacy, unused),
+`sources`, `source_overrides`, `ingestion_runs` (incl. the `metrics` JSON), `scheduler_cycles`,
+`scheduler_lease`, `worker_status`, `story_clusters`, `cluster_edges`, `notification_events`,
+`notification_story_members`, `notification_watermarks`, `game_results`,
+`game_details`, `game_player_lines` (per-game results detail, #517),
+`results_player_mappings` (provider-local exact player identity and Hebrew display, #525),
+`results_chosen_players` (session-owned result-line choices, separate from feed follows, #524),
+`results_sync_state`, `results_sync_lease`, `results_provider_health` (#522). Startup creates missing tables, applies additive column migrations
+(fail-loud), seeds empty tables, and creates credential-less demo `users` rows.
+
+With `RESULTS_DETAIL_ENABLED` opted in, results lists add top scorers, ranks,
+chosen-player lines and a Jerusalem date; relevant final-game box scores have
+session/admin view-as detail endpoints. Stored scheduled games through
+`RESULTS_UPCOMING_DAYS=7` are included and live games omitted. With the flag off,
+legacy result fields and game selection remain unchanged ([RESULTS.md](../RESULTS.md) §6).
+
+**API surface** (the exact inventory is OpenAPI `/docs`; an authz test derives it from the routes):
+
+| Surface | Access |
+|---|---|
+| `/health` | public |
+| `/api/auth/*` (signup, login, logout, session, verification peek/confirm/resend, Google start/callback, Google-signup link peek/start, password forgot/reset) | public; mutating routes CSRF-checked, the Google callback bound to its state cookie |
+| `/api/me/*` (profile, feed, results, feedback, learning, never_show, interests, calibration, onboarding, password, account, account deletion through Google, connect/disconnect Google) | the session user's own data |
+| `/api/taxonomy/catalog`, `/api/calibration/items`, `/api/calibration/preview`, `/api/articles[/{id}]`, `/api/feed-engine` | any session |
+| `/api/feed/{user_id}`, `/api/debug/*`, `/api/profiles/*`, `/api/learning/{user_id}[/reset]`, `/api/feedback[/{user_id}]`, `/api/calibration/apply`, `/api/calibration/responses/{user_id}`, `/api/results/{user_id}`, `/api/results/sync[/state]` | admin (view-as / QA) |
+| `/api/ingest/*`, `/api/scheduler/*`, `/api/notifications/*`, `/api/classify/*`, `/api/translations/*`, `/api/dev/*` | admin, router-level fail-closed. `/api/dev/*` also needs `ALLOW_DEV_RESET`, and the corpus guards apply on top |
+
+**Runtime flags** (defaults in `backend/.env.example`; the production values are in the
+untracked `backend/.env`):
+
+| Flag | `.env.example` | Production `.env` |
+|---|---|---|
+| `CLASSIFICATION_PROVIDER` / `_MODEL` / `_TIMEOUT_SECONDS` | disabled / – / 15 | `ollama` / `qwen2.5:3b-instruct` / 30 |
+| `CLASSIFICATION_LLM_GATING` | enabled | enabled |
+| `CLASSIFICATION_RATE_LIMIT_MAX_WAIT_SECONDS` / `_WAIT_BUDGET_SECONDS` (openai_compat, #409) | 0 (off) / 300 | 0 (off): enabling is the owner's decision |
+| `CLUSTERING_ENABLED` | true | true |
+| `SCHEDULER_ENABLED` (+ `SCHEDULER_INTERVAL_SECONDS`) | false (300) | true (300) |
+| `FEED_FRESHNESS_ENABLED` / `FEED_MAX_AGE_HOURS` | false / 36 | true / 36 |
+| `TELEGRAM_NOTIFICATIONS_ENABLED` | false | **false since 2026-09-13** (was true from 2026-07-18) |
+| `RESULTS_ENABLED` / `RESULTS_SYNC_ENABLED` | true / false | true / true |
+| `RESULTS_DETAIL_ENABLED` (+ `RESULTS_DETAIL_MAX_PER_RUN`, #517) | false (10) | not opted in (new flag) |
+| `RESULTS_PROVIDER_DISABLED` / `RESULTS_PROVIDER_STALE_HOURS` / `RESULTS_PROVIDER_BACKUP_SYNC` (#522; no effect without routes) | empty / 6 / true | not set (new flags) |
+| `RETENTION_CLEANUP_ENABLED` | false | false (keep off at least until `protect_rated_articles.py --apply` has run on the live corpus, #255; see §10) |
+| `TRANSLATION_PROVIDER` | disabled | disabled |
+| `ALLOW_DEV_RESET` / `ALLOW_CORPUS_DB_RESET` / `ALLOW_INSECURE_AUTH_BYPASS` | false | false |
+| `PREFERENCE_ENGINE` | (unset = v2) | unset; `legacy` is the rollback |
+| `DEPLOY_ENV` (#265) | unset = `local`: no extra checks | unset. `hosted` refuses the `ALLOW_*` flags and the fake classifier; `dev` refuses Telegram and any production DB path |
+| `AUTH_SIGNUP_ENABLED` (#265) | true | unset (true). A host sets false |
+| `AUTH_SIGNUP_ALLOWED_EMAILS` | empty | unset. Closed signup still admits these addresses (pending until verified) |
+| `GOOGLE_OAUTH_CLIENT_ID` / `_CLIENT_SECRET` / `_REDIRECT_URI` | unset = Google sign-in off | unset |
+| `MAIL_BACKEND` (+ `SMTP_*`, `MAIL_FROM`, `APP_PUBLIC_URL`) | unset = no mailer (signup 503); `console` = explicit dev opt-in that logs the link | unset. A host needs `smtp` |
+
+Results providers include opt-in NBA scores, upcoming games and box scores via
+`espn_nba` (#520), using a paced US-date window. Defaults remain unchanged;
+activation uses `RESULTS_PROVIDER_ROUTES=comp:nba=espn_nba` and
+`RESULTS_DETAIL_ENABLED=true`. Production activation requires #532's routed
+read rule. See [RESULTS.md section 13](../RESULTS.md#13-nba-via-espn-issue-520-opt-in).
+
+Authentication: email/password (Argon2), HttpOnly cookie sessions, origin/fetch-metadata CSRF,
+and admin role gating ([USER_PLATFORM.md](../USER_PLATFORM.md)). A password signup is only a
+pending registration until the emailed link is confirmed with the password; accounts created
+before that (and the bootstrap admin) keep `email_verified_at` NULL. "Continue with Google"
+signs in or registers Gmail and Workspace addresses (other addresses register through an
+emailed link plus a second Google sign-in), and links one to an existing account (regular
+or admin) holding the same address; any account can also connect Google explicitly from
+the Account page with its password. A Google-only account deletes
+itself through a Google confirmation and a separate final DELETE. CSRF and CORS share one
+origin list, `CSRF_ALLOWED_ORIGINS` (default: localhost dev ports; a host sets its exact https
+origin), with a test that fails if they diverge (#196).
+
+---
+
+## 6. Frontend
+
+**Signal UI on `ui/next`.** Every consumer route, utility screen and the public demo use the
+direction approved on 2026-11-13: white/soft/dark grounds, a lead block only for a push,
+compact stream rows, a sticky side column and a results strip. The demo shares the product's
+`SignalFeedView`, read-only. #473 removes unused Orbit views, CSS and Frank Ruhl Libre;
+shared story, queue and focus models and their tests now live under neutral names in
+`components/feed/`. Ops keeps its existing shell, base `:root` tokens, Heebo and logo.
+
+What the consumer UI does on `ui/next` (results updated 2026-11-15;
+the #491–#505 shell verified against the code on 2026-11-14):
+
+- **Header (#491, #493, #499).** One navy sticky header (`shell/ProductHeader.jsx`): a large
+  centred logo, the date and the tabs הפיד שלי · תוצאות · העדפות at the top of the page; on scroll it
+  collapses to a slim fixed bar (logo, tabs, account). On a phone each tab is an icon over a
+  label. There is no bottom dock. The account menu holds "החשבון שלי", the ground switch
+  (לבן / רך / כהה, persisted per device), and for admins the console entry and QA view-as.
+- **Filters (#483, #496, #498).** One "סינון" button with removable chips. It opens a horizontal
+  panel on desktop and a bottom sheet on a phone, with importance (each level its own checkbox, several are OR: דורש תשומת לב · חשוב · רגיל · נמוך; "הכול" clears only importance, #510), leagues and sources. A story matches a source if any visible member
+  matches. Filters apply live and are not remembered (undecided, #496).
+- **Several sources (#501, #503).** The "N מקורות" badge opens the list of reports on the lead,
+  important row, stream and "בקצרה" alike (not in "אחרונים").
+- **Why line (#497, #505).** "למה אצלך:" shows `reason_he` for every consumer role, or nothing;
+  never an engine trace. It is rendered by `WhyLine` in `SignalFeedView` through
+  `deskVoiceModel`; the `DeskVoice.jsx` component is no longer imported anywhere.
+- **Preferences (#492, #495, #500, #502).** One destination `/preferences/:tab?` with four tabs:
+  מה אני עוקב · כיוונון · מה המערכת למדה · מושתק. `/interests` and `/calibration` redirect
+  to it (`LegacyPreferencesRedirect`). The Ops rail keeps its own כיוונון link.
+- **Results (#513, #524, #526, #538).** The private page groups today, upcoming
+  days ascending and past days descending, then sport and league. Compact rows
+  show finals/scheduled games, bracketed ranks, API scorers and explicit chosen
+  player lines; available finals open an accessible box-score dialog (phone
+  bottom sheet). Preferences → מה אני עוקב → שחקנים בתוצאות uses separate
+  session-owned choices and never changes feed affinities. Coded row/popup and
+  placement alternatives are in `lab.html?page=results` and `?page=resultsplayers`;
+  Guy retains those choices. At his request (2026-11-16), the demo results page
+  also reads public statistics, static box scores and scheduled games from its
+  allowlisted snapshot; its bundle guard still excludes APIs, auth and writes.
+  The demo strip stays scores-only. Admin Sources shows the provider health block read-only
+  in the existing console style. These are `ui/next` code, not production activation.
+Milestone 15 (#461–#475) lands on `ui/next`; merging to main and deploying the demo still
+need the owner's approval (#475). This is a branch-code statement, not a deployment claim.
+[FRONTEND_DESIGN_SYSTEM.md](../FRONTEND_DESIGN_SYSTEM.md) holds the engineering rules (Part A)
+and visual contract (Part B). The reference mock is in `docs/design/2026-11-13-feed-direction/`;
+`docs/frontend-concepts/orbit/` is a historical screenshot record only.
+
+| Route | Page | Area |
+|---|---|---|
+| `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | auth (emailed links land on `/verify-email` and `/reset-password`) | public |
+| `/welcome` | onboarding (interests → calibration → feed) | session |
+| `/` | Feed (Signal UI) | product |
+| `/preferences[/calibration\|learned\|muted]`, `/results`, `/account` | product pages (`/interests` and `/calibration` redirect into `/preferences`) | product |
+| `/sources`, `/debug`, `/llm-qa` | ops console (ingestion, scheduler, notifications, debug traces, LLM QA) | admin only |
+
+**Public demo entry (#458).** A second Vite entry (`frontend/demo.html` → `src/demo/`, built by
+`npm run build:demo` into `frontend/dist-demo/`) renders the Signal feed from static snapshot
+JSON (feed and metadata, plus optional results for the strip, #485), with
+`SignalFeedView readOnly` (no feedback controls, no engine trace). It defaults to white,
+with a header button to switch between dark and light mode. The device preference
+(`signal.ground`) is restored on first render and applies to feed, results and box scores;
+switching still works in memory when storage is blocked. The header shows the logo and
+two tabs, feed and results (`#results`; no account or profile-preferences pages). At the owner's request (2026-11-16), `DemoResults.jsx` renders the shared product board, rows, tiles and box-score dialog in read-only mode. The results snapshot contains allowlisted public statistics, scheduled games and a game-id-keyed detail map. Popups read that map locally; unavailable detail leaves a scores-only row. It mounts no router
+and no auth or app provider; the hooks feed components need live in `src/context/appContextCore.js`
+so the provider and API client stay out of that bundle. [DEPLOYMENT.md](../DEPLOYMENT.md) §17.
+
+**Browser verification.** `npm run capture:ui` runs the hermetic local-data harness on its own
+free port. `SIGNAL_UI_REVIEW_PORT` optionally selects a free port; `SIGNAL_CHROME_PATH` selects
+Chrome. Placement, typography, RTL, focus, motion, filter latency and fixed-header occlusion assertions
+are retained. `npm run check:demo-bundle` guards the demo's read-only boundary.
+
+**Data modes** (`VITE_DATA_MODE`): `local` is the default and needs no backend. It renders mock
+data through the **frozen** legacy JS engine (`src/engine/relevanceEngine.js`), which gets no new
+intelligence. `backend` is the real product: same-origin `/api` via the Vite proxy, and the
+server is authoritative for every decision. The Debug page shows every article, including
+hidden ones, with its facts trace, contribution trace, cluster evidence and engine badge.
+
+**Loading (#199).** `/sources`, `/debug`, `/llm-qa` and `/calibration` are lazy routes, and the
+mock data and JS engine sit in their own chunk that a backend session does not fetch. Debug's
+profile comparison tab scores mock articles, so it exists only in local mode; in backend mode
+it shows one line saying that (owner decision, 2026-11-06). The backend-mode entry chunk went
+from 830 KB to 670 KB (240 to 207 KB gzipped). **The Vite 500 KB warning still fires:** no single
+package accounts for the excess. Roughly, app code is 157 KB, react-dom 131 KB, framer-motion
+112 KB, TanStack Query 36 KB, the Radix dialog 28 KB and tailwind-merge 28 KB. Without
+framer-motion it would still be about 558 KB, so getting under the limit needs framer-motion
+reduced plus other splitting, such as the auth pages. An admin's first load also still fetches
+the whole debug feed; a regular user's does not.
+
+---
+
+## 7. Profiles & relevance
+
+**Decision levels:** `hidden` (no followed scope matched, or excluded; Debug only) ·
+`low_feed` (matched, minor) · `feed` · `high_feed` · `push` (explicit override only).
+Semantics and invariants: [RELEVANCE_CONTRACT.md](../RELEVANCE_CONTRACT.md).
+
+**Engine: Preference V2** ([PREFERENCE_MODEL_V2.md](../PREFERENCE_MODEL_V2.md)) scores over
+**ProfileV2**. A profile holds scope affinities (sport, competition, team, player, coach), each
+with a level from −2 to +2 and a source (explicit, calibration or learned). It also holds
+event affinities (global or scoped deltas) and overrides (`always_push`, `never_show`, mute).
+Visibility comes from four-tier competition matching
+([RELEVANCE_VISIBILITY_CONTRACT.md](../RELEVANCE_VISIBILITY_CONTRACT.md)): explicit evidence →
+legacy league → participant-set inference → team-membership reach, the last capped at `feed`.
+When no competition, team or player matched, V2 also tries closed-league reach (#404): a game
+story about one NBA club that never names the NBA reaches a followed NBA, capped at `feed`, and
+the rescue never creates a push. Competition mutes and `never_show` also apply through it.
+Following `comp:ibl` also follows its cups (#230). Precedence for the same target is explicit >
+learned > calibration, and a scoped entry beats a global one.
+
+**Live profiles** are DB rows, so a code change to the seeds does not change them. The owner
+applies a live change with a reviewed `backend/scripts/apply_*.py` script, after a backup.
+
+- **`guy`** (the owner): Maccabi TLV basketball +2. EuroLeague, EuroCup, NBA and IBL +1. ACB,
+  BSL, Greek, LBA and LNB −1. Football and tennis −1 at sport level. Deni Avdija and Oded Kattash
+  +1. 63 explicit event affinities. 6 `always_push` overrides: Maccabi signing, major signing,
+  negotiation and `club_governance`; NBA star trade; Deni major trade. No injury push (owner decision 2026-11-04, #423). No title push: a title reaches `high_feed` at most (owner decision 2026-11-06). 3 `never_show` overrides (Maccabi
+  pre-match, schedule, generic preview). Recent live mutations: #229 (governance push, which
+  fires on a concrete step only) and #237 (`team:maccabi_tlv_bb × candidate −1`,
+  `comp:euroleague × news +1`, fitted on census #2 and confirmed on its held-out half).
+  **Pending owner apply (#257):** the seed adds Hapoel Tel Aviv basketball at medium (0), plus
+  six Hapoel-scoped event deltas (69 event affinities in total). With these, Hapoel club coverage
+  that no followed competition reaches lands at `feed`. The live row changes only after
+  `scripts/apply_257_hapoel_profile.py --apply` is run. Until then the live feed still hides
+  that coverage. Run it only after the API and worker are on the #257 code: pull, re-install the
+  venv (`.venv\Scripts\python.exe -m pip install --require-hashes -r requirements.lock` from
+  `backend/`), restart. On the old engine, the medium follow would lift 14 Hapoel transfer stories
+  to `high_feed`.
+- **`casual_deni_fan`** (demo): Deni Avdija +2 and nothing else. Pushes on a Deni major trade
+  or `relocation`. Relocation is an owner-authorised, entity-scoped rule (#191): the same
+  relocation article is `feed` for Guy. This profile must not drift unintentionally; the gate
+  enforces that.
+
+**Push discipline.** Push needs an explicit `always_push` match. For signing, major signing,
+negotiation, injury and `club_governance`, it also needs factual severity
+(`attention.development`: a current agreement or completion, an imminent renewal, a current
+injury, or a concrete governance step) and the followed scope as a title subject (#192, #229).
+Notifications are planned per **story** (cluster lineage), at most once
+([NOTIFICATIONS.md](../NOTIFICATIONS.md)).
+
+**How profiles are populated** (the CLAUDE.md "three ways"): explicit interest selection over
+the taxonomy catalog ([INTERESTS.md](../INTERESTS.md)), interest-aware calibration
+([CALIBRATION_V2.md](../CALIBRATION_V2.md), dataset v3, 77 items), and feedback learning
+([FEEDBACK_LEARNING.md](../FEEDBACK_LEARNING.md)). Learning activates at ≥3 net consistent events,
+caps at ±1 with a 90-day half-life, never creates an exclude, and is derived at read time. Free-text
+preference input was deliberately not built. **Census calibration** (#237) is a fourth, offline
+path the owner used: it tunes the live profile from rated articles with a held-out check.
+
+**Legacy topic model.** The pre-v2 profiles (`topics`, `entity_event_rules`, scope guards) still
+ship for the rollback engine and the frozen JS engine. `docs/fixtures/profile_parity.json` pins
+them, and drift tests on both sides enforce it.
+
+---
+
+## 8. Classification
+
+Pipeline order and contracts: [RELEVANCE_CONTRACT.md](../RELEVANCE_CONTRACT.md) (map),
+[ARTICLE_FACTS.md](../ARTICLE_FACTS.md) (facts stage), [LLM_CLASSIFICATION.md](../LLM_CLASSIFICATION.md)
+(gate, merge, metrics), and [RSS_QUALITY_GUARDRAILS.md](../RSS_QUALITY_GUARDRAILS.md) (the
+deterministic rule changelog, §1–§25).
+
+- **Rules first, always.** The title is primary, and the subtitle only fills gaps. *Title-local*
+  event types (`title_win`, `grand_slam_winner`, `major_trade`, `schedule`, …) never come from
+  the subtitle alone (#223, #224). A broadcast word makes a `schedule` only when it announces a
+  broadcast, not when something happened on air (#406). `title_win` needs a title won by the
+  subject: a champion epithet, a former champion, a forecast, a counterfactual or a question is
+  not one (#403). Code only: stored rows keep their facts until a backfill.
+- **The LLM is gated.** It is force-called on `sport_unknown`, `ambiguous_club` or low
+  confidence, and skipped when the rules are already strong or the article is measured-sufficient
+  generic `news` (#217). The call rate is about 28% of eligible articles. Proposals pass the merge
+  guardrails and **semantic event evidence** (Guardrail 4b), which rejects most of what it sees,
+  and is mostly right to (#218).
+- **Event types:** the specific types need positive evidence; `news` is abstention, with a
+  recorded reason. Newer types: `relocation` (#191), `club_governance` (#229).
+- **Taxonomy** ([TAXONOMY.md](../TAXONOMY.md)): 117 entities (79 teams, 31 players, 2 coaches,
+  5 executives) and 22 competitions, 16 of them selectable. The FIBA Basketball Champions
+  League (`comp:bcl`, #407) is selectable in onboarding (owner decision 2026-11-02). Its bare name
+  `ליגת האלופות` is shared with UEFA's and is read by the sport the text proves (see
+  RSS_QUALITY_GUARDRAILS.md §22). Bare club-family names (`מכבי`,
+  `הפועל`) never resolve. Coaches and executives imply their team, and so do the #259
+  Maccabi/Hapoel Tel Aviv roster people (`implies_team`). That roster is season data, kept
+  current by the TAXONOMY.md roster-maintenance routine (#377).
+
+**Structural limits (measured, not fixed):**
+- **Person-level coverage.** Besides 3 NBA players, only Maccabi and Hapoel Tel Aviv people are
+  registered (#259). Other Israeli-league players and coaches are invisible, so a story about
+  them has no entity and often no sport.
+- **Cross-sport club deadlock** (#194). `מכבי תל אביב`, `הפועל ת"א` and others without sport
+  evidence stay `sport=unknown`. The bucket mixes sports, so defaulting a sport would fabricate
+  facts. When the LLM proposes such a club, the facts stage drops it unless the sport has
+  explicit evidence (#61) — the LLM calls most football Maccabi stories basketball. Since
+  #345 it keeps one, for basketball only, when a non-LLM cue corroborates the LLM's
+  basketball (a basketball entity named in a sport-proving form, or a basketball scoreline)
+  and the text names the club
+  ([ARTICLE_FACTS.md](../ARTICLE_FACTS.md)).
+- **`news` with no competition.** In census #2, 71 of 76 false hides had no
+  `primary_competition` and 34 had no entity. Hapoel TLV basketball narrative stories (13 false
+  hides) are a relevance question, not a classification one. #257 answers it for Guy with a
+  profile entry (§7), which takes effect once `apply_257_hapoel_profile.py` has run.
+- **LLM failure with no sport** (#409, owner decision R11, 2026-11). An article whose LLM call
+  failed and whose rules found no sport stays **hidden**: no evidence matches a follow, and
+  every "show anyway" variant measured on rated rows was 6–20% wanted. Each run counts these
+  rows (`rules_fallback_unknown_sport`, split by failure reason in the run metrics, the
+  per-source Timing log line and the Sources page's LLM-dependency rows), so an outage's cost
+  is visible. The census #3 cohort would have shown 122: 102 during the Ollama timeouts
+  (10-11 → 10-15) and 20 on Groq, 18 of them in the 11-01 catch-up after the worker outage (counted by publish date; runs do not store article ids).
+
+---
+
+## 9. Quality measurement
+
+| Instrument | What it is | How |
+|---|---|---|
+| **Census gate** (#254) | Every census #2 row (804 owner ratings, review folded in), scored live. Directional checks: shown precision (slack 1/n), feed+ recall, push precision (slack 1/n), push recall, push volume, count of ≥2-notch disagreements (one-notch gaps are rating noise), Deni no-drift over the same ids. Two facts sources, each with its own baseline: `stored` for relevance and profile changes, and `--facts rerun` (rules-only, in memory) for classifier and taxonomy changes, which stored facts cannot show before a backfill | `cd backend; .venv/Scripts/python.exe scripts/feed_ground_truth.py gate --census [--facts rerun]`. Local only; the pure rules (`app/qa/census_gate.py`) run in CI. Baseline `docs/qa/census_gate_baseline.json`. Census #3 is added by passing a second `--ratings/--sample` pair and regenerating. **A baseline is regenerated only after the change's delta against the previous baseline has been reviewed and is cited in the commit; `--update-baseline` prints that delta (decisions and ratings) and refuses to write on a failing gate, on re-rated rows, or without a previous baseline, unless forced with a reason.** Same-direction one-notch drift does not fail the gate (#402); it is reported (upgrades and downgrades, toward or away from the owner rating) on every run. [RELEVANCE_CONTRACT.md](../RELEVANCE_CONTRACT.md) §Quality gate |
+| **N05 gate** (second gate until the census gate has gated two real changes) | 282 owner ratings on the frozen July corpus, with directional checks: shown precision, false hide, push precision and volume, Deni no-drift | `cd backend; .venv/Scripts/python.exe scripts/feed_ground_truth.py gate`. Local only, since it needs the corpus. The pure rules run in CI. [RELEVANCE_CONTRACT.md](../RELEVANCE_CONTRACT.md) §Quality gate, [qa/N05_FEED_GROUND_TRUTH.md](../qa/N05_FEED_GROUND_TRUTH.md) |
+| **Census #2** | 804 fresh articles (published since 2026-08-01), every one owner-rated, plus a blind re-review of 58 large gaps | [qa/CENSUS_2026-10.md](../qa/CENSUS_2026-10.md), `docs/qa/census2_*.json` |
+| Rating tool | `scripts/rate_census.py build / serve / review / merge-review`: a local single-keypress page, blind, resumable | usage in the script docstring |
+| Rerun diff | `scripts/corpus_rerun_diff.py snapshot / compare`: an in-memory, rules-only rerun of the whole corpus, scored against census ratings; no DB writes | before/after any classification or taxonomy change |
+| Census #3 | 300 of the 1,440 articles published since 2026-10-11 (#241), rated blind 2026-11-01; held-out half (150) **sealed**, unread. Fit half after review (n=150): shown precision 90% (36/40, CI 77–96%), feed+ recall 74% (14/19), push not measurable (no engine push, 1 owner push). No demonstrated change vs census #2 | [qa/CENSUS_3_2026-11.md](../qa/CENSUS_3_2026-11.md), `docs/qa/census3_*.json`, `scripts/census_checks.py` |
+
+**Lessons that bind:**
+- Read recall and shown precision separately. `false_hide` as a share of the corpus is diluted
+  by the hidden majority.
+- Owner ratings repeat only about half the time on borderline rows, a noise band of about one
+  notch. Re-rate big disagreements before acting, and never calibrate on groups with n<5 or
+  without a held-out half.
+- Score a taxonomy change against the census, not just the facts: a new competition the
+  profile does not follow can *regress* decisions.
+- **Never run a blanket rules-only backfill**, because it destroys LLM-assisted facts. Stored
+  rows change only through targeted, reviewed, backed-up correction scripts. Under the 36h
+  window the live feed only shows fresh articles, so unbackfilled old rows matter for
+  measurement, not for the product.
+- `pytest … | tail` hides failures. Check the exit code.
+
+---
+
+## 10. Known limitations & risks
+
+**Operational**
+- **The stack is not always on.** Nothing starts the API, Vite or the worker at boot, or restarts
+  them after a crash. On 2026-10-12 the worker was running but the API and Vite were not, so the
+  app was unreachable from the phone. The `scheduler_cycles` history shows the worker absent
+  07-24→07-31, 07-31→09-15, 09-20→10-08 and 10-08→10-10. Part of that was deliberate (a frozen
+  corpus for measurement); the 09-20 gap went unnoticed for weeks. A stopped worker means a stale
+  feed, and nothing alerts anyone. Milestone 13 moves the stack to a host (#268, #269). Since
+  #249 the feed itself shows when it was last updated and warns when automatic ingestion is not
+  running ([FEED_FRESHNESS.md](../FEED_FRESHNESS.md) §7); that is a visible signal, not an alert.
+- **Telegram is off** (since 2026-09-13), so push stories reach nobody.
+- **ONE was enabled on 2026-11-01** (#258). **Sport5 still carries a code-default "pilot" label**
+  although it runs every cycle by override; removing the label is a separate follow-up (#395).
+  Evidence: [RSS_INGESTION.md](../RSS_INGESTION.md) §1.
+- **Retention cleanup stays disabled; rated articles are guarded only after the live backfill**
+  (#255). Retention never deletes an article listed in `protected_articles`, and it **fails
+  closed**: while that table is empty a real run deletes nothing, logs a WARNING and records
+  `skipped_reason` in the cycle's cleanup summary. `scripts/protect_rated_articles.py` fills the
+  table from the rating and sample files at the top of `docs/qa`, matched by file name, and from
+  three listed correction logs (n05 former-affiliation, n190, n191). A test fails if a file in the
+  ratings-store or sample format anywhere under `docs/qa` is not covered, or if a correction log is
+  not listed. **On the live corpus the table is still empty** until the owner runs the backfill
+  (backup, dry run, `--apply --i-know-this-is-the-live-corpus`, dry run again; the worker may keep
+  running).
+  - *On the 2026-11-02 live backup copy:* an empty-table real cleanup deleted 0. After the backfill
+    (1,256 rows), a real cleanup deleted 1,103 and kept every protected id (`protected_rated`
+    1,041), with no rated or correction-log id deleted.
+  - Runbook and numbers: [FEED_FRESHNESS.md](../FEED_FRESHNESS.md) §8.
+- Single machine and single SQLite file. On the PC, backups are still manual (`scripts/backup_db.py`,
+  WAL-safe and verified). The hosted nightly off-host backup exists in the repository
+  ([DEPLOYMENT.md](../DEPLOYMENT.md) §7) but runs nowhere until a host exists.
+
+**Product**
+- **No real usage yet** (§0). Feedback learning, the third personalization path, has no real
+  data. Feedback saves now say whether they were stored and offer a retry on failure (#197).
+- Recall: about one wanted story in three was hidden at census #2 (§8). Milestone 9 raised it on
+  reruns (cups 93→100/140, schedule 103→107/140), and census #3 will measure it on real
+  ingestion.
+- Push recall is low, and the misses are mostly institutional Maccabi news: 2/8 on the #229
+  rerun. The current `census2_ratings.json` holds 7 owner pushes, so the same rerun reads
+  2/7 there. The #242 venue-move vocabulary (PR #398) raises it to 3/7 with the Cyprus move
+  (owner: push; RSS_QUALITY_GUARDRAILS §20).
+
+**Platform / debt** (audit [audits/2026-09-05.md](../audits/2026-09-05.md)): #198 no migration history (the dependency lock landed: `backend/requirements.lock`), #200 signup/login abuse
+protection (a **gate before widening access**, not needed while single-user behind Tailscale). Signup and
+login limits, password reset and email verification exist; limits are still per process and reset on restart,
+there is no per-source limit, and signup still answers 409 for an existing account
+([USER_PLATFORM.md](../USER_PLATFORM.md), Security model).
+
+**Mobile** (#16 epic): Tailscale access works when the stack is up. The feed's touch targets (#19) and the
+navigation shell and safe area (#20) are done. #22 PWA-lite install is implemented and waits for the owner's device check. The ops pages work
+at phone widths (#21).
+
+---
+
+## 11. Next steps — milestone 13 first, then 10–12 (filed 2026-10-13)
+
+**Top priority (owner, 2026-10-13): milestone 13, "Off the owner's machine — hosted model,
+backend and frontend".**
+
+**The requirement, clarified on 2026-10-13:** stop depending on the owner's weak PC both for the
+running system *and* for development. The PC remains only an access station: editor UI, browser
+and SSH. This is urgent **independent of the pilot or product readiness**.
+
+**The plan is a decision document, [HOSTING_PLAN.md](../HOSTING_PLAN.md) v3.1, under the owner's
+review. No host has been chosen, and its recommendation is a proposal, not an approved
+decision.** The preparation shared by every option is implemented and described in
+[DEPLOYMENT.md](../DEPLOYMENT.md): it is validated in CI only, and **nothing runs on a host yet**.
+The plan compares:
+
+- **B (proposed as the reversible start):** a small x86 VM running the live system with Docker
+  Compose (Hetzner CX23, €5.99 a month excl. tax), plus GitHub Codespaces for development, which
+  is free up to 60 *running* hours a month on GitHub Free
+- **A:** one larger VM (CX33, €8.99 a month excl. tax) for both. It wins above ~79 running hours a
+  month, or when long unattended agent runs matter more than isolation. B becomes A by a rescale
+  that keeps the disk
+- **C:** GCP e2-micro (≈ $3.65 a month for its IPv4, not $0, and conditional on a load test) or
+  Oracle ($0, reclamation risk)
+
+It also proposes:
+- Compose for prod: k3s would fit, but it stays off the critical path
+- the `ts.net` address at the cutover, with `guynavon.net` attached afterwards (no DNS change now)
+- deploys from the PC with a separate identity
+- a write-only backup key and a sanitized dev snapshot
+- changes to #261–#270, not yet applied to the issues
+
+**Milestone 13 status (2026-10-13).** "Done" means implemented and tested in the repository
+(mocked or CI-rehearsed); nothing has run on a host, against a cloud account or with a real key.
+
+| Item | In the repository | Still needs the owner |
+|---|---|---|
+| #265 hosted-mode safety | **done** (PR #275): `AUTH_SIGNUP_ENABLED`, `DEPLOY_ENV` checks, dev guards | — |
+| dependency lock (#198, lock half) | **done** (PR #276): hash-pinned `requirements.lock`, CI installs from it | — (#198's migrations half stays open) |
+| #261 OpenAI-compatible provider | **done** (PR #277), mocked HTTP only | a key, for #262 |
+| #262 evaluate + switch | bounded tooling (`llm_failure_probe.py --max-calls --dry-run --ids-file`) | the LLM path and key; stages 0–1; the switch; stopping Ollama |
+| #263 images + Compose | **done** (PR #278); CI builds and smoke-tests every change | the first publication (package visibility); amd64 only |
+| remote development | devcontainer + `scripts/dev.sh` (PR #279), CI-exercised | the first codespace run (checklist in `.devcontainer/README.md`) |
+| monitoring + source probe | PR #281: cycle/sources/fresh/backup pings; fetch-only probe | a healthchecks account and checks; a probe run from the host |
+| #266 backups | PR #280: copy → age → off-host → ping, restore/undo, rehearsed end to end in CI | the B2 account, buckets, Object Lock, lifecycle, keys; the offline key; timers on the host; a drill there |
+| #270 snapshots | sanitized dev snapshot with a separate key and target (PR #280) | the dev key; moving a snapshot into dev; checking the gate on it |
+| #268 provision | deploy/rollback/auto-rollback tooling, host templates, checklist (PR #283), rehearsed in CI | the VM, accounts, Tailscale, identities |
+| #269 cutover | runbook, DEPLOYMENT.md §12 | owner-run |
+| #267 decisions, #264 k8s | — | the owner's decisions; #264 proposed for deferral |
+| Postgres groundwork (2026-10) | an unused, hardened `db` service behind the `postgres` profile; CI initializes it from scratch and applies the ORM's DDL ([DEPLOYMENT.md](../DEPLOYMENT.md) §15). The app still runs on SQLite only | whether to switch at all; the blockers listed in §15 |
+| `calib.py` (#237 tool) | integrated as `scripts/census_calibration_fit.py` (PR #282) | — |
+
+The issue texts predate the plan; its §17 proposes their amendments (not applied).
+
+Recommended order after milestone 13: milestone 10, with #241 from milestone 11 in parallel (its
+cohort is ready and it costs about half an hour of rating), then milestone 12, measured against
+milestone 11's gate.
+
+1. **Milestone 10, Live Pilot: Signal runs itself and gets used daily.** It runs on the host from
+   milestone 13. #248, the local autostart, was closed as superseded, and #23 left the milestone.
+   - #249 freshness signal in the feed
+   - #250 record real usage
+   - #251 re-enable Telegram after a read-only preflight
+   - #252 pilot report
+   - phone UX: #22
+   - **#253 owner-run 14-day acceptance**, which no PR may close; its window starts after #269
+2. **Milestone 11, Census #3 & a fresh regression gate:**
+   - #241 census #3
+   - #254 census-based gate (feed+ recall, push recall, noise band): built on census #2 alone; add census #3 when #241 lands
+   - #255 protect rated rows from retention (code landed: every `docs/qa` rating, sample and listed correction-log file is covered, and retention fails closed while the table is empty; owner runs the backfill, runbook in [FEED_FRESHNESS.md](../FEED_FRESHNESS.md) §8)
+   - #242 venue-move vocabulary for `club_governance`, landed in PR #398 (RSS_QUALITY_GUARDRAILS
+     §20); its two high_feed side effects await owner rating, and #401 (the pre-existing #229
+     subtitle → push path) awaits an owner decision
+   - #407 (census #3 finding): a Basketball Champions League game was read as the UEFA
+     Champions League. The facts fix is in review (PR #417); `comp:bcl` is selectable in onboarding.
+     Guy's profile does not follow it (owner, 2026-11-02)
+3. **Milestone 12, Israeli-basketball recall — people, not only clubs:**
+   - done: #256 (measurement), #259 (Maccabi/Hapoel Tel Aviv people registered)
+   - open: #345 (the corroborated basketball exception landed; wanted stories with no non-LLM
+     cue, such as the Super Cup grant, are still dropped), #257 (non-Maccabi club narrative: the
+     owner decided feed for Hapoel TLV basketball, for Guy only; the seed and the ceiling-backing
+     change are implemented, and the live profile needs the owner's `apply_257_hapoel_profile.py`
+     run), #258 (ONE probe and decision)
+   - moved out: #377 is now a recurring roster routine (TAXONOMY.md); #352 was split into
+     backlog issues #380 #381 #382
+
+Deliberately not in these milestones: platform hardening (#198–#200), which matters
+before wider access or a split deployment.
+
+**Milestone 15, "A face of its own — new consumer UI" (filed 2026-11-13).** It replaces
+Orbit's look on the consumer screens and the public demo with the direction Guy approved on
+2026-11-13 ([FRONTEND_DESIGN_SYSTEM.md](../FRONTEND_DESIGN_SYSTEM.md) Part B). The Ops console
+does not change. The work lands on `ui/next`. The open owner items are #474 (article images),
+#475 (phone acceptance, then the merge to main and the demo deploy; checklist posted 2026-11-14, #506)
+and #484 (read state, dismissing, or a shorter window).
+
+---
+
+## 12. How to run locally
+
+```powershell
+# Backend API (from backend/)
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000   # /docs = OpenAPI
+
+# Scheduler worker + Ollama (from repo root). Detached; logs to backend\data\worker.log.err
+powershell -File scripts\worker.ps1          # start (also starts Ollama if it is down)
+powershell -File scripts\worker.ps1 -Status  # run this FIRST in any session that needs fresh ingestion
+powershell -File scripts\worker.ps1 -Stop
+
+# Frontend (from frontend/). Backend mode needs frontend/.env.local with VITE_DATA_MODE=backend
+npm install; npm run dev                      # http://localhost:5173 (fixed port, strictPort)
+```
+
+**Preview a branch next to the live stack** (`scripts/preview.ps1`). Run it on a git worktree of
+the branch. It copies the corpus with `backup_db.py` into the worktree's gitignored
+`backend/data/preview/`, starts that worktree's API on :8010 and its web app on :5180 (backend
+data mode, `/api` proxied to :8010 through `SIGNAL_API_PROXY`), with `DEPLOY_ENV=dev`, no
+scheduler, no LLM, no results sync, and console email. The live API, worker and corpus are not
+touched. Provider operations are refused twice:
+- manual ingest, run-now and results sync answer **503 `{"status":"disabled"}`** before any
+  provider code runs (`PROVIDER_CALLS_DISABLED=true`, `app/core/deploy_mode.py`);
+- the API's outbound HTTP goes to a closed local proxy, so anything else that tries fails.
+
+Log in with the same accounts. `-Stop` ends it. Ports can be changed with `-ApiPort` / `-WebPort`.
+
+```powershell
+git worktree add ..\preview-353 origin/feat/basketball-people-259
+powershell -File scripts\preview.ps1 -Worktree ..\preview-353        # http://localhost:5180
+powershell -File scripts\preview.ps1 -Worktree ..\preview-353 -Stop
+```
+
+**Tests and checks** (the same as CI, `.github/workflows/checks.yml`):
+
+```powershell
+cd backend;  .venv\Scripts\python.exe -m pytest tests -q            # hermetic: temp DB, LLM off, Telegram creds cleared
+cd frontend; npm run lint; npm run typecheck; npm run test; npm run build
+cd backend;  .venv\Scripts\python.exe scripts/feed_ground_truth.py gate            # N05 gate, local only: before any relevance/classification change
+cd backend;  .venv\Scripts\python.exe scripts/feed_ground_truth.py gate --census   # census gate (#254) on stored facts, local only
+cd backend;  .venv\Scripts\python.exe scripts/feed_ground_truth.py gate --census --facts rerun   # census gate on a rules-only rerun: classifier/taxonomy changes
+```
+
+Use the collectors for test counts (`pytest --collect-only -q`); counts copied into docs go stale.
+
+**Remote development (Linux, a codespace or a dev user):** `scripts/dev.sh api|web|test|check|gate`
+and the devcontainer in [.devcontainer/README.md](../../.devcontainer/README.md). It always runs
+`DEPLOY_ENV=dev` on its own empty DB. **Prepared and CI-exercised; no codespace has been created yet.**
+
+**Corpus safety.** Back up before any write: `.venv\Scripts\python.exe scripts/backup_db.py`.
+That writes `data/backups/backup_<UTC>.db` through the SQLite backup API, which is WAL-safe, and verifies integrity, foreign keys and counts (`--manifest` records them; `scripts/verify_db.py` re-checks a file). Run
+destructive or benchmark work only against a copy (`DATABASE_URL=sqlite:///./data/<copy>.db`).
+The benchmark route hard-refuses the real corpus. Never delete `backend/data/signal_sports.db`.
+
+**Container stack** (the future host; CI-validated, not deployed): `deploy/compose.yaml` with the
+`backend` and `web` images, and `deploy/smoke-test.sh` for an isolated empty-DB check. See
+[DEPLOYMENT.md](../DEPLOYMENT.md).
+
+**Manual ingestion** (admin session, or a local bypass): `POST /api/ingest/run[?source_id=X]`,
+`POST /api/ingest/scheduler/run-now`. Source health: `GET /api/ingest/source-health`. Mobile:
+[MOBILE_REMOTE_ACCESS.md](../MOBILE_REMOTE_ACCESS.md).
+
+---
+
+## 13. Handoff prompt for a new agent
+
+> You are working on Signal Sports. Read `CLAUDE.md` (product intent; its "current priorities"
+> describe the original prototype phase), then this file fully, then
+> `docs/RELEVANCE_CONTRACT.md`, then the contract doc for the layer you will touch (the doc map
+> below). Read your issue completely: its non-goals are binding. Before writing code, check
+> that the state you rely on is real (run `scripts\worker.ps1 -Status`, read the code, query the
+> DB read-only) rather than trusting a doc. Preserve the invariants: the demo profiles do not
+> drift unintentionally, push comes only from explicit overrides, the corpus is never reset or
+> blanket-backfilled, the JS engine stays frozen, and the UI is Hebrew/RTL with English code.
+> Run the full backend suite and the frontend checks if you touch the frontend, plus the N05
+> gate for classification or relevance changes. Measure decision changes against the census
+> (`corpus_rerun_diff.py`). Update the docs you made stale (`signal-doc-truth` skill). One issue,
+> one branch, one PR. Separate automated, manual-desktop and owner-device validation, and never
+> claim validation that was not performed.
+
+**Working style that has held:** answer in Hebrew when addressed in Hebrew. Be direct. Keep scope
+to what was asked. Merge your own PR once CI is green on the exact head SHA and the work
+implements a direction the owner already approved; new product decisions go to the owner first.
+Project skills live in `.claude/skills/`: the `signal-*` workflows (classification, relevance and
+taxonomy changes, source onboarding, pipeline review, feed audit, real-data QA, quality eval, doc
+truth, PR open/finish/merge, handoff) plus adapted upstream skills (debugging, TDD, verification,
+review intake, security diff review, UI and React review, browser checks, Python testing/async).
+`.claude/skills/README.md` says which skill owns which gate.
+
+**Doc map — which doc is authoritative for what:**
+
+| Topic | Doc |
+|---|---|
+| Pipeline map, decision semantics, invariants, quality gate | [RELEVANCE_CONTRACT.md](../RELEVANCE_CONTRACT.md) |
+| Facts stage, evidence, trace | [ARTICLE_FACTS.md](../ARTICLE_FACTS.md) |
+| Competition matching, reach, feed ceiling | [RELEVANCE_VISIBILITY_CONTRACT.md](../RELEVANCE_VISIBILITY_CONTRACT.md) |
+| ProfileV2 and the scorer | [PREFERENCE_MODEL_V2.md](../PREFERENCE_MODEL_V2.md) |
+| Interests / calibration / learning | [INTERESTS.md](../INTERESTS.md), [CALIBRATION_V2.md](../CALIBRATION_V2.md), [FEEDBACK_LEARNING.md](../FEEDBACK_LEARNING.md) |
+| Taxonomy registry and coverage audit | [TAXONOMY.md](../TAXONOMY.md) |
+| LLM gate, merge, metrics | [LLM_CLASSIFICATION.md](../LLM_CLASSIFICATION.md) |
+| Deterministic rules changelog, source filters | [RSS_QUALITY_GUARDRAILS.md](../RSS_QUALITY_GUARDRAILS.md) |
+| Sources, adapters, ingestion pass | [RSS_INGESTION.md](../RSS_INGESTION.md) |
+| Clustering | [CLUSTERING.md](../CLUSTERING.md) |
+| Freshness window / scheduler / notifications / results | [FEED_FRESHNESS.md](../FEED_FRESHNESS.md), [SCHEDULER.md](../SCHEDULER.md), [NOTIFICATIONS.md](../NOTIFICATIONS.md), [RESULTS.md](../RESULTS.md) |
+| Accounts, auth, authorization | [USER_PLATFORM.md](../USER_PLATFORM.md) |
+| Frontend design system | [FRONTEND_DESIGN_SYSTEM.md](../FRONTEND_DESIGN_SYSTEM.md) |
+| Phone access (Tailscale) | [MOBILE_REMOTE_ACCESS.md](../MOBILE_REMOTE_ACCESS.md) |
+| Ground truth and census reports | [qa/N05_FEED_GROUND_TRUTH.md](../qa/N05_FEED_GROUND_TRUTH.md), [qa/N05_FEED_QUALITY_IMPLEMENTATION.md](../qa/N05_FEED_QUALITY_IMPLEMENTATION.md), [qa/CENSUS_2026-10.md](../qa/CENSUS_2026-10.md) |
+| Product vision / translation (post-MVP) / audit snapshot | [PRODUCT_UNDERSTANDING.md](../PRODUCT_UNDERSTANDING.md), [TITLE_TRANSLATION.md](../TITLE_TRANSLATION.md), [audits/2026-09-05.md](../audits/2026-09-05.md) |
+
+---
+
+## 14. Milestone history
+
+| # | Milestone | Closed | What it delivered | Contract |
+|---|---|---|---|---|
+| — | Base44 prototype → backend | 2026-06/07 | FastAPI + SQLite, RSS (Walla, Israel Hayom), Sport5 scraping, deterministic + LLM classification, gating, and the frontend redesigns (Court Vision, The Edition) | this file |
+| 1 | Signal Intelligence Architecture v2 | 2026-07-08 | Taxonomy + resolver, ArticleFacts, event semantic evidence, visibility tiers, LLM run metrics, Preference V2 (flipped after a shadow check), Calibration V2, feedback learning | RELEVANCE_CONTRACT and the layer docs |
+| 2 | User Platform | 2026-07-10 | Accounts, cookie sessions, `/api/me/*`, fail-closed admin, onboarding, account lifecycle | USER_PLATFORM |
+| 3 | Classification & Feed Reliability | core 2026-07-10 (closed 2026-10-10) | Champion-vocabulary assertion semantics, LLM-echo provenance, coverage gaps; the golden-17 suite (`tests/test_golden_cases.py`) | RSS_QUALITY_GUARDRAILS |
+| 4 | Explicit Interests & Onboarding v2 | 2026-07-11 | Follow/Star interest selection, catalog, calibration dataset v3, decision provenance | INTERESTS |
+| — | Corpus wipe and guard (#106) | 2026-07-12 | The real corpus was destroyed by a dev reset. A target-database guard was added, and the corpus was re-ingested from scratch | `app/db/corpus_protection.py` |
+| 5 | Real Story Clustering v1 | 2026-07-14 | Deterministic cross-source clustering contract, matcher, persistence, backfill, cluster cards | CLUSTERING |
+| 6 | Feed De-duplication & Clustering Activation | 2026-07-18 | Validated story anchors, intra-source republish, claim compatibility, activation with 0 over-merges | CLUSTERING |
+| 7 | Automated Live Ingestion & Telegram Push Pilot | 2026-07-18 | Dedicated worker, durable lease, notification identity, outbox, Telegram delivery, a 44.8h soak | SCHEDULER, NOTIFICATIONS |
+| — | Feed freshness (36h window) | 2026-07-18 | One shared freshness predicate for feed, cluster canonical choice and push | FEED_FRESHNESS |
+| — | Orbit frontend | 2026-07-31 | Historical consumer UI; replaced on `ui/next` by milestone 15 | frontend-concepts/orbit/README |
+| — | Orbit cleanup (#473) | 2026-11-14 | `ui/next`: unused views/CSS/serif removed, shared models and harness renamed; Ops retained | FRONTEND_DESIGN_SYSTEM |
+| 15 | New consumer UI (#461–#506), on `ui/next` only | 2026-11-14 | Navy header, filters, merged preferences, cluster list, reader-only why line; not merged to main (owner acceptance, #475) | FRONTEND_DESIGN_SYSTEM |
+| — | Personalized results (#178) | 2026-08-23 | Results page from the same follows; TheSportsDB sync | RESULTS |
+| — | Repository audit (#186) | 2026-09-05 | Reliability fixes F01–F13 and R01–R07; open debt filed as #196–#200 | audits/2026-09-05 |
+| 8 | Feed Quality — Recall & Push (N05) | 2026-09-16 | The 282-rating ground truth and gate; former-affiliation fix; Israeli clubs; push 41%→100%; LLM cost −45% (#217); live scoreline (#218); census tool and census #1 | qa/N05_*, LLM_CLASSIFICATION |
+| 9 | Census #2 & Classification Truth | 2026-10-10 | Census #2 (804); title-local trade and schedule; Israeli cups; executives; `club_governance` | qa/CENSUS_2026-10, RSS_QUALITY_GUARDRAILS §13–§17 |
+| — | First census calibration (#237) + QA tooling | 2026-10-12 | Live-profile calibration with a held-out check; `worker.ps1`, `corpus_rerun_diff.py`, census review/merge-review | PREFERENCE_MODEL_V2 |
+| — | Hapoel TLV basketball for Guy (#257) | 2026-10-30 | Owner decision as a profile entry (medium follow plus scoped deltas). Membership-ceiling backing now needs level ≥ +1 | PREFERENCE_MODEL_V2, RELEVANCE_VISIBILITY_CONTRACT |

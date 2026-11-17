@@ -1,5 +1,11 @@
 # Hosting Plan — Signal Sports off the owner's machine
 
+> **Update 2026-11-17.** Still a proposal: no host is chosen (#267, #427) and nothing is
+> provisioned. One premise changed since v3.1: production stopped using Ollama on 2026-10-25 and
+> classifies through Groq `gpt-oss-20b` with the OpenAI-compatible provider (an interim choice;
+> #262 stays open). Read the plan's "stop Ollama" first-relief step (T1) as done in that interim
+> form. Current state: [CURRENT_PROJECT_STATE.md](CURRENT_PROJECT_STATE.md).
+
 **Status: PROPOSAL under owner review. Version 3.1, 2026-10-13.** The repository preparation
 shared by every option is now implemented and validated in CI only (images, Compose, safety
 guards, the devcontainer, the OpenAI-compatible provider, monitoring, backups, restore and deploy

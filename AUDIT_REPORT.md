@@ -18,7 +18,7 @@ active defects. There are no Critical findings.
 | Low | 9 |
 
 **Status (2026-11-17, end of day):** H1, H2, M1–M5, L2–L5, L9 resolved. Open: L1 (deferred),
-L6 (local housekeeping, partly done), L7 (owner decision), L8 (incremental).
+L6 (local housekeeping, partly done), L7 (owner decision), L8 (incremental; `classifier.py` split 2026-11-17).
 Each finding carries its own status line.
 
 ---
@@ -186,8 +186,8 @@ Each finding carries its own status line.
   `VITE_DATA_MODE=backend` the default.
 
 ### L8. Very large modules concentrate risk
-- **Status: open by design** (extract incrementally when a file is next changed).
-- **Where:** [backend/app/ingestion/classifier.py](backend/app/ingestion/classifier.py) (1,266 lines), [backend/app/classification/event_evidence.py](backend/app/classification/event_evidence.py) (1,030), [backend/app/ingestion/ingestion_service.py](backend/app/ingestion/ingestion_service.py) (795), [frontend/src/components/feed/signal/SignalFeedView.jsx](frontend/src/components/feed/signal/SignalFeedView.jsx) (932).
+- **Status: open by design, in progress** (extract incrementally when a file is next changed). **2026-11-17, `classifier.py` split** (`refactor: modularize monolithic backend module (audit L8)`): the 1,266-line module is now 347 lines holding `ClassificationResult` and `classify()`. Its rule families moved unchanged into `backend/app/ingestion/classifier_rules/`: `matching` (keyword helpers, source defaults), `sport`, `league` (keywords + membership inference), `entities` (resolver bridge + post-merge enrichment), `events` and `scoring`. `classifier.py` re-exports every name it defined before, so existing imports and any `classifier.<name>` monkeypatch target keep working. No behavior change: the full backend suite passes, and `classify()` output over 6,476 test-suite titles (12,952 calls) hashes identically before and after. Tests were not moved, since `test_ingestion_classifier.py` exercises `classify()` end to end. Remaining: `event_evidence.py`, `ingestion_service.py`, `SignalFeedView.jsx`.
+- **Where:** [backend/app/ingestion/classifier.py](backend/app/ingestion/classifier.py) (1,266 lines before the split; now 347), [backend/app/classification/event_evidence.py](backend/app/classification/event_evidence.py) (1,030), [backend/app/ingestion/ingestion_service.py](backend/app/ingestion/ingestion_service.py) (795), [frontend/src/components/feed/signal/SignalFeedView.jsx](frontend/src/components/feed/signal/SignalFeedView.jsx) (932).
 - **Problem:** Classification rules, guardrails and event logic are hard to review in diffs of
   this size. Most recent classification fixes (#403, #406, #407, #413) touched these files.
 - **Fix:** No big-bang refactor. When one of these files is next changed, extract the touched

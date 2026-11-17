@@ -12,26 +12,131 @@ Design notes:
 - Source ID is used to apply basketball-only defaults for Eurohoops/Sportando.
 - Confidence is additive: each matched signal contributes a fixed increment.
 - When unsure, sport="unknown", event_type="news", confidence<=0.5.
+
+Layout (audit L8): this module owns ``ClassificationResult`` and ``classify()``, the
+orchestration of the rule families. The families live in ``app.ingestion.classifier_rules``
+(matching, sport, league, entities, events, scoring) and are all re-exported below, so
+``from app.ingestion.classifier import <name>`` keeps working for every existing name.
 """
 
-import re
 from dataclasses import dataclass
 from typing import Optional
 
-from app.classification.sport_guards import (
+# Re-exports: names that lived in this module before the split (audit L8). Kept so
+# existing imports keep working; classify() also resolves its helpers through these.
+from app.classification.event_evidence import (  # noqa: F401
+    PREVAILED_OVER_PATTERN,
+    EventEvidence,
+    reads_as_champion_epithet,
+    validate_event_evidence,
+)
+from app.classification.sport_guards import (  # noqa: F401
     committed_sport,
     has_bcl_abbreviation,
     has_shared_champions_league_name,
     is_unsupported_sport,
     shared_champions_league_sport,
 )
-from app.classification.event_evidence import (
-    PREVAILED_OVER_PATTERN,
-    EventEvidence,
-    reads_as_champion_epithet,
-    validate_event_evidence,
+from app.ingestion.classifier_rules.matching import (  # noqa: F401
+    _BASKETBALL_ONLY_SOURCES,
+    _has,
+    _has_word,
 )
-from app.taxonomy import (
+from app.ingestion.classifier_rules.sport import (  # noqa: F401
+    _BASKETBALL_CTX_KW,
+    _BASKETBALL_KW,
+    _derive_football_maccabi_kw,
+    _detect_sport,
+    _FOOTBALL_CTX_KW,
+    _FOOTBALL_KW,
+    _FOOTBALL_MACCABI_KW,
+    _GRAND_SLAM_PHRASES,
+    _HAPOEL_TLV_KW,
+    _has_basketball_context,
+    _has_football_context,
+    _has_football_maccabi_context,
+    _has_hapoel_tel_aviv_phrase,
+    _has_maccabi_tel_aviv_phrase,
+    _MACCABI_TLV_KW,
+    _NON_TENNIS_SLAM_CONTEXT,
+    _shared_name_context,
+    tennis_keywords_for,
+    _TENNIS_KW,
+)
+from app.ingestion.classifier_rules.league import (  # noqa: F401
+    _ACB_KW,
+    _AUSTRALIAN_OPEN_KW,
+    _BCL_KW,
+    _BSL_KW,
+    _detect_league,
+    _EUROCUP_KW,
+    _EUROLEAGUE_KW,
+    _GREEK_KW,
+    _infer_league_from_membership,
+    _ISRAELI_BBALL_CONTEXT_KW,
+    _ISRAELI_BBALL_DIRECT_KW,
+    _LBA_KW,
+    _LNB_KW,
+    _NBA_DIRECT_KW,
+    _NBA_TEAM_KW,
+    _ROLAND_GARROS_KW,
+    _US_OPEN_KW,
+    _WIMBLEDON_KW,
+)
+from app.ingestion.classifier_rules.entities import (  # noqa: F401
+    _BASKETBALL_ENRICHMENT_PHRASES,
+    _club_person_sport,
+    _DENI_KW,
+    _DEPARTURE,
+    _derive_basketball_enrichment_phrases,
+    _detect_entities,
+    enrich_basketball_entities_after_sport_resolve,
+    enrich_maccabi_entity_after_sport_resolve,
+    _filter_entities_for_sport,
+    _NATIONAL_TEAM_MARKERS,
+    _resolution_to_legacy_entities,
+    _resolve_text_entities,
+    _sport_context_for_resolver,
+    _TRANSFER,
+)
+from app.ingestion.classifier_rules.events import (  # noqa: F401
+    _CANDIDATE_KW,
+    _CANDIDATE_WORD_KW,
+    _DEATH_ACCIDENT_KW,
+    detect_article_event,
+    _detect_event_evidence,
+    _EARLY_ROUND_TENNIS_KW,
+    _FINALS_KW,
+    _GRAND_SLAM_KW,
+    _GRAND_SLAM_WIN_KW,
+    _INJURY_KW,
+    _NEGOTIATION_KW,
+    _NEGOTIATION_WORD_KW,
+    _PLAYOFF_KW,
+    _REGULAR_SEASON_KW,
+    _RELEASE_KW,
+    _RESULT_KW,
+    _SCHEDULE_KW,
+    _SIGNING_KW,
+    _SIGNING_WORD_KW,
+    _TITLE_WIN_UNAMBIGUOUS_KW,
+    _TRADE_KW,
+    _TRADE_WORD_KW,
+    _WIN_CHAMPIONSHIP_CTX_KW,
+    _WIN_VERB_HE,
+)
+from app.ingestion.classifier_rules.scoring import (  # noqa: F401
+    _assign_confidence,
+    _assign_importance,
+    _collect_tags,
+    compute_importance,
+    _HIGH_ENTITIES,
+    _HIGH_EVENTS,
+    _HIGH_LEAGUES,
+    _LOW_EVENTS,
+    _VERY_HIGH_EVENTS,
+)
+from app.taxonomy import (  # noqa: F401
     COMPETITIONS,
     EntityResolution,
     entities_by_sport,
@@ -56,925 +161,6 @@ class ClassificationResult:
     confidence: float           # 0.0 – 1.0
     tags: list[str]             # keyword hits for debugging / display
     event_certainty: str = "confirmed"  # confirmed | probable | weak
-
-
-# ── Sources that produce only basketball content ──────────────────────────────
-
-# Hebrew sources are general sports (not basketball-only) — do NOT include walla_sport here.
-_BASKETBALL_ONLY_SOURCES = frozenset({"eurohoops", "sportando"})
-
-
-# ── Keyword helpers ───────────────────────────────────────────────────────────
-
-def _has(text: str, *keywords: str) -> bool:
-    return any(kw in text for kw in keywords)
-
-
-def _has_word(text: str, word: str) -> bool:
-    """Word-boundary match — avoids 'sign' matching 'signal'."""
-    return bool(re.search(r"\b" + re.escape(word) + r"\b", text))
-
-
-# ── Hebrew sport disambiguation helpers ──────────────────────────────────────
-# These are thin named wrappers that make the disambiguation logic in _detect_sport
-# and _detect_entities transparent and independently testable.
-
-# Defined ahead of the keyword sets they reference; the sets are declared just below.
-# Python resolves the names at call time, not at function-definition time, so the
-# forward references are safe as long as no one calls these before the sets exist.
-
-def _has_football_maccabi_context(text: str) -> bool:
-    """True if title names an explicit football Maccabi club.
-
-    Must be called BEFORE the generic "מכבי" basketball check so that
-    מכבי נתניה / מכבי חיפה etc. do not trigger basketball classification.
-    """
-    return _has(text, *_FOOTBALL_MACCABI_KW)
-
-
-# Exact phrase forms for Maccabi Tel Aviv and Hapoel Tel Aviv.
-# Titles using ONLY these full forms (without sport context words) are ambiguous
-# and tagged ambiguous_club. Short standalone forms like "מכבי" do not match.
-_MACCABI_TLV_KW = (
-    "מכבי תל אביב",
-    'מכבי ת"א',
-    "מכבי ת״א",
-    "maccabi tel aviv",
-)
-_HAPOEL_TLV_KW = (
-    "הפועל תל אביב",
-    'הפועל ת"א',
-    "הפועל ת״א",
-    "hapoel tel aviv",
-)
-
-# Context words that confirm basketball sport — used to resolve ambiguous club names.
-_BASKETBALL_CTX_KW = (
-    "כדורסל",                                    # basketball explicit
-    "גארד", "פורוורד", "סנטר",                   # Hebrew basketball positions
-    "guard", "forward", "center", "point guard",  # English basketball positions
-    "יורוליג", "היורוליג",                        # EuroLeague in Hebrew
-    "יורוקאפ",                                     # EuroCup in Hebrew
-    "euroleague", "eurocup",                       # English league names
-    "nba",
-    "ווינר סל", "ליגת העל סל", "ליגת ווינר",     # Israeli Basketball League
-    # Israeli basketball cups (#230) — mirror facts._COMPETITION_KEYWORDS; bare
-    # "סופרקאפ" is excluded there for cross-sport/cross-country collisions.
-    "גביע ווינר", "גביע וינר",
-    "סופרקאפ החברתי", "סופר קאפ החברתי", "סופרקאפ הישראלי", "סופר קאפ הישראלי",
-    "קטש", "עודד קטש", "kattash",                # Maccabi TLV head coach
-    "הפועל חולון",                               # Hapoel Holon Basketball (unambiguous)
-    # NOTE: "הפועל ירושלים" was removed here (taxonomy PR) — the club exists in
-    # BOTH sports, so its name is an entity mention, not basketball evidence.
-    # Treating it as basketball context forced football articles into basketball.
-    "בני הרצליה",                                # Bnei Herzliya Basketball (unambiguous)
-    "גמר סל",                                     # basketball final
-    # Additional IBL clubs for disambiguation of Maccabi/Hapoel TLV articles
-    "הפועל אילת",       # Hapoel Eilat Basketball (IBL)
-    "גלבוע", "גלבוע עליון", "גלבוע גליל",  # Galil Gilboa Basketball (IBL)
-    "עמק יזרעאל",       # Emek Yizrael Basketball (IBL)
-    # Basketball stats and positions for disambiguation
-    "רכז",              # point guard (Hebrew position name)
-    "ריבאונדים",         # rebounds (basketball statistic)
-    "חולון",            # Holon — short form of Hapoel Holon Basketball
-)
-
-# Context words that confirm football sport — used to resolve ambiguous club names.
-_FOOTBALL_CTX_KW = (
-    "כדורגל",                           # football explicit
-    "חלוץ",                              # striker
-    "בלם",                               # stopper/central defender
-    "שוער",                              # goalkeeper
-    "קשר",                               # midfielder
-    "שער",                               # goal (football-specific in sports context)
-    "בלומפילד",                          # Bloomfield Stadium (football only)
-    "ליגת העל",                           # Israeli Premier League (football)
-    # Transfer-fee vocabulary (issue #62): "דמי מעבר/דמי המעבר" is football-
-    # typical in Israeli coverage (basketball uses באי-אאוט/דמי שחרור). Corpus
-    # false-positive check: the only hits were the two misclassified football
-    # Glazer articles (golden C2/C2-sibling). Risk: a rare basketball transfer
-    # using the phrase would lean football — accepted; hint evidence (weight
-    # 100) still outranks this context keyword wherever a URL category exists.
-    "דמי מעבר", "דמי המעבר",
-    "מונדיאל",                           # World Cup
-    "fifa", "uefa",
-    # "ליגת האלופות" / "champions league" are not here (#407): the name is shared with
-    # the Basketball Champions League. _has_*_context() add it for the sport the text proves.
-    "premier league",
-    "bundesliga", "la liga", "serie a", "ligue 1",
-)
-
-
-def _has_maccabi_tel_aviv_phrase(text: str) -> bool:
-    """True if title contains an explicit full-name Maccabi Tel Aviv form."""
-    return _has(text, *_MACCABI_TLV_KW)
-
-
-def _has_hapoel_tel_aviv_phrase(text: str) -> bool:
-    """True if title contains an explicit full-name Hapoel Tel Aviv form."""
-    return _has(text, *_HAPOEL_TLV_KW)
-
-
-def _shared_name_context(text: str) -> Optional[str]:
-    """The sport the shared "ליגת האלופות" name confirms in ``text`` (#407), or None."""
-    if not has_shared_champions_league_name(text):
-        return None
-    return shared_champions_league_sport(text)
-
-
-def _has_basketball_context(text: str) -> bool:
-    """True if title contains words that confirm basketball sport."""
-    return _has(text, *_BASKETBALL_CTX_KW) or _shared_name_context(text) == "basketball"
-
-
-def _has_football_context(text: str) -> bool:
-    """True if title contains words that confirm football sport."""
-    return _has(text, *_FOOTBALL_CTX_KW) or _shared_name_context(text) == "football"
-
-
-# ── Sport detection ───────────────────────────────────────────────────────────
-
-_BASKETBALL_KW = (
-    "basketball", "כדורסל", "nba", "euroleague", "eurocup", "יורוליג", "יורוקאפ",
-    "acb", "bsl", "lba", "lnb",   # "bcl" is matched as a whole word (#407): _detect_sport
-    # NOTE (issue #28): bare club-family names "מכבי" / "maccabi" were REMOVED here.
-    # They are family markers, not sport evidence — a football מכבי story (מכבי חיפה,
-    # or a bare "מכבי" whose subtitle says "שוער") must not be forced to basketball.
-    # This was the last entity→basketball bias path; sport now comes from explicit
-    # keywords / competitions / evidence-weighted resolution. Full-name Maccabi TLV
-    # forms are still handled (with sport context) via _MACCABI_TLV_KW.
-    "ווינר סל", "ליגת העל סל",  # Israeli Basketball League explicit markers
-    # Israeli basketball clubs — allow sport inference without "כדורסל" keyword
-    "בני הרצליה",               # Bnei Herzliya basketball
-    # Oded Kattash — Maccabi Tel Aviv head coach; his name alone is a strong basketball signal
-    "קטש", "עודד קטש", "kattash", "oded kattash",
-    # Hebrew NBA team nicknames (not city names — those are too generic)
-    "וויזארדס", "הורנטס", "בלייזרס", "ניקס", "סלטיקס", "לייקרס",
-    "באקס", "סאנס", "נאגטס", "מאברס", "ספרס", "רוקטס", "ראפטורס", "גריזליס",
-    "mvp",  # unambiguously basketball in Israeli sports context
-    # Israeli Basketball League clubs — direct sport detection without "כדורסל" keyword
-    "גלבוע", "גלבוע גליל", "גלבוע עליון",  # Galil Gilboa Basketball (IBL)
-    "עמק יזרעאל",  # Emek Yizrael Basketball (IBL)
-    "הפועל אילת",  # Hapoel Eilat Basketball (IBL)
-    # NBA star names (Hebrew) — unambiguous basketball signal
-    "לברון", "לברון ג'יימס",  # LeBron James
-)
-_FOOTBALL_KW = (
-    "football", "soccer", "כדורגל", "fifa", "uefa",
-    "premier league", "la liga",
-    "bundesliga", "serie a", "ligue 1",
-    "מונדיאל",                  # World Cup in Hebrew
-    # Israeli football clubs — unambiguously football
-    'בית"ר', "בית״ר",           # Beitar Jerusalem
-    "הפועל באר שבע",            # Hapoel Beer Sheva (football)
-    # Note: הפועל תל אביב forms are NOT here — they are disambiguated explicitly
-    # in _detect_sport because הפועל תל אביב also refers to a basketball club.
-    # Football-specific positions — direct sport detection when no club name present
-    "חלוץ",    # striker (football position, also already in _FOOTBALL_CTX_KW)
-    "שוער",    # goalkeeper
-)
-
-# Maccabi clubs that are FOOTBALL — must be checked BEFORE _BASKETBALL_KW
-# because "מכבי" appears in _BASKETBALL_KW and would win the sport check first.
-# Derived from the taxonomy registry (single source of entity truth): every
-# football club in the מכבי family whose alias is not shared with a basketball
-# entity (which excludes the ambiguous "מכבי תל אביב" forms).
-def _derive_football_maccabi_kw() -> tuple[str, ...]:
-    basketball_aliases = {
-        a.lower() for e in entities_by_sport("basketball") for a in e.aliases
-    }
-    kw: list[str] = []
-    for entity in entities_by_sport("football"):
-        if entity.family != "מכבי":
-            continue
-        for alias in entity.aliases:
-            lowered = alias.lower()
-            if lowered not in basketball_aliases and lowered not in kw:
-                kw.append(lowered)
-    return tuple(kw)
-
-
-_FOOTBALL_MACCABI_KW = _derive_football_maccabi_kw()
-_TENNIS_KW = (
-    "tennis", "טניס", "wimbledon", "וימבלדון",
-    "roland garros", "רולאן גארוס", "french open",
-    "us open", "australian open",
-    "grand slam", "גראנד סלאם",
-    "atp", "wta",
-    "אליפות אוסטרליה",              # Australian Open in Hebrew
-    'ארה"ב הפתוחה', 'ארה״ב הפתוחה', # US Open in Hebrew
-    # Top players whose names strongly imply tennis context
-    "אלקאראז", "אלקראס",            # Alcaraz
-    "ג'וקוביץ", "ג׳וקוביץ",         # Djokovic
-    "סינר",                          # Sinner
-)
-
-# "גראנד סלאם" is also a judo tour (IJF Grand Slam) — #225: "מדליית גראנד סלאם ראשונה
-# לכרם פרימו" was classified tennis. A tennis slam awards no medals, so the phrase is
-# tennis evidence only without judo/medal context. Every other tennis keyword is kept.
-_GRAND_SLAM_PHRASES = ("grand slam", "גראנד סלאם")
-_NON_TENNIS_SLAM_CONTEXT = ("ג'ודו", "ג׳ודו", "ג'ודא", "ג׳ודא", "judo", "מדלי", "medal", "פודיום")
-
-
-def tennis_keywords_for(text: str) -> tuple[str, ...]:
-    """The tennis sport keywords that count as evidence for this (lowercased) text."""
-    if any(ctx in text for ctx in _NON_TENNIS_SLAM_CONTEXT):
-        return tuple(kw for kw in _TENNIS_KW if kw not in _GRAND_SLAM_PHRASES)
-    return _TENNIS_KW
-
-
-def _detect_sport(text: str, source_id: str, source_sport_hint: str | None = None) -> str:
-    # Unsupported domain (issue #113) — MMA/UFC/boxing are not modelled by the taxonomy.
-    # Abstain rather than guess: a wrong sport propagates into visibility, preference
-    # matching and push. Checked FIRST, ahead of even the source hint — a UFC report filed
-    # under a section hint is still not a sport we model.
-    if is_unsupported_sport(text):
-        return "unknown"
-    # Committed, unambiguous sport vocabulary (issue #113). Checked BEFORE the source hint:
-    # a hint may FILL a missing sport, but it must never override strong contradictory
-    # evidence in the text itself. A football report filed under a basketball section is
-    # still a football report, and the URL is the weaker signal.
-    _committed = committed_sport(text)
-    if _committed is not None:
-        return _committed
-    # Source URL category hint (e.g. Israel Hayom /sport/israeli-basketball/).
-    if source_sport_hint:
-        return source_sport_hint
-    if source_id in _BASKETBALL_ONLY_SOURCES:
-        return "basketball"
-    if _has(text, *tennis_keywords_for(text)):
-        return "tennis"
-    # Explicit football Maccabi clubs must be checked before the Maccabi TLV
-    # phrase check — מכבי נתניה / מכבי חיפה etc. are definitively football.
-    if _has_football_maccabi_context(text):
-        return "football"
-    # Maccabi Tel Aviv (full-name form): requires sport context to resolve.
-    # False positives are worse than misses — only classify when confident.
-    if _has_maccabi_tel_aviv_phrase(text):
-        if _has_basketball_context(text):
-            return "basketball"
-        if _has_football_context(text):
-            return "football"
-        return "unknown"  # ambiguous_club — tagged in classify()
-    # Hapoel Tel Aviv (full-name form): requires sport context to resolve.
-    if _has_hapoel_tel_aviv_phrase(text):
-        if _has_basketball_context(text):
-            return "basketball"
-        if _has_football_context(text):
-            return "football"
-        return "unknown"  # ambiguous_club — tagged in classify()
-    # Generic keyword fallback (handles standalone "מכבי", English sources, etc.)
-    if _has(text, *_BASKETBALL_KW) or has_bcl_abbreviation(text):
-        return "basketball"
-    if _has(text, *_FOOTBALL_KW):
-        return "football"
-    return "unknown"
-
-
-# ── League detection ──────────────────────────────────────────────────────────
-
-# EuroCup must be checked before EuroLeague: some titles mention "Euroleague"
-# while covering EuroCup news, and the URL or title keyword "eurocup" is authoritative.
-_EUROCUP_KW = ("eurocup", "euro cup", "fiba europe cup", "יורוקאפ")
-
-_NBA_DIRECT_KW = ("nba", "אן.בי.איי")
-_NBA_TEAM_KW = (
-    "celtics", "heat", "lakers", "warriors", "bulls", "nets", "knicks",
-    "bucks", "76ers", "suns", "nuggets", "clippers", "mavericks", "mavs",
-    "spurs", "rockets", "thunder", "blazers", "trail blazers", "raptors",
-    "magic", "pistons", "cavaliers", "pacers", "hawks", "hornets", "wizards",
-    "grizzlies", "timberwolves", "jazz", "pelicans", "kings",
-    "סלטיקס", 'הית"', "לייקרס", "בולס", "נטס", "ניקס", "באקס",
-    "סאנס", "נאגטס", "מאברס", "ספרס", "רוקטס", "בלייזרס", "ראפטורס",
-    "וויזארדס", "הורנטס", "גריזליס",
-    # Additional Hebrew NBA team names (spec PR 8)
-    "וושינגטון",    # Washington Wizards
-    "פורטלנד",      # Portland Trail Blazers
-    "שארלוט",       # Charlotte Hornets
-    # NBA star names (Hebrew) — infer NBA when no team name in title
-    "לברון", "לברון ג'יימס",  # LeBron James
-)
-_EUROLEAGUE_KW = ("euroleague", "יורוליג", "היורוליג")
-# Basketball Champions League (#407): qualified names, "BCL" as a whole word, and the bare
-# shared name when sport_guards.shared_champions_league_sport reads it as basketball.
-_BCL_KW = (
-    'ליגת האלופות של פיב"א', "ליגת האלופות של פיב״א", "ליגת האלופות של פיבא",
-    "ליגת האלופות בכדורסל", "basketball champions league", "fiba champions league",
-)
-# Direct textual mentions of the Israeli Basketball League.
-# "הפועל תל אביב" is included here because, once sport is already resolved to
-# basketball, an article naming Hapoel Tel Aviv must be about their basketball
-# club — which plays in the Israeli Basketball League (or EuroLeague, but that
-# is checked first and wins if the EuroLeague keyword is present).
-_ISRAELI_BBALL_DIRECT_KW = (
-    "ליגת ווינר", "ליגת העל בכדורסל", "ליגה לאומית",
-    "ווינר סל", "ליגת העל סל",
-    "winner league", "ligat winner",
-    "israeli basketball league", "super league basketball",
-    "הפועל תל אביב",   # Hapoel Tel Aviv basketball club — Israeli Basketball League
-    # IBL clubs — when seen in basketball-resolved context, implies Israeli Basketball League
-    "בני הרצליה",      # Bnei Herzliya Basketball
-    "הפועל חולון",     # Hapoel Holon Basketball
-    "הפועל ירושלים",   # Hapoel Jerusalem Basketball
-    "הפועל אילת",      # Hapoel Eilat Basketball
-    "גלבוע גליל", "גלבוע עליון",  # Galil Gilboa Basketball
-    "עמק יזרעאל",      # Emek Yizrael Basketball
-)
-# Context keywords that, combined with a Maccabi entity, strongly imply Israeli domestic play.
-_ISRAELI_BBALL_CONTEXT_KW = (
-    "holon", "hapoel holon",
-    "חולון", "הפועל חולון",
-    "tel aviv derby", "דרבי תל אביבי",
-    "winner league", "ligat winner",
-    "israeli basketball", "israel basketball",
-    "israeli league", "israel league",
-    "hapoel jerusalem", "הפועל ירושלים",
-    "hapoel tel aviv", "הפועל תל אביב",
-    "eilat", "אילת",
-    "bnei herzliya", "בני הרצליה",
-    "rishon lezion", "rishon", "ראשון לציון", "ראשון",
-    "petah tikva", "kiryat motzkin",
-    "binyamina",
-    "גליל", "נס ציונה",
-    "עירוני רמת גן",
-)
-_ACB_KW = ("acb", "liga acb")
-_BSL_KW = ("bsl", "turkish basketball")
-_GREEK_KW = ("greek basket", "greek league", "basket league")
-_LBA_KW = ("lba", "lega basket", "italian basketball")
-_LNB_KW = ("lnb", "pro a", "french basketball")
-
-_WIMBLEDON_KW = ("wimbledon", "וימבלדון")
-_ROLAND_GARROS_KW = ("roland garros", "french open", "רולאן גארוס")
-_US_OPEN_KW = ("us open",)
-_AUSTRALIAN_OPEN_KW = ("australian open",)
-
-
-def _detect_league(
-    text: str, sport: str, url: str = "", shared_context: Optional[str] = None,
-) -> Optional[str]:
-    """``shared_context`` is the text the shared Champions League name is read in
-    (title + subtitle); defaults to ``text``."""
-    if sport == "basketball":
-        url_lower = url.lower()
-        # EuroCup: check title AND URL before EuroLeague to avoid misclassification.
-        # e.g. "Euroleague names teams for expanded EuroCup field" → EuroCup, not EuroLeague.
-        if _has(text, *_EUROCUP_KW) or "eurocup" in url_lower or "/eurocup/" in url_lower:
-            return "EuroCup"
-        if _has(text, *_NBA_DIRECT_KW) or _has(text, *_NBA_TEAM_KW):
-            return "NBA"
-        if _has(text, *_EUROLEAGUE_KW):
-            return "EuroLeague"
-        # Before the IBL: its list includes club names, and a named competition beats a
-        # club's domestic league.
-        if (
-            _has(text, *_BCL_KW)
-            or has_bcl_abbreviation(text)
-            or (has_shared_champions_league_name(text)
-                and shared_champions_league_sport(shared_context or text) == "basketball")
-        ):
-            return "Basketball Champions League"
-        if _has(text, *_ISRAELI_BBALL_DIRECT_KW):
-            return "Israeli Basketball League"
-        if _has(text, *_ACB_KW):
-            return "Spanish ACB"
-        if _has(text, *_BSL_KW):
-            return "Turkish BSL"
-        if _has(text, *_GREEK_KW):
-            return "Greek Basket League"
-        if _has(text, *_LBA_KW):
-            return "Italian LBA"
-        if _has(text, *_LNB_KW):
-            return "French LNB"
-    elif sport == "tennis":
-        if _has(text, *_WIMBLEDON_KW):
-            return "Wimbledon"
-        if _has(text, *_ROLAND_GARROS_KW):
-            return "Roland Garros"
-        if _has(text, *_US_OPEN_KW):
-            return "US Open"
-        if _has(text, *_AUSTRALIAN_OPEN_KW):
-            return "Australian Open"
-    elif sport == "football":
-        if _has(text, "ליגת העל") or _has(text, "israeli premier", "hapoel", "beitar", "maccabi haifa"):
-            return "Israeli Premier League"
-        if _has(text, "champions league", "ליגת האלופות"):
-            return "UEFA Champions League"
-        if _has(text, "premier league"):
-            return "Premier League"
-        if _has(text, "la liga", "לה ליגה"):
-            return "La Liga"
-        if _has(text, "bundesliga"):
-            return "Bundesliga"
-    return None
-
-
-# ── Entity detection ──────────────────────────────────────────────────────────
-
-_DENI_KW = (
-    "דני אבדיה", "אבדיה",
-    "deni avdija", "avdija",
-    # "דני" alone is intentionally NOT included — it's a common Hebrew name
-    # that would cause false positives (e.g. a footballer named Danny).
-    # "אבדיה" (Avdija) is distinctive enough for short-form references.
-)
-
-
-def _sport_context_for_resolver(
-    text: str,
-    source_id: str = "",
-    sport_override: Optional[str] = None,
-) -> Optional[str]:
-    """Sport evidence for entity resolution.
-
-    Priority: explicit override (already-resolved sport) > basketball-only
-    source > context keywords. Conflicting or absent evidence → None, which
-    makes the resolver abstain on cross-sport club names.
-    """
-    if sport_override in ("basketball", "football"):
-        return sport_override
-    if source_id in _BASKETBALL_ONLY_SOURCES:
-        return "basketball"
-    basketball = _has_basketball_context(text)
-    football = _has_football_context(text) or _has_football_maccabi_context(text)
-    if basketball and not football:
-        return "basketball"
-    if football and not basketball:
-        return "football"
-    return None
-
-
-def _resolve_text_entities(
-    text: str,
-    source_id: str = "",
-    sport_override: Optional[str] = None,
-) -> EntityResolution:
-    """Run the taxonomy resolver with the sport evidence available to the classifier."""
-    return resolve_entities(
-        text,
-        sport_context=_sport_context_for_resolver(text, source_id, sport_override),
-    )
-
-
-# A national-team story (#259 review): the player is there for his country, not his club.
-_NATIONAL_TEAM_MARKERS = ("נבחרת", "national team")
-
-# The roster says where a player is TODAY, not what a departure or transfer story is about
-# (#259 review, owner decision 2026-10-26: an unresolved club beats an unsupported one).
-# A departure word, or a transfer verb next to ANOTHER named club, stops the roster club from
-# being inferred; a club the text names is still attached.
-_DEPARTURE = re.compile(
-    r"(?<![א-ת])[וש]?(?:נפרד|נפרדה|נפרדו|נפרדים|פרידה|פרידת|עוזב|עוזבת|עזב|עזבה)(?![א-ת])"
-    r"|(?<![א-ת])[וש]?(?:עבר|עברה|עובר|עוברת)\s+ל"
-)
-_TRANSFER = re.compile(
-    r'(?<![א-ת])[וש]?(?:חתם|חתמה|יחתום|תחתום|סיכם|סיכמה|הצטרף|הצטרפה|מגעים|במגעים|מו"מ|במו"מ|מו״מ|במו״מ)(?![א-ת])'
-)
-
-
-def _resolution_to_legacy_entities(
-    resolution: EntityResolution, text: str = "", imply_clubs: bool = True,
-) -> list[str]:
-    """Convert resolved taxonomy entities to legacy display names.
-
-    Coach and executive mentions imply their current team (Kattash / Shimon
-    Mizrahi → Maccabi TLV Basketball) — a taxonomy data fact replacing the old
-    hardcoded rule. The person's own name is not emitted, matching pre-taxonomy
-    behavior for coaches (#229 extends it to club executives, #259 to roster
-    players marked ``implies_team``).
-    """
-    entities: list[str] = []
-    national_team = any(m in text for m in _NATIONAL_TEAM_MARKERS)
-    departure = bool(_DEPARTURE.search(text))
-    transfer = bool(_TRANSFER.search(text))
-    named_clubs = {e.id for e in resolution.resolved if e.kind == "team"}
-    for entity in resolution.resolved:
-        if entity.implies_team and (national_team or not imply_clubs):
-            continue  # still sport evidence (_club_person_sport); not evidence of the club
-        if entity.implies_team and (departure or (transfer and named_clubs - {entity.team_id})):
-            continue  # departure/transfer: the roster club is not what the story is about
-        if entity.kind in ("coach", "executive") or entity.implies_team:
-            team = entity_by_id(entity.team_id) if entity.team_id else None
-            if team and team.legacy_name not in entities:
-                entities.append(team.legacy_name)
-            continue
-        if entity.legacy_name not in entities:
-            entities.append(entity.legacy_name)
-    return entities
-
-
-def _club_person_sport(resolution: EntityResolution) -> Optional[str]:
-    """The sport of the club people (coach, executive, ``implies_team`` player) the
-    resolver found — sport evidence on its own (#259): a person's name is never
-    cross-sport, unlike the club name it implies. None when there is no such person
-    or they disagree."""
-    sports = {
-        e.sport for e in resolution.resolved
-        if e.kind in ("coach", "executive") or e.implies_team
-    }
-    return next(iter(sports)) if len(sports) == 1 else None
-
-
-def _detect_entities(
-    text: str,
-    source_id: str = "",
-    sport_override: Optional[str] = None,
-    imply_clubs: bool = True,
-) -> list[str]:
-    """Canonical entity detection via the taxonomy resolver.
-
-    Contract (taxonomy PR):
-    - Full-name aliases only; longest match wins ("מכבי רמת גן" can never
-      resolve to Maccabi Tel Aviv).
-    - Bare family names ("מכבי", "הפועל", "עירוני", 'בית"ר') never resolve to
-      a specific team.
-    - Cross-sport club names (מכבי תל אביב, הפועל ירושלים…) resolve only with
-      sport evidence; otherwise the mention abstains and classify() tags the
-      article ambiguous_club.
-    """
-    return _resolution_to_legacy_entities(
-        _resolve_text_entities(text, source_id, sport_override), text, imply_clubs
-    )
-
-
-def _filter_entities_for_sport(entities: list[str], sport: str) -> list[str]:
-    """Drop entities whose taxonomy sport contradicts the resolved article sport.
-
-    Entities unknown to the taxonomy (legacy_sport → None) pass through.
-    """
-    if sport not in ("basketball", "football"):
-        return entities
-    return [e for e in entities if legacy_sport(e) in (None, sport)]
-
-
-def _infer_league_from_membership(entities: list[str], sport: str) -> Optional[str]:
-    """Infer the legacy league from resolved entities' competition membership.
-
-    This populates the legacy `league` DISPLAY field (issue #28) so basketball
-    stories about a resolved team stop landing with league=NULL — the root of the
-    73% league-NULL rate. It is membership-derived and applies ONLY to the legacy
-    league field; `primary_competition` stays explicit-evidence-only (see
-    app/classification/facts.py). Generalizes the old Deni→NBA special case.
-
-    Uses each entity's domestic competition (teams) or sole membership
-    (players/coaches). Returns a league only when all contributing entities of the
-    article's sport agree on one competition; conflicting memberships → None.
-    """
-    if sport not in ("basketball", "football"):
-        return None
-    comps: set[str] = set()
-    for name in entities:
-        ent = entity_by_legacy_name(name)
-        if ent is None or ent.sport != sport:
-            continue
-        if ent.domestic_competition:
-            comps.add(ent.domestic_competition)
-        elif ent.memberships:
-            # players/coaches (and teams without a domestic slot): use the single
-            # membership when unambiguous.
-            membership_comps = {m[0] for m in ent.memberships}
-            if len(membership_comps) == 1:
-                comps.add(next(iter(membership_comps)))
-    if len(comps) != 1:
-        return None
-    comp = COMPETITIONS.get(next(iter(comps)))
-    return comp.display_en if comp else None
-
-
-# ── Event type detection ──────────────────────────────────────────────────────
-
-_GRAND_SLAM_KW = (
-    "grand slam", "גראנד סלאם",
-    # Specific Grand Slam names: a win at any of these is grand_slam_winner
-    "roland garros", "רולאן גארוס", "french open",
-    "wimbledon", "וימבלדון",
-    "us open", 'ארה"ב הפתוחה', 'ארה״ב הפתוחה',  # US Open in Hebrew (#225)
-    "australian open", "אליפות אוסטרליה",
-)
-# Hebrew champion NOUNS are included here (#133) so a slam win phrased "סינר אלוף
-# ווימבלדון" is PROPOSED at all — the proposal list must mirror the validation
-# table (the #138 lesson). This layer is deliberately high-recall: the epithet /
-# elimination / aspiration filtering is validation's job
-# (`_has_grand_slam_win_evidence`), not this tuple's.
-_GRAND_SLAM_WIN_KW = (
-    "winner", "wins", "won", "champion", "זוכה", "זכה", "זכתה",
-    "אלוף", "אלופה", "אלופת", "אלופות",
-)
-
-_SIGNING_KW = (
-    "חתם", "חתמה", "חתמו", "החתים", "חתימה",
-    "הצטרף", "הצטרפה",       # joined / signed and joined
-    "signed", "signing",
-    "לעונה נוספת",   # for another season — contract extension
-    "מונה למאמן",    # appointed as head coach
-    # Feminine forms — "למאמנת" uses regular nun (נ U+05E0) while "למאמן" ends
-    # with final nun (ן U+05DF), so the masculine keyword is NOT a substring of
-    # the feminine form (same Unicode issue as the אלוף/אלופת fix in PR 11).
-    "מונתה למאמן",   # appointed (feminine subject) as head coach — PR 13
-    "מונתה למאמנת",  # appointed (feminine subject) as head coach (feminine) — PR 13
-    "מונה למאמנת",   # appointed as head coach (feminine role) — PR 13
-    "מינוי",         # appointment / designation
-    "הארכת חוזה",    # contract extension (noun form) — PR 13
-    "האריך חוזה",    # extended contract (masculine) — PR 13
-    "האריכה חוזה",   # extended contract (feminine) — PR 13
-    "חוזה חדש",      # new contract — PR 13
-    # Intentionally NOT included (false-positive risk — PR 13):
-    #   "שוחרר" alone — collides with hospital-release in injury coverage
-    #   "עזב" alone — generic departure wording, often opinion/recap pieces
-    #   "מאמן חדש" alone — presentation/opinion pieces, not a signing event
-)
-_SIGNING_WORD_KW = ("signs", "sign")   # word boundary to avoid "signal"
-
-_NEGOTIATION_KW = (
-    'במו"מ', 'מו"מ', 'במו״מ', 'מו״מ',
-    "במשא ומתן", "מגעים", "שיחות",
-    "מתקרב", "מתקרבת",      # approaching / close to
-    "סיכם", "סיכמה",         # finalised/agreed (often precedes signing)
-    "על סף חתימה",           # on the verge of signing
-    "על סף סיכום",           # on the verge of agreement (#60, golden C9)
-    # Anticipated completion is not completion (#138) — the #125 aspiration law applied
-    # to transfers. "צפויה לצרף את X" (expected to add X) reports a deal in progress;
-    # without these the signing keyword in a secondary clause wins and one source lands
-    # on signing while the others land on negotiation for the SAME event (Storonski).
-    "צפוי לצרף", "צפויה לצרף", "צפוי להצטרף", "צפויה להצטרף",
-    "negotiations", "negotiation", "in talks", "advanced talks",
-)
-_NEGOTIATION_WORD_KW = ("talks",)
-
-_CANDIDATE_KW = (
-    "מועמד", "מועמדת", "בודקת", "בודק",
-    "על הכוונת", "עוקבת", "עוקב",
-    "מעוניינת", "מעוניין",   # interested in
-    "עשוי להגיע", "עשויה להגיע",  # may arrive
-    "monitoring", "candidate", "interested in",
-    "המטרות הבאות", "המטרה הבאה",  # the next targets / the next target
-)
-_CANDIDATE_WORD_KW = ("target",)
-
-_INJURY_KW = (
-    "נפצע", "נפצעה", "פציעה", "ייעדר", "יעדר", "פצוע",
-    "בספק",                  # in doubt (fitness doubt)
-    "קרע",                   # tear (muscle/ligament tear)
-    "חבלה",                  # bruise / contusion
-    "injured", "injury", "out for",
-)
-_TRADE_KW = (
-    "טרייד", "נסחר", "נסחרה",
-    "הועבר", "הועברה",       # was transferred
-    "traded", "trade deal",
-)
-_TRADE_WORD_KW = ("trade",)
-
-_RELEASE_KW = (
-    "שוחרר", "שוחררה", "שוחררו",
-    "שחררה את", "שחרר את",
-    # Departure forms — the proposal list must mirror the validation table (#138).
-    # The #113 fix taught VALIDATION the masculine "נפרד מ", but this proposal list
-    # still knew only the feminine — so a masculine farewell was never PROPOSED as a
-    # release, validated nothing, and fell through to news while another source's
-    # feminine/explicit form became release: a cross-source event-state split on the
-    # SAME event. "פרידה" covers the construct/definite forms ("מילות הפרידה",
-    # "פוסט פרידה") that the contiguous "פרידה מ" phrase missed.
-    "נפרדה מ", "נפרד מ", "נפרדו מ",
-    "עוזב את", "עוזבת את", "פרידה",
-    "released", "waived", "cut by", "roster cuts",
-)
-
-_FINALS_KW = ("גמר", "finals", "championship", "אליפות")
-
-# title_win detection — split into two sets to avoid false positives.
-# Unambiguous championship words: any of these alone is sufficient for title_win.
-_TITLE_WIN_UNAMBIGUOUS_KW = (
-    "אלוף", "אלופה",
-    "אלופת",   # construct state feminine: "אלופת ה-NBA" — ף (U+05E3) ≠ פ (U+05E4)
-    "אלופות",  # plural feminine: "אלופות הליגה"
-    "הניפה", "הניף",  # lifted/raised a trophy
-    "champion", "champions", "title", "trophy", "clinches", "clinched",
-)
-# Hebrew "won" verbs — too broad alone ("זכה לביקורת", "זכו ברגע").
-# Only trigger title_win when paired with an explicit championship context word.
-_WIN_VERB_HE = ("זוכה", "זכה", "זכתה", "זכו")
-# Championship context required when only win-verbs are present.
-# Intentionally excludes "גמר" — a final ≠ a title win.
-_WIN_CHAMPIONSHIP_CTX_KW = (
-    "בגביע", "הגביע", "גביע",
-    "בתואר", "תואר",
-    "באליפות",
-)
-
-_PLAYOFF_KW = ("פלייאוף", "playoffs", "playoff")
-
-_EARLY_ROUND_TENNIS_KW = (
-    "סיבוב ראשון", "סיבוב שני", "סיבוב שלישי",
-    "first round", "second round", "third round",
-    "round of 16", "round of 32",
-)
-
-_DEATH_ACCIDENT_KW = ("נהרג", "נפטר", "תאונה קטלנית")
-
-_SCHEDULE_KW = (
-    # Proposal only: event_evidence keeps a "שידור" only when it announces a broadcast (#406).
-    'לו"ז', "לוח משחקים", "שידורים", "שידור", "ישודר", "תשודר", "לקראת", "תאריכים",
-    "schedule", "preview", "upcoming", "fixture", "fixtures",
-)
-
-_RESULT_KW = (
-    "ניצח", "הפסיד", "הביס", "תוצאה",
-    "beats", "beat", "defeats", "defeat", "won", "loses", "lost", "victory",
-)
-_REGULAR_SEASON_KW = ("ליגה הרגילה", "regular season")
-
-
-def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
-    # Death/accident guard: prevent "נהרג"/"נפטר" articles from triggering title_win
-    # via incidental championship words (e.g. "נהרג אלוף הגביע" → "news", not "title_win").
-    if _has(text, *_DEATH_ACCIDENT_KW):
-        return validate_event_evidence("news", text, source="rules")
-
-    proposals: list[str] = []
-
-    # Editorial formats are existing product types. Positive format evidence
-    # prevents a background transaction in an analysis from claiming the story.
-    for event in ("relocation", "analysis", "interview"):
-        if validate_event_evidence(event, text, sport=sport).valid:
-            proposals.append(event)
-
-    # Club governance (#229) is proposed before the transfer cycle: an ownership deal
-    # says "רכשה" / "סיכמו" and must not become a signing or a negotiation. Its
-    # vocabulary is narrow enough (event_evidence._CLUB_GOVERNANCE) to go first.
-    if validate_event_evidence("club_governance", text, sport=sport).valid:
-        proposals.append("club_governance")
-
-    # Grand slam winner: needs BOTH the tournament context AND a win signal.
-    if sport == "tennis" and _has(text, *_GRAND_SLAM_KW) and _has(text, *_GRAND_SLAM_WIN_KW):
-        proposals.append("grand_slam_winner")
-
-    # Transfer-cycle events are proposed BEFORE championship events (issue #60):
-    # a headline carrying both negotiation evidence and a champion epithet
-    # ("מתקרב לאלופת איטליה") is a transfer story, not a title win.
-
-    # Release / roster cut. Checked before signing so "released" does not become
-    # a generic transaction.
-    if _has(text, *_RELEASE_KW):
-        proposals.append("release")
-
-    # Negotiation — checked BEFORE signing because "על סף חתימה" (on the verge of
-    # signing) contains "חתימה" which would otherwise trigger signing detection first.
-    if _has(text, *_NEGOTIATION_KW) or any(_has_word(text, w) for w in _NEGOTIATION_WORD_KW):
-        proposals.append("negotiation")
-
-    # Signing
-    if _has(text, *_SIGNING_KW) or any(_has_word(text, w) for w in _SIGNING_WORD_KW):
-        proposals.append("signing")
-
-    # Candidate / monitoring
-    if _has(text, *_CANDIDATE_KW) or any(_has_word(text, w) for w in _CANDIDATE_WORD_KW):
-        proposals.append("candidate")
-
-    # Injury
-    if _has(text, *_INJURY_KW):
-        proposals.append("injury")
-
-    # Trade
-    if _has(text, *_TRADE_KW) or any(_has_word(text, w) for w in _TRADE_WORD_KW):
-        proposals.append("major_trade")
-
-    # Finals / championship result — proposals only; validation applies the
-    # assertion-semantics contract (event_evidence, issue #60).
-    if _has(text, *_FINALS_KW):
-        proposals.append("finals_result")
-    if _has(text, *_TITLE_WIN_UNAMBIGUOUS_KW):
-        proposals.append("title_win")
-    if _has(text, *_WIN_VERB_HE) and _has(text, *_WIN_CHAMPIONSHIP_CTX_KW):
-        proposals.append("title_win")
-
-    # Playoff
-    if _has(text, *_PLAYOFF_KW):
-        proposals.append("playoff_result")
-
-    # Tennis early round
-    if sport == "tennis" and _has(text, *_EARLY_ROUND_TENNIS_KW):
-        proposals.append("early_round_result")
-
-    # Regular season result
-    if _has(text, *_REGULAR_SEASON_KW):
-        proposals.append("regular_season_result")
-
-    # Schedule / preview
-    if _has(text, *_SCHEDULE_KW):
-        proposals.append("schedule")
-
-    # Generic match result
-    if _has(text, *_RESULT_KW) or re.search(PREVAILED_OVER_PATTERN, text):
-        proposals.append("match_result")
-
-    for proposal in proposals:
-        evidence = validate_event_evidence(proposal, text, source="rules", sport=sport)
-        if evidence.valid:
-            return evidence
-
-    return validate_event_evidence("news", text, source="rules", sport=sport)
-
-
-def detect_article_event(title: str, subtitle: str, sport: str) -> EventEvidence:
-    """Title-first event routing, shared by ingestion and targeted corrections."""
-    title, subtitle = title.lower(), subtitle.lower()
-    evidence = _detect_event_evidence(title, sport)
-    if evidence.event_type != "news" or not subtitle:
-        return evidence
-    # Relocation may assert the coordinated franchise in the title and its
-    # physical home move in the subtitle. Neither half alone proves the event.
-    relocation = validate_event_evidence("relocation", title + " " + subtitle, sport=sport)
-    evidence = relocation if relocation.valid else _detect_event_evidence(subtitle, sport)
-    # A win word in the subtitle of a story about a champion describes that champion ("ניצחונו
-    # הראשון כאלוף העולם"): it reports no game (#403, the #418 shape). Other events stand.
-    if evidence.event_type == "match_result" and (
-        reads_as_champion_epithet(title) or reads_as_champion_epithet(subtitle)
-    ):
-        return validate_event_evidence("news", title, source="rules", sport=sport)
-    if evidence.certainty == "confirmed" and evidence.event_type != "news":
-        return EventEvidence(evidence.event_type, True, "probable")
-    return evidence
-
-
-# ── Importance assignment ─────────────────────────────────────────────────────
-
-_VERY_HIGH_EVENTS = frozenset({"grand_slam_winner", "finals_result", "title_win"})
-_HIGH_EVENTS = frozenset({"signing", "negotiation", "injury", "major_trade", "major_transfer"})
-_HIGH_LEAGUES = frozenset({"NBA", "EuroLeague"})
-_HIGH_ENTITIES = frozenset({"Maccabi Tel Aviv Basketball", "Deni Avdija"})
-_LOW_EVENTS = frozenset({"schedule", "early_round_result"})
-
-
-def _assign_importance(
-    event_type: str,
-    entities: list[str],
-    league: Optional[str],
-    event_certainty: str = "confirmed",
-) -> str:
-    if event_type in _VERY_HIGH_EVENTS:
-        # very_high is reserved for confirmed championship events (issue #60):
-        # a probable/weak title_win (subtitle-derived or LLM-only) is high.
-        return "very_high" if event_certainty == "confirmed" else "high"
-
-    has_high_entity = any(e in _HIGH_ENTITIES for e in entities)
-
-    if event_type in _HIGH_EVENTS:
-        if has_high_entity or league in _HIGH_LEAGUES:
-            return "high"
-        return "medium"
-
-    if event_type in _LOW_EVENTS:
-        return "low"
-
-    # Generic news with no tracked entity: downgrade to low.
-    # Reduces noise from generic NBA filler that has no signal keyword.
-    if event_type == "news" and not has_high_entity:
-        return "low"
-
-    return "medium"
-
-
-# ── Confidence assignment ─────────────────────────────────────────────────────
-
-def _assign_confidence(
-    sport: str,
-    league: Optional[str],
-    entities: list[str],
-    event_type: str,
-    source_id: str,
-) -> float:
-    score = 0.40
-    if sport != "unknown":
-        score += 0.15
-    if source_id in _BASKETBALL_ONLY_SOURCES and sport == "basketball":
-        score += 0.05  # source context confirms sport
-    if league:
-        score += 0.15
-    if entities:
-        score += 0.15
-    if event_type != "news":
-        score += 0.10
-    return round(min(score, 0.95), 2)
-
-
-# ── Tag collection ────────────────────────────────────────────────────────────
-
-def _collect_tags(
-    sport: str,
-    league: Optional[str],
-    entities: list[str],
-    event_type: str,
-) -> list[str]:
-    tags: list[str] = []
-    if sport != "unknown":
-        tags.append(sport)
-    if league:
-        tags.append(league)
-    tags.extend(entities)
-    if event_type != "news":
-        tags.append(event_type)
-    return tags
 
 
 # ── Public interface ──────────────────────────────────────────────────────────
@@ -1159,108 +345,3 @@ def classify(
         tags=tags,
         event_certainty=event_evidence.certainty,
     )
-
-
-# ── Public helpers for post-classification enrichment ─────────────────────────
-
-def compute_importance(
-    event_type: str,
-    entities: list[str],
-    league: Optional[str],
-    event_certainty: str = "confirmed",
-) -> str:
-    """Public wrapper for _assign_importance.
-
-    Use when entities change after initial classification (e.g., post-LLM entity
-    injection) or when the final event certainty gates very_high (#60).
-    """
-    return _assign_importance(event_type, entities, league, event_certainty)
-
-
-def enrich_maccabi_entity_after_sport_resolve(
-    entities: list[str],
-    title_lower: str,
-    sport: str,
-) -> list[str]:
-    """Inject Maccabi Tel Aviv Basketball entity if sport was resolved to basketball post-classify.
-
-    Deprecated in PR 13 — kept as a Maccabi-only wrapper around
-    enrich_basketball_entities_after_sport_resolve() for backward compatibility.
-
-    Returns a new list if enriched; returns the same object if no change (identity check safe).
-    """
-    if (
-        sport != "basketball"
-        or "Maccabi Tel Aviv Basketball" in entities
-        or "Maccabi Tel Aviv Football" in entities
-        or _has_football_maccabi_context(title_lower)
-        or not _has_maccabi_tel_aviv_phrase(title_lower)
-    ):
-        return entities
-    return [*entities, "Maccabi Tel Aviv Basketball"]
-
-
-# Basketball club entities injectable post-merge when the LLM resolved
-# sport=basketball for a title that names the club but had no sport context
-# keywords (the ambiguous_club gap). Derived from the taxonomy registry:
-# all unguarded Israeli Basketball League clubs, with their full-name aliases.
-def _derive_basketball_enrichment_phrases() -> dict[str, tuple[str, ...]]:
-    phrases: dict[str, tuple[str, ...]] = {}
-    for entity in entities_by_sport("basketball"):
-        if entity.kind != "team" or entity.guarded:
-            continue
-        if entity.domestic_competition != "comp:ibl":
-            continue
-        phrases[entity.legacy_name] = tuple(entity.aliases)
-    return phrases
-
-
-_BASKETBALL_ENRICHMENT_PHRASES: dict[str, tuple[str, ...]] = (
-    _derive_basketball_enrichment_phrases()
-)
-
-
-def enrich_basketball_entities_after_sport_resolve(
-    entities: list[str],
-    title_lower: str,
-    sport: str,
-) -> tuple[list[str], list[str]]:
-    """Inject basketball club entities after the final sport is resolved to basketball.
-
-    Generalizes the Maccabi-only enrichment (PR 13). classify() leaves entities empty
-    for ambiguous_club titles with no sport context; the LLM resolves sport=basketball
-    but the merge does not retroactively add entities. This corrects that gap for all
-    clubs in _BASKETBALL_ENRICHMENT_PHRASES.
-
-    Guards:
-    - only when sport == "basketball" (never football, never unknown)
-    - never when a football Maccabi club is named in the title
-    - for non-Maccabi clubs, additionally never when generic football context is present
-      (extra-conservative second layer; the Maccabi path keeps its original semantics)
-    - entity must not already be present
-
-    Returns (entities, injected). When nothing is injected, `entities` is the
-    same object that was passed in (identity check safe) and `injected` is [].
-    """
-    if sport != "basketball" or _has_football_maccabi_context(title_lower):
-        return entities, []
-
-    injected: list[str] = []
-    for canonical, phrases in _BASKETBALL_ENRICHMENT_PHRASES.items():
-        if canonical in entities or canonical in injected:
-            continue
-        if not _has(title_lower, *phrases):
-            continue
-        if canonical == "Maccabi Tel Aviv Basketball":
-            # Preserve original Maccabi-only exclusion exactly.
-            if "Maccabi Tel Aviv Football" in entities:
-                continue
-        else:
-            # Non-Maccabi clubs: skip when generic football context is present.
-            if _has_football_context(title_lower):
-                continue
-        injected.append(canonical)
-
-    if not injected:
-        return entities, []
-    return [*entities, *injected], injected

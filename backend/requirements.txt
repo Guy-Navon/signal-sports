@@ -1,13 +1,10 @@
 # Ranges only. Installs use the hash-pinned requirements.lock generated from this
 # file; regenerate it in its own PR when a range changes (policy: its header).
 #
-# Upper bound is deliberate. FastAPI 0.141 stopped flattening include_router
-# into APIRoute objects on app.routes, which makes the authorization
-# inventory in tests/test_authz_inventory.py walk an empty route table and
-# pass while proving nothing. The suite now fails loudly on that (see
-# _registered_routes_checked); lift this bound only together with a fix to
-# that introspection. Known-good: 0.136.3.
-fastapi>=0.100.0,<0.137
+# No upper bound on fastapi: tests/test_authz_inventory.py walks the public
+# router registry in app.main (router_includes), not FastAPI's internal route
+# table, so FastAPI 0.141+ no longer breaks it (audit L9).
+fastapi>=0.100.0
 uvicorn[standard]>=0.23.0
 pydantic>=2.0.0
 sqlalchemy>=2.0.0

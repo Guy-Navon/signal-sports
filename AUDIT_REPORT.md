@@ -17,9 +17,9 @@ active defects. There are no Critical findings.
 | Medium | 5 |
 | Low | 9 |
 
-**Status (2026-11-17, end of day):** H1, H2, M1–M4, L2–L5 resolved. Open: M5 (owner
-action), L1 (deferred), L6 (local housekeeping), L7 (owner decision), L8 (incremental),
-L9 (needs a design choice). Each finding carries its own status line.
+**Status (2026-11-17, end of day):** H1, H2, M1–M4, L2–L5, L9 resolved. Open: M5 (owner
+action), L1 (deferred), L6 (local housekeeping), L7 (owner decision), L8 (incremental).
+Each finding carries its own status line.
 
 ---
 
@@ -194,7 +194,7 @@ L9 (needs a design choice). Each finding carries its own status line.
   rule family into its own module, with its tests moved alongside.
 
 ### L9. The FastAPI version cap is deliberate debt
-- **Status: open — needs a design choice.** Checked against FastAPI 0.141.1 (scratch install): `app.routes` holds starlette `Route`s for the docs plus one private `fastapi.routing._IncludedRouter` per `include_router` call. The wrapped routes and the include-level dependencies (the admin gate set in `main.py`, which the test must verify) are reachable only through private attributes (`original_router`, `include_context`). A durable fix is a public registry of router includes in `main.py` that the test walks, or a behavioral 401/403 sweep; either is its own PR, followed by the lock refresh.
+- **Status: resolved 2026-11-17** (`fix: decouple authz test from FastAPI internals and lift version cap`). `create_app` now registers every router through a public registry, `app.main.router_includes()` (`RouterInclude`: router, prefix, tags, include-level dependencies), and stores it on `app.state.router_includes`. `tests/test_authz_inventory.py` walks that registry (public `APIRouter.routes` plus the recorded include dependencies) instead of `app.routes`, and fails unless the walked set equals the operations in the served OpenAPI schema, so a router registered outside the registry is caught. The behavioral 401/403 matrix is unchanged. Mutation-checked: dropping the admin dependency from an include, or hiding an include from the registry, both fail the suite. The `<0.137` cap is gone from `requirements.txt`; the lock moves only `fastapi` 0.136.3 → 0.163.1 (starlette unchanged at 1.10.0), and the full backend suite passes on it.
 - **Where:** [backend/requirements.txt](backend/requirements.txt) (`fastapi>=0.100.0,<0.137`).
 - **Problem:** The authz inventory test walks `app.routes`, and that broke in FastAPI 0.141.
   The cap blocks security updates to FastAPI/Starlette.

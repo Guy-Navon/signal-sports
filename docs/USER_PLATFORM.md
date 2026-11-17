@@ -174,9 +174,14 @@ They are separate tables; identity concerns never enter `profiles`.
   `signup_by_invitation` (closed + a non-empty allowlist), so the login page hides its signup
   link and `/signup` shows "ההרשמה סגורה", or the form marked invitation-only.
 - **Deployment mode (#265)**: `DEPLOY_ENV` (`app/core/deploy_mode.py`), checked by the API
-  lifespan and the worker before the DB is opened. Unset/`local` changes nothing.
-  `hosted` refuses `ALLOW_DEV_RESET`, `ALLOW_CORPUS_DB_RESET`, `ALLOW_INSECURE_AUTH_BYPASS`
-  and `CLASSIFICATION_PROVIDER=fake`, and warns on `AUTH_COOKIE_SECURE` not true, signup
+  lifespan and the worker before the DB is opened. Unset/`local` checks nothing on a scratch
+  or copy DB; on the real corpus it refuses `CLASSIFICATION_PROVIDER=fake`,
+  `RETENTION_CLEANUP_ENABLED=true` and `ALLOW_INSECURE_AUTH_BYPASS=true`, and warns on
+  `ALLOW_DEV_RESET`/`ALLOW_CORPUS_DB_RESET`. `ALLOW_UNSAFE_LOCAL_CORPUS=true` turns those local
+  refusals into warnings for a deliberate one-off. `hosted` refuses `ALLOW_DEV_RESET`,
+  `ALLOW_CORPUS_DB_RESET`, `ALLOW_INSECURE_AUTH_BYPASS`, `ALLOW_UNSAFE_LOCAL_CORPUS` and
+  `CLASSIFICATION_PROVIDER=fake`, refuses `AUTH_COOKIE_SECURE` not true unless every
+  `CSRF_ALLOWED_ORIGINS` entry is loopback (rehearsals; then a warning), and warns on signup
   open, `CSRF_ALLOWED_ORIGINS` unset and retention on. `dev` refuses Telegram (the flag or
   either secret) and any production DB (the canonical corpus filename, or a path under
   `/srv/signal/prod` or `SIGNAL_PROD_DATA_DIRS`; this check also runs at engine creation,

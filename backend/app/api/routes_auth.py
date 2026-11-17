@@ -219,6 +219,7 @@ def _session_bootstrap(session: Session, user: UserRow | None) -> SessionBootstr
 @router.post("/signup", response_model=SignupPendingResponse, status_code=202)
 def signup(
     payload: SignupRequest,
+    request: Request,
     session: Session = Depends(get_session),
 ):
     """Start a password registration: a pending row and one emailed link.
@@ -234,6 +235,7 @@ def signup(
             email=str(payload.email),
             password=payload.password,
             display_name=payload.display_name,
+            client_ip=_client_ip(request),
         )
     except email_verification.MailNotConfigured:
         raise HTTPException(status_code=503, detail="Email delivery is not configured")

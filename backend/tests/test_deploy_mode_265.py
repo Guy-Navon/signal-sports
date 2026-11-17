@@ -29,6 +29,7 @@ _GUARDED_ENV = (
     "CSRF_ALLOWED_ORIGINS", "RETENTION_CLEANUP_ENABLED", "TELEGRAM_NOTIFICATIONS_ENABLED",
     "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "SCHEDULER_ENABLED", "SIGNAL_PROD_DATA_DIRS",
     "MAIL_BACKEND", "APP_PUBLIC_URL", "SMTP_HOST", "MAIL_FROM", "AUTH_SIGNUP_ALLOWED_EMAILS",
+    "ALLOW_UNSAFE_LOCAL_CORPUS",
 )
 
 
@@ -63,14 +64,64 @@ def test_unknown_mode_refuses_instead_of_falling_back_to_local(env, value):
         validate_deploy_startup_config()
 
 
-def test_local_mode_checks_nothing(env):
-    # Local mode is today's PC: even the dev escape hatches pass untouched.
+CORPUS_URL = "sqlite:///./data/signal_sports.db"
+
+
+def test_local_mode_on_a_scratch_db_keeps_every_dev_convenience(env):
+    # A copy or temp DB on the PC: the dev escape hatches pass untouched.
     for flag in deploy_mode.HOSTED_FORBIDDEN_FLAGS:
         env.setenv(flag, "true")
+    env.setenv("CLASSIFICATION_PROVIDER", "fake")
+    env.setenv("RETENTION_CLEANUP_ENABLED", "true")
     env.setenv("TELEGRAM_NOTIFICATIONS_ENABLED", "true")
-    env.setenv("DATABASE_URL", "sqlite:///./data/signal_sports.db")
     assert validate_deploy_startup_config() == []
-    assert_database_allowed("sqlite:///./data/signal_sports.db")
+
+
+def test_local_mode_on_the_corpus_with_a_clean_config_starts_silently(env):
+    # The live PC configuration (AUDIT_REPORT M2): nothing to refuse or warn.
+    env.setenv("DATABASE_URL", CORPUS_URL)
+    env.setenv("CLASSIFICATION_PROVIDER", "openai_compat")
+    assert validate_deploy_startup_config() == []
+    assert_database_allowed(CORPUS_URL)
+
+
+@pytest.mark.parametrize("name, value", [
+    ("CLASSIFICATION_PROVIDER", "fake"),
+    ("RETENTION_CLEANUP_ENABLED", "true"),
+    ("ALLOW_INSECURE_AUTH_BYPASS", "true"),
+])
+def test_local_mode_refuses_corpus_damaging_settings_on_the_corpus(env, name, value):
+    env.setenv("DATABASE_URL", CORPUS_URL)
+    env.setenv(name, value)
+    with pytest.raises(UnsafeDeployConfig) as info:
+        validate_deploy_startup_config()
+    assert "DEPLOY_ENV=local" in str(info.value)
+    assert name in str(info.value)
+
+
+def test_local_mode_warns_on_dev_reset_flags_on_the_corpus(env):
+    # The /api/dev routes stay double-gated; a loud warning, not a refusal.
+    env.setenv("DATABASE_URL", CORPUS_URL)
+    env.setenv("ALLOW_DEV_RESET", "true")
+    env.setenv("ALLOW_CORPUS_DB_RESET", "true")
+    warnings = " | ".join(validate_deploy_startup_config())
+    assert "ALLOW_DEV_RESET" in warnings
+    assert "ALLOW_CORPUS_DB_RESET" in warnings
+
+
+def test_local_corpus_refusals_have_an_explicit_opt_out(env):
+    env.setenv("DATABASE_URL", CORPUS_URL)
+    env.setenv("CLASSIFICATION_PROVIDER", "fake")
+    env.setenv("ALLOW_UNSAFE_LOCAL_CORPUS", "true")
+    warnings = " | ".join(validate_deploy_startup_config())
+    assert "CLASSIFICATION_PROVIDER=fake" in warnings
+
+
+def test_the_local_opt_out_is_refused_on_a_host(env):
+    _hosted_ok(env)
+    env.setenv("ALLOW_UNSAFE_LOCAL_CORPUS", "true")
+    with pytest.raises(UnsafeDeployConfig, match="ALLOW_UNSAFE_LOCAL_CORPUS"):
+        validate_deploy_startup_config()
 
 
 # ── Hosted ────────────────────────────────────────────────────────────────────
@@ -105,11 +156,27 @@ def test_hosted_reports_every_refusal_at_once(env):
     assert "ALLOW_INSECURE_AUTH_BYPASS" in str(info.value)
 
 
+def test_hosted_refuses_an_insecure_session_cookie(env):
+    # Hosted sessions are HTTPS by contract (docs/DEPLOYMENT.md, AUDIT_REPORT M2).
+    _hosted_ok(env)
+    env.delenv("AUTH_COOKIE_SECURE")
+    with pytest.raises(UnsafeDeployConfig, match="AUTH_COOKIE_SECURE"):
+        validate_deploy_startup_config()
+
+
+def test_hosted_loopback_rehearsal_may_use_an_insecure_cookie(env):
+    # deploy/*.sh rehearsals run hosted over plain HTTP on 127.0.0.1 only.
+    _hosted_ok(env)
+    env.setenv("AUTH_COOKIE_SECURE", "false")
+    env.setenv("CSRF_ALLOWED_ORIGINS", "http://127.0.0.1:18080")
+    assert "AUTH_COOKIE_SECURE" in " | ".join(validate_deploy_startup_config())
+
+
 def test_hosted_warns_on_weak_settings(env):
     env.setenv("DEPLOY_ENV", "hosted")
+    env.setenv("AUTH_COOKIE_SECURE", "true")
     env.setenv("RETENTION_CLEANUP_ENABLED", "true")
     warnings = " | ".join(validate_deploy_startup_config())
-    assert "AUTH_COOKIE_SECURE" in warnings
     assert "AUTH_SIGNUP_ENABLED" in warnings
     assert "CSRF_ALLOWED_ORIGINS" in warnings
     assert "RETENTION_CLEANUP_ENABLED" in warnings

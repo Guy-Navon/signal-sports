@@ -114,7 +114,7 @@ Only flags that differ from, or matter beyond, the defaults in `backend/.env.exa
 | `RETENTION_CLEANUP_ENABLED` | unset (false) | **Never enable on the real corpus** (deletes old rows; rated ones are protected, unrated history is not) |
 | `ALLOW_DEV_RESET` / `ALLOW_CORPUS_DB_RESET` | `false` | |
 | `MAIL_BACKEND` | `console` | Signup links are logged, not emailed; a real SMTP provider is #333 |
-| `DEPLOY_ENV` | unset (`local`) | Local mode runs no deploy-safety checks ([../AUDIT_REPORT.md](../AUDIT_REPORT.md) M2) |
+| `DEPLOY_ENV` | unset (`local`) | Local mode on the corpus refuses fake LLM, retention and the auth bypass, and warns on dev-reset flags ([../AUDIT_REPORT.md](../AUDIT_REPORT.md) M2) |
 | Source overrides (DB table `source_overrides`) | `sport5_sport` on, `one_sport` on, `sportando` off | Sport5's code default still says "pilot, disabled" (#395) |
 
 ---

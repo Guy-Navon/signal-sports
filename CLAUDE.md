@@ -1,610 +1,178 @@
-# Signal Sports — Product Context for Claude
+# Signal Sports — Guide for AI Sessions
 
-> Historical prototype brief: the “current” priorities and implementation restrictions below describe the original Base44 phase. For implemented behavior, read `docs/CURRENT_PROJECT_STATE.md`; for the September 2026 repository audit (merged, PR #186), read `docs/audits/2026-09-05.md`. Auth, the backend, ingestion, clustering and results already exist. Retain the product principles below without treating the old status claims as current. The "First Required Deliverables" below were produced in June–July 2026. `docs/PRODUCT_UNDERSTANDING.md` is kept; `docs/IMPLEMENTATION_AUDIT.md` was retired on 2026-10-12 (it audited the pre-backend prototype; see git history). Do not recreate it.
+Signal Sports is a personalized, Hebrew-first sports news intelligence feed. It ingests
+Israeli sports news, works out what each article is about, and shows each user only what is
+worth *their* attention. North star:
 
-## What This Project Is
+> "What sports news is actually worth this user's attention right now?" — not "what sports
+> news exists?"
 
-Signal Sports is intended to become a personalized sports news intelligence feed.
+A beautiful generic feed is a failure; a rough feed that filters correctly is closer to success.
 
-It is not a generic RSS reader.
-It is not a regular sports news website.
-It is not just a UI around sports articles.
+**Where the truth lives.** This file is a map, not a status report.
+- Current behavior, runtime state and history: [docs/CURRENT_PROJECT_STATE.md](docs/CURRENT_PROJECT_STATE.md)
+- Product vision: [docs/PRODUCT_UNDERSTANDING.md](docs/PRODUCT_UNDERSTANDING.md)
+- Delivery workflow (branch + PR per feature): [AGENTS.md](AGENTS.md)
+- Latest repository audit findings: [AUDIT_REPORT.md](AUDIT_REPORT.md) (2026-11-17); older: [docs/audits/2026-09-05.md](docs/audits/2026-09-05.md)
+- When docs and code disagree, the code wins; fix the doc (skill `signal-doc-truth`).
 
-The core idea is:
+## Product principles (non-negotiable)
 
-> A user should not need to open 7 different sports websites to find the few sports stories that actually matter to them.
+- **Facts are user-independent; decisions are per user.** Keep three concerns separate:
+  article classification (what is it about) → preference matching (does this user care) →
+  final decision. The same article can be `push` for one user and `hidden` for another.
+- **Decisions:** `hidden` (debug/ops only) · `low_feed` · `feed` · `high_feed` · `push`.
+- **Push is rare and explicit.** It comes only from an explicit `always_push` override behind a
+  factual severity gate; a boost or importance score never produces push. Owner rules in force:
+  a title win is never a push (`high_feed` at most); injuries are not a push; live in-game score
+  updates never appear in the feed for any profile.
+- **Abstention beats guessing.** An unsure classifier says `sport=unknown`, no entity, or event
+  `news`. A false fact is worse than a missed one.
+- **Profiles, not hardcoding.** Demo users (`guy` — basketball power user; `deni` — casual
+  Deni Avdija fan) exist only as seed preference profiles; never special-case them in engines.
+- **The LLM is optional.** `CLASSIFICATION_PROVIDER=disabled` is a first-class path.
+- **Measure against owner ratings** (census gate + N05), reading precision and recall
+  separately. Unit tests prove the engine does what it was told, not that it was told the right thing.
+- **Hebrew UI, English code.** All user-visible strings are Hebrew/RTL; identifiers and comments English.
+- Link to original articles; never copy full article content.
 
-Signal Sports should aggregate sports news from multiple sources, understand what each article is about, compare it against the user's personal sports interests, remove noise, group duplicate stories, and surface only what is worth that specific user's attention.
+## Data safety (hard rules)
 
-The product is about signal over noise.
+- `backend/data/signal_sports.db` is the irreplaceable real corpus (not in git; carries the
+  ids behind the human ratings). Never reset it, never delete from it casually, never run a
+  blanket rules-only backfill. Corrections go through id-listed, dry-run-default scripts.
+- Never enable retention (`RETENTION_CLEANUP_ENABLED`) on the real corpus — it can delete rated rows.
+- Run experiments on a copy (`DATABASE_URL=sqlite:///./data/<copy>.db`). `/api/dev/*` routes are
+  double-gated (`ALLOW_DEV_RESET` + admin) and refuse the corpus unless `ALLOW_CORPUS_DB_RESET=true`.
+- Never commit `.env*` (except the tracked `*.env.example` templates), databases, logs,
+  demo snapshots or builds.
 
-## The Core Problem
+## Architecture
 
-Sports news is noisy.
-
-A user may care deeply about one league, one team, one type of story, or one player, while completely ignoring other sports stories that are objectively "big" but personally irrelevant.
-
-Examples:
-
-* A Maccabi Tel Aviv basketball negotiation can be more important to one user than a major football result.
-* A random NBA regular-season result may matter to a basketball-heavy user but be useless to a user who only follows Deni Avdija.
-* A Grand Slam final winner in tennis may matter, but an early-round tennis result may not.
-* A EuroLeague transfer may matter, while a generic pre-match lineup article may be pure noise.
-* The same article can be important to one user and irrelevant to another.
-
-This is the product's main challenge.
-
-## Product North Star
-
-The product should answer:
-
-> "What sports news is actually worth this user's attention right now?"
-
-Not:
-
-> "What sports news exists?"
-
-The product is successful only if the feed feels personally filtered, intelligent, and low-noise.
-
-A beautiful generic feed is a failure.
-A rough feed that filters correctly is closer to success.
-
-## Current Situation
-
-A first prototype was generated by Base44.
-
-Assume the current codebase may be generic, incomplete, hardcoded, or only partially aligned with the real product idea.
-
-Do not assume the current implementation is correct just because it exists.
-
-Your first job is to understand:
-
-1. What we are trying to build.
-2. What Base44 actually generated.
-3. Where the current code matches the intended product.
-4. Where it is fake, hardcoded, generic, or weak.
-5. What should be kept, improved, rewritten, or removed.
-
-Do not start by rewriting the app.
-
-Start by understanding and auditing.
-
-## The Base44 Prototype Is Not the Source of Truth
-
-The current repository may contain useful pieces:
-
-* UI direction
-* mock data
-* feed page
-* preferences page
-* sources page
-* debug page
-* relevance engine
-* clustering attempt
-
-But it may also contain irrelevant or low-quality generated code:
-
-* unnecessary auth pages
-* hardcoded decisions
-* fake clustering
-* static preferences
-* generic UI
-* weak scoring logic
-* mock data that already contains final decisions instead of being scored dynamically
-
-Treat the Base44 output as a prototype, not as the final architecture.
-
-## Main User Concept
-
-The system must eventually support many different user preference profiles.
-
-For now, there are two important demo profiles.
-
-### Profile 1: Guy — Basketball Power User
-
-Guy is highly interested in basketball.
-
-He cares about:
-
-* Maccabi Tel Aviv basketball
-* EuroLeague
-* Israeli basketball league
-* NBA broadly
-* Basketball transfers
-* Signings
-* Negotiations
-* Injuries
-* Match summaries
-* Important interviews
-* Analysis
-* Major or interesting stories from top European domestic basketball leagues:
-
-  * Spanish ACB
-  * Turkish BSL
-  * Greek Basket League
-  * Italian LBA
-  * French LNB
-
-Important clarification:
-
-Guy does not follow NBA only because of Deni Avdija.
-Guy is broadly interested in NBA.
-
-Guy has lower interest in:
-
-* generic football
-* generic tennis
-* generic pre-match content
-* lineups
-* broadcast info
-* schedule reminders
-* low-value filler content
-
-### Profile 2: Casual Deni Fan
-
-This user mainly cares about Deni Avdija.
-
-For this user:
-
-* Deni Avdija trade news matters
-* Deni Avdija injury news matters
-* Deni Avdija major performance matters
-* generic NBA regular-season results without Deni are noise
-* general basketball news is usually noise
-
-## User Interest Collection / Personalization Onboarding
-
-A major part of this product is not only scoring articles after preferences exist.
-
-A major product challenge is:
-
-> How do we learn what a user actually cares about?
-
-The system should eventually support multiple ways to build a user's interest profile.
-
-### Option 1: Natural Language Preference Input
-
-The user can describe their sports interests in free text.
-
-Example:
-
-> "I care a lot about Maccabi Tel Aviv basketball, especially signings, negotiations, injuries, EuroLeague games, and match summaries. I care about NBA broadly, not only Deni Avdija. I care about tennis only when it is a Grand Slam final or winner. I do not care about generic football results unless it is a huge transfer or a really major event."
-
-The system should eventually convert this natural-language description into a structured preference profile.
-
-Example internal representation:
-
-```json
-{
-  "interests": [
-    {
-      "topic": "Maccabi Tel Aviv Basketball",
-      "priority": 100,
-      "rules": {
-        "signing": "push",
-        "negotiation": "push",
-        "candidate": "high_feed",
-        "injury": "push",
-        "match_result": "feed",
-        "interview": "feed",
-        "friendly_match": "low_feed"
-      }
-    },
-    {
-      "topic": "NBA",
-      "priority": 90,
-      "mode": "all",
-      "followed_entities": ["Deni Avdija"],
-      "rules": {
-        "deni_news": "high_feed",
-        "deni_trade": "push",
-        "major_trade": "push",
-        "star_trade": "push",
-        "finals_result": "high_feed",
-        "regular_season_result": "feed",
-        "generic_preview": "low_feed"
-      }
-    },
-    {
-      "topic": "Tennis",
-      "priority": 30,
-      "mode": "only_major_events",
-      "rules": {
-        "grand_slam_winner": "high_feed",
-        "grand_slam_final": "feed",
-        "early_round_result": "hidden",
-        "generic_news": "hidden"
-      }
-    }
-  ]
-}
+```
+Phone/desktop ── Vite dev server :5173 (React; proxies /api, /health)
+                       ▼
+     API   uvicorn app.main:app :8000   (requests only — NO scheduler)
+                       │  shared SQLite (WAL)  backend/data/signal_sports.db
+     Worker python -m app.worker        (5-min cycles behind a durable DB lease)
+                       │
+     LLM provider (optional) · results providers · Telegram (off)
 ```
 
-Important:
-The exact structure may evolve, but the concept is critical:
-free-text user preferences should become structured scoring rules.
+- **Ingestion cycle** (`app/ingestion/orchestration.py::orchestrate_cycle`): lease → per source
+  fetch → filter → URL dedup → classify (rules → LLM gate → merge guardrails → ArticleFacts →
+  event re-validation) → insert → story anchors → clustering → notification plan/dispatch →
+  results sync → retention (off) → release lease. Manual runs from the API use the same path.
+- **Feed request** (`app/services/feed_service.py`): freshness window (36h, consumer feeds) →
+  Preference V2 scoring (visibility tiers → affinity layers → learned adjustments → overrides) →
+  per-user cluster collapse (card decision = max over visible members).
+- **Public demo** (signal-sports-demo.web.app): `backend/scripts/export_demo_snapshot.py` exports
+  guy's feed read-only to static JSON; `scripts/demo-publish.ps1` builds `frontend` `build:demo`
+  and deploys to Firebase Hosting (hourly Windows task). The demo bundle must stay read-only and
+  scores-only — CI enforces it with `npm run check:demo-bundle`.
+- **Runtime today** is the owner's Windows PC (`DEPLOY_ENV=local`). Hosted deployment (Docker
+  Compose, `deploy/`) is prepared and CI-rehearsed; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-### Option 2: Interest Calibration Using Fake / Synthetic Headlines
+## Stack
 
-Another strong onboarding option is to show the user many fake or synthetic sports headlines that are already tagged internally.
+| Layer | Tech / location |
+|---|---|
+| Backend | Python 3.13, FastAPI (pinned `<0.137`, see `backend/requirements.txt`), SQLAlchemy 2 (sync), SQLite only; additive soft migrations at startup. Cookie sessions (argon2), CSRF middleware, Google sign-in |
+| Frontend | React 18, Vite 6, React Router 6, TanStack Query 5, Tailwind 3, Radix primitives, framer-motion; JS with `jsconfig` type-checking (no TS sources) |
+| Tests | pytest (`backend/tests`, ~180 files), Vitest 4 (co-located `*.test.js(x)`), Chrome capture harness (`npm run capture:ui`) |
+| CI | `.github/workflows/checks.yml` (backend lock check + pytest; frontend lint, typecheck, test, build, demo build + bundle guard), `images.yml`, `publish-images.yml`, `lock-refresh.yml`, `devcontainer.yml` |
 
-The user rates each headline by interest level.
+## Repository map
 
-Examples:
-
-* "Maccabi Tel Aviv is in advanced talks with a EuroLeague guard"
-* "Deni Avdija traded to another NBA team"
-* "Hornets beat Wizards in a regular-season game"
-* "Alcaraz advances to the third round of Wimbledon"
-* "Alcaraz wins Roland Garros"
-* "Mbappe signs with Real Madrid"
-* "Tiberias beats Reina in Israeli football"
-* "Panathinaikos beats Olympiacos in a Greek league derby"
-* "Real Madrid basketball wins the Spanish ACB title"
-* "Maccabi Tel Aviv assistant coach gives a pre-game interview"
-
-The user can rate each headline using either:
-
-* "Very interesting"
-* "Interesting"
-* "Not interesting"
-* "Should notify me immediately"
-
-Or with a numeric score:
-
-* 1–10 interest rating
-
-Because each fake headline is already tagged with metadata, the system can infer the user's preferences.
-
-Example synthetic headline object:
-
-```json
-{
-  "id": "calibration_001",
-  "title": "Maccabi Tel Aviv is in advanced talks with a EuroLeague guard",
-  "sport": "basketball",
-  "league": "EuroLeague",
-  "entities": ["Maccabi Tel Aviv Basketball"],
-  "eventType": "negotiation",
-  "importance": "high",
-  "tags": ["maccabi", "euroleague", "transfer", "negotiation"]
-}
+```
+backend/app/
+  main.py, worker.py          API factory (routers, CORS+CSRF) · scheduler worker
+  api/routes_*.py             HTTP routes (ops routers admin-gated in main.py)
+  core/                       config, csrf, deploy_mode (DEPLOY_ENV local|dev|hosted), security deps
+  ingestion/                  sources config, adapters (RSS, Sport5 HTML, ONE JSON), classifier.py (rules), orchestration
+  classification/             LLM gate/providers (disabled|fake|gemini|ollama|openai_compat), merge, facts, event evidence
+  taxonomy/                   canonical entities, competitions, resolver — the single source of entity truth
+  services/                   preference_engine (V2, default), relevance_engine (visibility; legacy rollback), feed, learning, calibration, auth
+  calibration_v2/             synthetic-headline calibration dataset/inference
+  clustering/                 deterministic story clustering (no LLM/embeddings)
+  notifications/              planner, outbox, dispatcher, Telegram
+  results/                    results sync + providers (TheSportsDB default; opt-in Winner, EuroLeague/EuroCup, ESPN NBA, Bamboo)
+  qa/, ops/, monitoring.py    census/N05 gates, ops health
+  db/, repositories/, models/ ORM, data access, pydantic models; seed/ seed profiles & articles
+backend/scripts/              QA gates, census, probes, demo export, reviewed correction scripts
+backend/tests/                pytest suite + fixtures
+frontend/src/
+  pages/, components/         app screens; feed/signal, results, shell, preferences, ops, debug
+  api/                        client.js + normalizers (backend mode)
+  context/                    AppContext; localDemo.js lazy-loads mocks + frozen legacy JS engine (local mode only)
+  demo/                       public read-only demo entry (demo.html)
+  lab/                        dev-only design lab (vite.lab.config.js)
+  engine/, data/              legacy JS relevance engine + mocks — local mode only, not product logic
+deploy/                       Compose stack, backup/restore, rehearsal scripts, systemd units
+scripts/                      check.ps1 (local CI), worker.ps1, preview.ps1, demo-publish.ps1, dev.sh
+docs/                         living contracts (see below); docs/qa = rating evidence (never delete)
+.claude/skills/               project skills — prefer them for matching tasks
 ```
 
-If the user marks this as "Should notify me immediately", the system can learn:
+## Commands
 
-```json
-{
-  "topic": "Maccabi Tel Aviv Basketball",
-  "rules": {
-    "negotiation": "push"
-  }
-}
+Backend (run from `backend/`; relative SQLite paths resolve there):
+```powershell
+python -m venv .venv
+.venv\Scripts\python -m pip install --require-hashes -r requirements.lock
+.venv\Scripts\python -m uvicorn app.main:app --reload     # API :8000, /docs, GET /health
+.venv\Scripts\python -m app.worker                        # scheduler (SCHEDULER_ENABLED=true to poll)
+.venv\Scripts\python -m pytest tests -q                   # full suite
 ```
-
-If the user marks "Alcaraz advances to the third round" as not interesting, but "Alcaraz wins Roland Garros" as interesting, the system can learn:
-
-```json
-{
-  "topic": "Tennis",
-  "mode": "only_major_events",
-  "rules": {
-    "grand_slam_winner": "feed",
-    "early_round_result": "hidden"
-  }
-}
+Frontend (run from `frontend/`):
+```powershell
+npm ci
+npm run dev            # VITE_DATA_MODE=backend for the real API; unset/local = browser mocks
+npm run lint           # eslint, --max-warnings=0
+npm run typecheck      # tsc -p jsconfig.json
+npm test               # vitest run
+npm run build; npm run build:demo; npm run check:demo-bundle
+npm run lab            # design lab
+npm run capture:ui     # browser harness (needs Chrome)
 ```
-
-If the user marks "Hornets beat Wizards" as interesting, this means they may broadly follow NBA.
-
-If the user marks it as not interesting but marks "Deni Avdija traded" as very interesting, this means they may only care about NBA through Deni Avdija or selected entities.
-
-This calibration flow may be one of the best ways to create a truly personalized feed.
-
-### Option 3: Feedback Loop From Real Feed Usage
-
-After onboarding, the user should continue training the system from the feed.
-
-Each article should support feedback actions such as:
-
-* More like this
-* Less like this
-* Not interesting
-* Always notify me about this
-* Mute this topic
-* Mute this source
-
-Over time, these feedback events should adjust the user's preference profile.
-
-### Key Product Insight
-
-The personalization profile should not be treated as a manually edited settings file only.
-
-The system should be able to build and refine the profile from:
-
-1. Free-text preference descriptions
-2. Synthetic headline calibration
-3. Ongoing feed feedback
-
-This is central to the product.
-
-The app is not just "show articles based on settings".
-The app should help discover, infer, and refine what the user actually cares about.
-
-
-## Critical Personalization Principle
-
-The same article must be able to produce different relevance decisions for different users.
-
-Example:
-
-Article:
-"Hornets beat Wizards in regular season"
-
-For Guy:
-
-* probably visible, maybe `feed` or `low_feed`
-
-For Casual Deni Fan:
-
-* probably `hidden`, unless Deni Avdija is involved
-
-Article:
-"Deni Avdija traded to another team"
-
-For Guy:
-
-* `push`
-
-For Casual Deni Fan:
-
-* `push`
-
-This user-dependent decision-making is central to the product.
-
-If the current app cannot do this, the current app is missing the core product.
-
-## Relevance Is Not a Static Field
-
-An article should not simply be "important" or "not important" globally.
-
-Importance must be evaluated against a user profile.
-
-The system should separate:
-
-1. Article classification
-   What is this article about?
-
-2. User preference matching
-   Does this user care about this topic/entity/league/event type?
-
-3. Final relevance decision
-   Should this article be hidden, shown, highlighted, or treated as urgent?
-
-These are different concerns and should not be mixed together.
-
-## Intended Article Understanding
-
-Each article should eventually be understood by fields like:
-
-* source
-* title
-* original title
-* translated title
-* language
-* publish time
-* sport
-* league
-* teams
-* players
-* entities
-* event type
-* importance
-* confidence
-* tags
-
-Examples of event types:
-
-* signing
-* negotiation
-* candidate
-* rumor
-* injury
-* match result
-* match summary
-* interview
-* analysis
-* opinion
-* title win
-* record
-* pre-match
-* schedule
-* major trade
-* regular-season result
-* playoff result
-* finals result
-* Grand Slam winner
-* early-round tennis result
-* major football transfer
-
-## Intended Relevance Decisions
-
-The system should eventually return one of:
-
-* `hidden`
-* `low_feed`
-* `feed`
-* `high_feed`
-* `push`
-
-Meaning:
-
-* `hidden`: not shown in the feed, only visible in debug/admin views
-* `low_feed`: visible but low priority
-* `feed`: normal relevance
-* `high_feed`: important
-* `push`: urgent / attention-worthy
-
-Push should be rare.
-
-If too many items are push-worthy, the system is too aggressive and loses meaning.
-
-## Product Behavior We Eventually Want
-
-The feed should:
-
-* show only personalized relevant stories
-* hide irrelevant stories
-* group duplicate stories
-* show translated Hebrew titles for English sources
-* link to original articles
-* avoid copying full article content
-* allow user feedback
-* explain why each item appears
-* let the user tune preferences over time
-
-The debug view should:
-
-* show all articles, including hidden ones
-* explain why each article received its decision
-* help us tune the relevance engine
-* make it obvious when the logic is wrong
-
-The preferences area should eventually allow the user to express nuanced preferences, not just simple yes/no toggles.
-
-Examples:
-
-* NBA: all
-* NBA: only Deni Avdija
-* Tennis: only Grand Slam finals/winners
-* Football: only major transfers
-* Maccabi basketball: almost everything
-* European domestic basketball: only big games or EuroLeague-related stories
-
-## Future Source Vision
-
-The future product should support sources like:
-
-* Sport5
-* ONE
-* Walla Sport
-* Israel Hayom Sport
-* Ynet Sport
-* Sportando
-* Eurohoops
-
-Some sources may support RSS.
-Some may require category page parsing.
-Some may require scraping-like adapters.
-Some may be easier than others.
-
-However, real ingestion is not the current priority.
-
-Do not add real scraping yet.
-Do not add real RSS yet.
-Do not add real APIs yet.
-
-First we need a correct product model and relevance engine using mock data.
-
-## What Matters Right Now
-
-At this stage, the most important question is not:
-
-> "Does the UI look good?"
-
-The important questions are:
-
-1. Does the codebase actually implement the product idea?
-2. Is there a real relevance engine?
-3. Are feed decisions calculated dynamically per user?
-4. Can the same article receive different decisions for different profiles?
-5. Are hidden articles excluded from the feed and included in debug?
-6. Is push too aggressive?
-7. Is clustering real or manually mocked?
-8. Is the preferences model expressive enough?
-9. Is the debug panel actually useful?
-10. Which Base44-generated files are unnecessary or misleading?
-11. What should we keep?
-12. What should we rewrite?
-13. What should we delete?
-14. What is the best next step?
-
-## Do Not Start With Implementation
-
-Before changing code, perform a deep audit.
-
-Create a clear written understanding of:
-
-1. The intended product
-2. The current implementation
-3. The gap between them
-4. The recommended path forward
-
-Only after that should code changes begin.
-
-## First Required Deliverables
-
-Create a `docs` directory if it does not exist.
-
-Then create:
-
-### `docs/PRODUCT_UNDERSTANDING.md`
-
-This should explain, in your own words:
-
-* what Signal Sports is trying to become
-* what makes it different from a generic sports feed
-* what the personalization engine must eventually do
-* what the current MVP should prove
-* what should not be built yet
-
-### `docs/IMPLEMENTATION_AUDIT.md`
-
-This should include:
-
-* current repository structure
-* framework and dependencies
-* current app capabilities
-* current data model
-* current relevance/scoring logic
-* current clustering logic
-* current debug logic
-* current preferences behavior
-* what works
-* what is weak
-* what is generic
-* what seems hardcoded
-* what is unnecessary
-* what is missing compared to the intended product
-* recommended next steps
-* suggested first refactor
-
-Be strict and honest.
-
-Do not sugarcoat.
-
-## Engineering Principles For Later
-
-When implementation starts later:
-
-* keep scoring logic separate from UI
-* keep source ingestion separate from scoring
-* do not hardcode Guy inside the engine
-* represent Guy through a preference profile
-* keep functions small and testable
-* add tests for relevance decisions
-* add tests for clustering
-* prefer clear architecture over quick UI hacks
-* do not introduce backend yet unless explicitly asked
-* do not introduce real scraping yet unless explicitly asked
-* do not introduce auth unless explicitly needed
-
-## Current Instruction
-
-For now, understand and audit.
-
-Do not rewrite the app yet.
-Do not add features yet.
-Do not clean up files yet unless absolutely required to run the project.
-
-The next step is product understanding + implementation audit.
+Repo root: `powershell -File scripts\check.ps1` (backend tests + frontend lint/typecheck/test/build;
+CI additionally runs the lock check and the demo build/guard). Owner's machine:
+`powershell -File scripts\worker.ps1 -Status` before touching the worker.
+
+Dependencies: `requirements.txt` holds ranges; installs use the hash-pinned `requirements.lock`
+(CI fails if they drift — regenerate per the lock header, in its own PR).
+
+## Conventions
+
+- **Tests first** for behavior changes (skill `test-driven-development`); behavioral tests with
+  deterministic fixtures, not mirrors of the implementation. Classification/relevance changes
+  also need the real-data gates (skills `signal-real-data-qa`, `signal-quality-eval`).
+- Use the area skills: classification (`signal-classification-change`), relevance
+  (`signal-relevance-change`), taxonomy (`signal-taxonomy-change`), sources
+  (`signal-source-onboarding`), pipeline review, feed complaints (`signal-feed-audit`), PRs
+  (`signal-pr-open` / `signal-pr-merge`), docs (`signal-doc-truth`).
+- Keep scoring separate from UI and ingestion separate from scoring; small, testable functions.
+- New config flags default to off/safe; hosted-unsafe flags belong in
+  `core/deploy_mode.py::HOSTED_FORBIDDEN_FLAGS`.
+- Every new route needs an explicit auth gate; `tests/test_authz_inventory.py` enforces the inventory.
+- Frontend follows [docs/FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md): Signal UI
+  tokens, RTL, 320–390 px phones, 44 px touch targets, reduced motion.
+- Delivery: one branch + one PR per feature off current `origin/main`; report actual check
+  results; opening a PR is not deploying (see [AGENTS.md](AGENTS.md)).
+
+## Living docs by subsystem
+
+Ingestion [RSS_INGESTION](docs/RSS_INGESTION.md) · guardrails [RSS_QUALITY_GUARDRAILS](docs/RSS_QUALITY_GUARDRAILS.md) ·
+LLM [LLM_CLASSIFICATION](docs/LLM_CLASSIFICATION.md) · facts [ARTICLE_FACTS](docs/ARTICLE_FACTS.md) ·
+taxonomy [TAXONOMY](docs/TAXONOMY.md) · relevance [RELEVANCE_CONTRACT](docs/RELEVANCE_CONTRACT.md),
+[RELEVANCE_VISIBILITY_CONTRACT](docs/RELEVANCE_VISIBILITY_CONTRACT.md), [PREFERENCE_MODEL_V2](docs/PREFERENCE_MODEL_V2.md) ·
+learning [FEEDBACK_LEARNING](docs/FEEDBACK_LEARNING.md) · calibration [CALIBRATION_V2](docs/CALIBRATION_V2.md) ·
+interests [INTERESTS](docs/INTERESTS.md) · clustering [CLUSTERING](docs/CLUSTERING.md) ·
+freshness [FEED_FRESHNESS](docs/FEED_FRESHNESS.md) · scheduler [SCHEDULER](docs/SCHEDULER.md) ·
+notifications [NOTIFICATIONS](docs/NOTIFICATIONS.md) · results [RESULTS](docs/RESULTS.md) ·
+users/auth [USER_PLATFORM](docs/USER_PLATFORM.md) · translation [TITLE_TRANSLATION](docs/TITLE_TRANSLATION.md) ·
+deploy [DEPLOYMENT](docs/DEPLOYMENT.md), [HOSTING_PLAN](docs/HOSTING_PLAN.md) (proposal), [MOBILE_REMOTE_ACCESS](docs/MOBILE_REMOTE_ACCESS.md) ·
+frontend [FRONTEND_DESIGN_SYSTEM](docs/FRONTEND_DESIGN_SYSTEM.md).
+
+`docs/IMPLEMENTATION_AUDIT.md` was retired on 2026-10-12 (it audited the pre-backend Base44
+prototype); do not recreate it.

@@ -142,6 +142,65 @@ CI additionally runs the lock check and the demo build/guard). Owner's machine:
 Dependencies: `requirements.txt` holds ranges; installs use the hash-pinned `requirements.lock`
 (CI fails if they drift — regenerate per the lock header, in its own PR).
 
+Targeted runs (cheaper than the full suite while iterating; full suite before a PR):
+```powershell
+.venv\Scripts\python -m pytest tests/test_article_facts.py -q        # one file (backend/)
+.venv\Scripts\python -m pytest tests -q -k "facts and not llm"       # by keyword
+npx vitest run src/api/client.test.js                                # one file (frontend/)
+```
+Use `-q`, not `-v`: the full suite prints thousands of lines under `-v`.
+
+## Gotchas (each one has cost a session before)
+
+- **Vitest + lowercase drive letter.** Started from `c:\...` (VS Code terminals), vitest fails
+  *every* file with "failed to find the runner". `cd C:\Users\HOME\Documents\signal-sports\frontend`
+  (capital `C:`) first. `scripts\check.ps1` already normalizes this.
+- **No branch protection on `main`.** `gh pr merge --auto` merges *immediately*, before CI.
+  Wait for checks yourself: `gh pr checks <n> --watch` (CI takes ~4 min), then
+  `gh pr merge <n> --squash --delete-branch --match-head-commit <sha>`. History is squash-merged.
+- **Large files: never read whole.** `Grep` for the symbol, then `Read` with `offset`/`limit`:
+  `backend/app/ingestion/classifier.py` (~1.3k lines), `classification/event_evidence.py` (~1k),
+  `ingestion/ingestion_service.py` (~800), `frontend/src/components/feed/signal/SignalFeedView.jsx`
+  (~930), `backend/tests/test_llm_classification.py` (~1.3k), `backend/scripts/feed_ground_truth.py`
+  (~950), `docs/RSS_QUALITY_GUARDRAILS.md` / `HOSTING_PLAN.md` / `LLM_CLASSIFICATION.md` /
+  `RESULTS.md` (~0.9–1.4k). Never open `docs/qa/*.json`, `backend/tests/fixtures/**`,
+  `frontend/src/lab/resultsFixtures.json`, `frontend/src/data/mockArticles.js` or
+  `taxonomyReach.generated.json` (data, thousands of lines) — query them with a script or `Grep`.
+- **Generated artifact.** Any edit under `backend/app/taxonomy/` requires
+  `.venv\Scripts\python scripts\generate_taxonomy_export.py` and committing
+  `frontend/src/data/taxonomyReach.generated.json` (a freshness test fails otherwise).
+- **Profile drift trio.** Legacy topic seeds change in three places together:
+  `backend/app/seed/seed_profiles.py`, `frontend/src/data/userProfiles.js`, `docs/fixtures/profile_parity.json`.
+- **Frozen JS engine.** `frontend/src/engine/` is local-mode only; never port new intelligence to it.
+- **Stored facts don't move.** Classifier/taxonomy changes reach only new rows; N05 and the
+  stored-facts census gate show zero change — use `feed_ground_truth.py gate --census --facts rerun`.
+- **Live runtime ≠ code defaults.** Source overrides, Telegram and live profiles live in the
+  corpus DB and untracked `backend/.env`; check them read-only instead of inferring from `config.py`.
+- **New routes** fail `tests/test_authz_inventory.py` until classified there.
+- **Never** run anything that writes to `backend/data/signal_sports.db` as incidental validation;
+  `pytest` is always safe (conftest uses a temp DB and `CLASSIFICATION_PROVIDER=disabled`).
+
+## Where to look first
+
+| Task | Start at | Tests to extend | Skill |
+|---|---|---|---|
+| Headline misclassified (sport/entity/event) | `classification/facts.py`, `ingestion/classifier.py`, `classification/event_evidence.py` | `test_article_facts.py`, `test_ingestion_classifier.py`, `test_event_evidence.py`, `test_quality_regressions.py` | `signal-classification-change` |
+| LLM gate / merge / provider | `classification/gating.py`, `merge.py`, `providers.py` | `test_llm_gating.py`, `test_llm_classification.py` | `signal-classification-change` |
+| Missing club/player/competition | `taxonomy/entities.py`, `taxonomy/competitions.py` | `test_taxonomy_integrity.py`, `test_entity_resolver.py` | `signal-taxonomy-change` |
+| Wrong feed decision for a user | `services/preference_engine.py`, `relevance_engine.py` (`match_competition_names`) | `test_preference_engine_v2.py`, `test_relevance_visibility_contract.py` | `signal-feed-audit` → `signal-relevance-change` |
+| Learning / calibration | `services/learning_service.py`, `calibration_v2/` | `test_feedback_learning.py`, `test_calibration_v2.py` | `signal-relevance-change` |
+| Source failing / new source | `ingestion/config.py`, `ingestion/adapters/` | `test_*_adapter.py`, `test_source_config.py` | `signal-source-onboarding` |
+| Cycle / worker / lease | `ingestion/orchestration.py`, `worker.py` | `test_orchestration*.py`, `test_worker*.py` | `signal-pipeline-review` |
+| Story clustering | `clustering/` (contract `docs/CLUSTERING.md`) | `test_clustering*.py`, `test_anchor*.py` | `signal-pipeline-review` |
+| Results / scores page | `results/`, `frontend/src/pages/Results.jsx` | `test_results*.py` | — |
+| Auth / sessions / CSRF | `services/auth_service.py`, `core/csrf.py`, `core/security_deps.py` | `test_auth*.py`, `test_authz_inventory.py` | `differential-review` |
+| Hosted-unsafe flag | `core/deploy_mode.py` | `test_deploy_mode_265.py` | `differential-review` |
+| Feed UI | `frontend/src/components/feed/signal/`, `frontend/src/api/` | co-located `*.test.jsx` | `web-design-guidelines`, `webapp-testing` |
+| Public demo export | `backend/scripts/export_demo_snapshot.py`, `frontend/src/demo/` | `test_demo_*.py`, `npm run check:demo-bundle` | — |
+
+Backend paths above are relative to `backend/app/` unless they start with `backend/` or `frontend/`.
+Test filenames are relative to `backend/tests/`. Skill ownership: [.claude/skills/README.md](.claude/skills/README.md).
+
 ## Conventions
 
 - **Tests first** for behavior changes (skill `test-driven-development`); behavioral tests with

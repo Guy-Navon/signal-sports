@@ -148,7 +148,12 @@ increment may merge only when that narrower scope is already authorized.
 ## 6. Establish current CI and integration readiness
 
 Record the reviewed head SHA and target SHA. Inspect current checks, for example:
-    gh pr checks <number>
+    gh pr checks <number>            # snapshot
+    gh pr checks <number> --watch    # block until every check finishes (CI ~4 min)
+
+`main` has **no branch protection**: nothing stops a merge while checks are pending or red,
+and `gh pr merge --auto` merges immediately instead of waiting. Never use `--auto`; watch the
+checks to completion yourself, then merge. Watch with `--watch` rather than polling in a loop.
 
 Ensure evidence belongs to that head or its corresponding test-merge revision.
 Inspect actual runs when status labels are ambiguous.
@@ -235,10 +240,11 @@ PC worker, or run real notification tests as incidental merge housekeeping.
 Immediately before merging, refresh state, head SHA, base movement, mergeability,
 and checks. Reassess any change. Do not merge drafts.
 
-Use the allowed established merge method. For a merge-commit workflow:
-    gh pr merge <number> --merge --match-head-commit <reviewed-sha>
+This repo squash-merges (one commit per PR on `main`, titled `<subject> (#N)`):
+    gh pr merge <number> --squash --delete-branch --match-head-commit <reviewed-sha>
 
-Use the same head guard with another supported method if repo policy requires it.
+`--delete-branch` is fine once the branch-deletion checks below pass (the repo also deletes
+head branches on merge). Then fast-forward local main: `git checkout main; git pull --ff-only`.
 Never use admin bypass, disable protections, force-push main, or skip hooks.
 
 If a merge queue is required, use it and preserve its integration checks.

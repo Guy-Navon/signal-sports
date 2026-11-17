@@ -129,6 +129,11 @@ class SessionBootstrap(BaseModel):
     onboarding: OnboardingBootstrap | None
 
 
+def _client_ip(request: Request) -> str | None:
+    """Peer address for per-client rate limits (see check_password_attempt_budget)."""
+    return request.client.host if request.client else None
+
+
 def _set_auth_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key=settings.auth_cookie_name,
@@ -281,10 +286,13 @@ def verification_confirm(
 
 
 @router.post("/verification/resend", response_model=ResendResponse)
-def verification_resend(payload: LoginRequest, session: Session = Depends(get_session)):
+def verification_resend(
+    payload: LoginRequest, request: Request, session: Session = Depends(get_session),
+):
     try:
         outcome = email_verification.resend(
             session, email=str(payload.email), password=payload.password,
+            client_ip=_client_ip(request),
         )
     except email_verification.MailNotConfigured:
         raise HTTPException(status_code=503, detail="Email delivery is not configured")
@@ -315,6 +323,7 @@ def login(
             email=str(payload.email),
             password=payload.password,
             user_agent=request.headers.get("user-agent"),
+            client_ip=_client_ip(request),
         )
     except auth_service.RateLimitExceeded:
         raise HTTPException(status_code=429, detail="Too many login attempts")

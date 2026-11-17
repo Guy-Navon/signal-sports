@@ -22,6 +22,7 @@ active defects. There are no Critical findings.
 ## High
 
 ### H1. One global login limiter lets any client lock every user out of password login
+- **Status: resolved 2026-11-17** (`fix: resolve audit findings H1, M1, and M3`). Login and verification resend now share `check_password_attempt_budget()` in `auth_service.py`, with three buckets: per account (10), per client IP (100) and a global circuit breaker (1000), all per 300 s. The client IP is uvicorn's `request.client.host`; `X-Forwarded-For` is never parsed in app code. The Vite dev proxy now sends `xfwd`, so the live PC runtime sees the real client. uvicorn trusts that header only from `127.0.0.1`. Tests: `backend/tests/test_login_rate_limit_isolation.py`. **Still open:** on the hosted Compose stack, the API sees nginx's container address until uvicorn gets `--forwarded-allow-ips=<nginx>`. Until then, all hosted clients share one 100/300 s bucket, which is no worse than before. The signup-attempt limiter (`email_verification.py:232`) is still global.
 - **Where:** [backend/app/services/auth_service.py:339](backend/app/services/auth_service.py#L339) (`_global_login_limiter.check("global")`), limits at lines 23–25 (100 attempts / 300 s).
 - **Problem:** Every failed login from any client counts against one shared bucket. About 100
   bad requests in 5 minutes, for example a script posting random emails, block password login
@@ -55,6 +56,7 @@ active defects. There are no Critical findings.
 ## Medium
 
 ### M1. A silent fallback can quietly turn off a clustering false-merge guard
+- **Status: resolved 2026-11-17** (`fix: resolve audit findings H1, M1, and M3`). A failed or empty competition-vocabulary load now logs a `WARNING` with the traceback, and the safe empty fallback stays, as requested. Tests in `backend/tests/test_anchor_competition_vocab.py` check that `_COMPETITIONS` contains "יורוליג" and that a broken import logs a warning.
 - **Where:** [backend/app/clustering/anchors.py:70-90](backend/app/clustering/anchors.py#L70-L90).
 - **Problem:** `_known_competition_tokens()` imports the private
   `app.classification.facts._COMPETITION_KEYWORDS` inside `try/except Exception: pass`. If that
@@ -77,6 +79,7 @@ active defects. There are no Critical findings.
   an error, because hosted sessions are HTTPS by contract (DEPLOYMENT.md).
 
 ### M3. No index on `articles.published_at` or `articles.cluster_id`
+- **Status: resolved 2026-11-17** (`fix: resolve audit findings H1, M1, and M3`). `_apply_migrations` now runs `CREATE INDEX IF NOT EXISTS` for `ix_articles_published_at` and `ix_articles_cluster_id`, and the ORM columns declare `index=True`. The change is additive and does not touch data. Tests in `backend/tests/test_article_indexes.py` cover a fresh schema and a legacy DB with a row, migrated twice.
 - **Where:** [backend/app/db/orm_models.py:23](backend/app/db/orm_models.py#L23) and [:35](backend/app/db/orm_models.py#L35); queried in [backend/app/clustering/ingest_stage.py:121-136](backend/app/clustering/ingest_stage.py#L121-L136) and through `get_rss_articles(published_at_floor=…)` ([backend/app/repositories/article_repository.py:95](backend/app/repositories/article_repository.py#L95)).
 - **Problem:** The freshness prefilter (#199), the clustering candidate window and the
   cluster-membership hydration all filter on these columns, so each one scans the whole table.

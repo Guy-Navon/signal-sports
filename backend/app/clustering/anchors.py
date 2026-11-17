@@ -30,6 +30,7 @@ surface remains diagnostic.
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from typing import Optional
@@ -37,6 +38,8 @@ from typing import Optional
 from app.clustering.anchor_contract import AnchorCandidate
 from app.clustering.anchor_normalization import transliteration_skeleton as _skeleton
 from app.clustering.tokens import is_generic, normalize
+
+logger = logging.getLogger(__name__)
 
 # ── The vocabulary a name is NOT ─────────────────────────────────────────────
 # A name is defined by POSITIVE evidence (see `extract_anchors`), but a token drawn from the
@@ -83,7 +86,18 @@ def _known_competition_tokens() -> frozenset[str]:
                     if len(w) > 2:
                         out.add(w)
     except Exception:
-        pass
+        # Fall back to no competition guard rather than crash clustering, but
+        # say so loudly: without it, competition words act as person anchors
+        # again and the Bryant/Otooru false merge returns (AUDIT_REPORT M1).
+        logger.warning(
+            "clustering competition vocabulary failed to load from "
+            "app.classification.facts._COMPETITION_KEYWORDS; the competition "
+            "false-merge guard is OFF", exc_info=True,
+        )
+        return frozenset()
+    if not out:
+        logger.warning("clustering competition vocabulary is empty; "
+                       "the competition false-merge guard is OFF")
     return frozenset(out)
 
 

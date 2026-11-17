@@ -5,9 +5,13 @@ Deployment mode and the startup checks it turns on (issue #265).
 be impossible there:
 
   unset, "" or "local"
-      The owner's PC and the test suite. **No new checks**: behaviour is
-      exactly what it was before #265, so nothing about the running local
-      installation changes.
+      The owner's PC and the test suite. On a scratch or copy DB nothing is
+      checked, so every dev convenience keeps working. On the real corpus
+      (``backend/data/signal_sports.db``, which is also the live user-facing
+      instance) settings that would damage the corpus or open auth refuse
+      startup, and the dev-reset flags log a warning (AUDIT_REPORT M2).
+      ``ALLOW_UNSAFE_LOCAL_CORPUS=true`` turns those refusals into warnings
+      for a deliberate one-off; it is refused on a host.
   "dev"
       A remote development environment (a codespace, or the ``dev`` user on a
       shared host). It must never open the production corpus and never deliver
@@ -51,6 +55,7 @@ HOSTED_FORBIDDEN_FLAGS = (
     "ALLOW_DEV_RESET",
     "ALLOW_CORPUS_DB_RESET",
     "ALLOW_INSECURE_AUTH_BYPASS",
+    "ALLOW_UNSAFE_LOCAL_CORPUS",
 )
 
 
@@ -143,7 +148,11 @@ def _hosted_checks() -> tuple[list[str], list[str]]:
     if os.environ.get("CLASSIFICATION_PROVIDER", "").strip().lower() == "fake":
         errors.append("CLASSIFICATION_PROVIDER=fake writes canned classifications into the corpus")
     if not _truthy("AUTH_COOKIE_SECURE"):
-        warnings.append("AUTH_COOKIE_SECURE is not true; the session cookie can travel over plain HTTP")
+        # Hosted sessions are HTTPS by contract (docs/DEPLOYMENT.md, AUDIT_REPORT M2).
+        # A loopback-only origin list is a CI/restore rehearsal over plain HTTP on
+        # 127.0.0.1; anything a real browser can reach must use a secure cookie.
+        message = "AUTH_COOKIE_SECURE is not true; the session cookie can travel over plain HTTP"
+        (warnings if _only_loopback_origins() else errors).append(message)
     if os.environ.get("AUTH_SIGNUP_ENABLED", "true").strip().lower() not in {"0", "false", "no", "off"}:
         warnings.append("AUTH_SIGNUP_ENABLED is not false; anyone who reaches the app can create an account")
     if not os.environ.get("CSRF_ALLOWED_ORIGINS", "").strip():
@@ -154,6 +163,15 @@ def _hosted_checks() -> tuple[list[str], list[str]]:
     _hosted_google_checks(errors, warnings)
     _hosted_llm_checks(errors)
     return errors, warnings
+
+
+def _only_loopback_origins() -> bool:
+    """True when every CSRF_ALLOWED_ORIGINS entry is a loopback host (or none is set,
+    which leaves only the localhost defaults)."""
+    from urllib.parse import urlparse
+
+    origins = [o.strip() for o in os.environ.get("CSRF_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    return all(urlparse(o).hostname in ("127.0.0.1", "localhost", "::1") for o in origins)
 
 
 def _hosted_llm_checks(errors: list[str]) -> None:
@@ -226,6 +244,29 @@ def _hosted_mail_checks(errors: list[str], warnings: list[str]) -> None:
             warnings.append("APP_PUBLIC_URL is unset; verification links would point at localhost")
 
 
+def _local_checks() -> tuple[list[str], list[str]]:
+    """Local mode guards only the real corpus; a scratch DB checks nothing."""
+    from app.db.corpus_protection import is_protected_corpus_db
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not is_protected_corpus_db(os.environ.get("DATABASE_URL", "sqlite:///./data/signal_sports.db")):
+        return errors, warnings
+    if os.environ.get("CLASSIFICATION_PROVIDER", "").strip().lower() == "fake":
+        errors.append("CLASSIFICATION_PROVIDER=fake writes canned classifications into the corpus")
+    if _truthy("RETENTION_CLEANUP_ENABLED"):
+        errors.append("RETENTION_CLEANUP_ENABLED=true deletes old articles from the corpus (#255)")
+    if _truthy("ALLOW_INSECURE_AUTH_BYPASS"):
+        errors.append("ALLOW_INSECURE_AUTH_BYPASS=true opens the ops routes of the live instance")
+    for flag in ("ALLOW_DEV_RESET", "ALLOW_CORPUS_DB_RESET"):
+        if _truthy(flag):
+            warnings.append(f"{flag}=true while the corpus is the active database")
+    if errors and _truthy("ALLOW_UNSAFE_LOCAL_CORPUS"):
+        warnings.extend(f"{e} (allowed by ALLOW_UNSAFE_LOCAL_CORPUS)" for e in errors)
+        errors = []
+    return errors, warnings
+
+
 def _dev_checks() -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -250,12 +291,11 @@ def _dev_checks() -> tuple[list[str], list[str]]:
 def validate_deploy_startup_config() -> list[str]:
     """Refuse unsafe settings for the current DEPLOY_ENV; return the warnings.
 
-    Local mode returns ``[]`` without checking anything.
+    Local mode checks only the real corpus (see the module docstring).
     """
     mode = deploy_env()
-    if mode == LOCAL:
-        return []
-    errors, warnings = _hosted_checks() if mode == HOSTED else _dev_checks()
+    checks = {LOCAL: _local_checks, DEV: _dev_checks, HOSTED: _hosted_checks}[mode]
+    errors, warnings = checks()
     if errors:
         raise UnsafeDeployConfig(
             f"Refusing to start with DEPLOY_ENV={mode}:\n  - " + "\n  - ".join(errors)

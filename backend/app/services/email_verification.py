@@ -50,15 +50,22 @@ SIGNUPS_PER_EMAIL_LIMIT = 3
 SIGNUPS_PER_EMAIL_WINDOW_SECONDS = 3600
 GLOBAL_SEND_LIMIT = 30
 GLOBAL_SEND_WINDOW_SECONDS = 600
+# Signup attempts per SIGNUP_ATTEMPT_WINDOW_SECONDS: per client IP, plus a
+# global circuit breaker far above one client's budget (AUDIT_REPORT H1/M2
+# follow-up), so one noisy client closes signup only for itself.
 SIGNUP_ATTEMPT_LIMIT = 100
+SIGNUP_ATTEMPT_GLOBAL_LIMIT = 1000
 SIGNUP_ATTEMPT_WINDOW_SECONDS = 300
 # Login on an address with only pending rows verifies against at most this
 # many (newest first), bounding the argon2 work an unknown caller can trigger.
 PENDING_LOGIN_CHECK_LIMIT = 3
 
 # Every signup attempt, however it ends. Signup answers differently for an
-# existing account, so this caps how fast addresses can be probed.
+# existing account, so these cap how fast addresses can be probed: keyed by
+# client IP, with a shared global ceiling.
 _signup_attempt_limiter = FixedWindowLimiter(SIGNUP_ATTEMPT_LIMIT, SIGNUP_ATTEMPT_WINDOW_SECONDS)
+_global_signup_attempt_limiter = FixedWindowLimiter(
+    SIGNUP_ATTEMPT_GLOBAL_LIMIT, SIGNUP_ATTEMPT_WINDOW_SECONDS)
 _signup_email_limiter = FixedWindowLimiter(SIGNUPS_PER_EMAIL_LIMIT, SIGNUPS_PER_EMAIL_WINDOW_SECONDS)
 _global_send_limiter = FixedWindowLimiter(GLOBAL_SEND_LIMIT, GLOBAL_SEND_WINDOW_SECONDS)
 # Password attempts at confirmation, per pending registration. Separate from
@@ -92,6 +99,7 @@ class SendOutcome:
 
 def reset_rate_limiters() -> None:
     _signup_attempt_limiter.reset()
+    _global_signup_attempt_limiter.reset()
     _signup_email_limiter.reset()
     _global_send_limiter.reset()
     _confirm_limiter.reset()
@@ -224,12 +232,19 @@ def start_registration(
     email: str,
     password: str,
     display_name: Optional[str] = None,
+    client_ip: Optional[str] = None,
 ) -> SendOutcome:
     """Record a pending registration and email its link. Raises
-    DuplicateEmailError when an account already owns the address."""
+    DuplicateEmailError when an account already owns the address.
+
+    ``client_ip`` is the peer address (see
+    auth_service.check_password_attempt_budget); a missing one shares the
+    ``"unknown"`` bucket."""
     send_with = _require_mailer()
     normalized = normalize_email(email)
-    if not _signup_attempt_limiter.check("global"):
+    if not _global_signup_attempt_limiter.check("global"):
+        raise auth_service.RateLimitExceeded("too many signup attempts")
+    if not _signup_attempt_limiter.check(client_ip or auth_service.UNKNOWN_CLIENT):
         raise auth_service.RateLimitExceeded("too many signup attempts")
     if not _signup_email_limiter.check(normalized):
         raise auth_service.RateLimitExceeded("too many signups for this address")

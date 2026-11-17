@@ -71,11 +71,12 @@ signup closed, Secure cookies, and **no worker, no LLM, no Telegram, no results 
 external side effect is switched on deliberately; the worker comes last.
 
 `DEPLOY_ENV=hosted` (#265) refuses to start with `ALLOW_DEV_RESET`, `ALLOW_CORPUS_DB_RESET`,
-`ALLOW_INSECURE_AUTH_BYPASS` or `CLASSIFICATION_PROVIDER=fake`, refuses a named LLM provider whose
-settings are incomplete (it would silently run rules-only; `CLASSIFICATION_PROVIDER=disabled` is
-the intentional rules-only start), and warns when cookies are not
-Secure, signup is open, `CSRF_ALLOWED_ORIGINS` is unset or retention is on
-([USER_PLATFORM.md](USER_PLATFORM.md)).
+`ALLOW_INSECURE_AUTH_BYPASS`, `ALLOW_UNSAFE_LOCAL_CORPUS` or `CLASSIFICATION_PROVIDER=fake`, refuses a
+named LLM provider whose settings are incomplete (it would silently run rules-only;
+`CLASSIFICATION_PROVIDER=disabled` is the intentional rules-only start), and refuses
+`AUTH_COOKIE_SECURE` not true unless every `CSRF_ALLOWED_ORIGINS` entry is loopback (the plain-HTTP
+`deploy/*.sh` rehearsals, which only get a warning). It warns when signup is open,
+`CSRF_ALLOWED_ORIGINS` is unset or retention is on ([USER_PLATFORM.md](USER_PLATFORM.md)).
 
 `compose.yaml` restates `DATABASE_URL=sqlite:////app/data/signal_sports.db`, so an env file
 can't move the corpus off the bind mount. Inside the image that path is also the one the

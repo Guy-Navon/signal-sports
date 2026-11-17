@@ -66,6 +66,7 @@ def test_the_default_limiters_are_bounded():
         auth_service._account_login_limiter,
         auth_service._global_login_limiter,
         email_verification._signup_attempt_limiter,
+        email_verification._global_signup_attempt_limiter,
         email_verification._signup_email_limiter,
         email_verification._global_send_limiter,
         email_verification._confirm_limiter,

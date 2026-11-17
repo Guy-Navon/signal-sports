@@ -247,6 +247,56 @@ class TestSport5Config:
             assert cfg.category_urls == ()
 
 
+# ── Multiple category pages (#580) ────────────────────────────────────────────
+
+EUROLEAGUE_URL = "https://www.sport5.co.il/liga.aspx?FolderID=404"
+
+# A second category page: one story also listed on the first page (same href),
+# one new EuroLeague story, and the site-wide Terms-of-Use footer link.
+EUROLEAGUE_HTML = """
+<html><body>
+<div class="card"><a href="/articles.aspx?FolderID=274&docID=550741">כותרת שכבר מופיעה בעמוד הליגה הישראלית</a></div>
+<div class="card"><a href="/articles.aspx?FolderID=405&docID=580001">מכבי תל אביב הפסידה לאולימפיאקוס בהארכה ביורוליג</a></div>
+<footer><a href="/articles.aspx?FolderID=413&docID=50633">תנאי השימוש ומדיניות פרטיות אתר ספורט 5</a></footer>
+</body></html>
+"""
+
+
+class TestMultipleCategoryPages:
+    def test_config_scrapes_the_euroleague_folder(self):
+        cfg = get_source_config("sport5_sport")
+        assert CATEGORY_URL in cfg.category_urls
+        assert EUROLEAGUE_URL in cfg.category_urls
+
+    def _fetch_both(self):
+        pages = {CATEGORY_URL: FIXTURE_HTML, EUROLEAGUE_URL: EUROLEAGUE_HTML}
+        adapter = Sport5ScrapeAdapter(
+            source_id="sport5_sport",
+            category_urls=(CATEGORY_URL, EUROLEAGUE_URL),
+            base_url=BASE_URL,
+        )
+        with patch(HTTPX_GET, side_effect=lambda url, **kw: mock_response(pages[url])):
+            return adapter.fetch()
+
+    def test_story_on_both_pages_is_fetched_once(self):
+        urls = [i.url for i in self._fetch_both()]
+        dup = "https://www.sport5.co.il/articles.aspx?FolderID=274&docID=550741"
+        assert urls.count(dup) == 1
+        assert len(urls) == len(set(urls))
+
+    def test_second_page_adds_its_new_story(self):
+        urls = {i.url for i in self._fetch_both()}
+        assert "https://www.sport5.co.il/articles.aspx?FolderID=405&docID=580001" in urls
+
+    def test_terms_of_use_link_on_the_new_page_stays_filtered(self):
+        from app.ingestion.ingestion_service import _should_filter
+
+        cfg = get_source_config("sport5_sport")
+        tos = [i.url for i in self._fetch_both() if "FolderID=413" in i.url]
+        assert tos, "the adapter yields the footer link; the source filter must drop it"
+        assert all(_should_filter(u, cfg) for u in tos)
+
+
 # ── Source hint ───────────────────────────────────────────────────────────────
 
 class TestSport5SourceHint:

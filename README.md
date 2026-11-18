@@ -12,7 +12,7 @@ Read only the few stories that matter to *you*, without checking seven sports si
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-WAL-003B57?logo=sqlite&logoColor=white)
 
-<img src="docs/assets/readme/feed.png" alt="Guy's real feed on 2026-11-18: four lead stories across the top, a strip of followed results, and the rest of the ranking below" width="900">
+<img src="docs/assets/readme/feed-2026-11.png" alt="Guy's real feed on 2026-11-18: four lead stories across the top, a strip of followed results, and the rest of the ranking below" width="900">
 
 <sub>The real feed of the `guy` profile on 2026-11-18, built from the live corpus: 75 stories passed
 the filter (21 of them important) out of 7,245 ingested reports.</sub>
@@ -409,7 +409,7 @@ and turn each kind of news (transfers, injuries, results, interviews) up or down
 calibration and feedback learned is listed separately, so it is always clear where a preference
 came from.
 
-<img src="docs/assets/readme/preferences.png" alt="Preferences page: followed competitions per sport (basketball, football, tennis)">
+<img src="docs/assets/readme/preferences-2026-11.png" alt="Preferences page: followed competitions per sport (basketball, football, tennis)">
 
 </td>
 <td width="50%" valign="top">
@@ -418,7 +418,7 @@ came from.
 Only games of the teams and leagues you follow, with no general scoreboard: your teams' latest
 games first, then scores by day, tonight's schedule, and stat lines for the players you pick.
 
-<img src="docs/assets/readme/results.png" alt="Results page: the followed teams' latest games, then real NBA and EuroLeague scores by day">
+<img src="docs/assets/readme/results-2026-11.png" alt="Results page: the followed teams' latest games, then real NBA and EuroLeague scores by day">
 
 </td>
 </tr>
@@ -429,7 +429,7 @@ games first, then scores by day, tonight's schedule, and stat lines for the play
 Every article, including the hidden ones, with the full decision path, so a wrong decision is
 easy to spot.
 
-<img src="docs/assets/readme/debug.png" alt="Debug panel viewing as Guy: every article in the corpus by decision tier">
+<img src="docs/assets/readme/debug-2026-11.png" alt="Debug panel viewing as Guy: every article in the corpus by decision tier">
 
 </td>
 <td width="38%" valign="top">
@@ -437,7 +437,7 @@ easy to spot.
 ### 📱 Built for the phone
 The same feed at a 390 px phone width. The owner opens it over Tailscale.
 
-<img src="docs/assets/readme/feed-mobile.png" alt="The feed on a phone-sized screen" width="260">
+<img src="docs/assets/readme/feed-mobile-2026-11.png" alt="The feed on a phone-sized screen" width="260">
 
 </td>
 </tr>

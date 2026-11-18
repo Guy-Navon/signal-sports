@@ -325,10 +325,9 @@ GUY_PROFILE_V2 = ProfileV2(
         _ev("comp:ibl", "schedule", -2),
         # Maccabi (base 3 = high_feed): routine events step down to feed;
         # transfer-cycle events keep the high base; pushes are overrides.
+        # Game results keep the high base (#585, owner decision 2026-11-18: a Maccabi
+        # result is high, 4+); a result is still never a push.
         _ev("team:maccabi_tlv_bb", "news", -1),
-        _ev("team:maccabi_tlv_bb", "match_result", -1),
-        _ev("team:maccabi_tlv_bb", "match_summary", -1),
-        _ev("team:maccabi_tlv_bb", "regular_season_result", -1),
         _ev("team:maccabi_tlv_bb", "interview", -1),
         _ev("team:maccabi_tlv_bb", "analysis", -1),
         _ev("team:maccabi_tlv_bb", "opinion", -1),

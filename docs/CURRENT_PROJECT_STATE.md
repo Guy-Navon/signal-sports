@@ -223,11 +223,14 @@ reviewed `backend/scripts/apply_*.py` run after a backup.
 
 - **`guy`** (owner): Maccabi TLV basketball +2; EuroLeague, EuroCup, NBA, IBL +1; Hapoel Tel Aviv
   basketball at medium with scoped deltas (#257, applied); ACB/BSL/Greek/LBA/LNB −1; football and
-  tennis −1; Deni Avdija and Oded Kattash +1. 69 event affinities. 6 `always_push` (Maccabi
+  tennis −1; Deni Avdija and Oded Kattash +1. 66 event affinities: #585 (owner decision
+  2026-11-18) removed the −1 on Maccabi `match_result` / `regular_season_result` /
+  `match_summary`, so a Maccabi game result is `high_feed`. Maccabi news, interviews, analysis
+  and opinion stay `feed` (`scripts/apply_585_maccabi_results_profile.py`). 6 `always_push` (Maccabi
   signing, major signing, negotiation, `club_governance`; NBA star trade; Deni major trade) and
   3 `never_show` (Maccabi pre-match, schedule, generic preview). Owner rules: no injury push
   (2026-11-04), a title is `high_feed` at most (2026-11-06), live in-game score updates are hidden
-  for every profile (2026-11-16).
+  for every profile (2026-11-16), a Maccabi game result is high (4+) but never a push (2026-11-18).
 - **`casual_deni_fan`** (demo): Deni Avdija +2 only; pushes on a Deni major trade or relocation.
   Must not drift unintentionally — the gates check it.
 

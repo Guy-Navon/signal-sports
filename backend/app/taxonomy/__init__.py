@@ -30,6 +30,7 @@ from app.taxonomy.resolver import (
     is_cross_sport_ambiguous,
     is_wnba_story,
     resolve_entities,
+    resolve_family_by_opponent,
     resolve_mention,
     without_nba_clubs,
 )
@@ -57,6 +58,7 @@ __all__ = [
     "legacy_sport",
     "EntityResolution",
     "resolve_entities",
+    "resolve_family_by_opponent",
     "resolve_mention",
     "validate_registry",
     "NON_SELECTABLE_COMPETITIONS",

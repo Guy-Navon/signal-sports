@@ -53,6 +53,7 @@ from app.taxonomy import (
     is_wnba_story,
     legacy_sport,
     resolve_entities,
+    resolve_family_by_opponent,
     resolve_mention,
     without_nba_clubs,
 )
@@ -527,7 +528,18 @@ def build_article_facts(
             text = f"{title_l} {sub_l}"
             corroboration = _basketball_corroboration(text, text_resolved_entities)
             if corroboration is not None:
-                named_in_text = set(resolve_entities(text, sport).resolved_legacy_names)
+                resolution = resolve_entities(text, sport)
+                named_in_text = set(resolution.resolved_legacy_names)
+                # A bare family name ("מכבי") names a club only through a unique
+                # international opponent named in the same TITLE ("…לאולימפיאקוס" →
+                # the one Maccabi in the EuroLeague). Title only: an opponent in the
+                # subtitle is often another story ("ב"ש - הפועל" over a Barcelona
+                # betting line). Still needs this corroborated branch and the LLM's
+                # proposal of that club to survive.
+                named_in_text.update(
+                    e.legacy_name for e in resolve_family_by_opponent(
+                        resolve_entities(title_l, sport), sport)
+                )
         surviving: list[str] = []
         for e in kept_entities:
             ent = entity_by_legacy_name(e)

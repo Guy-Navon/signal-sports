@@ -685,9 +685,21 @@ PREVAILED_OVER_PATTERN = (
     r"(?<![א-ת])[וש]?גבר(?:ה|ו)?\s+(?:\d{1,3}\s?[:\-]\s?\d{1,3}\s+)?על(?![א-ת])"
 )
 
+# "נכנע/נכנעה/נכנעו ל-Y" — succumbed to Y. Anchored on the "ל" prefix of the opponent
+# (optionally after the score: "נכנעה 86:75 לחובנטוד"), like "גבר על" above. On the corpus
+# (2026-11-18) every TITLE with it was a game result, about 20 rows across basketball,
+# football, handball and volleyball, and many were stored as `news`; the real case was
+# "כמה חבל: מכבי נכנעה לאולימפיאקוס". The non-game senses are excluded: negated or hedged
+# ("לא נכנע", "כמעט נכנעה") and giving in to pressure/demands/injury.
+SUCCUMBED_TO_PATTERN = (
+    r"(?<![א-ת])(?<!לא )(?<!כמעט )[וש]?נכנע(?:ה|ו)?\s+(?:\d{1,3}\s?[:\-]\s?\d{1,3}\s+)?"
+    r"ל(?!(?:לחץ|לחצי|דרישות|דרישת|תכתיב|פציע|מחלה|גורל))(?=[א-ת\-\d'])"
+)
+
 _RESULT_VERB = (
     phrase("ניצח"), phrase("ניצחה"), phrase("ניצחו"),
     regex(PREVAILED_OVER_PATTERN),
+    regex(SUCCUMBED_TO_PATTERN),
     phrase("הפסיד"), phrase("הפסידה"), phrase("הפסידו"),
     phrase("הביס"), phrase("הביסה"),   # routed/crushed — a genuine result verb (#60)
     phrase("תוצאה"), phrase("beats"), phrase("beat"), phrase("defeats"),

@@ -363,6 +363,43 @@ def _resolve(
     return result
 
 
+def _international_competitions(team: TaxonomyEntity) -> set[str]:
+    return {comp for comp, _ in team.memberships} - {team.domestic_competition}
+
+
+def resolve_family_by_opponent(
+    resolution: EntityResolution, sport: str
+) -> list[TaxonomyEntity]:
+    """The one club a bare family mention can mean, given an opponent the text names.
+
+    A family name ("מכבי", "הפועל") never resolves on its own (see entities.FAMILY_NAMES).
+    This is the single, narrow exception, and callers must still require independent
+    sport corroboration and an LLM proposal of the club (facts.py). The bare mention
+    counts as naming a club only when exactly one club of that family, in ``sport``,
+    shares an INTERNATIONAL competition with a team the text names: "מכבי נכנעה
+    לאולימפיאקוס" is Maccabi Tel Aviv, the only Maccabi in the EuroLeague. An opponent
+    from the same domestic league proves nothing (many Maccabi clubs play the Israeli
+    league), and a named club of the same family makes the bare mention ambiguous.
+    """
+    opponents = [e for e in resolution.resolved if e.kind == "team" and e.sport == sport]
+    if not opponents or not resolution.family_mentions:
+        return []
+    found: list[TaxonomyEntity] = []
+    for family in resolution.family_mentions:
+        if any(o.family == family for o in opponents):
+            continue
+        candidates = [
+            t for t in ENTITIES.values()
+            if t.kind == "team" and t.sport == sport and t.family == family
+            and any(_international_competitions(t) & {c for c, _ in o.memberships}
+                    and o.domestic_competition != t.domestic_competition
+                    for o in opponents)
+        ]
+        if len(candidates) == 1 and candidates[0] not in found:
+            found.append(candidates[0])
+    return found
+
+
 # Entity ids whose textual identity is NOT sport-safe on its own: either the
 # entity shares an alias with an entity of a different sport (מכבי תל אביב,
 # הפועל ירושלים, …) or it is guarded (European multi-sport clubs whose bare

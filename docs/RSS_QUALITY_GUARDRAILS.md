@@ -1349,6 +1349,31 @@ The WNBA decision:
   check holds whatever the LLM proposes.
 - Stored rows keep their facts until a backfill.
 
+## 26. "נכנעה ל" Is a Result, and a Bare "מכבי" Can Name Its Club Through the Opponent (#585, 2026-11-18)
+
+The Maccabi Tel Aviv vs Olympiacos final, "כמה חבל: מכבי נכנעה לאולימפיאקוס בתום דרמת ענק"
+(ynet + ONE), was hidden from the owner. It stood as `news` with Olympiacos as its only entity.
+
+- **"נכנע/נכנעה/נכנעו ל-Y" is a result verb** (`event_evidence.SUCCUMBED_TO_PATTERN`, used by the
+  rules proposal and by `_RESULT_VERB`). It is anchored on the opponent's "ל" prefix, optionally
+  after a score, like "גבר על" (§15). Every corpus **title** with it was a game result (about 20
+  rows, several sports). Excluded: "לא נכנע", "כמעט נכנעה", and giving in to pressure, demands,
+  injury or illness ("נכנעה ללחץ", "לדרישות"). Measured with the rules alone on the 89 corpus rows
+  that contain the root: 24 change `news`→`match_result`, all genuine games. guy gains four NBA
+  results (hidden→feed) and one Avdija story (feed→high_feed) and loses none. casual_deni_fan sees
+  three Avdija game reports move high_feed→feed, its profile's lower rating of `match_result`
+  applied to facts that are now correct. Some subtitle-only hits are hidden anyway (live tickers,
+  a column), the same as the existing "הפסידה" verb. Census gate (rules rerun): identical to main.
+- **A bare family name can name its club through a unique international opponent**, in the #345
+  corroborated branch of the facts stage only ([ARTICLE_FACTS.md](ARTICLE_FACTS.md)). The LLM had
+  proposed Maccabi Tel Aviv Basketball, and the scoreline 95:97 corroborated basketball. The club
+  was dropped because "מכבי" alone is never "named in the text". Now the title's bare "מכבי" names
+  Maccabi Tel Aviv, because it is the only Maccabi sharing the EuroLeague with Olympiacos. On the
+  corpus, of 88 rows with the guard, it restores exactly these two. A third candidate (a betting
+  piece, "ב"ש - הפועל" with a football Barcelona in the subtitle) is blocked by requiring the
+  opponent in the title.
+- Stored rows keep their facts until a backfill.
+
 ## Where open classification work is tracked
 
 This file is a changelog of shipped rules. Open gaps live in GitHub issues and in the

@@ -4,6 +4,7 @@ import re
 
 from app.classification.event_evidence import (
     PREVAILED_OVER_PATTERN,
+    SUCCUMBED_TO_PATTERN,
     EventEvidence,
     reads_as_champion_epithet,
     validate_event_evidence,
@@ -235,7 +236,8 @@ def _detect_event_evidence(text: str, sport: str) -> EventEvidence:
         proposals.append("schedule")
 
     # Generic match result
-    if _has(text, *_RESULT_KW) or re.search(PREVAILED_OVER_PATTERN, text):
+    if (_has(text, *_RESULT_KW) or re.search(PREVAILED_OVER_PATTERN, text)
+            or re.search(SUCCUMBED_TO_PATTERN, text)):
         proposals.append("match_result")
 
     for proposal in proposals:

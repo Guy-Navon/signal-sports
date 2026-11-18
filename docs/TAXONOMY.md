@@ -25,7 +25,11 @@ Location: `backend/app/taxonomy/`
    English forms) are club-family markers, not aliases. A bare family mention
    resolves to **no** team and is recorded as a `family_mention`. This is the
    root fix for Maccabi Ramat Gan / Maccabi Kiryat Gat headlines being
-   attributed to Maccabi Tel Aviv.
+   attributed to Maccabi Tel Aviv. The one narrow use of a family mention is
+   `resolve_family_by_opponent()` (#585): the facts stage may keep an
+   LLM-proposed club when the title's bare family name has exactly one club
+   sharing an international competition with a named opponent
+   ([ARTICLE_FACTS.md](ARTICLE_FACTS.md), the #345 exception).
 3. **Longest match wins.** All alias occurrences are matched longest-first;
    shorter aliases overlapping an accepted span are discarded, so
    "מכבי רמת גן" can never surface the bare "מכבי" inside it.

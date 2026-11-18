@@ -123,6 +123,17 @@ derived cross-sport entity is kept, recorded as
    really names it, and not only as a former club (`אקס מכבי ת"א`). An entity the
    LLM invents (it named Panathinaikos on a Fenerbahce game) stays dropped.
 
+   **A bare family name with a unique international opponent (#585).** A bare
+   `מכבי` / `הפועל` also counts as naming a club here, but only through
+   `resolver.resolve_family_by_opponent()` on the **title**. Exactly one club of
+   that family, in basketball, must share an international competition (not its
+   domestic league) with a team the title names: "מכבי נכנעה לאולימפיאקוס" names
+   Maccabi Tel Aviv, the only Maccabi in the EuroLeague. An Israeli opponent, no
+   opponent, a named club of the same family, or an opponent only in the subtitle
+   ("ב"ש - הפועל" over a Barcelona betting line) leaves the guard in force. The
+   family name is still never sport evidence and still needs points 1–2 and the
+   LLM's proposal of that club.
+
 **Basketball only** because the registry lists multi-sport clubs such as Maccabi
 Haifa as football-only, so a "football-proving" name is weak, and no football case
 was measured. A football twin-club proposal keeps the #61 guard unchanged.

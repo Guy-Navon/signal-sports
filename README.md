@@ -161,7 +161,7 @@ Desktop browser ─────────────────┤
                                  │
           Worker  python -m app.worker          5-min cycles behind a durable lease
                                  │
-          LLM (OpenAI-compatible or Ollama)   TheSportsDB   Telegram Bot API
+          LLM (OpenAI-compatible or Ollama)   results providers   Telegram Bot API
 ```
 
 The API and the worker are separate processes sharing one SQLite file in WAL mode. The worker
@@ -177,7 +177,8 @@ overlapping cycles. A heartbeat row (`worker_status`) shows whether the worker i
    via its public JSON) → sport-section filter → URL dedup → classify → insert;
 3. compute story anchors and update clusters;
 4. plan notifications per story, then dispatch them through an outbox;
-5. sync game results for followed teams (TheSportsDB, throttled);
+5. sync game results and box scores, each competition from its routed provider (see
+   [Results](#tech-stack)), throttled, with finished games cached permanently;
 6. release the lease and record the run, with per-source metrics and failure reasons.
 
 A failed source degrades the cycle instead of failing it. A source that returns nothing is a
@@ -392,7 +393,7 @@ disagreements are treated as rating noise.
 | Backend | FastAPI, Python 3.13, SQLAlchemy 2.0 on SQLite (WAL) |
 | Worker | Scheduled ingestion cycles behind a single-flight lease |
 | Classification | Rules first, then an optional LLM (an OpenAI-compatible API or local Ollama) behind guardrails |
-| Results | TheSportsDB |
+| Results | Per-competition routing: ESPN (NBA), the EuroLeague's official feed (EuroLeague, EuroCup), Ligat Winner (Israeli basketball and cups), football.co.il (Israeli Premier League); TheSportsDB for everything else and as the fallback when a route goes stale |
 | Push | Telegram Bot API |
 | Packaging | Docker images and Compose for hosting (CI-rehearsed, not deployed) |
 
@@ -403,8 +404,10 @@ disagreements are treated as rating noise.
 <td width="50%" valign="top">
 
 ### 🎯 Preferences that mean something
-Not just on/off toggles: *"NBA: everything"*, *"Tennis: only Grand Slam winners"*,
-*"Football: only major transfers"*, plus followed players and teams.
+Not just on/off toggles. Follow competitions, teams and players, star the ones you must not miss,
+and turn each kind of news (transfers, injuries, results, interviews) up or down. What
+calibration and feedback learned is listed separately, so it is always clear where a preference
+came from.
 
 <img src="docs/assets/readme/preferences.png" alt="Preferences page: followed competitions per sport (basketball, football, tennis)">
 
@@ -412,7 +415,8 @@ Not just on/off toggles: *"NBA: everything"*, *"Tennis: only Grand Slam winners"
 <td width="50%" valign="top">
 
 ### 🏀 Results that are about you
-Only games of the teams and leagues you follow, with no general scoreboard.
+Only games of the teams and leagues you follow, with no general scoreboard: your teams' latest
+games first, then scores by day, tonight's schedule, and stat lines for the players you pick.
 
 <img src="docs/assets/readme/results.png" alt="Results page: the followed teams' latest games, then real NBA and EuroLeague scores by day">
 
@@ -459,13 +463,13 @@ signal-sports/
 │   │   ├── services/        Preference V2 engine, feed, learning, calibration, auth
 │   │   ├── clustering/      deterministic story clustering
 │   │   ├── notifications/   planner, outbox, dispatcher, Telegram
-│   │   ├── results/         TheSportsDB sync
+│   │   ├── results/         results providers, routing, box-score sync
 │   │   ├── qa/              gate logic shared by CI and the local corpus tools
 │   │   └── worker.py        the scheduler process
 │   ├── scripts/     corpus tools: gates, census, rerun diff, reviewed correction scripts
 │   └── tests/
 ├── deploy/          hosted-stack Compose, deploy/backup/restore scripts (CI-rehearsed)
-├── scripts/         worker.ps1 (start/stop/status), check.ps1
+├── scripts/         worker.ps1 (start/stop/status), check.ps1, preview.ps1
 ├── docs/            contracts, current state, QA evidence
 └── .claude/skills/  Claude Code project workflows
 ```
@@ -488,6 +492,8 @@ npm run dev                                                 # http://localhost:5
 
 > **Tip:** `VITE_DATA_MODE=local` runs the frontend on bundled sample data without a backend.
 > `VITE_DATA_MODE=backend` (in `frontend/.env.local`) uses the real API.
+> `powershell -File scripts\preview.ps1 -Worktree <path>` runs a branch next to the live stack, on
+> a copy of the corpus, with Telegram and outbound network off.
 
 **Checks** (the same as CI): `powershell -File scripts\check.ps1` (`-Backend` or `-Frontend` for
 one side), or `cd backend; .venv\Scripts\python -m pytest tests -q` and

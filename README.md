@@ -12,10 +12,10 @@ Read only the few stories that matter to *you*, without checking seven sports si
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-WAL-003B57?logo=sqlite&logoColor=white)
 
-<img src="docs/assets/readme/feed.png" alt="Guy's real feed on 2026-11-07: the Pierria Henry story in the centre, the rest of the ranking beside it" width="900">
+<img src="docs/assets/readme/feed.png" alt="Guy's real feed on 2026-11-18: four lead stories across the top, a strip of followed results, and the rest of the ranking below" width="900">
 
-<sub>The real feed of the `guy` profile on 2026-11-07, built from the live corpus: 56 stories out of
-5,297 ingested reports. The leading story is the Pierria Henry suspension saga.</sub>
+<sub>The real feed of the `guy` profile on 2026-11-18, built from the live corpus: 75 stories passed
+the filter (21 of them important) out of 7,245 ingested reports.</sub>
 
 </div>
 
@@ -55,56 +55,69 @@ Every headline below is a real article that the worker ingested from Israeli spo
 scored by the production engine against two profiles:
 
 - **Guy**, a basketball power user: Maccabi Tel Aviv basketball first, then the EuroLeague, the
-  NBA (broadly) and the Israeli league; football and tennis only at low priority.
+  EuroCup, the NBA (broadly) and the Israeli league; football and tennis only at low priority.
 - **Casual Deni fan**, who follows Deni Avdija and nothing else.
 
-In the 48 hours to the evening of 2026-11-07 the worker stored **338 articles** (173 football,
-129 basketball, 14 tennis, 22 with no confidently known sport). **Guy sees 77 of them. The
-Deni fan sees 15.** Neither got a push.
+In the 48 hours to the morning of 2026-11-18 the sources published **480 articles** (224 football,
+193 basketball, 19 tennis, 44 with no confidently known sport). **Guy sees 118 of them. The
+Deni fan sees 25.** Neither got a push.
 
 | Headline (source) | Facts the classifier extracted | Guy | Deni fan |
 |---|---|---|---|
-| [רוצה חוזה במאות מיליונים: דני אבדיה קיבל החלטה קריטית](https://www.israelhayom.co.il/sport/world-basketball/article/21797172) (Israel Hayom) | basketball · NBA · Deni Avdija · `news` | `high_feed` | `high_feed` |
-| [אבדיה אמר לברוקס בעימות: אני יותר טוב ממך](https://www.one.co.il/Article/538119.html) (ONE) | basketball · NBA · Deni Avdija · `news` | `feed` | `high_feed` |
-| [פרייריה הנרי במשא ומתן עם מכבי תל אביב](https://www.one.co.il/Article/538226.html) (ONE) | basketball · Israeli league · Maccabi TLV · `negotiation` | `high_feed` | `hidden` |
-| [מכה למכבי תל אביב: איפה לונדברג ייעדר לכשלושה חודשים](https://www.israelhayom.co.il/sport/israeli-basketball/article/21796201) (Israel Hayom) | basketball · Israeli league · Maccabi TLV · `injury` | `high_feed` | `hidden` |
-| [30 נקודות לבוקר ו-24 לברוקס בניצחון של פיניקס](https://www.one.co.il/Article/538106.html) (ONE, also Ynet) | basketball · NBA · Phoenix Suns · `match_result` | `feed` | `hidden` |
-| [רבע 1, 07:19: הפועל חולון - גליל עליון 4:6](https://www.one.co.il/Article/538126.html) (ONE) | basketball · Israeli league · two clubs · live score | `low_feed` | `hidden` |
-| [מאור לוי יחזור להרכב, אבוחצירה כשיר למכבי חיפה](https://www.one.co.il/Article/538103.html) (ONE) | football · Israeli Premier League · lineup news | `hidden` | `hidden` |
+| [בלי דני אבדיה הפצוע: פורטלנד ספגה הפסד אכזרי מול מינסוטה](https://www.israelhayom.co.il/sport/article/21877744) (Israel Hayom) | basketball · NBA · Deni Avdija, Portland, Minnesota · `injury` | `high_feed` | `high_feed` |
+| [פינץ' איבד סבלנות: התעמת עם השופט בגלל אבדיה](https://www.one.co.il/Article/539089.html) (ONE) | basketball · NBA · Deni Avdija · `news` | `feed` | `high_feed` |
+| [בעיטה מפוארת בדלי: מכבי תל אביב הפסידה לאולימפיאקוס](https://sports.walla.co.il/item/3876572) (Walla) | basketball · EuroLeague · Maccabi TLV, Olympiacos · `match_result` | `high_feed` | `hidden` |
+| [החזרה מתעכבת: לונדברג יעבור ניתוח בברך](https://www.sport5.co.il/articles.aspx?FolderID=405&docID=568053) (Sport5, also Israel Hayom) | basketball · Israeli league · Maccabi TLV · `injury` | `high_feed` | `hidden` |
+| [דטרויט עצרה את סן אנטוניו, הניקס חגגו בטורונטו](https://www.one.co.il/Article/539187.html) (ONE, also Ynet) | basketball · NBA · four clubs · `match_result` | `feed` | `hidden` |
+| [כך הפועל ירושלים הפכה לקבוצה הטובה ביותר בכדורסל הישראלי](https://www.ynet.co.il/sport/article/rjuetv000fg) (Ynet) | basketball · Israeli league · Hapoel Jerusalem · `news` | `low_feed` | `hidden` |
+| [ז'ופאריץ' ינותח, פחימה חזר לאימוני הפועל חיפה](https://www.one.co.il/Article/539040.html) (ONE) | football · Israeli Premier League · Hapoel Haifa · `injury` | `hidden` | `hidden` |
 
 What the table shows:
 
-- **The same article gets different decisions.** A regular-season Phoenix win is normal feed for
+- **The same article gets different decisions.** A regular-season Detroit win is normal feed for
   someone who follows the whole NBA and noise for someone who follows one player.
 - **The Deni fan rates Deni higher than Guy does.** For Guy, Deni is one interest among many. For
   the fan, he is the only one.
-- **Injuries are important, not urgent.** The Lundberg injury is `high_feed`, not `push`. That is an
-  explicit product rule: an injury never triggers a push.
-- **Live-score ticks are kept but pushed down** (`low_feed`), and pre-match lineup items for a
-  sport Guy follows at low priority disappear.
+- **Injuries are important, not urgent.** Lundberg's knee surgery is `high_feed`, not `push`. That
+  is an explicit product rule: an injury never triggers a push.
+- **Weaker interests are kept but pushed down.** A general feature about Hapoel Jerusalem (its
+  "why" line: the club plays in the EuroCup, which Guy follows) lands at `low_feed`; football
+  injury news, a sport Guy follows at low priority, disappears.
 
 Each visible card carries a Hebrew "why" line built from the actual contribution path, for
-example *"מכבי תל אביב (כדורסל) ברשימת המעקב שלך"* or *"פיניקס סאנס משחקת ב-NBA, שברשימת המעקב שלך"*.
+example *"מכבי תל אביב (כדורסל) ברשימת המעקב שלך"* or
+*"פורטלנד בלייזרס משחקת ב-NBA, שברשימת המעקב שלך · בכתבה: דני אבדיה"*.
 
 ### A real push
 
-Push is reserved for a few explicit rules. On 2026-07-22, Sport5 published
-[**"איפה לונדברג סיכם על חוזה חדש במכבי תל אביב"**](https://www.sport5.co.il/articles.aspx?FolderID=274&docID=554077).
-Guy's profile has an `always_push` rule for Maccabi negotiations, and the headline states a
-completed agreement. So it scored `push` for Guy, and the Telegram pilot sent it to his phone.
-For the Deni fan it was `hidden`. Two days later Israel Hayom reported
-["דיווח: לוני ווקר במו"מ עם קבוצה ענקית מהיורוליג"](https://www.israelhayom.co.il/sport/world-basketball/article/21050541),
-also a Maccabi negotiation, and it stayed at `high_feed`: a negotiation that is only *in progress*
-does not pass the severity gate.
+Push is reserved for a few explicit rules. On 2026-11-10, Ynet published
+[**"הרכז קמאר בולדווין חתם במכבי ת"א"**](https://www.ynet.co.il/sport/israelibasketball/article/cd5naodj6).
+Guy's profile has an `always_push` rule for Maccabi signings, and the headline states a completed
+signing, so it scored `push` for Guy. For the Deni fan it was `hidden`. (Telegram delivery has been
+off since September, so the push was scored, not sent.) The night before, Sport5 reported the
+same move while it was still open,
+["מכבי מצאה רכש? קמאר בולדווין קרוב לחתימה"](https://www.sport5.co.il/articles.aspx?FolderID=274&docID=567117),
+and that stayed at `feed`: a transaction that is only *close* does not pass the severity gate.
 
-### A real cluster, and a real miss
+### A real cluster, and real misses
 
-Three outlets reported the Pierria Henry move on 2026-11-07. Walla's
-["מכבי תל אביב צפויה לצרף את פייריה הנרי"](https://sports.walla.co.il/item/3875306) and Ynet's
-["פייריה הנרי סיכם וינחת בישראל בשבוע הבא"](https://www.ynet.co.il/sport/israelibasketball/article/hkoa5nntzl)
-were grouped into one story. Guy still sees only the Walla report. Ynet's headline never names
-Maccabi, and Henry is not in the taxonomy, so that report has no entity and is `hidden` for Guy.
-Clustering never shows a hidden member, so the more advanced fact ("agreed") never reached him.
+The Baldwin signing was reported at least five times in 30 hours. Sport5's "close to signing",
+Ynet's "signed" and Walla's
+["קמאר חתימה: עשרה דברים שלא ידעתם על קמאר בולדווין"](https://sports.walla.co.il/item/3875760)
+were grouped into one story. The card takes the highest decision among the members Guy can see
+(`push`), and the Walla piece, `hidden` for Guy, never appears in it. But two more reports of the
+same signing, Walla's
+["המחליף של איפה לונדברג: קמאר בולדווין חתם במכבי תל אביב"](https://sports.walla.co.il/item/3875744)
+and Sport5's next-morning
+["רשמי: קמאר בולדווין חתם במכבי ת"א"](https://www.sport5.co.il/articles.aspx?FolderID=405&docID=567183),
+stayed outside the cluster. One signing produced three push-level cards, and because Baldwin is
+not in the taxonomy, the planner's same-development check (which needs a registered person) would
+not merge them into one message either.
+
+Recall has the same root. Sport5's
+["התעלל במכבי": ברשת הריעו ללורנזו בראון](https://www.sport5.co.il/articles.aspx?FolderID=274&docID=567666)
+(2026-11-14) is about Maccabi, but a bare `מכבי` never resolves to a club and Brown is not in the
+taxonomy, so the article has no entity and no competition and is `hidden` for Guy.
 
 That is the main weakness today: **recall on stories that name no registered team or person.**
 In the October census, 71 of 76 wrongly hidden stories had no competition, and 34 had no entity.
@@ -148,7 +161,7 @@ Desktop browser ─────────────────┤
                                  │
           Worker  python -m app.worker          5-min cycles behind a durable lease
                                  │
-          LLM (OpenAI-compatible or Ollama)   TheSportsDB   Telegram Bot API
+          LLM (OpenAI-compatible or Ollama)   results providers   Telegram Bot API
 ```
 
 The API and the worker are separate processes sharing one SQLite file in WAL mode. The worker
@@ -164,7 +177,8 @@ overlapping cycles. A heartbeat row (`worker_status`) shows whether the worker i
    via its public JSON) → sport-section filter → URL dedup → classify → insert;
 3. compute story anchors and update clusters;
 4. plan notifications per story, then dispatch them through an outbox;
-5. sync game results for followed teams (TheSportsDB, throttled);
+5. sync game results and box scores, each competition from its routed provider (see
+   [Results](#tech-stack)), throttled, with finished games cached permanently;
 6. release the lease and record the run, with per-source metrics and failure reasons.
 
 A failed source degrades the cycle instead of failing it. A source that returns nothing is a
@@ -182,8 +196,8 @@ entity, `event_type=news`). A wrong fact reaches the feed as truth; a missing on
 flowchart TD
     I["Title · subtitle · URL · source"] --> R["1. Rules classifier<br/>(always runs)"]
     R --> GT{"2. LLM gate<br/>are the rules unsure?"}
-    GT -->|"no (~72%)"| N["5. Normalize<br/>league ↔ sport · club enrichment"]
-    GT -->|"yes (~28%)"| LLM["3. LLM proposal<br/>strict JSON, closed enums"]
+    GT -->|"no (~62%)"| N["5. Normalize<br/>league ↔ sport · club enrichment"]
+    GT -->|"yes (~38%)"| LLM["3. LLM proposal<br/>strict JSON, closed enums"]
     LLM -->|"failed / confidence < 0.65"| N
     LLM --> M["4. Merge guardrails<br/>rules evidence vetoes the LLM"]
     M --> N
@@ -218,7 +232,8 @@ provider is configured, and only while the per-run circuit breaker is closed. It
 keyword matches a resolved league, when a source hint agrees and there is already context, when
 the result is strong (league plus confidence ≥ 0.80, or entity plus a specific event plus
 confidence ≥ 0.75), and for generic `news` (a probe showed the LLM changed 0 of 16 of those).
-Every decision records its reason. About 28% of eligible articles reach the LLM.
+Every decision records its reason. About 38% of the articles the gate sees are sent to the LLM,
+most of them because the rules could not tell the sport.
 
 **3. LLM proposal** (`classification/prompt.py`, `providers.py`). Title and subtitle go in; a
 strict JSON object comes out, with closed enums for sport, league and event type, at temperature 0.
@@ -273,12 +288,13 @@ afterwards only through reviewed, backed-up correction scripts, after an in-memo
 whole corpus. Full contracts: [ARTICLE_FACTS](docs/ARTICLE_FACTS.md),
 [LLM_CLASSIFICATION](docs/LLM_CLASSIFICATION.md), [RSS_QUALITY_GUARDRAILS](docs/RSS_QUALITY_GUARDRAILS.md).
 
-Of the 5,297 stored articles, 63% were classified by rules alone and 18% with the LLM involved.
-Another 18% fell back to rules after an LLM failure, most of them during a local-model timeout
-period in October; each run counts these so an outage's cost is visible.
+Of the 7,261 stored articles, 62% were classified by rules alone and 22% with the LLM involved.
+Another 14% fell back to rules after an LLM failure (478 of them in July, 216 in October and 166
+so far in November) and 2% on low LLM confidence; each run counts these so an outage's cost is
+visible.
 
 **Taxonomy** (`app/taxonomy/`) is the single source of entity truth: 117 entities (79 teams,
-31 players, 2 coaches, 5 executives) and 22 competitions. Bare family names like `מכבי` or `הפועל`
+31 players, 2 coaches, 5 executives) and 23 competitions. Bare family names like `מכבי` or `הפועל`
 never resolve to a club on their own.
 
 ### Relevance: Preference V2
@@ -326,7 +342,7 @@ five outlets report it.
 
 ### Persistence and safety
 
-- **SQLite + SQLAlchemy 2.0**, 29 tables, additive soft migrations at startup that fail loudly.
+- **SQLite + SQLAlchemy 2.0**, 34 tables, additive soft migrations at startup that fail loudly.
   Postgres exists only as CI-rehearsed groundwork.
 - **The corpus is evidence.** It holds the article ids of every human rating, so code guards
   refuse resets, and stored facts change only through reviewed, backed-up correction scripts
@@ -339,8 +355,8 @@ five outlets report it.
 
 | | |
 |---|---|
-| Backend | ~31k lines of Python in `backend/app/`, **4,048 pytest tests** |
-| Frontend | ~16k lines in `frontend/src/`, ~620 Vitest tests, ESLint + TypeScript checks |
+| Backend | ~35k lines of Python in `backend/app/`, **4,534 pytest tests** |
+| Frontend | ~19k lines in `frontend/src/`, 1,052 Vitest tests, ESLint + TypeScript checks |
 | CI | `checks.yml` (backend + frontend on every PR) · `images.yml` (Docker images, compose smoke test, backup/restore, deploy and Postgres rehearsals) · `devcontainer.yml` · `lock-refresh.yml` (hash-pinned `requirements.lock`) · `publish-images.yml` |
 
 ### Design decisions
@@ -359,9 +375,9 @@ five outlets report it.
 Unit tests prove the engine does what it was told. **Owner ratings** prove whether it was told the
 right thing:
 
-- **Census gate.** 804 articles, each rated by the owner. The engine must not regress. Current
-  baseline for Guy: shown precision 95.9%, feed-or-higher recall 73.9%. The Deni profile must not
-  drift.
+- **Census gate.** 804 articles, each rated by the owner. The engine must not regress. Baseline
+  for Guy (2026-11-01): shown precision 95.9%, feed-or-higher recall 73.9%. On the 2026-11-18
+  snapshot: 95.8% and 72.5%. The Deni profile must not drift (0 flips on 2026-11-18).
 - **N05 gate.** 282 ratings on a frozen July corpus: Guy shown precision 98.3%, push 7/7.
 - **Census #3.** 300 articles from November, rated blind, with a sealed held-out half.
 - Rerun diffs of the whole corpus, in memory, before any classifier change.
@@ -377,7 +393,7 @@ disagreements are treated as rating noise.
 | Backend | FastAPI, Python 3.13, SQLAlchemy 2.0 on SQLite (WAL) |
 | Worker | Scheduled ingestion cycles behind a single-flight lease |
 | Classification | Rules first, then an optional LLM (an OpenAI-compatible API or local Ollama) behind guardrails |
-| Results | TheSportsDB |
+| Results | Per-competition routing: ESPN (NBA), the EuroLeague's official feed (EuroLeague, EuroCup), Ligat Winner (Israeli basketball and cups), football.co.il (Israeli Premier League); TheSportsDB for everything else and as the fallback when a route goes stale |
 | Push | Telegram Bot API |
 | Packaging | Docker images and Compose for hosting (CI-rehearsed, not deployed) |
 
@@ -388,18 +404,21 @@ disagreements are treated as rating noise.
 <td width="50%" valign="top">
 
 ### 🎯 Preferences that mean something
-Not just on/off toggles: *"NBA: everything"*, *"Tennis: only Grand Slam winners"*,
-*"Football: only major transfers"*, plus followed players and teams.
+Not just on/off toggles. Follow competitions, teams and players, star the ones you must not miss,
+and turn each kind of news (transfers, injuries, results, interviews) up or down. What
+calibration and feedback learned is listed separately, so it is always clear where a preference
+came from.
 
-<img src="docs/assets/readme/preferences.png" alt="Preferences page: sports, competitions and followed teams">
+<img src="docs/assets/readme/preferences.png" alt="Preferences page: followed competitions per sport (basketball, football, tennis)">
 
 </td>
 <td width="50%" valign="top">
 
 ### 🏀 Results that are about you
-Only games of the teams and leagues you follow, with no general scoreboard.
+Only games of the teams and leagues you follow, with no general scoreboard: your teams' latest
+games first, then scores by day, tonight's schedule, and stat lines for the players you pick.
 
-<img src="docs/assets/readme/results.png" alt="Results page: real NBA, EuroLeague and Israeli league scores">
+<img src="docs/assets/readme/results.png" alt="Results page: the followed teams' latest games, then real NBA and EuroLeague scores by day">
 
 </td>
 </tr>
@@ -410,7 +429,7 @@ Only games of the teams and leagues you follow, with no general scoreboard.
 Every article, including the hidden ones, with the full decision path, so a wrong decision is
 easy to spot.
 
-<img src="docs/assets/readme/debug.png" alt="Debug panel: every article in the corpus by decision tier">
+<img src="docs/assets/readme/debug.png" alt="Debug panel viewing as Guy: every article in the corpus by decision tier">
 
 </td>
 <td width="38%" valign="top">
@@ -424,7 +443,7 @@ The same feed at a 390 px phone width. The owner opens it over Tailscale.
 </tr>
 </table>
 
-All screenshots show real data. They were taken on 2026-11-07 from a read-only snapshot of the live
+All screenshots show real data. They were taken on 2026-11-18 from a read-only snapshot of the live
 database.
 
 **Also:** onboarding (interest picker plus calibration), feedback learning, a private Telegram push
@@ -444,13 +463,13 @@ signal-sports/
 │   │   ├── services/        Preference V2 engine, feed, learning, calibration, auth
 │   │   ├── clustering/      deterministic story clustering
 │   │   ├── notifications/   planner, outbox, dispatcher, Telegram
-│   │   ├── results/         TheSportsDB sync
+│   │   ├── results/         results providers, routing, box-score sync
 │   │   ├── qa/              gate logic shared by CI and the local corpus tools
 │   │   └── worker.py        the scheduler process
 │   ├── scripts/     corpus tools: gates, census, rerun diff, reviewed correction scripts
 │   └── tests/
 ├── deploy/          hosted-stack Compose, deploy/backup/restore scripts (CI-rehearsed)
-├── scripts/         worker.ps1 (start/stop/status), check.ps1
+├── scripts/         worker.ps1 (start/stop/status), check.ps1, preview.ps1
 ├── docs/            contracts, current state, QA evidence
 └── .claude/skills/  Claude Code project workflows
 ```
@@ -473,6 +492,8 @@ npm run dev                                                 # http://localhost:5
 
 > **Tip:** `VITE_DATA_MODE=local` runs the frontend on bundled sample data without a backend.
 > `VITE_DATA_MODE=backend` (in `frontend/.env.local`) uses the real API.
+> `powershell -File scripts\preview.ps1 -Worktree <path>` runs a branch next to the live stack, on
+> a copy of the corpus, with Telegram and outbound network off.
 
 **Checks** (the same as CI): `powershell -File scripts\check.ps1` (`-Backend` or `-Frontend` for
 one side), or `cd backend; .venv\Scripts\python -m pytest tests -q` and

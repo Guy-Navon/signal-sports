@@ -1,0 +1,828 @@
+{
+  "legacy_name_to_id": {
+    "AS Monaco Basketball": "team:monaco_bb",
+    "ASVEL Villeurbanne": "team:asvel",
+    "Amir Coffey": "player:amir_coffey",
+    "Anadolu Efes": "team:anadolu_efes",
+    "Antonio Blakeney": "player:antonio_blakeney",
+    "Arik Shtilman": "exec:arik_shtilman",
+    "Atlanta Hawks": "team:atlanta_hawks",
+    "Bar Timor": "player:bar_timor",
+    "Baskonia": "team:baskonia",
+    "Bayern Munich Basketball": "team:bayern_munich_bb",
+    "Beitar Jerusalem": "team:beitar_jlm_fc",
+    "Bnei Herzliya": "team:bnei_herzliya",
+    "Bonzie Colson": "player:bonzie_colson",
+    "Boston Celtics": "team:boston_celtics",
+    "Brooklyn Nets": "team:brooklyn_nets",
+    "Bruno Caboclo": "player:bruno_caboclo",
+    "Buducnost": "team:buducnost_bb",
+    "Charlotte Hornets": "team:charlotte_hornets",
+    "Chicago Bulls": "team:chicago_bulls",
+    "Cleveland Cavaliers": "team:cleveland_cavaliers",
+    "Crvena Zvezda": "team:crvena_zvezda_bb",
+    "Dallas Mavericks": "team:dallas_mavericks",
+    "Daniel Oturu": "player:dan_oturu",
+    "Daniel Theis": "player:daniel_theis",
+    "Deni Avdija": "player:deni_avdija",
+    "Denver Nuggets": "team:denver_nuggets",
+    "Detroit Pistons": "team:detroit_pistons",
+    "Dimitris Itoudis": "coach:dimitris_itoudis",
+    "Dubai Basketball": "team:dubai_bb",
+    "Elijah Bryant": "player:elijah_bryant",
+    "Emek Yizrael Basketball": "team:emek_yizrael_bb",
+    "Eugene German": "player:eugene_german",
+    "FC Barcelona Basketball": "team:barcelona_bb",
+    "Fenerbahce Basketball": "team:fenerbahce_bb",
+    "Golden State Warriors": "team:golden_state_warriors",
+    "Hapoel Beer Sheva": "team:hapoel_beer_sheva_fc",
+    "Hapoel Beer Sheva Basketball": "team:hapoel_beer_sheva_bb",
+    "Hapoel Eilat": "team:hapoel_eilat",
+    "Hapoel Galil Elyon": "team:hapoel_galil_elyon",
+    "Hapoel Galil Gilboa": "team:hapoel_galil_gilboa",
+    "Hapoel HaEmek": "team:hapoel_haemek",
+    "Hapoel Haifa Basketball": "team:hapoel_haifa_bb",
+    "Hapoel Haifa Football": "team:hapoel_haifa_fc",
+    "Hapoel Holon": "team:hapoel_holon",
+    "Hapoel Jerusalem Basketball": "team:hapoel_jlm_bb",
+    "Hapoel Jerusalem Football": "team:hapoel_jlm_fc",
+    "Hapoel Tel Aviv Basketball": "team:hapoel_tlv_bb",
+    "Hapoel Tel Aviv Football": "team:hapoel_tlv_fc",
+    "Houston Rockets": "team:houston_rockets",
+    "Iffe Lundberg": "player:iffe_lundberg",
+    "Indiana Pacers": "team:indiana_pacers",
+    "Ironi Kiryat Ata": "team:ironi_kiryat_ata",
+    "Ironi Ness Ziona": "team:ironi_ness_ziona",
+    "Ironi Ramat Gan": "team:ironi_ramat_gan",
+    "Ishmail Wainright": "player:ishmail_wainright",
+    "Jacob Toppin": "player:jacob_toppin",
+    "Jalen Brunson": "player:jalen_brunson",
+    "Jason Levin": "exec:jason_levin",
+    "Jaylen Hoard": "player:jaylen_hoard",
+    "Jimmy Clark III": "player:jimmy_clark",
+    "John DiBartolomeo": "player:john_dibartolomeo",
+    "Keaton Wallace": "player:keaton_wallace",
+    "Khadeen Carrington": "player:khadeen_carrington",
+    "LA Clippers": "team:la_clippers",
+    "LeBron James": "player:lebron_james",
+    "Los Angeles Lakers": "team:la_lakers",
+    "Maccabi Ashdod": "team:maccabi_ashdod",
+    "Maccabi Bnei Raina": "team:maccabi_bnei_raina_fc",
+    "Maccabi Haifa": "team:maccabi_haifa_fc",
+    "Maccabi Herzliya": "team:maccabi_herzliya_fc",
+    "Maccabi Jaffa": "team:maccabi_jaffa_fc",
+    "Maccabi Kiryat Gat": "team:maccabi_kiryat_gat",
+    "Maccabi Netanya": "team:maccabi_netanya_fc",
+    "Maccabi Petah Tikva": "team:maccabi_petah_tikva_fc",
+    "Maccabi Ramat Gan": "team:maccabi_ramat_gan",
+    "Maccabi Tel Aviv Basketball": "team:maccabi_tlv_bb",
+    "Maccabi Tel Aviv Football": "team:maccabi_tlv_fc",
+    "Memphis Grizzlies": "team:memphis_grizzlies",
+    "Miami Heat": "team:miami_heat",
+    "Milwaukee Bucks": "team:milwaukee_bucks",
+    "Minnesota Timberwolves": "team:minnesota_timberwolves",
+    "New Orleans Pelicans": "team:new_orleans_pelicans",
+    "New York Knicks": "team:ny_knicks",
+    "Oded Katash": "coach:oded_kattash",
+    "Oklahoma City Thunder": "team:okc_thunder",
+    "Olimpia Milano": "team:olimpia_milano",
+    "Olympiacos Basketball": "team:olympiacos_bb",
+    "Orlando Magic": "team:orlando_magic",
+    "Oshae Brissett": "player:oshae_brissett",
+    "Panathinaikos Basketball": "team:panathinaikos_bb",
+    "Paris Basketball": "team:paris_bb",
+    "Partizan Belgrade": "team:partizan_bb",
+    "Philadelphia 76ers": "team:philadelphia_76ers",
+    "Phoenix Suns": "team:phoenix_suns",
+    "Portland Trail Blazers": "team:portland_blazers",
+    "Real Madrid Basketball": "team:real_madrid_bb",
+    "Recanati family": "exec:recanati_family",
+    "Richard Dietz": "exec:richard_dietz",
+    "Roman Sorkin": "player:roman_sorkin",
+    "Sacramento Kings": "team:sacramento_kings",
+    "San Antonio Spurs": "team:san_antonio_spurs",
+    "Shane Hunter": "player:shane_hunter",
+    "Shimon Mizrahi": "exec:shimon_mizrahi",
+    "T. J. Leaf": "player:tj_leaf",
+    "Tamir Blatt": "player:tamir_blatt",
+    "Tomas Satoransky": "player:tomas_satoransky",
+    "Tomer Ginat": "player:tomer_ginat",
+    "Toronto Raptors": "team:toronto_raptors",
+    "Utah Jazz": "team:utah_jazz",
+    "Valencia Basket": "team:valencia_bb",
+    "Vasilije Micic": "player:vasilije_micic",
+    "Virtus Bologna": "team:virtus_bologna",
+    "Washington Wizards": "team:washington_wizards",
+    "Will Rayman": "player:will_rayman",
+    "Yam Madar": "player:yam_madar",
+    "Zach LeDay": "player:zach_leday",
+    "Zalgiris Kaunas": "team:zalgiris"
+  },
+  "people": {
+    "coach:dimitris_itoudis": {
+      "display_he": "דימיטריס איטודיס",
+      "kind": "coach",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "coach:oded_kattash": {
+      "display_he": "עודד קטש",
+      "kind": "coach",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "exec:arik_shtilman": {
+      "display_he": "אריק שטילמן",
+      "kind": "executive",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "exec:jason_levin": {
+      "display_he": "ג'ייסון לוין",
+      "kind": "executive",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "exec:recanati_family": {
+      "display_he": "משפחת רקנאטי",
+      "kind": "executive",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "exec:richard_dietz": {
+      "display_he": "ריצ'רד דיץ",
+      "kind": "executive",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "exec:shimon_mizrahi": {
+      "display_he": "שמעון מזרחי",
+      "kind": "executive",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:amir_coffey": {
+      "display_he": "אמיר קופי",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:antonio_blakeney": {
+      "display_he": "אנטוניו בלייקני",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:bar_timor": {
+      "display_he": "בר טימור",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:bonzie_colson": {
+      "display_he": "בונזי קולסון",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:bruno_caboclo": {
+      "display_he": "ברונו קאבוקלו",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:dan_oturu": {
+      "display_he": "דן אוטורו",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:daniel_theis": {
+      "display_he": "דניאל תייס",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:deni_avdija": {
+      "display_he": "דני אבדיה",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:portland_blazers"
+    },
+    "player:elijah_bryant": {
+      "display_he": "אלייז'ה בראיינט",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:eugene_german": {
+      "display_he": "יוג'ין ג'רמן",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:iffe_lundberg": {
+      "display_he": "איפה לונדברג",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:ishmail_wainright": {
+      "display_he": "ישמעאל וויינרייט",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:jacob_toppin": {
+      "display_he": "ג'ייקוב טופין",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:jalen_brunson": {
+      "display_he": "ג'יילן ברונסון",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:ny_knicks"
+    },
+    "player:jaylen_hoard": {
+      "display_he": "ג'יילן הורד",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:jimmy_clark": {
+      "display_he": "ג'ימי קלארק",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:john_dibartolomeo": {
+      "display_he": "ג'ון דיברתולומאו",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:keaton_wallace": {
+      "display_he": "קיטון וואלאס",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:khadeen_carrington": {
+      "display_he": "קאדין קרינגטון",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:lebron_james": {
+      "display_he": "לברון ג'יימס",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:la_lakers"
+    },
+    "player:oshae_brissett": {
+      "display_he": "אושיי בריסט",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:roman_sorkin": {
+      "display_he": "רומן סורקין",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:shane_hunter": {
+      "display_he": "שיין האנטר",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:tamir_blatt": {
+      "display_he": "תמיר בלאט",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:tj_leaf": {
+      "display_he": "טי ג'יי ליף",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:tomas_satoransky": {
+      "display_he": "תומאש סאטורנסקי",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:tomer_ginat": {
+      "display_he": "תומר גינת",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:vasilije_micic": {
+      "display_he": "ואסיליה מיציץ'",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    },
+    "player:will_rayman": {
+      "display_he": "וויל ריימן",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:yam_madar": {
+      "display_he": "ים מדר",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:maccabi_tlv_bb"
+    },
+    "player:zach_leday": {
+      "display_he": "זאק לידיי",
+      "kind": "player",
+      "number": null,
+      "team_id": "team:hapoel_tlv_bb"
+    }
+  },
+  "taxonomy_version": 1,
+  "teams": {
+    "team:anadolu_efes": {
+      "display_he": "אנאדולו אפס",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:asvel": {
+      "display_he": "אזוול וילרבאן",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:atlanta_hawks": {
+      "display_he": "אטלנטה הוקס",
+      "primary": "#E03A3E",
+      "secondary": "#C1D32F",
+      "sport": "basketball"
+    },
+    "team:barcelona_bb": {
+      "display_he": "ברצלונה",
+      "primary": "#004D98",
+      "secondary": "#A50044",
+      "sport": "basketball"
+    },
+    "team:baskonia": {
+      "display_he": "בסקוניה",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:bayern_munich_bb": {
+      "display_he": "באיירן מינכן",
+      "primary": "#DC052D",
+      "secondary": "#FFFFFF",
+      "sport": "basketball"
+    },
+    "team:beitar_jlm_fc": {
+      "display_he": "בית\"ר ירושלים",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:bnei_herzliya": {
+      "display_he": "בני הרצליה",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:boston_celtics": {
+      "display_he": "בוסטון סלטיקס",
+      "primary": "#007A33",
+      "secondary": "#BA9653",
+      "sport": "basketball"
+    },
+    "team:brooklyn_nets": {
+      "display_he": "ברוקלין נטס",
+      "primary": "#000000",
+      "secondary": "#FFFFFF",
+      "sport": "basketball"
+    },
+    "team:buducnost_bb": {
+      "display_he": "בודוצ'נוסט",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:charlotte_hornets": {
+      "display_he": "שארלוט הורנטס",
+      "primary": "#1D1160",
+      "secondary": "#00788C",
+      "sport": "basketball"
+    },
+    "team:chicago_bulls": {
+      "display_he": "שיקגו בולס",
+      "primary": "#CE1141",
+      "secondary": "#000000",
+      "sport": "basketball"
+    },
+    "team:cleveland_cavaliers": {
+      "display_he": "קליבלנד קאבלירס",
+      "primary": "#860038",
+      "secondary": "#FDBB30",
+      "sport": "basketball"
+    },
+    "team:crvena_zvezda_bb": {
+      "display_he": "הכוכב האדום",
+      "primary": "#D2122E",
+      "secondary": "#FFFFFF",
+      "sport": "basketball"
+    },
+    "team:dallas_mavericks": {
+      "display_he": "דאלאס מאבריקס",
+      "primary": "#00538C",
+      "secondary": "#B8C4CA",
+      "sport": "basketball"
+    },
+    "team:denver_nuggets": {
+      "display_he": "דנבר נאגטס",
+      "primary": "#0E2240",
+      "secondary": "#FEC524",
+      "sport": "basketball"
+    },
+    "team:detroit_pistons": {
+      "display_he": "דטרויט פיסטונס",
+      "primary": "#C8102E",
+      "secondary": "#1D42BA",
+      "sport": "basketball"
+    },
+    "team:dubai_bb": {
+      "display_he": "דובאי",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:emek_yizrael_bb": {
+      "display_he": "עמק יזרעאל",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:fenerbahce_bb": {
+      "display_he": "פנרבחצ'ה",
+      "primary": "#002D72",
+      "secondary": "#FFED00",
+      "sport": "basketball"
+    },
+    "team:golden_state_warriors": {
+      "display_he": "גולדן סטייט ווריורס",
+      "primary": "#1D428A",
+      "secondary": "#FFC72C",
+      "sport": "basketball"
+    },
+    "team:hapoel_beer_sheva_bb": {
+      "display_he": "הפועל באר שבע",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:hapoel_beer_sheva_fc": {
+      "display_he": "הפועל באר שבע",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:hapoel_eilat": {
+      "display_he": "הפועל אילת",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:hapoel_galil_elyon": {
+      "display_he": "הפועל גליל עליון",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:hapoel_galil_gilboa": {
+      "display_he": "הפועל גלבוע גליל",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:hapoel_haemek": {
+      "display_he": "הפועל העמק",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:hapoel_haifa_bb": {
+      "display_he": "הפועל חיפה",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:hapoel_haifa_fc": {
+      "display_he": "הפועל חיפה",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:hapoel_holon": {
+      "display_he": "הפועל חולון",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:hapoel_jlm_bb": {
+      "display_he": "הפועל ירושלים",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:hapoel_jlm_fc": {
+      "display_he": "הפועל ירושלים",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:hapoel_tlv_bb": {
+      "display_he": "הפועל תל אביב",
+      "primary": "#E30613",
+      "secondary": "#FFFFFF",
+      "sport": "basketball"
+    },
+    "team:hapoel_tlv_fc": {
+      "display_he": "הפועל תל אביב",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:houston_rockets": {
+      "display_he": "יוסטון רוקטס",
+      "primary": "#CE1141",
+      "secondary": "#000000",
+      "sport": "basketball"
+    },
+    "team:indiana_pacers": {
+      "display_he": "אינדיאנה פייסרס",
+      "primary": "#002D62",
+      "secondary": "#FDBB30",
+      "sport": "basketball"
+    },
+    "team:ironi_kiryat_ata": {
+      "display_he": "עירוני קריית אתא",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:ironi_ness_ziona": {
+      "display_he": "עירוני נס ציונה",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:ironi_ramat_gan": {
+      "display_he": "עירוני רמת גן",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:la_clippers": {
+      "display_he": "לוס אנג'לס קליפרס",
+      "primary": "#C8102E",
+      "secondary": "#1D428A",
+      "sport": "basketball"
+    },
+    "team:la_lakers": {
+      "display_he": "לוס אנג'לס לייקרס",
+      "primary": "#552583",
+      "secondary": "#FDB927",
+      "sport": "basketball"
+    },
+    "team:maccabi_ashdod": {
+      "display_he": "מכבי אשדוד",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:maccabi_bnei_raina_fc": {
+      "display_he": "מכבי בני ריינה",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:maccabi_haifa_fc": {
+      "display_he": "מכבי חיפה",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:maccabi_herzliya_fc": {
+      "display_he": "מכבי הרצליה",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:maccabi_jaffa_fc": {
+      "display_he": "מכבי יפו",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:maccabi_kiryat_gat": {
+      "display_he": "מכבי קריית גת",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:maccabi_netanya_fc": {
+      "display_he": "מכבי נתניה",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:maccabi_petah_tikva_fc": {
+      "display_he": "מכבי פתח תקווה",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:maccabi_ramat_gan": {
+      "display_he": "מכבי רמת גן",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:maccabi_tlv_bb": {
+      "display_he": "מכבי תל אביב",
+      "primary": "#FFD100",
+      "secondary": "#003DA5",
+      "sport": "basketball"
+    },
+    "team:maccabi_tlv_fc": {
+      "display_he": "מכבי תל אביב",
+      "primary": null,
+      "secondary": null,
+      "sport": "football"
+    },
+    "team:memphis_grizzlies": {
+      "display_he": "ממפיס גריזליס",
+      "primary": "#5D76A9",
+      "secondary": "#12173F",
+      "sport": "basketball"
+    },
+    "team:miami_heat": {
+      "display_he": "מיאמי היט",
+      "primary": "#98002E",
+      "secondary": "#000000",
+      "sport": "basketball"
+    },
+    "team:milwaukee_bucks": {
+      "display_he": "מילווקי באקס",
+      "primary": "#00471B",
+      "secondary": "#EEE1C6",
+      "sport": "basketball"
+    },
+    "team:minnesota_timberwolves": {
+      "display_he": "מינסוטה טימברוולבס",
+      "primary": "#0C2340",
+      "secondary": "#78BE20",
+      "sport": "basketball"
+    },
+    "team:monaco_bb": {
+      "display_he": "מונאקו",
+      "primary": "#E2001A",
+      "secondary": "#FFFFFF",
+      "sport": "basketball"
+    },
+    "team:new_orleans_pelicans": {
+      "display_he": "ניו אורלינס פליקנס",
+      "primary": "#0C2340",
+      "secondary": "#85714D",
+      "sport": "basketball"
+    },
+    "team:ny_knicks": {
+      "display_he": "ניו יורק ניקס",
+      "primary": "#006BB6",
+      "secondary": "#F58426",
+      "sport": "basketball"
+    },
+    "team:okc_thunder": {
+      "display_he": "אוקלהומה סיטי ת'אנדר",
+      "primary": "#007AC1",
+      "secondary": "#EF3B24",
+      "sport": "basketball"
+    },
+    "team:olimpia_milano": {
+      "display_he": "אולימפיה מילאנו",
+      "primary": "#CE1126",
+      "secondary": "#FFFFFF",
+      "sport": "basketball"
+    },
+    "team:olympiacos_bb": {
+      "display_he": "אולימפיאקוס",
+      "primary": "#E2001A",
+      "secondary": "#FFFFFF",
+      "sport": "basketball"
+    },
+    "team:orlando_magic": {
+      "display_he": "אורלנדו מג'יק",
+      "primary": "#0077C0",
+      "secondary": "#000000",
+      "sport": "basketball"
+    },
+    "team:panathinaikos_bb": {
+      "display_he": "פנאתינייקוס",
+      "primary": "#007A3D",
+      "secondary": "#FFFFFF",
+      "sport": "basketball"
+    },
+    "team:paris_bb": {
+      "display_he": "פריז באסקטבול",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:partizan_bb": {
+      "display_he": "פרטיזן בלגרד",
+      "primary": "#000000",
+      "secondary": "#FFFFFF",
+      "sport": "basketball"
+    },
+    "team:philadelphia_76ers": {
+      "display_he": "פילדלפיה סבנטי סיקסרס",
+      "primary": "#006BB6",
+      "secondary": "#ED174C",
+      "sport": "basketball"
+    },
+    "team:phoenix_suns": {
+      "display_he": "פיניקס סאנס",
+      "primary": "#1D1160",
+      "secondary": "#E56020",
+      "sport": "basketball"
+    },
+    "team:portland_blazers": {
+      "display_he": "פורטלנד בלייזרס",
+      "primary": "#E03A3E",
+      "secondary": "#000000",
+      "sport": "basketball"
+    },
+    "team:real_madrid_bb": {
+      "display_he": "ריאל מדריד",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:sacramento_kings": {
+      "display_he": "סקרמנטו קינגס",
+      "primary": "#5A2D81",
+      "secondary": "#63727A",
+      "sport": "basketball"
+    },
+    "team:san_antonio_spurs": {
+      "display_he": "סן אנטוניו ספרס",
+      "primary": "#000000",
+      "secondary": "#C4CED4",
+      "sport": "basketball"
+    },
+    "team:toronto_raptors": {
+      "display_he": "טורונטו ראפטורס",
+      "primary": "#CE1141",
+      "secondary": "#000000",
+      "sport": "basketball"
+    },
+    "team:utah_jazz": {
+      "display_he": "יוטה ג'אז",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:valencia_bb": {
+      "display_he": "ולנסיה",
+      "primary": null,
+      "secondary": null,
+      "sport": "basketball"
+    },
+    "team:virtus_bologna": {
+      "display_he": "וירטוס בולוניה",
+      "primary": "#000000",
+      "secondary": "#FFFFFF",
+      "sport": "basketball"
+    },
+    "team:washington_wizards": {
+      "display_he": "וושינגטון וויזארדס",
+      "primary": "#002B5C",
+      "secondary": "#E31837",
+      "sport": "basketball"
+    },
+    "team:zalgiris": {
+      "display_he": "ז'לגיריס קובנה",
+      "primary": "#006A44",
+      "secondary": "#FFFFFF",
+      "sport": "basketball"
+    }
+  }
+}

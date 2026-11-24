@@ -99,6 +99,13 @@ Location: `backend/app/taxonomy/`
   cannot prove). Tennis Grand Slams are selectable competition-only.
   Removing an id from `NON_SELECTABLE_COMPETITIONS` is the single switch
   once taxonomy/classifier coverage lands.
+- `frontend/src/data/teamIdentity.generated.json` (`export.build_identity_export`,
+  #591): every team with its Hebrew name and jersey colours (`primary` body,
+  `secondary` trim, `null` when unknown), every person with a `team_id` and an
+  optional jersey `number`, and a legacy-name index. Read by
+  `frontend/src/components/signal-ui/teamIdentity.js` for the feed's team mark
+  (#592). The frozen local-mode engine does not read it; it reads only
+  `taxonomyReach.generated.json`, whose shape is unchanged.
 
 ## Extending the registry
 
@@ -110,6 +117,24 @@ shared aliases only across different sports, coach/player `team_id` validity.
 No other file needs to change; every registry addition permanently converts a
 class of LLM calls into deterministic hits (the taxonomy is the gating
 function — see the LLM-as-exception architecture principle).
+
+**Team identity** (colours, jersey numbers) lives in
+`backend/app/taxonomy/identity.py`, not on `TaxonomyEntity`: `TEAM_COLORS`
+(id → primary, secondary, source), `JERSEY_NUMBERS` (id → number string,
+source) and `IDENTITY_PENDING` (team id → why it has no palette yet). Every
+entry needs a source; colours are facts (no logos or crests) and are never
+adjusted for contrast, because visibility is the mark's job (#592).
+`validate_registry()` checks ids, uppercase `#RRGGBB` hex, distinct colours,
+jersey format `0|00|1–99`, and that every pending team is real and has no
+colours. Jersey numbers move with transfers, so they ride with roster upkeep (#377).
+
+*2026-11, #591:* colours for 29 NBA teams and 13 European/Israeli clubs
+(Maccabi and Hapoel Tel Aviv, Olympiacos, Panathinaikos, Fenerbahçe, Partizan,
+Crvena zvezda, Barcelona, Bayern, Virtus, Olimpia Milano, Žalgiris, Monaco),
+all with the source "unverified (brief #591)" until checked against the teams'
+own sites. Pending: Utah Jazz, Real Madrid, Valencia, Baskonia, Anadolu Efes,
+Dubai, ASVEL and Paris. Other Winner League clubs and all football clubs have
+no colours yet. No jersey numbers yet (none verified).
 
 ## Roster maintenance: club people (`implies_team`, #377)
 

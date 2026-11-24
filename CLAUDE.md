@@ -167,8 +167,9 @@ Use `-q`, not `-v`: the full suite prints thousands of lines under `-v`.
   `frontend/src/lab/resultsFixtures.json`, `frontend/src/data/mockArticles.js` or
   `taxonomyReach.generated.json` (data, thousands of lines) — query them with a script or `Grep`.
 - **Generated artifact.** Any edit under `backend/app/taxonomy/` requires
-  `.venv\Scripts\python scripts\generate_taxonomy_export.py` and committing
-  `frontend/src/data/taxonomyReach.generated.json` (a freshness test fails otherwise).
+  `.venv\Scripts\python scripts\generate_taxonomy_export.py` and committing both files it
+  writes, `frontend/src/data/taxonomyReach.generated.json` and
+  `frontend/src/data/teamIdentity.generated.json` (freshness tests fail otherwise).
 - **Profile drift trio.** Legacy topic seeds change in three places together:
   `backend/app/seed/seed_profiles.py`, `frontend/src/data/userProfiles.js`, `docs/fixtures/profile_parity.json`.
 - **Frozen JS engine.** `frontend/src/engine/` is local-mode only; never port new intelligence to it.

@@ -9,6 +9,7 @@ describe("teamIdentity", () => {
       displayHe: "מכבי תל אביב",
       primary: "#FFD100",
       secondary: "#003DA5",
+      code: "MTA",
       number: null,
       personId: null,
     });
@@ -23,7 +24,8 @@ describe("teamIdentity", () => {
       displayHe: "פורטלנד בלייזרס",
       primary: "#E03A3E",
       secondary: "#000000",
-      number: null, // no verified number yet (#591)
+      code: "POR",
+      number: "8", // Wikipedia infobox, checked 2026-11-24
       personId: "player:deni_avdija",
     });
   });
@@ -38,7 +40,8 @@ describe("teamIdentity", () => {
 
   it("returns null for an unknown ref and null colours for a pending team", () => {
     expect(teamIdentity("Nobody FC")).toBeNull();
-    expect(teamIdentity("team:utah_jazz")?.primary).toBeNull();
-    expect(teamIdentity("team:utah_jazz")?.secondary).toBeNull();
+    expect(teamIdentity("team:paris_bb")?.primary).toBeNull();
+    expect(teamIdentity("team:paris_bb")?.code).toBe("PRS");
   });
+
 });

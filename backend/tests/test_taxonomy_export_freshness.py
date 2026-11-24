@@ -68,6 +68,8 @@ def test_generated_identity_export_shape():
     assert maccabi["primary"] == "#FFD100"
     assert maccabi["secondary"] == "#003DA5"
     assert maccabi["sport"] == "basketball"
+    assert maccabi["code"] == "MTA"
+    assert live["people"]["player:deni_avdija"]["number"] == "8"
     assert live["people"]["player:deni_avdija"]["team_id"] == "team:portland_blazers"
     assert live["legacy_name_to_id"]["Oded Katash"] == "coach:oded_kattash"
     assert live["teams"]["team:maccabi_tlv_fc"]["primary"] is None

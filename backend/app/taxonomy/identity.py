@@ -17,6 +17,10 @@ Jersey numbers change with transfers and ride with roster upkeep (#377).
 _UNVERIFIED = "unverified (brief #591)"
 _NBA_UNVERIFIED = "unverified (brief #591; teamcolorcodes.com NBA brand colours)"
 
+
+def _wiki(page: str) -> str:
+    return f"https://en.wikipedia.org/wiki/{page}"
+
 # Team colours: id -> (primary, secondary, source). Primary = jersey body; secondary = trim.
 TEAM_COLORS: dict[str, tuple[str, str, str]] = {
     # NBA
@@ -63,21 +67,68 @@ TEAM_COLORS: dict[str, tuple[str, str, str]] = {
     "team:olimpia_milano": ("#CE1126", "#FFFFFF", _UNVERIFIED),
     "team:zalgiris": ("#006A44", "#FFFFFF", _UNVERIFIED),
     "team:monaco_bb": ("#E2001A", "#FFFFFF", _UNVERIFIED),
+    # From each club's Wikipedia infobox (colour names, checked 2026-11-24); the
+    # hex values approximate those names.
+    "team:hapoel_jlm_bb": ("#D7141A", "#000000", _wiki("Hapoel_Jerusalem_B.C.")),
+    "team:hapoel_holon": ("#5B2C83", "#FFD100", _wiki("Hapoel_Holon_B.C.")),
+    "team:hapoel_eilat": ("#0057B8", "#FFFFFF", _wiki("Hapoel_Ironi_Eilat")),
+    "team:ironi_ness_ziona": ("#F47B20", "#13294B", _wiki("Ironi_Ness_Ziona_B.C.")),
+    "team:maccabi_ashdod": ("#FFD100", "#0033A0", _wiki("Maccabi_Ashdod_B.C.")),
+    "team:hapoel_galil_elyon": ("#D7141A", "#FFFFFF", _wiki("Hapoel_Galil_Elyon")),
+    "team:maccabi_ramat_gan": ("#FFFFFF", "#0057B8", _wiki("Maccabi_Ironi_Ramat_Gan")),
+    "team:ironi_ramat_gan": ("#FFFFFF", "#0057B8", _wiki("Maccabi_Ironi_Ramat_Gan")),
+    "team:maccabi_kiryat_gat": ("#FFFFFF", "#0057B8", _wiki("A.S._Kiryat_Gat/Ashkelon")),
+    "team:ironi_kiryat_ata": ("#0057B8", "#FFFFFF", _wiki("Ironi_Kiryat_Ata_B.C.")),
+    "team:hapoel_beer_sheva_bb": ("#D7141A", "#FFFFFF", _wiki("Hapoel_Be%27er_Sheva_B.C.")),
+    "team:hapoel_haifa_bb": ("#D7141A", "#FFFFFF", _wiki("Hapoel_Haifa_B.C.")),
+    "team:buducnost_bb": ("#0047AB", "#FFFFFF", _wiki("KK_Budu%C4%87nost")),
+    "team:real_madrid_bb": ("#FFFFFF", "#3D195B", _wiki("Real_Madrid_Baloncesto")),
+    "team:valencia_bb": ("#F28C00", "#000000", _wiki("Valencia_Basket")),
+    "team:baskonia": ("#C8102E", "#003DA5", _wiki("Saski_Baskonia")),
+    "team:anadolu_efes": ("#002B5C", "#FFFFFF", _wiki("Anadolu_Efes_S.K.")),
+    "team:dubai_bb": ("#6B4226", "#000000", _wiki("Dubai_Basketball")),
+    "team:asvel": ("#FFFFFF", "#000000", _wiki("ASVEL_Basket")),
+    "team:utah_jazz": ("#4B2884", "#000000", _wiki("Utah_Jazz")),
 }
 
 # Jersey numbers: id -> (number, source). Strings, so "0" and "00" stay distinct.
-# Only players followable on their own (Deni Avdija, LeBron James, Jalen
-# Brunson) need one. None verified yet: a number is never guessed.
-JERSEY_NUMBERS: dict[str, tuple[str, str]] = {}
+# Only players followable on their own need one; a number is never guessed.
+JERSEY_NUMBERS: dict[str, tuple[str, str]] = {
+    "player:deni_avdija": ("8", _wiki("Deni_Avdija")),
+    "player:jalen_brunson": ("11", _wiki("Jalen_Brunson")),
+}
 
 # Teams of an adopted-complete competition with no verified palette yet: id -> reason.
 IDENTITY_PENDING: dict[str, str] = {
-    "team:utah_jazz": "palette changed in recent seasons; needs a verified current source",
-    "team:real_madrid_bb": "white body; the secondary colour needs a source from the club",
-    "team:valencia_bb": "orange body; the secondary colour needs a source from the club",
-    "team:baskonia": "no verified source for the club colours yet",
-    "team:anadolu_efes": "no verified source for the club colours yet",
-    "team:dubai_bb": "no verified source for the club colours yet",
-    "team:asvel": "no verified source for the club colours yet",
-    "team:paris_bb": "no verified source for the club colours yet",
+    "team:paris_bb": "Wikipedia states no club colours; needs a source from the club",
+}
+
+# Short Latin codes for the jersey chest (3 letters, unique). NBA: the league's
+# official tricodes. Other clubs: Signal's own fixed codes.
+TEAM_CODES: dict[str, str] = {
+    # NBA
+    "team:atlanta_hawks": "ATL", "team:boston_celtics": "BOS", "team:brooklyn_nets": "BKN",
+    "team:charlotte_hornets": "CHA", "team:chicago_bulls": "CHI", "team:cleveland_cavaliers": "CLE",
+    "team:dallas_mavericks": "DAL", "team:denver_nuggets": "DEN", "team:detroit_pistons": "DET",
+    "team:golden_state_warriors": "GSW", "team:houston_rockets": "HOU", "team:indiana_pacers": "IND",
+    "team:la_clippers": "LAC", "team:la_lakers": "LAL", "team:memphis_grizzlies": "MEM",
+    "team:miami_heat": "MIA", "team:milwaukee_bucks": "MIL", "team:minnesota_timberwolves": "MIN",
+    "team:new_orleans_pelicans": "NOP", "team:ny_knicks": "NYK", "team:okc_thunder": "OKC",
+    "team:orlando_magic": "ORL", "team:philadelphia_76ers": "PHI", "team:phoenix_suns": "PHX",
+    "team:portland_blazers": "POR", "team:sacramento_kings": "SAC", "team:san_antonio_spurs": "SAS",
+    "team:toronto_raptors": "TOR", "team:utah_jazz": "UTA", "team:washington_wizards": "WAS",
+    # Israel
+    "team:maccabi_tlv_bb": "MTA", "team:hapoel_tlv_bb": "HTA", "team:hapoel_jlm_bb": "HJM",
+    "team:hapoel_holon": "HOL", "team:bnei_herzliya": "HRZ", "team:hapoel_eilat": "EIL",
+    "team:hapoel_galil_gilboa": "GIL", "team:hapoel_haemek": "EMK", "team:ironi_ramat_gan": "IRG",
+    "team:ironi_ness_ziona": "NZI", "team:emek_yizrael_bb": "EMY", "team:maccabi_ashdod": "ASD",
+    "team:hapoel_galil_elyon": "GLE", "team:maccabi_ramat_gan": "MRG", "team:maccabi_kiryat_gat": "KGT",
+    "team:ironi_kiryat_ata": "KAT", "team:hapoel_beer_sheva_bb": "HBS", "team:hapoel_haifa_bb": "HHA",
+    # Europe
+    "team:olympiacos_bb": "OLY", "team:panathinaikos_bb": "PAO", "team:real_madrid_bb": "RMA",
+    "team:barcelona_bb": "BAR", "team:baskonia": "BAS", "team:valencia_bb": "VAL",
+    "team:fenerbahce_bb": "FEN", "team:anadolu_efes": "EFS", "team:partizan_bb": "PAR",
+    "team:crvena_zvezda_bb": "CZV", "team:bayern_munich_bb": "MUN", "team:zalgiris": "ZAL",
+    "team:dubai_bb": "DUB", "team:monaco_bb": "MON", "team:asvel": "ASV", "team:paris_bb": "PRS",
+    "team:virtus_bologna": "VIR", "team:olimpia_milano": "OLM", "team:buducnost_bb": "BUD",
 }

@@ -106,6 +106,7 @@
   --sg-hot: #d51b55;
   --sg-hot-fg: #ffffff;
   --sg-off: #cfd6e4;
+  --sg-mark-edge: #7d879b;
   --sg-t1: #e3ecff;
   --sg-t2: #ffe9dc;
   --sg-t3: #dff5ea;
@@ -150,6 +151,7 @@
   --sg-hot: #bf174b;
   --sg-hot-fg: #ffffff;
   --sg-off: #b4bdcd;
+  --sg-mark-edge: #6d778a;
   --sg-t1: #cfdcfa;
   --sg-t2: #f6d9c8;
   --sg-t3: #c9e9d8;
@@ -179,6 +181,7 @@
   --sg-hot: #ff6a94;
   --sg-hot-fg: #07130f;
   --sg-off: #465069;
+  --sg-mark-edge: #7f89a0;
   --sg-t1: #27365c;
   --sg-t2: #4a3528;
   --sg-t3: #1f4034;
@@ -267,4 +270,21 @@
 
 @media (prefers-reduced-motion: reduce) {
   .signal-ui .sg-strength__stroke { animation: none; }
+}
+
+/* Team mark (#592): a drawn jersey or a neutral sport glyph. Team colours are
+   facts and can be anything, so the outline (--sg-mark-edge, 3:1 against the
+   page, card and band on every ground) carries the shape. No motion of its own. */
+.signal-ui .sg-mark {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+.signal-ui .sg-mark__edge { stroke: var(--sg-mark-edge); }
+.signal-ui .sg-mark--glyph { stroke: var(--sg-dim); }
+
+@media (forced-colors: active) {
+  .signal-ui .sg-mark__edge { stroke: CanvasText; }
+  .signal-ui .sg-mark--glyph { stroke: CanvasText; }
 }

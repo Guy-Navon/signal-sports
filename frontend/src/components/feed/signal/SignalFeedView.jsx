@@ -2,6 +2,8 @@ import React, { useContext, useEffect, useId, useMemo, useRef, useState } from "
 import { ArrowUpLeft, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SignalStrength from "@/components/signal-ui/SignalStrength";
+import TeamMark from "@/components/signal-ui/TeamMark";
+import { teamMarkFor } from "@/components/signal-ui/teamMarkModel";
 import MastheadSlot, { MastheadSlotContext } from "@/components/shell/MastheadSlot";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import ResultsStrip from "./ResultsStrip";
@@ -108,6 +110,19 @@ function useArrivals(items) {
 }
 
 /** A story that came in with the latest refresh: a word, not only motion (A6). */
+/**
+ * The team mark's slot at a row's inline start (#592). The slot keeps its width
+ * when the mark abstains, so headlines in a list stay aligned.
+ */
+function RowMark({ item, className }) {
+  const mark = useMemo(() => teamMarkFor(item), [item]);
+  return (
+    <span className={cn("sg-mark-slot", className)}>
+      <TeamMark mark={mark} />
+    </span>
+  );
+}
+
 function NewMark({ show }) {
   return show ? <span className="sg-new">חדש</span> : null;
 }
@@ -400,6 +415,7 @@ function ImportantStory({ item, localScoredArticles, now, readOnly, league, arri
       {...dek.cardProps}
     >
       <span className="sg-important__tags">
+        <RowMark item={item} className="sg-important__mark" />
         <span className="sg-tag">
           <SignalStrength decision={story.decision} />
           {league && <bdi dir="auto">{league}</bdi>}
@@ -521,6 +537,7 @@ function StreamRow({
       style={style}
       {...dek.cardProps}
     >
+      <RowMark item={item} className="sg-row__mark" />
       <div className="sg-row__by">
         <NewMark show={arrived} />
         <SignalStrength decision={story.decision} />
@@ -645,18 +662,21 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
       style={style}
       {...dek.cardProps}
     >
-      <Headline story={story} className="sg-box__title sg-brief__title" linkRef={headlineRef} />
-      <Dek dek={dek} className="sg-box__dek" />
-      <div className="sg-box__meta sg-brief__meta">
-        <span>
-          <Time value={story.timestamp} now={now} />
-          {story.timestamp && <Dot />}
-          <SourceNames story={story} disclosure={disclosure} />
-          <DekToggle dek={dek} />
-        </span>
-        <Feedback story={story} surface={surface} className="sg-acts--quiet" />
+      <RowMark item={item} className="sg-brief__mark" />
+      <div className="sg-brief__body">
+        <Headline story={story} className="sg-box__title sg-brief__title" linkRef={headlineRef} />
+        <Dek dek={dek} className="sg-box__dek" />
+        <div className="sg-box__meta sg-brief__meta">
+          <span>
+            <Time value={story.timestamp} now={now} />
+            {story.timestamp && <Dot />}
+            <SourceNames story={story} disclosure={disclosure} />
+            <DekToggle dek={dek} />
+          </span>
+          <Feedback story={story} surface={surface} className="sg-acts--quiet" />
+        </div>
+        <ClusterMembers story={story} now={now} disclosure={disclosure} />
       </div>
-      <ClusterMembers story={story} now={now} disclosure={disclosure} />
     </li>
   );
 }

@@ -576,3 +576,45 @@ it("important, brief and latest items offer the subtitle too", () => {
     expect(byClass(cards[0], "sg-dek"), cls).toHaveLength(1);
   }
 });
+
+// ── Team mark (#592) ─────────────────────────────────────────────────────────
+
+function withEntities(item, entities) {
+  return { ...item, entities };
+}
+
+const markIn = (node) => byClass(node, "sg-mark");
+
+it("a stream row names its club's jersey, and a three-team story shows the sport glyph", () => {
+  const items = [
+    withEntities(story("f1", "feed"), ["Maccabi Tel Aviv Basketball"]),
+    withEntities(story("f2", "feed"), ["Maccabi Ramat Gan", "Hapoel Tel Aviv Basketball", "Maccabi Tel Aviv Basketball"]),
+  ];
+  const view = render(items);
+  const rows = byClass(view.root, "sg-row");
+  expect(markIn(rows[0]).map((n) => n.props["aria-label"])).toEqual(["מכבי תל אביב"]);
+  expect(markIn(rows[1]).map((n) => n.props["aria-label"])).toEqual(["כדורסל"]);
+});
+
+it("the important row and 'in brief' carry the mark at their inline start; the lead and 'latest' do not", () => {
+  const items = [
+    withEntities(story("p1", "push"), ["Maccabi Tel Aviv Basketball"]),
+    withEntities(story("h1", "high_feed"), ["Deni Avdija"]),
+    withEntities(story("l1", "low_feed"), ["Maccabi Tel Aviv Basketball"]),
+  ];
+  const view = render(items);
+  const [important] = byClass(view.root, "sg-important__item");
+  expect(markIn(important).map((n) => n.props["aria-label"])).toEqual(["פורטלנד בלייזרס"]);
+  const [brief] = byClass(view.root, "sg-brief__item");
+  expect(markIn(brief).map((n) => n.props["aria-label"])).toEqual(["מכבי תל אביב"]);
+  expect(markIn(byClass(view.root, "sg-lead")[0])).toHaveLength(0);
+  expect(markIn(byClass(view.root, "sg-latest")[0])).toHaveLength(0);
+});
+
+it("a row whose mark abstains keeps an empty slot so the headlines stay aligned", () => {
+  const unknown = { ...story("f1", "feed"), sport: "unknown" };
+  const view = render([unknown]);
+  const [row] = byClass(view.root, "sg-row");
+  expect(markIn(row)).toHaveLength(0);
+  expect(byClass(row, "sg-row__mark")).toHaveLength(1);
+});

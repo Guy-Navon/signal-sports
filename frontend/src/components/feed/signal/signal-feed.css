@@ -350,12 +350,12 @@
 .sg-row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: var(--sg-mark-col) minmax(0, 1fr) auto;
   grid-template-areas:
-    "by acts"
-    "title title"
-    "why why"
-    "members members";
+    "mark by acts"
+    "mark title title"
+    "mark why why"
+    "mark members members";
   align-items: center;
   gap: 5px 12px;
   padding: 18px 26px;
@@ -395,6 +395,20 @@
 .sg-row__why { grid-area: why; }
 .sg-row .sg-members { grid-area: members; }
 
+/* Team mark slot (#592): a fixed column at the inline start of the important
+   row's tag line, every stream row and every "בקצרה" row. It keeps its size
+   when the mark abstains, so headlines stay aligned. */
+:is(.sg-row, .sg-mark-slot) { --sg-mark-col: 44px; }
+.sg-mark-slot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--sg-mark-col);
+  block-size: 44px;
+}
+.sg-row__mark { grid-area: mark; align-self: start; }
+
 .sg-row__title { grid-area: title; font-size: 21px; font-weight: 600; line-height: 1.3; }
 
 /* Subtitle on demand (2026-11-16). A card with a subtitle opens it in place: from
@@ -404,11 +418,11 @@
 
 .sg-row[data-dek="open"] {
   grid-template-areas:
-    "by acts"
-    "title title"
-    "dek dek"
-    "why why"
-    "members members";
+    "mark by acts"
+    "mark title title"
+    "mark dek dek"
+    "mark why why"
+    "mark members members";
 }
 
 .sg-dek {
@@ -614,6 +628,16 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
   gap: 2px;
   padding-block: 11px;
   border-block-start: 1px solid var(--sg-line);
+}
+
+/* "בקצרה": the mark beside a column holding the story. */
+.sg-brief__item { flex-direction: row; align-items: flex-start; gap: 10px; }
+.sg-brief__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
 }
 
 .sg-box__title { font-size: 15.5px; font-weight: 600; line-height: 1.35; }
@@ -952,10 +976,10 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
   .sg-band { padding-block: 24px 40px; }
   .sg-row {
     padding: 16px;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "by" "title" "why" "members" "acts";
+    grid-template-columns: var(--sg-mark-col) minmax(0, 1fr);
+    grid-template-areas: "mark by" "mark title" "mark why" "mark members" "mark acts";
   }
-  .sg-row[data-dek="open"] { grid-template-areas: "by" "title" "dek" "why" "members" "acts"; }
+  .sg-row[data-dek="open"] { grid-template-areas: "mark by" "mark title" "mark dek" "mark why" "mark members" "mark acts"; }
   .sg-dek-toggle { inline-size: 32px; block-size: 32px; }
   .sg-dek { font-size: 15.5px; }
   .sg-feed .sg-row__acts { justify-self: end; margin-block-start: -2px; }

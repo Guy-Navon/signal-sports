@@ -365,6 +365,7 @@ opens a specimen page of the tokens, type and marks in all three grounds.
 | `--hot` | alert: push mark, push label, fresh marker | `#ff2f6d` | `#e0245e` | `#ff2f6d` |
 | `--hot-fg` | text on `--hot` | `#ffffff` | `#ffffff` | `#ffffff` |
 | `--off` | empty mark stroke | `#cfd6e4` | `#b4bdcd` | `#465069` |
+| `--mark-edge` | team mark outline (#592, B4a) | `#7d879b` | `#6d778a` | `#7f89a0` |
 | `--t1`…`--t4` | league pill tints, in order | `#e3ecff` `#ffe9dc` `#dff5ea` `#efe6ff` | `#cfdcfa` `#f6d9c8` `#c9e9d8` `#ddd2f5` | `#27365c` `#4a3528` `#1f4034` `#3a2f57` |
 
 Contrast, measured from these values (WCAG ratio): `--dim` on `--card` 4.97 / 5.81 / 6.51;
@@ -430,6 +431,43 @@ is the text). On the navy header (`.sg-on-top`) the bars take the icon's own col
 (`--top-logo-*`: 4.45 and 6.13 on `#142a66`); on a white or soft ground they take the darker
 `--logo-*` pair, because the icon green is 2.2:1 on white. The logo is non-text, so 3:1 applies;
 `contrast.test.js` checks every pair on bg, card and band.
+
+## B4a. Team mark (#592)
+
+A small jersey at the inline start of a story row, drawn by us as inline SVG (`TeamMark`, in
+`frontend/src/components/signal-ui/`). It is never an image, a photo or a club logo. It replaces
+the sport icon of #550, because a feed that is all basketball would show the same ball on every
+row.
+
+- **Shape:** a tank top for a basketball team, a sleeved shirt for a football team, in a 40×44
+  box. The body is the team's primary colour, the neckline and arm trim its secondary. Two teams
+  get two 30 px jerseys overlapping in a 44×44 box. The first team sits on the right, in front,
+  where an RTL reader starts.
+- **Data:** `teamIdentity()` (#591) over the article's own `entities` (legacy names), which
+  the consumer payload and the public demo snapshot already carry. The colours are the #591
+  values. They are facts and are never adjusted for a ground.
+- **Team choice** (`teamMarkModel.js::teamMarkFor`, pure): each entity resolves to its team, and
+  a player resolves to their club. Distinct teams are kept in first-seen order; a player and
+  their own club make one team, which carries the player's number. Exactly one or two teams,
+  all with colours, get jerseys. Three or more teams, no team, or any chosen team without
+  colours fall back to a neutral 24 px sport glyph (basketball or football, 2 px stroke,
+  `--dim`). When the sport is neither of those the mark abstains and renders nothing. A team is
+  never inferred from headline text.
+- **Visibility:** team palettes can be anything, so the shape comes from the outline,
+  `--mark-edge`, which is at least 3:1 against `--bg`, `--card` and `--band` on every ground
+  (and against `--tint`, the row hover). `contrast.test.js` checks it. The number (shown only
+  once #591 has a verified one) is drawn in `numberInk(primary, secondary)`: the secondary when
+  it reaches 3:1 against the body, otherwise whichever of white and black contrasts more.
+  Under forced colours the outline and glyph use `CanvasText`.
+- **Accessibility:** `role="img"`. The accessible name (and the SVG `<title>`) is the team's
+  Hebrew name, with "· <number>" for a numbered player and " ו" between two teams; the glyph is
+  named "כדורסל" or "כדורגל". The mark is not interactive (tapping it to show the why line
+  is #594). It has no motion of its own.
+- **Placement:** a 44 px slot at the inline start of the important row's tag line (B8), every
+  stream row (B10, a grid column that spans the row) and every "בקצרה" row (B11). The slot
+  keeps its width when the mark abstains, so headlines stay aligned. Not in the lead (B7 and
+  B14: it stays headline-first) and not in "אחרונים" (a compact time list). At 320 px the
+  stream headline keeps about 78% of the row width.
 
 ## B5. Feed composition
 
@@ -846,3 +884,5 @@ Guidance from what Guy rejected while choosing:
 - No pure-black "night" layout.
 - No hero without a push, and no importance invented to fill a slot.
 - No Orbit carry-over (B1).
+- No article images or club logos as row art. The team mark (B4a) is a drawn glyph, not an
+  image, so the open images decision (B1 #10, B13) is unchanged.

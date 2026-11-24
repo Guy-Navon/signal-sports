@@ -12,6 +12,7 @@ describe("teamIdentity", () => {
       code: "MTA",
       number: null,
       personId: null,
+      personDisplayHe: null,
     });
   });
 
@@ -27,6 +28,7 @@ describe("teamIdentity", () => {
       code: "POR",
       number: "8", // Wikipedia infobox, checked 2026-11-24
       personId: "player:deni_avdija",
+      personDisplayHe: "דני אבדיה",
     });
   });
 

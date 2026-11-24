@@ -109,7 +109,6 @@ function useArrivals(items) {
   return next.arrivals;
 }
 
-/** A story that came in with the latest refresh: a word, not only motion (A6). */
 /** The team a row shows (#592): one model for its edge, jersey and chip. */
 function useTeamMark(item) {
   return useMemo(() => teamMarkFor(item), [item]);
@@ -127,6 +126,7 @@ function RowMark({ mark, className }) {
   );
 }
 
+/** A story that came in with the latest refresh: a word, not only motion (A6). */
 function NewMark({ show }) {
   return show ? <span className="sg-new">חדש</span> : null;
 }

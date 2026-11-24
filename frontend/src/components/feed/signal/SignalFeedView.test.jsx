@@ -576,3 +576,62 @@ it("important, brief and latest items offer the subtitle too", () => {
     expect(byClass(cards[0], "sg-dek"), cls).toHaveLength(1);
   }
 });
+
+// ── Team mark (#592) ─────────────────────────────────────────────────────────
+
+function withEntities(item, entities) {
+  return { ...item, entities };
+}
+
+const markIn = (node) => byClass(node, "sg-mark");
+const marksNamed = (node) => markIn(node).map((n) => n.props["aria-label"]);
+const chipText = (node) => byClass(node, "sg-chip").map(textOf);
+
+it("a team row gets the colour edge, a jersey named for the club and the name chip; a three-team row gets none", () => {
+  const items = [
+    withEntities(story("f1", "feed"), ["Maccabi Tel Aviv Basketball"]),
+    withEntities(story("f2", "feed"), ["Maccabi Ramat Gan", "Hapoel Tel Aviv Basketball", "Maccabi Tel Aviv Basketball"]),
+  ];
+  const view = render(items);
+  const [one, three] = byClass(view.root, "sg-row");
+  expect(byClass(one, "sg-edge")).toHaveLength(1);
+  expect(marksNamed(one)).toEqual(["מכבי תל אביב"]);
+  expect(chipText(one)).toEqual(["מכבי תל אביב"]);
+  expect(byClass(three, "sg-edge")).toHaveLength(0);
+  expect(markIn(three)).toHaveLength(0);
+  expect(byClass(three, "sg-chip")).toHaveLength(0);
+  // The empty slot keeps the headline column aligned.
+  expect(byClass(three, "sg-row__mark")).toHaveLength(1);
+});
+
+it("two teams get one jersey and one edge for the first, and the second by name", () => {
+  const view = render([withEntities(story("f1", "feed"), ["Deni Avdija", "LeBron James"])]);
+  const [row] = byClass(view.root, "sg-row");
+  expect(marksNamed(row)).toEqual(["פורטלנד בלייזרס · 8"]);
+  expect(byClass(row, "sg-edge")).toHaveLength(1);
+  expect(chipText(row)).toEqual(["דני אבדיה· גם לוס אנג'לס לייקרס"]);
+});
+
+it("the important row and 'in brief' carry the mark beside the headline; the lead and 'latest' do not", () => {
+  const items = [
+    withEntities(story("p1", "push"), ["Maccabi Tel Aviv Basketball"]),
+    withEntities(story("h1", "high_feed"), ["Deni Avdija"]),
+    withEntities(story("l1", "low_feed"), ["Maccabi Tel Aviv Basketball"]),
+  ];
+  const view = render(items);
+  const [important] = byClass(view.root, "sg-important__item");
+  expect(marksNamed(important)).toEqual(["פורטלנד בלייזרס · 8"]);
+  expect(chipText(important)).toEqual(["דני אבדיה"]);
+  expect(byClass(important, "sg-edge")).toHaveLength(1);
+  // Not in the tag line.
+  expect(markIn(byClass(important, "sg-important__tags")[0])).toHaveLength(0);
+  const [brief] = byClass(view.root, "sg-brief__item");
+  expect(marksNamed(brief)).toEqual(["מכבי תל אביב"]);
+  expect(chipText(brief)).toEqual(["מכבי תל אביב"]);
+  for (const name of ["sg-lead", "sg-latest"]) {
+    const [section] = byClass(view.root, name);
+    expect(markIn(section)).toHaveLength(0);
+    expect(byClass(section, "sg-edge")).toHaveLength(0);
+    expect(byClass(section, "sg-chip")).toHaveLength(0);
+  }
+});

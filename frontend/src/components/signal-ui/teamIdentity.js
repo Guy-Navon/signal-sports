@@ -19,7 +19,7 @@ const LEGACY = identity.legacy_name_to_id;
 /**
  * Resolve an entity id or legacy name to the identity of the team it belongs to.
  * @param {string} ref
- * @returns {{ teamId: string, sport: string, displayHe: string, primary: string|null, secondary: string|null, code: string|null, number: string|null, personId: string|null } | null}
+ * @returns {{ teamId: string, sport: string, displayHe: string, primary: string|null, secondary: string|null, code: string|null, number: string|null, personId: string|null, personDisplayHe: string|null } | null}
  */
 export function teamIdentity(ref) {
   const id = Object.hasOwn(TEAMS, ref) || Object.hasOwn(PEOPLE, ref) ? ref : LEGACY[ref];
@@ -37,5 +37,6 @@ export function teamIdentity(ref) {
     code: team.code ?? null,
     number: person ? person.number : null,
     personId: person ? id : null,
+    personDisplayHe: person ? person.display_he : null,
   };
 }

@@ -365,6 +365,7 @@ opens a specimen page of the tokens, type and marks in all three grounds.
 | `--hot` | alert: push mark, push label, fresh marker | `#ff2f6d` | `#e0245e` | `#ff2f6d` |
 | `--hot-fg` | text on `--hot` | `#ffffff` | `#ffffff` | `#ffffff` |
 | `--off` | empty mark stroke | `#cfd6e4` | `#b4bdcd` | `#465069` |
+| `--mark-edge` | team mark outlines: jersey, colour edge, chip dot (#592, B4a) | `#7d879b` | `#6d778a` | `#7f89a0` |
 | `--t1`…`--t4` | league pill tints, in order | `#e3ecff` `#ffe9dc` `#dff5ea` `#efe6ff` | `#cfdcfa` `#f6d9c8` `#c9e9d8` `#ddd2f5` | `#27365c` `#4a3528` `#1f4034` `#3a2f57` |
 
 Contrast, measured from these values (WCAG ratio): `--dim` on `--card` 4.97 / 5.81 / 6.51;
@@ -430,6 +431,64 @@ is the text). On the navy header (`.sg-on-top`) the bars take the icon's own col
 (`--top-logo-*`: 4.45 and 6.13 on `#142a66`); on a white or soft ground they take the darker
 `--logo-*` pair, because the icon green is 2.2:1 on white. The logo is non-text, so 3:1 applies;
 `contrast.test.js` checks every pair on bg, card and band.
+
+## B4a. Team mark (#592)
+
+Each placed story row about a team carries the team in three ways, all drawn by us: a
+colour edge, a jersey beside the headline, and a name chip. Nothing here is an image, a photo
+or a club logo. Guy chose this treatment ("C + jersey") on 2026-11-24 from the comparison
+artifact https://claude.ai/artifact/HgCpkCMCtAL3QwYMHZS1E8. It replaces the sport icon of
+#550. Code: `TeamMark`, `TeamEdge` and `TeamChip` in
+`frontend/src/components/signal-ui/TeamMark.jsx`, and the model in `teamMarkModel.js`.
+
+- **Data:** `teamIdentity()` (#591, #601) over the article's own `entities` (legacy names),
+  which the consumer payload and the public demo snapshot already carry. It gives the colours,
+  a three-letter `code` (for example `MTA`, `POR`) and verified player numbers (for example
+  Deni Avdija 8). Colours are facts and are never adjusted for a ground.
+- **Team choice** (`teamMarkFor`, pure): each entity resolves to its team, and a player
+  resolves to their club. Distinct teams are kept in first-seen order; a player and their own
+  club make one team, which carries the player's name and number. **A named player's club
+  leads** (Guy, 2026-11-24): it is the drawn team whatever the entity order and however many
+  other clubs are named, and the first other club with colours is named second ("Deni beat
+  Philadelphia and LeBron" is a Portland story). Without a named player, exactly one or two
+  teams, all with colours, give `{ teams }`. No team, three or more teams, or any chosen team
+  without colours give `null`: the row then shows no edge, no jersey and no chip (there is
+  no fallback glyph), and keeps an empty jersey-width column so headlines stay aligned.
+  A team is never inferred from headline text.
+- **Two teams:** only the first team gets the edge and the jersey. The chip names the second
+  after it as "· גם <team>" (`--dim`, 600).
+- **Colour edge** (`TeamEdge`): a 6 px bar on the row's inline-start edge, inset 12 px from
+  the top and bottom, with its inline-end corners rounded 3 px. It is the primary colour for
+  the first 62% and the secondary below, with a 1 px inset outline in `--mark-edge`. It is
+  decorative (`aria-hidden`). On a stream row it replaces the hover/focus accent bar, which
+  would sit in the same place; the row's hover and focus tint stay. In "בקצרה" it sits on the
+  box's inline-start edge.
+- **Jersey** (`TeamMark`): 38×42 px in a 40×44 box, a tank top for basketball and a sleeved
+  shirt for football. The body is the primary colour. Side panels in the secondary (3.2 px,
+  from the armholes down) and a side shading (black at 18% at both edges, clear in the
+  middle) are clipped to the body. The neckline and arm trim are 3 px in the secondary. On
+  the chest goes the player's number when known (15 px), otherwise the team code (10.5 px,
+  800), otherwise nothing. The outline is `--mark-edge`. It has `role="img"`, and its name
+  (also the SVG `<title>`) is the team's Hebrew name, plus "· <number>" when a number is shown.
+- **Name chip** (`TeamChip`): at the start of the meta line, a 10 px dot (primary fill, a
+  2.5 px inner ring in the secondary, a 1 px outer ring in `--mark-edge`), then the name in
+  `--ink` at 700. The name is the followed player's when the story is about one (for example
+  "דני אבדיה"), otherwise the team's. Names never break; on a narrow row "גם …" drops to its
+  own line.
+- **Visibility:** team palettes can be anything, so every outline uses `--mark-edge`, which is
+  at least 3:1 against `--bg`, `--card` and `--band` on every ground (and against `--tint`, the
+  row hover). `contrast.test.js` checks it. The chest lettering is drawn in
+  `numberInk(primary, secondary)`: the secondary colour when it reaches 3:1 against the body,
+  otherwise whichever of white and black contrasts more. Under forced colours the jersey
+  outline uses `CanvasText`.
+- **Placement:** the important row (B8; the jersey sits beside the headline, not in the tag
+  line, and the first item keeps 16 px of start padding for its edge), every stream row (B10;
+  the jersey column runs from the headline down, and the meta line above aligns with the
+  headline) and every "בקצרה" row (B11). Not in the lead (B7 and B14: it stays
+  headline-first) and not in "אחרונים" (a compact time list). At 320 px the stream headline
+  keeps about 80% of the row width.
+- **Behaviour:** the mark is not interactive (tapping it to show the why line is #594) and
+  has no motion of its own.
 
 ## B5. Feed composition
 
@@ -846,3 +905,5 @@ Guidance from what Guy rejected while choosing:
 - No pure-black "night" layout.
 - No hero without a push, and no importance invented to fill a slot.
 - No Orbit carry-over (B1).
+- No article images or club logos as row art. The team mark (B4a) is a drawn glyph, not an
+  image, so the open images decision (B1 #10, B13) is unchanged.

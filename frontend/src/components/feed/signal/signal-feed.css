@@ -239,15 +239,28 @@
 }
 
 .sg-important__item {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--sg-mark-col) minmax(0, 1fr);
+  align-content: start;
+  gap: 10px 12px;
   min-inline-size: 0;
   padding-inline: 20px;
   border-inline-start: 1px solid var(--sg-line);
 }
 
-.sg-important__item:first-child { border-inline-start: 0; padding-inline-start: 0; }
+/* Tags span the item; the jersey sits beside the headline (row 2); the rest
+   follow in the headline's column. */
+.sg-important__item > * { grid-column: 2; }
+.sg-important__item > .sg-important__tags { grid-column: 1 / -1; }
+.sg-important__item > .sg-important__mark { grid-column: 1; grid-row: 2; }
+.sg-important__item > .sg-important__title { grid-row: 2; }
+/* An absolutely placed grid child with a grid area is placed in that area;
+   the edge belongs to the item's own inline-start edge. */
+.sg-important__item > .sg-edge { grid-area: auto; }
+
+/* The first item keeps room for its colour edge. */
+.sg-important__item:first-child { border-inline-start: 0; padding-inline-start: 16px; }
 
 .sg-tag {
   align-self: flex-start;
@@ -350,12 +363,12 @@
 .sg-row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: var(--sg-mark-col) minmax(0, 1fr) auto;
   grid-template-areas:
-    "by acts"
-    "title title"
-    "why why"
-    "members members";
+    ". by acts"
+    "mark title title"
+    "mark why why"
+    "mark members members";
   align-items: center;
   gap: 5px 12px;
   padding: 18px 26px;
@@ -395,6 +408,21 @@
 .sg-row__why { grid-area: why; }
 .sg-row .sg-members { grid-area: members; }
 
+/* Team mark (#592): the jersey's slot sits beside the headline, top-aligned
+   with its first line, in the important row, every stream row and every
+   "בקצרה" row. It keeps its width when the mark abstains, so headlines stay
+   aligned. The colour edge takes the row's inline-start edge; on a stream row
+   it replaces the hover/focus accent bar, which would sit in the same place. */
+:is(.sg-row, .sg-important__item, .sg-brief__item) { --sg-mark-col: 38px; }
+.sg-mark-slot {
+  display: block;
+  flex: none;
+  inline-size: var(--sg-mark-col);
+  padding-block-start: 2px;
+}
+.sg-row__mark { grid-area: mark; align-self: start; }
+.sg-row:has(> .sg-edge)::before { content: none; }
+
 .sg-row__title { grid-area: title; font-size: 21px; font-weight: 600; line-height: 1.3; }
 
 /* Subtitle on demand (2026-11-16). A card with a subtitle opens it in place: from
@@ -404,11 +432,11 @@
 
 .sg-row[data-dek="open"] {
   grid-template-areas:
-    "by acts"
-    "title title"
-    "dek dek"
-    "why why"
-    "members members";
+    ". by acts"
+    "mark title title"
+    "mark dek dek"
+    "mark why why"
+    "mark members members";
 }
 
 .sg-dek {
@@ -614,6 +642,18 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
   gap: 2px;
   padding-block: 11px;
   border-block-start: 1px solid var(--sg-line);
+}
+
+/* "בקצרה": the jersey beside a column holding the story; the colour edge sits
+   on the box's inline-start edge (the box's 22px padding). */
+.sg-brief__item { position: relative; flex-direction: row; align-items: flex-start; gap: 12px; }
+.sg-brief__item > .sg-edge { inset-inline-start: -22px; }
+.sg-brief__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
 }
 
 .sg-box__title { font-size: 15.5px; font-weight: 600; line-height: 1.35; }
@@ -943,7 +983,7 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
   .sg-important { grid-template-columns: minmax(0, 1fr); padding-block-end: 28px; }
   .sg-important__item,
   .sg-important__item:first-child {
-    padding-inline: 0;
+    padding-inline: 16px 0;
     padding-block: 16px;
     border-inline-start: 0;
     border-block-start: 1px solid var(--sg-line);
@@ -952,10 +992,10 @@ a.sg-members__item:hover .sg-members__title { text-decoration: underline; text-d
   .sg-band { padding-block: 24px 40px; }
   .sg-row {
     padding: 16px;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "by" "title" "why" "members" "acts";
+    grid-template-columns: var(--sg-mark-col) minmax(0, 1fr);
+    grid-template-areas: ". by" "mark title" "mark why" "mark members" "mark acts";
   }
-  .sg-row[data-dek="open"] { grid-template-areas: "by" "title" "dek" "why" "members" "acts"; }
+  .sg-row[data-dek="open"] { grid-template-areas: ". by" "mark title" "mark dek" "mark why" "mark members" "mark acts"; }
   .sg-dek-toggle { inline-size: 32px; block-size: 32px; }
   .sg-dek { font-size: 15.5px; }
   .sg-feed .sg-row__acts { justify-self: end; margin-block-start: -2px; }

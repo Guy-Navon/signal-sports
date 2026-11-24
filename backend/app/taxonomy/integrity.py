@@ -5,6 +5,9 @@ Every rule here is an architecture invariant of the taxonomy:
 violating any of them means the registry data is wrong, not the code.
 """
 
+import re
+
+from app.taxonomy import identity
 from app.taxonomy.competitions import COMPETITIONS
 from app.taxonomy.entities import ENTITIES, FAMILY_NAMES
 
@@ -101,4 +104,44 @@ def validate_registry() -> list[str]:
             if entity.kind == "team" and comp.id in comps and comps != {comp.id}:
                 errors.append(f"{entity.id}: member of closed {comp.id} and of {sorted(comps - {comp.id})}")
 
+    errors.extend(_validate_identity())
+    return errors
+
+
+_HEX = re.compile(r"^#[0-9A-F]{6}$")
+_JERSEY = re.compile(r"^(0|00|[1-9][0-9]?)$")
+
+
+def _validate_identity() -> list[str]:
+    """Team identity facts (#591): ids and formats only, never contrast."""
+    errors: list[str] = []
+    for team_id, (primary, secondary, source) in identity.TEAM_COLORS.items():
+        team = ENTITIES.get(team_id)
+        if team is None or team.kind != "team":
+            errors.append(f"colours {team_id}: not an existing team")
+        for colour in (primary, secondary):
+            if not _HEX.match(colour):
+                errors.append(f"colours {team_id}: {colour!r} is not uppercase hex #RRGGBB")
+        if primary == secondary:
+            errors.append(f"colours {team_id}: primary and secondary are identical")
+        if not source.strip():
+            errors.append(f"colours {team_id}: no source")
+    for person_id, (number, source) in identity.JERSEY_NUMBERS.items():
+        person = ENTITIES.get(person_id)
+        if person is None or person.kind != "player":
+            errors.append(f"jersey {person_id}: not an existing player")
+        elif person.team_id is None:
+            errors.append(f"jersey {person_id}: player has no team_id")
+        if not _JERSEY.match(number):
+            errors.append(f"jersey {person_id}: invalid jersey number {number!r}")
+        if not source.strip():
+            errors.append(f"jersey {person_id}: no source")
+    for team_id, reason in identity.IDENTITY_PENDING.items():
+        team = ENTITIES.get(team_id)
+        if team is None or team.kind != "team":
+            errors.append(f"pending {team_id}: not an existing team")
+        if team_id in identity.TEAM_COLORS:
+            errors.append(f"pending {team_id}: also has colours")
+        if not reason.strip():
+            errors.append(f"pending {team_id}: no reason")
     return errors

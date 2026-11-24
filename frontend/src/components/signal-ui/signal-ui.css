@@ -87,6 +87,7 @@
   --sg-band: #f3f5f9;
   --sg-card: #ffffff;
   --sg-ink: #1c2230;
+  --sg-num-hl: #edf1ff;
   --sg-dim: #636d82;
   --sg-line: #e2e6ee;
   --sg-acc: #2446e8;
@@ -130,6 +131,7 @@
 }
 
 .signal-ui[data-ground="soft"] {
+  --sg-num-hl: #d8e0f8;
   --sg-bg: #e8ecf2;
   --sg-band: #dde2ea;
   --sg-card: #f3f5f9;
@@ -159,6 +161,7 @@
 }
 
 .signal-ui[data-ground="dark"] {
+  --sg-num-hl: #35415c;
   --sg-bg: #1a2030;
   --sg-band: #141927;
   --sg-card: #212839;

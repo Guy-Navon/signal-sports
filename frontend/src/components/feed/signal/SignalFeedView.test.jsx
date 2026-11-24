@@ -61,6 +61,71 @@ function render(items, props = {}) {
 const byClass = (root, name) =>
   root.findAll((node) => typeof node.type === "string" && String(node.props.className ?? "").split(" ").includes(name));
 
+const DRAYMOND = 'דריימונד גרין החמיא לאבדיה: "עם דני תמיד יש סיכוי לנצח"';
+const nodeText = (node) => typeof node === "string" ? node : node.children.map(nodeText).join("");
+
+it.each([["high_feed", "sg-important__item"], ["feed", "sg-row"], ["low_feed", "sg-brief__item"]])(
+  "%s shows context and quote inside one headline link", (decision, rowClass) => {
+    const item = story("quote", decision);
+    item.title = DRAYMOND;
+    item.entities = ["Deni Avdija"];
+    const row = byClass(render([item]).root, rowClass)[0];
+    expect(nodeText(byClass(row, "sg-headline-context")[0])).toBe("דריימונד גרין החמיא לאבדיה");
+    expect(nodeText(byClass(row, "sg-headline-quote")[0])).toBe("עם דני תמיד יש סיכוי לנצח");
+    const links = byClass(row, "sg-headline-link");
+    expect(links).toHaveLength(1);
+    expect(links[0].type).toBe("a");
+    expect(nodeText(links[0])).toContain("דריימונד גרין החמיא לאבדיה");
+    expect(nodeText(links[0])).toContain("עם דני תמיד יש סיכוי לנצח");
+    const glyph = byClass(row, "sg-quote-glyph")[0];
+    expect(glyph.props["aria-hidden"]).toBe("true");
+    expect(glyph.props.fill).toBe("#E03A3E");
+  }
+);
+
+it("leaves the lead and latest headlines plain", () => {
+  const item = story("quote", "push");
+  item.title = DRAYMOND;
+  const root = render([item]).root;
+  for (const rowClass of ["sg-lead", "sg-latest__item"]) {
+    const row = byClass(root, rowClass)[0];
+    expect(byClass(row, "sg-headline-context")).toHaveLength(0);
+    expect(nodeText(byClass(row, "sg-headline-link")[0])).toBe(DRAYMOND);
+  }
+});
+
+it("keeps untranslated foreign quotes plain while highlighting numbers", () => {
+  const item = story("foreign-quote", "feed");
+  item.title = 'Coach: "We won 145:151"';
+  item.language = "en";
+  const row = byClass(render([item]).root, "sg-row")[0];
+  expect(byClass(row, "sg-headline-quote")).toHaveLength(0);
+  expect(nodeText(byClass(row, "sg-headline-link")[0])).toBe(item.title);
+  expect(nodeText(row.findByType("mark"))).toBe("145:151");
+});
+
+it.each([[[], null], [["Deni Avdija"], "דני אבדיה"], [["Maccabi Tel Aviv Basketball"], "מכבי תל אביב"]])(
+  "quote-only headlines use the chip name as context when available: %j", (entities, name) => {
+    const item = story("quote-only", "feed");
+    item.title = '"קלעתי 31 נקודות"';
+    item.entities = entities;
+    const row = byClass(render([item]).root, "sg-row")[0];
+    const contexts = byClass(row, "sg-headline-context");
+    expect(contexts).toHaveLength(name ? 1 : 0);
+    if (name) expect(nodeText(contexts[0])).toBe(name);
+    expect(nodeText(row.findByType("mark"))).toBe("31 נקודות");
+  }
+);
+
+it("highlights units in a plain headline and keeps Hebrew prefixes together", () => {
+  const item = story("numbers", "feed");
+  item.title = "עופר ינאי נקנס ב-60 אלף שקל";
+  const row = byClass(render([item]).root, "sg-row")[0];
+  expect(nodeText(row.findByType("mark"))).toBe("60 אלף שקל");
+  expect(row.findByType("mark").props.dir).not.toBe("ltr");
+  expect(nodeText(byClass(row, "sg-headline-link")[0])).toBe("עופר ינאי נקנס ב-\u206060 אלף שקל");
+});
+
 it("read-only renders the stories and the reader reason without feedback controls", () => {
   const view = render([story("a", "high_feed"), story("b", "feed")]);
   const text = JSON.stringify(view.toJSON());

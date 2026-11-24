@@ -15,6 +15,7 @@ describe("Signal ground WCAG AA contrast", () => {
   for (const ground of ["light", "soft", "dark"]) {
     it(`${ground}: hot, dim and accent pass small text on the page, card, band and hover tint`, () => {
       const tokens = grounds[ground];
+      expect(contrast(tokens.ink, tokens["num-hl"]), "ink on highlighted numbers").toBeGreaterThanOrEqual(4.5);
       for (const ink of ["hot", "dim", "acc"]) {
         for (const surface of ["bg", "card", "band", "tint"]) {
           expect(contrast(tokens[ink], tokens[surface]), `${ink} on ${surface}`).toBeGreaterThanOrEqual(4.5);

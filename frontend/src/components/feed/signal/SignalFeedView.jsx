@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import SignalStrength from "@/components/signal-ui/SignalStrength";
 import TeamMark, { TeamChip, TeamEdge } from "@/components/signal-ui/TeamMark";
 import { teamMarkFor } from "@/components/signal-ui/teamMarkModel";
+import { headlineParts, emphasisedNumbers } from "./headlineModel";
 import MastheadSlot, { MastheadSlotContext } from "@/components/shell/MastheadSlot";
 import FeedbackControls from "@/components/feed/FeedbackControls";
 import ResultsStrip from "./ResultsStrip";
@@ -137,6 +138,7 @@ function useStory(item, localScoredArticles) {
     const reports = storyReports(item, localScoredArticles);
     return {
       id: storyId(item),
+      rawTitle: storyTitle(item),
       title: unbreakableHebrewPrefixes(storyTitle(item)),
       titleDir: titleDirection(item),
       url: storyLink(item, reports),
@@ -171,12 +173,35 @@ function StoryLink({ story, className = "", linkRef = undefined, children = null
   );
 }
 
-function Headline({ as = "h3", story, className = "", linkRef = undefined }) {
+/** Apply the prefix joiner before segmentation, so a highlight cannot split a Hebrew prefix. */
+function HeadlineNumbers({ text }) {
+  return emphasisedNumbers(unbreakableHebrewPrefixes(text)).map((part, index) =>
+    part.emphasis ? <mark key={index} className="sg-num-hl" dir={/^\d+:\d+$/.test(part.text) ? "ltr" : undefined}>{part.text}</mark> : part.text
+  );
+}
+
+function Headline({ as = "h3", story, className = "", linkRef = undefined, styled = false, mark = null }) {
   const Tag = /** @type {"h2" | "h3"} */ (as);
+  /** @type {ReturnType<typeof headlineParts>} */
+  const parts = styled && story.titleDir !== "auto" ? headlineParts(story.rawTitle) : { kind: "plain" };
+  const team = mark?.teams[0];
+  const context = parts.kind === "quote" ? parts.context ?? team?.personDisplayHe ?? team?.displayHe : null;
   return (
     <Tag className={className} dir={story.titleDir}>
       <StoryLink story={story} className="sg-headline-link" linkRef={linkRef}>
-        {story.title}
+        {parts.kind === "quote" ? (
+          <>
+            {context && <><span className="sg-headline-context"><HeadlineNumbers text={context} /></span>{" "}</>}
+            <span className="sg-headline-quote">
+              <svg className="sg-quote-glyph" width="22" height="16" viewBox="0 0 22 16"
+                fill={team?.primary ?? "var(--sg-acc)"} stroke={team?.secondary ?? "var(--sg-acc)"}
+                aria-hidden="true" focusable="false">
+                <path d="M1 1h8v7H5c0 3 1 4 3 5l-2 2C2 13 1 11 1 7Zm12 0h8v7h-4c0 3 1 4 3 5l-2 2c-4-2-5-4-5-8Z" />
+              </svg>
+              <HeadlineNumbers text={parts.quote} />
+            </span>
+          </>
+        ) : styled ? <HeadlineNumbers text={story.rawTitle} /> : story.title}
       </StoryLink>
     </Tag>
   );
@@ -428,7 +453,7 @@ function ImportantStory({ item, localScoredArticles, now, readOnly, league, arri
         <NewMark show={arrived} />
       </span>
       <RowMark mark={mark} className="sg-important__mark" />
-      <Headline story={story} className="sg-important__title" />
+      <Headline story={story} styled mark={mark} className="sg-important__title" />
       <Dek dek={dek} />
       <p className="sg-meta">
         {mark && (
@@ -570,7 +595,7 @@ function StreamRow({
         <DekToggle dek={dek} />
       </div>
       <Feedback story={story} surface={surface} className="sg-row__acts" />
-      <Headline story={story} className="sg-row__title" linkRef={headlineRef} />
+      <Headline story={story} styled mark={mark} className="sg-row__title" linkRef={headlineRef} />
       <Dek dek={dek} className="sg-row__dek" />
       <WhyLine item={item} showTrace={surface.showTrace} className="sg-row__why">
         <SourcesBadge story={story} disclosure={disclosure} />
@@ -681,7 +706,7 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
       <TeamEdge mark={mark} />
       <RowMark mark={mark} className="sg-brief__mark" />
       <div className="sg-brief__body">
-        <Headline story={story} className="sg-box__title sg-brief__title" linkRef={headlineRef} />
+        <Headline story={story} styled mark={mark} className="sg-box__title sg-brief__title" linkRef={headlineRef} />
         <Dek dek={dek} className="sg-box__dek" />
         <div className="sg-box__meta sg-brief__meta">
           <span>

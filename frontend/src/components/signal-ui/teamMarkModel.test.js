@@ -1,72 +1,71 @@
 import { describe, expect, it } from "vitest";
 import { numberInk, teamMarkFor } from "./teamMarkModel";
 
-// Real legacy names and colours from teamIdentity.generated.json (#591).
-const basketball = (entities) => teamMarkFor({ entities, sport: "basketball" });
-/** The teams a mark shows; fails the test when it shows a glyph or nothing. */
+// Real legacy names, colours, codes and numbers from teamIdentity.generated.json
+// (#591, #601).
+const basketball = (entities) => teamMarkFor({ entities });
+
+/** The teams a mark names; fails the test when the mark abstains. */
 function teamsOf(mark) {
-  expect(mark?.kind).toBe("teams");
-  return mark?.kind === "teams" ? mark.teams : [];
+  expect(mark).not.toBeNull();
+  return mark?.teams ?? [];
 }
 const teamIds = (mark) => teamsOf(mark).map((team) => team.teamId);
 
 describe("teamMarkFor", () => {
-  it("gives one followed club its jersey in the club's colours", () => {
+  it("gives one club its colours and code", () => {
     const teams = teamsOf(basketball(["Maccabi Tel Aviv Basketball"]));
     expect(teams).toHaveLength(1);
-    expect(teams[0]).toMatchObject({
+    expect(teams[0]).toEqual({
       teamId: "team:maccabi_tlv_bb",
       sport: "basketball",
       displayHe: "מכבי תל אביב",
       primary: "#FFD100",
       secondary: "#003DA5",
+      code: "MTA",
       number: null,
       personDisplayHe: null,
     });
   });
 
-  it("maps a player to their club, with no number until one is verified", () => {
+  it("maps a player to their club and carries the player's name and verified number", () => {
     const mark = basketball(["Deni Avdija"]);
     expect(teamIds(mark)).toEqual(["team:portland_blazers"]);
-    expect(teamsOf(mark)[0]).toMatchObject({ number: null, personDisplayHe: "דני אבדיה" });
+    expect(teamsOf(mark)[0]).toMatchObject({ code: "POR", number: "8", personDisplayHe: "דני אבדיה" });
   });
 
-  it("keeps one team when a player and their own club both appear", () => {
-    const mark = basketball(["Deni Avdija", "Portland Trail Blazers"]);
-    expect(teamIds(mark)).toEqual(["team:portland_blazers"]);
-    expect(teamsOf(mark)[0].personDisplayHe).toBe("דני אבדיה");
-    expect(teamsOf(basketball(["Portland Trail Blazers", "Deni Avdija"]))[0].personDisplayHe).toBe("דני אבדיה");
+  it("keeps one team when a player and their own club both appear, in either order", () => {
+    for (const entities of [["Deni Avdija", "Portland Trail Blazers"], ["Portland Trail Blazers", "Deni Avdija"]]) {
+      const mark = basketball(entities);
+      expect(teamIds(mark)).toEqual(["team:portland_blazers"]);
+      expect(teamsOf(mark)[0]).toMatchObject({ number: "8", personDisplayHe: "דני אבדיה" });
+    }
   });
 
-  it("gives two clubs two jerseys, in the order they first appear", () => {
-    expect(teamIds(basketball(["Deni Avdija", "LeBron James"]))).toEqual(["team:portland_blazers", "team:la_lakers"]);
+  it("names both of two clubs, the first-seen one first", () => {
+    const mark = basketball(["Deni Avdija", "LeBron James"]);
+    expect(teamIds(mark)).toEqual(["team:portland_blazers", "team:la_lakers"]);
+    expect(teamsOf(mark)[1]).toMatchObject({ number: null, personDisplayHe: "לברון ג'יימס" });
   });
 
-  it("falls back to the sport glyph for three or more teams", () => {
+  it("abstains for three or more teams", () => {
     // A real story, 2026-11-23.
-    expect(basketball(["Maccabi Ramat Gan", "Hapoel Tel Aviv Basketball", "Maccabi Tel Aviv Basketball"]))
-      .toEqual({ kind: "sport", sport: "basketball" });
+    expect(basketball(["Maccabi Ramat Gan", "Hapoel Tel Aviv Basketball", "Maccabi Tel Aviv Basketball"])).toBeNull();
   });
 
-  it("falls back to the sport glyph for a team without colours", () => {
-    expect(basketball(["Hapoel Holon"])).toEqual({ kind: "sport", sport: "basketball" });
-    expect(basketball(["Hapoel Holon", "Maccabi Tel Aviv Basketball"])).toEqual({ kind: "sport", sport: "basketball" });
+  it("abstains when any chosen team has no colours", () => {
+    expect(basketball(["Bnei Herzliya"])).toBeNull();
+    expect(basketball(["Bnei Herzliya", "Maccabi Tel Aviv Basketball"])).toBeNull();
   });
 
   it("follows an implies_team player to the club", () => {
     expect(teamIds(basketball(["Roman Sorkin"]))).toEqual(["team:maccabi_tlv_bb"]);
   });
 
-  it("shows the glyph with no team and abstains when the sport is unknown too", () => {
-    expect(basketball([])).toEqual({ kind: "sport", sport: "basketball" });
-    expect(teamMarkFor({ entities: [], sport: "football" })).toEqual({ kind: "sport", sport: "football" });
-    expect(teamMarkFor({ entities: [], sport: "unknown" })).toBeNull();
-    expect(teamMarkFor({ entities: ["Hapoel Holon"], sport: "tennis" })).toBeNull();
+  it("abstains with no team (no sport fallback) and never reads names it does not know", () => {
+    expect(basketball([])).toBeNull();
+    expect(basketball(["Nobody FC"])).toBeNull();
     expect(teamMarkFor({})).toBeNull();
-  });
-
-  it("ignores names the taxonomy does not know", () => {
-    expect(basketball(["Nobody FC"])).toEqual({ kind: "sport", sport: "basketball" });
   });
 });
 

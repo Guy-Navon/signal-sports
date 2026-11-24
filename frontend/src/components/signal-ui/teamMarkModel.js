@@ -1,11 +1,11 @@
 // Which team a story row's mark shows (#592). Pure: built on teamIdentity()
-// (#591) over the article's own entity list. The mark never infers a team from
-// headline text; when the entities don't name one or two coloured teams it
-// falls back to a neutral sport glyph, and abstains when the sport is unknown.
+// (#591, #601) over the article's own entity list. The mark never infers a team
+// from headline text; when the entities don't name one or two coloured teams it
+// abstains and the row shows no team at all (no edge, jersey or chip).
 import { contrast } from "./contrastMath";
 import { teamIdentity } from "./teamIdentity";
 
-/** Two jerseys fit the slot; three or more read as a league story. */
+/** One team is drawn and a second is named; three or more read as a league story. */
 const MAX_TEAMS = 2;
 
 /**
@@ -15,14 +15,15 @@ const MAX_TEAMS = 2;
  *   displayHe: string,
  *   primary: string,
  *   secondary: string,
+ *   code: string|null,
  *   number: string|null,
  *   personDisplayHe: string|null,
  * }} MarkTeam
- * @typedef {{ kind: "teams", teams: MarkTeam[] } | { kind: "sport", sport: "basketball"|"football" } | null} TeamMarkModel
+ * @typedef {{ teams: MarkTeam[] } | null} TeamMarkModel
  */
 
 /**
- * @param {{ entities?: string[], sport?: string }} article
+ * @param {{ entities?: string[] }} article
  * @returns {TeamMarkModel}
  */
 export function teamMarkFor(article) {
@@ -48,6 +49,7 @@ export function teamMarkFor(article) {
       displayHe: identity.displayHe,
       primary: identity.primary,
       secondary: identity.secondary,
+      code: identity.code,
       number: identity.number,
       personDisplayHe: person,
     });
@@ -55,10 +57,9 @@ export function teamMarkFor(article) {
 
   const chosen = [...teams.values()];
   if (chosen.length >= 1 && chosen.length <= MAX_TEAMS && chosen.every((team) => team.primary && team.secondary)) {
-    return { kind: "teams", teams: /** @type {MarkTeam[]} */ (chosen) };
+    return { teams: /** @type {MarkTeam[]} */ (chosen) };
   }
-  const sport = article?.sport;
-  return sport === "basketball" || sport === "football" ? { kind: "sport", sport } : null;
+  return null;
 }
 
 /**

@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useId, useMemo, useRef, useState } from "
 import { ArrowUpLeft, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SignalStrength from "@/components/signal-ui/SignalStrength";
-import TeamMark from "@/components/signal-ui/TeamMark";
+import TeamMark, { TeamChip, TeamEdge } from "@/components/signal-ui/TeamMark";
 import { teamMarkFor } from "@/components/signal-ui/teamMarkModel";
 import MastheadSlot, { MastheadSlotContext } from "@/components/shell/MastheadSlot";
 import FeedbackControls from "@/components/feed/FeedbackControls";
@@ -110,12 +110,16 @@ function useArrivals(items) {
 }
 
 /** A story that came in with the latest refresh: a word, not only motion (A6). */
+/** The team a row shows (#592): one model for its edge, jersey and chip. */
+function useTeamMark(item) {
+  return useMemo(() => teamMarkFor(item), [item]);
+}
+
 /**
- * The team mark's slot at a row's inline start (#592). The slot keeps its width
+ * The jersey's slot beside a row's headline (#592). The slot keeps its width
  * when the mark abstains, so headlines in a list stay aligned.
  */
-function RowMark({ item, className }) {
-  const mark = useMemo(() => teamMarkFor(item), [item]);
+function RowMark({ mark, className }) {
   return (
     <span className={cn("sg-mark-slot", className)}>
       <TeamMark mark={mark} />
@@ -404,6 +408,7 @@ function ImportantStory({ item, localScoredArticles, now, readOnly, league, arri
   const surface = useSurface(readOnly);
   const disclosure = useDisclosure();
   const dek = useDek(item);
+  const mark = useTeamMark(item);
   return (
     <article
       className="sg-important__item"
@@ -414,17 +419,24 @@ function ImportantStory({ item, localScoredArticles, now, readOnly, league, arri
       style={style}
       {...dek.cardProps}
     >
+      <TeamEdge mark={mark} />
       <span className="sg-important__tags">
-        <RowMark item={item} className="sg-important__mark" />
         <span className="sg-tag">
           <SignalStrength decision={story.decision} />
           {league && <bdi dir="auto">{league}</bdi>}
         </span>
         <NewMark show={arrived} />
       </span>
+      <RowMark mark={mark} className="sg-important__mark" />
       <Headline story={story} className="sg-important__title" />
       <Dek dek={dek} />
       <p className="sg-meta">
+        {mark && (
+          <>
+            <TeamChip mark={mark} />
+            <Dot />
+          </>
+        )}
         <SourceNames story={story} disclosure={disclosure} />
         {story.timestamp && <Dot />}
         <Time value={story.timestamp} now={now} />
@@ -517,6 +529,7 @@ function StreamRow({
   const surface = useSurface(readOnly);
   const disclosure = useDisclosure();
   const dek = useDek(item);
+  const mark = useTeamMark(item);
   const headlineRef = useRef(null);
 
   // Ref-based focus from inside the row that owns the element (A6): after
@@ -537,8 +550,10 @@ function StreamRow({
       style={style}
       {...dek.cardProps}
     >
-      <RowMark item={item} className="sg-row__mark" />
+      <TeamEdge mark={mark} />
+      <RowMark mark={mark} className="sg-row__mark" />
       <div className="sg-row__by">
+        <TeamChip mark={mark} />
         <NewMark show={arrived} />
         <SignalStrength decision={story.decision} />
         <span className="sg-row__src">
@@ -647,6 +662,7 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
   const surface = useSurface(readOnly);
   const disclosure = useDisclosure();
   const dek = useDek(item);
+  const mark = useTeamMark(item);
   const headlineRef = useRef(null);
   useEffect(() => {
     if (!focusOnMount) return;
@@ -662,12 +678,19 @@ function BriefRow({ item, localScoredArticles, now, readOnly, focusOnMount, onFo
       style={style}
       {...dek.cardProps}
     >
-      <RowMark item={item} className="sg-brief__mark" />
+      <TeamEdge mark={mark} />
+      <RowMark mark={mark} className="sg-brief__mark" />
       <div className="sg-brief__body">
         <Headline story={story} className="sg-box__title sg-brief__title" linkRef={headlineRef} />
         <Dek dek={dek} className="sg-box__dek" />
         <div className="sg-box__meta sg-brief__meta">
           <span>
+            {mark && (
+              <>
+                <TeamChip mark={mark} />
+                <Dot />
+              </>
+            )}
             <Time value={story.timestamp} now={now} />
             {story.timestamp && <Dot />}
             <SourceNames story={story} disclosure={disclosure} />

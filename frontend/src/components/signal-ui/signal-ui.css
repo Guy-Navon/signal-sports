@@ -272,9 +272,11 @@
   .signal-ui .sg-strength__stroke { animation: none; }
 }
 
-/* Team mark (#592): a drawn jersey or a neutral sport glyph. Team colours are
-   facts and can be anything, so the outline (--sg-mark-edge, 3:1 against the
-   page, card and band on every ground) carries the shape. No motion of its own. */
+/* Team mark (#592, design 2026-11-24 "C + jersey"): a colour edge, a drawn
+   jersey and a name chip, all for the row's first team. Team colours are facts
+   and can be anything, so every outline uses --sg-mark-edge (3:1 against the
+   page, card and band on every ground). The row passes the colours as
+   --sg-team-p / --sg-team-s. No motion of its own. */
 .signal-ui .sg-mark {
   display: block;
   flex: none;
@@ -282,9 +284,44 @@
 }
 
 .signal-ui .sg-mark__edge { stroke: var(--sg-mark-edge); }
-.signal-ui .sg-mark--glyph { stroke: var(--sg-dim); }
+
+/* 6px bar on the row's inline-start edge: primary for 62%, then secondary. */
+.signal-ui .sg-edge {
+  position: absolute;
+  inset-block: 12px;
+  inset-inline-start: 0;
+  inline-size: 6px;
+  border-start-end-radius: 3px;
+  border-end-end-radius: 3px;
+  background: linear-gradient(var(--sg-team-p) 0 62%, var(--sg-team-s) 62% 100%);
+  box-shadow: inset 0 0 0 1px var(--sg-mark-edge);
+  pointer-events: none;
+}
+
+/* Names stay whole; on a narrow row "גם …" drops to its own line. */
+.signal-ui .sg-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 6px;
+  min-inline-size: 0;
+  color: var(--sg-ink);
+  font-weight: 700;
+}
+
+.signal-ui .sg-chip__dot {
+  inline-size: 10px;
+  block-size: 10px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--sg-team-p);
+  box-shadow: inset 0 0 0 2.5px var(--sg-team-s), 0 0 0 1px var(--sg-mark-edge);
+}
+
+.signal-ui .sg-chip > bdi,
+.signal-ui .sg-chip__also { white-space: nowrap; }
+.signal-ui .sg-chip__also { color: var(--sg-dim); font-weight: 600; }
 
 @media (forced-colors: active) {
   .signal-ui .sg-mark__edge { stroke: CanvasText; }
-  .signal-ui .sg-mark--glyph { stroke: CanvasText; }
 }

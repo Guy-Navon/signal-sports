@@ -132,9 +132,18 @@ colours. Jersey numbers move with transfers, so they ride with roster upkeep (#3
 (Maccabi and Hapoel Tel Aviv, Olympiacos, Panathinaikos, Fenerbahçe, Partizan,
 Crvena zvezda, Barcelona, Bayern, Virtus, Olimpia Milano, Žalgiris, Monaco),
 all with the source "unverified (brief #591)" until checked against the teams'
-own sites. Pending: Utah Jazz, Real Madrid, Valencia, Baskonia, Anadolu Efes,
-Dubai, ASVEL and Paris. Other Winner League clubs and all football clubs have
-no colours yet. No jersey numbers yet (none verified).
+own sites.
+
+*2026-11-24, follow-up:* 20 more clubs got colours from their Wikipedia
+infoboxes (colour names; hex approximated): the remaining Winner League clubs
+with a stated palette, Hapoel Jerusalem, Budućnost, Real Madrid, Valencia,
+Baskonia, Anadolu Efes, Dubai, ASVEL and Utah. Still without colours: Paris
+(pending; Wikipedia states none), Bnei Herzliya, Hapoel Galil Gilboa, Hapoel
+HaEmek, Emek Yizrael and all football clubs. Jersey numbers from Wikipedia:
+Deni Avdija 8 and Jalen Brunson 11. LeBron James now plays for the 76ers per
+Wikipedia; his `team_id` and number wait for roster upkeep (#377) because the team move can change clustering and feed decisions. `TEAM_CODES` adds a 3-letter chest code per
+team (official NBA tricodes; Signal's own codes elsewhere), unique and checked
+by `validate_registry()`, exported as `code`.
 
 ## Roster maintenance: club people (`implies_team`, #377)
 

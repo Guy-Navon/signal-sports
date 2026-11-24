@@ -16,7 +16,7 @@ never the primary key of this artifact.
 """
 
 from app.taxonomy import COMPETITIONS, ENTITIES, TAXONOMY_VERSION
-from app.taxonomy.identity import JERSEY_NUMBERS, TEAM_COLORS
+from app.taxonomy.identity import JERSEY_NUMBERS, TEAM_CODES, TEAM_COLORS
 
 
 def build_taxonomy_export() -> dict:
@@ -60,6 +60,7 @@ def build_identity_export() -> dict:
                 "display_he": e.display_he,
                 "primary": primary,
                 "secondary": secondary,
+                "code": TEAM_CODES.get(e.id),
             }
         elif e.team_id is not None:
             number = JERSEY_NUMBERS.get(e.id)

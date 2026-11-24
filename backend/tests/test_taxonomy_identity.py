@@ -88,3 +88,32 @@ def test_jersey_number_requires_team_link(monkeypatch):
 def test_pending_rules(monkeypatch, pending, fragment):
     errors = _errors_with(monkeypatch, "IDENTITY_PENDING", pending)
     assert any(fragment in e for e in errors), errors
+
+
+def test_verified_jersey_numbers():
+    assert identity.JERSEY_NUMBERS["player:deni_avdija"][0] == "8"
+    assert identity.JERSEY_NUMBERS["player:jalen_brunson"][0] == "11"
+    assert "player:lebron_james" not in identity.JERSEY_NUMBERS  # team move pending (#377)
+
+
+def test_every_basketball_team_in_nba_and_euroleague_has_a_code():
+    for e in ENTITIES.values():
+        comps = {c for c, _ in e.memberships}
+        if e.kind == "team" and comps & {"comp:nba", "comp:euroleague"}:
+            assert e.id in identity.TEAM_CODES, e.id
+    assert identity.TEAM_CODES["team:portland_blazers"] == "POR"
+    assert identity.TEAM_CODES["team:maccabi_tlv_bb"] == "MTA"
+
+
+@pytest.mark.parametrize(
+    "codes, fragment",
+    [
+        ({"team:nobody": "NOB"}, "not an existing team"),
+        ({"team:maccabi_tlv_bb": "mta"}, "three uppercase"),
+        ({"team:maccabi_tlv_bb": "MTAX"}, "three uppercase"),
+        ({"team:maccabi_tlv_bb": "MTA", "team:hapoel_tlv_bb": "MTA"}, "already used"),
+    ],
+)
+def test_team_code_rules(monkeypatch, codes, fragment):
+    errors = _errors_with(monkeypatch, "TEAM_CODES", codes)
+    assert any(fragment in e for e in errors), errors

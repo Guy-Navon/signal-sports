@@ -110,6 +110,7 @@ def validate_registry() -> list[str]:
 
 _HEX = re.compile(r"^#[0-9A-F]{6}$")
 _JERSEY = re.compile(r"^(0|00|[1-9][0-9]?)$")
+_CODE = re.compile(r"^[A-Z]{3}$")
 
 
 def _validate_identity() -> list[str]:
@@ -144,4 +145,14 @@ def _validate_identity() -> list[str]:
             errors.append(f"pending {team_id}: also has colours")
         if not reason.strip():
             errors.append(f"pending {team_id}: no reason")
+    seen_codes: dict[str, str] = {}
+    for team_id, code in identity.TEAM_CODES.items():
+        team = ENTITIES.get(team_id)
+        if team is None or team.kind != "team":
+            errors.append(f"code {team_id}: not an existing team")
+        if not _CODE.match(code):
+            errors.append(f"code {team_id}: {code!r} is not three uppercase Latin letters")
+        if code in seen_codes:
+            errors.append(f"code {team_id}: {code!r} already used by {seen_codes[code]}")
+        seen_codes[code] = team_id
     return errors

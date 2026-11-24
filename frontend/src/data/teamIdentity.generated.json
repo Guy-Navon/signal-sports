@@ -206,7 +206,7 @@
     "player:deni_avdija": {
       "display_he": "דני אבדיה",
       "kind": "player",
-      "number": null,
+      "number": "8",
       "team_id": "team:portland_blazers"
     },
     "player:elijah_bryant": {
@@ -242,7 +242,7 @@
     "player:jalen_brunson": {
       "display_he": "ג'יילן ברונסון",
       "kind": "player",
-      "number": null,
+      "number": "11",
       "team_id": "team:ny_knicks"
     },
     "player:jaylen_hoard": {
@@ -351,474 +351,553 @@
   "taxonomy_version": 1,
   "teams": {
     "team:anadolu_efes": {
+      "code": "EFS",
       "display_he": "אנאדולו אפס",
-      "primary": null,
-      "secondary": null,
+      "primary": "#002B5C",
+      "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:asvel": {
+      "code": "ASV",
       "display_he": "אזוול וילרבאן",
-      "primary": null,
-      "secondary": null,
+      "primary": "#FFFFFF",
+      "secondary": "#000000",
       "sport": "basketball"
     },
     "team:atlanta_hawks": {
+      "code": "ATL",
       "display_he": "אטלנטה הוקס",
       "primary": "#E03A3E",
       "secondary": "#C1D32F",
       "sport": "basketball"
     },
     "team:barcelona_bb": {
+      "code": "BAR",
       "display_he": "ברצלונה",
       "primary": "#004D98",
       "secondary": "#A50044",
       "sport": "basketball"
     },
     "team:baskonia": {
+      "code": "BAS",
       "display_he": "בסקוניה",
-      "primary": null,
-      "secondary": null,
+      "primary": "#C8102E",
+      "secondary": "#003DA5",
       "sport": "basketball"
     },
     "team:bayern_munich_bb": {
+      "code": "MUN",
       "display_he": "באיירן מינכן",
       "primary": "#DC052D",
       "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:beitar_jlm_fc": {
+      "code": null,
       "display_he": "בית\"ר ירושלים",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:bnei_herzliya": {
+      "code": "HRZ",
       "display_he": "בני הרצליה",
       "primary": null,
       "secondary": null,
       "sport": "basketball"
     },
     "team:boston_celtics": {
+      "code": "BOS",
       "display_he": "בוסטון סלטיקס",
       "primary": "#007A33",
       "secondary": "#BA9653",
       "sport": "basketball"
     },
     "team:brooklyn_nets": {
+      "code": "BKN",
       "display_he": "ברוקלין נטס",
       "primary": "#000000",
       "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:buducnost_bb": {
+      "code": "BUD",
       "display_he": "בודוצ'נוסט",
-      "primary": null,
-      "secondary": null,
+      "primary": "#0047AB",
+      "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:charlotte_hornets": {
+      "code": "CHA",
       "display_he": "שארלוט הורנטס",
       "primary": "#1D1160",
       "secondary": "#00788C",
       "sport": "basketball"
     },
     "team:chicago_bulls": {
+      "code": "CHI",
       "display_he": "שיקגו בולס",
       "primary": "#CE1141",
       "secondary": "#000000",
       "sport": "basketball"
     },
     "team:cleveland_cavaliers": {
+      "code": "CLE",
       "display_he": "קליבלנד קאבלירס",
       "primary": "#860038",
       "secondary": "#FDBB30",
       "sport": "basketball"
     },
     "team:crvena_zvezda_bb": {
+      "code": "CZV",
       "display_he": "הכוכב האדום",
       "primary": "#D2122E",
       "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:dallas_mavericks": {
+      "code": "DAL",
       "display_he": "דאלאס מאבריקס",
       "primary": "#00538C",
       "secondary": "#B8C4CA",
       "sport": "basketball"
     },
     "team:denver_nuggets": {
+      "code": "DEN",
       "display_he": "דנבר נאגטס",
       "primary": "#0E2240",
       "secondary": "#FEC524",
       "sport": "basketball"
     },
     "team:detroit_pistons": {
+      "code": "DET",
       "display_he": "דטרויט פיסטונס",
       "primary": "#C8102E",
       "secondary": "#1D42BA",
       "sport": "basketball"
     },
     "team:dubai_bb": {
+      "code": "DUB",
       "display_he": "דובאי",
-      "primary": null,
-      "secondary": null,
+      "primary": "#6B4226",
+      "secondary": "#000000",
       "sport": "basketball"
     },
     "team:emek_yizrael_bb": {
+      "code": "EMY",
       "display_he": "עמק יזרעאל",
       "primary": null,
       "secondary": null,
       "sport": "basketball"
     },
     "team:fenerbahce_bb": {
+      "code": "FEN",
       "display_he": "פנרבחצ'ה",
       "primary": "#002D72",
       "secondary": "#FFED00",
       "sport": "basketball"
     },
     "team:golden_state_warriors": {
+      "code": "GSW",
       "display_he": "גולדן סטייט ווריורס",
       "primary": "#1D428A",
       "secondary": "#FFC72C",
       "sport": "basketball"
     },
     "team:hapoel_beer_sheva_bb": {
+      "code": "HBS",
       "display_he": "הפועל באר שבע",
-      "primary": null,
-      "secondary": null,
+      "primary": "#D7141A",
+      "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:hapoel_beer_sheva_fc": {
+      "code": null,
       "display_he": "הפועל באר שבע",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:hapoel_eilat": {
+      "code": "EIL",
       "display_he": "הפועל אילת",
-      "primary": null,
-      "secondary": null,
+      "primary": "#0057B8",
+      "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:hapoel_galil_elyon": {
+      "code": "GLE",
       "display_he": "הפועל גליל עליון",
-      "primary": null,
-      "secondary": null,
+      "primary": "#D7141A",
+      "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:hapoel_galil_gilboa": {
+      "code": "GIL",
       "display_he": "הפועל גלבוע גליל",
       "primary": null,
       "secondary": null,
       "sport": "basketball"
     },
     "team:hapoel_haemek": {
+      "code": "EMK",
       "display_he": "הפועל העמק",
       "primary": null,
       "secondary": null,
       "sport": "basketball"
     },
     "team:hapoel_haifa_bb": {
+      "code": "HHA",
       "display_he": "הפועל חיפה",
-      "primary": null,
-      "secondary": null,
+      "primary": "#D7141A",
+      "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:hapoel_haifa_fc": {
+      "code": null,
       "display_he": "הפועל חיפה",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:hapoel_holon": {
+      "code": "HOL",
       "display_he": "הפועל חולון",
-      "primary": null,
-      "secondary": null,
+      "primary": "#5B2C83",
+      "secondary": "#FFD100",
       "sport": "basketball"
     },
     "team:hapoel_jlm_bb": {
+      "code": "HJM",
       "display_he": "הפועל ירושלים",
-      "primary": null,
-      "secondary": null,
+      "primary": "#D7141A",
+      "secondary": "#000000",
       "sport": "basketball"
     },
     "team:hapoel_jlm_fc": {
+      "code": null,
       "display_he": "הפועל ירושלים",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:hapoel_tlv_bb": {
+      "code": "HTA",
       "display_he": "הפועל תל אביב",
       "primary": "#E30613",
       "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:hapoel_tlv_fc": {
+      "code": null,
       "display_he": "הפועל תל אביב",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:houston_rockets": {
+      "code": "HOU",
       "display_he": "יוסטון רוקטס",
       "primary": "#CE1141",
       "secondary": "#000000",
       "sport": "basketball"
     },
     "team:indiana_pacers": {
+      "code": "IND",
       "display_he": "אינדיאנה פייסרס",
       "primary": "#002D62",
       "secondary": "#FDBB30",
       "sport": "basketball"
     },
     "team:ironi_kiryat_ata": {
+      "code": "KAT",
       "display_he": "עירוני קריית אתא",
-      "primary": null,
-      "secondary": null,
+      "primary": "#0057B8",
+      "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:ironi_ness_ziona": {
+      "code": "NZI",
       "display_he": "עירוני נס ציונה",
-      "primary": null,
-      "secondary": null,
+      "primary": "#F47B20",
+      "secondary": "#13294B",
       "sport": "basketball"
     },
     "team:ironi_ramat_gan": {
+      "code": "IRG",
       "display_he": "עירוני רמת גן",
-      "primary": null,
-      "secondary": null,
+      "primary": "#FFFFFF",
+      "secondary": "#0057B8",
       "sport": "basketball"
     },
     "team:la_clippers": {
+      "code": "LAC",
       "display_he": "לוס אנג'לס קליפרס",
       "primary": "#C8102E",
       "secondary": "#1D428A",
       "sport": "basketball"
     },
     "team:la_lakers": {
+      "code": "LAL",
       "display_he": "לוס אנג'לס לייקרס",
       "primary": "#552583",
       "secondary": "#FDB927",
       "sport": "basketball"
     },
     "team:maccabi_ashdod": {
+      "code": "ASD",
       "display_he": "מכבי אשדוד",
-      "primary": null,
-      "secondary": null,
+      "primary": "#FFD100",
+      "secondary": "#0033A0",
       "sport": "basketball"
     },
     "team:maccabi_bnei_raina_fc": {
+      "code": null,
       "display_he": "מכבי בני ריינה",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:maccabi_haifa_fc": {
+      "code": null,
       "display_he": "מכבי חיפה",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:maccabi_herzliya_fc": {
+      "code": null,
       "display_he": "מכבי הרצליה",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:maccabi_jaffa_fc": {
+      "code": null,
       "display_he": "מכבי יפו",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:maccabi_kiryat_gat": {
+      "code": "KGT",
       "display_he": "מכבי קריית גת",
-      "primary": null,
-      "secondary": null,
+      "primary": "#FFFFFF",
+      "secondary": "#0057B8",
       "sport": "basketball"
     },
     "team:maccabi_netanya_fc": {
+      "code": null,
       "display_he": "מכבי נתניה",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:maccabi_petah_tikva_fc": {
+      "code": null,
       "display_he": "מכבי פתח תקווה",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:maccabi_ramat_gan": {
+      "code": "MRG",
       "display_he": "מכבי רמת גן",
-      "primary": null,
-      "secondary": null,
+      "primary": "#FFFFFF",
+      "secondary": "#0057B8",
       "sport": "basketball"
     },
     "team:maccabi_tlv_bb": {
+      "code": "MTA",
       "display_he": "מכבי תל אביב",
       "primary": "#FFD100",
       "secondary": "#003DA5",
       "sport": "basketball"
     },
     "team:maccabi_tlv_fc": {
+      "code": null,
       "display_he": "מכבי תל אביב",
       "primary": null,
       "secondary": null,
       "sport": "football"
     },
     "team:memphis_grizzlies": {
+      "code": "MEM",
       "display_he": "ממפיס גריזליס",
       "primary": "#5D76A9",
       "secondary": "#12173F",
       "sport": "basketball"
     },
     "team:miami_heat": {
+      "code": "MIA",
       "display_he": "מיאמי היט",
       "primary": "#98002E",
       "secondary": "#000000",
       "sport": "basketball"
     },
     "team:milwaukee_bucks": {
+      "code": "MIL",
       "display_he": "מילווקי באקס",
       "primary": "#00471B",
       "secondary": "#EEE1C6",
       "sport": "basketball"
     },
     "team:minnesota_timberwolves": {
+      "code": "MIN",
       "display_he": "מינסוטה טימברוולבס",
       "primary": "#0C2340",
       "secondary": "#78BE20",
       "sport": "basketball"
     },
     "team:monaco_bb": {
+      "code": "MON",
       "display_he": "מונאקו",
       "primary": "#E2001A",
       "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:new_orleans_pelicans": {
+      "code": "NOP",
       "display_he": "ניו אורלינס פליקנס",
       "primary": "#0C2340",
       "secondary": "#85714D",
       "sport": "basketball"
     },
     "team:ny_knicks": {
+      "code": "NYK",
       "display_he": "ניו יורק ניקס",
       "primary": "#006BB6",
       "secondary": "#F58426",
       "sport": "basketball"
     },
     "team:okc_thunder": {
+      "code": "OKC",
       "display_he": "אוקלהומה סיטי ת'אנדר",
       "primary": "#007AC1",
       "secondary": "#EF3B24",
       "sport": "basketball"
     },
     "team:olimpia_milano": {
+      "code": "OLM",
       "display_he": "אולימפיה מילאנו",
       "primary": "#CE1126",
       "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:olympiacos_bb": {
+      "code": "OLY",
       "display_he": "אולימפיאקוס",
       "primary": "#E2001A",
       "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:orlando_magic": {
+      "code": "ORL",
       "display_he": "אורלנדו מג'יק",
       "primary": "#0077C0",
       "secondary": "#000000",
       "sport": "basketball"
     },
     "team:panathinaikos_bb": {
+      "code": "PAO",
       "display_he": "פנאתינייקוס",
       "primary": "#007A3D",
       "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:paris_bb": {
+      "code": "PRS",
       "display_he": "פריז באסקטבול",
       "primary": null,
       "secondary": null,
       "sport": "basketball"
     },
     "team:partizan_bb": {
+      "code": "PAR",
       "display_he": "פרטיזן בלגרד",
       "primary": "#000000",
       "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:philadelphia_76ers": {
+      "code": "PHI",
       "display_he": "פילדלפיה סבנטי סיקסרס",
       "primary": "#006BB6",
       "secondary": "#ED174C",
       "sport": "basketball"
     },
     "team:phoenix_suns": {
+      "code": "PHX",
       "display_he": "פיניקס סאנס",
       "primary": "#1D1160",
       "secondary": "#E56020",
       "sport": "basketball"
     },
     "team:portland_blazers": {
+      "code": "POR",
       "display_he": "פורטלנד בלייזרס",
       "primary": "#E03A3E",
       "secondary": "#000000",
       "sport": "basketball"
     },
     "team:real_madrid_bb": {
+      "code": "RMA",
       "display_he": "ריאל מדריד",
-      "primary": null,
-      "secondary": null,
+      "primary": "#FFFFFF",
+      "secondary": "#3D195B",
       "sport": "basketball"
     },
     "team:sacramento_kings": {
+      "code": "SAC",
       "display_he": "סקרמנטו קינגס",
       "primary": "#5A2D81",
       "secondary": "#63727A",
       "sport": "basketball"
     },
     "team:san_antonio_spurs": {
+      "code": "SAS",
       "display_he": "סן אנטוניו ספרס",
       "primary": "#000000",
       "secondary": "#C4CED4",
       "sport": "basketball"
     },
     "team:toronto_raptors": {
+      "code": "TOR",
       "display_he": "טורונטו ראפטורס",
       "primary": "#CE1141",
       "secondary": "#000000",
       "sport": "basketball"
     },
     "team:utah_jazz": {
+      "code": "UTA",
       "display_he": "יוטה ג'אז",
-      "primary": null,
-      "secondary": null,
+      "primary": "#4B2884",
+      "secondary": "#000000",
       "sport": "basketball"
     },
     "team:valencia_bb": {
+      "code": "VAL",
       "display_he": "ולנסיה",
-      "primary": null,
-      "secondary": null,
+      "primary": "#F28C00",
+      "secondary": "#000000",
       "sport": "basketball"
     },
     "team:virtus_bologna": {
+      "code": "VIR",
       "display_he": "וירטוס בולוניה",
       "primary": "#000000",
       "secondary": "#FFFFFF",
       "sport": "basketball"
     },
     "team:washington_wizards": {
+      "code": "WAS",
       "display_he": "וושינגטון וויזארדס",
       "primary": "#002B5C",
       "secondary": "#E31837",
       "sport": "basketball"
     },
     "team:zalgiris": {
+      "code": "ZAL",
       "display_he": "ז'לגיריס קובנה",
       "primary": "#006A44",
       "secondary": "#FFFFFF",

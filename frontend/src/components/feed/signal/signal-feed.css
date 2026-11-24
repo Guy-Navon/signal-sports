@@ -502,6 +502,30 @@
 
 .sg-lead .sg-headline-link { background-image: linear-gradient(var(--sg-slab-fg), var(--sg-slab-fg)); }
 
+/* Complete quotes bring a second rhythm to the placed rows (#593). */
+.sg-headline-context {
+  display: block;
+  margin-block-end: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sg-dim);
+}
+.sg-headline-quote { font-weight: 700; }
+.sg-quote-glyph {
+  display: inline-block;
+  margin-inline-end: 6px;
+  vertical-align: baseline;
+}
+.sg-num-hl {
+  color: var(--sg-ink);
+  background: var(--sg-num-hl);
+  font-variant-numeric: tabular-nums;
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  unicode-bidi: isolate;
+}
+
 /* Cluster badge: ink ground, card text; the one button that opens a
    multi-source story, wherever it is placed (#501). */
 .sg-badge {

@@ -1,6 +1,7 @@
 # Signal Sports — Frontend Design System
 
-Last updated: 2026-11-15 (#513 results page direction C and the new game popup;
+Last updated: 2026-11-24 (#593 quote headlines and numbers; #592 team marks;
+#513 results page direction C and the new game popup;
 #524 separate player choices; #526 demo statistics guard; #538 results health in the existing ops surface;
 #491 navigation, #473 cleanup; first written 2026-11-13, #461).
 This file has two parts:
@@ -353,6 +354,7 @@ opens a specimen page of the tokens, type and marks in all three grounds.
 | `--line` | dividers, borders | `#e2e6ee` | `#c9d0dc` | `#353e55` |
 | `--acc` | accent: logo stroke, filled mark, tags, actions, link underline, box rule | `#2446e8` | `#2446e8` | `#3cffd0` |
 | `--tint` | accent tint: tag ground, row hover | `#edf1ff` | `#d8e0f8` | `#25304a` |
+| `--num-hl` | highlighted scores and numbers with units (#593) | `#edf1ff` | `#d8e0f8` | `#35415c` |
 | `--top` | header (masthead and slim bar) | `#142a66` | `#142a66` | `#0f1422` |
 | `--top-fg` | header text, active tab | `#ffffff` | `#ffffff` | `#eef1f7` |
 | `--top-dim` | inactive tabs, date line (#491) | `#b9c4e6` | `#b9c4e6` | `#a3adc0` |
@@ -489,6 +491,27 @@ artifact https://claude.ai/artifact/HgCpkCMCtAL3QwYMHZS1E8. It replaces the spor
   keeps about 80% of the row width.
 - **Behaviour:** the mark is not interactive (tapping it to show the why line is #594) and
   has no motion of its own.
+
+### Quote headlines and numbers (#593)
+
+Important, stream and brief rows split complete quoted headlines into a 14 px, 700
+`--sg-dim` context line and a quote at the row's headline size, weight 700. A drawn
+22×16 quote glyph uses the first team mark's primary fill and secondary stroke, or
+`--sg-acc` when there is no mark. Quote-only titles use the chip's player or team name
+as context when available. Context and quote share the existing headline link; the
+glyph is decorative. The lead and "אחרונים" keep plain headlines.
+
+`headlineParts` in `headlineModel.js` parses raw titles before Hebrew prefix joining:
+only `context: "quote"`, `"quote": context` and a complete `"quote"` count. Curly marks
+and gershayim also work; marks between Hebrew letters remain acronym characters.
+Untranslated foreign titles keep their original layout and direction.
+
+`emphasisedNumbers` losslessly segments scores and numbers followed by supported
+currency, magnitude or sports units. Bare numbers and years stay plain. In these
+three row types, both plain and quoted titles highlight the segments with `<mark>`,
+tabular figures, `--sg-ink` and `--sg-num-hl` (`#edf1ff` white, `#d8e0f8` soft,
+`#35415c` dark). Ink on each highlight ground passes 4.5:1 in `contrast.test.js`.
+The public read-only demo uses the same components and existing snapshot fields.
 
 ## B5. Feed composition
 

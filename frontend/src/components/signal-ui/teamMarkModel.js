@@ -56,6 +56,16 @@ export function teamMarkFor(article) {
   }
 
   const chosen = [...teams.values()];
+  // A named registered player is the strongest sign of the story's subject:
+  // their club leads, whatever order the entities came in and however many
+  // other clubs are named ("Deni beat Philadelphia and LeBron" is a Portland
+  // story). The second team is the first other club with colours.
+  const lead = chosen.find((team) => team.personDisplayHe);
+  if (lead) {
+    if (!lead.primary || !lead.secondary) return null;
+    const other = chosen.find((team) => team !== lead && team.primary && team.secondary);
+    return { teams: /** @type {MarkTeam[]} */ (other ? [lead, other] : [lead]) };
+  }
   if (chosen.length >= 1 && chosen.length <= MAX_TEAMS && chosen.every((team) => team.primary && team.secondary)) {
     return { teams: /** @type {MarkTeam[]} */ (chosen) };
   }

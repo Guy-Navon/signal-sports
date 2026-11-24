@@ -48,6 +48,19 @@ describe("teamMarkFor", () => {
     expect(teamsOf(mark)[1]).toMatchObject({ number: null, personDisplayHe: "לברון ג'יימס" });
   });
 
+  it("lets a named player's club lead, whatever the entity order", () => {
+    // Real important-row stories, 2026-11-24: the article listed Philadelphia first.
+    const mark = basketball(["Philadelphia 76ers", "Deni Avdija"]);
+    expect(teamIds(mark)).toEqual(["team:portland_blazers", "team:philadelphia_76ers"]);
+    expect(teamsOf(mark)[0]).toMatchObject({ code: "POR", number: "8", personDisplayHe: "דני אבדיה" });
+  });
+
+  it("keeps a player's club even when three or more clubs are named", () => {
+    // "Deni beat Philadelphia and LeBron" is a Portland story.
+    const mark = basketball(["Deni Avdija", "Portland Trail Blazers", "Philadelphia 76ers", "LeBron James"]);
+    expect(teamIds(mark)).toEqual(["team:portland_blazers", "team:philadelphia_76ers"]);
+  });
+
   it("abstains for three or more teams", () => {
     // A real story, 2026-11-23.
     expect(basketball(["Maccabi Ramat Gan", "Hapoel Tel Aviv Basketball", "Maccabi Tel Aviv Basketball"])).toBeNull();

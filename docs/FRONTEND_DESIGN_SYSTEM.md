@@ -447,8 +447,11 @@ artifact https://claude.ai/artifact/HgCpkCMCtAL3QwYMHZS1E8. It replaces the spor
   Deni Avdija 8). Colours are facts and are never adjusted for a ground.
 - **Team choice** (`teamMarkFor`, pure): each entity resolves to its team, and a player
   resolves to their club. Distinct teams are kept in first-seen order; a player and their own
-  club make one team, which carries the player's name and number. Exactly one or two teams,
-  all with colours, give `{ teams }`. No team, three or more teams, or any chosen team
+  club make one team, which carries the player's name and number. **A named player's club
+  leads** (Guy, 2026-11-24): it is the drawn team whatever the entity order and however many
+  other clubs are named, and the first other club with colours is named second ("Deni beat
+  Philadelphia and LeBron" is a Portland story). Without a named player, exactly one or two
+  teams, all with colours, give `{ teams }`. No team, three or more teams, or any chosen team
   without colours give `null`: the row then shows no edge, no jersey and no chip (there is
   no fallback glyph), and keeps an empty jersey-width column so headlines stay aligned.
   A team is never inferred from headline text.
